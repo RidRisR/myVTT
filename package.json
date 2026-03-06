@@ -7,14 +7,16 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server": "node server/index.mjs"
   },
   "dependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tldraw": "^4.4.0",
+    "y-leveldb": "^0.2.0",
     "y-utility": "^0.1.4",
-    "y-websocket": "^3.0.0",
+    "y-websocket": "^2.1.0",
     "yjs": "^13.6.29"
   },
   "devDependencies": {
