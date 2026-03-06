@@ -19,10 +19,10 @@ export function useYjsStore() {
       bindingUtils: [...defaultBindingUtils],
     })
   )
+  const [yDoc] = useState(() => new Y.Doc())
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const yDoc = new Y.Doc()
     const yArr = yDoc.getArray<{ key: string; val: TLRecord }>('tl_records')
     const yStore = new YKeyValue(yArr)
 
@@ -112,9 +112,8 @@ export function useYjsStore() {
       unsubscribe()
       yStore.off('change', handleYjsChange)
       wsProvider.destroy()
-      yDoc.destroy()
     }
-  }, [store])
+  }, [store, yDoc])
 
-  return { store, isLoading }
+  return { store, yDoc, isLoading }
 }
