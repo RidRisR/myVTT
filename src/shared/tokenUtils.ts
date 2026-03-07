@@ -1,18 +1,6 @@
-export interface Resource {
-  key: string
-  current: number
-  max: number
-  color: string
-}
+import type { Resource, Attribute, Status } from './tokenTypes'
 
-export interface Attribute {
-  key: string
-  value: number
-}
-
-export interface Status {
-  label: string
-}
+export type { Resource, Attribute, Status }
 
 export const BAR_COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899']
 

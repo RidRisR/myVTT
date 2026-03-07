@@ -1,4 +1,4 @@
-import type { DiceTermResult } from '../diceUtils'
+import type { DiceTermResult } from '../shared/diceUtils'
 
 export interface ChatTextMessage {
   type: 'text'

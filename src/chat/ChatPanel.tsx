@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as Y from 'yjs'
-import type { Editor } from 'tldraw'
 import type { ChatMessage } from './chatTypes'
 import { ChatMessageBubble } from './ChatMessageBubble'
 import { DiceResultCard } from './DiceResultCard'
@@ -10,20 +9,20 @@ const MAX_VISIBLE = 5
 
 interface ChatPanelProps {
   yDoc: Y.Doc
-  editor: Editor | null
   senderId: string
   senderName: string
   senderColor: string
   seatProperties: { key: string; value: string }[]
+  selectedTokenProps?: { key: string; value: string }[]
 }
 
 export function ChatPanel({
   yDoc,
-  editor,
   senderId,
   senderName,
   senderColor,
   seatProperties,
+  selectedTokenProps = [],
 }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set())
@@ -224,7 +223,7 @@ export function ChatPanel({
         {/* Input bar */}
         <div style={{ pointerEvents: 'auto' }}>
           <ChatInput
-            editor={editor}
+            selectedTokenProps={selectedTokenProps}
             senderId={senderId}
             senderName={senderName}
             senderColor={senderColor}
