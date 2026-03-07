@@ -7,6 +7,7 @@ export interface Seat {
   name: string
   color: string
   role: 'GM' | 'PL'
+  properties?: { key: string; value: string }[]
 }
 
 const SEAT_STORAGE_KEY = 'myvtt-seat-id'
@@ -95,6 +96,12 @@ export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
     }
   }, [awareness])
 
+  const updateSeatProperties = useCallback((seatId: string, properties: { key: string; value: string }[]) => {
+    const seat = yPlayers.get(seatId)
+    if (!seat) return
+    yPlayers.set(seatId, { ...seat, properties })
+  }, [yPlayers])
+
   const mySeat = mySeatId ? yPlayers.get(mySeatId) ?? null : null
 
   return {
@@ -105,5 +112,6 @@ export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
     claimSeat,
     createSeat,
     leaveSeat,
+    updateSeatProperties,
   }
 }

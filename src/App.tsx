@@ -5,7 +5,7 @@ import { useYjsStore } from './useYjsStore'
 import { PropertyContextMenu } from './PropertyContextMenu'
 import { TokenPanel } from './panel/TokenPanel'
 import { TokenOverlay } from './panel/TokenOverlay'
-import { IdentityBadge } from './RoleSwitcher'
+import { PlayerPanel } from './panel/PlayerPanel'
 import { DiceSidebar } from './DiceSidebar'
 import { SeatSelect } from './identity/SeatSelect'
 import { useIdentity } from './identity/useIdentity'
@@ -18,7 +18,7 @@ function getShapeVisibility(shape: TLShape) {
 
 export default function App() {
   const { store, yDoc, isLoading, awareness } = useYjsStore()
-  const { seats, mySeat, onlineSeatIds, claimSeat, createSeat, leaveSeat } = useIdentity(yDoc, awareness)
+  const { seats, mySeat, mySeatId, onlineSeatIds, claimSeat, createSeat, leaveSeat, updateSeatProperties } = useIdentity(yDoc, awareness)
   const [editor, setEditor] = useState<Editor | null>(null)
 
   // Sync role atom from seat
@@ -65,7 +65,14 @@ export default function App() {
           InFrontOfTheCanvas: TokenOverlay,
         }}
       />
-      <IdentityBadge seat={mySeat} onLeave={leaveSeat} />
+      <PlayerPanel
+        seats={seats}
+        mySeat={mySeat}
+        mySeatId={mySeatId!}
+        onlineSeatIds={onlineSeatIds}
+        onLeave={leaveSeat}
+        onUpdateProperties={updateSeatProperties}
+      />
       <DiceSidebar yDoc={yDoc} playerName={mySeat.name} />
       {editor && <TokenPanel editor={editor} />}
     </div>
