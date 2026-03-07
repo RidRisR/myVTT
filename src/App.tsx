@@ -15,6 +15,7 @@ import { CursorOverlay } from './tools/CursorOverlay'
 import { useCursorSync } from './hooks/useCursorSync'
 import { currentRole } from './roleState'
 import { SidebarLayout } from './sidebar/SidebarLayout'
+import { CustomImageToolbar } from './CustomImageToolbar'
 
 function getShapeVisibility(shape: TLShape) {
   if (shape.meta?.gmOnly && currentRole.get() === 'PL') return 'hidden' as const
@@ -167,6 +168,7 @@ export default function App() {
         onMount={setEditor}
         components={{
           ContextMenu: PropertyContextMenu,
+          ImageToolbar: CustomImageToolbar,
           InFrontOfTheCanvas: TokenOverlay,
           Toolbar: CustomToolbar,
           StylePanel: null,

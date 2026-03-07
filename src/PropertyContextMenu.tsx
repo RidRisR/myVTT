@@ -1,10 +1,14 @@
 import {
   DefaultContextMenu,
-  DefaultContextMenuContent,
   TldrawUiMenuGroup,
   TldrawUiMenuItem,
   useEditor,
   useValue,
+  ArrangeMenuSubmenu,
+  ReorderMenuSubmenu,
+  ClipboardMenuGroup,
+  SelectAllMenuItem,
+  ToggleLockMenuItem,
   type TLUiContextMenuProps,
 } from 'tldraw'
 import { currentRole } from './roleState'
@@ -17,6 +21,7 @@ export function PropertyContextMenu(props: TLUiContextMenuProps) {
   const role = useValue(currentRole)
   const isGM = role === 'GM'
   const isGmOnly = singleShape?.meta?.gmOnly === true
+  const selectToolActive = useValue('isSelectToolActive', () => editor.getCurrentToolId() === 'select', [editor])
 
   const handleToggleVisibility = () => {
     if (!singleShape) return
@@ -29,7 +34,21 @@ export function PropertyContextMenu(props: TLUiContextMenuProps) {
 
   return (
     <DefaultContextMenu {...props}>
-      <DefaultContextMenuContent />
+      {selectToolActive && (
+        <>
+          <TldrawUiMenuGroup id="modify">
+            <ArrangeMenuSubmenu />
+            <ReorderMenuSubmenu />
+          </TldrawUiMenuGroup>
+          <TldrawUiMenuGroup id="lock">
+            <ToggleLockMenuItem />
+          </TldrawUiMenuGroup>
+          <ClipboardMenuGroup />
+          <TldrawUiMenuGroup id="select-all">
+            <SelectAllMenuItem />
+          </TldrawUiMenuGroup>
+        </>
+      )}
       {singleShape && isGM && (
         <TldrawUiMenuGroup id="token-actions">
           <TldrawUiMenuItem
