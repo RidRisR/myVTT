@@ -2,12 +2,18 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
 
+export interface DiceFavorite {
+  name: string
+  formula: string
+}
+
 export interface Seat {
   id: string
   name: string
   color: string
   role: 'GM' | 'PL'
   properties?: { key: string; value: string }[]
+  favorites?: DiceFavorite[]
 }
 
 const SEAT_STORAGE_KEY = 'myvtt-seat-id'
@@ -102,6 +108,12 @@ export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
     yPlayers.set(seatId, { ...seat, properties })
   }, [yPlayers])
 
+  const updateSeatFavorites = useCallback((seatId: string, favorites: DiceFavorite[]) => {
+    const seat = yPlayers.get(seatId)
+    if (!seat) return
+    yPlayers.set(seatId, { ...seat, favorites })
+  }, [yPlayers])
+
   const mySeat = mySeatId ? yPlayers.get(mySeatId) ?? null : null
 
   return {
@@ -113,5 +125,6 @@ export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
     createSeat,
     leaveSeat,
     updateSeatProperties,
+    updateSeatFavorites,
   }
 }
