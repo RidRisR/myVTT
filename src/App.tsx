@@ -93,7 +93,7 @@ export default function App() {
               }
             }
           }
-          toUpdate.push({ id: shape.id, type: shape.type, meta: { ...shape.meta, name, properties: [], nameDisplay: 'hidden' } as Partial<JsonObject> })
+          toUpdate.push({ id: shape.id, type: shape.type, meta: { ...shape.meta, name, nameDisplay: 'hidden', resources: [], attributes: [], statuses: [], notes: '' } as Partial<JsonObject> })
         }
         if (toUpdate.length > 0) {
           for (const upd of toUpdate) editor.updateShape(upd as any)
