@@ -5,6 +5,32 @@ import { adjustNumericValue } from './panelUtils'
 import { useHoldRepeat } from './useHoldRepeat'
 import { useDraggable } from './useDraggable'
 
+const BAR_COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899']
+
+function EyeIcon({ mode, size = 14 }: { mode: 'hidden' | 'hover' | 'always'; size?: number }) {
+  // hidden = gray + slash, hover = gray open, always = orange open
+  const color = mode === 'always' ? '#f59e0b' : '#aaa'
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" style={{ display: 'block' }}>
+      <path
+        d="M1 8 Q4 3 8 3 Q12 3 15 8 Q12 13 8 13 Q4 13 1 8 Z"
+        stroke={color}
+        strokeWidth="1.5"
+        fill="none"
+      />
+      <circle
+        cx="8" cy="8" r="2"
+        fill={mode === 'hidden' ? 'none' : color}
+        stroke={color}
+        strokeWidth="1.2"
+      />
+      {mode === 'hidden' && (
+        <line x1="3" y1="13" x2="13" y2="3" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      )}
+    </svg>
+  )
+}
+
 interface TokenPanelProps {
   editor: Editor
 }
@@ -17,6 +43,10 @@ export function TokenPanel({ editor }: TokenPanelProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editKey, setEditKey] = useState('')
   const [editValue, setEditValue] = useState('')
+  const [colorPickerKey, setColorPickerKey] = useState<string | null>(null)
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dropIndex, setDropIndex] = useState<number | null>(null)
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([])
 
   // Hold-to-repeat: ref tracks which property is being held
   const holdTargetRef = useRef<{ index: number; delta: number }>({ index: 0, delta: 1 })
@@ -52,6 +82,7 @@ export function TokenPanel({ editor }: TokenPanelProps) {
   const nameDisplay = (selectedShape?.meta?.nameDisplay as string) ?? 'hidden'
   const properties = (selectedShape?.meta?.properties as { key: string; value: string }[]) ?? []
   const pinModes = readPinModes(selectedShape?.meta?.pinnedProps)
+  const propColors = (selectedShape?.meta?.propColors as Record<string, string>) ?? {}
 
   const updateMeta = (meta: Record<string, unknown>) => {
     if (!selectedShape) return
@@ -67,7 +98,7 @@ export function TokenPanel({ editor }: TokenPanelProps) {
     const key = newKey.trim()
     updateMeta({
       properties: [...properties, { key, value: newValue.trim() }],
-      pinnedProps: { ...pinModes, [key]: 'hover' as const },
+      pinnedProps: { ...pinModes, [key]: 'always' as const },
     })
     setNewKey('')
     setNewValue('')
@@ -185,30 +216,105 @@ export function TokenPanel({ editor }: TokenPanelProps) {
                       : 'Name always shown (click: hidden)'
                   }
                 >
-                  <span style={{
-                    display: 'inline-block', width: 10, height: 10,
-                    borderRadius: '50%',
-                    border: `2px solid ${
-                      nameDisplay === 'always' ? '#2563eb'
-                        : nameDisplay === 'hover' ? '#f59e0b' : '#ccc'
-                    }`,
-                    background: nameDisplay === 'always' ? '#2563eb' : 'transparent',
-                    boxShadow: nameDisplay === 'hover' ? 'inset 5px 0 0 0 #f59e0b' : 'none',
-                  }} />
+                  <EyeIcon mode={nameDisplay as 'hidden' | 'hover' | 'always'} />
                 </button>
               </div>
             </div>
 
             {/* Properties List */}
-            <div style={{ marginBottom: 8 }}>
+            <div
+              style={{ marginBottom: 8, position: 'relative' }}
+              onPointerMove={(e) => {
+                if (dragIndex === null) return
+                let closest = 0
+                let minDist = Infinity
+                for (let j = 0; j <= properties.length; j++) {
+                  let y: number
+                  if (j < properties.length && rowRefs.current[j]) {
+                    y = rowRefs.current[j]!.getBoundingClientRect().top
+                  } else if (j > 0 && rowRefs.current[j - 1]) {
+                    const r = rowRefs.current[j - 1]!.getBoundingClientRect()
+                    y = r.bottom
+                  } else continue
+                  const dist = Math.abs(e.clientY - y)
+                  if (dist < minDist) { minDist = dist; closest = j }
+                }
+                setDropIndex(closest)
+              }}
+              onPointerUp={() => {
+                if (dragIndex !== null && dropIndex !== null && dropIndex !== dragIndex && dropIndex !== dragIndex + 1) {
+                  const reordered = [...properties]
+                  const [item] = reordered.splice(dragIndex, 1)
+                  const insertAt = dropIndex > dragIndex ? dropIndex - 1 : dropIndex
+                  reordered.splice(insertAt, 0, item)
+                  updateMeta({ properties: reordered })
+                }
+                setDragIndex(null)
+                setDropIndex(null)
+              }}
+            >
               <label style={{ fontSize: 11, color: '#999', display: 'block', marginBottom: 4 }}>
                 Properties
               </label>
-              {properties.map((prop, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '4px 0', borderBottom: '1px solid #f3f4f6',
-                }}>
+              {properties.map((prop, i) => {
+                const pinMode = pinModes[prop.key]
+                const curColor = propColors[prop.key]
+                return (
+                <div key={i}>
+                  {/* Drop indicator line */}
+                  {dragIndex !== null && dropIndex === i && dropIndex !== dragIndex && dropIndex !== dragIndex + 1 && (
+                    <div style={{ height: 2, background: '#2563eb', borderRadius: 1, margin: '0 4px' }} />
+                  )}
+                  <div
+                    ref={(el) => { rowRefs.current[i] = el }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 4,
+                      padding: '4px 0', borderBottom: '1px solid #f3f4f6',
+                      opacity: dragIndex === i ? 0.4 : 1,
+                    }}
+                  >
+                  {/* Drag handle */}
+                  <span
+                    onPointerDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+                      setDragIndex(i)
+                    }}
+                    style={{
+                      cursor: dragIndex === i ? 'grabbing' : 'grab',
+                      color: '#ccc', fontSize: 10, lineHeight: 1,
+                      padding: '0 1px', flexShrink: 0, userSelect: 'none',
+                      letterSpacing: 1,
+                    }}
+                    title="Drag to reorder"
+                  >⋮⋮</span>
+                  {/* Visibility eye (left) */}
+                  <button
+                    onClick={() => {
+                      const newModes = { ...pinModes }
+                      if (!pinMode) {
+                        newModes[prop.key] = 'hover'
+                      } else if (pinMode === 'hover') {
+                        newModes[prop.key] = 'always'
+                      } else {
+                        delete newModes[prop.key]
+                      }
+                      updateMeta({ pinnedProps: newModes })
+                    }}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      padding: '0 1px', lineHeight: 1, display: 'flex', alignItems: 'center',
+                      flexShrink: 0,
+                    }}
+                    title={
+                      !pinMode ? 'Hidden (click: show on hover)'
+                        : pinMode === 'hover' ? 'Show on hover (click: always)'
+                        : 'Always shown (click: hide)'
+                    }
+                  >
+                    <EyeIcon mode={pinMode ?? 'hidden'} size={13} />
+                  </button>
                   {editingIndex === i ? (
                     <div
                       style={{ display: 'flex', gap: 4, flex: 1 }}
@@ -291,41 +397,51 @@ export function TokenPanel({ editor }: TokenPanelProps) {
                       </span>
                     </>
                   )}
-                  <button
-                    onClick={() => {
-                      const cur = pinModes[prop.key]
-                      const newModes = { ...pinModes }
-                      if (!cur) {
-                        newModes[prop.key] = 'always'
-                      } else if (cur === 'always') {
-                        newModes[prop.key] = 'hover'
-                      } else {
-                        delete newModes[prop.key]
-                      }
-                      updateMeta({ pinnedProps: newModes })
-                    }}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      padding: '0 2px', lineHeight: 1,
-                      display: 'flex', alignItems: 'center',
-                    }}
-                    title={
-                      !pinModes[prop.key] ? 'Show on canvas (always)'
-                        : pinModes[prop.key] === 'always' ? 'Show on canvas (hover only)'
-                        : 'Hide from canvas'
-                    }
-                  >
-                    <span style={{
-                      display: 'inline-block', width: 10, height: 10,
-                      borderRadius: '50%',
-                      border: `2px solid ${
-                        pinModes[prop.key] === 'always' ? '#2563eb'
-                          : pinModes[prop.key] === 'hover' ? '#f59e0b' : '#ccc'
-                      }`,
-                      background: pinModes[prop.key] === 'always' ? '#2563eb' : 'transparent',
-                      boxShadow: pinModes[prop.key] === 'hover' ? 'inset 5px 0 0 0 #f59e0b' : 'none',
-                    }} />
-                  </button>
+                  {/* Color picker (right) — only for HP-format values (N/M) */}
+                  {/^\d+\/\d+$/.test(prop.value) && (
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <button
+                      onClick={() => setColorPickerKey(colorPickerKey === prop.key ? null : prop.key)}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        padding: '0 2px', lineHeight: 1, display: 'flex', alignItems: 'center',
+                      }}
+                      title="Bar color (click to choose)"
+                    >
+                      <span style={{
+                        display: 'inline-block', width: 10, height: 10,
+                        borderRadius: '50%',
+                        background: curColor || BAR_COLORS[0],
+                        border: '1.5px solid rgba(0,0,0,0.15)',
+                      }} />
+                    </button>
+                    {colorPickerKey === prop.key && (
+                      <div
+                        style={{
+                          position: 'absolute', right: 0, top: 18,
+                          background: '#fff', borderRadius: 6, padding: 4,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                          display: 'flex', gap: 3, zIndex: 10,
+                        }}
+                      >
+                        {BAR_COLORS.map((c) => (
+                          <button
+                            key={c}
+                            onClick={() => {
+                              updateMeta({ propColors: { ...propColors, [prop.key]: c } })
+                              setColorPickerKey(null)
+                            }}
+                            style={{
+                              width: 16, height: 16, borderRadius: '50%',
+                              background: c, border: c === curColor ? '2px solid #333' : '1.5px solid rgba(0,0,0,0.1)',
+                              cursor: 'pointer', padding: 0,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  )}
                   <button
                     onClick={() => handleDeleteProperty(i)}
                     style={{
@@ -336,8 +452,14 @@ export function TokenPanel({ editor }: TokenPanelProps) {
                   >
                     x
                   </button>
+                  </div>
                 </div>
-              ))}
+                )
+              })}
+              {/* Bottom drop indicator */}
+              {dragIndex !== null && dropIndex === properties.length && dropIndex !== dragIndex && dropIndex !== dragIndex + 1 && (
+                <div style={{ height: 2, background: '#2563eb', borderRadius: 1, margin: '0 4px' }} />
+              )}
               {properties.length === 0 && (
                 <div style={{ color: '#ccc', fontSize: 12, padding: '4px 0' }}>
                   No properties yet
