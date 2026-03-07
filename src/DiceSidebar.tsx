@@ -22,7 +22,6 @@ interface Suggestion {
 export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorites, onUpdateFavorites }: DiceSidebarProps) {
   const [input, setInput] = useState('1d20')
   const [logs, setLogs] = useState<DiceLogEntry[]>([])
-  const [isOpen, setIsOpen] = useState(true)
   const [error, setError] = useState('')
   const [quickCount, setQuickCount] = useState(1)
   const [addingFav, setAddingFav] = useState(false)
@@ -205,42 +204,11 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
     }
   }
 
-  if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        style={{
-          position: 'fixed',
-          right: 12,
-          bottom: 12,
-          zIndex: 99999,
-          padding: '8px 16px',
-          background: '#2563eb',
-          color: '#fff',
-          border: 'none',
-          borderRadius: 8,
-          cursor: 'pointer',
-          fontFamily: 'sans-serif',
-          fontSize: 14,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-        }}
-      >
-        Dice
-      </button>
-    )
-  }
-
   return (
     <div
       style={{
-        position: 'fixed',
-        right: 0,
-        top: 0,
-        bottom: 0,
-        width: 280,
-        background: '#fff',
-        borderLeft: '1px solid #e5e7eb',
-        zIndex: 99999,
+        width: '100%',
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
         fontFamily: 'sans-serif',
@@ -248,31 +216,6 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
       }}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      {/* Header */}
-      <div
-        style={{
-          padding: '12px 16px',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <span style={{ fontWeight: 700, fontSize: 15 }}>Dice Roller</span>
-        <button
-          onClick={() => setIsOpen(false)}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 18,
-            color: '#666',
-            padding: '0 4px',
-          }}
-        >
-          x
-        </button>
-      </div>
 
       {/* Input */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>

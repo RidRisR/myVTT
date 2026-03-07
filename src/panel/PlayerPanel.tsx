@@ -4,7 +4,6 @@ import type { Seat } from '../identity/useIdentity'
 import { currentRole } from '../roleState'
 import { adjustNumericValue } from './panelUtils'
 import { useHoldRepeat } from './useHoldRepeat'
-import { useDraggable } from './useDraggable'
 
 interface PlayerPanelProps {
   seats: Seat[]
@@ -18,8 +17,6 @@ interface PlayerPanelProps {
 export function PlayerPanel({
   seats, mySeat, mySeatId, onlineSeatIds, onLeave, onUpdateProperties,
 }: PlayerPanelProps) {
-  const { pos, dragRef, handlePointerDown, handlePointerMove, handlePointerUp } = useDraggable({ x: 12, y: 12 })
-  const [isOpen, setIsOpen] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(mySeatId)
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
@@ -93,91 +90,56 @@ export function PlayerPanel({
     return a.name.localeCompare(b.name)
   })
 
-  // Collapsed button
-  if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        style={{
-          position: 'fixed', left: pos.x, top: pos.y,
-          zIndex: 99999, padding: '8px 16px',
-          background: '#2563eb', color: '#fff', border: 'none',
-          borderRadius: 8, cursor: 'pointer', fontFamily: 'sans-serif',
-          fontSize: 14, boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-        }}
-      >
-        Players
-      </button>
-    )
-  }
-
   return (
     <div
       style={{
-        position: 'fixed', left: pos.x, top: pos.y,
-        zIndex: 99999, width: 260,
-        background: '#fff', borderRadius: 10,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+        width: '100%', height: '100%',
+        display: 'flex', flexDirection: 'column',
         fontFamily: 'sans-serif', fontSize: 13,
         userSelect: 'none',
       }}
     >
-      {/* Header */}
+      {/* Sub-header: role toggle + leave */}
       <div
         style={{
-          padding: '10px 16px', borderBottom: '1px solid #e5e7eb',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          cursor: dragRef.current ? 'grabbing' : 'grab',
+          padding: '8px 16px', borderBottom: '1px solid #e5e7eb',
+          display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
+          gap: 4,
         }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
       >
-        <span style={{ fontWeight: 700, fontSize: 14 }}>Players</span>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {mySeat.role === 'GM' && (
-            <button
-              onClick={() => currentRole.set(viewRole === 'GM' ? 'PL' : 'GM')}
-              title={viewRole === 'GM' ? 'Switch to PL view' : 'Switch to GM view'}
-              style={{
-                fontSize: 10, padding: '2px 6px', borderRadius: 4,
-                border: '1px solid #d1d5db', cursor: 'pointer',
-                background: viewRole === 'PL' ? '#fee2e2' : '#f3f4f6',
-                color: viewRole === 'PL' ? '#dc2626' : '#666',
-                fontWeight: 600,
-              }}
-            >
-              {viewRole === 'PL' ? 'PL' : 'GM'}
-            </button>
-          )}
+        {mySeat.role === 'GM' && (
           <button
-            onClick={onLeave}
-            title="Leave seat"
+            onClick={() => currentRole.set(viewRole === 'GM' ? 'PL' : 'GM')}
+            title={viewRole === 'GM' ? 'Switch to PL view' : 'Switch to GM view'}
             style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '0 2px', display: 'flex', alignItems: 'center',
+              fontSize: 10, padding: '2px 6px', borderRadius: 4,
+              border: '1px solid #d1d5db', cursor: 'pointer',
+              background: viewRole === 'PL' ? '#fee2e2' : '#f3f4f6',
+              color: viewRole === 'PL' ? '#dc2626' : '#666',
+              fontWeight: 600,
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
+            {viewRole === 'PL' ? 'PL' : 'GM'}
           </button>
-          <button
-            onClick={() => setIsOpen(false)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: 18, color: '#666', padding: '0 4px',
-            }}
-          >
-            x
-          </button>
-        </div>
+        )}
+        <button
+          onClick={onLeave}
+          title="Leave seat"
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: '0 2px', display: 'flex', alignItems: 'center',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
       </div>
 
       {/* Seat list */}
-      <div style={{ padding: '8px 0', maxHeight: 400, overflowY: 'auto' }}>
+      <div style={{ padding: '8px 0', flex: 1, overflowY: 'auto' }}>
         {sortedSeats.map((seat) => {
           const isMe = seat.id === mySeatId
           const isOnline = isMe || onlineSeatIds.has(seat.id)

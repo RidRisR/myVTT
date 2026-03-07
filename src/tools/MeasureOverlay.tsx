@@ -27,7 +27,7 @@ export function MeasureOverlay({ editor }: { editor: Editor }) {
     : Math.round(gridDistance).toString()
 
   return (
-    <svg style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: 99997 }}>
+    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 99997 }}>
       <line
         x1={screenStart.x} y1={screenStart.y}
         x2={screenEnd.x} y2={screenEnd.y}

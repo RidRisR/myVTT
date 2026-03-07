@@ -3,7 +3,6 @@ import { useValue, type Editor, type JsonValue } from 'tldraw'
 import { readPinModes } from './tokenUtils'
 import { adjustNumericValue } from './panelUtils'
 import { useHoldRepeat } from './useHoldRepeat'
-import { useDraggable } from './useDraggable'
 
 const BAR_COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899']
 
@@ -36,8 +35,6 @@ interface TokenPanelProps {
 }
 
 export function TokenPanel({ editor }: TokenPanelProps) {
-  const { pos, dragRef, handlePointerDown, handlePointerMove, handlePointerUp } = useDraggable({ x: window.innerWidth - 320, y: 60 })
-  const [isOpen, setIsOpen] = useState(true)
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
@@ -123,60 +120,17 @@ export function TokenPanel({ editor }: TokenPanelProps) {
     setEditingIndex(null)
   }
 
-  // Collapsed button
-  if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        style={{
-          position: 'fixed', left: pos.x, top: pos.y,
-          zIndex: 99999, padding: '8px 16px',
-          background: '#2563eb', color: '#fff', border: 'none',
-          borderRadius: 8, cursor: 'pointer', fontFamily: 'sans-serif',
-          fontSize: 14, boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-        }}
-      >
-        Token
-      </button>
-    )
-  }
-
   return (
     <div
       style={{
-        position: 'fixed', left: pos.x, top: pos.y,
-        zIndex: 99999, width: 280,
-        background: '#fff', borderRadius: 10,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+        width: '100%', height: '100%',
+        display: 'flex', flexDirection: 'column',
         fontFamily: 'sans-serif', fontSize: 13,
         userSelect: 'none',
       }}
     >
-      {/* Header — drag handle */}
-      <div
-        style={{
-          padding: '10px 16px', borderBottom: '1px solid #e5e7eb',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          cursor: dragRef.current ? 'grabbing' : 'grab',
-        }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-      >
-        <span style={{ fontWeight: 700, fontSize: 14 }}>Token</span>
-        <button
-          onClick={() => setIsOpen(false)}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: 18, color: '#666', padding: '0 4px',
-          }}
-        >
-          x
-        </button>
-      </div>
-
       {/* Body */}
-      <div style={{ padding: '12px 16px' }}>
+      <div style={{ padding: '12px 16px', flex: 1, overflowY: 'auto' }}>
         {!selectedShape && (
           <div style={{ color: '#999', textAlign: 'center', padding: 16 }}>
             Select a shape

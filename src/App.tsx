@@ -14,6 +14,7 @@ import { useIdentity } from './identity/useIdentity'
 import { CursorOverlay } from './tools/CursorOverlay'
 import { useCursorSync } from './hooks/useCursorSync'
 import { currentRole } from './roleState'
+import { SidebarLayout } from './sidebar/SidebarLayout'
 
 function getShapeVisibility(shape: TLShape) {
   if (shape.meta?.gmOnly && currentRole.get() === 'PL') return 'hidden' as const
@@ -131,8 +132,33 @@ export default function App() {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0 }}>
-      <style>{`.tlui-layout__top { padding-right: 280px; }`}</style>
+    <>
+    <style>{`.tl-watermark_SEE-LICENSE { display: none !important; }`}</style>
+    <SidebarLayout
+      panelContents={{
+        players: (
+          <PlayerPanel
+            seats={seats}
+            mySeat={mySeat}
+            mySeatId={mySeatId!}
+            onlineSeatIds={onlineSeatIds}
+            onLeave={leaveSeat}
+            onUpdateProperties={updateSeatProperties}
+          />
+        ),
+        dice: (
+          <DiceSidebar
+            yDoc={yDoc}
+            playerName={mySeat.name}
+            editor={editor}
+            seatProperties={mySeat.properties ?? []}
+            favorites={mySeat.favorites ?? []}
+            onUpdateFavorites={(favs) => updateSeatFavorites(mySeatId!, favs)}
+          />
+        ),
+        token: editor ? <TokenPanel editor={editor} /> : undefined,
+      }}
+    >
       <Tldraw
         store={store}
         tools={measureTools}
@@ -143,27 +169,14 @@ export default function App() {
           ContextMenu: PropertyContextMenu,
           InFrontOfTheCanvas: TokenOverlay,
           Toolbar: CustomToolbar,
+          StylePanel: null,
+          SharePanel: null,
+          HelpMenu: null,
         }}
       />
-      <PlayerPanel
-        seats={seats}
-        mySeat={mySeat}
-        mySeatId={mySeatId!}
-        onlineSeatIds={onlineSeatIds}
-        onLeave={leaveSeat}
-        onUpdateProperties={updateSeatProperties}
-      />
-      <DiceSidebar
-        yDoc={yDoc}
-        playerName={mySeat.name}
-        editor={editor}
-        seatProperties={mySeat.properties ?? []}
-        favorites={mySeat.favorites ?? []}
-        onUpdateFavorites={(favs) => updateSeatFavorites(mySeatId!, favs)}
-      />
-      {editor && <TokenPanel editor={editor} />}
       {editor && <MeasureOverlay editor={editor} />}
       {editor && awareness && <CursorOverlay editor={editor} awareness={awareness} />}
-    </div>
+    </SidebarLayout>
+    </>
   )
 }
