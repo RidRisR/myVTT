@@ -12,7 +12,6 @@ interface SidebarLayoutProps {
 const panelTitles: Record<PanelId, string> = {
   players: 'Players',
   dice: 'Dice Roller',
-  token: 'Token',
 }
 
 export function SidebarLayout({ children, panelContents }: SidebarLayoutProps) {

@@ -6,7 +6,7 @@ import {
   useValue,
   useActions,
 } from 'tldraw'
-import { activePanel as activePanelAtom } from './roleState'
+import { tokenPopoverOpen } from './roleState'
 
 export function CustomImageToolbar() {
   const editor = useEditor()
@@ -19,7 +19,7 @@ export function CustomImageToolbar() {
     editor.setCurrentTool('select.idle')
   }
   const handleEditProperties = () => {
-    activePanelAtom.set(activePanelAtom.get() === 'token' ? null : 'token')
+    tokenPopoverOpen.set(!tokenPopoverOpen.get())
   }
 
   return (

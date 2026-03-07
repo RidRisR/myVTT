@@ -11,7 +11,7 @@ import {
   ToggleLockMenuItem,
   type TLUiContextMenuProps,
 } from 'tldraw'
-import { currentRole } from './roleState'
+import { currentRole, tokenPopoverOpen } from './roleState'
 
 export function PropertyContextMenu(props: TLUiContextMenuProps) {
   const editor = useEditor()
@@ -48,6 +48,15 @@ export function PropertyContextMenu(props: TLUiContextMenuProps) {
             <SelectAllMenuItem />
           </TldrawUiMenuGroup>
         </>
+      )}
+      {singleShape && selectToolActive && (
+        <TldrawUiMenuGroup id="edit-properties">
+          <TldrawUiMenuItem
+            id="edit-properties"
+            label="Edit Properties"
+            onSelect={() => tokenPopoverOpen.set(true)}
+          />
+        </TldrawUiMenuGroup>
       )}
       {singleShape && isGM && (
         <TldrawUiMenuGroup id="token-actions">
