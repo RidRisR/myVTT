@@ -1,21 +1,25 @@
-import { useRef } from 'react'
 import { useEditor, useValue, type Editor, type TLShapeId } from 'tldraw'
-import { readPinModes } from './tokenUtils'
-
-const HP_REGEX = /^(\d+)\/(\d+)$/
+import { useHoldRepeat } from './useHoldRepeat'
+import {
+  type Resource, type Attribute, type Status,
+  readResources, readAttributes, readStatuses,
+  statusColor,
+} from './tokenUtils'
 
 interface OverlayItem {
   id: TLShapeId
   name: string
   isActive: boolean
-  alwaysProps: { key: string; value: string }[]
-  rightSideProps: { key: string; value: string }[]
-  propColors: Record<string, string>
+  isSelected: boolean
+  resources: Resource[]
+  attributes: Attribute[]
+  statuses: Status[]
   bottomX: number
   bottomY: number
   rightX: number
   rightY: number
   width: number
+  scale: number
 }
 
 export function TokenOverlay() {
@@ -24,46 +28,40 @@ export function TokenOverlay() {
   const overlays = useValue('tokenOverlays', () => {
     const hoveredId = editor.getHoveredShapeId()
     const selectedIds = editor.getSelectedShapeIds()
-
-    // Get shapes sorted by z-order (bottom to top) for occlusion checks
     const sortedShapes = editor.getCurrentPageShapesSorted()
-
     const result: OverlayItem[] = []
 
     for (let si = 0; si < sortedShapes.length; si++) {
       const shape = sortedShapes[si]
       const name = (shape.meta?.name as string) ?? ''
       const nameDisplay = (shape.meta?.nameDisplay as string) ?? 'hidden'
-      const properties = (shape.meta?.properties as { key: string; value: string }[]) ?? []
-      const modes = readPinModes(shape.meta?.pinnedProps)
-      const colors = (shape.meta?.propColors as Record<string, string>) ?? {}
+      const resources = readResources(shape.meta?.resources)
+      const attributes = readAttributes(shape.meta?.attributes)
+      const statuses = readStatuses(shape.meta?.statuses)
 
-      const isActive = shape.id === hoveredId || selectedIds.includes(shape.id)
+      const isSelected = selectedIds.includes(shape.id)
+      const isActive = shape.id === hoveredId || isSelected
 
-      const alwaysProps = properties.filter((p) => modes[p.key] === 'always')
-      const rightSideProps = isActive
-        ? properties.filter((p) => modes[p.key] === 'hover' || modes[p.key] === 'always')
-        : []
-
-      // Determine if name should show based on nameDisplay mode
       const showName = name && (
         nameDisplay === 'always' ||
         (nameDisplay === 'hover' && isActive)
       )
 
-      if (!showName && alwaysProps.length === 0 && rightSideProps.length === 0) continue
+      // Show overlay if there's something to display
+      const hasBottom = showName || statuses.length > 0 || resources.length > 0
+      const hasRight = isActive && (resources.length > 0 || attributes.length > 0)
+
+      if (!hasBottom && !hasRight) continue
 
       const bounds = editor.getShapePageBounds(shape.id)
       if (!bounds) continue
 
-      // Occlusion check: if not active, check if any shape above covers this one
+      // Occlusion check for non-active shapes
       if (!isActive) {
         let occluded = false
         for (let j = si + 1; j < sortedShapes.length; j++) {
-          const above = sortedShapes[j]
-          const aboveBounds = editor.getShapePageBounds(above.id)
+          const aboveBounds = editor.getShapePageBounds(sortedShapes[j].id)
           if (!aboveBounds) continue
-          // Check if the above shape covers most of this shape's center area
           if (
             aboveBounds.minX <= bounds.midX && aboveBounds.maxX >= bounds.midX &&
             aboveBounds.minY <= bounds.midY && aboveBounds.maxY >= bounds.midY
@@ -79,21 +77,24 @@ export function TokenOverlay() {
       const topRight = editor.pageToScreen({ x: bounds.maxX, y: bounds.minY })
       const screenWidth = bounds.width * editor.getZoomLevel()
 
-      // Skip labels for tiny tokens (unless selected/hovered)
       if (screenWidth < 50 && !isActive) continue
+
+      const scale = Math.max(0.85, Math.min(1.8, Math.sqrt(screenWidth / 120)))
 
       result.push({
         id: shape.id,
         name: showName ? name : '',
         isActive,
-        alwaysProps,
-        rightSideProps,
-        propColors: colors,
+        isSelected,
+        resources,
+        attributes,
+        statuses,
         bottomX: bottomCenter.x,
         bottomY: bottomCenter.y,
-        rightX: topRight.x + 8,
+        rightX: topRight.x + 8 * scale,
         rightY: topRight.y,
         width: Math.max(screenWidth, 60),
+        scale,
       })
     }
     return result
@@ -105,20 +106,21 @@ export function TokenOverlay() {
     <>
       {overlays.map((o) => (
         <div key={o.id}>
-          {/* Bottom: name + always props */}
-          {(o.name || o.alwaysProps.length > 0) && (
+          {/* Bottom zone: name + status chips + resource bars */}
+          {(o.name || o.statuses.length > 0 || o.resources.length > 0) && (
             <div
               style={{
                 position: 'fixed',
                 left: o.bottomX,
                 top: o.bottomY,
-                transform: 'translate(-50%, -100%)',
+                transform: `translate(-50%, -100%) scale(${o.scale})`,
+                transformOrigin: 'bottom center',
                 pointerEvents: 'none',
                 zIndex: o.isActive ? 99999 : 99998,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 2,
+                gap: 1,
                 fontFamily: 'sans-serif',
               }}
             >
@@ -131,19 +133,48 @@ export function TokenOverlay() {
                   {o.name}
                 </div>
               )}
-              {o.alwaysProps.map((prop) => (
-                <PinnedProp key={prop.key} prop={prop} barWidth={o.width} color={o.propColors[prop.key]} editor={editor} shapeId={o.id} />
+              {/* Status chips */}
+              {o.statuses.length > 0 && (
+                <div style={{ display: 'flex', gap: 2, flexWrap: 'nowrap' }}>
+                  {o.statuses.slice(0, 3).map((s, i) => (
+                    <StatusChip
+                      key={i}
+                      status={s}
+                      isSelected={o.isSelected}
+                      editor={editor}
+                      shapeId={o.id}
+                    />
+                  ))}
+                  {o.statuses.length > 3 && (
+                    <span style={{
+                      fontSize: 8, color: '#999', padding: '1px 3px',
+                      background: 'rgba(255,255,255,0.85)', borderRadius: 6,
+                    }}>
+                      +{o.statuses.length - 3}
+                    </span>
+                  )}
+                </div>
+              )}
+              {/* Resource bars */}
+              {o.resources.map((r) => (
+                <ResourceBar
+                  key={r.key}
+                  resource={r}
+                  barWidth={o.width / o.scale}
+                />
               ))}
             </div>
           )}
 
-          {/* Right side: hover props */}
-          {o.rightSideProps.length > 0 && (
+          {/* Right side: resources + attributes on hover/select */}
+          {o.isActive && (o.resources.length > 0 || o.attributes.length > 0) && (
             <div
               style={{
                 position: 'fixed',
                 left: o.rightX,
                 top: o.rightY,
+                transform: `scale(${o.scale})`,
+                transformOrigin: 'top left',
                 pointerEvents: 'none',
                 zIndex: o.isActive ? 99999 : 99998,
                 display: 'flex',
@@ -152,28 +183,25 @@ export function TokenOverlay() {
                 fontFamily: 'sans-serif',
               }}
             >
-              {o.rightSideProps.map((prop) => {
-                const dotColor = HP_REGEX.test(prop.value)
-                  ? (o.propColors[prop.key] || barColorForKey(prop.key))
-                  : null
-                return (
-                  <div key={prop.key} style={{
-                    fontSize: 10, color: '#555',
-                    background: 'rgba(255,255,255,0.9)', borderRadius: 3,
-                    padding: '1px 5px', whiteSpace: 'nowrap',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-                    display: 'flex', alignItems: 'center', gap: 4,
-                  }}>
-                    {dotColor && (
-                      <span style={{
-                        width: 6, height: 6, borderRadius: '50%',
-                        background: dotColor, flexShrink: 0,
-                      }} />
-                    )}
-                    <span><span style={{ fontWeight: 600 }}>{prop.key}</span>: {prop.value}</span>
-                  </div>
-                )
-              })}
+              {o.resources.map((r) => (
+                <ResourceRightSide
+                  key={r.key}
+                  resource={r}
+                  isSelected={o.isSelected}
+                  editor={editor}
+                  shapeId={o.id}
+                />
+              ))}
+              {o.attributes.map((a) => (
+                <div key={a.key} style={{
+                  fontSize: 10, color: '#555',
+                  background: 'rgba(255,255,255,0.9)', borderRadius: 3,
+                  padding: '1px 5px', whiteSpace: 'nowrap',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
+                }}>
+                  <span style={{ fontWeight: 600 }}>{a.key}</span>: {a.value}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -182,92 +210,128 @@ export function TokenOverlay() {
   )
 }
 
-const BAR_COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899']
+/* ── Status Chip (on canvas) ── */
 
-function barColorForKey(key: string): string {
-  let hash = 0
-  for (let i = 0; i < key.length; i++) hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0
-  return BAR_COLORS[Math.abs(hash) % BAR_COLORS.length]
+function StatusChip({ status, isSelected, editor, shapeId }: {
+  status: Status; isSelected: boolean; editor: Editor; shapeId: TLShapeId;
+}) {
+  const handleRemove = () => {
+    const shape = editor.getShape(shapeId)
+    if (!shape) return
+    const updated = readStatuses(shape.meta?.statuses).filter(s => s.label !== status.label)
+    editor.updateShape({
+      id: shape.id, type: shape.type,
+      meta: { ...shape.meta, statuses: updated } as any,
+    })
+  }
+
+  return (
+    <span
+      onClick={isSelected ? handleRemove : undefined}
+      style={{
+        fontSize: 8, padding: '1px 5px', borderRadius: 8,
+        background: statusColor(status.label), color: '#fff',
+        whiteSpace: 'nowrap',
+        pointerEvents: isSelected ? 'auto' : 'none',
+        cursor: isSelected ? 'pointer' : 'default',
+      }}
+    >
+      {status.label}
+    </span>
+  )
 }
 
-function PinnedProp({ prop, barWidth, color, editor, shapeId }: {
-  prop: { key: string; value: string }; barWidth: number; color?: string;
-  editor: Editor; shapeId: TLShapeId;
+/* ── Resource Bar (bottom, read-only) ── */
+
+function ResourceBar({ resource, barWidth }: {
+  resource: Resource; barWidth: number;
 }) {
-  const barRef = useRef<HTMLDivElement>(null)
-  const dragging = useRef(false)
+  const pct = resource.max > 0 ? Math.min(resource.current / resource.max, 1) : 0
+  return (
+    <div style={{
+      width: Math.max(barWidth * 0.8, 40), height: 4,
+      background: 'rgba(0,0,0,0.15)', borderRadius: 2,
+      overflow: 'hidden',
+      pointerEvents: 'none',
+    }}>
+      <div style={{
+        width: `${pct * 100}%`, height: '100%',
+        background: resource.color, borderRadius: 2,
+        transition: 'width 0.2s',
+      }} />
+    </div>
+  )
+}
 
-  const hpMatch = prop.value.match(HP_REGEX)
-  if (hpMatch) {
-    const current = parseInt(hpMatch[1])
-    const max = parseInt(hpMatch[2])
-    const pct = max > 0 ? Math.min(current / max, 1) : 0
-    const baseColor = color || barColorForKey(prop.key)
+/* ── Resource Right Side (with +/- when selected) ── */
 
-    const updateValue = (newCurrent: number) => {
-      const shape = editor.getShape(shapeId)
-      if (!shape) return
-      const properties = (shape.meta?.properties as { key: string; value: string }[]) ?? []
-      const idx = properties.findIndex(p => p.key === prop.key)
-      if (idx === -1) return
-      const updated = [...properties]
-      updated[idx] = { ...updated[idx], value: `${newCurrent}/${max}` }
-      editor.updateShape({
-        id: shape.id,
-        type: shape.type,
-        meta: { ...shape.meta, properties: updated },
-      })
-    }
-
-    const pctFromEvent = (e: React.PointerEvent) => {
-      const bar = barRef.current
-      if (!bar) return null
-      const rect = bar.getBoundingClientRect()
-      return Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-    }
-
-    return (
-      <div
-        ref={barRef}
-        style={{
-          width: Math.max(barWidth * 0.8, 40), height: 8,
-          background: 'rgba(0,0,0,0.15)', borderRadius: 4,
-          overflow: 'hidden',
-          pointerEvents: 'auto',
-          cursor: 'ew-resize',
-        }}
-        onPointerDown={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          const bar = barRef.current
-          if (!bar || max <= 0) return
-          bar.setPointerCapture(e.pointerId)
-          dragging.current = true
-          const p = pctFromEvent(e)
-          if (p !== null) updateValue(Math.round(p * max))
-        }}
-        onPointerMove={(e) => {
-          if (!dragging.current) return
-          const p = pctFromEvent(e)
-          if (p !== null) updateValue(Math.round(p * max))
-        }}
-        onPointerUp={() => { dragging.current = false }}
-      >
-        <div style={{
-          width: `${pct * 100}%`, height: '100%',
-          background: baseColor, borderRadius: 4,
-          transition: dragging.current ? 'none' : 'width 0.2s',
-        }} />
-      </div>
-    )
+function ResourceRightSide({ resource, isSelected, editor, shapeId }: {
+  resource: Resource; isSelected: boolean; editor: Editor; shapeId: TLShapeId;
+}) {
+  const updateCurrent = (delta: number) => {
+    const shape = editor.getShape(shapeId)
+    if (!shape) return
+    const resources = readResources(shape.meta?.resources)
+    const idx = resources.findIndex(r => r.key === resource.key)
+    if (idx === -1) return
+    const r = resources[idx]
+    const updated = [...resources]
+    updated[idx] = { ...r, current: Math.max(0, Math.min(r.current + delta, r.max)) }
+    editor.updateShape({
+      id: shape.id, type: shape.type,
+      meta: { ...shape.meta, resources: updated } as any,
+    })
   }
+
+  const { holdStart: holdStartMinus, holdStop: holdStopMinus } = useHoldRepeat((count) => {
+    updateCurrent(count >= 15 ? -5 : -1)
+  })
+
+  const { holdStart: holdStartPlus, holdStop: holdStopPlus } = useHoldRepeat((count) => {
+    updateCurrent(count >= 15 ? 5 : 1)
+  })
+
+  const btnStyle: React.CSSProperties = {
+    pointerEvents: 'auto',
+    width: 16, height: 16,
+    border: 'none', borderRadius: 3,
+    background: 'rgba(0,0,0,0.08)',
+    color: '#555', fontSize: 11, fontWeight: 700,
+    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 0, lineHeight: 1, flexShrink: 0,
+    userSelect: 'none',
+  }
+
   return (
     <div style={{
       fontSize: 10, color: '#555',
-      background: 'rgba(255,255,255,0.85)', borderRadius: 3,
+      background: 'rgba(255,255,255,0.9)', borderRadius: 3,
       padding: '1px 5px', whiteSpace: 'nowrap',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
+      display: 'flex', alignItems: 'center', gap: 4,
     }}>
-      <span style={{ fontWeight: 600 }}>{prop.key}</span>: {prop.value}
+      {isSelected && (
+        <button
+          style={btnStyle}
+          onPointerDown={(e) => { e.stopPropagation(); holdStartMinus() }}
+          onPointerUp={holdStopMinus}
+          onPointerLeave={holdStopMinus}
+        >−</button>
+      )}
+      <span style={{
+        width: 6, height: 6, borderRadius: '50%',
+        background: resource.color, flexShrink: 0,
+      }} />
+      <span><span style={{ fontWeight: 600 }}>{resource.key}</span>: {resource.current}/{resource.max}</span>
+      {isSelected && (
+        <button
+          style={btnStyle}
+          onPointerDown={(e) => { e.stopPropagation(); holdStartPlus() }}
+          onPointerUp={holdStopPlus}
+          onPointerLeave={holdStopPlus}
+        >+</button>
+      )}
     </div>
   )
 }
