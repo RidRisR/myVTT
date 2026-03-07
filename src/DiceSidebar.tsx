@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import * as Y from 'yjs'
 import { rollDice, type DiceLogEntry } from './diceUtils'
-import { currentRole } from './roleState'
-import { useValue } from 'tldraw'
 
-export function DiceSidebar({ yDoc }: { yDoc: Y.Doc }) {
+export function DiceSidebar({ yDoc, playerName }: { yDoc: Y.Doc; playerName: string }) {
   const [input, setInput] = useState('1d20')
   const [logs, setLogs] = useState<DiceLogEntry[]>([])
   const [isOpen, setIsOpen] = useState(true)
   const [error, setError] = useState('')
   const logRef = useRef<HTMLDivElement>(null)
-  const role = useValue(currentRole)
 
   const yLogs = yDoc.getArray<DiceLogEntry>('dice_log')
 
@@ -35,7 +32,7 @@ export function DiceSidebar({ yDoc }: { yDoc: Y.Doc }) {
 
     const entry: DiceLogEntry = {
       id: crypto.randomUUID(),
-      roller: role,
+      roller: playerName,
       expression: result.expression,
       rolls: result.rolls,
       modifier: result.modifier,
@@ -162,7 +159,7 @@ export function DiceSidebar({ yDoc }: { yDoc: Y.Doc }) {
                 if (!result) return
                 yLogs.push([{
                   id: crypto.randomUUID(),
-                  roller: role,
+                  roller: playerName,
                   expression: d,
                   rolls: result.rolls,
                   modifier: 0,
@@ -203,7 +200,7 @@ export function DiceSidebar({ yDoc }: { yDoc: Y.Doc }) {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-              <span style={{ fontWeight: 600, color: entry.roller === 'GM' ? '#d97706' : '#2563eb' }}>
+              <span style={{ fontWeight: 600, color: '#2563eb' }}>
                 {entry.roller}
               </span>
               <span style={{ color: '#999', fontSize: 11 }}>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   createTLStore,
   defaultShapeUtils,
@@ -23,12 +23,14 @@ export function useYjsStore() {
   )
   const [yDoc] = useState(() => new Y.Doc())
   const [isLoading, setIsLoading] = useState(true)
+  const wsProviderRef = useRef<WebsocketProvider | null>(null)
 
   useEffect(() => {
     const yArr = yDoc.getArray<{ key: string; val: TLRecord }>('tl_records')
     const yStore = new YKeyValue(yArr)
 
     const wsProvider = new WebsocketProvider(WEBSOCKET_URL, ROOM_NAME, yDoc)
+    wsProviderRef.current = wsProvider
 
     let isSyncing = false
 
@@ -114,8 +116,9 @@ export function useYjsStore() {
       unsubscribe()
       yStore.off('change', handleYjsChange)
       wsProvider.destroy()
+      wsProviderRef.current = null
     }
   }, [store, yDoc])
 
-  return { store, yDoc, isLoading }
+  return { store, yDoc, isLoading, awareness: wsProviderRef.current?.awareness ?? null }
 }
