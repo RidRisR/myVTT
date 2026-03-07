@@ -38,7 +38,7 @@ export function CursorOverlay({ editor, awareness }: { editor: Editor; awareness
   if (cursors.length === 0) return null
 
   return (
-    <svg style={{ position: 'fixed', inset: 0, width: '100vw', height: '100vh', pointerEvents: 'none', zIndex: 99996 }}>
+    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 99996 }}>
       {cursors.map((c) => {
         const screen = editor.pageToScreen({ x: c.x, y: c.y })
         return (
