@@ -17,7 +17,7 @@ export const assetStore: TLAssetStore = {
     }
 
     const { url } = await res.json()
-    return { src: url }
+    return { src: `${API_BASE}${url}` }
   },
 
   resolve(asset) {
