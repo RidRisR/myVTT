@@ -1,9 +1,10 @@
-import { useEffect } from 'react'
-import { Tldraw, type TLShape } from 'tldraw'
+import { useEffect, useState } from 'react'
+import { Tldraw, type Editor, type TLShape } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { useYjsStore } from './useYjsStore'
 import { PropertyContextMenu } from './PropertyContextMenu'
-import { PropertyOverlay } from './PropertyOverlay'
+import { TokenPanel } from './panel/TokenPanel'
+import { TokenOverlay } from './panel/TokenOverlay'
 import { IdentityBadge } from './RoleSwitcher'
 import { DiceSidebar } from './DiceSidebar'
 import { SeatSelect } from './identity/SeatSelect'
@@ -18,6 +19,7 @@ function getShapeVisibility(shape: TLShape) {
 export default function App() {
   const { store, yDoc, isLoading, awareness } = useYjsStore()
   const { seats, mySeat, onlineSeatIds, claimSeat, createSeat, leaveSeat } = useIdentity(yDoc, awareness)
+  const [editor, setEditor] = useState<Editor | null>(null)
 
   // Sync role atom from seat
   useEffect(() => {
@@ -57,13 +59,15 @@ export default function App() {
       <Tldraw
         store={store}
         getShapeVisibility={getShapeVisibility}
+        onMount={setEditor}
         components={{
           ContextMenu: PropertyContextMenu,
-          InFrontOfTheCanvas: PropertyOverlay,
+          InFrontOfTheCanvas: TokenOverlay,
         }}
       />
       <IdentityBadge seat={mySeat} onLeave={leaveSeat} />
       <DiceSidebar yDoc={yDoc} playerName={mySeat.name} />
+      {editor && <TokenPanel editor={editor} />}
     </div>
   )
 }
