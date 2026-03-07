@@ -15,3 +15,11 @@ export interface CombatToken {
   statuses: Status[]
   notes: string
 }
+
+export interface TokenBlueprint {
+  id: string
+  name: string
+  imageUrl: string
+  defaultSize: number   // grid cells (1 = 1x1)
+  defaultColor: string
+}

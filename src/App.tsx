@@ -9,7 +9,8 @@ import { roleStore } from './shared/roleState'
 import { ChatPanel } from './chat/ChatPanel'
 import { SceneViewer } from './scene/SceneViewer'
 import { CombatViewer } from './combat/CombatViewer'
-import { CombatGmPanel } from './combat/CombatGmPanel'
+import { useTokenLibrary } from './combat/useTokenLibrary'
+import { BottomDock } from './dock/BottomDock'
 import { TokenPropertiesPanel } from './combat/TokenPropertiesPanel'
 import { GmToolbar } from './gm/GmToolbar'
 import { HamburgerMenu } from './layout/HamburgerMenu'
@@ -23,6 +24,7 @@ export default function App() {
   const { room, setActiveScene, setCombatScene, enterCombat, exitCombat } = useRoom(yDoc)
   const { scenes, addScene, updateScene, deleteScene, getScene } = useScenes(yDoc)
   const { tokens, addToken, updateToken, deleteToken, getToken } = useCombatTokens(yDoc)
+  const { blueprints, addBlueprint, updateBlueprint, deleteBlueprint } = useTokenLibrary(yDoc)
 
   const [inspectedSeatId, setInspectedSeatId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
@@ -142,18 +144,23 @@ export default function App() {
         />
       )}
 
-      {/* Combat GM panel (spawn/delete/visibility) */}
+      {/* Bottom dock: asset library (maps + tokens) */}
       {isGM && isCombat && (
-        <CombatGmPanel
-          selectedToken={getToken(selectedTokenId)}
+        <BottomDock
           scenes={scenes}
           combatSceneId={room.combatSceneId}
+          onSetCombatScene={setCombatScene}
+          onAddScene={addScene}
+          onDeleteScene={deleteScene}
+          blueprints={blueprints}
+          onAddBlueprint={addBlueprint}
+          onUpdateBlueprint={updateBlueprint}
+          onDeleteBlueprint={deleteBlueprint}
+          selectedToken={getToken(selectedTokenId)}
           onAddToken={addToken}
           onDeleteToken={deleteToken}
           onUpdateToken={updateToken}
           onSelectToken={setSelectedTokenId}
-          onSetCombatScene={setCombatScene}
-          onAddScene={addScene}
         />
       )}
 
