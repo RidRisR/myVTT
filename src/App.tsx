@@ -86,6 +86,7 @@ export default function App() {
 
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
+      <style>{`.tlui-layout__top { padding-right: 280px; }`}</style>
       <Tldraw
         store={store}
         getShapeVisibility={getShapeVisibility}
