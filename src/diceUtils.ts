@@ -11,6 +11,39 @@ export interface DiceResult {
   total: number
 }
 
+/** A single parsed term in a compound expression */
+export type DiceTerm =
+  | {
+      type: 'dice'
+      sign: 1 | -1
+      count: number
+      sides: number
+      keepDrop?: {
+        mode: 'kh' | 'kl' | 'dh' | 'dl'
+        count: number
+      }
+    }
+  | {
+      type: 'constant'
+      sign: 1 | -1
+      value: number
+    }
+
+/** Result of rolling a single dice term */
+export interface DiceTermResult {
+  term: DiceTerm
+  allRolls: number[]
+  keptIndices: number[]
+  subtotal: number
+}
+
+/** Result of evaluating a full compound expression */
+export interface CompoundDiceResult {
+  expression: string
+  termResults: DiceTermResult[]
+  total: number
+}
+
 export interface DiceLogEntry {
   id: string
   roller: string
@@ -20,6 +53,7 @@ export interface DiceLogEntry {
   modifier: number
   total: number
   timestamp: number
+  terms?: DiceTermResult[]
 }
 
 export interface ResolveSource {
@@ -71,7 +105,159 @@ export function resolveFormula(
   return { resolved, sources }
 }
 
+export function generateFavoriteName(formula: string): string {
+  const keys = [...formula.matchAll(/@([\p{L}\p{N}_]+)/gu)].map((m) => m[1])
+  if (keys.length === 0) return formula.trim()
+  return keys.join('+') + ' Roll'
+}
+
 /**
+ * Tokenize a compound expression into an array of DiceTerms.
+ * Supports: constants, NdM dice, keep/drop modifiers (kh, kl, dh, dl).
+ * Examples: "2d6+3", "4d6kh3+1d20-5", "-3+2d6dl1"
+ */
+export function tokenizeExpression(expr: string): DiceTerm[] | null {
+  let normalized = expr.replace(/\s/g, '')
+  if (!normalized) return null
+  if (normalized[0] !== '+' && normalized[0] !== '-') {
+    normalized = '+' + normalized
+  }
+
+  const termRegex = /([+-])(\d*d\d+(?:(?:kh|kl|dh|dl)\d*)?|\d+)/gi
+  const matches = [...normalized.matchAll(termRegex)]
+  if (matches.length === 0) return null
+
+  // Validate: matched content must account for entire expression
+  const consumed = matches.reduce((sum, m) => sum + m[0].length, 0)
+  if (consumed !== normalized.length) return null
+
+  const terms: DiceTerm[] = []
+
+  for (const match of matches) {
+    const sign: 1 | -1 = match[1] === '-' ? -1 : 1
+    const body = match[2]
+
+    const diceMatch = body.match(/^(\d*)d(\d+)(?:(kh|kl|dh|dl)(\d*))?$/i)
+    if (diceMatch) {
+      const count = diceMatch[1] ? parseInt(diceMatch[1], 10) : 1
+      const sides = parseInt(diceMatch[2], 10)
+      const term: DiceTerm = { type: 'dice', sign, count, sides }
+      if (diceMatch[3]) {
+        term.keepDrop = {
+          mode: diceMatch[3].toLowerCase() as 'kh' | 'kl' | 'dh' | 'dl',
+          count: diceMatch[4] ? parseInt(diceMatch[4], 10) : 1,
+        }
+      }
+      terms.push(term)
+    } else {
+      const value = parseInt(body, 10)
+      if (isNaN(value)) return null
+      terms.push({ type: 'constant', sign, value })
+    }
+  }
+
+  return terms.length > 0 ? terms : null
+}
+
+/**
+ * Validate a single DiceTerm for bounds.
+ * Returns an error string if invalid, or null if valid.
+ */
+export function validateTerm(term: DiceTerm): string | null {
+  if (term.type === 'constant') {
+    if (term.value > 10000) return `Constant ${term.value} exceeds maximum (10000)`
+    return null
+  }
+
+  if (term.count < 1) return 'Dice count must be at least 1'
+  if (term.count > 100) return 'Cannot roll more than 100 dice at once'
+  if (term.sides < 1) return 'Dice must have at least 1 side'
+  if (term.sides > 1000) return 'Dice cannot have more than 1000 sides'
+
+  if (term.keepDrop) {
+    const { mode, count } = term.keepDrop
+    if (count < 1) return `${mode} count must be at least 1`
+    if (mode === 'kh' || mode === 'kl') {
+      if (count > term.count) return `Cannot keep ${count} dice when only rolling ${term.count}`
+    }
+    if (mode === 'dh' || mode === 'dl') {
+      if (count >= term.count) return `Cannot drop ${count} dice when only rolling ${term.count} (nothing left)`
+    }
+  }
+
+  return null
+}
+
+/**
+ * Roll a single DiceTerm, producing a DiceTermResult.
+ */
+export function rollTerm(term: DiceTerm): DiceTermResult {
+  if (term.type === 'constant') {
+    return { term, allRolls: [], keptIndices: [], subtotal: term.sign * term.value }
+  }
+
+  const allRolls = Array.from({ length: term.count }, () =>
+    Math.floor(Math.random() * term.sides) + 1,
+  )
+
+  let keptIndices: number[]
+  if (!term.keepDrop) {
+    keptIndices = allRolls.map((_, i) => i)
+  } else {
+    const indexed = allRolls.map((v, i) => ({ i, v }))
+    indexed.sort((a, b) => a.v - b.v)
+
+    const { mode, count } = term.keepDrop
+    let keptSet: Set<number>
+
+    switch (mode) {
+      case 'kh':
+        keptSet = new Set(indexed.slice(-count).map((x) => x.i))
+        break
+      case 'kl':
+        keptSet = new Set(indexed.slice(0, count).map((x) => x.i))
+        break
+      case 'dh':
+        keptSet = new Set(indexed.slice(0, -count).map((x) => x.i))
+        break
+      case 'dl':
+        keptSet = new Set(indexed.slice(count).map((x) => x.i))
+        break
+    }
+
+    keptIndices = allRolls.map((_, i) => i).filter((i) => keptSet.has(i))
+  }
+
+  const subtotal = term.sign * keptIndices.reduce((sum, i) => sum + allRolls[i], 0)
+  return { term, allRolls, keptIndices, subtotal }
+}
+
+/**
+ * Parse and roll a compound expression. Main entry point.
+ * Returns null if parsing fails, or { error } if validation fails.
+ */
+export function rollCompound(expression: string): CompoundDiceResult | { error: string } | null {
+  const terms = tokenizeExpression(expression)
+  if (!terms) return null
+
+  if (terms.length > 20) return { error: 'Too many terms (max 20)' }
+
+  const totalDice = terms.reduce((sum, t) => sum + (t.type === 'dice' ? t.count : 0), 0)
+  if (totalDice > 200) return { error: 'Too many dice (max 200 total)' }
+
+  for (const term of terms) {
+    const err = validateTerm(term)
+    if (err) return { error: err }
+  }
+
+  const termResults = terms.map((t) => rollTerm(t))
+  const total = termResults.reduce((sum, tr) => sum + tr.subtotal, 0)
+
+  return { expression, termResults, total }
+}
+
+/**
+ * @deprecated Use tokenizeExpression + rollCompound instead
  * Parse a dice expression like "2d6+5", "d20", "3d8-2"
  */
 export function parseDiceExpression(expr: string): ParsedDice | null {

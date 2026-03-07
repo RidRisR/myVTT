@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as Y from 'yjs'
-import type { Editor } from 'tldraw'
-import { rollDice, resolveFormula, type DiceLogEntry } from './diceUtils'
+import { useValue, type Editor } from 'tldraw'
+import { rollCompound, resolveFormula, generateFavoriteName, type DiceLogEntry } from './diceUtils'
 import type { DiceFavorite } from './identity/useIdentity'
 
 interface DiceSidebarProps {
@@ -24,11 +24,16 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
   const [logs, setLogs] = useState<DiceLogEntry[]>([])
   const [isOpen, setIsOpen] = useState(true)
   const [error, setError] = useState('')
+  const [quickCount, setQuickCount] = useState(1)
   const [addingFav, setAddingFav] = useState(false)
   const [favName, setFavName] = useState('')
   const [favFormula, setFavFormula] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestionIndex, setSuggestionIndex] = useState(0)
+  const [hoveredLogId, setHoveredLogId] = useState<string | null>(null)
+  const [editingFavIndex, setEditingFavIndex] = useState<number | null>(null)
+  const [editFavName, setEditFavName] = useState('')
+  const [editFavFormula, setEditFavFormula] = useState('')
   const logRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -59,16 +64,21 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
     if (/@[\p{L}\p{N}_]+/u.test(trimmed)) {
       const resolved = resolveFormula(trimmed, tokenProps, seatProperties)
       if ('error' in resolved) {
-        setError(resolved.error)
+        const hint = !tokenShape ? ' (try selecting a token)' : ''
+        setError(resolved.error + hint)
         return
       }
       expression = trimmed
       resolvedExpression = resolved.resolved
     }
 
-    const result = rollDice(resolvedExpression)
+    const result = rollCompound(resolvedExpression)
     if (!result) {
-      setError('Invalid format. Use NdM+X or NdM+@KEY, e.g. 1d20+@STR')
+      setError('Invalid format. Examples: 1d20+5, 4d6kh3, 2d6+@STR')
+      return
+    }
+    if ('error' in result) {
+      setError(result.error)
       return
     }
     setError('')
@@ -78,8 +88,15 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
       roller: playerName,
       expression,
       resolvedExpression: expression !== resolvedExpression ? resolvedExpression : undefined,
-      rolls: result.rolls,
-      modifier: result.modifier,
+      // Legacy compat fields
+      rolls: result.termResults
+        .filter((tr) => tr.term.type === 'dice')
+        .flatMap((tr) => tr.keptIndices.map((i) => tr.allRolls[i])),
+      modifier: result.termResults
+        .filter((tr) => tr.term.type === 'constant')
+        .reduce((sum, tr) => sum + tr.subtotal, 0),
+      // New compound data
+      terms: result.termResults,
       total: result.total,
       timestamp: Date.now(),
     }
@@ -89,26 +106,32 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
 
   const handleRoll = () => { doRoll(input); setShowSuggestions(false) }
 
-  // Build available suggestions from token + seat props
-  const getTokenProps = (): { key: string; value: string }[] => {
+  // Reactively track selected token properties via tldraw's useValue
+  const selectedTokenProps = useValue('selectedTokenProps', () => {
     const shapes = editor?.getSelectedShapes() ?? []
     const shape = shapes.length === 1 ? shapes[0] : null
     return (shape?.meta?.properties as { key: string; value: string }[]) ?? []
-  }
+  }, [editor])
 
+  // Build available suggestions from token + seat props
   const suggestions = useMemo((): Suggestion[] => {
-    const tokenProps = getTokenProps()
     const items: Suggestion[] = []
     const seen = new Set<string>()
-    for (const p of tokenProps) {
+    for (const p of selectedTokenProps) {
       if (!seen.has(p.key)) { items.push({ key: p.key, value: p.value, from: 'token' }); seen.add(p.key) }
     }
     for (const p of seatProperties) {
       if (!seen.has(p.key)) { items.push({ key: p.key, value: p.value, from: 'seat' }); seen.add(p.key) }
     }
     return items
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seatProperties, editor?.getSelectedShapes()])
+  }, [selectedTokenProps, seatProperties])
+
+  // Available keys for reactive favorite availability
+  const availableKeys = useMemo(() => {
+    const keys = new Set<string>()
+    for (const s of suggestions) keys.add(s.key)
+    return keys
+  }, [suggestions])
 
   // Extract the @prefix being typed at cursor position
   const getAtPrefix = (): string | null => {
@@ -121,11 +144,24 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
   }
 
   const atPrefix = showSuggestions ? getAtPrefix() : null
-  const filtered = atPrefix !== null
+  const filteredKeys = atPrefix !== null
     ? suggestions.filter((s) => s.key.toLowerCase().startsWith(atPrefix.toLowerCase()))
     : []
 
-  const applySuggestion = (key: string) => {
+  // Available favorites for autocomplete (only those that can resolve in current context)
+  const filteredFavs = atPrefix !== null
+    ? favorites.filter((fav) => {
+        const keys = [...fav.formula.matchAll(/@([\p{L}\p{N}_]+)/gu)].map((m) => m[1])
+        const isAvailable = keys.length === 0 || keys.every((k) => availableKeys.has(k))
+        if (!isAvailable) return false
+        const q = atPrefix.toLowerCase()
+        return fav.name.toLowerCase().includes(q) || fav.formula.toLowerCase().includes(q)
+      })
+    : []
+
+  const dropdownTotal = filteredKeys.length + filteredFavs.length
+
+  const applyKeySuggestion = (key: string) => {
     const el = inputRef.current
     if (!el) return
     const pos = el.selectionStart ?? input.length
@@ -136,12 +172,37 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
     const newInput = before.slice(0, atPos) + '@' + key + after
     setInput(newInput)
     setShowSuggestions(false)
-    // Restore cursor after the inserted key
     requestAnimationFrame(() => {
       const newPos = atPos + 1 + key.length
       el.setSelectionRange(newPos, newPos)
       el.focus()
     })
+  }
+
+  const applyFavSuggestion = (formula: string) => {
+    const el = inputRef.current
+    if (!el) return
+    const pos = el.selectionStart ?? input.length
+    const before = input.slice(0, pos)
+    const after = input.slice(pos)
+    const atPos = before.lastIndexOf('@')
+    if (atPos === -1) return
+    const newInput = before.slice(0, atPos) + formula + after
+    setInput(newInput)
+    setShowSuggestions(false)
+    requestAnimationFrame(() => {
+      const newPos = atPos + formula.length
+      el.setSelectionRange(newPos, newPos)
+      el.focus()
+    })
+  }
+
+  const applyDropdownItem = (index: number) => {
+    if (index < filteredKeys.length) {
+      applyKeySuggestion(filteredKeys[index].key)
+    } else {
+      applyFavSuggestion(filteredFavs[index - filteredKeys.length].formula)
+    }
   }
 
   if (!isOpen) {
@@ -232,10 +293,10 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
               }
             }}
             onKeyDown={(e) => {
-              if (showSuggestions && filtered.length > 0) {
+              if (showSuggestions && dropdownTotal > 0) {
                 if (e.key === 'ArrowDown') {
                   e.preventDefault()
-                  setSuggestionIndex((i) => Math.min(i + 1, filtered.length - 1))
+                  setSuggestionIndex((i) => Math.min(i + 1, dropdownTotal - 1))
                   return
                 }
                 if (e.key === 'ArrowUp') {
@@ -245,7 +306,7 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
                 }
                 if (e.key === 'Enter' || e.key === 'Tab') {
                   e.preventDefault()
-                  applySuggestion(filtered[suggestionIndex].key)
+                  applyDropdownItem(suggestionIndex)
                   return
                 }
                 if (e.key === 'Escape') {
@@ -267,17 +328,17 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
             }}
           />
           {/* Autocomplete dropdown */}
-          {showSuggestions && filtered.length > 0 && (
+          {showSuggestions && dropdownTotal > 0 && (
             <div style={{
               position: 'absolute', top: '100%', left: 0, right: 64,
               marginTop: 2, background: '#fff', border: '1px solid #e5e7eb',
               borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              zIndex: 10, maxHeight: 150, overflowY: 'auto',
+              zIndex: 10, maxHeight: 200, overflowY: 'auto',
             }}>
-              {filtered.map((s, i) => (
+              {filteredKeys.map((s, i) => (
                 <div
-                  key={s.key}
-                  onMouseDown={(e) => { e.preventDefault(); applySuggestion(s.key) }}
+                  key={`key-${s.key}`}
+                  onMouseDown={(e) => { e.preventDefault(); applyKeySuggestion(s.key) }}
                   style={{
                     padding: '5px 10px', cursor: 'pointer', fontSize: 12,
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -297,6 +358,33 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
                   </span>
                 </div>
               ))}
+              {filteredKeys.length > 0 && filteredFavs.length > 0 && (
+                <div style={{ borderTop: '1px solid #e5e7eb', padding: '3px 10px', fontSize: 10, color: '#999' }}>
+                  Favorites
+                </div>
+              )}
+              {filteredFavs.map((fav, i) => {
+                const idx = filteredKeys.length + i
+                return (
+                  <div
+                    key={`fav-${i}`}
+                    onMouseDown={(e) => { e.preventDefault(); applyFavSuggestion(fav.formula) }}
+                    style={{
+                      padding: '5px 10px', cursor: 'pointer', fontSize: 12,
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      background: idx === suggestionIndex ? '#eff6ff' : 'transparent',
+                    }}
+                  >
+                    <span>
+                      <span style={{ fontWeight: 600, color: '#333' }}>{fav.name}</span>
+                      <span style={{ color: '#999', marginLeft: 6 }}>{fav.formula}</span>
+                    </span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                  </div>
+                )
+              })}
             </div>
           )}
           <button
@@ -318,24 +406,45 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
         {error && (
           <div style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>{error}</div>
         )}
-        {/* Quick buttons */}
-        <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
-          {['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'].map((d) => (
-            <button
-              key={d}
-              onClick={() => { setInput(d); doRoll(d) }}
-              style={{
-                padding: '4px 8px',
-                background: '#f3f4f6',
-                border: '1px solid #e5e7eb',
-                borderRadius: 4,
-                cursor: 'pointer',
-                fontSize: 12,
-              }}
-            >
-              {d}
-            </button>
-          ))}
+        {/* Quick roll */}
+        <div style={{ display: 'flex', gap: 4, marginTop: 8, alignItems: 'center' }}>
+          <select
+            value={quickCount}
+            onChange={(e) => setQuickCount(Number(e.target.value))}
+            style={{
+              padding: '4px 2px', border: '1px solid #e5e7eb', borderRadius: 4,
+              fontSize: 12, background: '#f9fafb', color: '#333', cursor: 'pointer',
+              width: 36,
+            }}
+          >
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          <span style={{ color: '#999', fontSize: 12 }}>x</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
+            {[[4, 6, 8, 10], [12, 20, 100]].map((row, ri) => (
+              <div key={ri} style={{ display: 'flex', gap: 3 }}>
+                {row.map((sides) => {
+                  const expr = quickCount === 1 ? `d${sides}` : `${quickCount}d${sides}`
+                  return (
+                    <button
+                      key={sides}
+                      onClick={() => { setInput(expr); doRoll(expr) }}
+                      style={{
+                        padding: '4px 0', flex: 1,
+                        background: '#f3f4f6', border: '1px solid #e5e7eb',
+                        borderRadius: 4, cursor: 'pointer',
+                        fontSize: 11, textAlign: 'center',
+                      }}
+                    >
+                      d{sides}
+                    </button>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -354,8 +463,23 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
           </button>
         </div>
         {addingFav && (
-          <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+          <div
+            style={{
+              padding: '6px 8px', background: '#eff6ff', border: '1px solid #2563eb',
+              borderRadius: 4, marginBottom: 6,
+            }}
+            onBlur={(e) => {
+              if (e.currentTarget.contains(e.relatedTarget as Node)) return
+              if (favName.trim() && favFormula.trim()) {
+                onUpdateFavorites([...favorites, { name: favName.trim(), formula: favFormula.trim() }])
+                setFavName('')
+                setFavFormula('')
+              }
+              setAddingFav(false)
+            }}
+          >
             <input
+              autoFocus
               placeholder="Name"
               value={favName}
               onChange={(e) => setFavName(e.target.value)}
@@ -369,8 +493,8 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
                 if (e.key === 'Escape') setAddingFav(false)
               }}
               style={{
-                width: 60, padding: '3px 6px', border: '1px solid #ddd',
-                borderRadius: 4, fontSize: 11, boxSizing: 'border-box',
+                width: '100%', padding: '2px 6px', border: '1px solid #ddd',
+                borderRadius: 4, fontSize: 11, boxSizing: 'border-box', marginBottom: 3,
               }}
             />
             <input
@@ -387,37 +511,158 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
                 if (e.key === 'Escape') setAddingFav(false)
               }}
               style={{
-                flex: 1, padding: '3px 6px', border: '1px solid #ddd',
+                width: '100%', padding: '2px 6px', border: '1px solid #ddd',
                 borderRadius: 4, fontSize: 11, boxSizing: 'border-box',
               }}
             />
           </div>
         )}
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          {favorites.map((fav, i) => (
-            <span
-              key={i}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 2,
-                padding: '3px 8px', background: '#eff6ff', border: '1px solid #bfdbfe',
-                borderRadius: 4, fontSize: 11, cursor: 'pointer',
-              }}
-            >
-              <span onClick={() => doRoll(fav.formula)} title={fav.formula}>
-                {fav.name}
-              </span>
-              <button
-                onClick={() => onUpdateFavorites(favorites.filter((_, j) => j !== i))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {favorites.map((fav, i) => {
+            const keys = [...fav.formula.matchAll(/@([\p{L}\p{N}_]+)/gu)].map((m) => m[1])
+            const seatKeys = new Set(seatProperties.map((p) => p.key))
+            const needsToken = keys.some((k) => !seatKeys.has(k))
+            const isDisabled = keys.length > 0 && keys.some((k) => !availableKeys.has(k))
+            const isEditing = editingFavIndex === i
+
+            if (isEditing) {
+              const editKeys = [...editFavFormula.matchAll(/@([\p{L}\p{N}_]+)/gu)].map((m) => m[1])
+              return (
+                <div
+                  key={i}
+                  style={{
+                    padding: '6px 8px', background: '#eff6ff', border: '1px solid #2563eb',
+                    borderRadius: 4,
+                  }}
+                  onBlur={(e) => {
+                    if (e.currentTarget.contains(e.relatedTarget as Node)) return
+                    if (editFavName.trim() && editFavFormula.trim()) {
+                      const updated = [...favorites]
+                      updated[i] = { name: editFavName.trim(), formula: editFavFormula.trim() }
+                      onUpdateFavorites(updated)
+                    }
+                    setEditingFavIndex(null)
+                  }}
+                >
+                  <input
+                    autoFocus
+                    value={editFavName}
+                    onChange={(e) => setEditFavName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && editFavName.trim() && editFavFormula.trim()) {
+                        const updated = [...favorites]
+                        updated[i] = { name: editFavName.trim(), formula: editFavFormula.trim() }
+                        onUpdateFavorites(updated)
+                        setEditingFavIndex(null)
+                      }
+                      if (e.key === 'Escape') setEditingFavIndex(null)
+                    }}
+                    placeholder="Name"
+                    style={{
+                      width: '100%', padding: '2px 6px', border: '1px solid #ddd',
+                      borderRadius: 4, fontSize: 11, boxSizing: 'border-box', marginBottom: 3,
+                    }}
+                  />
+                  <input
+                    value={editFavFormula}
+                    onChange={(e) => setEditFavFormula(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && editFavName.trim() && editFavFormula.trim()) {
+                        const updated = [...favorites]
+                        updated[i] = { name: editFavName.trim(), formula: editFavFormula.trim() }
+                        onUpdateFavorites(updated)
+                        setEditingFavIndex(null)
+                      }
+                      if (e.key === 'Escape') setEditingFavIndex(null)
+                    }}
+                    placeholder="1d20+@STR"
+                    style={{
+                      width: '100%', padding: '2px 6px', border: '1px solid #ddd',
+                      borderRadius: 4, fontSize: 11, boxSizing: 'border-box',
+                    }}
+                  />
+                  {editKeys.length > 0 && (
+                    <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+                      {editKeys.map((k) => (
+                        <span key={k} style={{
+                          fontSize: 9, padding: '1px 4px', borderRadius: 3,
+                          background: seatKeys.has(k) ? '#dbeafe' : '#fef3c7',
+                          color: seatKeys.has(k) ? '#1e40af' : '#92400e',
+                        }}>
+                          @{k} {seatKeys.has(k) ? 'seat' : 'token'}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
+            return (
+              <div
+                key={i}
+                onClick={() => !isDisabled && doRoll(fav.formula)}
                 style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: '#93c5fd', fontSize: 11, padding: '0 1px', lineHeight: 1,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '4px 8px', background: '#eff6ff', border: '1px solid #bfdbfe',
+                  borderRadius: 4,
+                  cursor: isDisabled ? 'not-allowed' : 'pointer',
+                  opacity: isDisabled ? 0.4 : 1,
                 }}
-                title="Remove"
               >
-                x
-              </button>
-            </span>
-          ))}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 11, color: '#333' }}>{fav.name}</div>
+                  <div style={{ fontSize: 10, color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {fav.formula}
+                  </div>
+                </div>
+                {needsToken && (
+                  <span
+                    title="Requires a selected token"
+                    style={{
+                      fontSize: 9, padding: '1px 4px', borderRadius: 3, flexShrink: 0,
+                      background: '#fef3c7', color: '#92400e',
+                    }}
+                  >
+                    token
+                  </span>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setEditingFavIndex(i)
+                    setEditFavName(fav.name)
+                    setEditFavFormula(fav.formula)
+                  }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: '#93c5fd', padding: 0, flexShrink: 0,
+                    width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                  title="Edit"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onUpdateFavorites(favorites.filter((_, j) => j !== i)) }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: '#93c5fd', padding: 0, flexShrink: 0,
+                    width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                  title="Remove"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            )
+          })}
           {favorites.length === 0 && !addingFav && (
             <span style={{ color: '#ccc', fontSize: 11 }}>No favorites yet</span>
           )}
@@ -433,41 +678,108 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
           padding: '8px 16px',
         }}
       >
-        {[...logs].reverse().map((entry) => (
-          <div
-            key={entry.id}
-            style={{
-              padding: '8px 0',
-              borderBottom: '1px solid #f3f4f6',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-              <span style={{ fontWeight: 600, color: '#2563eb' }}>
-                {entry.roller}
-              </span>
-              <span style={{ color: '#999', fontSize: 11 }}>
-                {new Date(entry.timestamp).toLocaleTimeString()}
-              </span>
-            </div>
-            <div>
-              <span style={{ color: '#333' }}>{entry.expression}</span>
-              {entry.resolvedExpression && (
-                <span style={{ color: '#999', fontSize: 11 }}> ({entry.resolvedExpression})</span>
-              )}
-              <span style={{ color: '#999', margin: '0 4px' }}>=</span>
-              <span style={{ color: '#666' }}>
-                [{entry.rolls.join(', ')}]
-                {entry.modifier !== 0 && (
-                  <span>{entry.modifier > 0 ? '+' : ''}{entry.modifier}</span>
+        {[...logs].reverse().map((entry) => {
+          const isFaved = favorites.some((f) => f.formula === entry.expression)
+          const isHovered = hoveredLogId === entry.id
+
+          return (
+            <div
+              key={entry.id}
+              onMouseEnter={() => setHoveredLogId(entry.id)}
+              onMouseLeave={() => setHoveredLogId(null)}
+              style={{
+                padding: '8px 0',
+                borderBottom: '1px solid #f3f4f6',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                <span style={{ fontWeight: 600, color: '#2563eb' }}>
+                  {entry.roller}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {(isHovered || isFaved) && (
+                    <button
+                      onClick={() => {
+                        if (isFaved) {
+                          onUpdateFavorites(favorites.filter((f) => f.formula !== entry.expression))
+                        } else {
+                          onUpdateFavorites([...favorites, { name: generateFavoriteName(entry.expression), formula: entry.expression }])
+                        }
+                      }}
+                      title={isFaved ? 'Remove from favorites' : 'Save to favorites'}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24"
+                        fill={isFaved ? '#f59e0b' : 'none'}
+                        stroke={isFaved ? '#f59e0b' : '#d1d5db'}
+                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      >
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                    </button>
+                  )}
+                  <span style={{ color: '#999', fontSize: 11 }}>
+                    {new Date(entry.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span style={{ color: '#333' }}>{entry.expression}</span>
+                {entry.resolvedExpression && (
+                  <span style={{ color: '#999', fontSize: 11 }}> ({entry.resolvedExpression})</span>
                 )}
-              </span>
-              <span style={{ color: '#999', margin: '0 4px' }}>=</span>
-              <span style={{ fontWeight: 700, fontSize: 15, color: '#111' }}>
-                {entry.total}
-              </span>
+                <span style={{ color: '#999', margin: '0 4px' }}>=</span>
+                {entry.terms ? (
+                  <span style={{ color: '#666' }}>
+                    {entry.terms.map((tr, ti) => {
+                      const sign = tr.term.sign === -1 ? '-' : '+'
+                      const showSign = ti > 0 || tr.term.sign === -1
+                      return (
+                        <span key={ti}>
+                          {showSign && <span style={{ color: '#999', margin: '0 2px' }}>{sign === '+' ? ' + ' : ' - '}</span>}
+                          {tr.term.type === 'dice' ? (
+                            <span>
+                              [
+                              {tr.allRolls.map((roll, ri) => (
+                                <span key={ri}>
+                                  {ri > 0 && ', '}
+                                  <span style={
+                                    tr.keptIndices.includes(ri)
+                                      ? {}
+                                      : { textDecoration: 'line-through', opacity: 0.4 }
+                                  }>
+                                    {roll}
+                                  </span>
+                                </span>
+                              ))}
+                              ]
+                            </span>
+                          ) : (
+                            <span>{(tr.term as { type: 'constant'; value: number }).value}</span>
+                          )}
+                        </span>
+                      )
+                    })}
+                  </span>
+                ) : (
+                  <span style={{ color: '#666' }}>
+                    [{entry.rolls.join(', ')}]
+                    {entry.modifier !== 0 && (
+                      <span>{entry.modifier > 0 ? '+' : ''}{entry.modifier}</span>
+                    )}
+                  </span>
+                )}
+                <span style={{ color: '#999', margin: '0 4px' }}>=</span>
+                <span style={{ fontWeight: 700, fontSize: 15, color: '#111' }}>
+                  {entry.total}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         {logs.length === 0 && (
           <div style={{ color: '#999', textAlign: 'center', padding: 24 }}>
             No rolls yet
