@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Tldraw, DefaultToolbar, DefaultToolbarContent, ToolbarItem, type Editor, type TLShape, type TLImageShape, type JsonValue, type TLUiOverrides } from 'tldraw'
+import { Tldraw, DefaultToolbar, DefaultToolbarContent, ToolbarItem, type Editor, type TLShape, type TLImageShape, type JsonObject, type TLUiOverrides } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { useYjsStore } from './useYjsStore'
 import { PropertyContextMenu } from './PropertyContextMenu'
@@ -76,7 +76,7 @@ export default function App() {
     if (!editor) return
     return editor.store.listen(
       ({ changes }) => {
-        const toUpdate: { id: TLShape['id']; type: string; meta: Record<string, unknown> }[] = []
+        const toUpdate: { id: TLShape['id']; type: string; meta: Partial<JsonObject> }[] = []
         for (const record of Object.values(changes.added)) {
           if (!('type' in record) || record.typeName !== 'shape') continue
           const shape = record as TLShape
@@ -91,10 +91,10 @@ export default function App() {
               }
             }
           }
-          toUpdate.push({ id: shape.id, type: shape.type, meta: { ...shape.meta, name, properties: [], nameDisplay: 'hidden' } as Record<string, JsonValue> })
+          toUpdate.push({ id: shape.id, type: shape.type, meta: { ...shape.meta, name, properties: [], nameDisplay: 'hidden' } as Partial<JsonObject> })
         }
         if (toUpdate.length > 0) {
-          for (const upd of toUpdate) editor.updateShape(upd)
+          for (const upd of toUpdate) editor.updateShape(upd as any)
         }
       },
       { source: 'user', scope: 'document' },

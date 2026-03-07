@@ -1,0 +1,15 @@
+services:
+  myvtt:
+    build: .
+    ports:
+      - "4444:4444"
+    volumes:
+      - vtt-data:/app/db
+      - vtt-uploads:/app/server/uploads
+    environment:
+      - HOST=0.0.0.0
+      - PORT=4444
+
+volumes:
+  vtt-data:
+  vtt-uploads:

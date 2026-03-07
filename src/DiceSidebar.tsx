@@ -84,7 +84,7 @@ export function DiceSidebar({ yDoc, playerName, editor, seatProperties, favorite
     setError('')
 
     const entry: DiceLogEntry = {
-      id: crypto.randomUUID(),
+      id: self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36),
       roller: playerName,
       expression,
       resolvedExpression: expression !== resolvedExpression ? resolvedExpression : undefined,
