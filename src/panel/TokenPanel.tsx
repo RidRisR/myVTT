@@ -1,29 +1,47 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { useValue, type Editor } from 'tldraw'
 import { readPinModes } from './tokenUtils'
+import { adjustNumericValue } from './panelUtils'
+import { useHoldRepeat } from './useHoldRepeat'
+import { useDraggable } from './useDraggable'
 
 interface TokenPanelProps {
   editor: Editor
 }
 
 export function TokenPanel({ editor }: TokenPanelProps) {
-  const [pos, setPos] = useState({ x: window.innerWidth - 320, y: 60 })
+  const { pos, dragRef, handlePointerDown, handlePointerMove, handlePointerUp } = useDraggable({ x: window.innerWidth - 320, y: 60 })
   const [isOpen, setIsOpen] = useState(true)
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editKey, setEditKey] = useState('')
   const [editValue, setEditValue] = useState('')
-  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null)
-  const holdRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; interval: ReturnType<typeof setInterval> | null }>({ timer: null, interval: null })
 
-  const holdStop = useCallback(() => {
-    if (holdRef.current.timer) clearTimeout(holdRef.current.timer)
-    if (holdRef.current.interval) clearInterval(holdRef.current.interval)
-    holdRef.current = { timer: null, interval: null }
-  }, [])
+  // Hold-to-repeat: ref tracks which property is being held
+  const holdTargetRef = useRef<{ index: number; delta: number }>({ index: 0, delta: 1 })
 
-  useEffect(() => holdStop, [holdStop])
+  const { holdStart: rawHoldStart, holdStop } = useHoldRepeat((count) => {
+    const { index, delta } = holdTargetRef.current
+    const shapes = editor.getSelectedShapes()
+    const shape = shapes.length === 1 ? shapes[0] : null
+    if (!shape) return
+    const props = (shape.meta?.properties as { key: string; value: string }[]) ?? []
+    if (index >= props.length) return
+    const actualDelta = count > 15 ? delta * 5 : delta
+    const updated = [...props]
+    updated[index] = { ...updated[index], value: adjustNumericValue(props[index].value, actualDelta) }
+    editor.updateShape({
+      id: shape.id,
+      type: shape.type,
+      meta: { ...shape.meta, properties: updated },
+    })
+  })
+
+  const holdStart = (index: number, delta: number) => {
+    holdTargetRef.current = { index, delta }
+    rawHoldStart()
+  }
 
   const selectedShape = useValue('selectedShape', () => {
     const shapes = editor.getSelectedShapes()
@@ -35,26 +53,6 @@ export function TokenPanel({ editor }: TokenPanelProps) {
   const properties = (selectedShape?.meta?.properties as { key: string; value: string }[]) ?? []
   const pinModes = readPinModes(selectedShape?.meta?.pinnedProps)
 
-  // Drag handlers
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest('button')) return
-    e.stopPropagation()
-    e.currentTarget.setPointerCapture(e.pointerId)
-    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: pos.x, origY: pos.y }
-  }, [pos])
-
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current) return
-    setPos({
-      x: dragRef.current.origX + e.clientX - dragRef.current.startX,
-      y: dragRef.current.origY + e.clientY - dragRef.current.startY,
-    })
-  }, [])
-
-  const handlePointerUp = useCallback(() => {
-    dragRef.current = null
-  }, [])
-
   const updateMeta = (meta: Record<string, unknown>) => {
     if (!selectedShape) return
     editor.updateShape({
@@ -62,43 +60,6 @@ export function TokenPanel({ editor }: TokenPanelProps) {
       type: selectedShape.type,
       meta: { ...selectedShape.meta, ...meta },
     })
-  }
-
-  const adjustValue = (index: number, delta: number) => {
-    const shapes = editor.getSelectedShapes()
-    const shape = shapes.length === 1 ? shapes[0] : null
-    if (!shape) return
-    const props = (shape.meta?.properties as { key: string; value: string }[]) ?? []
-    if (index >= props.length) return
-    const val = props[index].value
-    const hpMatch = val.match(/^(\d+)\/(\d+)$/)
-    let newVal: string
-    if (hpMatch) {
-      const cur = parseInt(hpMatch[1])
-      const max = parseInt(hpMatch[2])
-      newVal = `${Math.max(0, Math.min(cur + delta, max))}/${max}`
-    } else {
-      newVal = `${Math.max(0, parseInt(val) + delta)}`
-    }
-    const updated = [...props]
-    updated[index] = { ...updated[index], value: newVal }
-    editor.updateShape({
-      id: shape.id,
-      type: shape.type,
-      meta: { ...shape.meta, properties: updated },
-    })
-  }
-
-  const holdStart = (index: number, delta: number) => {
-    holdStop()
-    adjustValue(index, delta)
-    let count = 0
-    holdRef.current.timer = setTimeout(() => {
-      holdRef.current.interval = setInterval(() => {
-        count++
-        adjustValue(index, count > 15 ? delta * 5 : delta)
-      }, 80)
-    }, 400)
   }
 
   const handleAddProperty = () => {
