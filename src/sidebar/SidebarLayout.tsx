@@ -1,6 +1,8 @@
-import { useState, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
+import { useValue } from 'tldraw'
 import { SidebarPanel } from './SidebarPanel'
 import { SidebarIconBar, type PanelId } from './SidebarIconBar'
+import { activePanel as activePanelAtom } from '../roleState'
 
 interface SidebarLayoutProps {
   children: ReactNode
@@ -14,10 +16,10 @@ const panelTitles: Record<PanelId, string> = {
 }
 
 export function SidebarLayout({ children, panelContents }: SidebarLayoutProps) {
-  const [activePanel, setActivePanel] = useState<PanelId | null>(null)
+  const currentPanel = useValue(activePanelAtom)
 
   const togglePanel = (id: PanelId) => {
-    setActivePanel((prev) => (prev === id ? null : id))
+    activePanelAtom.set(activePanelAtom.get() === id ? null : id)
   }
 
   return (
@@ -27,16 +29,16 @@ export function SidebarLayout({ children, panelContents }: SidebarLayoutProps) {
         {children}
         {/* Panel overlays canvas area only */}
         <SidebarPanel
-          isOpen={activePanel !== null}
-          title={activePanel ? panelTitles[activePanel] : ''}
-          onClose={() => setActivePanel(null)}
+          isOpen={currentPanel !== null}
+          title={currentPanel ? panelTitles[currentPanel] : ''}
+          onClose={() => activePanelAtom.set(null)}
         >
-          {activePanel && panelContents[activePanel]}
+          {currentPanel && panelContents[currentPanel]}
         </SidebarPanel>
       </div>
 
       {/* Icon bar */}
-      <SidebarIconBar activePanel={activePanel} onToggle={togglePanel} />
+      <SidebarIconBar activePanel={currentPanel} onToggle={togglePanel} />
     </div>
   )
 }
