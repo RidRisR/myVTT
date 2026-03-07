@@ -15,7 +15,7 @@ const { Server: WSServer } = require('ws')
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PORT = parseInt(process.env.PORT || '4444')
-const HOST = process.env.HOST || 'localhost'
+const HOST = process.env.HOST || '0.0.0.0'
 const PERSISTENCE_DIR = process.env.YPERSISTENCE || './db'
 const UPLOADS_DIR = path.join(__dirname, 'uploads')
 
@@ -170,10 +170,20 @@ async function uploadFiles() {
 </body></html>`)
 })
 
-// Default route
-app.get('/', (_req, res) => {
-  res.send('y-websocket server running')
-})
+// Serve built frontend in production
+const distPath = path.join(__dirname, '..', 'dist')
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath))
+  // SPA fallback: non-API, non-upload routes serve index.html
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' || req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) return next()
+    res.sendFile(path.join(distPath, 'index.html'))
+  })
+} else {
+  app.get('/', (_req, res) => {
+    res.send('y-websocket server running (no dist/ found — run npm run build)')
+  })
+}
 
 // HTTP server + WebSocket
 const server = http.createServer(app)

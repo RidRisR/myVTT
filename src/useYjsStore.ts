@@ -10,7 +10,9 @@ import { WebsocketProvider } from 'y-websocket'
 import { YKeyValue } from 'y-utility/y-keyvalue'
 import { assetStore } from './assetStore'
 
-const WEBSOCKET_URL = 'ws://localhost:4444'
+const WEBSOCKET_URL = import.meta.env.DEV
+  ? 'ws://localhost:4444'
+  : `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`
 const ROOM_NAME = 'vtt-room-1'
 
 export function useYjsStore() {

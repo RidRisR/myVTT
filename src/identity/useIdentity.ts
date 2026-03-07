@@ -85,7 +85,7 @@ export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
   }, [])
 
   const createSeat = useCallback((name: string, role: 'GM' | 'PL', color?: string) => {
-    const id = crypto.randomUUID()
+    const id = self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
     const seatColor = color ?? SEAT_COLORS[seats.length % SEAT_COLORS.length]
     const seat: Seat = { id, name, color: seatColor, role }
     yPlayers.set(id, seat)

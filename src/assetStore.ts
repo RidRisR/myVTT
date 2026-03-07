@@ -1,14 +1,13 @@
 import type { TLAssetStore } from 'tldraw'
 
-const UPLOAD_URL = 'http://localhost:4444/api/upload'
-const ASSET_BASE = 'http://localhost:4444'
+const API_BASE = import.meta.env.DEV ? 'http://localhost:4444' : ''
 
 export const assetStore: TLAssetStore = {
   async upload(_asset, file) {
     const formData = new FormData()
     formData.append('file', file)
 
-    const res = await fetch(UPLOAD_URL, {
+    const res = await fetch(`${API_BASE}/api/upload`, {
       method: 'POST',
       body: formData,
     })
@@ -18,7 +17,7 @@ export const assetStore: TLAssetStore = {
     }
 
     const { url } = await res.json()
-    return { src: `${ASSET_BASE}${url}` }
+    return { src: url }
   },
 
   resolve(asset) {

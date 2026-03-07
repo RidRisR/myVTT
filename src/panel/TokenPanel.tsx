@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useValue, type Editor } from 'tldraw'
+import { useValue, type Editor, type JsonValue } from 'tldraw'
 import { readPinModes } from './tokenUtils'
 import { adjustNumericValue } from './panelUtils'
 import { useHoldRepeat } from './useHoldRepeat'
@@ -89,7 +89,7 @@ export function TokenPanel({ editor }: TokenPanelProps) {
     editor.updateShape({
       id: selectedShape.id,
       type: selectedShape.type,
-      meta: { ...selectedShape.meta, ...meta },
+      meta: { ...selectedShape.meta, ...meta } as Record<string, JsonValue>,
     })
   }
 
