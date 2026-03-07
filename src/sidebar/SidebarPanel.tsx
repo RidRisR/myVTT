@@ -11,25 +11,22 @@ export function SidebarPanel({ isOpen, title, onClose, children }: SidebarPanelP
   return (
     <div
       style={{
-        width: isOpen ? 280 : 0,
-        transition: 'width 200ms ease-out',
-        overflow: 'hidden',
-        flexShrink: 0,
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        width: 280,
+        height: '100%',
+        transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
+        transition: 'transform 200ms ease-out',
+        pointerEvents: isOpen ? 'auto' : 'none',
+        zIndex: 100,
+        display: 'flex',
+        flexDirection: 'column',
+        borderLeft: '1px solid #e5e7eb',
+        background: '#fff',
       }}
+      onPointerDown={(e) => e.stopPropagation()}
     >
-      <div
-        style={{
-          width: 280,
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          borderLeft: '1px solid #e5e7eb',
-          background: '#fff',
-          transform: isOpen ? 'translateX(0)' : 'translateX(280px)',
-          transition: 'transform 200ms ease-out',
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
         {/* Header */}
         <div
           style={{
@@ -62,7 +59,6 @@ export function SidebarPanel({ isOpen, title, onClose, children }: SidebarPanelP
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {children}
         </div>
-      </div>
     </div>
   )
 }

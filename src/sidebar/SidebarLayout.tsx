@@ -21,20 +21,19 @@ export function SidebarLayout({ children, panelContents }: SidebarLayoutProps) {
   }
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh' }}>
+    <div style={{ display: 'flex', width: '100vw', height: '100vh', position: 'relative' }}>
       {/* Canvas area */}
       <div style={{ flex: 1, position: 'relative', minWidth: 0, overflow: 'hidden' }}>
         {children}
+        {/* Panel overlays canvas area only */}
+        <SidebarPanel
+          isOpen={activePanel !== null}
+          title={activePanel ? panelTitles[activePanel] : ''}
+          onClose={() => setActivePanel(null)}
+        >
+          {activePanel && panelContents[activePanel]}
+        </SidebarPanel>
       </div>
-
-      {/* Panel content area */}
-      <SidebarPanel
-        isOpen={activePanel !== null}
-        title={activePanel ? panelTitles[activePanel] : ''}
-        onClose={() => setActivePanel(null)}
-      >
-        {activePanel && panelContents[activePanel]}
-      </SidebarPanel>
 
       {/* Icon bar */}
       <SidebarIconBar activePanel={activePanel} onToggle={togglePanel} />
