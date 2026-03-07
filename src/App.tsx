@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react'
 import { useYjsConnection } from './yjs/useYjsConnection'
 import { useRoom } from './yjs/useRoom'
 import { useScenes } from './yjs/useScenes'
+import { useCombatTokens } from './combat/useCombatTokens'
 import { SeatSelect } from './identity/SeatSelect'
 import { useIdentity } from './identity/useIdentity'
 import { roleStore } from './shared/roleState'
 import { ChatPanel } from './chat/ChatPanel'
 import { SceneViewer } from './scene/SceneViewer'
+import { CombatViewer } from './combat/CombatViewer'
+import { CombatGmPanel } from './combat/CombatGmPanel'
+import { TokenPropertiesPanel } from './combat/TokenPropertiesPanel'
 import { GmToolbar } from './gm/GmToolbar'
 import { HamburgerMenu } from './layout/HamburgerMenu'
 import { PortraitBar } from './layout/PortraitBar'
@@ -16,10 +20,12 @@ import { CharacterDetailPanel } from './layout/CharacterDetailPanel'
 export default function App() {
   const { yDoc, isLoading, awareness } = useYjsConnection()
   const { seats, mySeat, mySeatId, onlineSeatIds, claimSeat, createSeat, deleteSeat, leaveSeat, updateSeat } = useIdentity(yDoc, awareness)
-  const { room, setActiveScene, enterCombat, exitCombat } = useRoom(yDoc)
+  const { room, setActiveScene, setCombatScene, enterCombat, exitCombat } = useRoom(yDoc)
   const { scenes, addScene, updateScene, deleteScene, getScene } = useScenes(yDoc)
+  const { tokens, addToken, updateToken, deleteToken, getToken } = useCombatTokens(yDoc)
 
   const [inspectedSeatId, setInspectedSeatId] = useState<string | null>(null)
+  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
 
   // Sync role from seat
   useEffect(() => {
@@ -56,18 +62,38 @@ export default function App() {
   }
 
   const isGM = mySeat.role === 'GM'
+  const isCombat = room.mode === 'combat'
   const activeScene = getScene(room.activeSceneId)
+  const combatScene = getScene(room.combatSceneId)
   const inspectedSeat = inspectedSeatId ? seats.find(s => s.id === inspectedSeatId) : null
 
   // Flatten resources + attributes into { key, value }[] for chat @key autocomplete
-  const seatProperties = [
+  // In combat mode with a selected token, include token properties too
+  const selectedToken = isCombat ? getToken(selectedTokenId) : null
+  const allProps = [
     ...(mySeat.resources ?? []).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
     ...(mySeat.attributes ?? []).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
+    ...(selectedToken?.resources ?? []).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
+    ...(selectedToken?.attributes ?? []).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
   ]
+  // Deduplicate by key — later entries (token) override earlier (seat)
+  const seatProperties = [...new Map(allProps.map(p => [p.key, p])).values()]
 
   return (
     <>
-      <SceneViewer scene={activeScene} />
+      {isCombat ? (
+        <CombatViewer
+          scene={combatScene}
+          tokens={tokens}
+          mySeatId={mySeatId!}
+          role={mySeat.role}
+          selectedTokenId={selectedTokenId}
+          onSelectToken={setSelectedTokenId}
+          onUpdateToken={updateToken}
+        />
+      ) : (
+        <SceneViewer scene={activeScene} />
+      )}
 
       {/* Top-left: Hamburger menu */}
       <HamburgerMenu mySeat={mySeat} onLeaveSeat={leaveSeat} />
@@ -105,6 +131,31 @@ export default function App() {
         senderColor={mySeat.color}
         seatProperties={seatProperties}
       />
+
+      {/* Combat: Token properties panel (GM only) */}
+      {isGM && isCombat && selectedTokenId && getToken(selectedTokenId) && (
+        <TokenPropertiesPanel
+          token={getToken(selectedTokenId)!}
+          seats={seats}
+          onUpdate={updateToken}
+          onClose={() => setSelectedTokenId(null)}
+        />
+      )}
+
+      {/* Combat GM panel (spawn/delete/visibility) */}
+      {isGM && isCombat && (
+        <CombatGmPanel
+          selectedToken={getToken(selectedTokenId)}
+          scenes={scenes}
+          combatSceneId={room.combatSceneId}
+          onAddToken={addToken}
+          onDeleteToken={deleteToken}
+          onUpdateToken={updateToken}
+          onSelectToken={setSelectedTokenId}
+          onSetCombatScene={setCombatScene}
+          onAddScene={addScene}
+        />
+      )}
 
       {/* Bottom-left: GM Toolbar */}
       {isGM && (
