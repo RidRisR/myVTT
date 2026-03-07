@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useYjsConnection } from './yjs/useYjsConnection'
 import { useRoom } from './yjs/useRoom'
 import { useScenes } from './yjs/useScenes'
@@ -8,12 +8,18 @@ import { roleStore } from './shared/roleState'
 import { ChatPanel } from './chat/ChatPanel'
 import { SceneViewer } from './scene/SceneViewer'
 import { GmToolbar } from './gm/GmToolbar'
+import { HamburgerMenu } from './layout/HamburgerMenu'
+import { PortraitBar } from './layout/PortraitBar'
+import { MyCharacterCard } from './layout/MyCharacterCard'
+import { CharacterDetailPanel } from './layout/CharacterDetailPanel'
 
 export default function App() {
   const { yDoc, isLoading, awareness } = useYjsConnection()
-  const { seats, mySeat, mySeatId, onlineSeatIds, claimSeat, createSeat, deleteSeat } = useIdentity(yDoc, awareness)
+  const { seats, mySeat, mySeatId, onlineSeatIds, claimSeat, createSeat, deleteSeat, leaveSeat, updateSeat } = useIdentity(yDoc, awareness)
   const { room, setActiveScene, enterCombat, exitCombat } = useRoom(yDoc)
   const { scenes, addScene, updateScene, deleteScene, getScene } = useScenes(yDoc)
+
+  const [inspectedSeatId, setInspectedSeatId] = useState<string | null>(null)
 
   // Sync role from seat
   useEffect(() => {
@@ -37,7 +43,6 @@ export default function App() {
     )
   }
 
-  // Show seat selection if not seated
   if (!mySeat) {
     return (
       <SeatSelect
@@ -52,13 +57,41 @@ export default function App() {
 
   const isGM = mySeat.role === 'GM'
   const activeScene = getScene(room.activeSceneId)
+  const inspectedSeat = inspectedSeatId ? seats.find(s => s.id === inspectedSeatId) : null
 
   return (
     <>
-      {/* Viewport: Scene mode (combat mode will be added in Milestone 3) */}
       <SceneViewer scene={activeScene} />
 
-      {/* Chat overlay */}
+      {/* Top-left: Hamburger menu */}
+      <HamburgerMenu mySeat={mySeat} onLeaveSeat={leaveSeat} />
+
+      {/* Top-center: Portrait bar */}
+      <PortraitBar
+        seats={seats}
+        mySeatId={mySeatId!}
+        onlineSeatIds={onlineSeatIds}
+        inspectedSeatId={inspectedSeatId}
+        onInspectSeat={(id) => setInspectedSeatId(prev => prev === id ? null : id)}
+      />
+
+      {/* Left: My character card (self-managed open/close via tab) */}
+      <MyCharacterCard
+        seat={mySeat}
+        seatId={mySeatId!}
+        onUpdateSeat={updateSeat}
+      />
+
+      {/* Top-right: Inspected character detail */}
+      {inspectedSeat && (
+        <CharacterDetailPanel
+          seat={inspectedSeat}
+          isOnline={onlineSeatIds.has(inspectedSeatId!)}
+          onClose={() => setInspectedSeatId(null)}
+        />
+      )}
+
+      {/* Bottom-right: Chat overlay */}
       <ChatPanel
         yDoc={yDoc}
         senderId={mySeatId!}
@@ -67,7 +100,7 @@ export default function App() {
         seatProperties={mySeat.properties ?? []}
       />
 
-      {/* GM Toolbar */}
+      {/* Bottom-left: GM Toolbar */}
       {isGM && (
         <GmToolbar
           scenes={scenes}

@@ -12,6 +12,7 @@ export interface Seat {
   name: string
   color: string
   role: 'GM' | 'PL'
+  portraitUrl?: string
   properties?: { key: string; value: string }[]
   favorites?: DiceFavorite[]
 }
@@ -106,10 +107,10 @@ export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
     yPlayers.delete(seatId)
   }, [yPlayers])
 
-  const updateSeatProperties = useCallback((seatId: string, properties: { key: string; value: string }[]) => {
+  const updateSeat = useCallback((seatId: string, updates: Partial<Omit<Seat, 'id'>>) => {
     const seat = yPlayers.get(seatId)
     if (!seat) return
-    yPlayers.set(seatId, { ...seat, properties })
+    yPlayers.set(seatId, { ...seat, ...updates })
   }, [yPlayers])
 
   const mySeat = mySeatId ? yPlayers.get(mySeatId) ?? null : null
@@ -123,6 +124,6 @@ export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
     createSeat,
     deleteSeat,
     leaveSeat,
-    updateSeatProperties,
+    updateSeat,
   }
 }
