@@ -59,6 +59,12 @@ export default function App() {
   const activeScene = getScene(room.activeSceneId)
   const inspectedSeat = inspectedSeatId ? seats.find(s => s.id === inspectedSeatId) : null
 
+  // Flatten resources + attributes into { key, value }[] for chat @key autocomplete
+  const seatProperties = [
+    ...(mySeat.resources ?? []).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
+    ...(mySeat.attributes ?? []).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
+  ]
+
   return (
     <>
       <SceneViewer scene={activeScene} />
@@ -97,7 +103,7 @@ export default function App() {
         senderId={mySeatId!}
         senderName={mySeat.name}
         senderColor={mySeat.color}
-        seatProperties={mySeat.properties ?? []}
+        seatProperties={seatProperties}
       />
 
       {/* Bottom-left: GM Toolbar */}
