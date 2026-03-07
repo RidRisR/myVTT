@@ -6,13 +6,15 @@ interface SeatSelectProps {
   onlineSeatIds: Set<string>
   onClaim: (seatId: string) => void
   onCreate: (name: string, role: 'GM' | 'PL', color: string) => void
+  onDelete: (seatId: string) => void
 }
 
-export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate }: SeatSelectProps) {
+export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }: SeatSelectProps) {
   const [mode, setMode] = useState<'choose' | 'create'>('choose')
   const [name, setName] = useState('')
   const [role, setRole] = useState<'GM' | 'PL'>('PL')
-  const [color, setColor] = useState(SEAT_COLORS[0])
+  const usedColors = seats.map(s => s.color)
+  const [color, setColor] = useState(() => SEAT_COLORS.find(c => !usedColors.includes(c)) ?? SEAT_COLORS[0])
 
   return (
     <div style={{
@@ -71,6 +73,18 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate }: SeatSele
                     }}>
                       {seat.role}
                     </span>
+                    {!isOnline && (
+                      <span
+                        onClick={(e) => { e.stopPropagation(); onDelete(seat.id) }}
+                        style={{
+                          fontSize: 12, color: '#999', cursor: 'pointer',
+                          padding: '0 4px', lineHeight: 1,
+                        }}
+                        title="Delete seat"
+                      >
+                        x
+                      </span>
+                    )}
                   </button>
                 )
               })}
@@ -140,18 +154,22 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate }: SeatSele
               <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>
                 Color
               </label>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {SEAT_COLORS.map((c) => (
-                  <div
-                    key={c}
-                    onClick={() => setColor(c)}
-                    style={{
-                      width: 28, height: 28, borderRadius: '50%', background: c,
-                      cursor: 'pointer',
-                      border: color === c ? '3px solid #111' : '3px solid transparent',
-                    }}
-                  />
-                ))}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {SEAT_COLORS.map((c) => {
+                  const taken = usedColors.includes(c)
+                  return (
+                    <div
+                      key={c}
+                      onClick={() => !taken && setColor(c)}
+                      style={{
+                        width: 28, height: 28, borderRadius: '50%', background: c,
+                        cursor: taken ? 'not-allowed' : 'pointer',
+                        border: color === c ? '3px solid #111' : '3px solid transparent',
+                        opacity: taken ? 0.25 : 1,
+                      }}
+                    />
+                  )
+                })}
               </div>
             </div>
 

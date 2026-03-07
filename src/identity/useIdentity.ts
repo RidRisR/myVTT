@@ -17,7 +17,7 @@ export interface Seat {
 }
 
 const SEAT_STORAGE_KEY = 'myvtt-seat-id'
-export const SEAT_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
+export const SEAT_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
 
 export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
   const [seats, setSeats] = useState<Seat[]>([])
@@ -102,6 +102,10 @@ export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
     }
   }, [awareness])
 
+  const deleteSeat = useCallback((seatId: string) => {
+    yPlayers.delete(seatId)
+  }, [yPlayers])
+
   const updateSeatProperties = useCallback((seatId: string, properties: { key: string; value: string }[]) => {
     const seat = yPlayers.get(seatId)
     if (!seat) return
@@ -123,6 +127,7 @@ export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
     onlineSeatIds,
     claimSeat,
     createSeat,
+    deleteSeat,
     leaveSeat,
     updateSeatProperties,
     updateSeatFavorites,
