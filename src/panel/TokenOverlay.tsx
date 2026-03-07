@@ -138,13 +138,21 @@ export function TokenOverlay() {
   )
 }
 
+const BAR_COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899']
+
+function barColorForKey(key: string): string {
+  let hash = 0
+  for (let i = 0; i < key.length; i++) hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0
+  return BAR_COLORS[Math.abs(hash) % BAR_COLORS.length]
+}
+
 function PinnedProp({ prop, barWidth }: { prop: { key: string; value: string }; barWidth: number }) {
   const hpMatch = prop.value.match(HP_REGEX)
   if (hpMatch) {
     const current = parseInt(hpMatch[1])
     const max = parseInt(hpMatch[2])
     const pct = max > 0 ? Math.min(current / max, 1) : 0
-    const barColor = pct > 0.5 ? '#22c55e' : pct > 0.25 ? '#f59e0b' : '#ef4444'
+    const baseColor = barColorForKey(prop.key)
     return (
       <div style={{
         width: Math.max(barWidth * 0.8, 40),
@@ -157,8 +165,9 @@ function PinnedProp({ prop, barWidth }: { prop: { key: string; value: string }; 
         }}>
           <div style={{
             width: `${pct * 100}%`, height: '100%',
-            background: barColor, borderRadius: 3,
+            background: baseColor, borderRadius: 3,
             transition: 'width 0.2s',
+            opacity: pct > 0.25 ? 1 : 0.7,
           }} />
         </div>
         <span style={{
@@ -166,7 +175,7 @@ function PinnedProp({ prop, barWidth }: { prop: { key: string; value: string }; 
           background: 'rgba(255,255,255,0.8)', borderRadius: 2,
           padding: '0 3px', marginTop: 1,
         }}>
-          {prop.value}
+          {prop.key}: {prop.value}
         </span>
       </div>
     )
