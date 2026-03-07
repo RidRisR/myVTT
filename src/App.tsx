@@ -1,105 +1,24 @@
-import { useEffect, useState } from 'react'
-import { Tldraw, DefaultToolbar, DefaultToolbarContent, ToolbarItem, type Editor, type TLShape, type TLImageShape, type JsonObject, type TLUiOverrides } from 'tldraw'
-import 'tldraw/tldraw.css'
-import { useYjsStore } from './useYjsStore'
-import { PropertyContextMenu } from './PropertyContextMenu'
-import { TokenPopover } from './panel/TokenPopover'
-import { TokenOverlay } from './panel/TokenOverlay'
-import { MeasureOverlay } from './tools/MeasureOverlay'
-import { MeasureTool } from './tools/MeasureTool'
+import { useEffect } from 'react'
+import { useYjsConnection } from './yjs/useYjsConnection'
+import { useRoom } from './yjs/useRoom'
+import { useScenes } from './yjs/useScenes'
 import { SeatSelect } from './identity/SeatSelect'
 import { useIdentity } from './identity/useIdentity'
-import { CursorOverlay } from './tools/CursorOverlay'
-import { useCursorSync } from './hooks/useCursorSync'
-import { currentRole } from './roleState'
+import { roleStore } from './shared/roleState'
 import { ChatPanel } from './chat/ChatPanel'
-import { CustomImageToolbar } from './CustomImageToolbar'
-
-function getShapeVisibility(shape: TLShape) {
-  if (shape.meta?.gmOnly && currentRole.get() === 'PL') return 'hidden' as const
-  return 'inherit' as const
-}
-
-const measureTools = [MeasureTool]
-
-const rulerIcon = (
-  <svg viewBox="0 0 30 30" style={{ width: 16, height: 16 }}>
-    <line x1="4" y1="26" x2="26" y2="4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-    <line x1="8" y1="22" x2="10.5" y2="19.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    <line x1="12" y1="18" x2="14.5" y2="15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    <line x1="16" y1="14" x2="18.5" y2="11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    <line x1="20" y1="10" x2="22.5" y2="7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>
-)
-
-const measureOverrides: TLUiOverrides = {
-  tools(editor, tools) {
-    return {
-      ...tools,
-      measure: {
-        id: 'measure',
-        label: 'Measure',
-        icon: rulerIcon,
-        kbd: 'm',
-        onSelect(_source) {
-          editor.setCurrentTool('measure')
-        },
-      },
-    }
-  },
-}
-
-function CustomToolbar() {
-  return (
-    <DefaultToolbar>
-      <DefaultToolbarContent />
-      <ToolbarItem tool="measure" />
-    </DefaultToolbar>
-  )
-}
+import { SceneViewer } from './scene/SceneViewer'
+import { GmToolbar } from './gm/GmToolbar'
 
 export default function App() {
-  const { store, yDoc, isLoading, awareness } = useYjsStore()
+  const { yDoc, isLoading, awareness } = useYjsConnection()
   const { seats, mySeat, mySeatId, onlineSeatIds, claimSeat, createSeat, deleteSeat } = useIdentity(yDoc, awareness)
-  const [editor, setEditor] = useState<Editor | null>(null)
+  const { room, setActiveScene, enterCombat, exitCombat } = useRoom(yDoc)
+  const { scenes, addScene, updateScene, deleteScene, getScene } = useScenes(yDoc)
 
-  // Broadcast cursor position via awareness
-  useCursorSync(editor, awareness)
-
-  // Sync role atom from seat
+  // Sync role from seat
   useEffect(() => {
-    if (mySeat) currentRole.set(mySeat.role)
+    if (mySeat) roleStore.set(mySeat.role)
   }, [mySeat?.role])
-
-  // Auto-init meta on new shapes (local only)
-  useEffect(() => {
-    if (!editor) return
-    return editor.store.listen(
-      ({ changes }) => {
-        const toUpdate: { id: TLShape['id']; type: string; meta: Partial<JsonObject> }[] = []
-        for (const record of Object.values(changes.added)) {
-          if (!('type' in record) || record.typeName !== 'shape') continue
-          const shape = record as TLShape
-          if (typeof shape.meta?.name === 'string') continue
-          let name = ''
-          if (shape.type === 'image') {
-            const imgShape = shape as TLImageShape
-            if (imgShape.props.assetId) {
-              const asset = editor.getAsset(imgShape.props.assetId)
-              if (asset?.props && 'name' in asset.props) {
-                name = (asset.props.name as string).replace(/\.[^.]+$/, '')
-              }
-            }
-          }
-          toUpdate.push({ id: shape.id, type: shape.type, meta: { ...shape.meta, name, nameDisplay: 'hidden', resources: [], attributes: [], statuses: [], notes: '' } as Partial<JsonObject> })
-        }
-        if (toUpdate.length > 0) {
-          for (const upd of toUpdate) editor.updateShape(upd as any)
-        }
-      },
-      { source: 'user', scope: 'document' },
-    )
-  }, [editor])
 
   if (isLoading) {
     return (
@@ -109,8 +28,9 @@ export default function App() {
         justifyContent: 'center',
         height: '100vh',
         fontFamily: 'sans-serif',
-        fontSize: '18px',
+        fontSize: 18,
         color: '#666',
+        background: '#1a1a2e',
       }}>
         Connecting to server...
       </div>
@@ -130,40 +50,36 @@ export default function App() {
     )
   }
 
+  const isGM = mySeat.role === 'GM'
+  const activeScene = getScene(room.activeSceneId)
+
   return (
     <>
-    <style>{`.tl-watermark_SEE-LICENSE { display: none !important; }`}</style>
-    <div style={{ width: '100vw', height: '100vh' }}>
-      <Tldraw
-        store={store}
-        tools={measureTools}
-        overrides={measureOverrides}
-        getShapeVisibility={getShapeVisibility}
-        onMount={setEditor}
-        components={{
-          ContextMenu: PropertyContextMenu,
-          ImageToolbar: CustomImageToolbar,
-          InFrontOfTheCanvas: TokenOverlay,
-          Toolbar: CustomToolbar,
-          StylePanel: null,
-          SharePanel: null,
-          HelpMenu: null,
-        }}
-      />
-      {editor && <MeasureOverlay editor={editor} />}
-      {editor && awareness && <CursorOverlay editor={editor} awareness={awareness} />}
-      {editor && <TokenPopover editor={editor} />}
-    </div>
+      {/* Viewport: Scene mode (combat mode will be added in Milestone 3) */}
+      <SceneViewer scene={activeScene} />
 
-    {/* Chat overlay */}
-    <ChatPanel
-      yDoc={yDoc}
-      editor={editor}
-      senderId={mySeatId!}
-      senderName={mySeat.name}
-      senderColor={mySeat.color}
-      seatProperties={mySeat.properties ?? []}
-    />
+      {/* Chat overlay */}
+      <ChatPanel
+        yDoc={yDoc}
+        senderId={mySeatId!}
+        senderName={mySeat.name}
+        senderColor={mySeat.color}
+        seatProperties={mySeat.properties ?? []}
+      />
+
+      {/* GM Toolbar */}
+      {isGM && (
+        <GmToolbar
+          scenes={scenes}
+          room={room}
+          onSelectScene={setActiveScene}
+          onEnterCombat={enterCombat}
+          onExitCombat={exitCombat}
+          onAddScene={addScene}
+          onUpdateScene={updateScene}
+          onDeleteScene={deleteScene}
+        />
+      )}
     </>
   )
 }

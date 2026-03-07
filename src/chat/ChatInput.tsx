@@ -1,7 +1,5 @@
 import { useState, useRef, useMemo } from 'react'
-import { useValue, type Editor } from 'tldraw'
-import { rollCompound, resolveFormula } from '../diceUtils'
-import { readAttributes, readResources } from '../panel/tokenUtils'
+import { rollCompound, resolveFormula } from '../shared/diceUtils'
 import type { ChatMessage } from './chatTypes'
 
 interface Suggestion {
@@ -11,7 +9,7 @@ interface Suggestion {
 }
 
 interface ChatInputProps {
-  editor: Editor | null
+  selectedTokenProps: { key: string; value: string }[]
   senderId: string
   senderName: string
   senderColor: string
@@ -23,32 +21,12 @@ function generateId(): string {
   return self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-/** Build token properties from the new structured format (attributes + resources) */
-function buildTokenProps(shape: { meta?: Record<string, unknown> } | null): { key: string; value: string }[] {
-  if (!shape?.meta) return []
-  const props: { key: string; value: string }[] = []
-  for (const attr of readAttributes(shape.meta.attributes)) {
-    props.push({ key: attr.key, value: String(attr.value) })
-  }
-  for (const res of readResources(shape.meta.resources)) {
-    props.push({ key: res.key, value: `${res.current}/${res.max}` })
-  }
-  return props
-}
-
-export function ChatInput({ editor, senderId, senderName, senderColor, seatProperties, onSend }: ChatInputProps) {
+export function ChatInput({ selectedTokenProps, senderId, senderName, senderColor, seatProperties, onSend }: ChatInputProps) {
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [suggestionIndex, setSuggestionIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  // Reactively track selected token properties
-  const selectedTokenProps = useValue('chatSelectedTokenProps', () => {
-    const shapes = editor?.getSelectedShapes() ?? []
-    const shape = shapes.length === 1 ? shapes[0] : null
-    return buildTokenProps(shape as { meta?: Record<string, unknown> } | null)
-  }, [editor])
 
   // Build available suggestions
   const suggestions = useMemo((): Suggestion[] => {
@@ -122,10 +100,8 @@ export function ChatInput({ editor, senderId, senderName, senderColor, seatPrope
   }
 
   const handleRoll = (formula: string) => {
-    // Resolve @key references
-    const tokenShapes = editor?.getSelectedShapes() ?? []
-    const tokenShape = tokenShapes.length === 1 ? tokenShapes[0] : null
-    const tokenProps = buildTokenProps(tokenShape as { meta?: Record<string, unknown> } | null)
+    // Resolve @key references using provided token props
+    const tokenProps = selectedTokenProps
 
     let expression = formula
     let resolvedExpression = formula
@@ -133,7 +109,7 @@ export function ChatInput({ editor, senderId, senderName, senderColor, seatPrope
     if (/@[\p{L}\p{N}_]+/u.test(formula)) {
       const resolved = resolveFormula(formula, tokenProps, seatProperties)
       if ('error' in resolved) {
-        const hint = !tokenShape ? ' (try selecting a token)' : ''
+        const hint = tokenProps.length === 0 ? ' (try selecting a token)' : ''
         setError(resolved.error + hint)
         return
       }
