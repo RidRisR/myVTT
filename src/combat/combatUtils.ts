@@ -1,0 +1,37 @@
+export function snapToGrid(
+  mapX: number, mapY: number,
+  gridSize: number, gridOffsetX: number, gridOffsetY: number,
+): { x: number; y: number } {
+  const col = Math.round((mapX - gridOffsetX) / gridSize)
+  const row = Math.round((mapY - gridOffsetY) / gridSize)
+  return {
+    x: col * gridSize + gridOffsetX,
+    y: row * gridSize + gridOffsetY,
+  }
+}
+
+export function screenToMap(
+  screenX: number, screenY: number,
+  wrapperRect: DOMRect,
+  scale: number, positionX: number, positionY: number,
+): { mapX: number; mapY: number } {
+  const relX = screenX - wrapperRect.left
+  const relY = screenY - wrapperRect.top
+  return {
+    mapX: (relX - positionX) / scale,
+    mapY: (relY - positionY) / scale,
+  }
+}
+
+export function canDragToken(
+  role: 'GM' | 'PL',
+  tokenOwnerId: string | null,
+  mySeatId: string,
+): boolean {
+  if (role === 'GM') return true
+  return tokenOwnerId === mySeatId
+}
+
+export function generateTokenId(): string {
+  return self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
+}
