@@ -8,6 +8,7 @@ import {
 import * as Y from 'yjs'
 import { WebsocketProvider } from 'y-websocket'
 import { YKeyValue } from 'y-utility/y-keyvalue'
+import { assetStore } from './assetStore'
 
 const WEBSOCKET_URL = 'ws://localhost:4444'
 const ROOM_NAME = 'vtt-room-1'
@@ -17,6 +18,7 @@ export function useYjsStore() {
     createTLStore({
       shapeUtils: [...defaultShapeUtils],
       bindingUtils: [...defaultBindingUtils],
+      assets: assetStore,
     })
   )
   const [yDoc] = useState(() => new Y.Doc())
