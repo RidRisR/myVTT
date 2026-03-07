@@ -3,7 +3,7 @@ import { Tldraw, DefaultToolbar, DefaultToolbarContent, ToolbarItem, type Editor
 import 'tldraw/tldraw.css'
 import { useYjsStore } from './useYjsStore'
 import { PropertyContextMenu } from './PropertyContextMenu'
-import { TokenPanel } from './panel/TokenPanel'
+import { TokenPopover } from './panel/TokenPopover'
 import { TokenOverlay } from './panel/TokenOverlay'
 import { MeasureOverlay } from './tools/MeasureOverlay'
 import { MeasureTool } from './tools/MeasureTool'
@@ -157,7 +157,6 @@ export default function App() {
             onUpdateFavorites={(favs) => updateSeatFavorites(mySeatId!, favs)}
           />
         ),
-        token: editor ? <TokenPanel editor={editor} /> : undefined,
       }}
     >
       <Tldraw
@@ -178,6 +177,7 @@ export default function App() {
       />
       {editor && <MeasureOverlay editor={editor} />}
       {editor && awareness && <CursorOverlay editor={editor} awareness={awareness} />}
+      {editor && <TokenPopover editor={editor} />}
     </SidebarLayout>
     </>
   )
