@@ -1,7 +1,10 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { useValue } from 'tldraw'
 import type { Seat } from '../identity/useIdentity'
 import { currentRole } from '../roleState'
+import { adjustNumericValue } from './panelUtils'
+import { useHoldRepeat } from './useHoldRepeat'
+import { useDraggable } from './useDraggable'
 
 interface PlayerPanelProps {
   seats: Seat[]
@@ -15,7 +18,7 @@ interface PlayerPanelProps {
 export function PlayerPanel({
   seats, mySeat, mySeatId, onlineSeatIds, onLeave, onUpdateProperties,
 }: PlayerPanelProps) {
-  const [pos, setPos] = useState({ x: 12, y: 12 })
+  const { pos, dragRef, handlePointerDown, handlePointerMove, handlePointerUp } = useDraggable({ x: 12, y: 12 })
   const [isOpen, setIsOpen] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(mySeatId)
   const [newKey, setNewKey] = useState('')
@@ -23,69 +26,31 @@ export function PlayerPanel({
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [editKey, setEditKey] = useState('')
   const [editValue, setEditValue] = useState('')
-  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null)
-  const holdRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; interval: ReturnType<typeof setInterval> | null }>({ timer: null, interval: null })
 
   const viewRole = useValue('currentRole', () => currentRole.get(), [])
 
-  const holdStop = useCallback(() => {
-    if (holdRef.current.timer) clearTimeout(holdRef.current.timer)
-    if (holdRef.current.interval) clearInterval(holdRef.current.interval)
-    holdRef.current = { timer: null, interval: null }
-  }, [])
+  // Hold-to-repeat: refs keep fresh data for the interval callback
+  const seatsRef = useRef(seats)
+  seatsRef.current = seats
+  const onUpdateRef = useRef(onUpdateProperties)
+  onUpdateRef.current = onUpdateProperties
+  const holdTargetRef = useRef<{ seatId: string; index: number; delta: number }>({ seatId: '', index: 0, delta: 1 })
 
-  useEffect(() => holdStop, [holdStop])
-
-  // Drag handlers
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest('button, input')) return
-    e.stopPropagation()
-    e.currentTarget.setPointerCapture(e.pointerId)
-    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: pos.x, origY: pos.y }
-  }, [pos])
-
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current) return
-    setPos({
-      x: dragRef.current.origX + e.clientX - dragRef.current.startX,
-      y: dragRef.current.origY + e.clientY - dragRef.current.startY,
-    })
-  }, [])
-
-  const handlePointerUp = useCallback(() => {
-    dragRef.current = null
-  }, [])
-
-  const adjustValue = (seatId: string, index: number, delta: number) => {
-    const seat = seats.find((s) => s.id === seatId)
+  const { holdStart: rawHoldStart, holdStop } = useHoldRepeat((count) => {
+    const { seatId, index, delta } = holdTargetRef.current
+    const seat = seatsRef.current.find((s) => s.id === seatId)
     if (!seat) return
     const props = seat.properties ?? []
     if (index >= props.length) return
-    const val = props[index].value
-    const hpMatch = val.match(/^(\d+)\/(\d+)$/)
-    let newVal: string
-    if (hpMatch) {
-      const cur = parseInt(hpMatch[1])
-      const max = parseInt(hpMatch[2])
-      newVal = `${Math.max(0, Math.min(cur + delta, max))}/${max}`
-    } else {
-      newVal = `${Math.max(0, parseInt(val) + delta)}`
-    }
+    const actualDelta = count > 15 ? delta * 5 : delta
     const updated = [...props]
-    updated[index] = { ...updated[index], value: newVal }
-    onUpdateProperties(seatId, updated)
-  }
+    updated[index] = { ...updated[index], value: adjustNumericValue(props[index].value, actualDelta) }
+    onUpdateRef.current(seatId, updated)
+  })
 
   const holdStart = (seatId: string, index: number, delta: number) => {
-    holdStop()
-    adjustValue(seatId, index, delta)
-    let count = 0
-    holdRef.current.timer = setTimeout(() => {
-      holdRef.current.interval = setInterval(() => {
-        count++
-        adjustValue(seatId, index, count > 15 ? delta * 5 : delta)
-      }, 80)
-    }, 400)
+    holdTargetRef.current = { seatId, index, delta }
+    rawHoldStart()
   }
 
   const handleAddProperty = (seatId: string) => {
