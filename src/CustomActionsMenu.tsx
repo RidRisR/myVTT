@@ -7,7 +7,7 @@ import {
   useValue,
   type TLUiActionsMenuProps,
 } from 'tldraw'
-import { activePanel as activePanelAtom } from './roleState'
+import { tokenPopoverOpen } from './roleState'
 
 export function CustomActionsMenu(props: TLUiActionsMenuProps) {
   const editor = useEditor()
@@ -28,7 +28,7 @@ export function CustomActionsMenu(props: TLUiActionsMenuProps) {
   }
 
   const handleEditProperties = () => {
-    activePanelAtom.set(activePanelAtom.get() === 'token' ? null : 'token')
+    tokenPopoverOpen.set(!tokenPopoverOpen.get())
   }
 
   return (

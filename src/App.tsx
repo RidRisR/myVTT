@@ -7,14 +7,12 @@ import { TokenPopover } from './panel/TokenPopover'
 import { TokenOverlay } from './panel/TokenOverlay'
 import { MeasureOverlay } from './tools/MeasureOverlay'
 import { MeasureTool } from './tools/MeasureTool'
-import { PlayerPanel } from './panel/PlayerPanel'
-import { DiceSidebar } from './DiceSidebar'
 import { SeatSelect } from './identity/SeatSelect'
 import { useIdentity } from './identity/useIdentity'
 import { CursorOverlay } from './tools/CursorOverlay'
 import { useCursorSync } from './hooks/useCursorSync'
 import { currentRole } from './roleState'
-import { SidebarLayout } from './sidebar/SidebarLayout'
+import { ChatPanel } from './chat/ChatPanel'
 import { CustomImageToolbar } from './CustomImageToolbar'
 
 function getShapeVisibility(shape: TLShape) {
@@ -62,7 +60,7 @@ function CustomToolbar() {
 
 export default function App() {
   const { store, yDoc, isLoading, awareness } = useYjsStore()
-  const { seats, mySeat, mySeatId, onlineSeatIds, claimSeat, createSeat, deleteSeat, leaveSeat, updateSeatProperties, updateSeatFavorites } = useIdentity(yDoc, awareness)
+  const { seats, mySeat, mySeatId, onlineSeatIds, claimSeat, createSeat, deleteSeat } = useIdentity(yDoc, awareness)
   const [editor, setEditor] = useState<Editor | null>(null)
 
   // Broadcast cursor position via awareness
@@ -135,30 +133,7 @@ export default function App() {
   return (
     <>
     <style>{`.tl-watermark_SEE-LICENSE { display: none !important; }`}</style>
-    <SidebarLayout
-      panelContents={{
-        players: (
-          <PlayerPanel
-            seats={seats}
-            mySeat={mySeat}
-            mySeatId={mySeatId!}
-            onlineSeatIds={onlineSeatIds}
-            onLeave={leaveSeat}
-            onUpdateProperties={updateSeatProperties}
-          />
-        ),
-        dice: (
-          <DiceSidebar
-            yDoc={yDoc}
-            playerName={mySeat.name}
-            editor={editor}
-            seatProperties={mySeat.properties ?? []}
-            favorites={mySeat.favorites ?? []}
-            onUpdateFavorites={(favs) => updateSeatFavorites(mySeatId!, favs)}
-          />
-        ),
-      }}
-    >
+    <div style={{ width: '100vw', height: '100vh' }}>
       <Tldraw
         store={store}
         tools={measureTools}
@@ -178,7 +153,17 @@ export default function App() {
       {editor && <MeasureOverlay editor={editor} />}
       {editor && awareness && <CursorOverlay editor={editor} awareness={awareness} />}
       {editor && <TokenPopover editor={editor} />}
-    </SidebarLayout>
+    </div>
+
+    {/* Chat overlay */}
+    <ChatPanel
+      yDoc={yDoc}
+      editor={editor}
+      senderId={mySeatId!}
+      senderName={mySeat.name}
+      senderColor={mySeat.color}
+      seatProperties={mySeat.properties ?? []}
+    />
     </>
   )
 }

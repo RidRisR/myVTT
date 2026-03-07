@@ -112,12 +112,6 @@ export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
     yPlayers.set(seatId, { ...seat, properties })
   }, [yPlayers])
 
-  const updateSeatFavorites = useCallback((seatId: string, favorites: DiceFavorite[]) => {
-    const seat = yPlayers.get(seatId)
-    if (!seat) return
-    yPlayers.set(seatId, { ...seat, favorites })
-  }, [yPlayers])
-
   const mySeat = mySeatId ? yPlayers.get(mySeatId) ?? null : null
 
   return {
@@ -130,6 +124,5 @@ export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
     deleteSeat,
     leaveSeat,
     updateSeatProperties,
-    updateSeatFavorites,
   }
 }
