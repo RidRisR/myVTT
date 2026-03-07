@@ -16,34 +16,7 @@ export function PropertyContextMenu(props: TLUiContextMenuProps) {
   const singleShape = selectedShapes.length === 1 ? selectedShapes[0] : null
   const role = useValue(currentRole)
   const isGM = role === 'GM'
-  const isToken = typeof singleShape?.meta?.name === 'string'
   const isGmOnly = singleShape?.meta?.gmOnly === true
-
-  const handleAddProperties = () => {
-    if (!singleShape) return
-    editor.updateShape({
-      id: singleShape.id,
-      type: singleShape.type,
-      meta: {
-        ...singleShape.meta,
-        name: '',
-        properties: singleShape.meta.properties ?? [],
-      },
-    })
-  }
-
-  const handleRemoveProperties = () => {
-    if (!singleShape) return
-    editor.updateShape({
-      id: singleShape.id,
-      type: singleShape.type,
-      meta: {
-        ...singleShape.meta,
-        name: undefined,
-        properties: undefined,
-      },
-    })
-  }
 
   const handleToggleVisibility = () => {
     if (!singleShape) return
@@ -57,28 +30,13 @@ export function PropertyContextMenu(props: TLUiContextMenuProps) {
   return (
     <DefaultContextMenu {...props}>
       <DefaultContextMenuContent />
-      {singleShape && (
+      {singleShape && isGM && (
         <TldrawUiMenuGroup id="token-actions">
-          {!isToken ? (
-            <TldrawUiMenuItem
-              id="add-properties"
-              label="Add Properties"
-              onSelect={handleAddProperties}
-            />
-          ) : (
-            <TldrawUiMenuItem
-              id="remove-properties"
-              label="Remove Properties"
-              onSelect={handleRemoveProperties}
-            />
-          )}
-          {isGM && (
-            <TldrawUiMenuItem
-              id="toggle-visibility"
-              label={isGmOnly ? 'Show to Players' : 'Hide from Players'}
-              onSelect={handleToggleVisibility}
-            />
-          )}
+          <TldrawUiMenuItem
+            id="toggle-visibility"
+            label={isGmOnly ? 'Show to Players' : 'Hide from Players'}
+            onSelect={handleToggleVisibility}
+          />
         </TldrawUiMenuGroup>
       )}
     </DefaultContextMenu>

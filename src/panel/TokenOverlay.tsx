@@ -25,10 +25,10 @@ export function TokenOverlay() {
     const result: OverlayItem[] = []
 
     for (const shape of editor.getCurrentPageShapes()) {
-      if (typeof shape.meta?.name !== 'string') continue
-      const name = shape.meta.name as string
-      const properties = (shape.meta.properties as { key: string; value: string }[]) ?? []
-      const modes = readPinModes(shape.meta.pinnedProps)
+      const name = (shape.meta?.name as string) ?? ''
+      const nameDisplay = (shape.meta?.nameDisplay as string) ?? 'hidden'
+      const properties = (shape.meta?.properties as { key: string; value: string }[]) ?? []
+      const modes = readPinModes(shape.meta?.pinnedProps)
 
       const isActive = shape.id === hoveredId || selectedIds.includes(shape.id)
 
@@ -37,7 +37,13 @@ export function TokenOverlay() {
         ? properties.filter((p) => modes[p.key] === 'hover')
         : []
 
-      if (!name && alwaysProps.length === 0 && hoverProps.length === 0) continue
+      // Determine if name should show based on nameDisplay mode
+      const showName = name && (
+        nameDisplay === 'always' ||
+        (nameDisplay === 'hover' && isActive)
+      )
+
+      if (!showName && alwaysProps.length === 0 && hoverProps.length === 0) continue
 
       const bounds = editor.getShapePageBounds(shape.id)
       if (!bounds) continue
@@ -48,7 +54,7 @@ export function TokenOverlay() {
 
       result.push({
         id: shape.id,
-        name,
+        name: showName ? name : '',
         alwaysProps,
         hoverProps,
         bottomX: bottomCenter.x,

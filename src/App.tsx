@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Tldraw, type Editor, type TLShape } from 'tldraw'
+import { Tldraw, type Editor, type TLShape, type TLImageShape, type JsonValue } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { useYjsStore } from './useYjsStore'
 import { PropertyContextMenu } from './PropertyContextMenu'
@@ -25,6 +25,36 @@ export default function App() {
   useEffect(() => {
     if (mySeat) currentRole.set(mySeat.role)
   }, [mySeat?.role])
+
+  // Auto-init meta on new shapes (local only)
+  useEffect(() => {
+    if (!editor) return
+    return editor.store.listen(
+      ({ changes }) => {
+        const toUpdate: { id: TLShape['id']; type: string; meta: Record<string, unknown> }[] = []
+        for (const record of Object.values(changes.added)) {
+          if (!('type' in record) || record.typeName !== 'shape') continue
+          const shape = record as TLShape
+          if (typeof shape.meta?.name === 'string') continue
+          let name = ''
+          if (shape.type === 'image') {
+            const imgShape = shape as TLImageShape
+            if (imgShape.props.assetId) {
+              const asset = editor.getAsset(imgShape.props.assetId)
+              if (asset?.props && 'name' in asset.props) {
+                name = (asset.props.name as string).replace(/\.[^.]+$/, '')
+              }
+            }
+          }
+          toUpdate.push({ id: shape.id, type: shape.type, meta: { ...shape.meta, name, properties: [], nameDisplay: 'hidden' } as Record<string, JsonValue> })
+        }
+        if (toUpdate.length > 0) {
+          for (const upd of toUpdate) editor.updateShape(upd)
+        }
+      },
+      { source: 'user', scope: 'document' },
+    )
+  }, [editor])
 
   if (isLoading) {
     return (

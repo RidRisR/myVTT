@@ -48,8 +48,8 @@ export function TokenPanel({ editor }: TokenPanelProps) {
     return shapes.length === 1 ? shapes[0] : null
   }, [editor])
 
-  const isToken = typeof selectedShape?.meta?.name === 'string'
   const tokenName = (selectedShape?.meta?.name as string) ?? ''
+  const nameDisplay = (selectedShape?.meta?.nameDisplay as string) ?? 'hidden'
   const properties = (selectedShape?.meta?.properties as { key: string; value: string }[]) ?? []
   const pinModes = readPinModes(selectedShape?.meta?.pinnedProps)
 
@@ -152,27 +152,51 @@ export function TokenPanel({ editor }: TokenPanelProps) {
           </div>
         )}
 
-        {selectedShape && !isToken && (
-          <div style={{ color: '#999', textAlign: 'center', padding: 16 }}>
-            Right-click shape and select "Add Properties" to make it a token
-          </div>
-        )}
-
-        {selectedShape && isToken && (
+        {selectedShape && (
           <>
-            {/* Token Name */}
+            {/* Token Name + Display Mode */}
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 11, color: '#999', display: 'block', marginBottom: 2 }}>
                 Name
               </label>
-              <input
-                value={tokenName}
-                onChange={(e) => updateMeta({ name: e.target.value })}
-                style={{
-                  width: '100%', padding: '6px 10px', border: '1px solid #ddd',
-                  borderRadius: 6, fontSize: 13, boxSizing: 'border-box',
-                }}
-              />
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <input
+                  value={tokenName}
+                  onChange={(e) => updateMeta({ name: e.target.value })}
+                  placeholder="Unnamed"
+                  style={{
+                    flex: 1, padding: '6px 10px', border: '1px solid #ddd',
+                    borderRadius: 6, fontSize: 13, boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    const next = nameDisplay === 'hidden' ? 'hover'
+                      : nameDisplay === 'hover' ? 'always' : 'hidden'
+                    updateMeta({ nameDisplay: next })
+                  }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    padding: '2px 4px', lineHeight: 1, display: 'flex', alignItems: 'center',
+                  }}
+                  title={
+                    nameDisplay === 'hidden' ? 'Name hidden (click: hover)'
+                      : nameDisplay === 'hover' ? 'Name on hover (click: always)'
+                      : 'Name always shown (click: hidden)'
+                  }
+                >
+                  <span style={{
+                    display: 'inline-block', width: 10, height: 10,
+                    borderRadius: '50%',
+                    border: `2px solid ${
+                      nameDisplay === 'always' ? '#2563eb'
+                        : nameDisplay === 'hover' ? '#f59e0b' : '#ccc'
+                    }`,
+                    background: nameDisplay === 'always' ? '#2563eb' : 'transparent',
+                    boxShadow: nameDisplay === 'hover' ? 'inset 5px 0 0 0 #f59e0b' : 'none',
+                  }} />
+                </button>
+              </div>
             </div>
 
             {/* Properties List */}
