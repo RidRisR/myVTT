@@ -1,10 +1,13 @@
+import { useEffect } from 'react'
 import { Tldraw, type TLShape } from 'tldraw'
 import 'tldraw/tldraw.css'
 import { useYjsStore } from './useYjsStore'
 import { PropertyContextMenu } from './PropertyContextMenu'
 import { PropertyOverlay } from './PropertyOverlay'
-import { RoleSwitcher } from './RoleSwitcher'
+import { IdentityBadge } from './RoleSwitcher'
 import { DiceSidebar } from './DiceSidebar'
+import { SeatSelect } from './identity/SeatSelect'
+import { useIdentity } from './identity/useIdentity'
 import { currentRole } from './roleState'
 
 function getShapeVisibility(shape: TLShape) {
@@ -13,7 +16,13 @@ function getShapeVisibility(shape: TLShape) {
 }
 
 export default function App() {
-  const { store, yDoc, isLoading } = useYjsStore()
+  const { store, yDoc, isLoading, awareness } = useYjsStore()
+  const { seats, mySeat, onlineSeatIds, claimSeat, createSeat, leaveSeat } = useIdentity(yDoc, awareness)
+
+  // Sync role atom from seat
+  useEffect(() => {
+    if (mySeat) currentRole.set(mySeat.role)
+  }, [mySeat?.role])
 
   if (isLoading) {
     return (
@@ -31,6 +40,18 @@ export default function App() {
     )
   }
 
+  // Show seat selection if not seated
+  if (!mySeat) {
+    return (
+      <SeatSelect
+        seats={seats}
+        onlineSeatIds={onlineSeatIds}
+        onClaim={claimSeat}
+        onCreate={createSeat}
+      />
+    )
+  }
+
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
       <Tldraw
@@ -41,8 +62,8 @@ export default function App() {
           InFrontOfTheCanvas: PropertyOverlay,
         }}
       />
-      <RoleSwitcher />
-      <DiceSidebar yDoc={yDoc} />
+      <IdentityBadge seat={mySeat} onLeave={leaveSeat} />
+      <DiceSidebar yDoc={yDoc} playerName={mySeat.name} />
     </div>
   )
 }
