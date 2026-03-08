@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import type { ChatMessage } from './chatTypes'
 import { Avatar } from './Avatar'
 import { DiceResultCard } from './DiceResultCard'
@@ -7,6 +7,8 @@ interface MessageCardProps {
   message: ChatMessage
   isNew?: boolean
   animationStyle?: 'toast' | 'scroll'
+  isFavorited?: boolean
+  onToggleFavorite?: (expression: string) => void
 }
 
 function formatTime(timestamp: number): string {
@@ -18,7 +20,11 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   message,
   isNew = false,
   animationStyle = 'scroll',
+  isFavorited = false,
+  onToggleFavorite,
 }) => {
+  const [cardHover, setCardHover] = useState(false)
+
   const animation = isNew
     ? animationStyle === 'toast'
       ? 'toastEnter 0.3s ease-out'
@@ -87,7 +93,10 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   // Dice message
   return (
     <div
+      onMouseEnter={() => setCardHover(true)}
+      onMouseLeave={() => setCardHover(false)}
       style={{
+        position: 'relative',
         display: 'flex',
         gap: 10,
         padding: '12px 16px',
@@ -101,6 +110,36 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         animation,
       }}
     >
+      {/* Favorite toggle */}
+      {onToggleFavorite && cardHover && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleFavorite(message.expression)
+          }}
+          style={{
+            position: 'absolute',
+            top: 6,
+            right: 6,
+            width: 24,
+            height: 24,
+            borderRadius: '50%',
+            background: 'rgba(0,0,0,0.4)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: isFavorited ? '#fbbf24' : 'rgba(255,255,255,0.6)',
+            fontSize: 14,
+            transition: 'color 0.15s',
+            zIndex: 1,
+          }}
+          aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          {isFavorited ? '★' : '☆'}
+        </button>
+      )}
       <Avatar
         portraitUrl={message.portraitUrl}
         senderName={message.senderName}
