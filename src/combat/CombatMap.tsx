@@ -1,4 +1,5 @@
 import type { Scene } from '../yjs/useScenes'
+import { isVideoUrl } from '../shared/assetUpload'
 
 interface CombatMapProps {
   scene: Scene
@@ -19,17 +20,34 @@ export function CombatMap({ scene, children }: CombatMapProps) {
   return (
     <div style={{ position: 'relative', width, height }}>
       {/* Scene background */}
-      <img
-        src={imageUrl}
-        alt={scene.name}
-        style={{
-          width, height,
-          display: 'block',
-          userSelect: 'none',
-          pointerEvents: 'none',
-        }}
-        draggable={false}
-      />
+      {isVideoUrl(imageUrl) ? (
+        <video
+          src={imageUrl}
+          muted
+          loop
+          autoPlay
+          playsInline
+          style={{
+            width, height,
+            display: 'block',
+            userSelect: 'none',
+            pointerEvents: 'none',
+          }}
+          draggable={false}
+        />
+      ) : (
+        <img
+          src={imageUrl}
+          alt={scene.name}
+          style={{
+            width, height,
+            display: 'block',
+            userSelect: 'none',
+            pointerEvents: 'none',
+          }}
+          draggable={false}
+        />
+      )}
 
       {/* Grid overlay */}
       {gridVisible && gridSize > 0 && (

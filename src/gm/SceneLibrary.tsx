@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import type { Scene } from '../yjs/useScenes'
-import { uploadAsset } from '../shared/assetUpload'
+import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
 
 interface SceneLibraryProps {
   scenes: Scene[]
@@ -27,14 +27,7 @@ export function SceneLibrary({ scenes, onClose, onAdd, onUpdate, onDelete, onSel
     try {
       for (const file of Array.from(files)) {
         const imageUrl = await uploadAsset(file)
-
-        // Get image dimensions
-        const dims = await new Promise<{ w: number; h: number }>((resolve) => {
-          const img = new Image()
-          img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight })
-          img.onerror = () => resolve({ w: 1920, h: 1080 })
-          img.src = imageUrl
-        })
+        const dims = await getMediaDimensions(imageUrl)
 
         const scene: Scene = {
           id: generateId(),
@@ -141,16 +134,32 @@ export function SceneLibrary({ scenes, onClose, onAdd, onUpdate, onDelete, onSel
                 onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.12)')}
                 onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'none')}
               >
-                <img
-                  src={scene.imageUrl}
-                  alt={scene.name}
-                  style={{
-                    width: '100%',
-                    height: 90,
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
-                />
+                {isVideoUrl(scene.imageUrl) ? (
+                  <video
+                    src={scene.imageUrl}
+                    muted
+                    loop
+                    autoPlay
+                    playsInline
+                    style={{
+                      width: '100%',
+                      height: 90,
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={scene.imageUrl}
+                    alt={scene.name}
+                    style={{
+                      width: '100%',
+                      height: 90,
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+                )}
                 <div style={{ padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
                   {editingId === scene.id ? (
                     <input
@@ -211,7 +220,7 @@ export function SceneLibrary({ scenes, onClose, onAdd, onUpdate, onDelete, onSel
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/mp4,video/webm,video/quicktime"
             multiple
             style={{ display: 'none' }}
             onChange={(e) => handleUpload(e.target.files)}

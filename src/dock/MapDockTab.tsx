@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { Scene } from '../yjs/useScenes'
-import { uploadAsset } from '../shared/assetUpload'
+import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
 import { generateTokenId } from '../combat/combatUtils'
 
 interface MapDockTabProps {
@@ -30,15 +30,13 @@ export function MapDockTab({
     try {
       const imageUrl = await uploadAsset(file)
       const name = file.name.replace(/\.[^.]+$/, '')
-      const img = new Image()
-      img.src = imageUrl
-      await new Promise<void>((resolve) => { img.onload = () => resolve() })
+      const dims = await getMediaDimensions(imageUrl)
       const scene: Scene = {
         id: generateTokenId(),
         name,
         imageUrl,
-        width: img.naturalWidth,
-        height: img.naturalHeight,
+        width: dims.w,
+        height: dims.h,
         gridSize: 50,
         gridVisible: false,
         gridColor: '#ffffff',
@@ -55,7 +53,7 @@ export function MapDockTab({
 
   return (
     <div>
-      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUpload} />
+      <input ref={fileRef} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" style={{ display: 'none' }} onChange={handleUpload} />
 
       <div style={{
         display: 'grid',
@@ -81,17 +79,34 @@ export function MapDockTab({
               onMouseEnter={() => setHoveredId(scene.id)}
               onMouseLeave={() => setHoveredId(null)}
             >
-              <img
-                src={scene.imageUrl}
-                alt={scene.name}
-                style={{
-                  width: '100%',
-                  height: 70,
-                  objectFit: 'cover',
-                  display: 'block',
-                }}
-                draggable={false}
-              />
+              {isVideoUrl(scene.imageUrl) ? (
+                <video
+                  src={scene.imageUrl}
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                  style={{
+                    width: '100%',
+                    height: 70,
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                  draggable={false}
+                />
+              ) : (
+                <img
+                  src={scene.imageUrl}
+                  alt={scene.name}
+                  style={{
+                    width: '100%',
+                    height: 70,
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                  draggable={false}
+                />
+              )}
               <div style={{
                 padding: '4px 6px',
                 fontSize: 10,
