@@ -232,8 +232,20 @@ export default function App() {
         senderId={mySeatId!}
         senderName={mySeat.name}
         senderColor={mySeat.color}
-        portraitUrl={activeCharacter?.portraitUrl}
+        portraitUrl={activeCharacter?.imageUrl}
         seatProperties={seatProperties}
+        favorites={activeCharacter?.favorites ?? []}
+        onAddFavorite={(fav) => {
+          if (!activeCharacter) return
+          const existing = activeCharacter.favorites ?? []
+          if (existing.some(f => f.formula === fav.formula)) return
+          updateCharacter(activeCharacter.id, { favorites: [...existing, fav] })
+        }}
+        onRemoveFavorite={(formula) => {
+          if (!activeCharacter) return
+          const existing = activeCharacter.favorites ?? []
+          updateCharacter(activeCharacter.id, { favorites: existing.filter(f => f.formula !== formula) })
+        }}
       />
 
       {/* Bottom dock: asset library (maps + tokens) — visible in both modes for GM */}
