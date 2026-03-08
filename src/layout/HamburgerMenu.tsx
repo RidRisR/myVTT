@@ -1,22 +1,62 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { Seat } from '../identity/useIdentity'
+import { SEAT_COLORS } from '../identity/useIdentity'
+import { uploadAsset } from '../shared/assetUpload'
 
 interface HamburgerMenuProps {
   mySeat: Seat
+  onUpdateSeat: (seatId: string, updates: Partial<Omit<Seat, 'id'>>) => void
   onLeaveSeat: () => void
 }
 
-export function HamburgerMenu({ mySeat, onLeaveSeat }: HamburgerMenuProps) {
+export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMenuProps) {
   const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editName, setEditName] = useState(mySeat.name)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Sync editName when seat name changes externally
+  useEffect(() => { setEditName(mySeat.name) }, [mySeat.name])
 
   useEffect(() => {
     if (!open) return
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') {
+        if (editing) {
+          setEditing(false)
+          setEditName(mySeat.name)
+        } else {
+          setOpen(false)
+        }
+      }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [open])
+  }, [open, editing, mySeat.name])
+
+  const handlePortraitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const url = await uploadAsset(file)
+      onUpdateSeat(mySeat.id, { portraitUrl: url })
+    } catch (err) {
+      console.error('Portrait upload failed:', err)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleSaveName = () => {
+    const trimmed = editName.trim()
+    if (trimmed && trimmed !== mySeat.name) {
+      onUpdateSeat(mySeat.id, { name: trimmed })
+    }
+    setEditing(false)
+  }
 
   return (
     <div
@@ -59,7 +99,7 @@ export function HamburgerMenu({ mySeat, onLeaveSeat }: HamburgerMenuProps) {
         <>
           <div
             style={{ position: 'fixed', inset: 0, zIndex: -1 }}
-            onClick={() => setOpen(false)}
+            onClick={() => { setOpen(false); setEditing(false) }}
           />
           <div
             style={{
@@ -72,7 +112,7 @@ export function HamburgerMenu({ mySeat, onLeaveSeat }: HamburgerMenuProps) {
               borderRadius: 12,
               boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
               border: '1px solid rgba(255,255,255,0.08)',
-              minWidth: 200,
+              minWidth: 220,
               padding: 6,
               zIndex: 10001,
               animation: 'menuFadeIn 0.15s ease-out',
@@ -85,62 +125,131 @@ export function HamburgerMenu({ mySeat, onLeaveSeat }: HamburgerMenuProps) {
               }
             `}</style>
 
-            {/* Seat info */}
-            <div style={{
-              padding: '10px 12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}>
-              {mySeat.portraitUrl ? (
-                <img
-                  src={mySeat.portraitUrl}
-                  alt=""
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    border: `2px solid ${mySeat.color}`,
-                    flexShrink: 0,
-                  }}
-                />
-              ) : (
-                <div style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: '50%',
-                  background: mySeat.color,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  flexShrink: 0,
-                }}>
-                  {mySeat.name.charAt(0).toUpperCase()}
+            {/* Seat profile section */}
+            <div style={{ padding: '10px 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {/* Portrait — clickable to upload */}
+                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePortraitUpload} />
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+                  title="Click to change avatar"
+                >
+                  {mySeat.portraitUrl ? (
+                    <img
+                      src={mySeat.portraitUrl}
+                      alt=""
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: `2px solid ${mySeat.color}`,
+                        display: 'block',
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      background: mySeat.color,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fff',
+                      fontSize: 14,
+                      fontWeight: 700,
+                    }}>
+                      {mySeat.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  {/* Hover overlay */}
+                  <div
+                    style={{
+                      position: 'absolute', inset: 0, borderRadius: '50%',
+                      background: uploading ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'background 0.15s',
+                      fontSize: 9, color: '#fff',
+                    }}
+                    onMouseEnter={(e) => { if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0.4)' }}
+                    onMouseLeave={(e) => { if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0)' }}
+                  >
+                    {uploading ? '...' : ''}
+                  </div>
                 </div>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontWeight: 600,
-                  fontSize: 13,
-                  color: '#fff',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {mySeat.name}
+
+                {/* Name + role */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {editing ? (
+                    <input
+                      autoFocus
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onBlur={handleSaveName}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveName()
+                        if (e.key === 'Escape') { setEditing(false); setEditName(mySeat.name) }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '3px 6px',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: 6,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        background: 'rgba(255,255,255,0.06)',
+                        color: '#fff',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  ) : (
+                    <div
+                      onClick={() => setEditing(true)}
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 13,
+                        color: '#fff',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        cursor: 'text',
+                      }}
+                      title="Click to rename"
+                    >
+                      {mySeat.name}
+                    </div>
+                  )}
+                  <div style={{
+                    fontSize: 10,
+                    color: mySeat.role === 'GM' ? '#fbbf24' : '#60a5fa',
+                    fontWeight: 500,
+                    marginTop: 1,
+                  }}>
+                    {mySeat.role === 'GM' ? 'Game Master' : 'Player'}
+                  </div>
                 </div>
-                <div style={{
-                  fontSize: 10,
-                  color: mySeat.role === 'GM' ? '#fbbf24' : '#60a5fa',
-                  fontWeight: 500,
-                  marginTop: 1,
-                }}>
-                  {mySeat.role === 'GM' ? 'Game Master' : 'Player'}
-                </div>
+              </div>
+
+              {/* Color picker */}
+              <div style={{ display: 'flex', gap: 5, marginTop: 10, flexWrap: 'wrap' }}>
+                {SEAT_COLORS.map(c => (
+                  <div
+                    key={c}
+                    onClick={() => onUpdateSeat(mySeat.id, { color: c })}
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: '50%',
+                      background: c,
+                      cursor: 'pointer',
+                      border: c === mySeat.color ? '2px solid #fff' : '2px solid transparent',
+                      transition: 'border-color 0.15s',
+                    }}
+                  />
+                ))}
               </div>
             </div>
 

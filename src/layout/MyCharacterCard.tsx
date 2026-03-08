@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Character } from '../shared/characterTypes'
 import type { Resource, Attribute, Handout } from '../shared/tokenTypes'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
@@ -91,6 +91,19 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
   const [activeTab, setActiveTab] = useState<TabId>('resources')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [editName, setEditName] = useState(character.name)
+
+  // Sync editName when character name changes externally
+  useEffect(() => { setEditName(character.name) }, [character.name])
+
+  const handleSaveName = () => {
+    const trimmed = editName.trim()
+    if (trimmed && trimmed !== character.name) {
+      onUpdateCharacter(character.id, { name: trimmed })
+    }
+    setEditingName(false)
+  }
 
   // Drag state for resource bars
   const [draggingRes, setDraggingRes] = useState<number | null>(null)
@@ -536,7 +549,41 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
 
             {/* Name + Type */}
             <div style={{ textAlign: 'center', marginBottom: 14 }}>
-              <div style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: 0.3 }}>{character.name}</div>
+              {editingName ? (
+                <input
+                  autoFocus
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onBlur={handleSaveName}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName()
+                    if (e.key === 'Escape') { setEditingName(false); setEditName(character.name) }
+                  }}
+                  style={{
+                    width: '80%',
+                    padding: '3px 8px',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: 6,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    background: 'rgba(255,255,255,0.06)',
+                    color: '#fff',
+                    outline: 'none',
+                    textAlign: 'center',
+                    letterSpacing: 0.3,
+                    boxSizing: 'border-box',
+                    fontFamily: 'sans-serif',
+                  }}
+                />
+              ) : (
+                <div
+                  onClick={() => setEditingName(true)}
+                  style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: 0.3, cursor: 'text' }}
+                  title="Click to rename"
+                >
+                  {character.name}
+                </div>
+              )}
               <span style={{
                 display: 'inline-block', marginTop: 4,
                 fontSize: 9, padding: '2px 8px', borderRadius: 8,

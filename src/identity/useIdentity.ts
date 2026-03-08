@@ -12,6 +12,7 @@ export interface Seat {
   name: string
   color: string
   role: 'GM' | 'PL'
+  portraitUrl?: string        // player avatar (distinct from character portrait)
   activeCharacterId?: string  // which character is currently focused
 }
 
