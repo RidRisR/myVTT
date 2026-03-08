@@ -185,7 +185,7 @@ export default function App() {
       )}
 
       {/* Top-left: Hamburger menu */}
-      <HamburgerMenu mySeat={mySeat} onLeaveSeat={leaveSeat} />
+      <HamburgerMenu mySeat={mySeat} onUpdateSeat={updateSeat} onLeaveSeat={leaveSeat} />
 
       {/* Top-center: Portrait bar */}
       <PortraitBar
@@ -232,7 +232,7 @@ export default function App() {
         senderId={mySeatId!}
         senderName={mySeat.name}
         senderColor={mySeat.color}
-        portraitUrl={activeCharacter?.imageUrl}
+        portraitUrl={mySeat.portraitUrl || activeCharacter?.imageUrl}
         seatProperties={seatProperties}
         favorites={activeCharacter?.favorites ?? []}
         onAddFavorite={(fav) => {
