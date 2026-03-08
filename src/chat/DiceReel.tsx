@@ -1,108 +1,102 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface DiceReelProps {
   sides: number
   result: number
-  /** Delay before this reel starts spinning (seconds) */
-  delay: number
+  /** When this die should stop spinning (seconds from mount) */
+  stopDelay: number
   /** Whether this die was dropped (keep/drop mechanic) */
   dropped?: boolean
 }
 
-const CELL_H = 30
-const STRIP_LENGTH = 22
+type Phase = 'spinning' | 'landing' | 'stopped'
 
-export function DiceReel({ sides, result, delay, dropped }: DiceReelProps) {
-  const [spinning, setSpinning] = useState(false)
-  const [landed, setLanded] = useState(false)
+const SPIN_DURATION = 0.8 // All dice spin for this long minimum
+const STOP_INTERVAL = 0.2 // Each die stops 0.2s apart
 
-  // Generate a strip of random numbers ending with the result
-  const strip = useMemo(() => {
-    const items: number[] = []
-    for (let i = 0; i < STRIP_LENGTH - 1; i++) {
-      items.push(Math.ceil(Math.random() * sides))
-    }
-    items.push(result)
-    return items
-  }, [sides, result])
-
-  const finalOffset = -(strip.length - 1) * CELL_H
+export function DiceReel({ sides, result, stopDelay, dropped = false }: DiceReelProps) {
+  const [phase, setPhase] = useState<Phase>('spinning')
+  const [displayValue, setDisplayValue] = useState(1)
 
   useEffect(() => {
-    // Start spinning after delay
-    const spinTimer = setTimeout(() => setSpinning(true), delay * 1000)
-    // Mark as landed after spin completes
-    const landTimer = setTimeout(() => setLanded(true), (delay + 0.9) * 1000)
+    setPhase('spinning')
+    setDisplayValue(1)
+
+    // Phase 1: Spinning — rapidly change displayed number
+    const spinInterval = setInterval(() => {
+      setDisplayValue(Math.floor(Math.random() * sides) + 1)
+    }, 50)
+
+    // Phase 2: Stop and land
+    const stopTimer = setTimeout(() => {
+      clearInterval(spinInterval)
+      setDisplayValue(result)
+      setPhase('landing')
+
+      // Phase 3: Finish landing animation
+      setTimeout(() => setPhase('stopped'), 300)
+    }, stopDelay * 1000)
+
     return () => {
-      clearTimeout(spinTimer)
-      clearTimeout(landTimer)
+      clearInterval(spinInterval)
+      clearTimeout(stopTimer)
     }
-  }, [delay])
+  }, [stopDelay, result, sides])
+
+  const baseStyle: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 32,
+    height: 32,
+    padding: '0 8px',
+    borderRadius: 6,
+    background: 'rgba(30, 41, 59, 0.6)',
+    border: '1px solid rgba(96, 165, 250, 0.3)',
+    color: '#e2e8f0',
+    fontSize: 16,
+    fontWeight: 600,
+    fontFamily: 'monospace',
+    fontVariantNumeric: 'tabular-nums',
+    opacity: dropped ? 0.5 : 1,
+    textDecoration: dropped ? 'line-through' : 'none',
+  }
+
+  const phaseStyles: Record<Phase, React.CSSProperties> = {
+    spinning: {
+      ...baseStyle,
+      filter: 'blur(1.5px)',
+      boxShadow: '0 0 16px rgba(59, 130, 246, 0.5)',
+    },
+    landing: {
+      ...baseStyle,
+      filter: 'blur(0)',
+      animation: 'diceLand 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+      boxShadow:
+        '0 0 20px rgba(59, 130, 246, 0.8), inset 0 0 8px rgba(96, 165, 250, 0.3)',
+    },
+    stopped: baseStyle,
+  }
 
   return (
-    <div
-      style={{
-        width: 30,
-        height: CELL_H,
-        overflow: 'hidden',
-        borderRadius: 5,
-        background: dropped ? '#64748b' : '#1e293b',
-        display: 'inline-block',
-        position: 'relative',
-        opacity: dropped && landed ? 0.4 : 1,
-        transition: 'opacity 0.3s',
-      }}
-    >
-      <div
-        style={{
-          transform: spinning ? `translateY(${finalOffset}px)` : 'translateY(0)',
-          transition: spinning ? 'transform 0.9s cubic-bezier(0.12, 0.8, 0.3, 1)' : 'none',
-        }}
-      >
-        {strip.map((num, i) => (
-          <div
-            key={i}
-            style={{
-              height: CELL_H,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: 15,
-              fontFamily: 'monospace',
-              textDecoration: dropped && i === strip.length - 1 && landed ? 'line-through' : 'none',
-            }}
-          >
-            {num}
-          </div>
-        ))}
-      </div>
-      {/* Landing flash effect */}
-      {landed && !dropped && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: 5,
-            border: '2px solid #60a5fa',
-            animation: 'reelLand 0.4s ease-out forwards',
-            pointerEvents: 'none',
-          }}
-        />
-      )}
-    </div>
+    <span style={phaseStyles[phase]}>
+      {displayValue}
+    </span>
   )
 }
 
 /** Calculate total animation duration for a set of dice terms */
-export function calcTotalAnimDuration(termResults: { term: { type: string }; allRolls: number[] }[]): number {
-  let diceIndex = 0
+export function calcTotalAnimDuration(
+  termResults: { term: { type: string }; allRolls: number[] }[],
+): number {
+  let diceCount = 0
   for (const tr of termResults) {
     if (tr.term.type === 'dice') {
-      diceIndex += tr.allRolls.length
+      diceCount += tr.allRolls.length
     }
   }
-  // Each die has 0.3s stagger + 0.9s spin
-  return diceIndex * 0.3 + 0.9 + 0.3 // extra 0.3s buffer for total reveal
+  if (diceCount === 0) return 0.5
+  // spin + sequential stops + landing animation + buffer for total reveal
+  const lastStopTime = SPIN_DURATION + (diceCount - 1) * STOP_INTERVAL
+  return lastStopTime + 0.3 + 0.2 // landing (0.3s) + buffer before total (0.2s)
 }
