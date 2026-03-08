@@ -93,9 +93,23 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
   const [uploading, setUploading] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [editName, setEditName] = useState(character.name)
+  const [colorPickerOpen, setColorPickerOpen] = useState<number | null>(null)
+  const colorPickerRef = useRef<HTMLDivElement>(null)
 
   // Sync editName when character name changes externally
   useEffect(() => { setEditName(character.name) }, [character.name])
+
+  // Close color picker on click outside
+  useEffect(() => {
+    if (colorPickerOpen === null) return
+    const handler = (e: PointerEvent) => {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
+        setColorPickerOpen(null)
+      }
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [colorPickerOpen])
 
   const handleSaveName = () => {
     const trimmed = editName.trim()
@@ -267,6 +281,19 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                 style={{ ...inputStyle, width: 32, textAlign: 'center', fontSize: 11, padding: '3px 2px', fontWeight: 700 }}
               />
+              <div
+                onClick={() => setColorPickerOpen(colorPickerOpen === i ? null : i)}
+                style={{
+                  width: 12, height: 12, borderRadius: '50%',
+                  background: res.color,
+                  border: '2px solid rgba(255,255,255,0.25)',
+                  cursor: 'pointer', flexShrink: 0,
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
+                title="Change color"
+              />
               <button onClick={() => removeResource(i)} style={removeBtnStyle}
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444' }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)' }}
@@ -297,18 +324,20 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
               </div>
               <HoldButton label="+" onTick={() => updateResource(i, { current: Math.min(res.max, res.current + 1) })} color="#22c55e" />
             </div>
-            {/* Color picker */}
-            <div style={{ display: 'flex', gap: 3, marginTop: 5, justifyContent: 'center' }}>
-              {['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#ef4444', '#f97316'].map(c => (
-                <div key={c} onClick={() => updateResource(i, { color: c })}
-                  style={{
-                    width: 14, height: 14, borderRadius: '50%', background: c, cursor: 'pointer',
-                    border: c === res.color ? '2px solid #fff' : '2px solid transparent',
-                    transition: 'border-color 0.15s',
-                  }}
-                />
-              ))}
-            </div>
+            {/* Color picker — collapsed by default */}
+            {colorPickerOpen === i && (
+              <div ref={colorPickerRef} style={{ display: 'flex', gap: 3, marginTop: 5, justifyContent: 'center' }}>
+                {['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#ef4444', '#f97316'].map(c => (
+                  <div key={c} onClick={() => { updateResource(i, { color: c }); setColorPickerOpen(null) }}
+                    style={{
+                      width: 14, height: 14, borderRadius: '50%', background: c, cursor: 'pointer',
+                      border: c === res.color ? '2px solid #fff' : '2px solid transparent',
+                      transition: 'border-color 0.15s',
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )
       })}
