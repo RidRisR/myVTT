@@ -111,7 +111,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={nameStyle}>{message.senderName}</span>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>
-              /r {message.expression}
+              .r {message.expression}
               {message.resolvedExpression && (
                 <span style={{ color: 'rgba(255,255,255,0.3)' }}> ({message.resolvedExpression})</span>
               )}
