@@ -17,13 +17,14 @@ interface ChatInputProps {
   seatProperties: { key: string; value: string }[]
   onSend: (message: ChatMessage) => void
   onFocus?: () => void
+  onCycleSpeaker?: () => void
 }
 
 function generateId(): string {
   return self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-export function ChatInput({ selectedTokenProps, senderId, senderName, senderColor, portraitUrl, seatProperties, onSend, onFocus }: ChatInputProps) {
+export function ChatInput({ selectedTokenProps, senderId, senderName, senderColor, portraitUrl, seatProperties, onSend, onFocus, onCycleSpeaker }: ChatInputProps) {
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -200,6 +201,11 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
                 setShowSuggestions(false)
                 return
               }
+            }
+            if (e.key === 'Tab' && onCycleSpeaker) {
+              e.preventDefault()
+              onCycleSpeaker()
+              return
             }
             if (e.key === 'Enter') {
               if (showSuggestions && filteredSuggestions.length > 0) {
