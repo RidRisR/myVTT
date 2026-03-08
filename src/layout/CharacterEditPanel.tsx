@@ -451,11 +451,16 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
         border: '1px solid rgba(255,255,255,0.08)',
         fontFamily: 'sans-serif',
         color: '#e4e4e7',
+        maxHeight: 'calc(50vh - 100px)',
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column' as const,
       }}
       onPointerDown={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px 8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px 8px', flexShrink: 0 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.8 }}>Character</span>
         <button onClick={onClose}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 18, padding: '0 2px', lineHeight: 1, transition: 'color 0.15s' }}
@@ -465,7 +470,7 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
       </div>
 
       {/* Tab bar */}
-      <div style={{ display: 'flex', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ display: 'flex', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
         {TABS.map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             style={{
@@ -486,7 +491,7 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
       </div>
 
       {/* Tab content */}
-      <div style={{ padding: '12px 14px 14px', overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
+      <div style={{ padding: '12px 14px 14px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
         {tabContent[activeTab]()}
       </div>
     </div>

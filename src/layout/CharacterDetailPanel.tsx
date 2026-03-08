@@ -31,12 +31,14 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
         border: '1px solid rgba(255,255,255,0.08)',
         padding: '20px 16px',
         fontFamily: 'sans-serif',
-        maxHeight: 'calc(100vh - 200px)',
+        maxHeight: 'calc(50vh - 100px)',
+        boxSizing: 'border-box',
         overflowY: 'auto',
         color: '#e4e4e7',
         animation: 'panelFadeIn 0.2s ease-out',
       }}
       onPointerDown={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
     >
       <style>{`
         @keyframes panelFadeIn {
