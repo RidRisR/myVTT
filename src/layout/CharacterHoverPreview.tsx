@@ -3,7 +3,6 @@ import type { Character } from '../shared/characterTypes'
 import type { Resource } from '../shared/tokenTypes'
 import { statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../shared/ui/ResourceBar'
-import { MiniHoldButton } from '../shared/ui/MiniHoldButton'
 
 interface CharacterHoverPreviewProps {
   character: Character
@@ -24,7 +23,7 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
   const [addingStatus, setAddingStatus] = useState(false)
   const [newStatusLabel, setNewStatusLabel] = useState('')
 
-  const canEdit = editable && onUpdateCharacter
+  const canEdit = !!(editable && onUpdateCharacter)
   const hasStats = resources.length > 0 || statuses.length > 0 || !!canEdit
   const hasAttr = attributes.length > 0
   const showTabs = hasStats && hasAttr
