@@ -4,6 +4,7 @@ import type { Resource, Attribute, Handout } from '../shared/tokenTypes'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
 import { useHoldRepeat } from '../shared/useHoldRepeat'
 import { uploadAsset } from '../shared/assetUpload'
+import { ResourceBar } from '../shared/ui/ResourceBar'
 
 interface MyCharacterCardProps {
   character: Character
@@ -57,35 +58,6 @@ const removeBtnStyle: React.CSSProperties = {
   flexShrink: 0,
 }
 
-/* ── Hold-to-repeat +/- button ── */
-function HoldButton({ label, onTick, color }: { label: string; onTick: () => void; color?: string }) {
-  const { holdStart, holdStop } = useHoldRepeat(onTick)
-  return (
-    <button
-      onPointerDown={holdStart}
-      onPointerUp={holdStop}
-      onPointerLeave={holdStop}
-      style={{
-        width: 20, height: 20,
-        background: 'rgba(255,255,255,0.08)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 4,
-        cursor: 'pointer',
-        color: color ?? 'rgba(255,255,255,0.5)',
-        fontSize: 13, fontWeight: 700,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 0, lineHeight: 1,
-        transition: 'background 0.15s, border-color 0.15s',
-        flexShrink: 0,
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)' }}
-    >
-      {label}
-    </button>
-  )
-}
-
 export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCardProps) {
   const [open, setOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('resources')
@@ -119,9 +91,6 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
     setEditingName(false)
   }
 
-  // Drag state for resource bars
-  const [draggingRes, setDraggingRes] = useState<number | null>(null)
-
   // Status add input
   const [statusInput, setStatusInput] = useState('')
 
@@ -135,28 +104,6 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
   const statuses = character.statuses
   const notes = character.notes
   const handouts = character.handouts ?? []
-
-  /* ── Resource bar drag ── */
-  const handleBarDrag = (e: React.PointerEvent, index: number, max: number) => {
-    if ((e.target as HTMLElement).tagName === 'INPUT') return
-    e.preventDefault()
-    const bar = e.currentTarget as HTMLElement
-    const rect = bar.getBoundingClientRect()
-    const calcValue = (clientX: number) =>
-      Math.round(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * max)
-    updateResource(index, { current: calcValue(e.clientX) })
-    setDraggingRes(index)
-    const onMove = (ev: PointerEvent) => {
-      updateResource(index, { current: calcValue(ev.clientX) })
-    }
-    const onUp = () => {
-      setDraggingRes(null)
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', onUp)
-    }
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
-  }
 
   /* ── Portrait upload ── */
   const handlePortraitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -245,10 +192,7 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
   /* ── Tab content renderers ── */
   const renderResources = () => (
     <div>
-      {resources.map((res, i) => {
-        const pct = res.max > 0 ? Math.min(res.current / res.max, 1) : 0
-        const isDragging = draggingRes === i
-        return (
+      {resources.map((res, i) => (
           <div key={i} style={{ marginBottom: 10 }}>
             {/* Header: name + current/max inputs + remove */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
@@ -299,31 +243,16 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
                 onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)' }}
               >×</button>
             </div>
-            {/* Bar row: - draggable bar + */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <HoldButton label="−" onTick={() => updateResource(i, { current: Math.max(0, res.current - 1) })} color="#ef4444" />
-              <div
-                style={{ flex: 1, height: 18, borderRadius: 8, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative', cursor: 'ew-resize', userSelect: 'none' }}
-                onPointerDown={(e) => handleBarDrag(e, i, res.max)}
-              >
-                <div style={{
-                  height: '100%', width: `${pct * 100}%`,
-                  background: `linear-gradient(90deg, ${res.color}, ${res.color}cc)`,
-                  borderRadius: 8,
-                  transition: isDragging ? 'none' : 'width 0.2s ease',
-                }} />
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 700, color: '#fff',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                  pointerEvents: 'none',
-                }}>
-                  {res.current} / {res.max}
-                </div>
-              </div>
-              <HoldButton label="+" onTick={() => updateResource(i, { current: Math.min(res.max, res.current + 1) })} color="#22c55e" />
-            </div>
+            <ResourceBar
+              current={res.current}
+              max={res.max}
+              color={res.color}
+              height={18}
+              valueDisplay="inline"
+              draggable
+              showButtons
+              onChange={(val: number) => updateResource(i, { current: val })}
+            />
             {/* Color picker — collapsed by default */}
             {colorPickerOpen === i && (
               <div ref={colorPickerRef} style={{ display: 'flex', gap: 3, marginTop: 5, justifyContent: 'center' }}>
@@ -339,8 +268,7 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
               </div>
             )}
           </div>
-        )
-      })}
+      ))}
       <button onClick={addResource} style={addBtnStyle}
         onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)' }}
         onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}
