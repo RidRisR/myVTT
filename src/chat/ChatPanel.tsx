@@ -258,8 +258,8 @@ export function ChatPanel({
           style={{
             position: 'fixed',
             bottom: 62,
-            right: 16,
-            width: 300,
+            right: 394,
+            width: 260,
             maxHeight: 240,
             zIndex: 10001,
             background: 'rgba(15, 15, 25, 0.92)',
