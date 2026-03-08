@@ -22,7 +22,16 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
     return () => clearTimeout(timer)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Build dice reels with slot machine timing
+  // Count total dice and build shuffled stop order
+  const totalDice = message.terms.reduce(
+    (sum, tr) => sum + (tr.term.type === 'dice' ? tr.allRolls.length : 0), 0,
+  )
+  const stopOrder = useRef(
+    Array.from({ length: totalDice }, (_, i) => i)
+      .sort(() => Math.random() - 0.5),
+  )
+
+  // Build dice reels with shuffled stop timing
   let diceIndex = 0
   const reelGroups = message.terms.map((tr, ti) => {
     if (tr.term.type === 'constant') {
@@ -39,8 +48,9 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
     const sign = tr.term.sign === -1 ? '-' : '+'
     const showSign = ti > 0 || tr.term.sign === -1
     const reels = tr.allRolls.map((roll, ri) => {
-      // All dice spin together, stop sequentially
-      const stopDelay = SPIN_DURATION + diceIndex * STOP_INTERVAL
+      // Stop order is shuffled — dice reveal in random positions
+      const order = stopOrder.current[diceIndex] ?? diceIndex
+      const stopDelay = SPIN_DURATION + order * STOP_INTERVAL
       diceIndex++
       const isDropped = !tr.keptIndices.includes(ri)
       return (
