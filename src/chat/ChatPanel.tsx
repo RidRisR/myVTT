@@ -490,6 +490,33 @@ export function ChatPanel({
           {showFavorites ? '★' : '☆'}
         </button>
 
+        {/* Expand/collapse toggle */}
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          onMouseEnter={() => setExpandHover(true)}
+          onMouseLeave={() => setExpandHover(false)}
+          style={{
+            width: 36,
+            borderRadius: 10,
+            background: expandHover
+              ? 'rgba(255,255,255,0.18)'
+              : 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: 14,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(8px)',
+            flexShrink: 0,
+          }}
+          aria-label={expanded ? 'Collapse chat history' : 'Expand chat history'}
+        >
+          {expanded ? '▼' : '▲'}
+        </button>
+
         {/* Speaker avatar button */}
         <button
           ref={speakerBtnRef}
@@ -530,33 +557,6 @@ export function ChatPanel({
             onCycleSpeaker={speakerCharacters.length > 0 ? handleCycleSpeaker : undefined}
           />
         </div>
-
-        {/* Expand/collapse toggle */}
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          onMouseEnter={() => setExpandHover(true)}
-          onMouseLeave={() => setExpandHover(false)}
-          style={{
-            width: 36,
-            borderRadius: 10,
-            background: expandHover
-              ? 'rgba(255,255,255,0.18)'
-              : 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-            color: 'rgba(255,255,255,0.5)',
-            fontSize: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backdropFilter: 'blur(8px)',
-            flexShrink: 0,
-          }}
-          aria-label={expanded ? 'Collapse chat history' : 'Expand chat history'}
-        >
-          {expanded ? '▼' : '▲'}
-        </button>
       </div>
     </>
   )
