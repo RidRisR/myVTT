@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import type { ChatMessage } from './chatTypes'
 import { MessageCard } from './MessageCard'
 
@@ -21,7 +21,7 @@ const POSITION_OPACITY = [1.0, 0.7, 0.4]
 
 export function ToastStack({ toastQueue, onRemove }: ToastStackProps) {
   const [, forceUpdate] = useState(0)
-  const tickRef = useRef<ReturnType<typeof setInterval>>()
+  const tickRef = useRef<ReturnType<typeof setInterval>>(undefined)
 
   // Tick every 100ms to update time-based opacity smoothly
   useEffect(() => {

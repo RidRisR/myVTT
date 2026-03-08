@@ -17,7 +17,7 @@ interface FocusedCardProps {
 export function FocusedCard({
   item,
   isGM,
-  mySeatId,
+  mySeatId: _mySeatId,
   isPinned,
   animateEntrance,
   onAnimationDone,

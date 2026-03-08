@@ -82,7 +82,7 @@ export function PortraitBar({
   const [hoveredCharId, setHoveredCharId] = useState<string | null>(null)
   const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null)
   const [lockedRect, setLockedRect] = useState<DOMRect | null>(null)
-  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const popoverRef = useRef<HTMLDivElement>(null)
   const portraitBarRef = useRef<HTMLDivElement>(null)
 
