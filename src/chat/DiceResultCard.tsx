@@ -7,6 +7,9 @@ interface DiceResultCardProps {
   isNew?: boolean
 }
 
+const SPIN_DURATION = 0.8
+const STOP_INTERVAL = 0.2
+
 export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
   const [totalRevealed, setTotalRevealed] = useState(!isNew)
 
@@ -17,7 +20,7 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
     return () => clearTimeout(timer)
   }, [isNew, totalRevealed, message.terms])
 
-  // Build dice reels with staggered delays
+  // Build dice reels with slot machine timing
   let diceIndex = 0
   const reelGroups = message.terms.map((tr, ti) => {
     if (tr.term.type === 'constant') {
@@ -25,8 +28,8 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
       const sign = tr.term.sign === -1 ? '-' : '+'
       return (
         <span key={ti} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          {ti > 0 && <span style={{ color: '#94a3b8', margin: '0 2px', fontSize: 13 }}>{sign}</span>}
-          <span style={{ color: '#cbd5e1', fontWeight: 600, fontSize: 15 }}>{value}</span>
+          {ti > 0 && <span style={{ color: '#64748b', margin: '0 2px', fontSize: 13 }}>{sign}</span>}
+          <span style={{ color: '#94a3b8', fontWeight: 600, fontSize: 15 }}>{value}</span>
         </span>
       )
     }
@@ -34,7 +37,8 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
     const sign = tr.term.sign === -1 ? '-' : '+'
     const showSign = ti > 0 || tr.term.sign === -1
     const reels = tr.allRolls.map((roll, ri) => {
-      const delay = diceIndex * 0.3
+      // All dice spin together, stop sequentially
+      const stopDelay = SPIN_DURATION + diceIndex * STOP_INTERVAL
       diceIndex++
       const isDropped = !tr.keptIndices.includes(ri)
       return (
@@ -42,7 +46,7 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
           key={`${ti}-${ri}`}
           sides={(tr.term as { type: 'dice'; sides: number }).sides}
           result={roll}
-          delay={isNew ? delay : 0}
+          stopDelay={isNew ? stopDelay : 0}
           dropped={isDropped}
         />
       )
@@ -50,46 +54,49 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
 
     return (
       <span key={ti} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-        {showSign && <span style={{ color: '#94a3b8', margin: '0 2px', fontSize: 13 }}>{sign}</span>}
+        {showSign && <span style={{ color: '#64748b', margin: '0 2px', fontSize: 13 }}>{sign}</span>}
         {reels}
       </span>
     )
   })
 
   return (
-    <div
-      style={{
-        background: 'rgba(15, 23, 42, 0.92)',
-        backdropFilter: 'blur(8px)',
-        borderRadius: 10,
-        padding: '10px 14px',
-        animation: isNew ? 'notifSlideUp 0.3s ease-out' : undefined,
-      }}
-    >
-      {/* Header: sender + formula */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <span
-          style={{
-            width: 7,
-            height: 7,
-            borderRadius: '50%',
-            background: message.senderColor,
-            flexShrink: 0,
-          }}
-        />
-        <span style={{ fontWeight: 600, fontSize: 11, color: '#94a3b8' }}>
-          {message.senderName}
-        </span>
-        <span style={{ fontSize: 11, color: '#475569' }}>
-          /r {message.expression}
-          {message.resolvedExpression && (
-            <span style={{ color: '#334155' }}> ({message.resolvedExpression})</span>
-          )}
-        </span>
-        <span style={{ fontSize: 10, color: '#334155', marginLeft: 'auto' }}>
-          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </span>
-      </div>
+    <>
+      <style>{`
+        @keyframes diceLand {
+          0% {
+            transform: scale(1) rotateZ(0deg);
+            filter: blur(1.5px);
+          }
+          50% {
+            transform: scale(1.3) rotateZ(8deg);
+            filter: blur(0);
+          }
+          70% {
+            transform: scale(0.95) rotateZ(-4deg);
+          }
+          100% {
+            transform: scale(1) rotateZ(0deg);
+            filter: blur(0);
+          }
+        }
+        @keyframes totalReveal {
+          0% {
+            opacity: 0;
+            transform: scale(0.5) translateY(8px);
+          }
+          50% {
+            transform: scale(1.2) translateY(-2px);
+          }
+          70% {
+            transform: scale(0.95) translateY(1px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+      `}</style>
 
       {/* Dice reels row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
@@ -101,18 +108,29 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
           style={{
             fontWeight: 800,
             fontSize: 22,
-            color: totalRevealed ? '#f8fafc' : '#334155',
             fontFamily: 'monospace',
             minWidth: 30,
             textAlign: 'center',
-            transition: 'color 0.3s, transform 0.3s',
-            transform: totalRevealed ? 'scale(1)' : 'scale(0.8)',
             display: 'inline-block',
+            ...(totalRevealed
+              ? {
+                  color: '#fbbf24',
+                  textShadow:
+                    '0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(251, 191, 36, 0.4)',
+                  animation: isNew
+                    ? 'totalReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    : 'none',
+                  opacity: 1,
+                }
+              : {
+                  color: '#334155',
+                  opacity: 0.5,
+                }),
           }}
         >
           {totalRevealed ? message.total : '?'}
         </span>
       </div>
-    </div>
+    </>
   )
 }
