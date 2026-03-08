@@ -1,0 +1,4 @@
+services:
+  myvtt:
+    ports:
+      - "80:4444"

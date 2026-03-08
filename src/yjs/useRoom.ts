@@ -7,12 +7,6 @@ export interface RoomState {
   combatSceneId: string | null
 }
 
-const DEFAULT_ROOM: RoomState = {
-  mode: 'scene',
-  activeSceneId: null,
-  combatSceneId: null,
-}
-
 function readRoom(yRoom: Y.Map<unknown>): RoomState {
   return {
     mode: (yRoom.get('mode') as RoomState['mode']) ?? 'scene',

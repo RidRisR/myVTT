@@ -17,7 +17,7 @@ interface ShowcaseOverlayProps {
 }
 
 export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) {
-  const { items, updateItem, deleteItem, newItemId, clearNewItemId, pinnedItemId, pinItem, unpinItem } = useShowcase(yDoc)
+  const { items, deleteItem, newItemId, clearNewItemId, pinnedItemId, pinItem, unpinItem } = useShowcase(yDoc)
 
   // scrollY as React state (source of truth for rendering)
   // scrollY can go up to items.length — that's the "dismissed" empty slot at queue head
