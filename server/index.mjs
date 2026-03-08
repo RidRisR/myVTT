@@ -66,7 +66,7 @@ const storage = multer.diskStorage({
     cb(null, `${crypto.randomUUID()}${ext}`)
   },
 })
-const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } })
+const upload = multer({ storage, limits: { fileSize: 200 * 1024 * 1024 } })
 
 // Upload endpoint
 app.post('/api/upload', upload.single('file'), (req, res) => {
@@ -192,6 +192,10 @@ const wss = new WSServer({ server })
 wss.on('connection', (conn, req) => {
   setupWSConnection(conn, req)
 })
+
+// Allow slow uploads (10 min timeout for large video files)
+server.requestTimeout = 10 * 60 * 1000
+server.timeout = 10 * 60 * 1000
 
 server.listen(PORT, HOST, () => {
   console.log(`y-websocket server running on ws://${HOST}:${PORT}`)

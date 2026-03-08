@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Scene } from '../yjs/useScenes'
 import type { RoomState } from '../yjs/useRoom'
 import { SceneLibrary } from './SceneLibrary'
+import { isVideoUrl } from '../shared/assetUpload'
 
 interface GmToolbarProps {
   scenes: Scene[]
@@ -113,17 +114,32 @@ export function GmToolbar({
                     textAlign: 'left',
                   }}
                 >
-                  <img
-                    src={scene.imageUrl}
-                    alt=""
-                    style={{
-                      width: 36,
-                      height: 24,
-                      objectFit: 'cover',
-                      borderRadius: 3,
-                      flexShrink: 0,
-                    }}
-                  />
+                  {isVideoUrl(scene.imageUrl) ? (
+                    <video
+                      src={scene.imageUrl}
+                      muted
+                      playsInline
+                      style={{
+                        width: 36,
+                        height: 24,
+                        objectFit: 'cover',
+                        borderRadius: 3,
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={scene.imageUrl}
+                      alt=""
+                      style={{
+                        width: 36,
+                        height: 24,
+                        objectFit: 'cover',
+                        borderRadius: 3,
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
                   <span style={{
                     fontWeight: scene.id === room.activeSceneId ? 600 : 400,
                     color: '#333',

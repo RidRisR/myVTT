@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import type { Scene } from '../yjs/useScenes'
+import { isVideoUrl } from '../shared/assetUpload'
 
 interface SceneViewerProps {
   scene: Scene | null
@@ -58,44 +59,89 @@ export function SceneViewer({ scene, onContextMenu }: SceneViewerProps) {
       overflow: 'hidden',
       background: '#000',
     }}>
-      {/* Previous image (during crossfade) */}
+      {/* Previous media (during crossfade) */}
       {prevUrl && (
-        <img
-          src={prevUrl}
-          alt=""
+        isVideoUrl(prevUrl) ? (
+          <video
+            src={prevUrl}
+            muted
+            loop
+            autoPlay
+            playsInline
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              zIndex: 0,
+            }}
+          />
+        ) : (
+          <img
+            src={prevUrl}
+            alt=""
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              zIndex: 0,
+            }}
+          />
+        )
+      )}
+      {/* Current media */}
+      {isVideoUrl(currentUrl) ? (
+        <video
+          key={currentUrl}
+          src={currentUrl}
+          muted
+          loop
+          autoPlay
+          playsInline
           style={{
             position: 'absolute',
             inset: 0,
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            zIndex: 0,
+            zIndex: 1,
+            opacity: fading ? 0 : 1,
+            transition: fading ? 'none' : 'opacity 0.5s ease-in-out',
+          }}
+          onLoadedData={(e) => {
+            if (fading) {
+              requestAnimationFrame(() => {
+                ;(e.target as HTMLVideoElement).style.opacity = '1'
+              })
+            }
+          }}
+        />
+      ) : (
+        <img
+          src={currentUrl}
+          alt={scene?.name ?? ''}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 1,
+            opacity: fading ? 0 : 1,
+            transition: fading ? 'none' : 'opacity 0.5s ease-in-out',
+          }}
+          onLoad={(e) => {
+            if (fading) {
+              requestAnimationFrame(() => {
+                ;(e.target as HTMLImageElement).style.opacity = '1'
+              })
+            }
           }}
         />
       )}
-      {/* Current image */}
-      <img
-        src={currentUrl}
-        alt={scene?.name ?? ''}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          zIndex: 1,
-          opacity: fading ? 0 : 1,
-          transition: fading ? 'none' : 'opacity 0.5s ease-in-out',
-        }}
-        onLoad={(e) => {
-          // Fade in after the new image loads
-          if (fading) {
-            requestAnimationFrame(() => {
-              ;(e.target as HTMLImageElement).style.opacity = '1'
-            })
-          }
-        }}
-      />
     </div>
   )
 }
