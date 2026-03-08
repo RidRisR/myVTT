@@ -13,8 +13,8 @@ interface ToastStackProps {
 }
 
 const MAX_TOASTS = 3
-const TOAST_LIFETIME = 3000 // 3 seconds
-const FADE_START = 2000 // Start fading at 2s
+const TOAST_LIFETIME = 5000 // 5 seconds (enough for dice animations)
+const FADE_START = 3500 // Start fading at 3.5s
 
 // Position-based opacity: newest (bottom) = 1.0, oldest (top) = 0.4
 const POSITION_OPACITY = [1.0, 0.7, 0.4]

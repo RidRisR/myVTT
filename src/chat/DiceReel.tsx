@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface DiceReelProps {
   sides: number
@@ -15,33 +15,38 @@ const SPIN_DURATION = 0.8 // All dice spin for this long minimum
 const STOP_INTERVAL = 0.2 // Each die stops 0.2s apart
 
 export function DiceReel({ sides, result, stopDelay, dropped = false }: DiceReelProps) {
-  const [phase, setPhase] = useState<Phase>('spinning')
-  const [displayValue, setDisplayValue] = useState(1)
+  // Lock animation params at mount — immune to later prop changes (e.g. isNew toggling)
+  const initialRef = useRef({ stopDelay, result, sides })
+  const animate = initialRef.current.stopDelay > 0
+
+  const [phase, setPhase] = useState<Phase>(animate ? 'spinning' : 'stopped')
+  const [displayValue, setDisplayValue] = useState(animate ? 1 : result)
 
   useEffect(() => {
-    setPhase('spinning')
-    setDisplayValue(1)
+    if (!animate) return
+
+    const { stopDelay: delay, result: finalValue, sides: s } = initialRef.current
 
     // Phase 1: Spinning — rapidly change displayed number
     const spinInterval = setInterval(() => {
-      setDisplayValue(Math.floor(Math.random() * sides) + 1)
+      setDisplayValue(Math.floor(Math.random() * s) + 1)
     }, 50)
 
     // Phase 2: Stop and land
     const stopTimer = setTimeout(() => {
       clearInterval(spinInterval)
-      setDisplayValue(result)
+      setDisplayValue(finalValue)
       setPhase('landing')
 
       // Phase 3: Finish landing animation
       setTimeout(() => setPhase('stopped'), 300)
-    }, stopDelay * 1000)
+    }, delay * 1000)
 
     return () => {
       clearInterval(spinInterval)
       clearTimeout(stopTimer)
     }
-  }, [stopDelay, result, sides])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const baseStyle: React.CSSProperties = {
     display: 'inline-flex',
