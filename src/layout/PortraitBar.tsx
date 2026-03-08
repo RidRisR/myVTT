@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import type { Character } from '../shared/characterTypes'
 import { statusColor } from '../shared/tokenUtils'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
+import { CharacterHoverPreview } from './CharacterHoverPreview'
+import { CharacterDetailPanel } from './CharacterDetailPanel'
+import { CharacterEditPanel } from './CharacterEditPanel'
 
 type PortraitTabId = 'characters' | 'initiative'
 
@@ -75,6 +78,68 @@ export function PortraitBar({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; charId: string } | null>(null)
   const [activeTab, setActiveTab] = useState<PortraitTabId>('characters')
 
+  // Hover state
+  const [hoveredCharId, setHoveredCharId] = useState<string | null>(null)
+  const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null)
+  const [lockedRect, setLockedRect] = useState<DOMRect | null>(null)
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const portraitBarRef = useRef<HTMLDivElement>(null)
+
+  // Click-outside to close locked popover
+  useEffect(() => {
+    if (!inspectedCharacterId) return
+    const handler = (e: PointerEvent) => {
+      if (
+        popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
+        !portraitBarRef.current?.contains(e.target as Node)
+      ) {
+        onInspectCharacter(null)
+      }
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [inspectedCharacterId])
+
+  // Clear hover when a portrait is locked
+  useEffect(() => {
+    if (inspectedCharacterId) {
+      setHoveredCharId(null)
+      clearTimeout(hoverTimeoutRef.current)
+    }
+  }, [inspectedCharacterId])
+
+  const handlePortraitMouseEnter = useCallback((charId: string, el: HTMLElement) => {
+    if (inspectedCharacterId) return // don't show hover when locked
+    clearTimeout(hoverTimeoutRef.current)
+    setHoveredCharId(charId)
+    setHoveredRect(el.getBoundingClientRect())
+  }, [inspectedCharacterId])
+
+  const handlePortraitMouseLeave = useCallback(() => {
+    if (inspectedCharacterId) return
+    hoverTimeoutRef.current = setTimeout(() => setHoveredCharId(null), 200)
+  }, [inspectedCharacterId])
+
+  const handlePopoverMouseEnter = useCallback(() => {
+    clearTimeout(hoverTimeoutRef.current)
+  }, [])
+
+  const handlePopoverMouseLeave = useCallback(() => {
+    if (!inspectedCharacterId) {
+      hoverTimeoutRef.current = setTimeout(() => setHoveredCharId(null), 200)
+    }
+  }, [inspectedCharacterId])
+
+  const handlePortraitClick = useCallback((charId: string, el: HTMLElement) => {
+    if (inspectedCharacterId === charId) {
+      onInspectCharacter(null)
+    } else {
+      setLockedRect(el.getBoundingClientRect())
+      onInspectCharacter(charId)
+    }
+  }, [inspectedCharacterId, onInspectCharacter])
+
   if (characters.length === 0) return null
 
   // Characters tab: PCs always + featured NPCs only
@@ -102,7 +167,11 @@ export function PortraitBar({
 
     items.push({
       label: 'Inspect',
-      onClick: () => onInspectCharacter(char.id),
+      onClick: () => {
+        const el = portraitBarRef.current?.querySelector(`[data-char-id="${char.id}"]`) as HTMLElement | null
+        if (el) setLockedRect(el.getBoundingClientRect())
+        onInspectCharacter(char.id)
+      },
     })
 
     if (isGM && char.type === 'npc') {
@@ -134,20 +203,23 @@ export function PortraitBar({
     return (
       <div
         key={char.id}
+        data-char-id={char.id}
         style={{
           position: 'relative',
           cursor: 'pointer',
           transition: 'transform 0.15s ease',
         }}
-        onClick={() => {
-          onInspectCharacter(inspectedCharacterId === char.id ? null : char.id)
+        onClick={(e) => {
+          handlePortraitClick(char.id, e.currentTarget as HTMLElement)
         }}
         onContextMenu={(e) => handleContextMenu(e, char.id)}
         onMouseEnter={(e) => {
           if (!isMine) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'
+          handlePortraitMouseEnter(char.id, e.currentTarget as HTMLElement)
         }}
         onMouseLeave={(e) => {
           if (!isMine) (e.currentTarget as HTMLElement).style.transform = 'scale(1)'
+          handlePortraitMouseLeave()
         }}
         title={`${char.name}${statuses.length > 0 ? '\n' + statuses.map(s => s.label).join(', ') : ''}`}
       >
@@ -309,8 +381,42 @@ export function PortraitBar({
     transition: 'color 0.15s, border-color 0.15s',
   })
 
+  // Determine which character to show in popover
+  const popoverCharId = inspectedCharacterId ?? hoveredCharId
+  const popoverChar = popoverCharId ? characters.find(c => c.id === popoverCharId) : null
+  const isLocked = !!inspectedCharacterId
+
+  // Resolve rect: use lockedRect/hoveredRect, fallback to querying the portrait element
+  let rect = isLocked ? lockedRect : hoveredRect
+  if (!rect && isLocked && popoverCharId && portraitBarRef.current) {
+    const el = portraitBarRef.current.querySelector(`[data-char-id="${popoverCharId}"]`) as HTMLElement | null
+    if (el) rect = el.getBoundingClientRect()
+  }
+
+  // Determine if the inspected character is editable
+  const isEditable = popoverChar && isLocked && (
+    (popoverChar.seatId === mySeatId) || (isGM && popoverChar.type === 'npc')
+  )
+  const popoverWidth = isLocked ? (isEditable ? 320 : 260) : 220
+
+  // Calculate popover position
+  let popoverLeft = 0
+  let popoverTop = 0
+  if (rect) {
+    popoverLeft = Math.max(8, Math.min(
+      window.innerWidth - popoverWidth - 8,
+      rect.left + rect.width / 2 - popoverWidth / 2,
+    ))
+    popoverTop = rect.bottom + 8
+  }
+
+  const popoverMaxHeight = rect
+    ? `calc(100vh - ${rect.bottom + 8}px - 20px)`
+    : '50vh'
+
   return (
     <div
+      ref={portraitBarRef}
       style={{
         position: 'fixed',
         top: 12,
@@ -405,6 +511,48 @@ export function PortraitBar({
           document.body,
         )
       })()}
+
+      {/* Character popover — rendered via portal */}
+      {popoverChar && rect && createPortal(
+        <div
+          ref={popoverRef}
+          style={{
+            position: 'fixed',
+            left: popoverLeft,
+            top: popoverTop,
+            zIndex: 10001,
+            maxHeight: popoverMaxHeight,
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
+          onMouseEnter={handlePopoverMouseEnter}
+          onMouseLeave={handlePopoverMouseLeave}
+        >
+          {isLocked ? (
+            isEditable ? (
+              <CharacterEditPanel
+                character={popoverChar}
+                onUpdateCharacter={onUpdateCharacter}
+                onClose={() => onInspectCharacter(null)}
+              />
+            ) : (
+              <CharacterDetailPanel
+                character={popoverChar}
+                isOnline={popoverChar.seatId ? (popoverChar.seatId === mySeatId || onlineSeatIds.has(popoverChar.seatId)) : false}
+                onClose={() => onInspectCharacter(null)}
+              />
+            )
+          ) : (
+            <CharacterHoverPreview
+              character={popoverChar}
+              isOnline={popoverChar.seatId ? (popoverChar.seatId === mySeatId || onlineSeatIds.has(popoverChar.seatId)) : false}
+              editable={(popoverChar.seatId === mySeatId) || (isGM && popoverChar.type === 'npc')}
+              onUpdateCharacter={onUpdateCharacter}
+            />
+          )}
+        </div>,
+        document.body,
+      )}
     </div>
   )
 }

@@ -19,21 +19,17 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
   return (
     <div
       style={{
-        position: 'fixed',
-        top: 12,
-        right: 16,
-        zIndex: 10000,
         width: 260,
-        background: 'rgba(15, 15, 25, 0.88)',
+        background: 'rgba(15, 15, 25, 0.92)',
         backdropFilter: 'blur(16px)',
         borderRadius: 14,
         boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
         border: '1px solid rgba(255,255,255,0.08)',
         padding: '20px 16px',
         fontFamily: 'sans-serif',
-        maxHeight: 'calc(50vh - 100px)',
-        boxSizing: 'border-box',
-        overflowY: 'auto',
+        maxHeight: 'inherit',
+        boxSizing: 'border-box' as const,
+        overflowY: 'auto' as const,
         color: '#e4e4e7',
         animation: 'panelFadeIn 0.2s ease-out',
       }}
