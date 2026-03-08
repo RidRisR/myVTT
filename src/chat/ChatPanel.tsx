@@ -367,7 +367,7 @@ export function ChatPanel({
           style={{
             position: 'fixed',
             bottom: 62,
-            right: 394,
+            right: 440,
             width: 260,
             maxHeight: 240,
             zIndex: 10001,
@@ -414,7 +414,7 @@ export function ChatPanel({
           style={{
             position: 'fixed',
             bottom: 62,
-            right: 352,
+            right: 440,
             width: 200,
             maxHeight: 280,
             zIndex: 10001,
@@ -455,7 +455,7 @@ export function ChatPanel({
           position: 'fixed',
           bottom: 12,
           right: 16,
-          width: 420,
+          width: 546,
           zIndex: 10000,
           display: 'flex',
           gap: 6,
