@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import type { Character } from '../shared/characterTypes'
 import type { Resource, Attribute, Handout } from '../shared/tokenTypes'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
-import { useHoldRepeat } from '../shared/useHoldRepeat'
 import { uploadAsset } from '../shared/assetUpload'
 import { ResourceBar } from '../shared/ui/ResourceBar'
+import { MiniHoldButton } from '../shared/ui/MiniHoldButton'
 
 interface MyCharacterCardProps {
   character: Character
@@ -286,13 +286,13 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
             placeholder="Name"
             style={{ ...inputStyle, flex: 1, fontSize: 12, padding: '5px 8px', fontWeight: 600 }}
           />
-          <HoldButton label="−" onTick={() => updateAttribute(i, { value: Math.max(0, attr.value - 1) })} color="#ef4444" />
+          <MiniHoldButton label="−" onTick={() => updateAttribute(i, { value: Math.max(0, attr.value - 1) })} color="#ef4444" />
           <input
             value={attr.value}
             onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) updateAttribute(i, { value: Math.max(0, v) }) }}
             style={{ ...inputStyle, width: 40, textAlign: 'center', fontSize: 14, fontWeight: 700, padding: '4px 2px', color: '#fff' }}
           />
-          <HoldButton label="+" onTick={() => updateAttribute(i, { value: attr.value + 1 })} color="#22c55e" />
+          <MiniHoldButton label="+" onTick={() => updateAttribute(i, { value: attr.value + 1 })} color="#22c55e" />
           <button onClick={() => removeAttribute(i)} style={removeBtnStyle}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444' }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)' }}

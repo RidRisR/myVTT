@@ -3,8 +3,8 @@ import type { Character } from '../shared/characterTypes'
 import { uploadAsset } from '../shared/assetUpload'
 import type { Resource, Attribute } from '../shared/tokenTypes'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
-import { useHoldRepeat } from '../shared/useHoldRepeat'
 import { ResourceBar } from '../shared/ui/ResourceBar'
+import { MiniHoldButton } from '../shared/ui/MiniHoldButton'
 
 interface CharacterEditPanelProps {
   character: Character
@@ -299,11 +299,11 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
           <input value={attr.key} onChange={(e) => updateAttribute(i, { key: e.target.value })}
             placeholder="Name" style={{ ...inputStyle, flex: 1, fontSize: 12, padding: '5px 8px', fontWeight: 600 }} />
-          <HoldButton label="-" onTick={() => updateAttribute(i, { value: Math.max(0, attr.value - 1) })} color="#ef4444" />
+          <MiniHoldButton label="-" onTick={() => updateAttribute(i, { value: Math.max(0, attr.value - 1) })} color="#ef4444" />
           <input value={attr.value}
             onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) updateAttribute(i, { value: Math.max(0, v) }) }}
             style={{ ...inputStyle, width: 40, textAlign: 'center', fontSize: 14, fontWeight: 700, padding: '4px 2px', color: '#fff' }} />
-          <HoldButton label="+" onTick={() => updateAttribute(i, { value: attr.value + 1 })} color="#22c55e" />
+          <MiniHoldButton label="+" onTick={() => updateAttribute(i, { value: attr.value + 1 })} color="#22c55e" />
           <button onClick={() => removeAttribute(i)} style={removeBtnStyle}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444' }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)' }}
