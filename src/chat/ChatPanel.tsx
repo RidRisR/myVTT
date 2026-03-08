@@ -330,6 +330,23 @@ export function ChatPanel({
     }
   }, [favoritedFormulas, onAddFavorite, onRemoveFavorite])
 
+  // Tab to cycle speaker: seat → char1 → char2 → ... → seat
+  const handleCycleSpeaker = useCallback(() => {
+    if (speakerCharacters.length === 0) return
+    if (speakerCharId === null) {
+      // Currently seat → go to first character
+      setSpeakerCharId(speakerCharacters[0].id)
+    } else {
+      const idx = speakerCharacters.findIndex(c => c.id === speakerCharId)
+      if (idx < 0 || idx >= speakerCharacters.length - 1) {
+        // Last character or not found → back to seat
+        setSpeakerCharId(null)
+      } else {
+        setSpeakerCharId(speakerCharacters[idx + 1].id)
+      }
+    }
+  }, [speakerCharId, speakerCharacters])
+
   return (
     <>
       {expanded ? (
@@ -510,6 +527,7 @@ export function ChatPanel({
             onSend={handleSend}
             selectedTokenProps={selectedTokenProps}
             seatProperties={seatProperties}
+            onCycleSpeaker={speakerCharacters.length > 0 ? handleCycleSpeaker : undefined}
           />
         </div>
 
