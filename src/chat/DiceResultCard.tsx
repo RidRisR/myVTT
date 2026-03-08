@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { ChatRollMessage } from './chatTypes'
 import { DiceReel, calcTotalAnimDuration } from './DiceReel'
 
@@ -11,14 +11,16 @@ const SPIN_DURATION = 0.8
 const STOP_INTERVAL = 0.2
 
 export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
-  const [totalRevealed, setTotalRevealed] = useState(!isNew)
+  // Lock animation state at mount — immune to isNew prop changes
+  const shouldAnimate = useRef(!!isNew)
+  const [totalRevealed, setTotalRevealed] = useState(!shouldAnimate.current)
 
   useEffect(() => {
-    if (!isNew || totalRevealed) return
+    if (!shouldAnimate.current) return
     const duration = calcTotalAnimDuration(message.terms) * 1000
     const timer = setTimeout(() => setTotalRevealed(true), duration)
     return () => clearTimeout(timer)
-  }, [isNew, totalRevealed, message.terms])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Build dice reels with slot machine timing
   let diceIndex = 0
@@ -46,14 +48,14 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
           key={`${ti}-${ri}`}
           sides={(tr.term as { type: 'dice'; sides: number }).sides}
           result={roll}
-          stopDelay={isNew ? stopDelay : 0}
+          stopDelay={shouldAnimate.current ? stopDelay : 0}
           dropped={isDropped}
         />
       )
     })
 
     return (
-      <span key={ti} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+      <span key={ti} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
         {showSign && <span style={{ color: '#64748b', margin: '0 2px', fontSize: 13 }}>{sign}</span>}
         {reels}
       </span>
@@ -117,7 +119,7 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
                   color: '#fbbf24',
                   textShadow:
                     '0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(251, 191, 36, 0.4)',
-                  animation: isNew
+                  animation: shouldAnimate.current
                     ? 'totalReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
                     : 'none',
                   opacity: 1,
