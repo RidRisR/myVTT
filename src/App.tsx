@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useYjsConnection } from './yjs/useYjsConnection'
 import { useRoom } from './yjs/useRoom'
 import { useScenes } from './yjs/useScenes'
@@ -20,6 +20,9 @@ import { MyCharacterCard } from './layout/MyCharacterCard'
 import { CharacterDetailPanel } from './layout/CharacterDetailPanel'
 import { CharacterEditPanel } from './layout/CharacterEditPanel'
 import { ContextMenu } from './shared/ContextMenu'
+import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
+import { useShowcase } from './showcase/useShowcase'
+import type { ShowcaseItem } from './showcase/showcaseTypes'
 import type { Character } from './shared/characterTypes'
 import { generateTokenId } from './combat/combatUtils'
 
@@ -31,10 +34,12 @@ export default function App() {
   const { tokens, addToken, updateToken, deleteToken, getToken } = useCombatTokens(yDoc)
   const { blueprints, addBlueprint, updateBlueprint, deleteBlueprint } = useTokenLibrary(yDoc)
   const { characters, addCharacter, updateCharacter, deleteCharacter, getCharacter } = useCharacters(yDoc)
+  const { addItem: addShowcaseItem, clearAll: clearShowcase } = useShowcase(yDoc)
 
   const [inspectedCharacterId, setInspectedCharacterId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
   const [bgContextMenu, setBgContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const testCounterRef = useRef(0)
 
   // Sync role from seat
   useEffect(() => {
@@ -141,6 +146,28 @@ export default function App() {
     }
   }
 
+  const testShowcaseItems: Omit<ShowcaseItem, 'id' | 'senderId' | 'senderName' | 'senderColor' | 'timestamp'>[] = [
+    { type: 'text', text: 'The ancient door creaks open, revealing a chamber filled with swirling mist...', ephemeral: true },
+    { type: 'image', title: 'Map of the Lost Temple', description: 'A crumbling parchment showing the layout of the forgotten temple beneath the mountain.', imageUrl: 'https://picsum.photos/seed/temple/600/400', ephemeral: false },
+    { type: 'text', text: 'A distant horn echoes through the valley. Something is coming.', ephemeral: true },
+    { type: 'handout', title: 'Letter from the King', description: 'Brave adventurers, I write to you in dire need. The northern fortress has fallen to shadow, and only you can reclaim it.', imageUrl: 'https://picsum.photos/seed/letter/500/350', ephemeral: false },
+    { type: 'text', text: 'The runes on the wall begin to glow with an eerie blue light.', ephemeral: true },
+    { type: 'image', title: 'The Black Dragon', description: 'An ancient wyrm emerges from the depths, its scales glistening with dark fire.', imageUrl: 'https://picsum.photos/seed/dragon/600/450', ephemeral: false },
+  ]
+  const handleShowcaseTest = () => {
+    const template = testShowcaseItems[testCounterRef.current++ % testShowcaseItems.length]
+    const item: ShowcaseItem = {
+      ...template,
+      id: generateTokenId(),
+      senderId: mySeatId!,
+      senderName: mySeat.name,
+      senderColor: mySeat.color,
+      timestamp: Date.now(),
+    }
+    console.log('[Showcase] Adding item:', item.id, item.type, item.title || item.text?.slice(0, 30))
+    addShowcaseItem(item)
+  }
+
   const handleBgContextMenu = (e: React.MouseEvent) => {
     if (!isGM) return
     e.preventDefault()
@@ -226,6 +253,13 @@ export default function App() {
         )
       )}
 
+      {/* Center: Showcase spotlight overlay */}
+      <ShowcaseOverlay
+        yDoc={yDoc}
+        mySeatId={mySeatId!}
+        isGM={isGM}
+      />
+
       {/* Bottom-right: Chat overlay */}
       <ChatPanel
         yDoc={yDoc}
@@ -287,6 +321,8 @@ export default function App() {
           onAddScene={addScene}
           onUpdateScene={updateScene}
           onDeleteScene={deleteScene}
+          onShowcaseTest={handleShowcaseTest}
+          onShowcaseClear={clearShowcase}
         />
       )}
 
