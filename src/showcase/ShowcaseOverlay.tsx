@@ -195,11 +195,15 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
           const dist = index - scrollY
           const absDist = Math.abs(dist)
           if (absDist > MAX_VISIBLE_DIST) return null
+          // Only show items above the focused item (dist < 0), or the focused item itself
+          if (dist > 0.5) return null
 
           const isFocused = index === focusedIndex
-          const y = dist * SLOT_SPACING
-          const opacity = Math.max(0.05, 1 - absDist * 0.35)
-          const scale = Math.max(0.82, 1 - absDist * 0.06)
+          // Focused item at center; queue items above with extra gap
+          const QUEUE_GAP = 200 // extra spacing between focused and queue
+          const y = isFocused ? 0 : (dist * SLOT_SPACING - QUEUE_GAP)
+          const opacity = isFocused ? 1 : Math.max(0.05, 1 - absDist * 0.4)
+          const scale = isFocused ? 1 : Math.max(0.78, 1 - absDist * 0.08)
 
           return (
             <div
