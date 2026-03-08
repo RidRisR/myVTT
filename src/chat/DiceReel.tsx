@@ -27,10 +27,22 @@ export function DiceReel({ sides, result, stopDelay, dropped = false }: DiceReel
 
     const { stopDelay: delay, result: finalValue, sides: s } = initialRef.current
 
-    // Phase 1: Spinning — rapidly change displayed number
-    const spinInterval = setInterval(() => {
-      setDisplayValue(Math.floor(Math.random() * s) + 1)
-    }, 50)
+    // Phase 1: Spinning — cycle through shuffled faces (no repeats)
+    const faces = Array.from({ length: s }, (_, i) => i + 1)
+    let cursor = faces.length
+    const shuffle = () => {
+      if (cursor >= faces.length) {
+        // Fisher-Yates shuffle
+        for (let i = faces.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [faces[i], faces[j]] = [faces[j], faces[i]]
+        }
+        cursor = 0
+      }
+      setDisplayValue(faces[cursor++])
+    }
+    shuffle()
+    const spinInterval = setInterval(shuffle, 50)
 
     // Phase 2: Stop and land
     const stopTimer = setTimeout(() => {
