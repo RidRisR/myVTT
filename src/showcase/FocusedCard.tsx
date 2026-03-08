@@ -81,83 +81,60 @@ export function FocusedCard({
     )
   }
 
-  // image / handout type
+  // image / handout type — raw image, no card wrapper
   return (
     <div ref={cardRef} style={{
-      background: 'rgba(15, 15, 25, 0.92)',
-      backdropFilter: 'blur(20px)',
-      borderRadius: 16,
-      border: '1px solid rgba(255,255,255,0.08)',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-      maxWidth: '60vw',
-      maxHeight: '70vh',
-      overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
+      alignItems: 'center',
+      gap: 12,
     }}>
       {item.imageUrl && (
         <img
           src={item.imageUrl}
           alt={item.title || ''}
           style={{
-            width: '100%',
-            maxHeight: '50vh',
+            maxWidth: '55vw',
+            maxHeight: (item.title || item.description) ? '50vh' : '55vh',
             objectFit: 'contain',
-            borderRadius: '16px 16px 0 0',
+            borderRadius: 4,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
           }}
         />
       )}
-      <div style={{ padding: '16px 20px' }}>
-        {item.title && (
-          <div style={{
-            fontSize: 18,
-            fontWeight: 600,
-            color: '#fff',
-            fontFamily: 'sans-serif',
-            marginBottom: item.description ? 8 : 0,
-          }}>
-            {item.title}
-          </div>
-        )}
-        {item.description && (
-          <div style={{
-            fontSize: 13,
-            color: 'rgba(255,255,255,0.65)',
-            fontFamily: 'sans-serif',
-            lineHeight: 1.5,
-            maxHeight: 120,
-            overflowY: 'auto',
-          }}>
-            {item.description}
-          </div>
-        )}
+      {(item.title || item.description) && (
         <div style={{
-          marginTop: 10,
-          fontSize: 11,
-          color: 'rgba(255,255,255,0.4)',
+          textAlign: 'center',
+          maxWidth: '55vw',
           fontFamily: 'sans-serif',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
         }}>
-          <span style={{
-            width: 8, height: 8,
-            borderRadius: '50%',
-            background: item.senderColor,
-            display: 'inline-block',
-          }} />
-          {item.senderName}
-          {item.ephemeral && <span style={{ marginLeft: 8, opacity: 0.6 }}>ephemeral</span>}
+          {item.title && (
+            <div style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: '#fff',
+              textShadow: '0 1px 8px rgba(0,0,0,0.6)',
+            }}>{item.title}</div>
+          )}
+          {item.description && (
+            <div style={{
+              fontSize: 13,
+              color: 'rgba(255,255,255,0.7)',
+              lineHeight: 1.5,
+              marginTop: item.title ? 4 : 0,
+              textShadow: '0 1px 6px rgba(0,0,0,0.5)',
+            }}>{item.description}</div>
+          )}
         </div>
-        <ActionButtons
-          canDismiss={canDismiss}
-          canPin={canPin}
-          canDelete={canDelete}
-          onDismiss={onDismiss}
-          onPin={onPin}
-          onDelete={onDelete}
-        />
-      </div>
+      )}
+      <ActionButtons
+        canDismiss={canDismiss}
+        canPin={canPin}
+        canDelete={canDelete}
+        onDismiss={onDismiss}
+        onPin={onPin}
+        onDelete={onDelete}
+      />
     </div>
   )
 }

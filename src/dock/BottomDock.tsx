@@ -25,6 +25,7 @@ interface BottomDockProps {
 
   handoutAssets: HandoutAsset[]
   onAddHandoutAsset: (asset: HandoutAsset) => void
+  onEditHandoutAsset: (asset: HandoutAsset) => void
   onDeleteHandoutAsset: (id: string) => void
   onShowcaseHandout: (asset: HandoutAsset) => void
 
@@ -51,6 +52,7 @@ export function BottomDock({
   onDeleteBlueprint,
   handoutAssets,
   onAddHandoutAsset,
+  onEditHandoutAsset,
   onDeleteHandoutAsset,
   onShowcaseHandout,
   characters,
@@ -219,6 +221,7 @@ export function BottomDock({
             <HandoutDockTab
               assets={handoutAssets}
               onAddAsset={onAddHandoutAsset}
+              onEditAsset={onEditHandoutAsset}
               onDeleteAsset={onDeleteHandoutAsset}
               onShowcase={onShowcaseHandout}
             />

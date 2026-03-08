@@ -7,6 +7,7 @@ interface HandoutDockTabProps {
   assets: HandoutAsset[]
   onAddAsset: (asset: HandoutAsset) => void
   onDeleteAsset: (id: string) => void
+  onEditAsset: (asset: HandoutAsset) => void
   onShowcase: (asset: HandoutAsset) => void
 }
 
@@ -14,6 +15,7 @@ export function HandoutDockTab({
   assets,
   onAddAsset,
   onDeleteAsset,
+  onEditAsset,
   onShowcase,
 }: HandoutDockTabProps) {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -64,29 +66,74 @@ export function HandoutDockTab({
                 style={{ width: '100%', height: 70, objectFit: 'cover', display: 'block' }}
                 draggable={false}
               />
+              {/* Title indicator */}
+              {asset.title && !isHovered && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  padding: '2px 6px',
+                  background: 'rgba(0,0,0,0.6)',
+                  fontSize: 9,
+                  color: 'rgba(255,255,255,0.8)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  fontFamily: 'sans-serif',
+                }}>{asset.title}</div>
+              )}
               {isHovered && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDeleteAsset(asset.id) }}
-                  style={{
-                    position: 'absolute',
-                    top: 4,
-                    right: 4,
-                    width: 18,
-                    height: 18,
-                    borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.6)',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#f87171',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    lineHeight: 1,
-                    padding: 0,
-                  }}
-                >×</button>
+                <>
+                  {/* Edit button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onEditAsset(asset) }}
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      left: 4,
+                      width: 18,
+                      height: 18,
+                      borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.6)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'rgba(255,255,255,0.8)',
+                      fontSize: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 0,
+                    }}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                    </svg>
+                  </button>
+                  {/* Delete button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDeleteAsset(asset.id) }}
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      right: 4,
+                      width: 18,
+                      height: 18,
+                      borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.6)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#f87171',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      lineHeight: 1,
+                      padding: 0,
+                    }}
+                  >×</button>
+                </>
               )}
             </div>
           )
