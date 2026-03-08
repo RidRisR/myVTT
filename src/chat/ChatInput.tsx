@@ -164,67 +164,90 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
           {error}
         </div>
       )}
-      <input
-        ref={inputRef}
-        value={input}
-        onChange={(e) => {
-          setInput(e.target.value)
-          const pos = e.target.selectionStart ?? e.target.value.length
-          const before = e.target.value.slice(0, pos)
-          if (/@[\p{L}\p{N}_]*$/u.test(before)) {
-            setShowSuggestions(true)
-            setSuggestionIndex(0)
-          } else {
-            setShowSuggestions(false)
-          }
-        }}
-        onKeyDown={(e) => {
-          if (showSuggestions && filteredSuggestions.length > 0) {
-            if (e.key === 'ArrowDown') {
-              e.preventDefault()
-              setSuggestionIndex((i) => Math.min(i + 1, filteredSuggestions.length - 1))
-              return
-            }
-            if (e.key === 'ArrowUp') {
-              e.preventDefault()
-              setSuggestionIndex((i) => Math.max(i - 1, 0))
-              return
-            }
-            if (e.key === 'Tab') {
-              e.preventDefault()
-              applySuggestion(filteredSuggestions[suggestionIndex].key)
-              return
-            }
-            if (e.key === 'Escape') {
+      <div style={{ display: 'flex', gap: 0 }}>
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={(e) => {
+            setInput(e.target.value)
+            const pos = e.target.selectionStart ?? e.target.value.length
+            const before = e.target.value.slice(0, pos)
+            if (/@[\p{L}\p{N}_]*$/u.test(before)) {
+              setShowSuggestions(true)
+              setSuggestionIndex(0)
+            } else {
               setShowSuggestions(false)
-              return
             }
-          }
-          if (e.key === 'Enter') {
+          }}
+          onKeyDown={(e) => {
             if (showSuggestions && filteredSuggestions.length > 0) {
-              e.preventDefault()
-              applySuggestion(filteredSuggestions[suggestionIndex].key)
-              return
+              if (e.key === 'ArrowDown') {
+                e.preventDefault()
+                setSuggestionIndex((i) => Math.min(i + 1, filteredSuggestions.length - 1))
+                return
+              }
+              if (e.key === 'ArrowUp') {
+                e.preventDefault()
+                setSuggestionIndex((i) => Math.max(i - 1, 0))
+                return
+              }
+              if (e.key === 'Tab') {
+                e.preventDefault()
+                applySuggestion(filteredSuggestions[suggestionIndex].key)
+                return
+              }
+              if (e.key === 'Escape') {
+                setShowSuggestions(false)
+                return
+              }
             }
-            handleSend()
-          }
-        }}
-        onFocus={onFocus}
-        onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-        placeholder="Type a message or .r 1d20+@STR"
-        style={{
-          width: '100%',
-          padding: '10px 14px',
-          border: 'none',
-          borderRadius: 10,
-          fontSize: 13,
-          boxSizing: 'border-box',
-          outline: 'none',
-          background: 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(8px)',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.1)',
-        }}
-      />
+            if (e.key === 'Enter') {
+              if (showSuggestions && filteredSuggestions.length > 0) {
+                e.preventDefault()
+                applySuggestion(filteredSuggestions[suggestionIndex].key)
+                return
+              }
+              handleSend()
+            }
+          }}
+          onFocus={onFocus}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+          placeholder="Type a message or .r 1d20+@STR"
+          style={{
+            flex: 1,
+            minWidth: 0,
+            padding: '10px 14px',
+            border: 'none',
+            borderRadius: '10px 0 0 10px',
+            fontSize: 13,
+            boxSizing: 'border-box',
+            outline: 'none',
+            background: 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.1)',
+          }}
+        />
+        <button
+          onClick={handleSend}
+          style={{
+            padding: '0 14px',
+            border: 'none',
+            borderRadius: '0 10px 10px 0',
+            fontSize: 14,
+            cursor: 'pointer',
+            background: 'rgba(59,130,246,0.9)',
+            color: '#fff',
+            fontWeight: 600,
+            transition: 'background 0.15s',
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(59,130,246,1)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.9)' }}
+          aria-label="Send"
+        >
+          ➤
+        </button>
+      </div>
 
       {/* @ autocomplete dropdown */}
       {showSuggestions && filteredSuggestions.length > 0 && (
