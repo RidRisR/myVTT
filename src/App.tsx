@@ -19,8 +19,6 @@ import { GmToolbar } from './gm/GmToolbar'
 import { HamburgerMenu } from './layout/HamburgerMenu'
 import { PortraitBar } from './layout/PortraitBar'
 import { MyCharacterCard } from './layout/MyCharacterCard'
-import { CharacterDetailPanel } from './layout/CharacterDetailPanel'
-import { CharacterEditPanel } from './layout/CharacterEditPanel'
 import { ContextMenu } from './shared/ContextMenu'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import { useShowcase } from './showcase/useShowcase'
@@ -116,8 +114,6 @@ export default function App() {
 
   // Derive character data
   const activeCharacter = getCharacter(mySeat.activeCharacterId ?? null)
-  const inspectedCharacter = inspectedCharacterId ? getCharacter(inspectedCharacterId) : null
-
   // For selected token in combat
   const selectedToken = isCombat ? getToken(selectedTokenId) : null
   const selectedTokenCharacter = selectedToken ? getCharacter(selectedToken.characterId) : null
@@ -219,7 +215,7 @@ export default function App() {
         onlineSeatIds={onlineSeatIds}
         inspectedCharacterId={inspectedCharacterId}
         activeCharacterId={mySeat.activeCharacterId ?? null}
-        onInspectCharacter={(id) => setInspectedCharacterId(prev => prev === id ? null : id)}
+        onInspectCharacter={setInspectedCharacterId}
         onSetActiveCharacter={handleSetActiveCharacter}
         onDeleteCharacter={handleDeleteCharacter}
         onUpdateCharacter={updateCharacter}
@@ -233,22 +229,6 @@ export default function App() {
         />
       )}
 
-      {/* Top-right: Inspected character detail */}
-      {inspectedCharacter && (
-        (inspectedCharacter.seatId === mySeatId) || (isGM && inspectedCharacter.type === 'npc') ? (
-          <CharacterEditPanel
-            character={inspectedCharacter}
-            onUpdateCharacter={updateCharacter}
-            onClose={() => setInspectedCharacterId(null)}
-          />
-        ) : (
-          <CharacterDetailPanel
-            character={inspectedCharacter}
-            isOnline={inspectedCharacter.seatId ? (inspectedCharacter.seatId === mySeatId || onlineSeatIds.has(inspectedCharacter.seatId)) : false}
-            onClose={() => setInspectedCharacterId(null)}
-          />
-        )
-      )}
 
       {/* Center: Showcase spotlight overlay */}
       <ShowcaseOverlay

@@ -439,20 +439,16 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
   return (
     <div
       style={{
-        position: 'fixed',
-        top: 12,
-        right: 16,
         width: 320,
-        zIndex: 10000,
-        background: 'rgba(15, 15, 25, 0.88)',
+        background: 'rgba(15, 15, 25, 0.92)',
         backdropFilter: 'blur(16px)',
         borderRadius: 14,
         boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
         border: '1px solid rgba(255,255,255,0.08)',
         fontFamily: 'sans-serif',
         color: '#e4e4e7',
-        maxHeight: 'calc(50vh - 100px)',
-        boxSizing: 'border-box',
+        maxHeight: 'inherit',
+        boxSizing: 'border-box' as const,
         display: 'flex',
         flexDirection: 'column' as const,
       }}
