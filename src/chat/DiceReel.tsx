@@ -7,6 +7,8 @@ interface DiceReelProps {
   stopDelay: number
   /** Whether this die was dropped (keep/drop mechanic) */
   dropped?: boolean
+  /** Delay (seconds) before showing dropped styling — wait for all dice to land */
+  dropRevealDelay?: number
 }
 
 type Phase = 'spinning' | 'landing' | 'stopped'
@@ -14,18 +16,19 @@ type Phase = 'spinning' | 'landing' | 'stopped'
 const SPIN_DURATION = 0.8 // All dice spin for this long minimum
 const STOP_INTERVAL = 0.2 // Each die stops 0.2s apart
 
-export function DiceReel({ sides, result, stopDelay, dropped = false }: DiceReelProps) {
+export function DiceReel({ sides, result, stopDelay, dropped = false, dropRevealDelay }: DiceReelProps) {
   // Lock animation params at mount — immune to later prop changes (e.g. isNew toggling)
-  const initialRef = useRef({ stopDelay, result, sides })
+  const initialRef = useRef({ stopDelay, result, sides, dropRevealDelay })
   const animate = initialRef.current.stopDelay > 0
 
   const [phase, setPhase] = useState<Phase>(animate ? 'spinning' : 'stopped')
   const [displayValue, setDisplayValue] = useState(animate ? 1 : result)
+  const [showDropped, setShowDropped] = useState(!animate)
 
   useEffect(() => {
     if (!animate) return
 
-    const { stopDelay: delay, result: finalValue, sides: s } = initialRef.current
+    const { stopDelay: delay, result: finalValue, sides: s, dropRevealDelay: drd } = initialRef.current
 
     // Phase 1: Spinning — cycle through shuffled faces (no repeats)
     const faces = Array.from({ length: s }, (_, i) => i + 1)
@@ -54,9 +57,16 @@ export function DiceReel({ sides, result, stopDelay, dropped = false }: DiceReel
       setTimeout(() => setPhase('stopped'), 300)
     }, delay * 1000)
 
+    // Reveal dropped styling after all dice have landed
+    let dropTimer: ReturnType<typeof setTimeout> | undefined
+    if (drd != null && drd > 0) {
+      dropTimer = setTimeout(() => setShowDropped(true), drd * 1000)
+    }
+
     return () => {
       clearInterval(spinInterval)
       clearTimeout(stopTimer)
+      if (dropTimer) clearTimeout(dropTimer)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -75,8 +85,9 @@ export function DiceReel({ sides, result, stopDelay, dropped = false }: DiceReel
     fontWeight: 600,
     fontFamily: 'monospace',
     fontVariantNumeric: 'tabular-nums',
-    opacity: dropped ? 0.5 : 1,
-    textDecoration: dropped ? 'line-through' : 'none',
+    transition: 'opacity 0.3s, text-decoration 0.3s',
+    opacity: (dropped && showDropped) ? 0.5 : 1,
+    textDecoration: (dropped && showDropped) ? 'line-through' : 'none',
   }
 
   const phaseStyles: Record<Phase, React.CSSProperties> = {
