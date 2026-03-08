@@ -27,3 +27,4 @@ node_modules/
 db/
 dist/
 server/uploads/
+.worktrees/
