@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import type { TeamTracker } from './useTeamMetrics'
-import { useHoldRepeat } from '../shared/useHoldRepeat'
+import { ResourceBar } from '../shared/ui/ResourceBar'
 
 interface TeamMetricsTabProps {
   trackers: TeamTracker[]
@@ -22,34 +22,11 @@ const inputStyle = {
   fontFamily: 'inherit',
 }
 
-function MiniHoldButton({ label, onTick, color }: { label: string; onTick: () => void; color: string }) {
-  const { holdStart, holdStop } = useHoldRepeat(onTick)
-  return (
-    <button
-      onPointerDown={holdStart} onPointerUp={holdStop} onPointerLeave={holdStop}
-      style={{
-        width: 20, height: 20,
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: 4, cursor: 'pointer',
-        color, fontSize: 11, fontWeight: 700,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 0, lineHeight: 1, flexShrink: 0,
-        transition: 'all 0.15s',
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-    >
-      {label}
-    </button>
-  )
-}
 
 export function TeamMetricsTab({
   trackers, expanded, isGM,
   onUpdateTracker, onAddTracker, onDeleteTracker,
 }: TeamMetricsTabProps) {
-  const [draggingId, setDraggingId] = useState<string | null>(null)
   const [addingNew, setAddingNew] = useState(false)
   const [newLabel, setNewLabel] = useState('')
   const [colorPickerOpen, setColorPickerOpen] = useState<string | null>(null)
@@ -67,26 +44,6 @@ export function TeamMetricsTab({
     return () => document.removeEventListener('pointerdown', handler)
   }, [colorPickerOpen])
 
-  const handleBarDrag = (e: React.PointerEvent, tracker: TeamTracker) => {
-    if (!isGM) return
-    e.preventDefault()
-    const bar = e.currentTarget as HTMLElement
-    const rect = bar.getBoundingClientRect()
-    const calcValue = (clientX: number) =>
-      Math.round(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * tracker.max)
-    onUpdateTracker(tracker.id, { current: calcValue(e.clientX) })
-    setDraggingId(tracker.id)
-    const onMove = (ev: PointerEvent) => {
-      onUpdateTracker(tracker.id, { current: calcValue(ev.clientX) })
-    }
-    const onUp = () => {
-      setDraggingId(null)
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', onUp)
-    }
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
-  }
 
   const commitNewTracker = (label: string) => {
     const trimmed = label.trim()
@@ -105,39 +62,19 @@ export function TeamMetricsTab({
         gridTemplateColumns: trackers.length >= 2 ? '1fr 1fr' : '1fr',
         gap: '10px 14px',
       }}>
-        {trackers.map((t) => {
-          const pct = t.max > 0 ? Math.min(t.current / t.max, 1) : 0
-          const isDragging = draggingId === t.id
-          return (
-            <div key={t.id} style={{ minWidth: 0 }}>
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                fontSize: 10, marginBottom: 3,
-              }}>
-                <span style={{ color: 'rgba(255,255,255,0.55)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
-                <span style={{ color: '#fff', fontWeight: 700, fontSize: 9, flexShrink: 0, marginLeft: 6 }}>{t.current}/{t.max}</span>
-              </div>
-              <div
-                style={{
-                  height: 8, borderRadius: 5,
-                  background: 'rgba(255,255,255,0.05)', overflow: 'hidden',
-                  border: '1px solid rgba(255,255,255,0.04)',
-                  position: 'relative',
-                  cursor: isGM ? 'ew-resize' : 'default',
-                  userSelect: 'none',
-                }}
-                onPointerDown={isGM ? (e) => handleBarDrag(e, t) : undefined}
-              >
-                <div style={{
-                  height: '100%', width: `${pct * 100}%`,
-                  background: `linear-gradient(90deg, ${t.color}, ${t.color}dd)`,
-                  borderRadius: 4,
-                  transition: isDragging ? 'none' : 'width 0.25s ease',
-                }} />
-              </div>
-            </div>
-          )
-        })}
+        {trackers.map((t) => (
+          <ResourceBar
+            key={t.id}
+            label={t.label}
+            current={t.current}
+            max={t.max}
+            color={t.color}
+            height={8}
+            valueDisplay="outside"
+            draggable={isGM}
+            onChange={(val: number) => onUpdateTracker(t.id, { current: val })}
+          />
+        ))}
       </div>
     )
   }
@@ -146,8 +83,6 @@ export function TeamMetricsTab({
   return (
     <div>
       {trackers.map((t) => {
-        const pct = t.max > 0 ? Math.min(t.current / t.max, 1) : 0
-        const isDragging = draggingId === t.id
         return (
           <div key={t.id} style={{ marginBottom: 12 }}>
             {/* Header: name + current/max inputs + color + remove */}
@@ -208,34 +143,16 @@ export function TeamMetricsTab({
             </div>
 
             {/* Bar row: - draggable bar + */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <MiniHoldButton label="-" onTick={() => onUpdateTracker(t.id, { current: Math.max(0, t.current - 1) })} color="#ef4444" />
-              <div
-                style={{
-                  flex: 1, height: 16, borderRadius: 8,
-                  background: 'rgba(255,255,255,0.06)', overflow: 'hidden',
-                  position: 'relative', cursor: 'ew-resize', userSelect: 'none',
-                }}
-                onPointerDown={(e) => handleBarDrag(e, t)}
-              >
-                <div style={{
-                  height: '100%', width: `${pct * 100}%`,
-                  background: `linear-gradient(90deg, ${t.color}, ${t.color}cc)`,
-                  borderRadius: 8,
-                  transition: isDragging ? 'none' : 'width 0.2s ease',
-                }} />
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 9, fontWeight: 700, color: '#fff',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                  pointerEvents: 'none',
-                }}>
-                  {t.current} / {t.max}
-                </div>
-              </div>
-              <MiniHoldButton label="+" onTick={() => onUpdateTracker(t.id, { current: Math.min(t.max, t.current + 1) })} color="#22c55e" />
-            </div>
+            <ResourceBar
+              current={t.current}
+              max={t.max}
+              color={t.color}
+              height={16}
+              valueDisplay="inline"
+              draggable
+              showButtons
+              onChange={(val: number) => onUpdateTracker(t.id, { current: val })}
+            />
 
             {/* Color picker — collapsed by default */}
             {colorPickerOpen === t.id && (
