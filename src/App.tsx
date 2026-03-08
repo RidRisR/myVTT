@@ -26,6 +26,7 @@ import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import { useShowcase } from './showcase/useShowcase'
 import type { ShowcaseItem } from './showcase/showcaseTypes'
 import type { Character } from './shared/characterTypes'
+import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './combat/combatUtils'
 
 export default function App() {
@@ -37,11 +38,12 @@ export default function App() {
   const { blueprints, addBlueprint, updateBlueprint, deleteBlueprint } = useTokenLibrary(yDoc)
   const { characters, addCharacter, updateCharacter, deleteCharacter, getCharacter } = useCharacters(yDoc)
   const { addItem: addShowcaseItem } = useShowcase(yDoc)
-  const { assets: handoutAssets, addAsset: addHandoutAsset, deleteAsset: deleteHandoutAsset } = useHandoutAssets(yDoc)
+  const { assets: handoutAssets, addAsset: addHandoutAsset, updateAsset: updateHandoutAsset, deleteAsset: deleteHandoutAsset } = useHandoutAssets(yDoc)
 
   const [inspectedCharacterId, setInspectedCharacterId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
   const [bgContextMenu, setBgContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [editingHandout, setEditingHandout] = useState<HandoutAsset | null>(null)
   // Sync role from seat
   useEffect(() => {
     if (mySeat) roleStore.set(mySeat.role)
@@ -151,6 +153,8 @@ export default function App() {
     const item: ShowcaseItem = {
       id: generateTokenId(),
       type: 'image',
+      title: asset.title,
+      description: asset.description,
       imageUrl: asset.imageUrl,
       senderId: mySeatId!,
       senderName: mySeat.name,
@@ -301,8 +305,9 @@ export default function App() {
           onUpdateToken={updateToken}
           onSelectToken={setSelectedTokenId}
           handoutAssets={handoutAssets}
-          onDeleteHandoutAsset={deleteHandoutAsset}
           onAddHandoutAsset={addHandoutAsset}
+          onEditHandoutAsset={setEditingHandout}
+          onDeleteHandoutAsset={deleteHandoutAsset}
           onShowcaseHandout={handleShowcaseHandout}
         />
       )}
@@ -330,6 +335,14 @@ export default function App() {
             { label: 'Add NPC', onClick: handleAddNpc },
           ]}
           onClose={() => setBgContextMenu(null)}
+        />
+      )}
+
+      {editingHandout && (
+        <HandoutEditModal
+          asset={editingHandout}
+          onSave={updateHandoutAsset}
+          onClose={() => setEditingHandout(null)}
         />
       )}
     </div>
