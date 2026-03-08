@@ -1,14 +1,12 @@
-import { useState } from 'react'
-import type { CombatToken } from './combatTypes'
+import { useState, useRef } from 'react'
 import type { Character } from '../shared/characterTypes'
+import { uploadAsset } from '../shared/assetUpload'
 import type { Resource, Attribute } from '../shared/tokenTypes'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
 import { useHoldRepeat } from '../shared/useHoldRepeat'
 
-interface TokenPropertiesPanelProps {
-  token: CombatToken
+interface CharacterEditPanelProps {
   character: Character
-  onUpdate: (id: string, updates: Partial<CombatToken>) => void
   onUpdateCharacter: (id: string, updates: Partial<Character>) => void
   onClose: () => void
 }
@@ -84,11 +82,13 @@ function HoldButton({ label, onTick, color }: { label: string; onTick: () => voi
   )
 }
 
-export function TokenPropertiesPanel({ token, character, onUpdate, onUpdateCharacter, onClose }: TokenPropertiesPanelProps) {
+export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: CharacterEditPanelProps) {
   const [activeTab, setActiveTab] = useState<TabId>('info')
   const [statusInput, setStatusInput] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [draggingRes, setDraggingRes] = useState<number | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const updateToken = (updates: Partial<CombatToken>) => onUpdate(token.id, updates)
   const updateChar = (updates: Partial<Character>) => onUpdateCharacter(character.id, updates)
 
   /* ── Resource helpers ── */
@@ -129,37 +129,87 @@ export function TokenPropertiesPanel({ token, character, onUpdate, onUpdateChara
     updateChar({ statuses: character.statuses.filter((_, i) => i !== index) })
   }
 
+  /* ── Resource bar drag ── */
+  const handleBarDrag = (e: React.PointerEvent, index: number, max: number) => {
+    if ((e.target as HTMLElement).tagName === 'INPUT') return
+    e.preventDefault()
+    const bar = e.currentTarget as HTMLElement
+    const rect = bar.getBoundingClientRect()
+    const calcValue = (clientX: number) =>
+      Math.round(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * max)
+    updateResource(index, { current: calcValue(e.clientX) })
+    setDraggingRes(index)
+    const onMove = (ev: PointerEvent) => {
+      updateResource(index, { current: calcValue(ev.clientX) })
+    }
+    const onUp = () => {
+      setDraggingRes(null)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
+  /* ── Portrait upload ── */
+  const handlePortraitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const url = await uploadAsset(file)
+      updateChar({ imageUrl: url })
+    } catch (err) {
+      console.error('Portrait upload failed:', err)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   /* ── Tab renderers ── */
   const renderInfo = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {/* Token image preview */}
+      {/* Portrait + name */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <img src={character.imageUrl} alt={character.name}
-          style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${character.color}`, flexShrink: 0 }} />
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePortraitUpload} />
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+          title="Click to change portrait"
+        >
+          {character.imageUrl ? (
+            <img src={character.imageUrl} alt={character.name}
+              style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${character.color}`, display: 'block' }} />
+          ) : (
+            <div style={{
+              width: 48, height: 48, borderRadius: '50%',
+              background: `linear-gradient(135deg, ${character.color}, ${character.color}aa)`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontSize: 20, fontWeight: 700,
+              border: `3px solid ${character.color}`, boxSizing: 'border-box',
+            }}>
+              {character.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          {/* Upload overlay */}
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            background: uploading ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 0.15s',
+            fontSize: 10, color: '#fff', fontWeight: 600,
+          }}
+            onMouseEnter={(e) => { if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0.5)' }}
+            onMouseLeave={(e) => { if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0)' }}
+          >
+            {uploading ? '...' : ''}
+          </div>
+        </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
           <label style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.8 }}>Name</label>
           <input value={character.name} onChange={(e) => updateChar({ name: e.target.value })}
             style={{ ...inputStyle, fontSize: 14, fontWeight: 600 }} />
-        </div>
-      </div>
-
-      {/* Size */}
-      <div>
-        <label style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4, display: 'block' }}>Size (grid cells)</label>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {[1, 2, 3, 4].map(s => (
-            <button key={s} onClick={() => updateToken({ size: s })}
-              style={{
-                flex: 1, padding: '6px 0',
-                background: token.size === s ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.04)',
-                border: token.size === s ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 6, cursor: 'pointer',
-                color: token.size === s ? '#fff' : 'rgba(255,255,255,0.4)',
-                fontSize: 12, fontWeight: 600, fontFamily: 'sans-serif',
-                transition: 'all 0.15s',
-              }}
-            >{s}x{s}</button>
-          ))}
         </div>
       </div>
 
@@ -177,28 +227,6 @@ export function TokenPropertiesPanel({ token, character, onUpdate, onUpdateChara
           ))}
         </div>
       </div>
-
-      {/* GM Only toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <label style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.8 }}>GM Only</label>
-        <button onClick={() => updateToken({ gmOnly: !token.gmOnly })}
-          style={{
-            width: 36, height: 20, borderRadius: 10, cursor: 'pointer',
-            background: token.gmOnly ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)',
-            border: '1px solid rgba(255,255,255,0.15)',
-            position: 'relative', transition: 'background 0.2s',
-            padding: 0,
-          }}
-        >
-          <div style={{
-            width: 14, height: 14, borderRadius: '50%',
-            background: token.gmOnly ? '#8b5cf6' : 'rgba(255,255,255,0.3)',
-            position: 'absolute', top: 2,
-            left: token.gmOnly ? 19 : 2,
-            transition: 'left 0.2s, background 0.2s',
-          }} />
-        </button>
-      </div>
     </div>
   )
 
@@ -206,30 +234,65 @@ export function TokenPropertiesPanel({ token, character, onUpdate, onUpdateChara
     <div>
       {character.resources.map((res, i) => {
         const pct = res.max > 0 ? Math.min(res.current / res.max, 1) : 0
+        const isDragging = draggingRes === i
         return (
           <div key={i} style={{ marginBottom: 10 }}>
+            {/* Header: name + current/max inputs + remove */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
               <input value={res.key} onChange={(e) => updateResource(i, { key: e.target.value })}
                 placeholder="Name" style={{ ...inputStyle, flex: 1, fontSize: 11, padding: '3px 6px', fontWeight: 600 }} />
-              <HoldButton label="-" onTick={() => updateResource(i, { current: Math.max(0, res.current - 1) })} color="#ef4444" />
-              <HoldButton label="+" onTick={() => updateResource(i, { current: Math.min(res.max, res.current + 1) })} color="#22c55e" />
+              <input
+                key={`cur-${i}-${res.current}`}
+                defaultValue={res.current}
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value)
+                  if (!isNaN(v)) updateResource(i, { current: Math.max(0, Math.min(v, res.max)) })
+                  else e.target.value = String(res.current)
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                style={{ ...inputStyle, width: 32, textAlign: 'center', fontSize: 11, padding: '3px 2px', fontWeight: 700 }} />
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>/</span>
+              <input
+                key={`max-${i}-${res.max}`}
+                defaultValue={res.max}
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value)
+                  if (!isNaN(v) && v > 0) updateResource(i, { max: v, current: Math.min(res.current, v) })
+                  else e.target.value = String(res.max)
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                style={{ ...inputStyle, width: 32, textAlign: 'center', fontSize: 11, padding: '3px 2px', fontWeight: 700 }} />
               <button onClick={() => removeResource(i)} style={removeBtnStyle}
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444' }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)' }}
               >x</button>
             </div>
-            <div style={{ height: 16, borderRadius: 8, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative' }}>
-              <div style={{ height: '100%', width: `${pct * 100}%`, background: `linear-gradient(90deg, ${res.color}, ${res.color}cc)`, borderRadius: 8, transition: 'width 0.2s ease' }} />
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
-                <input value={res.current}
-                  onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) updateResource(i, { current: Math.max(0, Math.min(v, res.max)) }) }}
-                  style={{ width: 28, textAlign: 'right', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 10, fontWeight: 700, padding: 0 }} />
-                <span style={{ margin: '0 1px' }}>/</span>
-                <input value={res.max}
-                  onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v) && v > 0) updateResource(i, { max: v, current: Math.min(res.current, v) }) }}
-                  style={{ width: 28, textAlign: 'left', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 10, fontWeight: 700, padding: 0 }} />
+            {/* Bar row: - draggable bar + */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <HoldButton label="-" onTick={() => updateResource(i, { current: Math.max(0, res.current - 1) })} color="#ef4444" />
+              <div
+                style={{ flex: 1, height: 18, borderRadius: 8, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative', cursor: 'ew-resize', userSelect: 'none' }}
+                onPointerDown={(e) => handleBarDrag(e, i, res.max)}
+              >
+                <div style={{
+                  height: '100%', width: `${pct * 100}%`,
+                  background: `linear-gradient(90deg, ${res.color}, ${res.color}cc)`,
+                  borderRadius: 8,
+                  transition: isDragging ? 'none' : 'width 0.2s ease',
+                }} />
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, color: '#fff',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                  pointerEvents: 'none',
+                }}>
+                  {res.current} / {res.max}
+                </div>
               </div>
+              <HoldButton label="+" onTick={() => updateResource(i, { current: Math.min(res.max, res.current + 1) })} color="#22c55e" />
             </div>
+            {/* Color picker */}
             <div style={{ display: 'flex', gap: 3, marginTop: 5, justifyContent: 'center' }}>
               {['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#ef4444', '#f97316'].map(c => (
                 <div key={c} onClick={() => updateResource(i, { color: c })}
@@ -332,9 +395,9 @@ export function TokenPropertiesPanel({ token, character, onUpdate, onUpdateChara
     <div
       style={{
         position: 'fixed',
-        top: 80,
+        top: 12,
         right: 16,
-        width: 272,
+        width: 320,
         zIndex: 10000,
         background: 'rgba(15, 15, 25, 0.88)',
         backdropFilter: 'blur(16px)',
@@ -348,7 +411,7 @@ export function TokenPropertiesPanel({ token, character, onUpdate, onUpdateChara
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px 8px' }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.8 }}>Token</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.8 }}>Character</span>
         <button onClick={onClose}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 18, padding: '0 2px', lineHeight: 1, transition: 'color 0.15s' }}
           onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
@@ -378,7 +441,7 @@ export function TokenPropertiesPanel({ token, character, onUpdate, onUpdateChara
       </div>
 
       {/* Tab content */}
-      <div style={{ padding: '12px 14px 14px', overflowY: 'auto', maxHeight: 400 }}>
+      <div style={{ padding: '12px 14px 14px', overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
         {tabContent[activeTab]()}
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { Character } from '../shared/characterTypes'
 import { statusColor } from '../shared/tokenUtils'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
@@ -139,11 +140,7 @@ export function PortraitBar({
           transition: 'transform 0.15s ease',
         }}
         onClick={() => {
-          if (isMine) {
-            onSetActiveCharacter(char.id)
-          } else {
-            onInspectCharacter(inspectedCharacterId === char.id ? null : char.id)
-          }
+          onInspectCharacter(inspectedCharacterId === char.id ? null : char.id)
         }}
         onContextMenu={(e) => handleContextMenu(e, char.id)}
         onMouseEnter={(e) => {
@@ -394,17 +391,18 @@ export function PortraitBar({
         </div>
       )}
 
-      {/* Context menu */}
+      {/* Context menu — rendered via portal to avoid transform offset */}
       {contextMenu && (() => {
         const char = characters.find(c => c.id === contextMenu.charId)
         if (!char) return null
-        return (
+        return createPortal(
           <ContextMenu
             x={contextMenu.x}
             y={contextMenu.y}
             items={getContextMenuItems(char)}
             onClose={() => setContextMenu(null)}
-          />
+          />,
+          document.body,
         )
       })()}
     </div>
