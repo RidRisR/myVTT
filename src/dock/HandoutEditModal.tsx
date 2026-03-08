@@ -1,25 +1,56 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { uploadAsset } from '../shared/assetUpload'
 
 interface HandoutEditModalProps {
-  imageUrl: string
-  initialTitle: string
-  initialDescription: string
-  onConfirm: (title: string, description: string) => void
+  initialTitle?: string
+  initialImageUrl?: string
+  initialContent?: string
+  onConfirm: (title: string, imageUrl: string | undefined, content: string) => void
   onCancel: () => void
 }
 
 export function HandoutEditModal({
-  imageUrl,
-  initialTitle,
-  initialDescription,
+  initialTitle = '',
+  initialImageUrl,
+  initialContent = '',
   onConfirm,
   onCancel,
 }: HandoutEditModalProps) {
   const [title, setTitle] = useState(initialTitle)
-  const [description, setDescription] = useState(initialDescription)
+  const [imageUrl, setImageUrl] = useState<string | undefined>(initialImageUrl)
+  const [content, setContent] = useState(initialContent)
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const handleSubmit = () => {
-    onConfirm(title.trim() || 'Untitled', description.trim())
+    onConfirm(title.trim(), imageUrl, content.trim())
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setUploading(true)
+    try {
+      const url = await uploadAsset(file)
+      setImageUrl(url)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    marginTop: 4,
+    padding: '8px 10px',
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: 8,
+    color: '#fff',
+    fontSize: 14,
+    outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: 'sans-serif',
   }
 
   return (
@@ -41,27 +72,18 @@ export function HandoutEditModal({
         borderRadius: 16,
         border: '1px solid rgba(255,255,255,0.1)',
         boxShadow: '0 12px 48px rgba(0,0,0,0.5)',
-        width: 400,
-        maxHeight: '80vh',
-        overflow: 'hidden',
+        width: 460,
+        maxHeight: '85vh',
+        overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
         fontFamily: 'sans-serif',
       }}>
-        {/* Image preview */}
-        <img
-          src={imageUrl}
-          alt="Preview"
-          style={{
-            width: '100%',
-            maxHeight: 240,
-            objectFit: 'contain',
-            background: 'rgba(0,0,0,0.3)',
-          }}
-        />
+        <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />
 
         {/* Form fields */}
-        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Title */}
           <div>
             <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
               Title
@@ -71,44 +93,101 @@ export function HandoutEditModal({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Untitled"
               autoFocus
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
-              style={{
-                width: '100%',
-                marginTop: 4,
-                padding: '8px 10px',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: 8,
-                color: '#fff',
-                fontSize: 14,
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
+              style={inputStyle}
             />
           </div>
 
+          {/* Image area */}
           <div>
             <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
-              Description (optional)
+              Image (optional)
+            </label>
+            {imageUrl ? (
+              <div style={{ position: 'relative', marginTop: 4 }}>
+                <img
+                  src={imageUrl}
+                  alt="Preview"
+                  style={{
+                    width: '100%',
+                    maxHeight: 240,
+                    objectFit: 'contain',
+                    borderRadius: 8,
+                    background: 'rgba(0,0,0,0.3)',
+                    display: 'block',
+                  }}
+                />
+                <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    style={{
+                      padding: '4px 10px',
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      borderRadius: 6,
+                      color: 'rgba(255,255,255,0.6)',
+                      fontSize: 11,
+                      cursor: 'pointer',
+                      fontFamily: 'sans-serif',
+                    }}
+                  >
+                    Replace
+                  </button>
+                  <button
+                    onClick={() => setImageUrl(undefined)}
+                    style={{
+                      padding: '4px 10px',
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(239,68,68,0.3)',
+                      borderRadius: 6,
+                      color: '#f87171',
+                      fontSize: 11,
+                      cursor: 'pointer',
+                      fontFamily: 'sans-serif',
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                onClick={() => !uploading && fileRef.current?.click()}
+                style={{
+                  marginTop: 4,
+                  height: 80,
+                  borderRadius: 8,
+                  border: '2px dashed rgba(255,255,255,0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: uploading ? 'wait' : 'pointer',
+                  color: 'rgba(255,255,255,0.3)',
+                  fontSize: 12,
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
+              >
+                {uploading ? 'Uploading...' : 'Click to add image'}
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <div>
+            <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+              Content (optional)
             </label>
             <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add a description..."
-              rows={3}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Write text content here..."
+              rows={5}
               style={{
-                width: '100%',
-                marginTop: 4,
-                padding: '8px 10px',
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: 8,
-                color: '#fff',
+                ...inputStyle,
                 fontSize: 13,
-                outline: 'none',
                 resize: 'vertical',
-                fontFamily: 'sans-serif',
-                boxSizing: 'border-box',
+                lineHeight: 1.5,
               }}
             />
           </div>
