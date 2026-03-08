@@ -3,9 +3,7 @@ import * as Y from 'yjs'
 
 export interface HandoutAsset {
   id: string
-  title: string
-  imageUrl?: string
-  content: string
+  imageUrl: string
   createdAt: number
 }
 

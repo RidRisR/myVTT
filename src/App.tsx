@@ -14,7 +14,6 @@ import { useTokenLibrary } from './combat/useTokenLibrary'
 import { BottomDock } from './dock/BottomDock'
 import { useHandoutAssets } from './dock/useHandoutAssets'
 import type { HandoutAsset } from './dock/useHandoutAssets'
-import { HandoutEditModal } from './dock/HandoutEditModal'
 
 import { GmToolbar } from './gm/GmToolbar'
 import { HamburgerMenu } from './layout/HamburgerMenu'
@@ -38,17 +37,11 @@ export default function App() {
   const { blueprints, addBlueprint, updateBlueprint, deleteBlueprint } = useTokenLibrary(yDoc)
   const { characters, addCharacter, updateCharacter, deleteCharacter, getCharacter } = useCharacters(yDoc)
   const { addItem: addShowcaseItem } = useShowcase(yDoc)
-  const { assets: handoutAssets, addAsset: addHandoutAsset, updateAsset: updateHandoutAsset, deleteAsset: deleteHandoutAsset } = useHandoutAssets(yDoc)
+  const { assets: handoutAssets, addAsset: addHandoutAsset, deleteAsset: deleteHandoutAsset } = useHandoutAssets(yDoc)
 
   const [inspectedCharacterId, setInspectedCharacterId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
   const [bgContextMenu, setBgContextMenu] = useState<{ x: number; y: number } | null>(null)
-  const [handoutModal, setHandoutModal] = useState<
-    | { mode: 'create' }
-    | { mode: 'edit'; asset: HandoutAsset }
-    | null
-  >(null)
-
   // Sync role from seat
   useEffect(() => {
     if (mySeat) roleStore.set(mySeat.role)
@@ -154,28 +147,10 @@ export default function App() {
     }
   }
 
-  const handleHandoutModalConfirm = (title: string, imageUrl: string | undefined, content: string) => {
-    if (handoutModal?.mode === 'create') {
-      const asset: HandoutAsset = {
-        id: generateTokenId(),
-        title: title || 'Untitled',
-        imageUrl,
-        content,
-        createdAt: Date.now(),
-      }
-      addHandoutAsset(asset)
-    } else if (handoutModal?.mode === 'edit') {
-      updateHandoutAsset(handoutModal.asset.id, { title: title || 'Untitled', imageUrl, content })
-    }
-    setHandoutModal(null)
-  }
-
   const handleShowcaseHandout = (asset: HandoutAsset) => {
     const item: ShowcaseItem = {
       id: generateTokenId(),
-      type: 'handout',
-      title: asset.title,
-      description: asset.content,
+      type: 'image',
       imageUrl: asset.imageUrl,
       senderId: mySeatId!,
       senderName: mySeat.name,
@@ -327,9 +302,8 @@ export default function App() {
           onSelectToken={setSelectedTokenId}
           handoutAssets={handoutAssets}
           onDeleteHandoutAsset={deleteHandoutAsset}
+          onAddHandoutAsset={addHandoutAsset}
           onShowcaseHandout={handleShowcaseHandout}
-          onEditHandout={(asset) => setHandoutModal({ mode: 'edit', asset })}
-          onRequestCreateHandout={() => setHandoutModal({ mode: 'create' })}
         />
       )}
 
@@ -344,17 +318,6 @@ export default function App() {
           onAddScene={addScene}
           onUpdateScene={updateScene}
           onDeleteScene={deleteScene}
-        />
-      )}
-
-      {/* Handout edit/create modal (rendered at App level to escape BottomDock's backdropFilter) */}
-      {handoutModal && (
-        <HandoutEditModal
-          initialTitle={handoutModal.mode === 'edit' ? handoutModal.asset.title : undefined}
-          initialImageUrl={handoutModal.mode === 'edit' ? handoutModal.asset.imageUrl : undefined}
-          initialContent={handoutModal.mode === 'edit' ? handoutModal.asset.content : undefined}
-          onConfirm={handleHandoutModalConfirm}
-          onCancel={() => setHandoutModal(null)}
         />
       )}
 
