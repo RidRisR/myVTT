@@ -3,9 +3,10 @@ import type { Scene } from '../yjs/useScenes'
 
 interface SceneViewerProps {
   scene: Scene | null
+  onContextMenu?: (e: React.MouseEvent) => void
 }
 
-export function SceneViewer({ scene }: SceneViewerProps) {
+export function SceneViewer({ scene, onContextMenu }: SceneViewerProps) {
   const [prevUrl, setPrevUrl] = useState<string | null>(null)
   const [currentUrl, setCurrentUrl] = useState<string | null>(null)
   const [fading, setFading] = useState(false)
@@ -33,7 +34,7 @@ export function SceneViewer({ scene }: SceneViewerProps) {
 
   if (!currentUrl) {
     return (
-      <div style={{
+      <div onContextMenu={onContextMenu} style={{
         width: '100vw',
         height: '100vh',
         display: 'flex',
@@ -50,7 +51,7 @@ export function SceneViewer({ scene }: SceneViewerProps) {
   }
 
   return (
-    <div style={{
+    <div onContextMenu={onContextMenu} style={{
       width: '100vw',
       height: '100vh',
       position: 'relative',

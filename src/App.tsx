@@ -12,12 +12,14 @@ import { SceneViewer } from './scene/SceneViewer'
 import { CombatViewer } from './combat/CombatViewer'
 import { useTokenLibrary } from './combat/useTokenLibrary'
 import { BottomDock } from './dock/BottomDock'
-import { TokenPropertiesPanel } from './combat/TokenPropertiesPanel'
+
 import { GmToolbar } from './gm/GmToolbar'
 import { HamburgerMenu } from './layout/HamburgerMenu'
 import { PortraitBar } from './layout/PortraitBar'
 import { MyCharacterCard } from './layout/MyCharacterCard'
 import { CharacterDetailPanel } from './layout/CharacterDetailPanel'
+import { CharacterEditPanel } from './layout/CharacterEditPanel'
+import { ContextMenu } from './shared/ContextMenu'
 import type { Character } from './shared/characterTypes'
 import { generateTokenId } from './combat/combatUtils'
 
@@ -32,6 +34,7 @@ export default function App() {
 
   const [inspectedCharacterId, setInspectedCharacterId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
+  const [bgContextMenu, setBgContextMenu] = useState<{ x: number; y: number } | null>(null)
 
   // Sync role from seat
   useEffect(() => {
@@ -138,8 +141,33 @@ export default function App() {
     }
   }
 
+  const handleBgContextMenu = (e: React.MouseEvent) => {
+    if (!isGM) return
+    e.preventDefault()
+    setBgContextMenu({ x: e.clientX, y: e.clientY })
+  }
+
+  const handleAddNpc = () => {
+    const newChar: Character = {
+      id: generateTokenId(),
+      name: 'New Character',
+      imageUrl: '',
+      color: '#3b82f6',
+      type: 'npc',
+      size: 1,
+      resources: [],
+      attributes: [],
+      statuses: [],
+      notes: '',
+      featured: true,
+    }
+    addCharacter(newChar)
+    setInspectedCharacterId(newChar.id)
+    setBgContextMenu(null)
+  }
+
   return (
-    <>
+    <div>
       {isCombat ? (
         <CombatViewer
           scene={combatScene}
@@ -150,9 +178,10 @@ export default function App() {
           selectedTokenId={selectedTokenId}
           onSelectToken={setSelectedTokenId}
           onUpdateToken={updateToken}
+          onContextMenu={handleBgContextMenu}
         />
       ) : (
-        <SceneViewer scene={activeScene} />
+        <SceneViewer scene={activeScene} onContextMenu={handleBgContextMenu} />
       )}
 
       {/* Top-left: Hamburger menu */}
@@ -182,11 +211,19 @@ export default function App() {
 
       {/* Top-right: Inspected character detail */}
       {inspectedCharacter && (
-        <CharacterDetailPanel
-          character={inspectedCharacter}
-          isOnline={inspectedCharacter.seatId ? (inspectedCharacter.seatId === mySeatId || onlineSeatIds.has(inspectedCharacter.seatId)) : false}
-          onClose={() => setInspectedCharacterId(null)}
-        />
+        (inspectedCharacter.seatId === mySeatId) || (isGM && inspectedCharacter.type === 'npc') ? (
+          <CharacterEditPanel
+            character={inspectedCharacter}
+            onUpdateCharacter={updateCharacter}
+            onClose={() => setInspectedCharacterId(null)}
+          />
+        ) : (
+          <CharacterDetailPanel
+            character={inspectedCharacter}
+            isOnline={inspectedCharacter.seatId ? (inspectedCharacter.seatId === mySeatId || onlineSeatIds.has(inspectedCharacter.seatId)) : false}
+            onClose={() => setInspectedCharacterId(null)}
+          />
+        )
       )}
 
       {/* Bottom-right: Chat overlay */}
@@ -197,17 +234,6 @@ export default function App() {
         senderColor={mySeat.color}
         seatProperties={seatProperties}
       />
-
-      {/* Combat: Token properties panel (GM only) */}
-      {isGM && isCombat && selectedTokenId && selectedToken && selectedTokenCharacter && (
-        <TokenPropertiesPanel
-          token={selectedToken}
-          character={selectedTokenCharacter}
-          onUpdate={updateToken}
-          onUpdateCharacter={updateCharacter}
-          onClose={() => setSelectedTokenId(null)}
-        />
-      )}
 
       {/* Bottom dock: asset library (maps + tokens) — visible in both modes for GM */}
       {isGM && (
@@ -245,6 +271,18 @@ export default function App() {
           onDeleteScene={deleteScene}
         />
       )}
-    </>
+
+      {/* Background right-click context menu (GM only) */}
+      {bgContextMenu && (
+        <ContextMenu
+          x={bgContextMenu.x}
+          y={bgContextMenu.y}
+          items={[
+            { label: 'Add NPC', onClick: handleAddNpc },
+          ]}
+          onClose={() => setBgContextMenu(null)}
+        />
+      )}
+    </div>
   )
 }

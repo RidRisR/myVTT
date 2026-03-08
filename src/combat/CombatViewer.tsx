@@ -14,6 +14,7 @@ interface CombatViewerProps {
   selectedTokenId: string | null
   onSelectToken: (id: string | null) => void
   onUpdateToken: (id: string, updates: Partial<CombatToken>) => void
+  onContextMenu?: (e: React.MouseEvent) => void
 }
 
 export function CombatViewer({
@@ -25,10 +26,11 @@ export function CombatViewer({
   selectedTokenId,
   onSelectToken,
   onUpdateToken,
+  onContextMenu,
 }: CombatViewerProps) {
   if (!scene) {
     return (
-      <div style={{
+      <div onContextMenu={onContextMenu} style={{
         width: '100vw', height: '100vh',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: '#1a1a2e', color: '#666',
@@ -40,7 +42,7 @@ export function CombatViewer({
   }
 
   return (
-    <div style={{
+    <div onContextMenu={onContextMenu} style={{
       width: '100vw', height: '100vh',
       overflow: 'hidden', background: '#111',
     }}>

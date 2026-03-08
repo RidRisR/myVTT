@@ -92,6 +92,9 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
 
+  // Drag state for resource bars
+  const [draggingRes, setDraggingRes] = useState<number | null>(null)
+
   // Status add input
   const [statusInput, setStatusInput] = useState('')
 
@@ -105,6 +108,28 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
   const statuses = character.statuses
   const notes = character.notes
   const handouts = character.handouts ?? []
+
+  /* ── Resource bar drag ── */
+  const handleBarDrag = (e: React.PointerEvent, index: number, max: number) => {
+    if ((e.target as HTMLElement).tagName === 'INPUT') return
+    e.preventDefault()
+    const bar = e.currentTarget as HTMLElement
+    const rect = bar.getBoundingClientRect()
+    const calcValue = (clientX: number) =>
+      Math.round(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * max)
+    updateResource(index, { current: calcValue(e.clientX) })
+    setDraggingRes(index)
+    const onMove = (ev: PointerEvent) => {
+      updateResource(index, { current: calcValue(ev.clientX) })
+    }
+    const onUp = () => {
+      setDraggingRes(null)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
 
   /* ── Portrait upload ── */
   const handlePortraitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,8 +220,10 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
     <div>
       {resources.map((res, i) => {
         const pct = res.max > 0 ? Math.min(res.current / res.max, 1) : 0
+        const isDragging = draggingRes === i
         return (
           <div key={i} style={{ marginBottom: 10 }}>
+            {/* Header: name + current/max inputs + remove */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
               <input
                 value={res.key}
@@ -204,40 +231,60 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
                 placeholder="Name"
                 style={{ ...inputStyle, flex: 1, fontSize: 11, padding: '3px 6px', fontWeight: 600 }}
               />
-              <HoldButton label="−" onTick={() => updateResource(i, { current: Math.max(0, res.current - 1) })} color="#ef4444" />
-              <HoldButton label="+" onTick={() => updateResource(i, { current: Math.min(res.max, res.current + 1) })} color="#22c55e" />
+              <input
+                key={`cur-${i}-${res.current}`}
+                defaultValue={res.current}
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value)
+                  if (!isNaN(v)) updateResource(i, { current: Math.max(0, Math.min(v, res.max)) })
+                  else e.target.value = String(res.current)
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                style={{ ...inputStyle, width: 32, textAlign: 'center', fontSize: 11, padding: '3px 2px', fontWeight: 700 }}
+              />
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>/</span>
+              <input
+                key={`max-${i}-${res.max}`}
+                defaultValue={res.max}
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value)
+                  if (!isNaN(v) && v > 0) updateResource(i, { max: v, current: Math.min(res.current, v) })
+                  else e.target.value = String(res.max)
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+                style={{ ...inputStyle, width: 32, textAlign: 'center', fontSize: 11, padding: '3px 2px', fontWeight: 700 }}
+              />
               <button onClick={() => removeResource(i)} style={removeBtnStyle}
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444' }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)' }}
               >×</button>
             </div>
-            <div style={{
-              height: 16, borderRadius: 8,
-              background: 'rgba(255,255,255,0.06)',
-              overflow: 'hidden', position: 'relative',
-            }}>
-              <div style={{
-                height: '100%', width: `${pct * 100}%`,
-                background: `linear-gradient(90deg, ${res.color}, ${res.color}cc)`,
-                borderRadius: 8, transition: 'width 0.2s ease',
-              }} />
-              <div style={{
-                position: 'absolute', inset: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, fontWeight: 700, color: '#fff',
-                textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-              }}>
-                <input value={res.current}
-                  onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) updateResource(i, { current: Math.max(0, Math.min(v, res.max)) }) }}
-                  style={{ width: 28, textAlign: 'right', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 10, fontWeight: 700, padding: 0 }}
-                />
-                <span style={{ margin: '0 1px' }}>/</span>
-                <input value={res.max}
-                  onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v) && v > 0) updateResource(i, { max: v, current: Math.min(res.current, v) }) }}
-                  style={{ width: 28, textAlign: 'left', background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontSize: 10, fontWeight: 700, padding: 0 }}
-                />
+            {/* Bar row: - draggable bar + */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <HoldButton label="−" onTick={() => updateResource(i, { current: Math.max(0, res.current - 1) })} color="#ef4444" />
+              <div
+                style={{ flex: 1, height: 18, borderRadius: 8, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative', cursor: 'ew-resize', userSelect: 'none' }}
+                onPointerDown={(e) => handleBarDrag(e, i, res.max)}
+              >
+                <div style={{
+                  height: '100%', width: `${pct * 100}%`,
+                  background: `linear-gradient(90deg, ${res.color}, ${res.color}cc)`,
+                  borderRadius: 8,
+                  transition: isDragging ? 'none' : 'width 0.2s ease',
+                }} />
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 700, color: '#fff',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                  pointerEvents: 'none',
+                }}>
+                  {res.current} / {res.max}
+                </div>
               </div>
+              <HoldButton label="+" onTick={() => updateResource(i, { current: Math.min(res.max, res.current + 1) })} color="#22c55e" />
             </div>
+            {/* Color picker */}
             <div style={{ display: 'flex', gap: 3, marginTop: 5, justifyContent: 'center' }}>
               {['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#ef4444', '#f97316'].map(c => (
                 <div key={c} onClick={() => updateResource(i, { color: c })}
