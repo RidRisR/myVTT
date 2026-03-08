@@ -19,13 +19,23 @@ interface ShowcaseOverlayProps {
 export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) {
   const { items, updateItem, deleteItem, newItemId, clearNewItemId } = useShowcase(yDoc)
 
+  // scrollY as React state (source of truth for rendering)
   const [scrollY, setScrollY] = useState(0)
   const [isSnapped, setIsSnapped] = useState(false)
   const [animateItemId, setAnimateItemId] = useState<string | null>(null)
 
   const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const ephemeralTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Refs for smooth scrolling — accumulate delta, flush via rAF
+  const scrollYRef = useRef(0)
+  const pendingDeltaRef = useRef(0)
+  const rafIdRef = useRef<number | null>(null)
+  const itemsLenRef = useRef(items.length)
+  itemsLenRef.current = items.length
+
+  // Keep ref in sync when React state changes (snap, new item arrival, etc.)
+  useEffect(() => { scrollYRef.current = scrollY }, [scrollY])
 
   // --- New item arrival: scroll to it + trigger entrance animation ---
   useEffect(() => {
@@ -50,8 +60,7 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
     if (!focusedItem || !focusedItem.ephemeral) return
 
     ephemeralTimerRef.current = setTimeout(() => {
-      // Scroll away from this ephemeral item
-      if (items.length <= 1) return // single item, nowhere to go
+      if (items.length <= 1) return
       const nextIdx = focusedIndex < items.length - 1 ? focusedIndex + 1 : focusedIndex - 1
       setIsSnapped(true)
       requestAnimationFrame(() => setScrollY(nextIdx))
@@ -62,25 +71,50 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
     }
   }, [scrollY, items])
 
-  // --- Scroll handler ---
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (items.length <= 1) return
-    e.stopPropagation()
+  // --- Window-level wheel handler (captures everywhere, not just on cards) ---
+  useEffect(() => {
+    if (items.length === 0) return
 
-    setIsSnapped(false)
-    setScrollY(prev => {
-      const next = prev + e.deltaY * SCROLL_SENSITIVITY
-      return Math.max(0, Math.min(items.length - 1, next))
-    })
+    const handleWheel = (e: WheelEvent) => {
+      if (items.length <= 1) return
+      e.preventDefault()
 
-    // Snap after idle
-    if (snapTimerRef.current) clearTimeout(snapTimerRef.current)
-    snapTimerRef.current = setTimeout(() => {
-      setIsSnapped(true)
-      requestAnimationFrame(() => {
-        setScrollY(prev => Math.round(prev))
-      })
-    }, SNAP_DELAY)
+      pendingDeltaRef.current += e.deltaY * SCROLL_SENSITIVITY
+
+      // Batch via rAF — max one React update per frame
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          rafIdRef.current = null
+          const delta = pendingDeltaRef.current
+          pendingDeltaRef.current = 0
+
+          setIsSnapped(false)
+          setScrollY(prev => {
+            const next = Math.max(0, Math.min(itemsLenRef.current - 1, prev + delta))
+            scrollYRef.current = next
+            return next
+          })
+        })
+      }
+
+      // Snap after idle
+      if (snapTimerRef.current) clearTimeout(snapTimerRef.current)
+      snapTimerRef.current = setTimeout(() => {
+        setIsSnapped(true)
+        requestAnimationFrame(() => {
+          setScrollY(prev => Math.round(prev))
+        })
+      }, SNAP_DELAY)
+    }
+
+    window.addEventListener('wheel', handleWheel, { passive: false })
+    return () => {
+      window.removeEventListener('wheel', handleWheel)
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current)
+        rafIdRef.current = null
+      }
+    }
   }, [items.length])
 
   // Clean up timers
@@ -99,7 +133,6 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
 
   // --- Actions ---
   const handleDismiss = useCallback((index: number) => {
-    // Scroll away (collapse)
     if (items.length <= 1) return
     const nextIdx = index < items.length - 1 ? index + 1 : index - 1
     setIsSnapped(true)
@@ -120,14 +153,12 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
   }, [])
 
   // --- Render nothing if no items ---
-  console.log('[ShowcaseOverlay] items:', items.length, 'scrollY:', scrollY, 'animateItemId:', animateItemId)
   if (items.length === 0) return null
 
   const focusedIndex = Math.round(scrollY)
 
   return (
     <div
-      ref={containerRef}
       style={{
         position: 'fixed',
         top: 0,
@@ -150,7 +181,7 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
         pointerEvents: 'none',
       }} />
 
-      {/* Carousel container — pointerEvents stay 'none', only cards are interactive */}
+      {/* Carousel container */}
       <div style={{
         position: 'relative',
         width: '100%',
@@ -173,13 +204,14 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
           return (
             <div
               key={item.id}
-              onWheel={handleWheel}
               onPointerDown={(e) => e.stopPropagation()}
               style={{
                 position: 'absolute',
                 transform: `translateY(${y}px) scale(${scale})`,
                 opacity,
-                transition: (isSnapped && animateItemId !== item.id) ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease' : 'none',
+                transition: (isSnapped && animateItemId !== item.id)
+                  ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
+                  : 'none',
                 zIndex: isFocused ? 10 : 5 - Math.floor(absDist),
                 pointerEvents: 'auto',
               }}
