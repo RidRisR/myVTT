@@ -12,8 +12,6 @@ interface GmToolbarProps {
   onAddScene: (scene: Scene) => void
   onUpdateScene: (id: string, updates: Partial<Scene>) => void
   onDeleteScene: (id: string) => void
-  onShowcaseTest?: () => void
-  onShowcaseClear?: () => void
 }
 
 export function GmToolbar({
@@ -25,8 +23,6 @@ export function GmToolbar({
   onAddScene,
   onUpdateScene,
   onDeleteScene,
-  onShowcaseTest,
-  onShowcaseClear,
 }: GmToolbarProps) {
   const [showScenePicker, setShowScenePicker] = useState(false)
   const [showLibrary, setShowLibrary] = useState(false)
@@ -199,51 +195,6 @@ export function GmToolbar({
           {isCombat ? 'Exit Combat' : 'Combat'}
         </button>
 
-        {/* Showcase test button */}
-        {onShowcaseTest && (
-          <button
-            onClick={onShowcaseTest}
-            style={{
-              padding: '8px 14px',
-              background: 'rgba(139,92,246,0.9)',
-              backdropFilter: 'blur(8px)',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              color: '#fff',
-              cursor: 'pointer',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg>
-            Showcase
-          </button>
-        )}
-        {onShowcaseClear && (
-          <button
-            onClick={onShowcaseClear}
-            style={{
-              padding: '8px 10px',
-              background: 'rgba(239,68,68,0.85)',
-              backdropFilter: 'blur(8px)',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              color: '#fff',
-              cursor: 'pointer',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-            }}
-          >
-            Clear
-          </button>
-        )}
       </div>
 
       {/* Scene Library Modal */}

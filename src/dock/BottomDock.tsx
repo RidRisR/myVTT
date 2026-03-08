@@ -24,10 +24,10 @@ interface BottomDockProps {
   onDeleteBlueprint: (id: string) => void
 
   handoutAssets: HandoutAsset[]
-  onAddHandoutAsset: (asset: HandoutAsset) => void
-  onUpdateHandoutAsset: (id: string, updates: Partial<HandoutAsset>) => void
   onDeleteHandoutAsset: (id: string) => void
   onShowcaseHandout: (asset: HandoutAsset) => void
+  onEditHandout: (asset: HandoutAsset) => void
+  onRequestCreateHandout: () => void
 
   characters: Character[]
   onAddCharacter: (char: Character) => void
@@ -51,10 +51,10 @@ export function BottomDock({
   onUpdateBlueprint,
   onDeleteBlueprint,
   handoutAssets,
-  onAddHandoutAsset,
-  onUpdateHandoutAsset,
   onDeleteHandoutAsset,
   onShowcaseHandout,
+  onEditHandout,
+  onRequestCreateHandout,
   characters,
   onAddCharacter,
   isCombat,
@@ -220,10 +220,10 @@ export function BottomDock({
           {activeTab === 'handouts' && (
             <HandoutDockTab
               assets={handoutAssets}
-              onAddAsset={onAddHandoutAsset}
-              onUpdateAsset={onUpdateHandoutAsset}
-              onDeleteAsset={onDeleteHandoutAsset}
               onShowcase={onShowcaseHandout}
+              onEdit={onEditHandout}
+              onDeleteAsset={onDeleteHandoutAsset}
+              onRequestCreate={onRequestCreateHandout}
             />
           )}
         </div>
