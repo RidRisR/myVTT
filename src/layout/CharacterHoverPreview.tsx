@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import type { Character } from '../shared/characterTypes'
 import type { Resource } from '../shared/tokenTypes'
-import { useHoldRepeat } from '../shared/useHoldRepeat'
 import { statusColor } from '../shared/tokenUtils'
+import { ResourceBar } from '../shared/ui/ResourceBar'
+import { MiniHoldButton } from '../shared/ui/MiniHoldButton'
 
 interface CharacterHoverPreviewProps {
   character: Character
@@ -11,36 +12,12 @@ interface CharacterHoverPreviewProps {
   onUpdateCharacter?: (id: string, updates: Partial<Character>) => void
 }
 
-function MiniHoldButton({ label, onTick, color }: { label: string; onTick: () => void; color: string }) {
-  const { holdStart, holdStop } = useHoldRepeat(onTick)
-  return (
-    <button
-      onPointerDown={holdStart} onPointerUp={holdStop} onPointerLeave={holdStop}
-      style={{
-        width: 14, height: 14,
-        background: 'rgba(255,255,255,0.08)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 3, cursor: 'pointer',
-        color, fontSize: 11, fontWeight: 700,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 0, lineHeight: 1, flexShrink: 0,
-        transition: 'background 0.15s',
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-    >
-      {label}
-    </button>
-  )
-}
-
 type Tab = 'stats' | 'attr'
 
 export function CharacterHoverPreview({ character, isOnline, editable, onUpdateCharacter }: CharacterHoverPreviewProps) {
   const resources = character.resources.filter(r => r.max > 0)
   const attributes = character.attributes
   const statuses = character.statuses
-  const [draggingRes, setDraggingRes] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>('stats')
   const [editingStatusIdx, setEditingStatusIdx] = useState<number | null>(null)
   const [editingStatusLabel, setEditingStatusLabel] = useState('')
@@ -60,26 +37,6 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
     const next = [...allRes]
     next[visibleIndex] = { ...next[visibleIndex], ...updates }
     onUpdateCharacter(character.id, { resources: next })
-  }
-
-  const handleBarDrag = (e: React.PointerEvent, index: number, max: number) => {
-    e.preventDefault()
-    const bar = e.currentTarget as HTMLElement
-    const rect = bar.getBoundingClientRect()
-    const calcValue = (clientX: number) =>
-      Math.round(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * max)
-    updateResource(index, { current: calcValue(e.clientX) })
-    setDraggingRes(index)
-    const onMove = (ev: PointerEvent) => {
-      updateResource(index, { current: calcValue(ev.clientX) })
-    }
-    const onUp = () => {
-      setDraggingRes(null)
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', onUp)
-    }
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
   }
 
   const removeStatus = (index: number) => {
@@ -186,54 +143,21 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
       {/* Stats tab: Resources + Statuses */}
       {showStats && (
         <>
-          {resources.map((res, i) => {
-            const pct = res.max > 0 ? Math.min(res.current / res.max, 1) : 0
-            const isDragging = draggingRes === i
-            return (
-              <div key={i} style={{ marginBottom: i < resources.length - 1 ? 5 : 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', fontSize: 10, marginBottom: 2, gap: 3 }}>
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.key || 'Unnamed'}</span>
-                  {canEdit && (
-                    <>
-                      <MiniHoldButton label="-" onTick={() => updateResource(i, { current: Math.max(0, res.current - 1) })} color="#ef4444" />
-                      <MiniHoldButton label="+" onTick={() => updateResource(i, { current: Math.min(res.max, res.current + 1) })} color="#22c55e" />
-                    </>
-                  )}
-                  <span style={{ color: '#fff', fontWeight: 700, fontSize: 9 }}>{res.current}/{res.max}</span>
-                </div>
-                <div
-                  style={{
-                    height: canEdit ? 10 : 6,
-                    borderRadius: canEdit ? 5 : 3,
-                    background: 'rgba(255,255,255,0.06)',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    cursor: canEdit ? 'ew-resize' : 'default',
-                    userSelect: 'none',
-                  }}
-                  onPointerDown={canEdit ? (e) => handleBarDrag(e, i, res.max) : undefined}
-                >
-                  <div style={{
-                    height: '100%', width: `${pct * 100}%`,
-                    background: `linear-gradient(90deg, ${res.color}, ${res.color}cc)`,
-                    borderRadius: canEdit ? 5 : 3,
-                    transition: isDragging ? 'none' : 'width 0.2s ease',
-                  }} />
-                  {canEdit && (
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 8, fontWeight: 700, color: '#fff',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                      pointerEvents: 'none',
-                    }}>
-                      {res.current}/{res.max}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+          {resources.map((res, i) => (
+            <ResourceBar
+              key={i}
+              label={res.key || 'Unnamed'}
+              current={res.current}
+              max={res.max}
+              color={res.color}
+              height={canEdit ? 10 : 6}
+              valueDisplay={canEdit ? 'inline' : 'outside'}
+              draggable={canEdit}
+              showButtons={canEdit}
+              onChange={(val: number) => updateResource(i, { current: val })}
+              style={{ marginBottom: i < resources.length - 1 ? 5 : 0 }}
+            />
+          ))}
 
           {/* Statuses */}
           {(statuses.length > 0 || canEdit) && (
