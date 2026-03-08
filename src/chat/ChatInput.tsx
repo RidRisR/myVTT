@@ -81,7 +81,7 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
     if (!trimmed) return
 
     // Check if it's a dice roll
-    const rollMatch = trimmed.match(/^\/r\s+(.+)$/i)
+    const rollMatch = trimmed.match(/^\.r\s*(.+)$/i)
     if (rollMatch) {
       const formula = rollMatch[1].trim()
       handleRoll(formula)
@@ -122,7 +122,7 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
 
     const result = rollCompound(resolvedExpression)
     if (!result) {
-      setError('Invalid format. Examples: /r 1d20+5, /r 4d6kh3, /r 2d6+@STR')
+      setError('Invalid format. Examples: .r 1d20+5, .r4d6kh3, .r 2d6+@STR')
       return
     }
     if ('error' in result) {
@@ -211,7 +211,7 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
         }}
         onFocus={onFocus}
         onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-        placeholder="Type a message or /r 1d20+@STR"
+        placeholder="Type a message or .r 1d20+@STR"
         style={{
           width: '100%',
           padding: '10px 14px',
