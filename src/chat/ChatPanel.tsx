@@ -2,10 +2,12 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import * as Y from 'yjs'
 import type { ChatMessage } from './chatTypes'
 import type { DiceFavorite } from '../identity/useIdentity'
+import type { Character } from '../shared/characterTypes'
 import { rollCompound, resolveFormula, generateFavoriteName } from '../shared/diceUtils'
 import { MessageScrollArea } from './MessageScrollArea'
 import { ToastStack, type ToastItem } from './ToastStack'
 import { ChatInput } from './ChatInput'
+import { Avatar } from './Avatar'
 
 interface ChatPanelProps {
   yDoc: Y.Doc
@@ -18,6 +20,15 @@ interface ChatPanelProps {
   favorites: DiceFavorite[]
   onAddFavorite: (fav: DiceFavorite) => void
   onRemoveFavorite: (formula: string) => void
+  speakerCharacters: Character[]
+}
+
+/** Resolved identity used for sending messages */
+interface SpeakerIdentity {
+  id: string
+  name: string
+  color: string
+  portraitUrl?: string
 }
 
 function FavoriteItem({ fav, onRoll, onRemove }: {
@@ -76,6 +87,50 @@ function FavoriteItem({ fav, onRoll, onRemove }: {
   )
 }
 
+function SpeakerPickerItem({ identity, isActive, onSelect }: {
+  identity: SpeakerIdentity
+  isActive: boolean
+  onSelect: () => void
+}) {
+  const [hover, setHover] = useState(false)
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onClick={onSelect}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '6px 10px',
+        borderRadius: 8,
+        cursor: 'pointer',
+        background: isActive
+          ? 'rgba(59,130,246,0.2)'
+          : hover ? 'rgba(255,255,255,0.08)' : 'transparent',
+        transition: 'background 0.15s',
+      }}
+    >
+      <Avatar
+        portraitUrl={identity.portraitUrl}
+        senderName={identity.name}
+        senderColor={identity.color}
+        size={28}
+      />
+      <div style={{
+        fontSize: 13,
+        fontWeight: isActive ? 600 : 400,
+        color: isActive ? '#93c5fd' : '#e2e8f0',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+      }}>
+        {identity.name}
+      </div>
+    </div>
+  )
+}
+
 export function ChatPanel({
   yDoc,
   senderId,
@@ -87,6 +142,7 @@ export function ChatPanel({
   favorites,
   onAddFavorite,
   onRemoveFavorite,
+  speakerCharacters,
 }: ChatPanelProps) {
   const [expanded, setExpanded] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -100,6 +156,35 @@ export function ChatPanel({
   const [favHover, setFavHover] = useState(false)
   const favPanelRef = useRef<HTMLDivElement>(null)
   const favBtnRef = useRef<HTMLButtonElement>(null)
+
+  // Speaker switching
+  const [speakerCharId, setSpeakerCharId] = useState<string | null>(null)
+  const [showSpeakerPicker, setShowSpeakerPicker] = useState(false)
+  const speakerPickerRef = useRef<HTMLDivElement>(null)
+  const speakerBtnRef = useRef<HTMLButtonElement>(null)
+
+  // Build speaker identity: null = seat identity, string = character
+  const seatIdentity: SpeakerIdentity = useMemo(() => ({
+    id: senderId,
+    name: senderName,
+    color: senderColor,
+    portraitUrl,
+  }), [senderId, senderName, senderColor, portraitUrl])
+
+  const speakerChar = speakerCharId
+    ? speakerCharacters.find(c => c.id === speakerCharId) ?? null
+    : null
+
+  // If selected character was deleted, reset to seat
+  useEffect(() => {
+    if (speakerCharId && !speakerChar) {
+      setSpeakerCharId(null)
+    }
+  }, [speakerCharId, speakerChar])
+
+  const activeSpeaker: SpeakerIdentity = speakerChar
+    ? { id: senderId, name: speakerChar.name, color: speakerChar.color, portraitUrl: speakerChar.imageUrl || undefined }
+    : seatIdentity
 
   const yChat = yDoc.getArray<ChatMessage>('chat_log')
 
@@ -167,17 +252,24 @@ export function ChatPanel({
     }
   }, [expanded])
 
-  // Click outside to close favorites panel
+  // Click outside to close popups
   useEffect(() => {
-    if (!showFavorites) return
+    if (!showFavorites && !showSpeakerPicker) return
     const handler = (e: PointerEvent) => {
-      if (favPanelRef.current?.contains(e.target as Node)) return
-      if (favBtnRef.current?.contains(e.target as Node)) return
-      setShowFavorites(false)
+      if (showFavorites) {
+        if (favPanelRef.current?.contains(e.target as Node)) return
+        if (favBtnRef.current?.contains(e.target as Node)) return
+        setShowFavorites(false)
+      }
+      if (showSpeakerPicker) {
+        if (speakerPickerRef.current?.contains(e.target as Node)) return
+        if (speakerBtnRef.current?.contains(e.target as Node)) return
+        setShowSpeakerPicker(false)
+      }
     }
     document.addEventListener('pointerdown', handler)
     return () => document.removeEventListener('pointerdown', handler)
-  }, [showFavorites])
+  }, [showFavorites, showSpeakerPicker])
 
   const handleToastRemove = useCallback((id: string) => {
     setToastQueue((prev) => prev.filter((item) => item.message.id !== id))
@@ -209,17 +301,17 @@ export function ChatPanel({
     yChat.push([{
       type: 'roll' as const,
       id,
-      senderId,
-      senderName,
-      senderColor,
-      portraitUrl,
+      senderId: activeSpeaker.id,
+      senderName: activeSpeaker.name,
+      senderColor: activeSpeaker.color,
+      portraitUrl: activeSpeaker.portraitUrl,
       expression,
       resolvedExpression: expression !== resolvedExpression ? resolvedExpression : undefined,
       terms: result.termResults,
       total: result.total,
       timestamp: Date.now(),
     }])
-  }, [selectedTokenProps, seatProperties, senderId, senderName, senderColor, portraitUrl, yChat])
+  }, [selectedTokenProps, seatProperties, activeSpeaker, yChat])
 
   // Favorites helpers
   const favoritedFormulas = useMemo(
@@ -251,7 +343,7 @@ export function ChatPanel({
         <ToastStack toastQueue={toastQueue} onRemove={handleToastRemove} />
       )}
 
-      {/* Favorites panel (floats above input bar) */}
+      {/* Favorites panel (floats above input bar, left side) */}
       {showFavorites && (
         <div
           ref={favPanelRef}
@@ -298,6 +390,48 @@ export function ChatPanel({
         </div>
       )}
 
+      {/* Speaker picker (floats above avatar button) */}
+      {showSpeakerPicker && (
+        <div
+          ref={speakerPickerRef}
+          style={{
+            position: 'fixed',
+            bottom: 62,
+            right: 352,
+            width: 200,
+            maxHeight: 280,
+            zIndex: 10001,
+            background: 'rgba(15, 15, 25, 0.92)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 12,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            overflowY: 'auto',
+            padding: 6,
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', padding: '4px 10px', textTransform: 'uppercase', letterSpacing: 1 }}>
+            Speak as
+          </div>
+          {/* Seat identity (player) */}
+          <SpeakerPickerItem
+            identity={seatIdentity}
+            isActive={speakerCharId === null}
+            onSelect={() => { setSpeakerCharId(null); setShowSpeakerPicker(false) }}
+          />
+          {/* Characters */}
+          {speakerCharacters.map(c => (
+            <SpeakerPickerItem
+              key={c.id}
+              identity={{ id: senderId, name: c.name, color: c.color, portraitUrl: c.imageUrl || undefined }}
+              isActive={speakerCharId === c.id}
+              onSelect={() => { setSpeakerCharId(c.id); setShowSpeakerPicker(false) }}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Chat input + buttons (always visible) */}
       <div
         style={{
@@ -314,7 +448,7 @@ export function ChatPanel({
         {/* ☆ Favorites button */}
         <button
           ref={favBtnRef}
-          onClick={() => setShowFavorites(v => !v)}
+          onClick={() => { setShowFavorites(v => !v); setShowSpeakerPicker(false) }}
           onMouseEnter={() => setFavHover(true)}
           onMouseLeave={() => setFavHover(false)}
           style={{
@@ -339,12 +473,40 @@ export function ChatPanel({
           {showFavorites ? '★' : '☆'}
         </button>
 
+        {/* Speaker avatar button */}
+        <button
+          ref={speakerBtnRef}
+          onClick={() => { setShowSpeakerPicker(v => !v); setShowFavorites(false) }}
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: 'transparent',
+            border: showSpeakerPicker ? '2px solid rgba(59,130,246,0.6)' : '2px solid transparent',
+            cursor: 'pointer',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            transition: 'border-color 0.15s',
+          }}
+          aria-label="Switch speaker"
+        >
+          <Avatar
+            portraitUrl={activeSpeaker.portraitUrl}
+            senderName={activeSpeaker.name}
+            senderColor={activeSpeaker.color}
+            size={28}
+          />
+        </button>
+
         <div style={{ flex: 1 }}>
           <ChatInput
-            senderId={senderId}
-            senderName={senderName}
-            senderColor={senderColor}
-            portraitUrl={portraitUrl}
+            senderId={activeSpeaker.id}
+            senderName={activeSpeaker.name}
+            senderColor={activeSpeaker.color}
+            portraitUrl={activeSpeaker.portraitUrl}
             onSend={handleSend}
             selectedTokenProps={selectedTokenProps}
             seatProperties={seatProperties}

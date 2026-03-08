@@ -246,6 +246,11 @@ export default function App() {
           const existing = activeCharacter.favorites ?? []
           updateCharacter(activeCharacter.id, { favorites: existing.filter(f => f.formula !== formula) })
         }}
+        speakerCharacters={
+          isGM
+            ? characters.filter(c => c.type === 'npc' || c.seatId === mySeatId)
+            : characters.filter(c => c.seatId === mySeatId)
+        }
       />
 
       {/* Bottom dock: asset library (maps + tokens) — visible in both modes for GM */}
