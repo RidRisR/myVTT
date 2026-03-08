@@ -12,6 +12,8 @@ import { SceneViewer } from './scene/SceneViewer'
 import { CombatViewer } from './combat/CombatViewer'
 import { useTokenLibrary } from './combat/useTokenLibrary'
 import { BottomDock } from './dock/BottomDock'
+import { useHandoutAssets } from './dock/useHandoutAssets'
+import type { HandoutAsset } from './dock/useHandoutAssets'
 
 import { GmToolbar } from './gm/GmToolbar'
 import { HamburgerMenu } from './layout/HamburgerMenu'
@@ -35,6 +37,7 @@ export default function App() {
   const { blueprints, addBlueprint, updateBlueprint, deleteBlueprint } = useTokenLibrary(yDoc)
   const { characters, addCharacter, updateCharacter, deleteCharacter, getCharacter } = useCharacters(yDoc)
   const { addItem: addShowcaseItem, clearAll: clearShowcase } = useShowcase(yDoc)
+  const { assets: handoutAssets, addAsset: addHandoutAsset, updateAsset: updateHandoutAsset, deleteAsset: deleteHandoutAsset } = useHandoutAssets(yDoc)
 
   const [inspectedCharacterId, setInspectedCharacterId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
@@ -165,6 +168,22 @@ export default function App() {
       timestamp: Date.now(),
     }
     console.log('[Showcase] Adding item:', item.id, item.type, item.title || item.text?.slice(0, 30))
+    addShowcaseItem(item)
+  }
+
+  const handleShowcaseHandout = (asset: HandoutAsset) => {
+    const item: ShowcaseItem = {
+      id: generateTokenId(),
+      type: 'handout',
+      title: asset.title,
+      description: asset.description,
+      imageUrl: asset.imageUrl,
+      senderId: mySeatId!,
+      senderName: mySeat.name,
+      senderColor: mySeat.color,
+      ephemeral: false,
+      timestamp: Date.now(),
+    }
     addShowcaseItem(item)
   }
 
@@ -307,6 +326,11 @@ export default function App() {
           onDeleteToken={deleteToken}
           onUpdateToken={updateToken}
           onSelectToken={setSelectedTokenId}
+          handoutAssets={handoutAssets}
+          onAddHandoutAsset={addHandoutAsset}
+          onUpdateHandoutAsset={updateHandoutAsset}
+          onDeleteHandoutAsset={deleteHandoutAsset}
+          onShowcaseHandout={handleShowcaseHandout}
         />
       )}
 
