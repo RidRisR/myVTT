@@ -26,6 +26,7 @@ import type { ShowcaseItem } from './showcase/showcaseTypes'
 import type { Character } from './shared/characterTypes'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './combat/combatUtils'
+import { TeamDashboard } from './team/TeamDashboard'
 
 export default function App() {
   const { yDoc, isLoading, awareness } = useYjsConnection()
@@ -220,6 +221,9 @@ export default function App() {
         onDeleteCharacter={handleDeleteCharacter}
         onUpdateCharacter={updateCharacter}
       />
+
+      {/* Top-right: Team dashboard */}
+      <TeamDashboard yDoc={yDoc} isGM={isGM} />
 
       {/* Left: My character card (self-managed open/close via tab) */}
       {activeCharacter && (
