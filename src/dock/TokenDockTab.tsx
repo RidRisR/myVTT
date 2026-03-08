@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { TokenBlueprint } from '../combat/combatTypes'
 import { uploadAsset } from '../shared/assetUpload'
 import { generateTokenId } from '../combat/combatUtils'
+import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 
 interface TokenDockTabProps {
   blueprints: TokenBlueprint[]
@@ -9,6 +10,8 @@ interface TokenDockTabProps {
   onUpdateBlueprint: (id: string, updates: Partial<TokenBlueprint>) => void
   onDeleteBlueprint: (id: string) => void
   onSpawnToken: (bp: TokenBlueprint) => void
+  onAddToActive: (bp: TokenBlueprint) => void
+  isCombat: boolean
 }
 
 export function TokenDockTab({
@@ -17,12 +20,15 @@ export function TokenDockTab({
   onUpdateBlueprint,
   onDeleteBlueprint,
   onSpawnToken,
+  onAddToActive,
+  isCombat,
 }: TokenDockTabProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; bpId: string } | null>(null)
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -56,6 +62,22 @@ export function TokenDockTab({
     setEditingId(null)
   }
 
+  const handleContextMenu = (e: React.MouseEvent, bpId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({ x: e.clientX, y: e.clientY, bpId })
+  }
+
+  const getContextMenuItems = (bp: TokenBlueprint): ContextMenuItem[] => {
+    const items: ContextMenuItem[] = []
+    if (isCombat) {
+      items.push({ label: 'Spawn on map', onClick: () => onSpawnToken(bp) })
+    }
+    items.push({ label: 'Add as featured NPC', onClick: () => onAddToActive(bp) })
+    items.push({ label: 'Delete blueprint', onClick: () => onDeleteBlueprint(bp.id), color: '#f87171' })
+    return items
+  }
+
   return (
     <div>
       <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUpload} />
@@ -79,10 +101,11 @@ export function TokenDockTab({
               }}
               onMouseEnter={() => setHoveredId(bp.id)}
               onMouseLeave={() => setHoveredId(null)}
+              onContextMenu={(e) => handleContextMenu(e, bp.id)}
             >
               {/* Circular token image */}
               <div
-                onClick={() => onSpawnToken(bp)}
+                onClick={() => isCombat ? onSpawnToken(bp) : onAddToActive(bp)}
                 style={{
                   width: 56,
                   height: 56,
@@ -218,6 +241,20 @@ export function TokenDockTab({
           </span>
         </div>
       </div>
+
+      {/* Context menu */}
+      {contextMenu && (() => {
+        const bp = blueprints.find(b => b.id === contextMenu.bpId)
+        if (!bp) return null
+        return (
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            items={getContextMenuItems(bp)}
+            onClose={() => setContextMenu(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

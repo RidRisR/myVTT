@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
-import type { Resource, Attribute, Status, Handout } from '../shared/tokenTypes'
 
 export interface DiceFavorite {
   name: string
@@ -13,13 +12,7 @@ export interface Seat {
   name: string
   color: string
   role: 'GM' | 'PL'
-  portraitUrl?: string
-  resources?: Resource[]
-  attributes?: Attribute[]
-  statuses?: Status[]
-  notes?: string
-  handouts?: Handout[]
-  favorites?: DiceFavorite[]
+  activeCharacterId?: string  // which character is currently focused
 }
 
 const SEAT_STORAGE_KEY = 'myvtt-seat-id'

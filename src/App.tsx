@@ -5,6 +5,7 @@ import { useScenes } from './yjs/useScenes'
 import { useCombatTokens } from './combat/useCombatTokens'
 import { SeatSelect } from './identity/SeatSelect'
 import { useIdentity } from './identity/useIdentity'
+import { useCharacters } from './characters/useCharacters'
 import { roleStore } from './shared/roleState'
 import { ChatPanel } from './chat/ChatPanel'
 import { SceneViewer } from './scene/SceneViewer'
@@ -17,6 +18,8 @@ import { HamburgerMenu } from './layout/HamburgerMenu'
 import { PortraitBar } from './layout/PortraitBar'
 import { MyCharacterCard } from './layout/MyCharacterCard'
 import { CharacterDetailPanel } from './layout/CharacterDetailPanel'
+import type { Character } from './shared/characterTypes'
+import { generateTokenId } from './combat/combatUtils'
 
 export default function App() {
   const { yDoc, isLoading, awareness } = useYjsConnection()
@@ -25,14 +28,46 @@ export default function App() {
   const { scenes, addScene, updateScene, deleteScene, getScene } = useScenes(yDoc)
   const { tokens, addToken, updateToken, deleteToken, getToken } = useCombatTokens(yDoc)
   const { blueprints, addBlueprint, updateBlueprint, deleteBlueprint } = useTokenLibrary(yDoc)
+  const { characters, addCharacter, updateCharacter, deleteCharacter, getCharacter } = useCharacters(yDoc)
 
-  const [inspectedSeatId, setInspectedSeatId] = useState<string | null>(null)
+  const [inspectedCharacterId, setInspectedCharacterId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
 
   // Sync role from seat
   useEffect(() => {
     if (mySeat) roleStore.set(mySeat.role)
   }, [mySeat?.role])
+
+  // Auto-create Character for Seat on first login (migration / new seat)
+  useEffect(() => {
+    if (!mySeat || !mySeatId) return
+    // Check if this seat already has a linked character
+    const hasChar = characters.some(c => c.type === 'pc' && c.seatId === mySeatId)
+    if (!hasChar) {
+      const char: Character = {
+        id: generateTokenId(),
+        name: mySeat.name,
+        imageUrl: '',
+        color: mySeat.color,
+        type: 'pc',
+        seatId: mySeatId,
+        size: 1,
+        resources: [],
+        attributes: [],
+        statuses: [],
+        notes: '',
+        featured: true,
+      }
+      addCharacter(char)
+      updateSeat(mySeatId, { activeCharacterId: char.id })
+    } else if (!mySeat.activeCharacterId) {
+      // Seat exists but no activeCharacterId set — set it
+      const firstChar = characters.find(c => c.type === 'pc' && c.seatId === mySeatId)
+      if (firstChar) {
+        updateSeat(mySeatId, { activeCharacterId: firstChar.id })
+      }
+    }
+  }, [mySeat, mySeatId, characters])
 
   if (isLoading) {
     return (
@@ -67,19 +102,41 @@ export default function App() {
   const isCombat = room.mode === 'combat'
   const activeScene = getScene(room.activeSceneId)
   const combatScene = getScene(room.combatSceneId)
-  const inspectedSeat = inspectedSeatId ? seats.find(s => s.id === inspectedSeatId) : null
+
+  // Derive character data
+  const activeCharacter = getCharacter(mySeat.activeCharacterId ?? null)
+  const inspectedCharacter = inspectedCharacterId ? getCharacter(inspectedCharacterId) : null
+
+  // For selected token in combat
+  const selectedToken = isCombat ? getToken(selectedTokenId) : null
+  const selectedTokenCharacter = selectedToken ? getCharacter(selectedToken.characterId) : null
 
   // Flatten resources + attributes into { key, value }[] for chat @key autocomplete
-  // In combat mode with a selected token, include token properties too
-  const selectedToken = isCombat ? getToken(selectedTokenId) : null
   const allProps = [
-    ...(mySeat.resources ?? []).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
-    ...(mySeat.attributes ?? []).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
-    ...(selectedToken?.resources ?? []).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
-    ...(selectedToken?.attributes ?? []).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
+    ...(activeCharacter?.resources ?? []).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
+    ...(activeCharacter?.attributes ?? []).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
+    ...(selectedTokenCharacter?.resources ?? []).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
+    ...(selectedTokenCharacter?.attributes ?? []).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
   ]
-  // Deduplicate by key — later entries (token) override earlier (seat)
+  // Deduplicate by key — later entries (token character) override earlier (active character)
   const seatProperties = [...new Map(allProps.map(p => [p.key, p])).values()]
+
+  // Handle deleting a character (also delete linked combat tokens)
+  const handleDeleteCharacter = (charId: string) => {
+    // Delete any combat tokens linked to this character
+    tokens.forEach(t => {
+      if (t.characterId === charId) deleteToken(t.id)
+    })
+    deleteCharacter(charId)
+    if (inspectedCharacterId === charId) setInspectedCharacterId(null)
+  }
+
+  // Handle setting active character
+  const handleSetActiveCharacter = (charId: string) => {
+    if (mySeatId) {
+      updateSeat(mySeatId, { activeCharacterId: charId })
+    }
+  }
 
   return (
     <>
@@ -87,6 +144,7 @@ export default function App() {
         <CombatViewer
           scene={combatScene}
           tokens={tokens}
+          getCharacter={getCharacter}
           mySeatId={mySeatId!}
           role={mySeat.role}
           selectedTokenId={selectedTokenId}
@@ -102,26 +160,32 @@ export default function App() {
 
       {/* Top-center: Portrait bar */}
       <PortraitBar
-        seats={seats}
-        mySeatId={mySeatId!}
+        characters={characters}
+        mySeatId={mySeatId}
+        isGM={isGM}
         onlineSeatIds={onlineSeatIds}
-        inspectedSeatId={inspectedSeatId}
-        onInspectSeat={(id) => setInspectedSeatId(prev => prev === id ? null : id)}
+        inspectedCharacterId={inspectedCharacterId}
+        activeCharacterId={mySeat.activeCharacterId ?? null}
+        onInspectCharacter={(id) => setInspectedCharacterId(prev => prev === id ? null : id)}
+        onSetActiveCharacter={handleSetActiveCharacter}
+        onDeleteCharacter={handleDeleteCharacter}
+        onUpdateCharacter={updateCharacter}
       />
 
       {/* Left: My character card (self-managed open/close via tab) */}
-      <MyCharacterCard
-        seat={mySeat}
-        seatId={mySeatId!}
-        onUpdateSeat={updateSeat}
-      />
+      {activeCharacter && (
+        <MyCharacterCard
+          character={activeCharacter}
+          onUpdateCharacter={updateCharacter}
+        />
+      )}
 
       {/* Top-right: Inspected character detail */}
-      {inspectedSeat && (
+      {inspectedCharacter && (
         <CharacterDetailPanel
-          seat={inspectedSeat}
-          isOnline={onlineSeatIds.has(inspectedSeatId!)}
-          onClose={() => setInspectedSeatId(null)}
+          character={inspectedCharacter}
+          isOnline={inspectedCharacter.seatId ? (inspectedCharacter.seatId === mySeatId || onlineSeatIds.has(inspectedCharacter.seatId)) : false}
+          onClose={() => setInspectedCharacterId(null)}
         />
       )}
 
@@ -135,17 +199,18 @@ export default function App() {
       />
 
       {/* Combat: Token properties panel (GM only) */}
-      {isGM && isCombat && selectedTokenId && getToken(selectedTokenId) && (
+      {isGM && isCombat && selectedTokenId && selectedToken && selectedTokenCharacter && (
         <TokenPropertiesPanel
-          token={getToken(selectedTokenId)!}
-          seats={seats}
+          token={selectedToken}
+          character={selectedTokenCharacter}
           onUpdate={updateToken}
+          onUpdateCharacter={updateCharacter}
           onClose={() => setSelectedTokenId(null)}
         />
       )}
 
-      {/* Bottom dock: asset library (maps + tokens) */}
-      {isGM && isCombat && (
+      {/* Bottom dock: asset library (maps + tokens) — visible in both modes for GM */}
+      {isGM && (
         <BottomDock
           scenes={scenes}
           combatSceneId={room.combatSceneId}
@@ -156,6 +221,9 @@ export default function App() {
           onAddBlueprint={addBlueprint}
           onUpdateBlueprint={updateBlueprint}
           onDeleteBlueprint={deleteBlueprint}
+          characters={characters}
+          onAddCharacter={addCharacter}
+          isCombat={isCombat}
           selectedToken={getToken(selectedTokenId)}
           onAddToken={addToken}
           onDeleteToken={deleteToken}

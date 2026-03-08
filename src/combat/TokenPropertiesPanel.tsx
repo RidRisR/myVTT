@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import type { CombatToken } from './combatTypes'
-import type { Seat } from '../identity/useIdentity'
+import type { Character } from '../shared/characterTypes'
 import type { Resource, Attribute } from '../shared/tokenTypes'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
 import { useHoldRepeat } from '../shared/useHoldRepeat'
 
 interface TokenPropertiesPanelProps {
   token: CombatToken
-  seats: Seat[]
+  character: Character
   onUpdate: (id: string, updates: Partial<CombatToken>) => void
+  onUpdateCharacter: (id: string, updates: Partial<Character>) => void
   onClose: () => void
 }
 
@@ -83,48 +84,49 @@ function HoldButton({ label, onTick, color }: { label: string; onTick: () => voi
   )
 }
 
-export function TokenPropertiesPanel({ token, seats, onUpdate, onClose }: TokenPropertiesPanelProps) {
+export function TokenPropertiesPanel({ token, character, onUpdate, onUpdateCharacter, onClose }: TokenPropertiesPanelProps) {
   const [activeTab, setActiveTab] = useState<TabId>('info')
   const [statusInput, setStatusInput] = useState('')
 
-  const update = (updates: Partial<CombatToken>) => onUpdate(token.id, updates)
+  const updateToken = (updates: Partial<CombatToken>) => onUpdate(token.id, updates)
+  const updateChar = (updates: Partial<Character>) => onUpdateCharacter(character.id, updates)
 
   /* ── Resource helpers ── */
   const updateResource = (index: number, updates: Partial<Resource>) => {
-    const next = [...token.resources]
+    const next = [...character.resources]
     next[index] = { ...next[index], ...updates }
-    update({ resources: next })
+    updateChar({ resources: next })
   }
   const addResource = () => {
-    const color = barColorForKey(`res_${token.resources.length}`)
-    update({ resources: [...token.resources, { key: '', current: 10, max: 10, color }] })
+    const color = barColorForKey(`res_${character.resources.length}`)
+    updateChar({ resources: [...character.resources, { key: '', current: 10, max: 10, color }] })
   }
   const removeResource = (index: number) => {
-    update({ resources: token.resources.filter((_, i) => i !== index) })
+    updateChar({ resources: character.resources.filter((_, i) => i !== index) })
   }
 
   /* ── Attribute helpers ── */
   const updateAttribute = (index: number, updates: Partial<Attribute>) => {
-    const next = [...token.attributes]
+    const next = [...character.attributes]
     next[index] = { ...next[index], ...updates }
-    update({ attributes: next })
+    updateChar({ attributes: next })
   }
   const addAttribute = () => {
-    update({ attributes: [...token.attributes, { key: '', value: 10 }] })
+    updateChar({ attributes: [...character.attributes, { key: '', value: 10 }] })
   }
   const removeAttribute = (index: number) => {
-    update({ attributes: token.attributes.filter((_, i) => i !== index) })
+    updateChar({ attributes: character.attributes.filter((_, i) => i !== index) })
   }
 
   /* ── Status helpers ── */
   const addStatus = () => {
     const label = statusInput.trim()
-    if (!label || token.statuses.some(s => s.label === label)) return
-    update({ statuses: [...token.statuses, { label }] })
+    if (!label || character.statuses.some(s => s.label === label)) return
+    updateChar({ statuses: [...character.statuses, { label }] })
     setStatusInput('')
   }
   const removeStatus = (index: number) => {
-    update({ statuses: token.statuses.filter((_, i) => i !== index) })
+    updateChar({ statuses: character.statuses.filter((_, i) => i !== index) })
   }
 
   /* ── Tab renderers ── */
@@ -132,11 +134,11 @@ export function TokenPropertiesPanel({ token, seats, onUpdate, onClose }: TokenP
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {/* Token image preview */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <img src={token.imageUrl} alt={token.name}
-          style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${token.color}`, flexShrink: 0 }} />
+        <img src={character.imageUrl} alt={character.name}
+          style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${character.color}`, flexShrink: 0 }} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
           <label style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.8 }}>Name</label>
-          <input value={token.name} onChange={(e) => update({ name: e.target.value })}
+          <input value={character.name} onChange={(e) => updateChar({ name: e.target.value })}
             style={{ ...inputStyle, fontSize: 14, fontWeight: 600 }} />
         </div>
       </div>
@@ -146,7 +148,7 @@ export function TokenPropertiesPanel({ token, seats, onUpdate, onClose }: TokenP
         <label style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4, display: 'block' }}>Size (grid cells)</label>
         <div style={{ display: 'flex', gap: 4 }}>
           {[1, 2, 3, 4].map(s => (
-            <button key={s} onClick={() => update({ size: s })}
+            <button key={s} onClick={() => updateToken({ size: s })}
               style={{
                 flex: 1, padding: '6px 0',
                 background: token.size === s ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.04)',
@@ -156,7 +158,7 @@ export function TokenPropertiesPanel({ token, seats, onUpdate, onClose }: TokenP
                 fontSize: 12, fontWeight: 600, fontFamily: 'sans-serif',
                 transition: 'all 0.15s',
               }}
-            >{s}×{s}</button>
+            >{s}x{s}</button>
           ))}
         </div>
       </div>
@@ -166,51 +168,55 @@ export function TokenPropertiesPanel({ token, seats, onUpdate, onClose }: TokenP
         <label style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4, display: 'block' }}>Color</label>
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
           {['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'].map(c => (
-            <div key={c} onClick={() => update({ color: c })}
+            <div key={c} onClick={() => updateChar({ color: c })}
               style={{
                 width: 22, height: 22, borderRadius: '50%', background: c, cursor: 'pointer',
-                border: c === token.color ? '2px solid #fff' : '2px solid transparent',
+                border: c === character.color ? '2px solid #fff' : '2px solid transparent',
                 transition: 'border-color 0.15s',
               }} />
           ))}
         </div>
       </div>
 
-      {/* Owner */}
-      <div>
-        <label style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4, display: 'block' }}>Owner</label>
-        <select
-          value={token.ownerId ?? ''}
-          onChange={(e) => update({ ownerId: e.target.value || null })}
+      {/* GM Only toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <label style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.8 }}>GM Only</label>
+        <button onClick={() => updateToken({ gmOnly: !token.gmOnly })}
           style={{
-            ...inputStyle, width: '100%', boxSizing: 'border-box',
-            cursor: 'pointer', fontSize: 12,
+            width: 36, height: 20, borderRadius: 10, cursor: 'pointer',
+            background: token.gmOnly ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.1)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            position: 'relative', transition: 'background 0.2s',
+            padding: 0,
           }}
         >
-          <option value="">NPC (no owner)</option>
-          {seats.map(s => (
-            <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
-          ))}
-        </select>
+          <div style={{
+            width: 14, height: 14, borderRadius: '50%',
+            background: token.gmOnly ? '#8b5cf6' : 'rgba(255,255,255,0.3)',
+            position: 'absolute', top: 2,
+            left: token.gmOnly ? 19 : 2,
+            transition: 'left 0.2s, background 0.2s',
+          }} />
+        </button>
       </div>
     </div>
   )
 
   const renderResources = () => (
     <div>
-      {token.resources.map((res, i) => {
+      {character.resources.map((res, i) => {
         const pct = res.max > 0 ? Math.min(res.current / res.max, 1) : 0
         return (
           <div key={i} style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
               <input value={res.key} onChange={(e) => updateResource(i, { key: e.target.value })}
                 placeholder="Name" style={{ ...inputStyle, flex: 1, fontSize: 11, padding: '3px 6px', fontWeight: 600 }} />
-              <HoldButton label="−" onTick={() => updateResource(i, { current: Math.max(0, res.current - 1) })} color="#ef4444" />
+              <HoldButton label="-" onTick={() => updateResource(i, { current: Math.max(0, res.current - 1) })} color="#ef4444" />
               <HoldButton label="+" onTick={() => updateResource(i, { current: Math.min(res.max, res.current + 1) })} color="#22c55e" />
               <button onClick={() => removeResource(i)} style={removeBtnStyle}
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444' }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)' }}
-              >×</button>
+              >x</button>
             </div>
             <div style={{ height: 16, borderRadius: 8, background: 'rgba(255,255,255,0.06)', overflow: 'hidden', position: 'relative' }}>
               <div style={{ height: '100%', width: `${pct * 100}%`, background: `linear-gradient(90deg, ${res.color}, ${res.color}cc)`, borderRadius: 8, transition: 'width 0.2s ease' }} />
@@ -242,11 +248,11 @@ export function TokenPropertiesPanel({ token, seats, onUpdate, onClose }: TokenP
 
   const renderAttributes = () => (
     <div>
-      {token.attributes.map((attr, i) => (
+      {character.attributes.map((attr, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
           <input value={attr.key} onChange={(e) => updateAttribute(i, { key: e.target.value })}
             placeholder="Name" style={{ ...inputStyle, flex: 1, fontSize: 12, padding: '5px 8px', fontWeight: 600 }} />
-          <HoldButton label="−" onTick={() => updateAttribute(i, { value: Math.max(0, attr.value - 1) })} color="#ef4444" />
+          <HoldButton label="-" onTick={() => updateAttribute(i, { value: Math.max(0, attr.value - 1) })} color="#ef4444" />
           <input value={attr.value}
             onChange={(e) => { const v = parseInt(e.target.value); if (!isNaN(v)) updateAttribute(i, { value: Math.max(0, v) }) }}
             style={{ ...inputStyle, width: 40, textAlign: 'center', fontSize: 14, fontWeight: 700, padding: '4px 2px', color: '#fff' }} />
@@ -254,7 +260,7 @@ export function TokenPropertiesPanel({ token, seats, onUpdate, onClose }: TokenP
           <button onClick={() => removeAttribute(i)} style={removeBtnStyle}
             onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444' }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)' }}
-          >×</button>
+          >x</button>
         </div>
       ))}
       <button onClick={addAttribute} style={addBtnStyle}
@@ -267,7 +273,7 @@ export function TokenPropertiesPanel({ token, seats, onUpdate, onClose }: TokenP
   const renderStatuses = () => (
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-        {token.statuses.map((s, i) => {
+        {character.statuses.map((s, i) => {
           const sc = statusColor(s.label)
           return (
             <span key={i} style={{
@@ -281,11 +287,11 @@ export function TokenPropertiesPanel({ token, seats, onUpdate, onClose }: TokenP
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: sc, fontSize: 14, padding: 0, lineHeight: 1, opacity: 0.6, transition: 'opacity 0.15s' }}
                 onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
                 onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6' }}
-              >×</button>
+              >x</button>
             </span>
           )
         })}
-        {token.statuses.length === 0 && (
+        {character.statuses.length === 0 && (
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>No active statuses</span>
         )}
       </div>
@@ -308,7 +314,7 @@ export function TokenPropertiesPanel({ token, seats, onUpdate, onClose }: TokenP
 
   const renderNotes = () => (
     <div>
-      <textarea value={token.notes} onChange={(e) => update({ notes: e.target.value })}
+      <textarea value={character.notes} onChange={(e) => updateChar({ notes: e.target.value })}
         placeholder="Free-form notes..." rows={8}
         style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', resize: 'vertical', fontSize: 12, lineHeight: 1.6, padding: '10px 12px' }} />
     </div>
@@ -347,7 +353,7 @@ export function TokenPropertiesPanel({ token, seats, onUpdate, onClose }: TokenP
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 18, padding: '0 2px', lineHeight: 1, transition: 'color 0.15s' }}
           onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)' }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.3)' }}
-        >×</button>
+        >x</button>
       </div>
 
       {/* Tab bar */}
@@ -358,7 +364,7 @@ export function TokenPropertiesPanel({ token, seats, onUpdate, onClose }: TokenP
               flex: 1, padding: '7px 0',
               background: activeTab === tab.id ? 'rgba(255,255,255,0.06)' : 'transparent',
               border: 'none',
-              borderBottom: activeTab === tab.id ? `2px solid ${token.color}` : '2px solid transparent',
+              borderBottom: activeTab === tab.id ? `2px solid ${character.color}` : '2px solid transparent',
               cursor: 'pointer',
               color: activeTab === tab.id ? '#fff' : 'rgba(255,255,255,0.35)',
               fontSize: 8, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase',

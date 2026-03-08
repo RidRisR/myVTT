@@ -1,19 +1,10 @@
-import type { Resource, Attribute, Status } from '../shared/tokenTypes'
-
 export interface CombatToken {
   id: string
-  name: string
-  imageUrl: string
-  x: number        // map-pixel position
+  characterId: string       // links to Character (source of truth for name, image, resources, etc.)
+  x: number                 // map-pixel position
   y: number
-  size: number     // grid cells (1 = 1x1, 2 = 2x2)
-  ownerId: string | null  // seatId, null = NPC
+  size: number              // grid cells (1 = 1x1, 2 = 2x2)
   gmOnly: boolean
-  color: string    // border/ring color
-  resources: Resource[]
-  attributes: Attribute[]
-  statuses: Status[]
-  notes: string
 }
 
 export interface TokenBlueprint {

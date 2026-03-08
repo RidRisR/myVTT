@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Scene } from '../yjs/useScenes'
 import type { CombatToken, TokenBlueprint } from '../combat/combatTypes'
+import type { Character } from '../shared/characterTypes'
 import { generateTokenId } from '../combat/combatUtils'
+import { nextNpcName } from '../shared/characterUtils'
 import { MapDockTab } from './MapDockTab'
 import { TokenDockTab } from './TokenDockTab'
 
@@ -18,6 +20,10 @@ interface BottomDockProps {
   onAddBlueprint: (bp: TokenBlueprint) => void
   onUpdateBlueprint: (id: string, updates: Partial<TokenBlueprint>) => void
   onDeleteBlueprint: (id: string) => void
+
+  characters: Character[]
+  onAddCharacter: (char: Character) => void
+  isCombat: boolean
 
   selectedToken: CombatToken | null
   onAddToken: (token: CombatToken) => void
@@ -36,6 +42,9 @@ export function BottomDock({
   onAddBlueprint,
   onUpdateBlueprint,
   onDeleteBlueprint,
+  characters,
+  onAddCharacter,
+  isCombat,
   selectedToken,
   onAddToken,
   onDeleteToken,
@@ -61,24 +70,43 @@ export function BottomDock({
     setActiveTab(prev => prev === tab ? null : tab)
   }
 
-  const handleSpawnFromBlueprint = (bp: TokenBlueprint) => {
-    const token: CombatToken = {
+  // Create a new independent Character from a blueprint (unlinked — never deduplicates)
+  const createCharFromBlueprint = (bp: TokenBlueprint, featured: boolean): Character => {
+    const name = nextNpcName(bp.name, characters, bp.id)
+    const char: Character = {
       id: generateTokenId(),
-      name: bp.name,
+      name,
       imageUrl: bp.imageUrl,
-      x: 200,
-      y: 200,
-      size: bp.defaultSize,
-      ownerId: null,
-      gmOnly: false,
       color: bp.defaultColor,
+      type: 'npc',
+      blueprintId: bp.id,
+      size: bp.defaultSize,
       resources: [],
       attributes: [],
       statuses: [],
       notes: '',
+      featured,
+    }
+    onAddCharacter(char)
+    return char
+  }
+
+  const handleSpawnFromBlueprint = (bp: TokenBlueprint) => {
+    const char = createCharFromBlueprint(bp, false)
+    const token: CombatToken = {
+      id: generateTokenId(),
+      characterId: char.id,
+      x: 200,
+      y: 200,
+      size: bp.defaultSize,
+      gmOnly: false,
     }
     onAddToken(token)
     onSelectToken(token.id)
+  }
+
+  const handleAddToActive = (bp: TokenBlueprint) => {
+    createCharFromBlueprint(bp, true)
   }
 
   const handleDeleteSelected = () => {
@@ -172,6 +200,8 @@ export function BottomDock({
               onUpdateBlueprint={onUpdateBlueprint}
               onDeleteBlueprint={onDeleteBlueprint}
               onSpawnToken={handleSpawnFromBlueprint}
+              onAddToActive={handleAddToActive}
+              isCombat={isCombat}
             />
           )}
         </div>
