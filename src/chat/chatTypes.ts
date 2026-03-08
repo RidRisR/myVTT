@@ -6,6 +6,7 @@ export interface ChatTextMessage {
   senderId: string
   senderName: string
   senderColor: string
+  portraitUrl?: string
   content: string
   timestamp: number
 }
@@ -16,6 +17,7 @@ export interface ChatRollMessage {
   senderId: string
   senderName: string
   senderColor: string
+  portraitUrl?: string
   expression: string
   resolvedExpression?: string
   terms: DiceTermResult[]

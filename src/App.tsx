@@ -232,6 +232,7 @@ export default function App() {
         senderId={mySeatId!}
         senderName={mySeat.name}
         senderColor={mySeat.color}
+        portraitUrl={activeCharacter?.portraitUrl}
         seatProperties={seatProperties}
       />
 

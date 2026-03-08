@@ -13,15 +13,17 @@ interface ChatInputProps {
   senderId: string
   senderName: string
   senderColor: string
+  portraitUrl?: string
   seatProperties: { key: string; value: string }[]
   onSend: (message: ChatMessage) => void
+  onFocus?: () => void
 }
 
 function generateId(): string {
   return self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-export function ChatInput({ selectedTokenProps, senderId, senderName, senderColor, seatProperties, onSend }: ChatInputProps) {
+export function ChatInput({ selectedTokenProps, senderId, senderName, senderColor, portraitUrl, seatProperties, onSend, onFocus }: ChatInputProps) {
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -91,6 +93,7 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
         senderId,
         senderName,
         senderColor,
+        portraitUrl,
         content: trimmed,
         timestamp: Date.now(),
       })
@@ -133,6 +136,7 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
       senderId,
       senderName,
       senderColor,
+      portraitUrl,
       expression,
       resolvedExpression: expression !== resolvedExpression ? resolvedExpression : undefined,
       terms: result.termResults,
@@ -205,6 +209,7 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
             handleSend()
           }
         }}
+        onFocus={onFocus}
         onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
         placeholder="Type a message or /r 1d20+@STR"
         style={{
