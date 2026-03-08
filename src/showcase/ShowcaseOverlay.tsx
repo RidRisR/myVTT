@@ -202,7 +202,7 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
           // Focused item at center; queue items above with extra gap
           const QUEUE_GAP = 200 // extra spacing between focused and queue
           const y = isFocused ? 0 : (dist * SLOT_SPACING - QUEUE_GAP)
-          const opacity = isFocused ? 1 : Math.max(0.05, 1 - absDist * 0.4)
+          const opacity = isFocused ? 1 : (isSnapped ? 0 : Math.max(0.05, 1 - absDist * 0.4))
           const scale = isFocused ? 1 : Math.max(0.78, 1 - absDist * 0.08)
 
           return (
