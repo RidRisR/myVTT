@@ -11,8 +11,10 @@ function readItems(yShowcase: Y.Map<ShowcaseItem>): ShowcaseItem[] {
 
 export function useShowcase(yDoc: Y.Doc) {
   const yShowcase = yDoc.getMap<ShowcaseItem>('showcase_items')
+  const yRoom = yDoc.getMap<unknown>('room')
   const [items, setItems] = useState<ShowcaseItem[]>(() => readItems(yShowcase))
   const [newItemId, setNewItemId] = useState<string | null>(null)
+  const [pinnedItemId, setPinnedItemId] = useState<string | null>(() => (yRoom.get('pinnedShowcaseId') as string) ?? null)
   const prevIdsRef = useRef<Set<string>>(new Set(items.map(i => i.id)))
 
   useEffect(() => {
@@ -36,6 +38,15 @@ export function useShowcase(yDoc: Y.Doc) {
     return () => yShowcase.unobserve(observer)
   }, [yShowcase])
 
+  // Listen for pinnedShowcaseId changes from room map
+  useEffect(() => {
+    const observer = () => {
+      setPinnedItemId((yRoom.get('pinnedShowcaseId') as string) ?? null)
+    }
+    yRoom.observe(observer)
+    return () => yRoom.unobserve(observer)
+  }, [yRoom])
+
   const addItem = (item: ShowcaseItem) => {
     yShowcase.set(item.id, item)
   }
@@ -49,15 +60,28 @@ export function useShowcase(yDoc: Y.Doc) {
 
   const deleteItem = (id: string) => {
     yShowcase.delete(id)
+    // If deleting the pinned item, unpin
+    if ((yRoom.get('pinnedShowcaseId') as string) === id) {
+      yRoom.delete('pinnedShowcaseId')
+    }
   }
 
   const clearAll = () => {
     yDoc.transact(() => {
       yShowcase.forEach((_val, key) => yShowcase.delete(key))
+      yRoom.delete('pinnedShowcaseId')
     })
+  }
+
+  const pinItem = (id: string) => {
+    yRoom.set('pinnedShowcaseId', id)
+  }
+
+  const unpinItem = () => {
+    yRoom.delete('pinnedShowcaseId')
   }
 
   const clearNewItemId = () => setNewItemId(null)
 
-  return { items, addItem, updateItem, deleteItem, clearAll, newItemId, clearNewItemId }
+  return { items, addItem, updateItem, deleteItem, clearAll, newItemId, clearNewItemId, pinnedItemId, pinItem, unpinItem }
 }

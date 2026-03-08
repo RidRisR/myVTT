@@ -4,10 +4,10 @@ import { useShowcase } from './useShowcase'
 import { FocusedCard } from './FocusedCard'
 import { PeekCard } from './PeekCard'
 
-const SLOT_SPACING = 140
+const SLOT_SPACING = 100
 const SCROLL_SENSITIVITY = 0.008
 const SNAP_DELAY = 150
-const MAX_VISIBLE_DIST = 3.5
+const MAX_VISIBLE_DIST = 2.5
 const EPHEMERAL_COLLAPSE_MS = 8000
 
 interface ShowcaseOverlayProps {
@@ -17,9 +17,10 @@ interface ShowcaseOverlayProps {
 }
 
 export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) {
-  const { items, updateItem, deleteItem, newItemId, clearNewItemId } = useShowcase(yDoc)
+  const { items, updateItem, deleteItem, newItemId, clearNewItemId, pinnedItemId, pinItem, unpinItem } = useShowcase(yDoc)
 
   // scrollY as React state (source of truth for rendering)
+  // scrollY can go up to items.length — that's the "dismissed" empty slot at queue head
   const [scrollY, setScrollY] = useState(0)
   const [isSnapped, setIsSnapped] = useState(false)
   const [animateItemId, setAnimateItemId] = useState<string | null>(null)
@@ -33,9 +34,20 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
   const rafIdRef = useRef<number | null>(null)
   const itemsLenRef = useRef(items.length)
   itemsLenRef.current = items.length
+  const pinnedRef = useRef(pinnedItemId)
+  pinnedRef.current = pinnedItemId
 
   // Keep ref in sync when React state changes (snap, new item arrival, etc.)
   useEffect(() => { scrollYRef.current = scrollY }, [scrollY])
+
+  // --- Force scroll to pinned item ---
+  useEffect(() => {
+    if (!pinnedItemId) return
+    const idx = items.findIndex(i => i.id === pinnedItemId)
+    if (idx === -1) return
+    setIsSnapped(true)
+    requestAnimationFrame(() => setScrollY(idx))
+  }, [pinnedItemId, items])
 
   // --- New item arrival: scroll to it + trigger entrance animation ---
   useEffect(() => {
@@ -43,45 +55,49 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
     const idx = items.findIndex(i => i.id === newItemId)
     if (idx === -1) return
 
-    setAnimateItemId(newItemId)
-    // Enable transition so OLD cards slide up, then scroll to new item
-    // The new card itself skips CSS transition (handled per-card below)
-    setIsSnapped(true)
-    requestAnimationFrame(() => setScrollY(idx))
+    // Don't override pin — only scroll to new item if not pinned
+    if (!pinnedItemId) {
+      setAnimateItemId(newItemId)
+      setIsSnapped(true)
+      requestAnimationFrame(() => setScrollY(idx))
+    }
     clearNewItemId()
   }, [newItemId, items])
 
   // --- Ephemeral auto-collapse ---
   useEffect(() => {
     if (ephemeralTimerRef.current) clearTimeout(ephemeralTimerRef.current)
+    if (pinnedItemId) return // Don't auto-collapse when pinned
 
     const focusedIndex = Math.round(scrollY)
     const focusedItem = items[focusedIndex]
     if (!focusedItem || !focusedItem.ephemeral) return
 
     ephemeralTimerRef.current = setTimeout(() => {
-      if (items.length <= 1) return
-      const nextIdx = focusedIndex < items.length - 1 ? focusedIndex + 1 : focusedIndex - 1
       setIsSnapped(true)
-      requestAnimationFrame(() => setScrollY(nextIdx))
+      requestAnimationFrame(() => setScrollY(items.length))
     }, EPHEMERAL_COLLAPSE_MS)
 
     return () => {
       if (ephemeralTimerRef.current) clearTimeout(ephemeralTimerRef.current)
     }
-  }, [scrollY, items])
+  }, [scrollY, items, pinnedItemId])
 
-  // --- Window-level wheel handler (captures everywhere, not just on cards) ---
+  // --- Window-level wheel handler ---
   useEffect(() => {
     if (items.length === 0) return
 
     const handleWheel = (e: WheelEvent) => {
-      if (items.length <= 1) return
+      // Block scrolling when pinned
+      if (pinnedRef.current) {
+        e.preventDefault()
+        return
+      }
+
       e.preventDefault()
 
       pendingDeltaRef.current += e.deltaY * SCROLL_SENSITIVITY
 
-      // Batch via rAF — max one React update per frame
       if (rafIdRef.current === null) {
         rafIdRef.current = requestAnimationFrame(() => {
           rafIdRef.current = null
@@ -90,14 +106,13 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
 
           setIsSnapped(false)
           setScrollY(prev => {
-            const next = Math.max(0, Math.min(itemsLenRef.current - 1, prev + delta))
+            const next = Math.max(0, Math.min(itemsLenRef.current, prev + delta))
             scrollYRef.current = next
             return next
           })
         })
       }
 
-      // Snap after idle
       if (snapTimerRef.current) clearTimeout(snapTimerRef.current)
       snapTimerRef.current = setTimeout(() => {
         setIsSnapped(true)
@@ -128,34 +143,40 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
   // --- Adjust scrollY if items shrink ---
   useEffect(() => {
     if (items.length === 0) return
-    setScrollY(prev => Math.min(prev, items.length - 1))
+    setScrollY(prev => Math.min(prev, items.length))
   }, [items.length])
 
   // --- Actions ---
-  const handleDismiss = useCallback((index: number) => {
-    if (items.length <= 1) return
-    const nextIdx = index < items.length - 1 ? index + 1 : index - 1
+  const handleDismiss = useCallback(() => {
+    if (pinnedItemId) return // Can't dismiss when pinned
     setIsSnapped(true)
-    requestAnimationFrame(() => setScrollY(nextIdx))
-  }, [items.length])
+    requestAnimationFrame(() => setScrollY(items.length))
+  }, [items.length, pinnedItemId])
 
   const handlePin = useCallback((id: string) => {
-    updateItem(id, { ephemeral: false })
-  }, [updateItem])
+    pinItem(id)
+  }, [pinItem])
+
+  const handleUnpin = useCallback(() => {
+    unpinItem()
+  }, [unpinItem])
 
   const handleDelete = useCallback((id: string) => {
     deleteItem(id)
   }, [deleteItem])
 
   const handleClickPeek = useCallback((index: number) => {
+    if (pinnedItemId) return // Can't switch when pinned
     setIsSnapped(true)
     requestAnimationFrame(() => setScrollY(index))
-  }, [])
+  }, [pinnedItemId])
 
   // --- Render nothing if no items ---
   if (items.length === 0) return null
 
   const focusedIndex = Math.round(scrollY)
+  const isDismissedView = focusedIndex >= items.length
+  const isPinned = !!pinnedItemId
 
   return (
     <div
@@ -173,12 +194,14 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
         fontFamily: 'sans-serif',
       }}
     >
-      {/* Subtle backdrop dimming */}
+      {/* Subtle backdrop dimming — fade out when dismissed */}
       <div style={{
         position: 'absolute',
         inset: 0,
         background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)',
         pointerEvents: 'none',
+        opacity: isDismissedView ? 0 : 1,
+        transition: isSnapped ? 'opacity 0.3s ease' : 'none',
       }} />
 
       {/* Carousel container */}
@@ -195,12 +218,10 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
           const dist = index - scrollY
           const absDist = Math.abs(dist)
           if (absDist > MAX_VISIBLE_DIST) return null
-          // Only show items above the focused item (dist < 0), or the focused item itself
           if (dist > 0.5) return null
 
-          const isFocused = index === focusedIndex
-          // Focused item at center; queue items above with extra gap
-          const QUEUE_GAP = 200 // extra spacing between focused and queue
+          const isFocused = index === focusedIndex && !isDismissedView
+          const QUEUE_GAP = 160
           const y = isFocused ? 0 : (dist * SLOT_SPACING - QUEUE_GAP)
           const opacity = isFocused ? 1 : (isSnapped ? 0 : Math.max(0.05, 1 - absDist * 0.4))
           const scale = isFocused ? 1 : Math.max(0.78, 1 - absDist * 0.08)
@@ -225,10 +246,12 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
                   item={item}
                   isGM={isGM}
                   mySeatId={mySeatId}
+                  isPinned={isPinned}
                   animateEntrance={animateItemId === item.id}
                   onAnimationDone={() => setAnimateItemId(null)}
-                  onDismiss={() => handleDismiss(index)}
+                  onDismiss={handleDismiss}
                   onPin={() => handlePin(item.id)}
+                  onUnpin={handleUnpin}
                   onDelete={() => handleDelete(item.id)}
                 />
               ) : (

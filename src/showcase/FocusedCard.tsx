@@ -5,10 +5,12 @@ interface FocusedCardProps {
   item: ShowcaseItem
   isGM: boolean
   mySeatId: string
+  isPinned: boolean
   animateEntrance: boolean
   onAnimationDone: () => void
   onDismiss: () => void
   onPin: () => void
+  onUnpin: () => void
   onDelete: () => void
 }
 
@@ -16,10 +18,12 @@ export function FocusedCard({
   item,
   isGM,
   mySeatId,
+  isPinned,
   animateEntrance,
   onAnimationDone,
   onDismiss,
   onPin,
+  onUnpin,
   onDelete,
 }: FocusedCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
@@ -42,8 +46,9 @@ export function FocusedCard({
     }).onfinish = () => onAnimationDone()
   }, [animateEntrance, item.id])
 
-  const canDismiss = isGM || item.senderId === mySeatId
-  const canPin = isGM && item.ephemeral
+  const canDismiss = !isPinned
+  const canPin = isGM && !isPinned
+  const canUnpin = isGM && isPinned
   const canDelete = isGM
 
   if (item.type === 'text') {
@@ -67,14 +72,15 @@ export function FocusedCard({
           fontFamily: 'sans-serif',
         }}>
           <span style={{ color: item.senderColor }}>{item.senderName}</span>
-          {item.ephemeral && <span style={{ marginLeft: 8, opacity: 0.6 }}>ephemeral</span>}
         </div>
         <ActionButtons
           canDismiss={canDismiss}
           canPin={canPin}
+          canUnpin={canUnpin}
           canDelete={canDelete}
           onDismiss={onDismiss}
           onPin={onPin}
+          onUnpin={onUnpin}
           onDelete={onDelete}
         />
       </div>
@@ -130,24 +136,28 @@ export function FocusedCard({
       <ActionButtons
         canDismiss={canDismiss}
         canPin={canPin}
+        canUnpin={canUnpin}
         canDelete={canDelete}
         onDismiss={onDismiss}
         onPin={onPin}
+        onUnpin={onUnpin}
         onDelete={onDelete}
       />
     </div>
   )
 }
 
-function ActionButtons({ canDismiss, canPin, canDelete, onDismiss, onPin, onDelete }: {
+function ActionButtons({ canDismiss, canPin, canUnpin, canDelete, onDismiss, onPin, onUnpin, onDelete }: {
   canDismiss: boolean
   canPin: boolean
+  canUnpin: boolean
   canDelete: boolean
   onDismiss: () => void
   onPin: () => void
+  onUnpin: () => void
   onDelete: () => void
 }) {
-  if (!canDismiss && !canPin && !canDelete) return null
+  if (!canDismiss && !canPin && !canUnpin && !canDelete) return null
 
   const btnBase: React.CSSProperties = {
     padding: '5px 12px',
@@ -181,6 +191,16 @@ function ActionButtons({ canDismiss, canPin, canDelete, onDismiss, onPin, onDele
           onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
         >
           Pin
+        </button>
+      )}
+      {canUnpin && (
+        <button
+          onClick={onUnpin}
+          style={{ ...btnBase, borderColor: 'rgba(251,191,36,0.4)', color: '#fbbf24' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(251,191,36,0.12)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+        >
+          Unpin
         </button>
       )}
       {canDelete && (
