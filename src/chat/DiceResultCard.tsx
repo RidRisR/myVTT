@@ -30,6 +30,10 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
     Array.from({ length: totalDice }, (_, i) => i)
       .sort(() => Math.random() - 0.5),
   )
+  // Time when all dice have landed (last stop + landing animation)
+  const allLandedTime = totalDice > 0
+    ? SPIN_DURATION + (totalDice - 1) * STOP_INTERVAL + 0.3
+    : 0
 
   // Build dice reels with shuffled stop timing
   let diceIndex = 0
@@ -60,6 +64,7 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
           result={roll}
           stopDelay={shouldAnimate.current ? stopDelay : 0}
           dropped={isDropped}
+          dropRevealDelay={shouldAnimate.current ? allLandedTime : undefined}
         />
       )
     })
