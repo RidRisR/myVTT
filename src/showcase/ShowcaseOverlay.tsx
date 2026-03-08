@@ -5,7 +5,7 @@ import { FocusedCard } from './FocusedCard'
 import { PeekCard } from './PeekCard'
 
 const SLOT_SPACING = 100
-const SCROLL_SENSITIVITY = 0.008
+const SCROLL_SENSITIVITY = 0.004
 const SNAP_DELAY = 150
 const MAX_VISIBLE_DIST = 2.5
 const EPHEMERAL_COLLAPSE_MS = 8000
@@ -94,9 +94,20 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
         return
       }
 
+      // If wheel event targets a scrollable element, let it scroll naturally
+      let el = e.target as HTMLElement | null
+      while (el && el !== document.documentElement) {
+        const { overflowY } = window.getComputedStyle(el)
+        if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
+          return
+        }
+        el = el.parentElement
+      }
+
       e.preventDefault()
 
-      pendingDeltaRef.current += e.deltaY * SCROLL_SENSITIVITY
+      const scaled = e.deltaY * SCROLL_SENSITIVITY
+      pendingDeltaRef.current = Math.max(-3, Math.min(3, pendingDeltaRef.current + scaled))
 
       if (rafIdRef.current === null) {
         rafIdRef.current = requestAnimationFrame(() => {

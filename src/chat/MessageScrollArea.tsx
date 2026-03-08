@@ -98,6 +98,7 @@ export function MessageScrollArea({
               'linear-gradient(to bottom, transparent 0%, black 40px)',
           }}
           onScroll={checkIfAtBottom}
+          onWheel={(e) => e.stopPropagation()}
         >
           {messages.map((msg) => (
             <MessageCard
