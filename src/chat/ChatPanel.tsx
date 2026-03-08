@@ -186,6 +186,15 @@ export function ChatPanel({
     ? { id: senderId, name: speakerChar.name, color: speakerChar.color, portraitUrl: speakerChar.imageUrl || undefined }
     : seatIdentity
 
+  // When speaking as a character, use that character's properties for @ resolution
+  const activeSpeakerProps = useMemo(() => {
+    if (!speakerChar) return seatProperties
+    return [
+      ...(speakerChar.resources ?? []).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
+      ...(speakerChar.attributes ?? []).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
+    ]
+  }, [speakerChar, seatProperties])
+
   const yChat = yDoc.getArray<ChatMessage>('chat_log')
 
   // Sync messages from Yjs
@@ -288,7 +297,7 @@ export function ChatPanel({
     let resolvedExpression = formula
 
     if (/@[\p{L}\p{N}_]+/u.test(formula)) {
-      const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
+      const resolved = resolveFormula(formula, selectedTokenProps, activeSpeakerProps)
       if ('error' in resolved) return
       expression = formula
       resolvedExpression = resolved.resolved
@@ -311,7 +320,7 @@ export function ChatPanel({
       total: result.total,
       timestamp: Date.now(),
     }])
-  }, [selectedTokenProps, seatProperties, activeSpeaker, yChat])
+  }, [selectedTokenProps, activeSpeakerProps, activeSpeaker, yChat])
 
   // Favorites helpers
   const favoritedFormulas = useMemo(
@@ -553,7 +562,7 @@ export function ChatPanel({
             portraitUrl={activeSpeaker.portraitUrl}
             onSend={handleSend}
             selectedTokenProps={selectedTokenProps}
-            seatProperties={seatProperties}
+            seatProperties={activeSpeakerProps}
             onCycleSpeaker={speakerCharacters.length > 0 ? handleCycleSpeaker : undefined}
           />
         </div>
