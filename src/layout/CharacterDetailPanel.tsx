@@ -1,18 +1,18 @@
-import type { Seat } from '../identity/useIdentity'
+import type { Character } from '../shared/characterTypes'
 import { statusColor } from '../shared/tokenUtils'
 
 interface CharacterDetailPanelProps {
-  seat: Seat
+  character: Character
   isOnline: boolean
   onClose: () => void
 }
 
-export function CharacterDetailPanel({ seat, isOnline, onClose }: CharacterDetailPanelProps) {
-  const resources = seat.resources ?? []
-  const attributes = seat.attributes ?? []
-  const statuses = seat.statuses ?? []
-  const notes = seat.notes ?? ''
-  const handouts = seat.handouts ?? []
+export function CharacterDetailPanel({ character, isOnline, onClose }: CharacterDetailPanelProps) {
+  const resources = character.resources
+  const attributes = character.attributes
+  const statuses = character.statuses
+  const notes = character.notes
+  const handouts = character.handouts ?? []
 
   const hasContent = resources.length > 0 || attributes.length > 0 || statuses.length > 0 || notes || handouts.length > 0
 
@@ -67,27 +67,27 @@ export function CharacterDetailPanel({ seat, isOnline, onClose }: CharacterDetai
 
       {/* Portrait */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 16 }}>
-        {seat.portraitUrl ? (
+        {character.imageUrl ? (
           <img
-            src={seat.portraitUrl}
-            alt={seat.name}
+            src={character.imageUrl}
+            alt={character.name}
             style={{
               width: 80, height: 80, borderRadius: '50%',
               objectFit: 'cover',
-              border: `3px solid ${seat.color}`,
-              boxShadow: `0 0 20px ${seat.color}33`,
+              border: `3px solid ${character.color}`,
+              boxShadow: `0 0 20px ${character.color}33`,
               display: 'block',
             }}
           />
         ) : (
           <div style={{
             width: 80, height: 80, borderRadius: '50%',
-            background: `linear-gradient(135deg, ${seat.color}, ${seat.color}99)`,
+            background: `linear-gradient(135deg, ${character.color}, ${character.color}99)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff', fontSize: 32, fontWeight: 700,
-            boxShadow: `0 0 20px ${seat.color}33`,
+            boxShadow: `0 0 20px ${character.color}33`,
           }}>
-            {seat.name.charAt(0).toUpperCase()}
+            {character.name.charAt(0).toUpperCase()}
           </div>
         )}
       </div>
@@ -99,7 +99,7 @@ export function CharacterDetailPanel({ seat, isOnline, onClose }: CharacterDetai
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           gap: 8, letterSpacing: 0.3,
         }}>
-          {seat.name}
+          {character.name}
           {isOnline && (
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -117,11 +117,11 @@ export function CharacterDetailPanel({ seat, isOnline, onClose }: CharacterDetai
         <span style={{
           display: 'inline-block', marginTop: 6,
           fontSize: 10, padding: '3px 10px', borderRadius: 10,
-          background: seat.role === 'GM' ? 'rgba(251,191,36,0.2)' : 'rgba(96,165,250,0.2)',
-          color: seat.role === 'GM' ? '#fbbf24' : '#60a5fa',
+          background: character.type === 'pc' ? 'rgba(96,165,250,0.2)' : 'rgba(251,191,36,0.2)',
+          color: character.type === 'pc' ? '#60a5fa' : '#fbbf24',
           fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase',
         }}>
-          {seat.role === 'GM' ? 'Game Master' : 'Player'}
+          {character.type === 'pc' ? 'Player' : 'NPC'}
         </span>
       </div>
 

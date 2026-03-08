@@ -1,12 +1,14 @@
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import type { Scene } from '../yjs/useScenes'
 import type { CombatToken } from './combatTypes'
+import type { Character } from '../shared/characterTypes'
 import { CombatMap } from './CombatMap'
 import { TokenLayer } from './TokenLayer'
 
 interface CombatViewerProps {
   scene: Scene | null
   tokens: CombatToken[]
+  getCharacter: (id: string) => Character | null
   mySeatId: string
   role: 'GM' | 'PL'
   selectedTokenId: string | null
@@ -17,6 +19,7 @@ interface CombatViewerProps {
 export function CombatViewer({
   scene,
   tokens,
+  getCharacter,
   mySeatId,
   role,
   selectedTokenId,
@@ -56,6 +59,7 @@ export function CombatViewer({
           <CombatMap scene={scene}>
             <TokenLayer
               tokens={tokens}
+              getCharacter={getCharacter}
               scene={scene}
               role={role}
               mySeatId={mySeatId}

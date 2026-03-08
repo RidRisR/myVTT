@@ -1,8 +1,10 @@
 import type { CombatToken } from './combatTypes'
+import type { Character } from '../shared/characterTypes'
 import { TokenOverlay } from './TokenOverlay'
 
 interface MapTokenProps {
   token: CombatToken
+  character: Character
   pixelSize: number
   selected: boolean
   gmOnly: boolean
@@ -15,6 +17,7 @@ interface MapTokenProps {
 
 export function MapToken({
   token,
+  character,
   pixelSize,
   selected,
   gmOnly,
@@ -49,9 +52,9 @@ export function MapToken({
         height: pixelSize,
         borderRadius: '50%',
         overflow: 'hidden',
-        border: `3px solid ${selected ? '#fff' : token.color}`,
+        border: `3px solid ${selected ? '#fff' : character.color}`,
         boxShadow: selected
-          ? `0 0 0 2px ${token.color}, 0 0 16px ${token.color}66`
+          ? `0 0 0 2px ${character.color}, 0 0 16px ${character.color}66`
           : `0 2px 8px rgba(0,0,0,0.4)`,
         opacity: gmOnly ? 0.5 : 1,
         borderStyle: gmOnly ? 'dashed' : 'solid',
@@ -59,8 +62,8 @@ export function MapToken({
         transition: 'border-color 0.15s, box-shadow 0.15s',
       }}>
         <img
-          src={token.imageUrl}
-          alt={token.name}
+          src={character.imageUrl}
+          alt={character.name}
           style={{
             width: '100%',
             height: '100%',
@@ -80,7 +83,7 @@ export function MapToken({
         left: '50%',
         transform: 'translateX(-50%)',
       }}>
-        <TokenOverlay token={token} />
+        <TokenOverlay character={character} />
       </div>
     </div>
   )

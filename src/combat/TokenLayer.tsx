@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTransformContext } from 'react-zoom-pan-pinch'
 import type { CombatToken } from './combatTypes'
+import type { Character } from '../shared/characterTypes'
 import type { Scene } from '../yjs/useScenes'
 import { MapToken } from './MapToken'
 import { canDragToken, screenToMap, snapToGrid } from './combatUtils'
 
 interface TokenLayerProps {
   tokens: CombatToken[]
+  getCharacter: (id: string) => Character | null
   scene: Scene
   role: 'GM' | 'PL'
   mySeatId: string
@@ -25,6 +27,7 @@ interface DragState {
 
 export function TokenLayer({
   tokens,
+  getCharacter,
   scene,
   role,
   mySeatId,
@@ -37,15 +40,20 @@ export function TokenLayer({
   const dragRef = useRef<DragState | null>(null)
   const didDragRef = useRef(false)
 
-  // Filter tokens by visibility
+  // Filter tokens by visibility, skip orphan tokens (no character)
   const visibleTokens = tokens.filter(t => {
+    const char = getCharacter(t.characterId)
+    if (!char) return false
     if (role === 'GM') return true
     return !t.gmOnly
   })
 
   const handlePointerDown = useCallback((e: React.PointerEvent, tokenId: string) => {
     const token = tokens.find(t => t.id === tokenId)
-    if (!token || !canDragToken(role, token.ownerId, mySeatId)) return
+    if (!token) return
+    const char = getCharacter(token.characterId)
+    if (!char) return
+    if (!canDragToken(role, char.seatId ?? null, mySeatId)) return
 
     const wrapper = ctx.wrapperComponent
     if (!wrapper) return
@@ -67,7 +75,7 @@ export function TokenLayer({
     dragRef.current = state
     didDragRef.current = false
     setDrag(state)
-  }, [tokens, role, mySeatId, ctx])
+  }, [tokens, getCharacter, role, mySeatId, ctx])
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     const d = dragRef.current
@@ -154,11 +162,13 @@ export function TokenLayer({
       onClick={handleBackgroundClick}
     >
       {visibleTokens.map(token => {
+        const character = getCharacter(token.characterId)!
         const isDragging = drag?.tokenId === token.id && didDragRef.current
         return (
           <MapToken
             key={token.id}
             token={token}
+            character={character}
             pixelSize={token.size * scene.gridSize}
             selected={token.id === selectedTokenId}
             gmOnly={token.gmOnly && role === 'GM'}

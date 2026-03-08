@@ -1,13 +1,13 @@
 import { KeepScale } from 'react-zoom-pan-pinch'
-import type { CombatToken } from './combatTypes'
+import type { Character } from '../shared/characterTypes'
 import { statusColor } from '../shared/tokenUtils'
 
 interface TokenOverlayProps {
-  token: CombatToken
+  character: Character
 }
 
-export function TokenOverlay({ token }: TokenOverlayProps) {
-  const mainResource = token.resources[0]
+export function TokenOverlay({ character }: TokenOverlayProps) {
+  const mainResource = character.resources[0]
   const hasHp = mainResource && mainResource.max > 0
   const hpPct = hasHp ? Math.min(mainResource.current / mainResource.max, 1) : 0
 
@@ -33,7 +33,7 @@ export function TokenOverlay({ token }: TokenOverlayProps) {
           overflow: 'hidden',
           textOverflow: 'ellipsis',
         }}>
-          {token.name}
+          {character.name}
         </div>
 
         {/* HP bar */}
@@ -56,7 +56,7 @@ export function TokenOverlay({ token }: TokenOverlayProps) {
         )}
 
         {/* Status chips */}
-        {token.statuses.length > 0 && (
+        {character.statuses.length > 0 && (
           <div style={{
             display: 'flex',
             gap: 2,
@@ -64,7 +64,7 @@ export function TokenOverlay({ token }: TokenOverlayProps) {
             justifyContent: 'center',
             maxWidth: 120,
           }}>
-            {token.statuses.slice(0, 3).map((s, i) => {
+            {character.statuses.slice(0, 3).map((s, i) => {
               const sc = statusColor(s.label)
               return (
                 <span key={i} style={{
@@ -81,7 +81,7 @@ export function TokenOverlay({ token }: TokenOverlayProps) {
                 </span>
               )
             })}
-            {token.statuses.length > 3 && (
+            {character.statuses.length > 3 && (
               <span style={{
                 fontSize: 8,
                 fontWeight: 600,
@@ -92,7 +92,7 @@ export function TokenOverlay({ token }: TokenOverlayProps) {
                 fontFamily: 'sans-serif',
                 lineHeight: 1.3,
               }}>
-                +{token.statuses.length - 3}
+                +{character.statuses.length - 3}
               </span>
             )}
           </div>

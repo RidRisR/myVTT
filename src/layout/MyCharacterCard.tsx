@@ -1,14 +1,13 @@
 import { useRef, useState } from 'react'
-import type { Seat } from '../identity/useIdentity'
+import type { Character } from '../shared/characterTypes'
 import type { Resource, Attribute, Handout } from '../shared/tokenTypes'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
 import { useHoldRepeat } from '../shared/useHoldRepeat'
 import { uploadAsset } from '../shared/assetUpload'
 
 interface MyCharacterCardProps {
-  seat: Seat
-  seatId: string
-  onUpdateSeat: (seatId: string, updates: Partial<Seat>) => void
+  character: Character
+  onUpdateCharacter: (id: string, updates: Partial<Character>) => void
 }
 
 type TabId = 'resources' | 'attributes' | 'statuses' | 'notes' | 'handouts'
@@ -87,7 +86,7 @@ function HoldButton({ label, onTick, color }: { label: string; onTick: () => voi
   )
 }
 
-export function MyCharacterCard({ seat, seatId, onUpdateSeat }: MyCharacterCardProps) {
+export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCardProps) {
   const [open, setOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('resources')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -101,11 +100,11 @@ export function MyCharacterCard({ seat, seatId, onUpdateSeat }: MyCharacterCardP
   const handoutFileRef = useRef<HTMLInputElement>(null)
   const [handoutUploading, setHandoutUploading] = useState(false)
 
-  const resources = seat.resources ?? []
-  const attributes = seat.attributes ?? []
-  const statuses = seat.statuses ?? []
-  const notes = seat.notes ?? ''
-  const handouts = seat.handouts ?? []
+  const resources = character.resources
+  const attributes = character.attributes
+  const statuses = character.statuses
+  const notes = character.notes
+  const handouts = character.handouts ?? []
 
   /* ── Portrait upload ── */
   const handlePortraitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,7 +113,7 @@ export function MyCharacterCard({ seat, seatId, onUpdateSeat }: MyCharacterCardP
     setUploading(true)
     try {
       const url = await uploadAsset(file)
-      onUpdateSeat(seatId, { portraitUrl: url })
+      onUpdateCharacter(character.id, { imageUrl: url })
     } catch (err) {
       console.error('Portrait upload failed:', err)
     } finally {
@@ -127,27 +126,27 @@ export function MyCharacterCard({ seat, seatId, onUpdateSeat }: MyCharacterCardP
   const updateResource = (index: number, updates: Partial<Resource>) => {
     const next = [...resources]
     next[index] = { ...next[index], ...updates }
-    onUpdateSeat(seatId, { resources: next })
+    onUpdateCharacter(character.id, { resources: next })
   }
   const addResource = () => {
     const color = barColorForKey(`res_${resources.length}`)
-    onUpdateSeat(seatId, { resources: [...resources, { key: '', current: 10, max: 10, color }] })
+    onUpdateCharacter(character.id, { resources: [...resources, { key: '', current: 10, max: 10, color }] })
   }
   const removeResource = (index: number) => {
-    onUpdateSeat(seatId, { resources: resources.filter((_, i) => i !== index) })
+    onUpdateCharacter(character.id, { resources: resources.filter((_, i) => i !== index) })
   }
 
   /* ── Attribute helpers ── */
   const updateAttribute = (index: number, updates: Partial<Attribute>) => {
     const next = [...attributes]
     next[index] = { ...next[index], ...updates }
-    onUpdateSeat(seatId, { attributes: next })
+    onUpdateCharacter(character.id, { attributes: next })
   }
   const addAttribute = () => {
-    onUpdateSeat(seatId, { attributes: [...attributes, { key: '', value: 10 }] })
+    onUpdateCharacter(character.id, { attributes: [...attributes, { key: '', value: 10 }] })
   }
   const removeAttribute = (index: number) => {
-    onUpdateSeat(seatId, { attributes: attributes.filter((_, i) => i !== index) })
+    onUpdateCharacter(character.id, { attributes: attributes.filter((_, i) => i !== index) })
   }
 
   /* ── Status helpers ── */
@@ -155,25 +154,25 @@ export function MyCharacterCard({ seat, seatId, onUpdateSeat }: MyCharacterCardP
     const label = statusInput.trim()
     if (!label) return
     if (statuses.some(s => s.label === label)) return
-    onUpdateSeat(seatId, { statuses: [...statuses, { label }] })
+    onUpdateCharacter(character.id, { statuses: [...statuses, { label }] })
     setStatusInput('')
   }
   const removeStatus = (index: number) => {
-    onUpdateSeat(seatId, { statuses: statuses.filter((_, i) => i !== index) })
+    onUpdateCharacter(character.id, { statuses: statuses.filter((_, i) => i !== index) })
   }
 
   /* ── Handout helpers ── */
   const addHandout = () => {
     const id = self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
-    onUpdateSeat(seatId, { handouts: [...handouts, { id, title: '', description: '' }] })
+    onUpdateCharacter(character.id, { handouts: [...handouts, { id, title: '', description: '' }] })
     setEditingHandout(id)
   }
   const updateHandout = (id: string, updates: Partial<Handout>) => {
     const next = handouts.map(h => h.id === id ? { ...h, ...updates } : h)
-    onUpdateSeat(seatId, { handouts: next })
+    onUpdateCharacter(character.id, { handouts: next })
   }
   const removeHandout = (id: string) => {
-    onUpdateSeat(seatId, { handouts: handouts.filter(h => h.id !== id) })
+    onUpdateCharacter(character.id, { handouts: handouts.filter(h => h.id !== id) })
     if (editingHandout === id) setEditingHandout(null)
   }
   const handleHandoutImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, handoutId: string) => {
@@ -341,7 +340,7 @@ export function MyCharacterCard({ seat, seatId, onUpdateSeat }: MyCharacterCardP
     <div>
       <textarea
         value={notes}
-        onChange={(e) => onUpdateSeat(seatId, { notes: e.target.value })}
+        onChange={(e) => onUpdateCharacter(character.id, { notes: e.target.value })}
         placeholder="Free-form notes..."
         rows={8}
         style={{
@@ -459,12 +458,12 @@ export function MyCharacterCard({ seat, seatId, onUpdateSeat }: MyCharacterCardP
             {/* Portrait */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
-                {seat.portraitUrl ? (
-                  <img src={seat.portraitUrl} alt={seat.name}
-                    style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${seat.color}`, boxShadow: `0 0 20px ${seat.color}33`, display: 'block' }} />
+                {character.imageUrl ? (
+                  <img src={character.imageUrl} alt={character.name}
+                    style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${character.color}`, boxShadow: `0 0 20px ${character.color}33`, display: 'block' }} />
                 ) : (
-                  <div style={{ width: 80, height: 80, borderRadius: '50%', background: `linear-gradient(135deg, ${seat.color}, ${seat.color}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 32, fontWeight: 700, boxShadow: `0 0 20px ${seat.color}33` }}>
-                    {seat.name.charAt(0).toUpperCase()}
+                  <div style={{ width: 80, height: 80, borderRadius: '50%', background: `linear-gradient(135deg, ${character.color}, ${character.color}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 32, fontWeight: 700, boxShadow: `0 0 20px ${character.color}33` }}>
+                    {character.name.charAt(0).toUpperCase()}
                   </div>
                 )}
                 {uploading && (
@@ -488,17 +487,17 @@ export function MyCharacterCard({ seat, seatId, onUpdateSeat }: MyCharacterCardP
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePortraitUpload} style={{ display: 'none' }} />
             </div>
 
-            {/* Name + Role */}
+            {/* Name + Type */}
             <div style={{ textAlign: 'center', marginBottom: 14 }}>
-              <div style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: 0.3 }}>{seat.name}</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: 0.3 }}>{character.name}</div>
               <span style={{
                 display: 'inline-block', marginTop: 4,
                 fontSize: 9, padding: '2px 8px', borderRadius: 8,
-                background: seat.role === 'GM' ? 'rgba(251,191,36,0.2)' : 'rgba(96,165,250,0.2)',
-                color: seat.role === 'GM' ? '#fbbf24' : '#60a5fa',
+                background: character.type === 'npc' ? 'rgba(251,191,36,0.2)' : 'rgba(96,165,250,0.2)',
+                color: character.type === 'npc' ? '#fbbf24' : '#60a5fa',
                 fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase',
               }}>
-                {seat.role === 'GM' ? 'Game Master' : 'Player'}
+                {character.type === 'npc' ? 'NPC' : 'Player Character'}
               </span>
             </div>
           </div>
@@ -519,7 +518,7 @@ export function MyCharacterCard({ seat, seatId, onUpdateSeat }: MyCharacterCardP
                   padding: '8px 0',
                   background: activeTab === tab.id ? 'rgba(255,255,255,0.06)' : 'transparent',
                   border: 'none',
-                  borderBottom: activeTab === tab.id ? `2px solid ${seat.color}` : '2px solid transparent',
+                  borderBottom: activeTab === tab.id ? `2px solid ${character.color}` : '2px solid transparent',
                   cursor: 'pointer',
                   color: activeTab === tab.id ? '#fff' : 'rgba(255,255,255,0.35)',
                   fontSize: 9,
@@ -568,11 +567,11 @@ export function MyCharacterCard({ seat, seatId, onUpdateSeat }: MyCharacterCardP
           onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(25, 25, 40, 0.92)' }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(15, 15, 25, 0.85)' }}
         >
-          {seat.portraitUrl ? (
-            <img src={seat.portraitUrl} alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${seat.color}` }} />
+          {character.imageUrl ? (
+            <img src={character.imageUrl} alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${character.color}` }} />
           ) : (
-              <div style={{ width: 24, height: 24, borderRadius: '50%', background: seat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 700, fontFamily: 'sans-serif' }}>
-              {seat.name.charAt(0).toUpperCase()}
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: character.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 700, fontFamily: 'sans-serif' }}>
+              {character.name.charAt(0).toUpperCase()}
             </div>
           )}
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)"
