@@ -1,21 +1,19 @@
-import React, { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import type { ChatMessage } from './chatTypes'
 import { MessageCard } from './MessageCard'
 
 interface MessageScrollAreaProps {
   messages: ChatMessage[]
   newMessageIds: Set<string>
-  onCollapse: () => void
 }
 
 export function MessageScrollArea({
   messages,
   newMessageIds,
-  onCollapse,
 }: MessageScrollAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
-  const [collapseHover, setCollapseHover] = useState(false)
+
 
   const checkIfAtBottom = () => {
     if (!scrollRef.current) return
@@ -57,8 +55,7 @@ export function MessageScrollArea({
           width: 6px;
         }
         .message-scroll::-webkit-scrollbar-track {
-          background: rgba(255,255,255,0.05);
-          border-radius: 3px;
+          background: transparent;
         }
         .message-scroll::-webkit-scrollbar-thumb {
           background: rgba(255,255,255,0.15);
@@ -74,49 +71,13 @@ export function MessageScrollArea({
           bottom: 68,
           right: 16,
           width: 420,
-          background: 'rgba(15, 15, 25, 0.88)',
-          backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 14,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           zIndex: 10000,
           display: 'flex',
           flexDirection: 'column',
+          pointerEvents: 'none',
         }}
       >
-        {/* Collapse button */}
-        <button
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            width: 28,
-            height: 28,
-            borderRadius: '50%',
-            background: collapseHover
-              ? 'rgba(255, 255, 255, 0.15)'
-              : 'rgba(255, 255, 255, 0.08)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-            color: 'rgba(255,255,255,0.6)',
-            fontSize: 14,
-            zIndex: 1,
-            transform: collapseHover ? 'scale(1.1)' : 'scale(1)',
-          }}
-          onMouseEnter={() => setCollapseHover(true)}
-          onMouseLeave={() => setCollapseHover(false)}
-          onClick={onCollapse}
-          aria-label="Collapse chat"
-          aria-expanded
-        >
-          ▼
-        </button>
-
-        {/* Scrollable message area */}
+        {/* Scrollable card list — no background wrapper */}
         <div
           ref={scrollRef}
           className="message-scroll"
@@ -126,7 +87,7 @@ export function MessageScrollArea({
             display: 'flex',
             flexDirection: 'column',
             gap: 8,
-            padding: 12,
+            pointerEvents: 'auto',
             maskImage:
               'linear-gradient(to bottom, transparent 0%, black 40px)',
             WebkitMaskImage:
@@ -134,18 +95,6 @@ export function MessageScrollArea({
           }}
           onScroll={checkIfAtBottom}
         >
-          {messages.length === 0 && (
-            <div
-              style={{
-                color: 'rgba(255,255,255,0.3)',
-                textAlign: 'center',
-                padding: 32,
-                fontSize: 13,
-              }}
-            >
-              No messages yet.
-            </div>
-          )}
           {messages.map((msg) => (
             <MessageCard
               key={msg.id}
