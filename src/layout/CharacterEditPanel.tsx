@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { Character } from '../shared/characterTypes'
 import { uploadAsset } from '../shared/assetUpload'
 import type { Resource, Attribute } from '../shared/tokenTypes'
@@ -87,7 +87,21 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
   const [statusInput, setStatusInput] = useState('')
   const [uploading, setUploading] = useState(false)
   const [draggingRes, setDraggingRes] = useState<number | null>(null)
+  const [colorPickerOpen, setColorPickerOpen] = useState<'character' | number | null>(null)
+  const colorPickerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Close color picker on click outside
+  useEffect(() => {
+    if (colorPickerOpen === null) return
+    const handler = (e: PointerEvent) => {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
+        setColorPickerOpen(null)
+      }
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [colorPickerOpen])
 
   const updateChar = (updates: Partial<Character>) => onUpdateCharacter(character.id, updates)
 
@@ -214,18 +228,34 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
       </div>
 
       {/* Color */}
-      <div>
-        <label style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4, display: 'block' }}>Color</label>
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-          {['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'].map(c => (
-            <div key={c} onClick={() => updateChar({ color: c })}
-              style={{
-                width: 22, height: 22, borderRadius: '50%', background: c, cursor: 'pointer',
-                border: c === character.color ? '2px solid #fff' : '2px solid transparent',
-                transition: 'border-color 0.15s',
-              }} />
-          ))}
+      <div ref={colorPickerOpen === 'character' ? colorPickerRef : undefined}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 0.8 }}>Color</label>
+          <div
+            onClick={() => setColorPickerOpen(colorPickerOpen === 'character' ? null : 'character')}
+            style={{
+              width: 18, height: 18, borderRadius: '50%',
+              background: character.color,
+              border: '2px solid rgba(255,255,255,0.3)',
+              cursor: 'pointer', transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)' }}
+            title="Change color"
+          />
         </div>
+        {colorPickerOpen === 'character' && (
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 6 }}>
+            {['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'].map(c => (
+              <div key={c} onClick={() => { updateChar({ color: c }); setColorPickerOpen(null) }}
+                style={{
+                  width: 22, height: 22, borderRadius: '50%', background: c, cursor: 'pointer',
+                  border: c === character.color ? '2px solid #fff' : '2px solid transparent',
+                  transition: 'border-color 0.15s',
+                }} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -262,6 +292,19 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
                 }}
                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                 style={{ ...inputStyle, width: 32, textAlign: 'center', fontSize: 11, padding: '3px 2px', fontWeight: 700 }} />
+              <div
+                onClick={() => setColorPickerOpen(colorPickerOpen === i ? null : i)}
+                style={{
+                  width: 12, height: 12, borderRadius: '50%',
+                  background: res.color,
+                  border: '2px solid rgba(255,255,255,0.25)',
+                  cursor: 'pointer', flexShrink: 0,
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
+                title="Change color"
+              />
               <button onClick={() => removeResource(i)} style={removeBtnStyle}
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444' }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)' }}
@@ -292,13 +335,15 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
               </div>
               <HoldButton label="+" onTick={() => updateResource(i, { current: Math.min(res.max, res.current + 1) })} color="#22c55e" />
             </div>
-            {/* Color picker */}
-            <div style={{ display: 'flex', gap: 3, marginTop: 5, justifyContent: 'center' }}>
-              {['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#ef4444', '#f97316'].map(c => (
-                <div key={c} onClick={() => updateResource(i, { color: c })}
-                  style={{ width: 14, height: 14, borderRadius: '50%', background: c, cursor: 'pointer', border: c === res.color ? '2px solid #fff' : '2px solid transparent', transition: 'border-color 0.15s' }} />
-              ))}
-            </div>
+            {/* Color picker — collapsed by default */}
+            {colorPickerOpen === i && (
+              <div ref={colorPickerRef} style={{ display: 'flex', gap: 3, marginTop: 5, justifyContent: 'center' }}>
+                {['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#ef4444', '#f97316'].map(c => (
+                  <div key={c} onClick={() => { updateResource(i, { color: c }); setColorPickerOpen(null) }}
+                    style={{ width: 14, height: 14, borderRadius: '50%', background: c, cursor: 'pointer', border: c === res.color ? '2px solid #fff' : '2px solid transparent', transition: 'border-color 0.15s' }} />
+                ))}
+              </div>
+            )}
           </div>
         )
       })}
