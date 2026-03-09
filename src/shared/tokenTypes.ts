@@ -8,6 +8,7 @@ export interface Resource {
 export interface Attribute {
   key: string
   value: number
+  category?: string
 }
 
 export interface Status {
