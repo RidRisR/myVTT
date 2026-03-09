@@ -8,7 +8,6 @@ interface RoomMeta {
 
 export function AdminPanel() {
   const [rooms, setRooms] = useState<RoomMeta[]>([])
-  const [newId, setNewId] = useState('')
   const [newName, setNewName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -30,22 +29,19 @@ export function AdminPanel() {
 
   const handleCreate = async () => {
     setError('')
-    const id = newId.trim()
-    const name = newName.trim() || id
-    if (!id) { setError('Room ID is required'); return }
-    if (!/^[a-zA-Z0-9_-]+$/.test(id)) { setError('ID must be URL-safe (a-z, 0-9, -, _)'); return }
+    const name = newName.trim()
+    if (!name) { setError('Room name is required'); return }
     try {
       const res = await fetch(`${apiBase}/api/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, name }),
+        body: JSON.stringify({ name }),
       })
       if (!res.ok) {
         const body = await res.json()
         setError(body.error || 'Create failed')
         return
       }
-      setNewId('')
       setNewName('')
       fetchRooms()
     } catch {
@@ -121,17 +117,10 @@ export function AdminPanel() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <input
-              value={newId}
-              onChange={(e) => setNewId(e.target.value)}
-              placeholder="Room ID (url-safe)"
-              style={{ ...inputStyle, flex: '1 1 140px', minWidth: 120 }}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
-            />
-            <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="Display name (optional)"
-              style={{ ...inputStyle, flex: '1 1 180px', minWidth: 120 }}
+              placeholder="Room name"
+              style={{ ...inputStyle, flex: '1 1 240px', minWidth: 160 }}
               onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
             />
             <button
