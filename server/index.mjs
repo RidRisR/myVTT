@@ -73,11 +73,10 @@ app.get('/api/rooms', (_req, res) => {
 })
 
 app.post('/api/rooms', (req, res) => {
-  const { id, name } = req.body
-  if (!id || !name) return res.status(400).json({ error: 'id and name required' })
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: 'id must be URL-safe (a-z, 0-9, -, _)' })
+  const { name } = req.body
+  if (!name) return res.status(400).json({ error: 'name is required' })
+  const id = crypto.randomUUID().slice(0, 8)
   const rooms = readRooms()
-  if (rooms.some(r => r.id === id)) return res.status(409).json({ error: 'Room already exists' })
   const room = { id, name, createdAt: Date.now() }
   rooms.push(room)
   writeRooms(rooms)
