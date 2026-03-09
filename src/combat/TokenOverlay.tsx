@@ -1,15 +1,20 @@
 import { KeepScale } from 'react-zoom-pan-pinch'
-import type { Character } from '../shared/characterTypes'
+import type { Entity } from '../shared/entityTypes'
+import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
 
 interface TokenOverlayProps {
-  character: Character
+  entity: Entity | null
+  name: string
 }
 
-export function TokenOverlay({ character }: TokenOverlayProps) {
-  const mainResource = character.resources[0]
+export function TokenOverlay({ entity, name }: TokenOverlayProps) {
+  const resources = getEntityResources(entity)
+  const mainResource = resources[0]
   const hasHp = mainResource && mainResource.max > 0
   const hpPct = hasHp ? Math.min(mainResource.current / mainResource.max, 1) : 0
+
+  const statuses = getEntityStatuses(entity)
 
   return (
     <KeepScale>
@@ -33,7 +38,7 @@ export function TokenOverlay({ character }: TokenOverlayProps) {
           overflow: 'hidden',
           textOverflow: 'ellipsis',
         }}>
-          {character.name}
+          {name}
         </div>
 
         {/* HP bar */}
@@ -56,7 +61,7 @@ export function TokenOverlay({ character }: TokenOverlayProps) {
         )}
 
         {/* Status chips */}
-        {character.statuses.length > 0 && (
+        {statuses.length > 0 && (
           <div style={{
             display: 'flex',
             gap: 2,
@@ -64,7 +69,7 @@ export function TokenOverlay({ character }: TokenOverlayProps) {
             justifyContent: 'center',
             maxWidth: 120,
           }}>
-            {character.statuses.slice(0, 3).map((s, i) => {
+            {statuses.slice(0, 3).map((s, i) => {
               const sc = statusColor(s.label)
               return (
                 <span key={i} style={{
@@ -81,7 +86,7 @@ export function TokenOverlay({ character }: TokenOverlayProps) {
                 </span>
               )
             })}
-            {character.statuses.length > 3 && (
+            {statuses.length > 3 && (
               <span style={{
                 fontSize: 8,
                 fontWeight: 600,
@@ -92,7 +97,7 @@ export function TokenOverlay({ character }: TokenOverlayProps) {
                 fontFamily: 'sans-serif',
                 lineHeight: 1.3,
               }}>
-                +{character.statuses.length - 3}
+                +{statuses.length - 3}
               </span>
             )}
           </div>
