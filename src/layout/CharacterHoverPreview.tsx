@@ -1,22 +1,23 @@
 import { useState } from 'react'
-import type { Character } from '../shared/characterTypes'
-import type { Resource } from '../shared/tokenTypes'
+import type { Entity } from '../shared/entityTypes'
+import { getEntityResources, getEntityAttributes, getEntityStatuses, type ResourceView } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../shared/ui/ResourceBar'
 
 interface CharacterHoverPreviewProps {
-  character: Character
+  character: Entity
   isOnline: boolean
   editable?: boolean
-  onUpdateCharacter?: (id: string, updates: Partial<Character>) => void
+  onUpdateCharacter?: (id: string, updates: Partial<Entity>) => void
 }
 
 type Tab = 'stats' | 'attr'
 
 export function CharacterHoverPreview({ character, isOnline, editable, onUpdateCharacter }: CharacterHoverPreviewProps) {
-  const resources = character.resources.filter(r => r.max > 0)
-  const attributes = character.attributes
-  const statuses = character.statuses
+  const allResources = getEntityResources(character)
+  const resources = allResources.filter(r => r.max > 0)
+  const attributes = getEntityAttributes(character)
+  const statuses = getEntityStatuses(character)
   const [activeTab, setActiveTab] = useState<Tab>('stats')
   const [editingStatusIdx, setEditingStatusIdx] = useState<number | null>(null)
   const [editingStatusLabel, setEditingStatusLabel] = useState('')
@@ -28,20 +29,25 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
   const hasAttr = attributes.length > 0
   const showTabs = hasStats && hasAttr
 
-  const updateResource = (index: number, updates: Partial<Resource>) => {
+  /** Wrap a ruleData sub-key update into a Partial<Entity> */
+  function updateRuleData(key: string, value: unknown): Partial<Entity> {
+    const rd = (character.ruleData ?? {}) as Record<string, unknown>
+    return { ruleData: { ...rd, [key]: value } }
+  }
+
+  const updateResource = (index: number, updates: Partial<ResourceView>) => {
     if (!onUpdateCharacter) return
-    const allRes = character.resources
-    const visibleIndex = allRes.indexOf(resources[index])
+    const visibleIndex = allResources.indexOf(resources[index])
     if (visibleIndex < 0) return
-    const next = [...allRes]
+    const next = [...allResources]
     next[visibleIndex] = { ...next[visibleIndex], ...updates }
-    onUpdateCharacter(character.id, { resources: next })
+    onUpdateCharacter(character.id, updateRuleData('resources', next))
   }
 
   const removeStatus = (index: number) => {
     if (!onUpdateCharacter) return
     const next = statuses.filter((_, i) => i !== index)
-    onUpdateCharacter(character.id, { statuses: next })
+    onUpdateCharacter(character.id, updateRuleData('statuses', next))
   }
 
   const commitStatusEdit = (index: number, label: string) => {
@@ -50,7 +56,7 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
     if (trimmed && trimmed !== statuses[index].label) {
       const next = [...statuses]
       next[index] = { label: trimmed }
-      onUpdateCharacter(character.id, { statuses: next })
+      onUpdateCharacter(character.id, updateRuleData('statuses', next))
     }
     setEditingStatusIdx(null)
   }
@@ -59,7 +65,7 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
     if (!onUpdateCharacter) return
     const trimmed = label.trim()
     if (trimmed) {
-      onUpdateCharacter(character.id, { statuses: [...statuses, { label: trimmed }] })
+      onUpdateCharacter(character.id, updateRuleData('statuses', [...statuses, { label: trimmed }]))
     }
     setNewStatusLabel('')
     setAddingStatus(false)
@@ -99,13 +105,6 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
         <span style={{ fontWeight: 700, fontSize: 14, color: '#fff', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {character.name}
         </span>
-        {character.type === 'npc' && (
-          <span style={{
-            fontSize: 9, padding: '1px 6px', borderRadius: 6,
-            background: 'rgba(251,191,36,0.2)', color: '#fbbf24',
-            fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', flexShrink: 0,
-          }}>NPC</span>
-        )}
         {isOnline && (
           <span style={{
             width: 7, height: 7, borderRadius: '50%',

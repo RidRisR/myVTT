@@ -1,18 +1,19 @@
-import type { Character } from '../shared/characterTypes'
+import type { Entity } from '../shared/entityTypes'
+import { getEntityResources, getEntityAttributes, getEntityStatuses } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
 
 interface CharacterDetailPanelProps {
-  character: Character
+  character: Entity
   isOnline: boolean
   onClose: () => void
 }
 
 export function CharacterDetailPanel({ character, isOnline, onClose }: CharacterDetailPanelProps) {
-  const resources = character.resources
-  const attributes = character.attributes
-  const statuses = character.statuses
+  const resources = getEntityResources(character)
+  const attributes = getEntityAttributes(character)
+  const statuses = getEntityStatuses(character)
   const notes = character.notes
-  const handouts = character.handouts ?? []
+  const handouts = ((character as any).handouts ?? []) as { id: string; title?: string; description?: string; imageUrl?: string }[]
 
   const hasContent = resources.length > 0 || attributes.length > 0 || statuses.length > 0 || notes || handouts.length > 0
 
@@ -90,7 +91,7 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
         )}
       </div>
 
-      {/* Name + Role + Online */}
+      {/* Name + Online */}
       <div style={{ textAlign: 'center', marginBottom: 20 }}>
         <div style={{
           fontWeight: 700, fontSize: 18, color: '#fff',
@@ -112,15 +113,6 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
             </span>
           )}
         </div>
-        <span style={{
-          display: 'inline-block', marginTop: 6,
-          fontSize: 10, padding: '3px 10px', borderRadius: 10,
-          background: character.type === 'pc' ? 'rgba(96,165,250,0.2)' : 'rgba(251,191,36,0.2)',
-          color: character.type === 'pc' ? '#60a5fa' : '#fbbf24',
-          fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase',
-        }}>
-          {character.type === 'pc' ? 'Player' : 'NPC'}
-        </span>
       </div>
 
       {hasContent && (
