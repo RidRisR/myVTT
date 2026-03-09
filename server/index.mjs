@@ -52,6 +52,55 @@ app.use((req, res, next) => {
   next()
 })
 
+// JSON body parsing
+app.use(express.json())
+
+// Room metadata storage
+const ROOMS_FILE = path.join(PERSISTENCE_DIR, 'rooms.json')
+
+function readRooms() {
+  if (!fs.existsSync(ROOMS_FILE)) return []
+  return JSON.parse(fs.readFileSync(ROOMS_FILE, 'utf-8'))
+}
+
+function writeRooms(rooms) {
+  fs.writeFileSync(ROOMS_FILE, JSON.stringify(rooms, null, 2))
+}
+
+// Room management API
+app.get('/api/rooms', (_req, res) => {
+  res.json(readRooms())
+})
+
+app.post('/api/rooms', (req, res) => {
+  const { id, name } = req.body
+  if (!id || !name) return res.status(400).json({ error: 'id and name required' })
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return res.status(400).json({ error: 'id must be URL-safe (a-z, 0-9, -, _)' })
+  const rooms = readRooms()
+  if (rooms.some(r => r.id === id)) return res.status(409).json({ error: 'Room already exists' })
+  const room = { id, name, createdAt: Date.now() }
+  rooms.push(room)
+  writeRooms(rooms)
+  console.log(`Room created: ${id} ("${name}")`)
+  res.status(201).json(room)
+})
+
+app.delete('/api/rooms/:id', async (req, res) => {
+  const roomId = req.params.id
+  const rooms = readRooms()
+  const idx = rooms.findIndex(r => r.id === roomId)
+  if (idx === -1) return res.status(404).json({ error: 'Room not found' })
+  rooms.splice(idx, 1)
+  writeRooms(rooms)
+  try {
+    await ldb.clearDocument(roomId)
+  } catch (e) {
+    console.warn(`Could not clear LevelDB for ${roomId}:`, e.message)
+  }
+  console.log(`Room deleted: ${roomId}`)
+  res.json({ ok: true })
+})
+
 // Static file serving for uploads
 app.use('/uploads', express.static(UPLOADS_DIR, {
   maxAge: '1y',
