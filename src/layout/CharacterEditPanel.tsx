@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
-import type { Character } from '../shared/characterTypes'
+import type { Entity } from '../shared/entityTypes'
 import { uploadAsset } from '../shared/assetUpload'
-import type { Resource, Attribute } from '../shared/tokenTypes'
+import { getEntityResources, getEntityAttributes, getEntityStatuses, type ResourceView, type AttributeView } from '../shared/entityAdapters'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../shared/ui/ResourceBar'
 import { MiniHoldButton } from '../shared/ui/MiniHoldButton'
 
 interface CharacterEditPanelProps {
-  character: Character
-  onUpdateCharacter: (id: string, updates: Partial<Character>) => void
+  character: Entity
+  onUpdateCharacter: (id: string, updates: Partial<Entity>) => void
   onClose: () => void
 }
 
@@ -79,44 +79,54 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
     return () => document.removeEventListener('pointerdown', handler)
   }, [colorPickerOpen])
 
-  const updateChar = (updates: Partial<Character>) => onUpdateCharacter(character.id, updates)
+  const updateChar = (updates: Partial<Entity>) => onUpdateCharacter(character.id, updates)
+
+  /** Wrap a ruleData sub-key update into a Partial<Entity> */
+  function updateRuleData(key: string, value: unknown): Partial<Entity> {
+    const rd = (character.ruleData ?? {}) as Record<string, unknown>
+    return { ruleData: { ...rd, [key]: value } }
+  }
+
+  const resources = getEntityResources(character)
+  const attributes = getEntityAttributes(character)
+  const statuses = getEntityStatuses(character)
 
   /* ── Resource helpers ── */
-  const updateResource = (index: number, updates: Partial<Resource>) => {
-    const next = [...character.resources]
+  const updateResource = (index: number, updates: Partial<ResourceView>) => {
+    const next = [...resources]
     next[index] = { ...next[index], ...updates }
-    updateChar({ resources: next })
+    updateChar(updateRuleData('resources', next))
   }
   const addResource = () => {
-    const color = barColorForKey(`res_${character.resources.length}`)
-    updateChar({ resources: [...character.resources, { key: '', current: 10, max: 10, color }] })
+    const color = barColorForKey(`res_${resources.length}`)
+    updateChar(updateRuleData('resources', [...resources, { key: '', current: 10, max: 10, color }]))
   }
   const removeResource = (index: number) => {
-    updateChar({ resources: character.resources.filter((_, i) => i !== index) })
+    updateChar(updateRuleData('resources', resources.filter((_, i) => i !== index)))
   }
 
   /* ── Attribute helpers ── */
-  const updateAttribute = (index: number, updates: Partial<Attribute>) => {
-    const next = [...character.attributes]
+  const updateAttribute = (index: number, updates: Partial<AttributeView>) => {
+    const next = [...attributes]
     next[index] = { ...next[index], ...updates }
-    updateChar({ attributes: next })
+    updateChar(updateRuleData('attributes', next))
   }
   const addAttribute = () => {
-    updateChar({ attributes: [...character.attributes, { key: '', value: 10 }] })
+    updateChar(updateRuleData('attributes', [...attributes, { key: '', value: 10 }]))
   }
   const removeAttribute = (index: number) => {
-    updateChar({ attributes: character.attributes.filter((_, i) => i !== index) })
+    updateChar(updateRuleData('attributes', attributes.filter((_, i) => i !== index)))
   }
 
   /* ── Status helpers ── */
   const addStatus = () => {
     const label = statusInput.trim()
-    if (!label || character.statuses.some(s => s.label === label)) return
-    updateChar({ statuses: [...character.statuses, { label }] })
+    if (!label || statuses.some(s => s.label === label)) return
+    updateChar(updateRuleData('statuses', [...statuses, { label }]))
     setStatusInput('')
   }
   const removeStatus = (index: number) => {
-    updateChar({ statuses: character.statuses.filter((_, i) => i !== index) })
+    updateChar(updateRuleData('statuses', statuses.filter((_, i) => i !== index)))
   }
 
 
@@ -217,7 +227,7 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
 
   const renderResources = () => (
     <div>
-      {character.resources.map((res, i) => {
+      {resources.map((res, i) => {
         return (
           <div key={i} style={{ marginBottom: 10 }}>
             {/* Header: name + current/max inputs + remove */}
@@ -295,7 +305,7 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
 
   const renderAttributes = () => (
     <div>
-      {character.attributes.map((attr, i) => (
+      {attributes.map((attr, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
           <input value={attr.key} onChange={(e) => updateAttribute(i, { key: e.target.value })}
             placeholder="Name" style={{ ...inputStyle, flex: 1, fontSize: 12, padding: '5px 8px', fontWeight: 600 }} />
@@ -320,7 +330,7 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
   const renderStatuses = () => (
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-        {character.statuses.map((s, i) => {
+        {statuses.map((s, i) => {
           const sc = statusColor(s.label)
           return (
             <span key={i} style={{
@@ -338,7 +348,7 @@ export function CharacterEditPanel({ character, onUpdateCharacter, onClose }: Ch
             </span>
           )
         })}
-        {character.statuses.length === 0 && (
+        {statuses.length === 0 && (
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>No active statuses</span>
         )}
       </div>

@@ -1,24 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Character } from '../shared/characterTypes'
-import type { Resource, Attribute, Handout } from '../shared/tokenTypes'
+import type { Entity } from '../shared/entityTypes'
+import { getEntityResources, getEntityAttributes, getEntityStatuses, type ResourceView, type AttributeView } from '../shared/entityAdapters'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
 import { uploadAsset } from '../shared/assetUpload'
 import { ResourceBar } from '../shared/ui/ResourceBar'
 import { MiniHoldButton } from '../shared/ui/MiniHoldButton'
 
 interface MyCharacterCardProps {
-  character: Character
-  onUpdateCharacter: (id: string, updates: Partial<Character>) => void
+  entity: Entity
+  onUpdateEntity: (id: string, updates: Partial<Entity>) => void
 }
 
-type TabId = 'resources' | 'attributes' | 'statuses' | 'notes' | 'handouts'
+type TabId = 'resources' | 'attributes' | 'statuses' | 'notes'
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'resources', label: 'RES' },
   { id: 'attributes', label: 'ATTR' },
   { id: 'statuses', label: 'STATUS' },
   { id: 'notes', label: 'NOTES' },
-  { id: 'handouts', label: 'CARDS' },
 ]
 
 /* ── reusable styles ── */
@@ -58,18 +57,24 @@ const removeBtnStyle: React.CSSProperties = {
   flexShrink: 0,
 }
 
-export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCardProps) {
+// Helper to update ruleData sub-field
+function updateRuleData(entity: Entity, key: string, value: unknown): Partial<Entity> {
+  const rd = (entity.ruleData ?? {}) as Record<string, unknown>
+  return { ruleData: { ...rd, [key]: value } }
+}
+
+export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps) {
   const [open, setOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('resources')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [editingName, setEditingName] = useState(false)
-  const [editName, setEditName] = useState(character.name)
+  const [editName, setEditName] = useState(entity.name)
   const [colorPickerOpen, setColorPickerOpen] = useState<number | null>(null)
   const colorPickerRef = useRef<HTMLDivElement>(null)
 
-  // Sync editName when character name changes externally
-  useEffect(() => { setEditName(character.name) }, [character.name])
+  // Sync editName when entity name changes externally
+  useEffect(() => { setEditName(entity.name) }, [entity.name])
 
   // Close color picker on click outside
   useEffect(() => {
@@ -85,8 +90,8 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
 
   const handleSaveName = () => {
     const trimmed = editName.trim()
-    if (trimmed && trimmed !== character.name) {
-      onUpdateCharacter(character.id, { name: trimmed })
+    if (trimmed && trimmed !== entity.name) {
+      onUpdateEntity(entity.id, { name: trimmed })
     }
     setEditingName(false)
   }
@@ -94,16 +99,10 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
   // Status add input
   const [statusInput, setStatusInput] = useState('')
 
-  // Handout editor
-  const [editingHandout, setEditingHandout] = useState<string | null>(null)
-  const handoutFileRef = useRef<HTMLInputElement>(null)
-  const [handoutUploading, setHandoutUploading] = useState(false)
-
-  const resources = character.resources
-  const attributes = character.attributes
-  const statuses = character.statuses
-  const notes = character.notes
-  const handouts = character.handouts ?? []
+  const resources = getEntityResources(entity)
+  const attributes = getEntityAttributes(entity)
+  const statuses = getEntityStatuses(entity)
+  const notes = entity.notes
 
   /* ── Portrait upload ── */
   const handlePortraitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,7 +111,7 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
     setUploading(true)
     try {
       const url = await uploadAsset(file)
-      onUpdateCharacter(character.id, { imageUrl: url })
+      onUpdateEntity(entity.id, { imageUrl: url })
     } catch (err) {
       console.error('Portrait upload failed:', err)
     } finally {
@@ -122,30 +121,32 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
   }
 
   /* ── Resource helpers ── */
-  const updateResource = (index: number, updates: Partial<Resource>) => {
+  const updateResource = (index: number, updates: Partial<ResourceView>) => {
     const next = [...resources]
     next[index] = { ...next[index], ...updates }
-    onUpdateCharacter(character.id, { resources: next })
+    onUpdateEntity(entity.id, updateRuleData(entity, 'resources', next))
   }
   const addResource = () => {
     const color = barColorForKey(`res_${resources.length}`)
-    onUpdateCharacter(character.id, { resources: [...resources, { key: '', current: 10, max: 10, color }] })
+    const next = [...resources, { key: '', current: 10, max: 10, color }]
+    onUpdateEntity(entity.id, updateRuleData(entity, 'resources', next))
   }
   const removeResource = (index: number) => {
-    onUpdateCharacter(character.id, { resources: resources.filter((_, i) => i !== index) })
+    onUpdateEntity(entity.id, updateRuleData(entity, 'resources', resources.filter((_, i) => i !== index)))
   }
 
   /* ── Attribute helpers ── */
-  const updateAttribute = (index: number, updates: Partial<Attribute>) => {
+  const updateAttribute = (index: number, updates: Partial<AttributeView>) => {
     const next = [...attributes]
     next[index] = { ...next[index], ...updates }
-    onUpdateCharacter(character.id, { attributes: next })
+    onUpdateEntity(entity.id, updateRuleData(entity, 'attributes', next))
   }
   const addAttribute = () => {
-    onUpdateCharacter(character.id, { attributes: [...attributes, { key: '', value: 10 }] })
+    const next = [...attributes, { key: '', value: 10 }]
+    onUpdateEntity(entity.id, updateRuleData(entity, 'attributes', next))
   }
   const removeAttribute = (index: number) => {
-    onUpdateCharacter(character.id, { attributes: attributes.filter((_, i) => i !== index) })
+    onUpdateEntity(entity.id, updateRuleData(entity, 'attributes', attributes.filter((_, i) => i !== index)))
   }
 
   /* ── Status helpers ── */
@@ -153,40 +154,11 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
     const label = statusInput.trim()
     if (!label) return
     if (statuses.some(s => s.label === label)) return
-    onUpdateCharacter(character.id, { statuses: [...statuses, { label }] })
+    onUpdateEntity(entity.id, updateRuleData(entity, 'statuses', [...statuses, { label }]))
     setStatusInput('')
   }
   const removeStatus = (index: number) => {
-    onUpdateCharacter(character.id, { statuses: statuses.filter((_, i) => i !== index) })
-  }
-
-  /* ── Handout helpers ── */
-  const addHandout = () => {
-    const id = self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
-    onUpdateCharacter(character.id, { handouts: [...handouts, { id, title: '', description: '' }] })
-    setEditingHandout(id)
-  }
-  const updateHandout = (id: string, updates: Partial<Handout>) => {
-    const next = handouts.map(h => h.id === id ? { ...h, ...updates } : h)
-    onUpdateCharacter(character.id, { handouts: next })
-  }
-  const removeHandout = (id: string) => {
-    onUpdateCharacter(character.id, { handouts: handouts.filter(h => h.id !== id) })
-    if (editingHandout === id) setEditingHandout(null)
-  }
-  const handleHandoutImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, handoutId: string) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setHandoutUploading(true)
-    try {
-      const url = await uploadAsset(file)
-      updateHandout(handoutId, { imageUrl: url })
-    } catch (err) {
-      console.error('Handout image upload failed:', err)
-    } finally {
-      setHandoutUploading(false)
-      if (handoutFileRef.current) handoutFileRef.current.value = ''
-    }
+    onUpdateEntity(entity.id, updateRuleData(entity, 'statuses', statuses.filter((_, i) => i !== index)))
   }
 
   /* ── Tab content renderers ── */
@@ -357,7 +329,7 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
     <div>
       <textarea
         value={notes}
-        onChange={(e) => onUpdateCharacter(character.id, { notes: e.target.value })}
+        onChange={(e) => onUpdateEntity(entity.id, { notes: e.target.value })}
         placeholder="Free-form notes..."
         rows={8}
         style={{
@@ -370,76 +342,11 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
     </div>
   )
 
-  const renderHandouts = () => (
-    <div>
-      {handouts.map((h) => {
-        const isEditing = editingHandout === h.id
-        return (
-          <div key={h.id} style={{
-            marginBottom: 8, padding: '10px 12px', borderRadius: 10,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.06)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: isEditing ? 10 : 0 }}>
-              {h.imageUrl && (
-                <img src={h.imageUrl} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
-              )}
-              <span
-                style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#e4e4e7', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                onClick={() => setEditingHandout(isEditing ? null : h.id)}
-              >
-                {h.title || 'Untitled'}
-              </span>
-              <button onClick={() => removeHandout(h.id)} style={removeBtnStyle}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)' }}
-              >×</button>
-            </div>
-            {isEditing && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <input value={h.title} onChange={(e) => updateHandout(h.id, { title: e.target.value })}
-                  placeholder="Title" style={{ ...inputStyle, fontSize: 13, fontWeight: 600 }} />
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  {h.imageUrl ? (
-                    <img src={h.imageUrl} alt="" style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover', cursor: 'pointer' }}
-                      onClick={() => handoutFileRef.current?.click()} />
-                  ) : (
-                    <button onClick={() => handoutFileRef.current?.click()}
-                      style={{
-                        width: 56, height: 56, borderRadius: 8,
-                        background: 'rgba(255,255,255,0.06)', border: '1px dashed rgba(255,255,255,0.15)',
-                        cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 20,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}
-                    >{handoutUploading ? '...' : '+'}</button>
-                  )}
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-                    {h.imageUrl ? 'Click to change' : 'Add image'}
-                  </span>
-                </div>
-                <input ref={handoutFileRef} type="file" accept="image/*"
-                  onChange={(e) => handleHandoutImageUpload(e, h.id)} style={{ display: 'none' }} />
-                <textarea value={h.description} onChange={(e) => updateHandout(h.id, { description: e.target.value })}
-                  placeholder="Description..." rows={4}
-                  style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.5 }} />
-              </div>
-            )}
-          </div>
-        )
-      })}
-      <button onClick={addHandout} style={addBtnStyle}
-        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}
-      >+ Add handout</button>
-    </div>
-  )
-
   const tabContent: Record<TabId, () => React.ReactNode> = {
     resources: renderResources,
     attributes: renderAttributes,
     statuses: renderStatuses,
     notes: renderNotes,
-    handouts: renderHandouts,
   }
 
   return (
@@ -475,12 +382,12 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
             {/* Portrait */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
-                {character.imageUrl ? (
-                  <img src={character.imageUrl} alt={character.name}
-                    style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${character.color}`, boxShadow: `0 0 20px ${character.color}33`, display: 'block' }} />
+                {entity.imageUrl ? (
+                  <img src={entity.imageUrl} alt={entity.name}
+                    style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${entity.color}`, boxShadow: `0 0 20px ${entity.color}33`, display: 'block' }} />
                 ) : (
-                  <div style={{ width: 80, height: 80, borderRadius: '50%', background: `linear-gradient(135deg, ${character.color}, ${character.color}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 32, fontWeight: 700, boxShadow: `0 0 20px ${character.color}33` }}>
-                    {character.name.charAt(0).toUpperCase()}
+                  <div style={{ width: 80, height: 80, borderRadius: '50%', background: `linear-gradient(135deg, ${entity.color}, ${entity.color}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 32, fontWeight: 700, boxShadow: `0 0 20px ${entity.color}33` }}>
+                    {entity.name.charAt(0).toUpperCase()}
                   </div>
                 )}
                 {uploading && (
@@ -504,7 +411,7 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePortraitUpload} style={{ display: 'none' }} />
             </div>
 
-            {/* Name + Type */}
+            {/* Name */}
             <div style={{ textAlign: 'center', marginBottom: 14 }}>
               {editingName ? (
                 <input
@@ -514,7 +421,7 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
                   onBlur={handleSaveName}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveName()
-                    if (e.key === 'Escape') { setEditingName(false); setEditName(character.name) }
+                    if (e.key === 'Escape') { setEditingName(false); setEditName(entity.name) }
                   }}
                   style={{
                     width: '80%',
@@ -538,18 +445,9 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
                   style={{ fontWeight: 700, fontSize: 16, color: '#fff', letterSpacing: 0.3, cursor: 'text' }}
                   title="Click to rename"
                 >
-                  {character.name}
+                  {entity.name}
                 </div>
               )}
-              <span style={{
-                display: 'inline-block', marginTop: 4,
-                fontSize: 9, padding: '2px 8px', borderRadius: 8,
-                background: character.type === 'npc' ? 'rgba(251,191,36,0.2)' : 'rgba(96,165,250,0.2)',
-                color: character.type === 'npc' ? '#fbbf24' : '#60a5fa',
-                fontWeight: 600, letterSpacing: 0.8, textTransform: 'uppercase',
-              }}>
-                {character.type === 'npc' ? 'NPC' : 'Player Character'}
-              </span>
             </div>
           </div>
 
@@ -569,7 +467,7 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
                   padding: '8px 0',
                   background: activeTab === tab.id ? 'rgba(255,255,255,0.06)' : 'transparent',
                   border: 'none',
-                  borderBottom: activeTab === tab.id ? `2px solid ${character.color}` : '2px solid transparent',
+                  borderBottom: activeTab === tab.id ? `2px solid ${entity.color}` : '2px solid transparent',
                   cursor: 'pointer',
                   color: activeTab === tab.id ? '#fff' : 'rgba(255,255,255,0.35)',
                   fontSize: 9,
@@ -618,11 +516,11 @@ export function MyCharacterCard({ character, onUpdateCharacter }: MyCharacterCar
           onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(25, 25, 40, 0.92)' }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(15, 15, 25, 0.85)' }}
         >
-          {character.imageUrl ? (
-            <img src={character.imageUrl} alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${character.color}` }} />
+          {entity.imageUrl ? (
+            <img src={entity.imageUrl} alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${entity.color}` }} />
           ) : (
-              <div style={{ width: 24, height: 24, borderRadius: '50%', background: character.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 700, fontFamily: 'sans-serif' }}>
-              {character.name.charAt(0).toUpperCase()}
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: entity.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 700, fontFamily: 'sans-serif' }}>
+              {entity.name.charAt(0).toUpperCase()}
             </div>
           )}
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)"
