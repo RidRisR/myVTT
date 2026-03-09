@@ -105,11 +105,7 @@ export function ToastStack({ toastQueue, onRemove }: ToastStackProps) {
                 transition: 'opacity 0.15s ease-out, transform 0.3s ease-out',
               }}
             >
-              <MessageCard
-                message={item.message}
-                isNew={isNew}
-                animationStyle="toast"
-              />
+              <MessageCard message={item.message} isNew={isNew} animationStyle="toast" />
             </div>
           )
         })}

@@ -11,9 +11,16 @@ export function barColorForKey(key: string): string {
 }
 
 const STATUS_COLORS = [
-  '#dc2626', '#ea580c', '#d97706', '#65a30d',
-  '#059669', '#0891b2', '#2563eb', '#7c3aed',
-  '#c026d3', '#e11d48',
+  '#dc2626',
+  '#ea580c',
+  '#d97706',
+  '#65a30d',
+  '#059669',
+  '#0891b2',
+  '#2563eb',
+  '#7c3aed',
+  '#c026d3',
+  '#e11d48',
 ]
 
 export function statusColor(label: string): string {

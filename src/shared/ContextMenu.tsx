@@ -48,7 +48,10 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
       {items.map((item, i) => (
         <button
           key={i}
-          onClick={() => { item.onClick(); onClose() }}
+          onClick={() => {
+            item.onClick()
+            onClose()
+          }}
           disabled={item.disabled}
           style={{
             display: 'block',
@@ -57,7 +60,9 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
             background: 'transparent',
             border: 'none',
             cursor: item.disabled ? 'default' : 'pointer',
-            color: item.disabled ? 'rgba(255,255,255,0.2)' : (item.color ?? 'rgba(255,255,255,0.85)'),
+            color: item.disabled
+              ? 'rgba(255,255,255,0.2)'
+              : (item.color ?? 'rgba(255,255,255,0.85)'),
             fontSize: 12,
             fontWeight: 500,
             textAlign: 'left',

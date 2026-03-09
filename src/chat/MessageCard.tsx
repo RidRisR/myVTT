@@ -59,8 +59,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           background: 'rgba(30, 35, 48, 0.85)',
           backdropFilter: 'blur(20px)',
           border: '1px solid rgba(100, 116, 139, 0.3)',
-          boxShadow:
-            '0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
           borderRadius: 10,
           animation,
         }}
@@ -104,8 +103,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 41, 59, 0.92) 100%)',
         backdropFilter: 'blur(20px)',
         border: '1px solid rgba(59, 130, 246, 0.4)',
-        boxShadow:
-          '0 4px 16px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(96, 165, 250, 0.1)',
+        boxShadow: '0 4px 16px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(96, 165, 250, 0.1)',
         borderRadius: 12,
         animation,
       }}
@@ -152,7 +150,10 @@ export const MessageCard: React.FC<MessageCardProps> = ({
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>
               .r {message.expression}
               {message.resolvedExpression && (
-                <span style={{ color: 'rgba(255,255,255,0.3)' }}> ({message.resolvedExpression})</span>
+                <span style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  {' '}
+                  ({message.resolvedExpression})
+                </span>
               )}
             </span>
           </div>

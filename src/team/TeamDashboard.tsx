@@ -10,9 +10,7 @@ interface TeamDashboardProps {
 
 type TabId = 'metrics'
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'metrics', label: 'Metrics' },
-]
+const TABS: { id: TabId; label: string }[] = [{ id: 'metrics', label: 'Metrics' }]
 
 export function TeamDashboard({ yDoc, isGM }: TeamDashboardProps) {
   const { trackers, addTracker, updateTracker, deleteTracker } = useTeamMetrics(yDoc)
@@ -36,22 +34,26 @@ export function TeamDashboard({ yDoc, isGM }: TeamDashboardProps) {
       onPointerDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
     >
-      <div style={{
-        background: 'rgba(15, 15, 25, 0.92)',
-        backdropFilter: 'blur(16px)',
-        borderRadius: 12,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        overflow: 'hidden',
-        color: '#e4e4e7',
-      }}>
+      <div
+        style={{
+          background: 'rgba(15, 15, 25, 0.92)',
+          backdropFilter: 'blur(16px)',
+          borderRadius: 12,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          overflow: 'hidden',
+          color: '#e4e4e7',
+        }}
+      >
         {/* Tab bar + expand/collapse (only when expanded) */}
         {expanded && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'stretch',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'stretch',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
             <div style={{ display: 'flex', flex: 1 }}>
               {TABS.map((tab) => (
                 <button
@@ -62,7 +64,8 @@ export function TeamDashboard({ yDoc, isGM }: TeamDashboardProps) {
                     padding: '10px 16px',
                     background: 'transparent',
                     border: 'none',
-                    borderBottom: activeTab === tab.id ? '2px solid #3b82f6' : '2px solid transparent',
+                    borderBottom:
+                      activeTab === tab.id ? '2px solid #3b82f6' : '2px solid transparent',
                     cursor: 'pointer',
                     color: activeTab === tab.id ? '#fff' : 'rgba(255,255,255,0.4)',
                     fontSize: 9,

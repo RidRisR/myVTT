@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import * as Y from 'yjs'
 import type { ShowcaseItem } from './showcaseTypes'
 
@@ -14,8 +14,10 @@ export function useShowcase(yDoc: Y.Doc) {
   const yRoom = yDoc.getMap<unknown>('room')
   const [items, setItems] = useState<ShowcaseItem[]>(() => readItems(yShowcase))
   const [newItemId, setNewItemId] = useState<string | null>(null)
-  const [pinnedItemId, setPinnedItemId] = useState<string | null>(() => (yRoom.get('pinnedShowcaseId') as string) ?? null)
-  const prevIdsRef = useRef<Set<string>>(new Set(items.map(i => i.id)))
+  const [pinnedItemId, setPinnedItemId] = useState<string | null>(
+    () => (yRoom.get('pinnedShowcaseId') as string) ?? null,
+  )
+  const prevIdsRef = useRef<Set<string>>(new Set(items.map((i) => i.id)))
 
   useEffect(() => {
     const observer = () => {
@@ -23,7 +25,7 @@ export function useShowcase(yDoc: Y.Doc) {
       setItems(nextItems)
 
       // Detect newly added item
-      const nextIds = new Set(nextItems.map(i => i.id))
+      const nextIds = new Set(nextItems.map((i) => i.id))
       for (const id of nextIds) {
         if (!prevIdsRef.current.has(id)) {
           setNewItemId(id)
@@ -33,7 +35,7 @@ export function useShowcase(yDoc: Y.Doc) {
       prevIdsRef.current = nextIds
     }
     setItems(readItems(yShowcase))
-    prevIdsRef.current = new Set(readItems(yShowcase).map(i => i.id))
+    prevIdsRef.current = new Set(readItems(yShowcase).map((i) => i.id))
     yShowcase.observe(observer)
     return () => yShowcase.unobserve(observer)
   }, [yShowcase])
@@ -81,7 +83,18 @@ export function useShowcase(yDoc: Y.Doc) {
     yRoom.delete('pinnedShowcaseId')
   }
 
-  const clearNewItemId = () => setNewItemId(null)
+  const clearNewItemId = useCallback(() => setNewItemId(null), [])
 
-  return { items, addItem, updateItem, deleteItem, clearAll, newItemId, clearNewItemId, pinnedItemId, pinItem, unpinItem }
+  return {
+    items,
+    addItem,
+    updateItem,
+    deleteItem,
+    clearAll,
+    newItemId,
+    clearNewItemId,
+    pinnedItemId,
+    pinItem,
+    unpinItem,
+  }
 }

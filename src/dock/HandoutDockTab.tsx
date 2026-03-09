@@ -37,12 +37,20 @@ export function HandoutDockTab({
 
   return (
     <div>
-      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUpload} />
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-        gap: 8,
-      }}>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleUpload}
+      />
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+          gap: 8,
+        }}
+      >
         {assets.map((asset) => {
           const isHovered = hoveredId === asset.id
           return (
@@ -68,26 +76,33 @@ export function HandoutDockTab({
               />
               {/* Title indicator */}
               {asset.title && !isHovered && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  padding: '2px 6px',
-                  background: 'rgba(0,0,0,0.6)',
-                  fontSize: 9,
-                  color: 'rgba(255,255,255,0.8)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  fontFamily: 'sans-serif',
-                }}>{asset.title}</div>
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    padding: '2px 6px',
+                    background: 'rgba(0,0,0,0.6)',
+                    fontSize: 9,
+                    color: 'rgba(255,255,255,0.8)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    fontFamily: 'sans-serif',
+                  }}
+                >
+                  {asset.title}
+                </div>
               )}
               {isHovered && (
                 <>
                   {/* Edit button */}
                   <button
-                    onClick={(e) => { e.stopPropagation(); onEditAsset(asset) }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onEditAsset(asset)
+                    }}
                     style={{
                       position: 'absolute',
                       top: 4,
@@ -106,13 +121,25 @@ export function HandoutDockTab({
                       padding: 0,
                     }}
                   >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                     </svg>
                   </button>
                   {/* Delete button */}
                   <button
-                    onClick={(e) => { e.stopPropagation(); onDeleteAsset(asset.id) }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDeleteAsset(asset.id)
+                    }}
                     style={{
                       position: 'absolute',
                       top: 4,
@@ -132,7 +159,9 @@ export function HandoutDockTab({
                       lineHeight: 1,
                       padding: 0,
                     }}
-                  >×</button>
+                  >
+                    ×
+                  </button>
                 </>
               )}
             </div>

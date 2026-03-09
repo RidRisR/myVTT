@@ -12,12 +12,12 @@ const EPHEMERAL_COLLAPSE_MS = 8000
 
 interface ShowcaseOverlayProps {
   yDoc: Y.Doc
-  mySeatId: string
   isGM: boolean
 }
 
-export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) {
-  const { items, deleteItem, newItemId, clearNewItemId, pinnedItemId, pinItem, unpinItem } = useShowcase(yDoc)
+export function ShowcaseOverlay({ yDoc, isGM }: ShowcaseOverlayProps) {
+  const { items, deleteItem, newItemId, clearNewItemId, pinnedItemId, pinItem, unpinItem } =
+    useShowcase(yDoc)
 
   // scrollY as React state (source of truth for rendering)
   // scrollY can go up to items.length — that's the "dismissed" empty slot at queue head
@@ -38,12 +38,14 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
   pinnedRef.current = pinnedItemId
 
   // Keep ref in sync when React state changes (snap, new item arrival, etc.)
-  useEffect(() => { scrollYRef.current = scrollY }, [scrollY])
+  useEffect(() => {
+    scrollYRef.current = scrollY
+  }, [scrollY])
 
   // --- Force scroll to pinned item ---
   useEffect(() => {
     if (!pinnedItemId) return
-    const idx = items.findIndex(i => i.id === pinnedItemId)
+    const idx = items.findIndex((i) => i.id === pinnedItemId)
     if (idx === -1) return
     setIsSnapped(true)
     requestAnimationFrame(() => setScrollY(idx))
@@ -52,7 +54,7 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
   // --- New item arrival: scroll to it + trigger entrance animation ---
   useEffect(() => {
     if (!newItemId) return
-    const idx = items.findIndex(i => i.id === newItemId)
+    const idx = items.findIndex((i) => i.id === newItemId)
     if (idx === -1) return
 
     // Don't override pin — only scroll to new item if not pinned
@@ -62,7 +64,7 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
       requestAnimationFrame(() => setScrollY(idx))
     }
     clearNewItemId()
-  }, [newItemId, items])
+  }, [newItemId, items, pinnedItemId, clearNewItemId])
 
   // --- Ephemeral auto-collapse ---
   useEffect(() => {
@@ -116,7 +118,7 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
           pendingDeltaRef.current = 0
 
           setIsSnapped(false)
-          setScrollY(prev => {
+          setScrollY((prev) => {
             const next = Math.max(0, Math.min(itemsLenRef.current, prev + delta))
             scrollYRef.current = next
             return next
@@ -128,7 +130,7 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
       snapTimerRef.current = setTimeout(() => {
         setIsSnapped(true)
         requestAnimationFrame(() => {
-          setScrollY(prev => Math.round(prev))
+          setScrollY((prev) => Math.round(prev))
         })
       }, SNAP_DELAY)
     }
@@ -154,7 +156,7 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
   // --- Adjust scrollY if items shrink ---
   useEffect(() => {
     if (items.length === 0) return
-    setScrollY(prev => Math.min(prev, items.length))
+    setScrollY((prev) => Math.min(prev, items.length))
   }, [items.length])
 
   // --- Actions ---
@@ -164,23 +166,32 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
     requestAnimationFrame(() => setScrollY(items.length))
   }, [items.length, pinnedItemId])
 
-  const handlePin = useCallback((id: string) => {
-    pinItem(id)
-  }, [pinItem])
+  const handlePin = useCallback(
+    (id: string) => {
+      pinItem(id)
+    },
+    [pinItem],
+  )
 
   const handleUnpin = useCallback(() => {
     unpinItem()
   }, [unpinItem])
 
-  const handleDelete = useCallback((id: string) => {
-    deleteItem(id)
-  }, [deleteItem])
+  const handleDelete = useCallback(
+    (id: string) => {
+      deleteItem(id)
+    },
+    [deleteItem],
+  )
 
-  const handleClickPeek = useCallback((index: number) => {
-    if (pinnedItemId) return // Can't switch when pinned
-    setIsSnapped(true)
-    requestAnimationFrame(() => setScrollY(index))
-  }, [pinnedItemId])
+  const handleClickPeek = useCallback(
+    (index: number) => {
+      if (pinnedItemId) return // Can't switch when pinned
+      setIsSnapped(true)
+      requestAnimationFrame(() => setScrollY(index))
+    },
+    [pinnedItemId],
+  )
 
   // --- Render nothing if no items ---
   if (items.length === 0) return null
@@ -206,25 +217,30 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
       }}
     >
       {/* Subtle backdrop dimming — fade out when dismissed */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)',
-        pointerEvents: 'none',
-        opacity: isDismissedView ? 0 : 1,
-        transition: isSnapped ? 'opacity 0.3s ease' : 'none',
-      }} />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)',
+          pointerEvents: 'none',
+          opacity: isDismissedView ? 0 : 1,
+          transition: isSnapped ? 'opacity 0.3s ease' : 'none',
+        }}
+      />
 
       {/* Carousel container */}
-      <div style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        pointerEvents: 'none',
-      }}>
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'none',
+        }}
+      >
         {items.map((item, index) => {
           const dist = index - scrollY
           const absDist = Math.abs(dist)
@@ -233,8 +249,8 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
 
           const isFocused = index === focusedIndex && !isDismissedView
           const QUEUE_GAP = 160
-          const y = isFocused ? 0 : (dist * SLOT_SPACING - QUEUE_GAP)
-          const opacity = isFocused ? 1 : (isSnapped ? 0 : Math.max(0.05, 1 - absDist * 0.4))
+          const y = isFocused ? 0 : dist * SLOT_SPACING - QUEUE_GAP
+          const opacity = isFocused ? 1 : isSnapped ? 0 : Math.max(0.05, 1 - absDist * 0.4)
           const scale = isFocused ? 1 : Math.max(0.78, 1 - absDist * 0.08)
 
           return (
@@ -245,9 +261,10 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
                 position: 'absolute',
                 transform: `translateY(${y}px) scale(${scale})`,
                 opacity,
-                transition: (isSnapped && animateItemId !== item.id)
-                  ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
-                  : 'none',
+                transition:
+                  isSnapped && animateItemId !== item.id
+                    ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease'
+                    : 'none',
                 zIndex: isFocused ? 10 : 5 - Math.floor(absDist),
                 pointerEvents: 'auto',
               }}
@@ -256,7 +273,6 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
                 <FocusedCard
                   item={item}
                   isGM={isGM}
-                  mySeatId={mySeatId}
                   isPinned={isPinned}
                   animateEntrance={animateItemId === item.id}
                   onAnimationDone={() => setAnimateItemId(null)}
@@ -266,10 +282,7 @@ export function ShowcaseOverlay({ yDoc, mySeatId, isGM }: ShowcaseOverlayProps) 
                   onDelete={() => handleDelete(item.id)}
                 />
               ) : (
-                <PeekCard
-                  item={item}
-                  onClick={() => handleClickPeek(index)}
-                />
+                <PeekCard item={item} onClick={() => handleClickPeek(index)} />
               )}
             </div>
           )

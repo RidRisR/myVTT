@@ -13,7 +13,9 @@ export const roleStore = {
   },
   subscribe: (listener: () => void) => {
     roleListeners.add(listener)
-    return () => { roleListeners.delete(listener) }
+    return () => {
+      roleListeners.delete(listener)
+    }
   },
 }
 
@@ -32,7 +34,9 @@ export const popoverStore = {
   },
   subscribe: (listener: () => void) => {
     popoverListeners.add(listener)
-    return () => { popoverListeners.delete(listener) }
+    return () => {
+      popoverListeners.delete(listener)
+    }
   },
 }
 

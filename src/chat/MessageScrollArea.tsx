@@ -7,13 +7,9 @@ interface MessageScrollAreaProps {
   newMessageIds: Set<string>
 }
 
-export function MessageScrollArea({
-  messages,
-  newMessageIds,
-}: MessageScrollAreaProps) {
+export function MessageScrollArea({ messages, newMessageIds }: MessageScrollAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
-
 
   const checkIfAtBottom = () => {
     if (!scrollRef.current) return
@@ -88,10 +84,8 @@ export function MessageScrollArea({
             flexDirection: 'column',
             gap: 8,
             pointerEvents: 'auto',
-            maskImage:
-              'linear-gradient(to bottom, transparent 0%, black 40px)',
-            WebkitMaskImage:
-              'linear-gradient(to bottom, transparent 0%, black 40px)',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, black 40px)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 40px)',
           }}
           onScroll={checkIfAtBottom}
           onWheel={(e) => e.stopPropagation()}

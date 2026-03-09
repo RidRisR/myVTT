@@ -27,7 +27,11 @@ interface SpeakerIdentity {
   portraitUrl?: string
 }
 
-function SpeakerPickerItem({ identity, isActive, onSelect }: {
+function SpeakerPickerItem({
+  identity,
+  isActive,
+  onSelect,
+}: {
   identity: SpeakerIdentity
   isActive: boolean
   onSelect: () => void
@@ -47,7 +51,9 @@ function SpeakerPickerItem({ identity, isActive, onSelect }: {
         cursor: 'pointer',
         background: isActive
           ? 'rgba(59,130,246,0.2)'
-          : hover ? 'rgba(255,255,255,0.08)' : 'transparent',
+          : hover
+            ? 'rgba(255,255,255,0.08)'
+            : 'transparent',
         transition: 'background 0.15s',
       }}
     >
@@ -57,14 +63,16 @@ function SpeakerPickerItem({ identity, isActive, onSelect }: {
         senderColor={identity.color}
         size={28}
       />
-      <div style={{
-        fontSize: 13,
-        fontWeight: isActive ? 600 : 400,
-        color: isActive ? '#93c5fd' : '#e2e8f0',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-      }}>
+      <div
+        style={{
+          fontSize: 13,
+          fontWeight: isActive ? 600 : 400,
+          color: isActive ? '#93c5fd' : '#e2e8f0',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
         {identity.name}
       </div>
     </div>
@@ -97,15 +105,18 @@ export function ChatPanel({
   const speakerBtnRef = useRef<HTMLButtonElement>(null)
 
   // Build speaker identity: null = seat identity, string = character
-  const seatIdentity: SpeakerIdentity = useMemo(() => ({
-    id: senderId,
-    name: senderName,
-    color: senderColor,
-    portraitUrl,
-  }), [senderId, senderName, senderColor, portraitUrl])
+  const seatIdentity: SpeakerIdentity = useMemo(
+    () => ({
+      id: senderId,
+      name: senderName,
+      color: senderColor,
+      portraitUrl,
+    }),
+    [senderId, senderName, senderColor, portraitUrl],
+  )
 
   const speakerEntity = speakerCharId
-    ? speakerEntities.find(e => e.id === speakerCharId) ?? null
+    ? (speakerEntities.find((e) => e.id === speakerCharId) ?? null)
     : null
 
   // If selected entity was deleted, reset to seat
@@ -116,7 +127,12 @@ export function ChatPanel({
   }, [speakerCharId, speakerEntity])
 
   const activeSpeaker: SpeakerIdentity = speakerEntity
-    ? { id: senderId, name: speakerEntity.name, color: speakerEntity.color, portraitUrl: speakerEntity.imageUrl || undefined }
+    ? {
+        id: senderId,
+        name: speakerEntity.name,
+        color: speakerEntity.color,
+        portraitUrl: speakerEntity.imageUrl || undefined,
+      }
     : seatIdentity
 
   // When speaking as an entity, use that entity's properties for @ resolution
@@ -125,8 +141,8 @@ export function ChatPanel({
     const resources = getEntityResources(speakerEntity)
     const attributes = getEntityAttributes(speakerEntity)
     return [
-      ...resources.filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
-      ...attributes.filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
+      ...resources.filter((r) => r.key).map((r) => ({ key: r.key, value: String(r.current) })),
+      ...attributes.filter((a) => a.key).map((a) => ({ key: a.key, value: String(a.value) })),
     ]
   }, [speakerEntity, seatProperties])
 
@@ -155,10 +171,7 @@ export function ChatPanel({
 
                 // Add to toast queue if collapsed
                 if (!expandedRef.current) {
-                  setToastQueue((prev) => [
-                    ...prev,
-                    { message: chatMsg, timestamp: Date.now() },
-                  ])
+                  setToastQueue((prev) => [...prev, { message: chatMsg, timestamp: Date.now() }])
                 }
               }
             }
@@ -226,7 +239,7 @@ export function ChatPanel({
       // Currently seat → go to first entity
       setSpeakerCharId(speakerEntities[0].id)
     } else {
-      const idx = speakerEntities.findIndex(e => e.id === speakerCharId)
+      const idx = speakerEntities.findIndex((e) => e.id === speakerCharId)
       if (idx < 0 || idx >= speakerEntities.length - 1) {
         // Last entity or not found → back to seat
         setSpeakerCharId(null)
@@ -239,10 +252,7 @@ export function ChatPanel({
   return (
     <>
       {expanded ? (
-        <MessageScrollArea
-          messages={messages}
-          newMessageIds={newMessageIds}
-        />
+        <MessageScrollArea messages={messages} newMessageIds={newMessageIds} />
       ) : (
         <ToastStack toastQueue={toastQueue} onRemove={handleToastRemove} />
       )}
@@ -268,22 +278,41 @@ export function ChatPanel({
           }}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', padding: '4px 10px', textTransform: 'uppercase', letterSpacing: 1 }}>
+          <div
+            style={{
+              fontSize: 10,
+              color: 'rgba(255,255,255,0.3)',
+              padding: '4px 10px',
+              textTransform: 'uppercase',
+              letterSpacing: 1,
+            }}
+          >
             Speak as
           </div>
           {/* Seat identity (player) */}
           <SpeakerPickerItem
             identity={seatIdentity}
             isActive={speakerCharId === null}
-            onSelect={() => { setSpeakerCharId(null); setShowSpeakerPicker(false) }}
+            onSelect={() => {
+              setSpeakerCharId(null)
+              setShowSpeakerPicker(false)
+            }}
           />
           {/* Entities */}
-          {speakerEntities.map(e => (
+          {speakerEntities.map((e) => (
             <SpeakerPickerItem
               key={e.id}
-              identity={{ id: senderId, name: e.name, color: e.color, portraitUrl: e.imageUrl || undefined }}
+              identity={{
+                id: senderId,
+                name: e.name,
+                color: e.color,
+                portraitUrl: e.imageUrl || undefined,
+              }}
               isActive={speakerCharId === e.id}
-              onSelect={() => { setSpeakerCharId(e.id); setShowSpeakerPicker(false) }}
+              onSelect={() => {
+                setSpeakerCharId(e.id)
+                setShowSpeakerPicker(false)
+              }}
             />
           ))}
         </div>
@@ -310,9 +339,7 @@ export function ChatPanel({
           style={{
             width: 36,
             borderRadius: 10,
-            background: expandHover
-              ? 'rgba(255,255,255,0.18)'
-              : 'rgba(255,255,255,0.08)',
+            background: expandHover ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(255,255,255,0.12)',
             cursor: 'pointer',
             transition: 'all 0.15s',
@@ -332,7 +359,7 @@ export function ChatPanel({
         {/* Speaker avatar button */}
         <button
           ref={speakerBtnRef}
-          onClick={() => setShowSpeakerPicker(v => !v)}
+          onClick={() => setShowSpeakerPicker((v) => !v)}
           style={{
             width: 36,
             height: 36,

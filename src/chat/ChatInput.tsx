@@ -21,10 +21,22 @@ interface ChatInputProps {
 }
 
 function generateId(): string {
-  return self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
+  return (
+    self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
+  )
 }
 
-export function ChatInput({ selectedTokenProps, senderId, senderName, senderColor, portraitUrl, seatProperties, onSend, onFocus, onCycleSpeaker }: ChatInputProps) {
+export function ChatInput({
+  selectedTokenProps,
+  senderId,
+  senderName,
+  senderColor,
+  portraitUrl,
+  seatProperties,
+  onSend,
+  onFocus,
+  onCycleSpeaker,
+}: ChatInputProps) {
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -36,10 +48,16 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
     const items: Suggestion[] = []
     const seen = new Set<string>()
     for (const p of selectedTokenProps) {
-      if (!seen.has(p.key)) { items.push({ key: p.key, value: p.value, from: 'token' }); seen.add(p.key) }
+      if (!seen.has(p.key)) {
+        items.push({ key: p.key, value: p.value, from: 'token' })
+        seen.add(p.key)
+      }
     }
     for (const p of seatProperties) {
-      if (!seen.has(p.key)) { items.push({ key: p.key, value: p.value, from: 'seat' }); seen.add(p.key) }
+      if (!seen.has(p.key)) {
+        items.push({ key: p.key, value: p.value, from: 'seat' })
+        seen.add(p.key)
+      }
     }
     return items
   }, [selectedTokenProps, seatProperties])
@@ -55,9 +73,10 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
   }
 
   const atPrefix = showSuggestions ? getAtPrefix() : null
-  const filteredSuggestions = atPrefix !== null
-    ? suggestions.filter((s) => s.key.toLowerCase().startsWith(atPrefix.toLowerCase()))
-    : []
+  const filteredSuggestions =
+    atPrefix !== null
+      ? suggestions.filter((s) => s.key.toLowerCase().startsWith(atPrefix.toLowerCase()))
+      : []
 
   const applySuggestion = (key: string) => {
     const el = inputRef.current
@@ -149,19 +168,18 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
   }
 
   return (
-    <div
-      style={{ position: 'relative' }}
-      onPointerDown={(e) => e.stopPropagation()}
-    >
+    <div style={{ position: 'relative' }} onPointerDown={(e) => e.stopPropagation()}>
       {error && (
-        <div style={{
-          color: '#fff',
-          fontSize: 11,
-          marginBottom: 4,
-          padding: '4px 10px',
-          background: 'rgba(220,38,38,0.9)',
-          borderRadius: 6,
-        }}>
+        <div
+          style={{
+            color: '#fff',
+            fontSize: 11,
+            marginBottom: 4,
+            padding: '4px 10px',
+            background: 'rgba(220,38,38,0.9)',
+            borderRadius: 6,
+          }}
+        >
           {error}
         </div>
       )}
@@ -247,8 +265,12 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
             transition: 'background 0.15s',
             flexShrink: 0,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(59,130,246,1)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.9)' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(59,130,246,1)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(59,130,246,0.9)'
+          }}
           aria-label="Send"
         >
           ➤
@@ -257,23 +279,28 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
 
       {/* @ autocomplete dropdown */}
       {showSuggestions && filteredSuggestions.length > 0 && (
-        <div style={{
-          position: 'absolute',
-          bottom: '100%',
-          left: 0,
-          right: 0,
-          marginBottom: 6,
-          background: 'rgba(255,255,255,0.96)',
-          backdropFilter: 'blur(8px)',
-          borderRadius: 10,
-          boxShadow: '0 -4px 16px rgba(0,0,0,0.1)',
-          maxHeight: 180,
-          overflowY: 'auto',
-        }}>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: 0,
+            right: 0,
+            marginBottom: 6,
+            background: 'rgba(255,255,255,0.96)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: 10,
+            boxShadow: '0 -4px 16px rgba(0,0,0,0.1)',
+            maxHeight: 180,
+            overflowY: 'auto',
+          }}
+        >
           {filteredSuggestions.map((s, i) => (
             <div
               key={s.key}
-              onMouseDown={(e) => { e.preventDefault(); applySuggestion(s.key) }}
+              onMouseDown={(e) => {
+                e.preventDefault()
+                applySuggestion(s.key)
+              }}
               style={{
                 padding: '7px 14px',
                 cursor: 'pointer',
@@ -288,13 +315,15 @@ export function ChatInput({ selectedTokenProps, senderId, senderName, senderColo
                 <span style={{ fontWeight: 600, color: '#333' }}>@{s.key}</span>
                 <span style={{ color: '#999', marginLeft: 8 }}>{s.value}</span>
               </span>
-              <span style={{
-                fontSize: 9,
-                padding: '1px 5px',
-                borderRadius: 3,
-                background: s.from === 'token' ? '#fef3c7' : '#dbeafe',
-                color: s.from === 'token' ? '#92400e' : '#1e40af',
-              }}>
+              <span
+                style={{
+                  fontSize: 9,
+                  padding: '1px 5px',
+                  borderRadius: 3,
+                  background: s.from === 'token' ? '#fef3c7' : '#dbeafe',
+                  color: s.from === 'token' ? '#92400e' : '#1e40af',
+                }}
+              >
                 {s.from}
               </span>
             </div>

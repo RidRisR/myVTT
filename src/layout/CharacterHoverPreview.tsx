@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import type { Entity } from '../shared/entityTypes'
-import { getEntityResources, getEntityAttributes, getEntityStatuses, type ResourceView } from '../shared/entityAdapters'
+import {
+  getEntityResources,
+  getEntityAttributes,
+  getEntityStatuses,
+  type ResourceView,
+} from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../shared/ui/ResourceBar'
 
@@ -13,9 +18,14 @@ interface CharacterHoverPreviewProps {
 
 type Tab = 'stats' | 'attr'
 
-export function CharacterHoverPreview({ character, isOnline, editable, onUpdateCharacter }: CharacterHoverPreviewProps) {
+export function CharacterHoverPreview({
+  character,
+  isOnline,
+  editable,
+  onUpdateCharacter,
+}: CharacterHoverPreviewProps) {
   const allResources = getEntityResources(character)
-  const resources = allResources.filter(r => r.max > 0)
+  const resources = allResources.filter((r) => r.max > 0)
   const attributes = getEntityAttributes(character)
   const statuses = getEntityStatuses(character)
   const [activeTab, setActiveTab] = useState<Tab>('stats')
@@ -98,35 +108,70 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
       `}</style>
 
       {/* Name + online status */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 6,
-        marginBottom: (hasStats || hasAttr) ? 8 : 0,
-      }}>
-        <span style={{ fontWeight: 700, fontSize: 14, color: '#fff', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          marginBottom: hasStats || hasAttr ? 8 : 0,
+        }}
+      >
+        <span
+          style={{
+            fontWeight: 700,
+            fontSize: 14,
+            color: '#fff',
+            flex: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {character.name}
         </span>
         {isOnline && (
-          <span style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.5)',
-            flexShrink: 0,
-          }} />
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: '#22c55e',
+              boxShadow: '0 0 6px rgba(34,197,94,0.5)',
+              flexShrink: 0,
+            }}
+          />
         )}
       </div>
 
       {/* Tab bar */}
       {showTabs && (
-        <div style={{
-          display: 'flex', gap: 2, marginBottom: 8,
-          background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: 2,
-        }}>
-          {([['stats', 'Stats'], ['attr', 'Attr']] as const).map(([key, label]) => (
+        <div
+          style={{
+            display: 'flex',
+            gap: 2,
+            marginBottom: 8,
+            background: 'rgba(255,255,255,0.04)',
+            borderRadius: 6,
+            padding: 2,
+          }}
+        >
+          {(
+            [
+              ['stats', 'Stats'],
+              ['attr', 'Attr'],
+            ] as const
+          ).map(([key, label]) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
               style={{
-                flex: 1, padding: '3px 0', border: 'none', cursor: 'pointer',
-                borderRadius: 4, fontSize: 10, fontWeight: 600,
+                flex: 1,
+                padding: '3px 0',
+                border: 'none',
+                cursor: 'pointer',
+                borderRadius: 4,
+                fontSize: 10,
+                fontWeight: 600,
                 background: activeTab === key ? 'rgba(255,255,255,0.12)' : 'transparent',
                 color: activeTab === key ? '#fff' : 'rgba(255,255,255,0.4)',
                 transition: 'all 0.15s',
@@ -159,7 +204,15 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
 
           {/* Statuses */}
           {(statuses.length > 0 || canEdit) && (
-            <div style={{ marginTop: resources.length > 0 ? 8 : 0, display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+            <div
+              style={{
+                marginTop: resources.length > 0 ? 8 : 0,
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 4,
+                alignItems: 'center',
+              }}
+            >
               {statuses.map((s, i) => {
                 const sc = statusColor(s.label)
                 if (canEdit && editingStatusIdx === i) {
@@ -175,50 +228,86 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
                         if (e.key === 'Escape') setEditingStatusIdx(null)
                       }}
                       style={{
-                        padding: '2px 8px', borderRadius: 10,
-                        background: `${sc}22`, color: sc,
-                        fontSize: 10, fontWeight: 600,
+                        padding: '2px 8px',
+                        borderRadius: 10,
+                        background: `${sc}22`,
+                        color: sc,
+                        fontSize: 10,
+                        fontWeight: 600,
                         border: `1px solid ${sc}66`,
-                        outline: 'none', width: 60,
+                        outline: 'none',
+                        width: 60,
                         fontFamily: 'inherit',
                       }}
                     />
                   )
                 }
                 return (
-                  <span key={i} style={{
-                    padding: '2px 8px', borderRadius: 10,
-                    background: `${sc}22`, color: sc,
-                    fontSize: 10, fontWeight: 600,
-                    border: `1px solid ${sc}33`,
-                    position: 'relative',
-                    cursor: canEdit ? 'pointer' : 'default',
-                  }}
-                    onClick={canEdit ? () => { setEditingStatusIdx(i); setEditingStatusLabel(s.label) } : undefined}
-                    onMouseEnter={canEdit ? (e) => {
-                      const x = e.currentTarget.querySelector('.status-x') as HTMLElement
-                      if (x) x.style.opacity = '1'
-                    } : undefined}
-                    onMouseLeave={canEdit ? (e) => {
-                      const x = e.currentTarget.querySelector('.status-x') as HTMLElement
-                      if (x) x.style.opacity = '0'
-                    } : undefined}
+                  <span
+                    key={i}
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: 10,
+                      background: `${sc}22`,
+                      color: sc,
+                      fontSize: 10,
+                      fontWeight: 600,
+                      border: `1px solid ${sc}33`,
+                      position: 'relative',
+                      cursor: canEdit ? 'pointer' : 'default',
+                    }}
+                    onClick={
+                      canEdit
+                        ? () => {
+                            setEditingStatusIdx(i)
+                            setEditingStatusLabel(s.label)
+                          }
+                        : undefined
+                    }
+                    onMouseEnter={
+                      canEdit
+                        ? (e) => {
+                            const x = e.currentTarget.querySelector('.status-x') as HTMLElement
+                            if (x) x.style.opacity = '1'
+                          }
+                        : undefined
+                    }
+                    onMouseLeave={
+                      canEdit
+                        ? (e) => {
+                            const x = e.currentTarget.querySelector('.status-x') as HTMLElement
+                            if (x) x.style.opacity = '0'
+                          }
+                        : undefined
+                    }
                   >
                     {s.label}
                     {canEdit && (
                       <span
                         className="status-x"
-                        onClick={(e) => { e.stopPropagation(); removeStatus(i) }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeStatus(i)
+                        }}
                         style={{
-                          position: 'absolute', top: -4, right: -4,
-                          width: 12, height: 12, borderRadius: '50%',
+                          position: 'absolute',
+                          top: -4,
+                          right: -4,
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
                           background: 'rgba(30,30,40,0.95)',
                           border: '1px solid rgba(255,255,255,0.15)',
                           color: 'rgba(255,255,255,0.5)',
-                          fontSize: 8, fontWeight: 700, lineHeight: 1,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 8,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           cursor: 'pointer',
-                          opacity: 0, transition: 'opacity 0.15s',
+                          opacity: 0,
+                          transition: 'opacity 0.15s',
                         }}
                       >
                         x
@@ -231,17 +320,29 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
                 <span
                   onClick={() => setAddingStatus(true)}
                   style={{
-                    width: 18, height: 18, borderRadius: '50%',
+                    width: 18,
+                    height: 18,
+                    borderRadius: '50%',
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.12)',
                     color: 'rgba(255,255,255,0.35)',
-                    fontSize: 12, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', transition: 'all 0.15s',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
                     flexShrink: 0,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.12)'
+                    e.currentTarget.style.color = 'rgba(255,255,255,0.6)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                    e.currentTarget.style.color = 'rgba(255,255,255,0.35)'
+                  }}
                 >
                   +
                 </span>
@@ -254,16 +355,22 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
                   onBlur={() => commitNewStatus(newStatusLabel)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') commitNewStatus(newStatusLabel)
-                    if (e.key === 'Escape') { setAddingStatus(false); setNewStatusLabel('') }
+                    if (e.key === 'Escape') {
+                      setAddingStatus(false)
+                      setNewStatusLabel('')
+                    }
                   }}
                   placeholder="Status..."
                   style={{
-                    padding: '2px 8px', borderRadius: 10,
+                    padding: '2px 8px',
+                    borderRadius: 10,
                     background: 'rgba(255,255,255,0.06)',
                     color: '#e4e4e7',
-                    fontSize: 10, fontWeight: 600,
+                    fontSize: 10,
+                    fontWeight: 600,
                     border: '1px solid rgba(255,255,255,0.2)',
-                    outline: 'none', width: 60,
+                    outline: 'none',
+                    width: 60,
                     fontFamily: 'inherit',
                   }}
                 />
@@ -277,13 +384,21 @@ export function CharacterHoverPreview({ character, isOnline, editable, onUpdateC
       {showAttr && (
         <div>
           {attributes.map((attr, i) => (
-            <div key={i} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '3px 6px', borderRadius: 4,
-              background: i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent',
-              fontSize: 11,
-            }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>{attr.key || 'Unnamed'}</span>
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '3px 6px',
+                borderRadius: 4,
+                background: i % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent',
+                fontSize: 11,
+              }}
+            >
+              <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+                {attr.key || 'Unnamed'}
+              </span>
               <span style={{ color: '#fff', fontWeight: 700 }}>{attr.value}</span>
             </div>
           ))}

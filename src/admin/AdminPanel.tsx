@@ -25,12 +25,17 @@ export function AdminPanel() {
     }
   }, [apiBase])
 
-  useEffect(() => { fetchRooms() }, [fetchRooms])
+  useEffect(() => {
+    fetchRooms()
+  }, [fetchRooms])
 
   const handleCreate = async () => {
     setError('')
     const name = newName.trim()
-    if (!name) { setError('Room name is required'); return }
+    if (!name) {
+      setError('Room name is required')
+      return
+    }
     try {
       const res = await fetch(`${apiBase}/api/rooms`, {
         method: 'POST',
@@ -90,29 +95,51 @@ export function AdminPanel() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#0f0f19',
-      color: '#e4e4e7',
-      fontFamily: 'system-ui, sans-serif',
-      padding: '40px 24px',
-    }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#0f0f19',
+        color: '#e4e4e7',
+        fontFamily: 'system-ui, sans-serif',
+        padding: '40px 24px',
+      }}
+    >
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 32,
+          }}
+        >
           <h1 style={{ fontSize: 22, fontWeight: 300 }}>Room Management</h1>
-          <a href="#" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Back to Landing</a>
+          <a href="#" style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>
+            Back to Landing
+          </a>
         </div>
 
         {/* Create room form */}
-        <div style={{
-          background: 'rgba(30,35,48,0.85)',
-          backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 12,
-          padding: 20,
-          marginBottom: 24,
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 12 }}>
+        <div
+          style={{
+            background: 'rgba(30,35,48,0.85)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
+            padding: 20,
+            marginBottom: 24,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: 'rgba(255,255,255,0.4)',
+              letterSpacing: 0.8,
+              textTransform: 'uppercase',
+              marginBottom: 12,
+            }}
+          >
             Create Room
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -121,42 +148,65 @@ export function AdminPanel() {
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Room name"
               style={{ ...inputStyle, flex: '1 1 240px', minWidth: 160 }}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreate()
+              }}
             />
             <button
               onClick={handleCreate}
               style={{ ...btnStyle, background: '#3b82f6', color: '#fff' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#2563eb' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#3b82f6' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#2563eb'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#3b82f6'
+              }}
             >
               Create
             </button>
           </div>
-          {error && (
-            <div style={{ color: '#f87171', fontSize: 12, marginTop: 8 }}>{error}</div>
-          )}
+          {error && <div style={{ color: '#f87171', fontSize: 12, marginTop: 8 }}>{error}</div>}
         </div>
 
         {/* Room list */}
-        <div style={{
-          background: 'rgba(30,35,48,0.85)',
-          backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 12,
-          overflow: 'hidden',
-        }}>
+        <div
+          style={{
+            background: 'rgba(30,35,48,0.85)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 12,
+            overflow: 'hidden',
+          }}
+        >
           <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.4)',
+                letterSpacing: 0.8,
+                textTransform: 'uppercase',
+              }}
+            >
               Rooms ({rooms.length})
             </span>
           </div>
 
           {loading && (
-            <div style={{ padding: 32, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>Loading...</div>
+            <div style={{ padding: 32, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+              Loading...
+            </div>
           )}
 
           {!loading && rooms.length === 0 && (
-            <div style={{ padding: 32, textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>
+            <div
+              style={{
+                padding: 32,
+                textAlign: 'center',
+                color: 'rgba(255,255,255,0.3)',
+                fontSize: 13,
+              }}
+            >
               No rooms yet. Create one above.
             </div>
           )}

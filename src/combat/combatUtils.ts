@@ -2,8 +2,11 @@ import type { Entity } from '../shared/entityTypes'
 import { canEdit } from '../shared/permissions'
 
 export function snapToGrid(
-  mapX: number, mapY: number,
-  gridSize: number, gridOffsetX: number, gridOffsetY: number,
+  mapX: number,
+  mapY: number,
+  gridSize: number,
+  gridOffsetX: number,
+  gridOffsetY: number,
 ): { x: number; y: number } {
   const col = Math.round((mapX - gridOffsetX) / gridSize)
   const row = Math.round((mapY - gridOffsetY) / gridSize)
@@ -14,9 +17,12 @@ export function snapToGrid(
 }
 
 export function screenToMap(
-  screenX: number, screenY: number,
+  screenX: number,
+  screenY: number,
   wrapperRect: DOMRect,
-  scale: number, positionX: number, positionY: number,
+  scale: number,
+  positionX: number,
+  positionY: number,
 ): { mapX: number; mapY: number } {
   const relX = screenX - wrapperRect.left
   const relY = screenY - wrapperRect.top
@@ -26,16 +32,14 @@ export function screenToMap(
   }
 }
 
-export function canDragToken(
-  role: 'GM' | 'PL',
-  entity: Entity | null,
-  mySeatId: string,
-): boolean {
+export function canDragToken(role: 'GM' | 'PL', entity: Entity | null, mySeatId: string): boolean {
   if (role === 'GM') return true
   if (!entity) return false
   return canEdit(entity, mySeatId, role)
 }
 
 export function generateTokenId(): string {
-  return self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
+  return (
+    self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
+  )
 }

@@ -12,12 +12,21 @@ export interface Seat {
   name: string
   color: string
   role: 'GM' | 'PL'
-  portraitUrl?: string        // player avatar (distinct from character portrait)
-  activeCharacterId?: string  // which character is currently focused
+  portraitUrl?: string // player avatar (distinct from character portrait)
+  activeCharacterId?: string // which character is currently focused
 }
 
 const SEAT_STORAGE_KEY = 'myvtt-seat-id'
-export const SEAT_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
+export const SEAT_COLORS = [
+  '#3b82f6',
+  '#ef4444',
+  '#10b981',
+  '#f59e0b',
+  '#8b5cf6',
+  '#ec4899',
+  '#06b6d4',
+  '#f97316',
+]
 
 export function useIdentity(ySeats: Y.Map<unknown>, awareness: Awareness | null) {
   const yPlayers = ySeats as Y.Map<Seat>
@@ -75,7 +84,7 @@ export function useIdentity(ySeats: Y.Map<unknown>, awareness: Awareness | null)
         color: seat.color,
       })
     }
-  }, [awareness, mySeatId, seats])
+  }, [awareness, mySeatId, seats, yPlayers])
 
   const claimSeat = useCallback((seatId: string) => {
     setMySeatId(seatId)
@@ -83,14 +92,18 @@ export function useIdentity(ySeats: Y.Map<unknown>, awareness: Awareness | null)
     sessionStorage.setItem(SEAT_STORAGE_KEY, seatId)
   }, [])
 
-  const createSeat = useCallback((name: string, role: 'GM' | 'PL', color?: string) => {
-    const id = self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
-    const seatColor = color ?? SEAT_COLORS[seats.length % SEAT_COLORS.length]
-    const seat: Seat = { id, name, color: seatColor, role }
-    yPlayers.set(id, seat)
-    claimSeat(id)
-    return id
-  }, [yPlayers, seats.length, claimSeat])
+  const createSeat = useCallback(
+    (name: string, role: 'GM' | 'PL', color?: string) => {
+      const id =
+        self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
+      const seatColor = color ?? SEAT_COLORS[seats.length % SEAT_COLORS.length]
+      const seat: Seat = { id, name, color: seatColor, role }
+      yPlayers.set(id, seat)
+      claimSeat(id)
+      return id
+    },
+    [yPlayers, seats.length, claimSeat],
+  )
 
   const leaveSeat = useCallback(() => {
     setMySeatId(null)
@@ -101,17 +114,23 @@ export function useIdentity(ySeats: Y.Map<unknown>, awareness: Awareness | null)
     }
   }, [awareness])
 
-  const deleteSeat = useCallback((seatId: string) => {
-    yPlayers.delete(seatId)
-  }, [yPlayers])
+  const deleteSeat = useCallback(
+    (seatId: string) => {
+      yPlayers.delete(seatId)
+    },
+    [yPlayers],
+  )
 
-  const updateSeat = useCallback((seatId: string, updates: Partial<Omit<Seat, 'id'>>) => {
-    const seat = yPlayers.get(seatId)
-    if (!seat) return
-    yPlayers.set(seatId, { ...seat, ...updates })
-  }, [yPlayers])
+  const updateSeat = useCallback(
+    (seatId: string, updates: Partial<Omit<Seat, 'id'>>) => {
+      const seat = yPlayers.get(seatId)
+      if (!seat) return
+      yPlayers.set(seatId, { ...seat, ...updates })
+    },
+    [yPlayers],
+  )
 
-  const mySeat = mySeatId ? yPlayers.get(mySeatId) ?? null : null
+  const mySeat = mySeatId ? (yPlayers.get(mySeatId) ?? null) : null
 
   return {
     seats,

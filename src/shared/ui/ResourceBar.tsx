@@ -117,9 +117,7 @@ export function ResourceBar({
           gap: 4,
         }}
       >
-        {showButtons && (
-          <MiniHoldButton label="-" onTick={handleDecrement} color="#ef4444" />
-        )}
+        {showButtons && <MiniHoldButton label="-" onTick={handleDecrement} color="#ef4444" />}
 
         {/* Progress Bar */}
         <div
@@ -173,9 +171,7 @@ export function ResourceBar({
           )}
         </div>
 
-        {showButtons && (
-          <MiniHoldButton label="+" onTick={handleIncrement} color="#22c55e" />
-        )}
+        {showButtons && <MiniHoldButton label="+" onTick={handleIncrement} color="#22c55e" />}
       </div>
     </div>
   )

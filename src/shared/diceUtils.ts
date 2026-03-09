@@ -62,9 +62,7 @@ export interface ResolveSource {
   from: 'token' | 'seat'
 }
 
-export type ResolveResult =
-  | { resolved: string; sources: ResolveSource[] }
-  | { error: string }
+export type ResolveResult = { resolved: string; sources: ResolveSource[] } | { error: string }
 
 export function resolveFormula(
   formula: string,
@@ -81,7 +79,7 @@ export function resolveFormula(
     const tokenProp = tokenProps.find((p) => p.key === key)
     const seatProp = seatProps.find((p) => p.key === key)
     const prop = tokenProp ?? seatProp
-    const from = tokenProp ? 'token' as const : 'seat' as const
+    const from = tokenProp ? ('token' as const) : ('seat' as const)
 
     if (!prop) {
       error = `Unknown key: ${key}`
@@ -181,7 +179,8 @@ export function validateTerm(term: DiceTerm): string | null {
       if (count > term.count) return `Cannot keep ${count} dice when only rolling ${term.count}`
     }
     if (mode === 'dh' || mode === 'dl') {
-      if (count >= term.count) return `Cannot drop ${count} dice when only rolling ${term.count} (nothing left)`
+      if (count >= term.count)
+        return `Cannot drop ${count} dice when only rolling ${term.count} (nothing left)`
     }
   }
 
@@ -196,8 +195,9 @@ export function rollTerm(term: DiceTerm): DiceTermResult {
     return { term, allRolls: [], keptIndices: [], subtotal: term.sign * term.value }
   }
 
-  const allRolls = Array.from({ length: term.count }, () =>
-    Math.floor(Math.random() * term.sides) + 1,
+  const allRolls = Array.from(
+    { length: term.count },
+    () => Math.floor(Math.random() * term.sides) + 1,
   )
 
   let keptIndices: number[]
