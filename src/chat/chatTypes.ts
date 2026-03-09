@@ -1,4 +1,5 @@
 import type { DiceTermResult } from '../shared/diceUtils'
+import type { JudgmentResult } from '../rules/types'
 
 export interface ChatTextMessage {
   type: 'text'
@@ -23,6 +24,9 @@ export interface ChatRollMessage {
   terms: DiceTermResult[]
   total: number
   timestamp: number
+  actionName?: string
+  judgment?: JudgmentResult
+  modifiersApplied?: string[]
 }
 
 export type ChatMessage = ChatTextMessage | ChatRollMessage
