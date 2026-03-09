@@ -12,10 +12,19 @@ interface SceneLibraryProps {
 }
 
 function generateId(): string {
-  return self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
+  return (
+    self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
+  )
 }
 
-export function SceneLibrary({ scenes, onClose, onAdd, onUpdate, onDelete, onSelect }: SceneLibraryProps) {
+export function SceneLibrary({
+  scenes,
+  onClose,
+  onAdd,
+  onUpdate,
+  onDelete,
+  onSelect,
+}: SceneLibraryProps) {
   const [uploading, setUploading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -92,34 +101,52 @@ export function SceneLibrary({ scenes, onClose, onAdd, onUpdate, onDelete, onSel
         onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{
-          padding: '16px 20px',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
+        <div
+          style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
           <span style={{ fontWeight: 700, fontSize: 16, color: '#111' }}>Scene Library</span>
           <button
             onClick={onClose}
             style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: '#999', padding: 4, display: 'flex',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#999',
+              padding: 4,
+              display: 'flex',
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
 
         {/* Scene grid */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(140, 1fr))',
-            gap: 12,
-          }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(140, 1fr))',
+              gap: 12,
+            }}
+          >
             {scenes.map((scene) => (
               <div
                 key={scene.id}
@@ -131,7 +158,9 @@ export function SceneLibrary({ scenes, onClose, onAdd, onUpdate, onDelete, onSel
                   transition: 'box-shadow 0.15s',
                 }}
                 onClick={() => onSelect(scene.id)}
-                onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.12)')}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.12)')
+                }
                 onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'none')}
               >
                 {isVideoUrl(scene.imageUrl) ? (
@@ -173,27 +202,48 @@ export function SceneLibrary({ scenes, onClose, onAdd, onUpdate, onDelete, onSel
                       }}
                       onClick={(e) => e.stopPropagation()}
                       style={{
-                        flex: 1, fontSize: 11, border: '1px solid #ddd',
-                        borderRadius: 3, padding: '2px 4px',
+                        flex: 1,
+                        fontSize: 11,
+                        border: '1px solid #ddd',
+                        borderRadius: 3,
+                        padding: '2px 4px',
                       }}
                     />
                   ) : (
                     <span
                       style={{ flex: 1, fontSize: 11, color: '#333', fontWeight: 500 }}
-                      onDoubleClick={(e) => { e.stopPropagation(); startRename(scene) }}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation()
+                        startRename(scene)
+                      }}
                     >
                       {scene.name || 'Untitled'}
                     </span>
                   )}
                   <button
-                    onClick={(e) => { e.stopPropagation(); onDelete(scene.id) }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDelete(scene.id)
+                    }}
                     style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: '#ccc', fontSize: 12, padding: '0 2px', lineHeight: 1,
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#ccc',
+                      fontSize: 12,
+                      padding: '0 2px',
+                      lineHeight: 1,
                     }}
                     title="Delete"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <polyline points="3 6 5 6 21 6" />
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                     </svg>
@@ -211,12 +261,14 @@ export function SceneLibrary({ scenes, onClose, onAdd, onUpdate, onDelete, onSel
         </div>
 
         {/* Upload button */}
-        <div style={{
-          padding: '12px 20px',
-          borderTop: '1px solid #e5e7eb',
-          display: 'flex',
-          justifyContent: 'flex-end',
-        }}>
+        <div
+          style={{
+            padding: '12px 20px',
+            borderTop: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'flex-end',
+          }}
+        >
           <input
             ref={fileRef}
             type="file"

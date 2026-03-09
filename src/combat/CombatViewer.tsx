@@ -29,22 +29,35 @@ export function CombatViewer({
 }: CombatViewerProps) {
   if (!scene) {
     return (
-      <div onContextMenu={onContextMenu} style={{
-        width: '100vw', height: '100vh',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#1a1a2e', color: '#666',
-        fontFamily: 'sans-serif', fontSize: 16,
-      }}>
+      <div
+        onContextMenu={onContextMenu}
+        style={{
+          width: '100vw',
+          height: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#1a1a2e',
+          color: '#666',
+          fontFamily: 'sans-serif',
+          fontSize: 16,
+        }}
+      >
         No combat scene selected
       </div>
     )
   }
 
   return (
-    <div onContextMenu={onContextMenu} style={{
-      width: '100vw', height: '100vh',
-      overflow: 'hidden', background: '#111',
-    }}>
+    <div
+      onContextMenu={onContextMenu}
+      style={{
+        width: '100vw',
+        height: '100vh',
+        overflow: 'hidden',
+        background: '#111',
+      }}
+    >
       <TransformWrapper
         initialScale={1}
         minScale={0.1}

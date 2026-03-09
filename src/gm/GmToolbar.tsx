@@ -64,7 +64,16 @@ export function GmToolbar({
               gap: 6,
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <rect x="3" y="3" width="18" height="18" rx="2" />
               <circle cx="8.5" cy="8.5" r="1.5" />
               <path d="M21 15l-5-5L5 21" />
@@ -74,22 +83,26 @@ export function GmToolbar({
 
           {/* Scene dropdown */}
           {showScenePicker && (
-            <div style={{
-              position: 'absolute',
-              bottom: '100%',
-              left: 0,
-              marginBottom: 6,
-              background: 'rgba(255,255,255,0.96)',
-              backdropFilter: 'blur(8px)',
-              borderRadius: 10,
-              boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
-              minWidth: 200,
-              maxHeight: 300,
-              overflowY: 'auto',
-              padding: 4,
-            }}>
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: 0,
+                marginBottom: 6,
+                background: 'rgba(255,255,255,0.96)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: 10,
+                boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+                minWidth: 200,
+                maxHeight: 300,
+                overflowY: 'auto',
+                padding: 4,
+              }}
+            >
               {scenes.length === 0 && (
-                <div style={{ padding: '12px 16px', color: '#999', fontSize: 12, textAlign: 'center' }}>
+                <div
+                  style={{ padding: '12px 16px', color: '#999', fontSize: 12, textAlign: 'center' }}
+                >
                   No scenes yet
                 </div>
               )}
@@ -106,7 +119,8 @@ export function GmToolbar({
                     gap: 8,
                     width: '100%',
                     padding: '8px 12px',
-                    background: scene.id === room.activeSceneId ? 'rgba(59,130,246,0.1)' : 'transparent',
+                    background:
+                      scene.id === room.activeSceneId ? 'rgba(59,130,246,0.1)' : 'transparent',
                     border: 'none',
                     borderRadius: 6,
                     cursor: 'pointer',
@@ -140,13 +154,15 @@ export function GmToolbar({
                       }}
                     />
                   )}
-                  <span style={{
-                    fontWeight: scene.id === room.activeSceneId ? 600 : 400,
-                    color: '#333',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
+                  <span
+                    style={{
+                      fontWeight: scene.id === room.activeSceneId ? 600 : 400,
+                      color: '#333',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     {scene.name || 'Untitled'}
                   </span>
                 </button>
@@ -195,7 +211,16 @@ export function GmToolbar({
             gap: 6,
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             {isCombat ? (
               <>
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -210,7 +235,6 @@ export function GmToolbar({
           </svg>
           {isCombat ? 'Exit Combat' : 'Combat'}
         </button>
-
       </div>
 
       {/* Scene Library Modal */}
@@ -221,7 +245,10 @@ export function GmToolbar({
           onAdd={onAddScene}
           onUpdate={onUpdateScene}
           onDelete={onDeleteScene}
-          onSelect={(id) => { onSelectScene(id); setShowLibrary(false) }}
+          onSelect={(id) => {
+            onSelectScene(id)
+            setShowLibrary(false)
+          }}
         />
       )}
     </>

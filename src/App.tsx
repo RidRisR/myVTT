@@ -34,54 +34,79 @@ import { TeamDashboard } from './team/TeamDashboard'
 function RoomSession({ roomId }: { roomId: string }) {
   const { yDoc, isLoading, awareness } = useYjsConnection(roomId)
   const world = useWorld(yDoc)
-  const { seats, mySeat, mySeatId, onlineSeatIds, claimSeat, createSeat, deleteSeat, leaveSeat, updateSeat } = useIdentity(world.seats, awareness)
+  const {
+    seats,
+    mySeat,
+    mySeatId,
+    onlineSeatIds,
+    claimSeat,
+    createSeat,
+    deleteSeat,
+    leaveSeat,
+    updateSeat,
+  } = useIdentity(world.seats, awareness)
   const { room, setActiveScene, setCombatScene, enterCombat, exitCombat } = useRoom(world.room)
   const { scenes, addScene, updateScene, deleteScene, getScene } = useScenes(world.scenes, yDoc)
 
   const combatSceneId = room.mode === 'combat' ? room.combatSceneId : null
-  const { entities, addSceneEntity, updateEntity, deleteEntity, getEntity } = useEntities(world, room.activeSceneId, yDoc)
-  const { tokens, addToken, updateToken, deleteToken, getToken } = useSceneTokens(world, combatSceneId, yDoc)
+  const { entities, addSceneEntity, updateEntity, deleteEntity, getEntity } = useEntities(
+    world,
+    room.activeSceneId,
+    yDoc,
+  )
+  const { tokens, addToken, updateToken, deleteToken, getToken } = useSceneTokens(
+    world,
+    combatSceneId,
+  )
 
   const { addItem: addShowcaseItem } = useShowcase(yDoc)
-  const { assets: handoutAssets, addAsset: addHandoutAsset, updateAsset: updateHandoutAsset, deleteAsset: deleteHandoutAsset } = useHandoutAssets(yDoc)
+  const {
+    assets: handoutAssets,
+    addAsset: addHandoutAsset,
+    updateAsset: updateHandoutAsset,
+    deleteAsset: deleteHandoutAsset,
+  } = useHandoutAssets(yDoc)
 
   const [inspectedCharacterId, setInspectedCharacterId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
   const [bgContextMenu, setBgContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [editingHandout, setEditingHandout] = useState<HandoutAsset | null>(null)
   // Sync role from seat
+  const mySeatRole = mySeat?.role
   useEffect(() => {
-    if (mySeat) roleStore.set(mySeat.role)
-  }, [mySeat?.role])
+    if (mySeatRole) roleStore.set(mySeatRole)
+  }, [mySeatRole])
 
   // Auto-set activeCharacterId if seat has an owned entity but no active one
   useEffect(() => {
     if (!mySeat || !mySeatId) return
     if (mySeat.activeCharacterId) return // already set
-    const ownedEntity = entities.find(e => e.permissions.seats[mySeatId] === 'owner')
+    const ownedEntity = entities.find((e) => e.permissions.seats[mySeatId] === 'owner')
     if (ownedEntity) {
       updateSeat(mySeatId, { activeCharacterId: ownedEntity.id })
     }
-  }, [mySeat, mySeatId, entities])
+  }, [mySeat, mySeatId, entities, updateSeat])
 
   if (isLoading) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        fontFamily: 'sans-serif',
-        fontSize: 18,
-        color: '#666',
-        background: '#1a1a2e',
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          fontFamily: 'sans-serif',
+          fontSize: 18,
+          color: '#666',
+          background: '#1a1a2e',
+        }}
+      >
         Connecting to server...
       </div>
     )
   }
 
-  if (!mySeat) {
+  if (!mySeat || !mySeatId) {
     return (
       <SeatSelect
         seats={seats}
@@ -106,13 +131,21 @@ function RoomSession({ roomId }: { roomId: string }) {
 
   // Flatten resources + attributes into { key, value }[] for chat @key autocomplete
   const allProps = [
-    ...getEntityResources(activeEntity).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
-    ...getEntityAttributes(activeEntity).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
-    ...getEntityResources(selectedTokenEntity).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
-    ...getEntityAttributes(selectedTokenEntity).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
+    ...getEntityResources(activeEntity)
+      .filter((r) => r.key)
+      .map((r) => ({ key: r.key, value: String(r.current) })),
+    ...getEntityAttributes(activeEntity)
+      .filter((a) => a.key)
+      .map((a) => ({ key: a.key, value: String(a.value) })),
+    ...getEntityResources(selectedTokenEntity)
+      .filter((r) => r.key)
+      .map((r) => ({ key: r.key, value: String(r.current) })),
+    ...getEntityAttributes(selectedTokenEntity)
+      .filter((a) => a.key)
+      .map((a) => ({ key: a.key, value: String(a.value) })),
   ]
   // Deduplicate by key — later entries (token entity) override earlier (active entity)
-  const seatProperties = [...new Map(allProps.map(p => [p.key, p])).values()]
+  const seatProperties = [...new Map(allProps.map((p) => [p.key, p])).values()]
 
   // Handle deleting an entity
   const handleDeleteEntity = (entityId: string) => {
@@ -134,7 +167,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       title: asset.title,
       description: asset.description,
       imageUrl: asset.imageUrl,
-      senderId: mySeatId!,
+      senderId: mySeatId,
       senderName: mySeat.name,
       senderColor: mySeat.color,
       ephemeral: false,
@@ -172,7 +205,7 @@ function RoomSession({ roomId }: { roomId: string }) {
           scene={combatScene}
           tokens={tokens}
           getEntity={getEntity}
-          mySeatId={mySeatId!}
+          mySeatId={mySeatId}
           role={mySeat.role}
           selectedTokenId={selectedTokenId}
           onSelectToken={setSelectedTokenId}
@@ -205,33 +238,21 @@ function RoomSession({ roomId }: { roomId: string }) {
       <TeamDashboard yDoc={yDoc} isGM={isGM} />
 
       {/* Left: My character card (self-managed open/close via tab) */}
-      {activeEntity && (
-        <MyCharacterCard
-          entity={activeEntity}
-          onUpdateEntity={updateEntity}
-        />
-      )}
-
+      {activeEntity && <MyCharacterCard entity={activeEntity} onUpdateEntity={updateEntity} />}
 
       {/* Center: Showcase spotlight overlay */}
-      <ShowcaseOverlay
-        yDoc={yDoc}
-        mySeatId={mySeatId!}
-        isGM={isGM}
-      />
+      <ShowcaseOverlay yDoc={yDoc} isGM={isGM} />
 
       {/* Bottom-right: Chat overlay */}
       <ChatPanel
         yDoc={yDoc}
-        senderId={mySeatId!}
+        senderId={mySeatId}
         senderName={mySeat.name}
         senderColor={mySeat.color}
         portraitUrl={mySeat.portraitUrl || activeEntity?.imageUrl}
         seatProperties={seatProperties}
         speakerEntities={
-          isGM
-            ? entities
-            : entities.filter(e => e.permissions.seats[mySeatId!] === 'owner')
+          isGM ? entities : entities.filter((e) => e.permissions.seats[mySeatId] === 'owner')
         }
       />
 
@@ -279,9 +300,7 @@ function RoomSession({ roomId }: { roomId: string }) {
         <ContextMenu
           x={bgContextMenu.x}
           y={bgContextMenu.y}
-          items={[
-            { label: 'Add NPC', onClick: handleAddNpc },
-          ]}
+          items={[{ label: 'Add NPC', onClick: handleAddNpc }]}
           onClose={() => setBgContextMenu(null)}
         />
       )}
@@ -320,17 +339,26 @@ export default function App() {
   }
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100vh', fontFamily: 'sans-serif', background: '#0f0f19',
-      color: '#e4e4e7',
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        fontFamily: 'sans-serif',
+        background: '#0f0f19',
+        color: '#e4e4e7',
+      }}
+    >
       <div style={{ textAlign: 'center', maxWidth: 400 }}>
         <h1 style={{ fontSize: 28, marginBottom: 16, fontWeight: 300 }}>myVTT</h1>
         <p style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
           Please obtain a room link from the administrator.
         </p>
-        <a href="#admin" style={{ color: '#60a5fa', fontSize: 13, marginTop: 24, display: 'inline-block' }}>
+        <a
+          href="#admin"
+          style={{ color: '#60a5fa', fontSize: 13, marginTop: 24, display: 'inline-block' }}
+        >
           Admin Panel
         </a>
       </div>

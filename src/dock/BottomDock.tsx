@@ -79,20 +79,29 @@ export function BottomDock({
   }, [blueprintsYMap])
 
   // Blueprint CRUD (operates directly on Y.Map)
-  const handleAddBlueprint = useCallback((bp: Blueprint) => {
-    blueprintsYMap.set(bp.id, bp)
-  }, [blueprintsYMap])
+  const handleAddBlueprint = useCallback(
+    (bp: Blueprint) => {
+      blueprintsYMap.set(bp.id, bp)
+    },
+    [blueprintsYMap],
+  )
 
-  const handleUpdateBlueprint = useCallback((id: string, updates: Partial<Blueprint>) => {
-    const existing = blueprintsYMap.get(id) as Blueprint | undefined
-    if (existing) {
-      blueprintsYMap.set(id, { ...existing, ...updates })
-    }
-  }, [blueprintsYMap])
+  const handleUpdateBlueprint = useCallback(
+    (id: string, updates: Partial<Blueprint>) => {
+      const existing = blueprintsYMap.get(id) as Blueprint | undefined
+      if (existing) {
+        blueprintsYMap.set(id, { ...existing, ...updates })
+      }
+    },
+    [blueprintsYMap],
+  )
 
-  const handleDeleteBlueprint = useCallback((id: string) => {
-    blueprintsYMap.delete(id)
-  }, [blueprintsYMap])
+  const handleDeleteBlueprint = useCallback(
+    (id: string) => {
+      blueprintsYMap.delete(id)
+    },
+    [blueprintsYMap],
+  )
 
   // Click outside to collapse
   useEffect(() => {
@@ -107,7 +116,7 @@ export function BottomDock({
   }, [activeTab])
 
   const toggleTab = (tab: TabId) => {
-    setActiveTab(prev => prev === tab ? null : tab)
+    setActiveTab((prev) => (prev === tab ? null : tab))
   }
 
   // Create a new Entity from a blueprint
@@ -209,18 +218,20 @@ export function BottomDock({
     >
       {/* Expanded content area */}
       {activeTab !== null && (
-        <div style={{
-          marginBottom: 6,
-          background: 'rgba(15, 15, 25, 0.92)',
-          backdropFilter: 'blur(16px)',
-          borderRadius: 12,
-          border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          minWidth: 400,
-          maxHeight: 220,
-          overflowY: 'auto',
-          padding: 12,
-        }}>
+        <div
+          style={{
+            marginBottom: 6,
+            background: 'rgba(15, 15, 25, 0.92)',
+            backdropFilter: 'blur(16px)',
+            borderRadius: 12,
+            border: '1px solid rgba(255,255,255,0.08)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            minWidth: 400,
+            maxHeight: 220,
+            overflowY: 'auto',
+            padding: 12,
+          }}
+        >
           {activeTab === 'maps' && (
             <MapDockTab
               scenes={scenes}
@@ -257,7 +268,16 @@ export function BottomDock({
       <div style={{ display: 'flex', gap: 6 }}>
         {/* Maps tab */}
         <button onClick={() => toggleTab('maps')} style={tabBtnStyle(activeTab === 'maps')}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <rect x="3" y="3" width="18" height="18" rx="2" />
             <circle cx="8.5" cy="8.5" r="1.5" />
             <path d="M21 15l-5-5L5 21" />
@@ -267,7 +287,16 @@ export function BottomDock({
 
         {/* Tokens tab */}
         <button onClick={() => toggleTab('tokens')} style={tabBtnStyle(activeTab === 'tokens')}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="12" cy="8" r="5" />
             <path d="M20 21a8 8 0 0 0-16 0" />
           </svg>
@@ -276,7 +305,16 @@ export function BottomDock({
 
         {/* Handouts tab */}
         <button onClick={() => toggleTab('handouts')} style={tabBtnStyle(activeTab === 'handouts')}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
           </svg>
@@ -286,7 +324,16 @@ export function BottomDock({
         {/* Action: Delete selected token */}
         {selectedToken && (
           <button onClick={handleDeleteSelected} style={{ ...actionBtnStyle, color: '#f87171' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6l-1.5 14a2 2 0 0 1-2 2H8.5a2 2 0 0 1-2-2L5 6" />
             </svg>
@@ -296,11 +343,23 @@ export function BottomDock({
 
         {/* Action: Toggle visibility */}
         {selectedToken && (
-          <button onClick={handleToggleGmOnly} style={{
-            ...actionBtnStyle,
-            color: selectedToken.gmOnly ? '#fbbf24' : '#a0a0a0',
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <button
+            onClick={handleToggleGmOnly}
+            style={{
+              ...actionBtnStyle,
+              color: selectedToken.gmOnly ? '#fbbf24' : '#a0a0a0',
+            }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               {selectedToken.gmOnly ? (
                 <>
                   <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />

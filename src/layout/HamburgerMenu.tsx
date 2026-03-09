@@ -17,7 +17,9 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Sync editName when seat name changes externally
-  useEffect(() => { setEditName(mySeat.name) }, [mySeat.name])
+  useEffect(() => {
+    setEditName(mySeat.name)
+  }, [mySeat.name])
 
   useEffect(() => {
     if (!open) return
@@ -83,12 +85,22 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
           alignItems: 'center',
           transition: 'background 0.15s',
         }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(25, 25, 40, 0.92)' }}
+        onMouseEnter={(e) => {
+          ;(e.currentTarget as HTMLElement).style.background = 'rgba(25, 25, 40, 0.92)'
+        }}
         onMouseLeave={(e) => {
           if (!open) (e.currentTarget as HTMLElement).style.background = 'rgba(15, 15, 25, 0.75)'
         }}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="rgba(255,255,255,0.7)"
+          strokeWidth="2"
+          strokeLinecap="round"
+        >
           <line x1="3" y1="6" x2="21" y2="6" />
           <line x1="3" y1="12" x2="21" y2="12" />
           <line x1="3" y1="18" x2="21" y2="18" />
@@ -99,7 +111,10 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
         <>
           <div
             style={{ position: 'fixed', inset: 0, zIndex: -1 }}
-            onClick={() => { setOpen(false); setEditing(false) }}
+            onClick={() => {
+              setOpen(false)
+              setEditing(false)
+            }}
           />
           <div
             style={{
@@ -129,7 +144,13 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
             <div style={{ padding: '10px 12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 {/* Portrait — clickable to upload */}
-                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePortraitUpload} />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handlePortraitUpload}
+                />
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}
@@ -149,32 +170,43 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                       }}
                     />
                   ) : (
-                    <div style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: '50%',
-                      background: mySeat.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#fff',
-                      fontSize: 14,
-                      fontWeight: 700,
-                    }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: '50%',
+                        background: mySeat.color,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                        fontSize: 14,
+                        fontWeight: 700,
+                      }}
+                    >
                       {mySeat.name.charAt(0).toUpperCase()}
                     </div>
                   )}
                   {/* Hover overlay */}
                   <div
                     style={{
-                      position: 'absolute', inset: 0, borderRadius: '50%',
+                      position: 'absolute',
+                      inset: 0,
+                      borderRadius: '50%',
                       background: uploading ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       transition: 'background 0.15s',
-                      fontSize: 9, color: '#fff',
+                      fontSize: 9,
+                      color: '#fff',
                     }}
-                    onMouseEnter={(e) => { if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0.4)' }}
-                    onMouseLeave={(e) => { if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0)' }}
+                    onMouseEnter={(e) => {
+                      if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0.4)'
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0)'
+                    }}
                   >
                     {uploading ? '...' : ''}
                   </div>
@@ -190,7 +222,10 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                       onBlur={handleSaveName}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSaveName()
-                        if (e.key === 'Escape') { setEditing(false); setEditName(mySeat.name) }
+                        if (e.key === 'Escape') {
+                          setEditing(false)
+                          setEditName(mySeat.name)
+                        }
                       }}
                       style={{
                         width: '100%',
@@ -222,12 +257,14 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                       {mySeat.name}
                     </div>
                   )}
-                  <div style={{
-                    fontSize: 10,
-                    color: mySeat.role === 'GM' ? '#fbbf24' : '#60a5fa',
-                    fontWeight: 500,
-                    marginTop: 1,
-                  }}>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: mySeat.role === 'GM' ? '#fbbf24' : '#60a5fa',
+                      fontWeight: 500,
+                      marginTop: 1,
+                    }}
+                  >
                     {mySeat.role === 'GM' ? 'Game Master' : 'Player'}
                   </div>
                 </div>
@@ -235,7 +272,7 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
 
               {/* Color picker */}
               <div style={{ display: 'flex', gap: 5, marginTop: 10, flexWrap: 'wrap' }}>
-                {SEAT_COLORS.map(c => (
+                {SEAT_COLORS.map((c) => (
                   <div
                     key={c}
                     onClick={() => onUpdateSeat(mySeat.id, { color: c })}
@@ -276,10 +313,23 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                 gap: 8,
                 transition: 'background 0.15s',
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+              }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />

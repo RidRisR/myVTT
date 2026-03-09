@@ -7,7 +7,8 @@ interface CombatMapProps {
 }
 
 export function CombatMap({ scene, children }: CombatMapProps) {
-  const { width, height, imageUrl, gridSize, gridVisible, gridColor, gridOffsetX, gridOffsetY } = scene
+  const { width, height, imageUrl, gridSize, gridVisible, gridColor, gridOffsetX, gridOffsetY } =
+    scene
 
   // Generate grid lines
   const vLines: number[] = []
@@ -28,7 +29,8 @@ export function CombatMap({ scene, children }: CombatMapProps) {
           autoPlay
           playsInline
           style={{
-            width, height,
+            width,
+            height,
             display: 'block',
             userSelect: 'none',
             pointerEvents: 'none',
@@ -40,7 +42,8 @@ export function CombatMap({ scene, children }: CombatMapProps) {
           src={imageUrl}
           alt={scene.name}
           style={{
-            width, height,
+            width,
+            height,
             display: 'block',
             userSelect: 'none',
             pointerEvents: 'none',
@@ -56,13 +59,29 @@ export function CombatMap({ scene, children }: CombatMapProps) {
           height={height}
           style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
         >
-          {vLines.map(x => (
-            <line key={`v${x}`} x1={x} y1={0} x2={x} y2={height}
-              stroke={gridColor} strokeWidth={1} opacity={0.4} />
+          {vLines.map((x) => (
+            <line
+              key={`v${x}`}
+              x1={x}
+              y1={0}
+              x2={x}
+              y2={height}
+              stroke={gridColor}
+              strokeWidth={1}
+              opacity={0.4}
+            />
           ))}
-          {hLines.map(y => (
-            <line key={`h${y}`} x1={0} y1={y} x2={width} y2={y}
-              stroke={gridColor} strokeWidth={1} opacity={0.4} />
+          {hLines.map((y) => (
+            <line
+              key={`h${y}`}
+              x1={0}
+              y1={y}
+              x2={width}
+              y2={y}
+              stroke={gridColor}
+              strokeWidth={1}
+              opacity={0.4}
+            />
           ))}
         </svg>
       )}

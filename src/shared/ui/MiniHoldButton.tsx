@@ -31,8 +31,12 @@ export function MiniHoldButton({ label, onTick, color }: MiniHoldButtonProps) {
         flexShrink: 0,
         transition: 'all 0.15s',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'rgba(255,255,255,0.12)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+      }}
     >
       {label}
     </button>

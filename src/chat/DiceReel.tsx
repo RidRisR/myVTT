@@ -13,10 +13,13 @@ interface DiceReelProps {
 
 type Phase = 'spinning' | 'landing' | 'stopped'
 
-const SPIN_DURATION = 0.8 // All dice spin for this long minimum
-const STOP_INTERVAL = 0.2 // Each die stops 0.2s apart
-
-export function DiceReel({ sides, result, stopDelay, dropped = false, dropRevealDelay }: DiceReelProps) {
+export function DiceReel({
+  sides,
+  result,
+  stopDelay,
+  dropped = false,
+  dropRevealDelay,
+}: DiceReelProps) {
   // Lock animation params at mount — immune to later prop changes (e.g. isNew toggling)
   const initialRef = useRef({ stopDelay, result, sides, dropRevealDelay })
   const animate = initialRef.current.stopDelay > 0
@@ -28,7 +31,12 @@ export function DiceReel({ sides, result, stopDelay, dropped = false, dropReveal
   useEffect(() => {
     if (!animate) return
 
-    const { stopDelay: delay, result: finalValue, sides: s, dropRevealDelay: drd } = initialRef.current
+    const {
+      stopDelay: delay,
+      result: finalValue,
+      sides: s,
+      dropRevealDelay: drd,
+    } = initialRef.current
 
     // Phase 1: Spinning — cycle through shuffled faces (no repeats)
     const faces = Array.from({ length: s }, (_, i) => i + 1)
@@ -37,8 +45,8 @@ export function DiceReel({ sides, result, stopDelay, dropped = false, dropReveal
       if (cursor >= faces.length) {
         // Fisher-Yates shuffle
         for (let i = faces.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [faces[i], faces[j]] = [faces[j], faces[i]]
+          const j = Math.floor(Math.random() * (i + 1))
+          ;[faces[i], faces[j]] = [faces[j], faces[i]]
         }
         cursor = 0
       }
@@ -86,8 +94,8 @@ export function DiceReel({ sides, result, stopDelay, dropped = false, dropReveal
     fontFamily: 'monospace',
     fontVariantNumeric: 'tabular-nums',
     transition: 'opacity 0.3s, text-decoration 0.3s',
-    opacity: (dropped && showDropped) ? 0.5 : 1,
-    textDecoration: (dropped && showDropped) ? 'line-through' : 'none',
+    opacity: dropped && showDropped ? 0.5 : 1,
+    textDecoration: dropped && showDropped ? 'line-through' : 'none',
   }
 
   const phaseStyles: Record<Phase, React.CSSProperties> = {
@@ -100,31 +108,10 @@ export function DiceReel({ sides, result, stopDelay, dropped = false, dropReveal
       ...baseStyle,
       filter: 'blur(0)',
       animation: 'diceLand 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-      boxShadow:
-        '0 0 20px rgba(59, 130, 246, 0.8), inset 0 0 8px rgba(96, 165, 250, 0.3)',
+      boxShadow: '0 0 20px rgba(59, 130, 246, 0.8), inset 0 0 8px rgba(96, 165, 250, 0.3)',
     },
     stopped: baseStyle,
   }
 
-  return (
-    <span style={phaseStyles[phase]}>
-      {displayValue}
-    </span>
-  )
-}
-
-/** Calculate total animation duration for a set of dice terms */
-export function calcTotalAnimDuration(
-  termResults: { term: { type: string }; allRolls: number[] }[],
-): number {
-  let diceCount = 0
-  for (const tr of termResults) {
-    if (tr.term.type === 'dice') {
-      diceCount += tr.allRolls.length
-    }
-  }
-  if (diceCount === 0) return 0.5
-  // spin + sequential stops + landing animation + buffer for total reveal
-  const lastStopTime = SPIN_DURATION + (diceCount - 1) * STOP_INTERVAL
-  return lastStopTime + 0.3 + 0.2 // landing (0.3s) + buffer before total (0.2s)
+  return <span style={phaseStyles[phase]}>{displayValue}</span>
 }

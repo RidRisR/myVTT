@@ -26,7 +26,7 @@ export function useRoom(yRoom: Y.Map<unknown>) {
   }, [yRoom])
 
   const setMode = (mode: 'scene' | 'combat') => {
-    yRoom.doc!.transact(() => {
+    yRoom.doc?.transact(() => {
       yRoom.set('mode', mode)
       if (mode === 'combat' && !yRoom.get('combatSceneId')) {
         yRoom.set('combatSceneId', yRoom.get('activeSceneId'))
@@ -43,7 +43,7 @@ export function useRoom(yRoom: Y.Map<unknown>) {
   }
 
   const enterCombat = (sceneId?: string) => {
-    yRoom.doc!.transact(() => {
+    yRoom.doc?.transact(() => {
       yRoom.set('mode', 'combat')
       if (sceneId) {
         yRoom.set('combatSceneId', sceneId)

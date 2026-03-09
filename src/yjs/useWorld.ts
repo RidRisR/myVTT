@@ -22,25 +22,23 @@ export interface WorldMaps {
 }
 
 function ensureSubMap(parent: Y.Map<unknown>, key: string, doc: Y.Doc): Y.Map<unknown> {
-  let sub = parent.get(key) as Y.Map<unknown> | undefined
-  if (!(sub instanceof Y.Map)) {
-    sub = new Y.Map()
-    doc.transact(() => {
-      parent.set(key, sub!)
-    })
-  }
-  return sub
+  const existing = parent.get(key)
+  if (existing instanceof Y.Map) return existing
+  const created = new Y.Map()
+  doc.transact(() => {
+    parent.set(key, created)
+  })
+  return created
 }
 
 function ensureSubArray(parent: Y.Map<unknown>, key: string, doc: Y.Doc): Y.Array<unknown> {
-  let sub = parent.get(key) as Y.Array<unknown> | undefined
-  if (!(sub instanceof Y.Array)) {
-    sub = new Y.Array()
-    doc.transact(() => {
-      parent.set(key, sub!)
-    })
-  }
-  return sub
+  const existing = parent.get(key)
+  if (existing instanceof Y.Array) return existing
+  const created = new Y.Array()
+  doc.transact(() => {
+    parent.set(key, created)
+  })
+  return created
 }
 
 export function useWorld(yDoc: Y.Doc): WorldMaps {

@@ -13,21 +13,32 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
   const [mode, setMode] = useState<'choose' | 'create'>('choose')
   const [name, setName] = useState('')
   const [role, setRole] = useState<'GM' | 'PL'>('PL')
-  const usedColors = seats.map(s => s.color)
-  const [color, setColor] = useState(() => SEAT_COLORS.find(c => !usedColors.includes(c)) ?? SEAT_COLORS[0])
+  const usedColors = seats.map((s) => s.color)
+  const [color, setColor] = useState(
+    () => SEAT_COLORS.find((c) => !usedColors.includes(c)) ?? SEAT_COLORS[0],
+  )
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100vh', fontFamily: 'sans-serif', background: '#f5f5f5',
-    }}>
-      <div style={{
-        background: '#fff', borderRadius: 12, padding: 32,
-        minWidth: 360, boxShadow: '0 4px 24px rgba(0,0,0,0.1)',
-      }}>
-        <h2 style={{ margin: '0 0 24px', fontSize: 20, textAlign: 'center' }}>
-          Join Session
-        </h2>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        fontFamily: 'sans-serif',
+        background: '#f5f5f5',
+      }}
+    >
+      <div
+        style={{
+          background: '#fff',
+          borderRadius: 12,
+          padding: 32,
+          minWidth: 360,
+          boxShadow: '0 4px 24px rgba(0,0,0,0.1)',
+        }}
+      >
+        <h2 style={{ margin: '0 0 24px', fontSize: 20, textAlign: 'center' }}>Join Session</h2>
 
         {/* Existing seats */}
         {seats.length > 0 && mode === 'choose' && (
@@ -44,41 +55,65 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                     onClick={() => !isOnline && onClaim(seat.id)}
                     disabled={isOnline}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '10px 16px', border: '1px solid #e5e7eb',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '10px 16px',
+                      border: '1px solid #e5e7eb',
                       borderRadius: 8,
                       background: isOnline ? '#f9fafb' : '#fff',
                       cursor: isOnline ? 'not-allowed' : 'pointer',
-                      fontSize: 14, textAlign: 'left',
+                      fontSize: 14,
+                      textAlign: 'left',
                       opacity: isOnline ? 0.6 : 1,
                     }}
                   >
-                    <div style={{
-                      width: 12, height: 12, borderRadius: '50%',
-                      background: seat.color, flexShrink: 0,
-                    }} />
+                    <div
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        background: seat.color,
+                        flexShrink: 0,
+                      }}
+                    />
                     <span style={{ flex: 1, fontWeight: 600 }}>{seat.name}</span>
                     {isOnline && (
-                      <span style={{
-                        fontSize: 10, padding: '2px 6px', borderRadius: 4,
-                        background: '#dcfce7', color: '#166534',
-                      }}>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          background: '#dcfce7',
+                          color: '#166534',
+                        }}
+                      >
                         Online
                       </span>
                     )}
-                    <span style={{
-                      fontSize: 11, padding: '2px 8px', borderRadius: 4,
-                      background: seat.role === 'GM' ? '#fef3c7' : '#dbeafe',
-                      color: seat.role === 'GM' ? '#92400e' : '#1e40af',
-                    }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        background: seat.role === 'GM' ? '#fef3c7' : '#dbeafe',
+                        color: seat.role === 'GM' ? '#92400e' : '#1e40af',
+                      }}
+                    >
                       {seat.role}
                     </span>
                     {!isOnline && (
                       <span
-                        onClick={(e) => { e.stopPropagation(); onDelete(seat.id) }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDelete(seat.id)
+                        }}
                         style={{
-                          fontSize: 12, color: '#999', cursor: 'pointer',
-                          padding: '0 4px', lineHeight: 1,
+                          fontSize: 12,
+                          color: '#999',
+                          cursor: 'pointer',
+                          padding: '0 4px',
+                          lineHeight: 1,
                         }}
                         title="Delete seat"
                       >
@@ -89,7 +124,9 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                 )
               })}
             </div>
-            <div style={{ textAlign: 'center', color: '#999', fontSize: 12, margin: '12px 0' }}>or</div>
+            <div style={{ textAlign: 'center', color: '#999', fontSize: 12, margin: '12px 0' }}>
+              or
+            </div>
           </>
         )}
 
@@ -98,9 +135,15 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
           <button
             onClick={() => setMode('create')}
             style={{
-              width: '100%', padding: '10px 16px',
-              background: '#2563eb', color: '#fff', border: 'none',
-              borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600,
+              width: '100%',
+              padding: '10px 16px',
+              background: '#2563eb',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 600,
             }}
           >
             Create New Seat
@@ -118,11 +161,17 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                 autoFocus
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && name.trim() && onCreate(name.trim(), role, color)}
+                onKeyDown={(e) =>
+                  e.key === 'Enter' && name.trim() && onCreate(name.trim(), role, color)
+                }
                 placeholder="Your character name"
                 style={{
-                  width: '100%', padding: '8px 12px', border: '1px solid #ddd',
-                  borderRadius: 6, fontSize: 14, boxSizing: 'border-box',
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #ddd',
+                  borderRadius: 6,
+                  fontSize: 14,
+                  boxSizing: 'border-box',
                 }}
               />
             </div>
@@ -137,9 +186,13 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                     key={r}
                     onClick={() => setRole(r)}
                     style={{
-                      flex: 1, padding: '8px 12px', border: '2px solid',
+                      flex: 1,
+                      padding: '8px 12px',
+                      border: '2px solid',
                       borderColor: role === r ? '#2563eb' : '#e5e7eb',
-                      borderRadius: 6, cursor: 'pointer', fontSize: 14,
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      fontSize: 14,
                       fontWeight: 600,
                       background: role === r ? (r === 'GM' ? '#fef3c7' : '#dbeafe') : '#fff',
                     }}
@@ -162,7 +215,10 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                       key={c}
                       onClick={() => !taken && setColor(c)}
                       style={{
-                        width: 28, height: 28, borderRadius: '50%', background: c,
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        background: c,
                         cursor: taken ? 'not-allowed' : 'pointer',
                         border: color === c ? '3px solid #111' : '3px solid transparent',
                         opacity: taken ? 0.25 : 1,
@@ -177,8 +233,13 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
               <button
                 onClick={() => setMode('choose')}
                 style={{
-                  flex: 1, padding: '10px', border: '1px solid #ddd',
-                  borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 14,
+                  flex: 1,
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: 8,
+                  background: '#fff',
+                  cursor: 'pointer',
+                  fontSize: 14,
                 }}
               >
                 Back
@@ -187,11 +248,15 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                 onClick={() => name.trim() && onCreate(name.trim(), role, color)}
                 disabled={!name.trim()}
                 style={{
-                  flex: 1, padding: '10px',
-                  background: name.trim() ? '#2563eb' : '#ccc', color: '#fff',
-                  border: 'none', borderRadius: 8,
+                  flex: 1,
+                  padding: '10px',
+                  background: name.trim() ? '#2563eb' : '#ccc',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
                   cursor: name.trim() ? 'pointer' : 'default',
-                  fontSize: 14, fontWeight: 600,
+                  fontSize: 14,
+                  fontWeight: 600,
                 }}
               >
                 Join

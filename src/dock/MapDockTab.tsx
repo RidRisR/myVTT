@@ -53,13 +53,21 @@ export function MapDockTab({
 
   return (
     <div>
-      <input ref={fileRef} type="file" accept="image/*,video/mp4,video/webm,video/quicktime" style={{ display: 'none' }} onChange={handleUpload} />
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*,video/mp4,video/webm,video/quicktime"
+        style={{ display: 'none' }}
+        onChange={handleUpload}
+      />
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-        gap: 8,
-      }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+          gap: 8,
+        }}
+      >
         {scenes.map((scene) => {
           const isActive = scene.id === combatSceneId
           const isHovered = hoveredId === scene.id
@@ -107,23 +115,28 @@ export function MapDockTab({
                   draggable={false}
                 />
               )}
-              <div style={{
-                padding: '4px 6px',
-                fontSize: 10,
-                color: isActive ? '#fff' : 'rgba(255,255,255,0.6)',
-                fontWeight: isActive ? 600 : 400,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                background: 'rgba(0,0,0,0.3)',
-              }}>
+              <div
+                style={{
+                  padding: '4px 6px',
+                  fontSize: 10,
+                  color: isActive ? '#fff' : 'rgba(255,255,255,0.6)',
+                  fontWeight: isActive ? 600 : 400,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  background: 'rgba(0,0,0,0.3)',
+                }}
+              >
                 {scene.name || 'Untitled'}
               </div>
 
               {/* Delete button on hover */}
               {isHovered && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onDeleteScene(scene.id) }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDeleteScene(scene.id)
+                  }}
                   style={{
                     position: 'absolute',
                     top: 4,
@@ -143,7 +156,9 @@ export function MapDockTab({
                     lineHeight: 1,
                     padding: 0,
                   }}
-                >×</button>
+                >
+                  ×
+                </button>
               )}
             </div>
           )

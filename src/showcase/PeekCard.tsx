@@ -48,7 +48,8 @@ export function PeekCard({ item, onClick }: PeekCardProps) {
           src={item.imageUrl}
           alt=""
           style={{
-            width: 44, height: 44,
+            width: 44,
+            height: 44,
             objectFit: 'cover',
             borderRadius: 6,
             flexShrink: 0,
@@ -56,31 +57,38 @@ export function PeekCard({ item, onClick }: PeekCardProps) {
         />
       )}
       <div style={{ overflow: 'hidden' }}>
-        <div style={{
-          fontSize: 13,
-          fontWeight: 500,
-          color: 'rgba(255,255,255,0.8)',
-          fontFamily: 'sans-serif',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}>
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: 'rgba(255,255,255,0.8)',
+            fontFamily: 'sans-serif',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
           {item.title || 'Untitled'}
         </div>
-        <div style={{
-          fontSize: 11,
-          color: 'rgba(255,255,255,0.35)',
-          fontFamily: 'sans-serif',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-        }}>
-          <span style={{
-            width: 6, height: 6,
-            borderRadius: '50%',
-            background: item.senderColor,
-            display: 'inline-block',
-          }} />
+        <div
+          style={{
+            fontSize: 11,
+            color: 'rgba(255,255,255,0.35)',
+            fontFamily: 'sans-serif',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: item.senderColor,
+              display: 'inline-block',
+            }}
+          />
           {item.senderName}
         </div>
       </div>

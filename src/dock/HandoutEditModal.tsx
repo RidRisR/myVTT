@@ -133,7 +133,9 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
               background: 'rgba(255,255,255,0.06)',
               color: 'rgba(255,255,255,0.7)',
             }}
-          >Cancel</button>
+          >
+            Cancel
+          </button>
           <button
             onClick={handleSave}
             style={{
@@ -147,7 +149,9 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
               background: 'rgba(59,130,246,0.85)',
               color: '#fff',
             }}
-          >Save</button>
+          >
+            Save
+          </button>
         </div>
       </div>
     </div>

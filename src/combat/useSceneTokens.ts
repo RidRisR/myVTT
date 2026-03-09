@@ -13,7 +13,7 @@ function getTokensMap(world: WorldMaps, sceneId: string | null): Y.Map<MapToken>
   return null
 }
 
-export function useSceneTokens(world: WorldMaps, sceneId: string | null, _yDoc: Y.Doc) {
+export function useSceneTokens(world: WorldMaps, sceneId: string | null) {
   const [tokens, setTokens] = useState<MapToken[]>([])
 
   const tokensMap = getTokensMap(world, sceneId)
@@ -25,7 +25,7 @@ export function useSceneTokens(world: WorldMaps, sceneId: string | null, _yDoc: 
     }
     const read = () => {
       const result: MapToken[] = []
-      tokensMap.forEach(t => result.push(t))
+      tokensMap.forEach((t) => result.push(t))
       setTokens(result)
     }
     read()
@@ -33,26 +33,38 @@ export function useSceneTokens(world: WorldMaps, sceneId: string | null, _yDoc: 
     return () => tokensMap.unobserve(read)
   }, [tokensMap])
 
-  const addToken = useCallback((token: MapToken) => {
-    tokensMap?.set(token.id, token)
-  }, [tokensMap])
+  const addToken = useCallback(
+    (token: MapToken) => {
+      tokensMap?.set(token.id, token)
+    },
+    [tokensMap],
+  )
 
-  const updateToken = useCallback((id: string, updates: Partial<MapToken>) => {
-    if (!tokensMap) return
-    const existing = tokensMap.get(id)
-    if (existing) {
-      tokensMap.set(id, { ...existing, ...updates })
-    }
-  }, [tokensMap])
+  const updateToken = useCallback(
+    (id: string, updates: Partial<MapToken>) => {
+      if (!tokensMap) return
+      const existing = tokensMap.get(id)
+      if (existing) {
+        tokensMap.set(id, { ...existing, ...updates })
+      }
+    },
+    [tokensMap],
+  )
 
-  const deleteToken = useCallback((id: string) => {
-    tokensMap?.delete(id)
-  }, [tokensMap])
+  const deleteToken = useCallback(
+    (id: string) => {
+      tokensMap?.delete(id)
+    },
+    [tokensMap],
+  )
 
-  const getToken = useCallback((id: string | null): MapToken | null => {
-    if (!id || !tokensMap) return null
-    return tokensMap.get(id) ?? null
-  }, [tokensMap])
+  const getToken = useCallback(
+    (id: string | null): MapToken | null => {
+      if (!id || !tokensMap) return null
+      return tokensMap.get(id) ?? null
+    },
+    [tokensMap],
+  )
 
   return { tokens, addToken, updateToken, deleteToken, getToken }
 }

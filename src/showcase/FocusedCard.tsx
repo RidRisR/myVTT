@@ -4,7 +4,6 @@ import type { ShowcaseItem } from './showcaseTypes'
 interface FocusedCardProps {
   item: ShowcaseItem
   isGM: boolean
-  mySeatId: string
   isPinned: boolean
   animateEntrance: boolean
   onAnimationDone: () => void
@@ -17,7 +16,6 @@ interface FocusedCardProps {
 export function FocusedCard({
   item,
   isGM,
-  mySeatId: _mySeatId,
   isPinned,
   animateEntrance,
   onAnimationDone,
@@ -35,16 +33,19 @@ export function FocusedCard({
     if (prevAnimatedId.current === item.id) return
     prevAnimatedId.current = item.id
 
-    cardRef.current.animate([
-      { transform: 'scale(0.7)', opacity: 0, filter: 'blur(12px)' },
-      { transform: 'scale(1.05)', opacity: 1, filter: 'blur(0px)', offset: 0.6 },
-      { transform: 'scale(1)', opacity: 1, filter: 'blur(0px)' },
-    ], {
-      duration: 650,
-      easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-      fill: 'forwards',
-    }).onfinish = () => onAnimationDone()
-  }, [animateEntrance, item.id])
+    cardRef.current.animate(
+      [
+        { transform: 'scale(0.7)', opacity: 0, filter: 'blur(12px)' },
+        { transform: 'scale(1.05)', opacity: 1, filter: 'blur(0px)', offset: 0.6 },
+        { transform: 'scale(1)', opacity: 1, filter: 'blur(0px)' },
+      ],
+      {
+        duration: 650,
+        easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        fill: 'forwards',
+      },
+    ).onfinish = () => onAnimationDone()
+  }, [animateEntrance, item.id, onAnimationDone])
 
   const canDismiss = !isPinned
   const canPin = isGM && !isPinned
@@ -54,23 +55,27 @@ export function FocusedCard({
   if (item.type === 'text') {
     return (
       <div ref={cardRef} style={{ textAlign: 'center', maxWidth: 600, padding: '20px 32px' }}>
-        <div style={{
-          fontFamily: "'Georgia', 'Times New Roman', serif",
-          fontStyle: 'italic',
-          fontSize: 24,
-          lineHeight: 1.6,
-          color: '#fff',
-          textShadow: '0 0 20px rgba(255,255,255,0.4), 0 0 40px rgba(255,255,255,0.15)',
-          whiteSpace: 'pre-wrap',
-        }}>
+        <div
+          style={{
+            fontFamily: "'Georgia', 'Times New Roman', serif",
+            fontStyle: 'italic',
+            fontSize: 24,
+            lineHeight: 1.6,
+            color: '#fff',
+            textShadow: '0 0 20px rgba(255,255,255,0.4), 0 0 40px rgba(255,255,255,0.15)',
+            whiteSpace: 'pre-wrap',
+          }}
+        >
           {item.text}
         </div>
-        <div style={{
-          marginTop: 12,
-          fontSize: 11,
-          color: 'rgba(255,255,255,0.4)',
-          fontFamily: 'sans-serif',
-        }}>
+        <div
+          style={{
+            marginTop: 12,
+            fontSize: 11,
+            color: 'rgba(255,255,255,0.4)',
+            fontFamily: 'sans-serif',
+          }}
+        >
           <span style={{ color: item.senderColor }}>{item.senderName}</span>
         </div>
         <ActionButtons
@@ -89,19 +94,22 @@ export function FocusedCard({
 
   // image / handout type — raw image, no card wrapper
   return (
-    <div ref={cardRef} style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: 12,
-    }}>
+    <div
+      ref={cardRef}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 12,
+      }}
+    >
       {item.imageUrl && (
         <img
           src={item.imageUrl}
           alt={item.title || ''}
           style={{
             maxWidth: '55vw',
-            maxHeight: (item.title || item.description) ? '50vh' : '55vh',
+            maxHeight: item.title || item.description ? '50vh' : '55vh',
             objectFit: 'contain',
             borderRadius: 4,
             boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
@@ -109,27 +117,37 @@ export function FocusedCard({
         />
       )}
       {(item.title || item.description) && (
-        <div style={{
-          textAlign: 'center',
-          maxWidth: '55vw',
-          fontFamily: 'sans-serif',
-        }}>
+        <div
+          style={{
+            textAlign: 'center',
+            maxWidth: '55vw',
+            fontFamily: 'sans-serif',
+          }}
+        >
           {item.title && (
-            <div style={{
-              fontSize: 16,
-              fontWeight: 600,
-              color: '#fff',
-              textShadow: '0 1px 8px rgba(0,0,0,0.6)',
-            }}>{item.title}</div>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                color: '#fff',
+                textShadow: '0 1px 8px rgba(0,0,0,0.6)',
+              }}
+            >
+              {item.title}
+            </div>
           )}
           {item.description && (
-            <div style={{
-              fontSize: 13,
-              color: 'rgba(255,255,255,0.7)',
-              lineHeight: 1.5,
-              marginTop: item.title ? 4 : 0,
-              textShadow: '0 1px 6px rgba(0,0,0,0.5)',
-            }}>{item.description}</div>
+            <div
+              style={{
+                fontSize: 13,
+                color: 'rgba(255,255,255,0.7)',
+                lineHeight: 1.5,
+                marginTop: item.title ? 4 : 0,
+                textShadow: '0 1px 6px rgba(0,0,0,0.5)',
+              }}
+            >
+              {item.description}
+            </div>
           )}
         </div>
       )}
@@ -147,7 +165,16 @@ export function FocusedCard({
   )
 }
 
-function ActionButtons({ canDismiss, canPin, canUnpin, canDelete, onDismiss, onPin, onUnpin, onDelete }: {
+function ActionButtons({
+  canDismiss,
+  canPin,
+  canUnpin,
+  canDelete,
+  onDismiss,
+  onPin,
+  onUnpin,
+  onDelete,
+}: {
   canDismiss: boolean
   canPin: boolean
   canUnpin: boolean
@@ -177,8 +204,12 @@ function ActionButtons({ canDismiss, canPin, canUnpin, canDelete, onDismiss, onP
         <button
           onClick={onDismiss}
           style={btnBase}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.12)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+          }}
         >
           Dismiss
         </button>
@@ -187,8 +218,12 @@ function ActionButtons({ canDismiss, canPin, canUnpin, canDelete, onDismiss, onP
         <button
           onClick={onPin}
           style={{ ...btnBase, borderColor: 'rgba(251,191,36,0.4)', color: '#fbbf24' }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(251,191,36,0.12)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(251,191,36,0.12)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+          }}
         >
           Pin
         </button>
@@ -197,8 +232,12 @@ function ActionButtons({ canDismiss, canPin, canUnpin, canDelete, onDismiss, onP
         <button
           onClick={onUnpin}
           style={{ ...btnBase, borderColor: 'rgba(251,191,36,0.4)', color: '#fbbf24' }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(251,191,36,0.12)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(251,191,36,0.12)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+          }}
         >
           Unpin
         </button>
@@ -207,8 +246,12 @@ function ActionButtons({ canDismiss, canPin, canUnpin, canDelete, onDismiss, onP
         <button
           onClick={onDelete}
           style={{ ...btnBase, borderColor: 'rgba(239,68,68,0.4)', color: '#ef4444' }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.12)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(239,68,68,0.12)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+          }}
         >
           Delete
         </button>

@@ -28,7 +28,9 @@ export function TokenDockTab({
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; bpId: string } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; bpId: string } | null>(
+    null,
+  )
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -74,19 +76,31 @@ export function TokenDockTab({
       items.push({ label: 'Spawn on map', onClick: () => onSpawnToken(bp) })
     }
     items.push({ label: 'Add as featured NPC', onClick: () => onAddToActive(bp) })
-    items.push({ label: 'Delete blueprint', onClick: () => onDeleteBlueprint(bp.id), color: '#f87171' })
+    items.push({
+      label: 'Delete blueprint',
+      onClick: () => onDeleteBlueprint(bp.id),
+      color: '#f87171',
+    })
     return items
   }
 
   return (
     <div>
-      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleUpload} />
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleUpload}
+      />
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
-        gap: 10,
-      }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
+          gap: 10,
+        }}
+      >
         {blueprints.map((bp) => {
           const isHovered = hoveredId === bp.id
           return (
@@ -105,7 +119,7 @@ export function TokenDockTab({
             >
               {/* Circular token image */}
               <div
-                onClick={() => isCombat ? onSpawnToken(bp) : onAddToActive(bp)}
+                onClick={() => (isCombat ? onSpawnToken(bp) : onAddToActive(bp))}
                 style={{
                   width: 56,
                   height: 56,
@@ -175,7 +189,10 @@ export function TokenDockTab({
               {/* Delete button on hover */}
               {isHovered && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); onDeleteBlueprint(bp.id) }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDeleteBlueprint(bp.id)
+                  }}
                   style={{
                     position: 'absolute',
                     top: -2,
@@ -195,7 +212,9 @@ export function TokenDockTab({
                     lineHeight: 1,
                     padding: 0,
                   }}
-                >×</button>
+                >
+                  ×
+                </button>
               )}
             </div>
           )
@@ -236,25 +255,24 @@ export function TokenDockTab({
           >
             {uploading ? '...' : '+'}
           </div>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>
-            Add Token
-          </span>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Add Token</span>
         </div>
       </div>
 
       {/* Context menu */}
-      {contextMenu && (() => {
-        const bp = blueprints.find(b => b.id === contextMenu.bpId)
-        if (!bp) return null
-        return (
-          <ContextMenu
-            x={contextMenu.x}
-            y={contextMenu.y}
-            items={getContextMenuItems(bp)}
-            onClose={() => setContextMenu(null)}
-          />
-        )
-      })()}
+      {contextMenu &&
+        (() => {
+          const bp = blueprints.find((b) => b.id === contextMenu.bpId)
+          if (!bp) return null
+          return (
+            <ContextMenu
+              x={contextMenu.x}
+              y={contextMenu.y}
+              items={getContextMenuItems(bp)}
+              onClose={() => setContextMenu(null)}
+            />
+          )
+        })()}
     </div>
   )
 }

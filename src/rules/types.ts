@@ -5,16 +5,16 @@ import type { DiceTermResult } from '../shared/diceUtils'
 /** A clickable roll button on the character card */
 export interface RollAction {
   id: string
-  name: string                  // "Agility Check"
-  formula: string               // "2d12+@Agility"
-  category?: string             // "action", "skill", "combat"
-  targetAttributeKey?: string   // for future CoC: which attribute to compare against
+  name: string // "Agility Check"
+  formula: string // "2d12+@Agility"
+  category?: string // "action", "skill", "combat"
+  targetAttributeKey?: string // for future CoC: which attribute to compare against
 }
 
 /** A toggle in the roll confirmation panel */
 export interface ModifierOption {
   id: string
-  label: string                 // "奖励骰", "优势"
+  label: string // "奖励骰", "优势"
   type: 'toggle'
   mutuallyExclusiveWith?: string
 }
@@ -35,8 +35,8 @@ export type JudgmentResult =
 
 /** How to render the judgment in the UI */
 export interface JudgmentDisplay {
-  text: string                  // "成功 (Hope)"
-  color: string                 // "#22c55e"
+  text: string // "成功 (Hope)"
+  color: string // "#22c55e"
   severity: 'critical' | 'success' | 'partial' | 'failure' | 'fumble'
 }
 
@@ -44,8 +44,8 @@ export interface JudgmentDisplay {
 export interface DieStyle {
   termIndex: number
   dieIndex: number
-  label?: string                // "Hope"
-  color?: string                // "#f59e0b"
+  label?: string // "Hope"
+  color?: string // "#f59e0b"
 }
 
 /** Context passed to evaluateRoll */
@@ -69,14 +69,20 @@ export interface RuleSystem {
   name: string
   // Adapter methods for generic UI
   getMainResource(entity: Entity): { current: number; max: number } | null
-  getPortraitResources(entity: Entity): { label: string; current: number; max: number; color: string }[]
+  getPortraitResources(
+    entity: Entity,
+  ): { label: string; current: number; max: number; color: string }[]
   getFormulaTokens(entity: Entity): Record<string, number>
   getStatuses(entity: Entity): { label: string }[]
   // Rule-specific UI
   EntityCard: React.ComponentType<EntityCardProps>
   // Dice
   getRollActions(entity: Entity): RollAction[]
-  evaluateRoll(termResults: DiceTermResult[], total: number, context: RollContext): JudgmentResult | null
+  evaluateRoll(
+    termResults: DiceTermResult[],
+    total: number,
+    context: RollContext,
+  ): JudgmentResult | null
   getDieStyles(termResults: DiceTermResult[]): DieStyle[]
   getJudgmentDisplay(result: JudgmentResult): JudgmentDisplay
   getModifierOptions(): ModifierOption[]
