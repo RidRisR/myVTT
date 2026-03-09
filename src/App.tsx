@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useYjsConnection } from './yjs/useYjsConnection'
+import { AdminPanel } from './admin/AdminPanel'
 import { useRoom } from './yjs/useRoom'
 import { useScenes } from './yjs/useScenes'
 import { useCombatTokens } from './combat/useCombatTokens'
@@ -28,8 +29,8 @@ import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './combat/combatUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 
-export default function App() {
-  const { yDoc, isLoading, awareness } = useYjsConnection()
+function RoomSession({ roomId }: { roomId: string }) {
+  const { yDoc, isLoading, awareness } = useYjsConnection(roomId)
   const { seats, mySeat, mySeatId, onlineSeatIds, claimSeat, createSeat, deleteSeat, leaveSeat, updateSeat } = useIdentity(yDoc, awareness)
   const { room, setActiveScene, setCombatScene, enterCombat, exitCombat } = useRoom(yDoc)
   const { scenes, addScene, updateScene, deleteScene, getScene } = useScenes(yDoc)
@@ -329,6 +330,47 @@ export default function App() {
           onClose={() => setEditingHandout(null)}
         />
       )}
+    </div>
+  )
+}
+
+function useHashRoute() {
+  const [hash, setHash] = useState(location.hash)
+  useEffect(() => {
+    const onHashChange = () => setHash(location.hash)
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+  return hash
+}
+
+export default function App() {
+  const hash = useHashRoute()
+
+  if (hash === '#admin') {
+    return <AdminPanel />
+  }
+
+  const roomMatch = hash.match(/^#room=([a-zA-Z0-9_-]+)$/)
+  if (roomMatch) {
+    return <RoomSession roomId={roomMatch[1]} />
+  }
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '100vh', fontFamily: 'sans-serif', background: '#0f0f19',
+      color: '#e4e4e7',
+    }}>
+      <div style={{ textAlign: 'center', maxWidth: 400 }}>
+        <h1 style={{ fontSize: 28, marginBottom: 16, fontWeight: 300 }}>myVTT</h1>
+        <p style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
+          Please obtain a room link from the administrator.
+        </p>
+        <a href="#admin" style={{ color: '#60a5fa', fontSize: 13, marginTop: 24, display: 'inline-block' }}>
+          Admin Panel
+        </a>
+      </div>
     </div>
   )
 }
