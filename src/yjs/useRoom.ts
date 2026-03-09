@@ -15,8 +15,7 @@ function readRoom(yRoom: Y.Map<unknown>): RoomState {
   }
 }
 
-export function useRoom(yDoc: Y.Doc) {
-  const yRoom = yDoc.getMap<unknown>('room')
+export function useRoom(yRoom: Y.Map<unknown>) {
   const [room, setRoom] = useState<RoomState>(() => readRoom(yRoom))
 
   useEffect(() => {
@@ -27,7 +26,7 @@ export function useRoom(yDoc: Y.Doc) {
   }, [yRoom])
 
   const setMode = (mode: 'scene' | 'combat') => {
-    yDoc.transact(() => {
+    yRoom.doc!.transact(() => {
       yRoom.set('mode', mode)
       if (mode === 'combat' && !yRoom.get('combatSceneId')) {
         yRoom.set('combatSceneId', yRoom.get('activeSceneId'))
@@ -44,7 +43,7 @@ export function useRoom(yDoc: Y.Doc) {
   }
 
   const enterCombat = (sceneId?: string) => {
-    yDoc.transact(() => {
+    yRoom.doc!.transact(() => {
       yRoom.set('mode', 'combat')
       if (sceneId) {
         yRoom.set('combatSceneId', sceneId)
