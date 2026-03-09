@@ -1,10 +1,9 @@
-import type { CombatToken } from './combatTypes'
-import type { Character } from '../shared/characterTypes'
+import type { MapToken as MapTokenType, Entity } from '../shared/entityTypes'
 import { TokenOverlay } from './TokenOverlay'
 
 interface MapTokenProps {
-  token: CombatToken
-  character: Character
+  token: MapTokenType
+  entity: Entity | null
   pixelSize: number
   selected: boolean
   gmOnly: boolean
@@ -17,7 +16,7 @@ interface MapTokenProps {
 
 export function MapToken({
   token,
-  character,
+  entity,
   pixelSize,
   selected,
   gmOnly,
@@ -29,6 +28,11 @@ export function MapToken({
 }: MapTokenProps) {
   const x = dragging && dragX !== undefined ? dragX : token.x
   const y = dragging && dragY !== undefined ? dragY : token.y
+
+  // Resolve appearance: entity overrides token-level fallbacks
+  const color = entity?.color ?? token.color ?? '#888'
+  const imageUrl = entity?.imageUrl ?? token.imageUrl ?? ''
+  const name = entity?.name ?? token.label ?? ''
 
   return (
     <div
@@ -52,28 +56,45 @@ export function MapToken({
         height: pixelSize,
         borderRadius: '50%',
         overflow: 'hidden',
-        border: `3px solid ${selected ? '#fff' : character.color}`,
+        border: `3px solid ${selected ? '#fff' : color}`,
         boxShadow: selected
-          ? `0 0 0 2px ${character.color}, 0 0 16px ${character.color}66`
+          ? `0 0 0 2px ${color}, 0 0 16px ${color}66`
           : `0 2px 8px rgba(0,0,0,0.4)`,
         opacity: gmOnly ? 0.5 : 1,
         borderStyle: gmOnly ? 'dashed' : 'solid',
         boxSizing: 'border-box',
         transition: 'border-color 0.15s, box-shadow 0.15s',
       }}>
-        <img
-          src={character.imageUrl}
-          alt={character.name}
-          style={{
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={name}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              pointerEvents: 'none',
+              userSelect: 'none',
+              display: 'block',
+            }}
+            draggable={false}
+          />
+        ) : (
+          <div style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
-            pointerEvents: 'none',
-            userSelect: 'none',
-            display: 'block',
-          }}
-          draggable={false}
-        />
+            background: `linear-gradient(135deg, ${color}, ${color}aa)`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            fontSize: Math.max(12, pixelSize * 0.3),
+            fontWeight: 700,
+            fontFamily: 'sans-serif',
+          }}>
+            {name.charAt(0).toUpperCase() || '?'}
+          </div>
+        )}
       </div>
 
       {/* Overlay below token */}
@@ -83,7 +104,7 @@ export function MapToken({
         left: '50%',
         transform: 'translateX(-50%)',
       }}>
-        <TokenOverlay character={character} />
+        <TokenOverlay entity={entity} name={name} />
       </div>
     </div>
   )

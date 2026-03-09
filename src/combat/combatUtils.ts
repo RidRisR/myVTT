@@ -1,3 +1,6 @@
+import type { Entity } from '../shared/entityTypes'
+import { canEdit } from '../shared/permissions'
+
 export function snapToGrid(
   mapX: number, mapY: number,
   gridSize: number, gridOffsetX: number, gridOffsetY: number,
@@ -25,11 +28,12 @@ export function screenToMap(
 
 export function canDragToken(
   role: 'GM' | 'PL',
-  tokenOwnerId: string | null,
+  entity: Entity | null,
   mySeatId: string,
 ): boolean {
   if (role === 'GM') return true
-  return tokenOwnerId === mySeatId
+  if (!entity) return false
+  return canEdit(entity, mySeatId, role)
 }
 
 export function generateTokenId(): string {
