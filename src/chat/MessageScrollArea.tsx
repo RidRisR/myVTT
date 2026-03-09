@@ -5,15 +5,11 @@ import { MessageCard } from './MessageCard'
 interface MessageScrollAreaProps {
   messages: ChatMessage[]
   newMessageIds: Set<string>
-  favoritedFormulas: Set<string>
-  onToggleFavorite: (expression: string) => void
 }
 
 export function MessageScrollArea({
   messages,
   newMessageIds,
-  favoritedFormulas,
-  onToggleFavorite,
 }: MessageScrollAreaProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
@@ -106,8 +102,6 @@ export function MessageScrollArea({
               message={msg}
               isNew={newMessageIds.has(msg.id)}
               animationStyle="scroll"
-              isFavorited={msg.type === 'roll' ? favoritedFormulas.has(msg.expression) : false}
-              onToggleFavorite={msg.type === 'roll' ? onToggleFavorite : undefined}
             />
           ))}
         </div>
