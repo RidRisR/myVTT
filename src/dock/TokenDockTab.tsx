@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { Blueprint } from '../shared/entityTypes'
 import { uploadAsset } from '../shared/assetUpload'
-import { generateTokenId } from '../combat/combatUtils'
+import { generateTokenId } from '../shared/idUtils'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 
 interface TokenDockTabProps {

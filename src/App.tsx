@@ -28,7 +28,7 @@ import type { Entity } from './shared/entityTypes'
 import { defaultNPCPermissions } from './shared/permissions'
 import { getEntityResources, getEntityAttributes } from './shared/entityAdapters'
 import { HandoutEditModal } from './dock/HandoutEditModal'
-import { generateTokenId } from './combat/combatUtils'
+import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 
 function RoomSession({ roomId }: { roomId: string }) {

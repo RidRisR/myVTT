@@ -37,9 +37,3 @@ export function canDragToken(role: 'GM' | 'PL', entity: Entity | null, mySeatId:
   if (!entity) return false
   return canEdit(entity, mySeatId, role)
 }
-
-export function generateTokenId(): string {
-  return (
-    self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
-  )
-}

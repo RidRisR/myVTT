@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as Y from 'yjs'
-import { generateTokenId } from '../combat/combatUtils'
+import { generateTokenId } from '../shared/idUtils'
 
 export interface TeamTracker {
   id: string
