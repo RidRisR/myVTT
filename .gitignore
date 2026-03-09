@@ -28,3 +28,4 @@ db/
 dist/
 server/uploads/
 .worktrees/
+.claude
