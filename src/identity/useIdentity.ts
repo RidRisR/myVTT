@@ -19,12 +19,11 @@ export interface Seat {
 const SEAT_STORAGE_KEY = 'myvtt-seat-id'
 export const SEAT_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
 
-export function useIdentity(yDoc: Y.Doc, awareness: Awareness | null) {
+export function useIdentity(ySeats: Y.Map<unknown>, awareness: Awareness | null) {
+  const yPlayers = ySeats as Y.Map<Seat>
   const [seats, setSeats] = useState<Seat[]>([])
   const [mySeatId, setMySeatId] = useState<string | null>(null)
   const mySeatIdRef = useRef<string | null>(null)
-
-  const yPlayers = yDoc.getMap<Seat>('players')
 
   // Sync seats from Yjs + auto-claim from sessionStorage
   useEffect(() => {
