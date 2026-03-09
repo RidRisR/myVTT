@@ -3,15 +3,15 @@ import { useYjsConnection } from './yjs/useYjsConnection'
 import { AdminPanel } from './admin/AdminPanel'
 import { useRoom } from './yjs/useRoom'
 import { useScenes } from './yjs/useScenes'
-import { useCombatTokens } from './combat/useCombatTokens'
+import { useWorld } from './yjs/useWorld'
+import { useEntities } from './entities/useEntities'
+import { useSceneTokens } from './combat/useSceneTokens'
 import { SeatSelect } from './identity/SeatSelect'
 import { useIdentity } from './identity/useIdentity'
-import { useCharacters } from './characters/useCharacters'
 import { roleStore } from './shared/roleState'
 import { ChatPanel } from './chat/ChatPanel'
 import { SceneViewer } from './scene/SceneViewer'
 import { CombatViewer } from './combat/CombatViewer'
-import { useTokenLibrary } from './combat/useTokenLibrary'
 import { BottomDock } from './dock/BottomDock'
 import { useHandoutAssets } from './dock/useHandoutAssets'
 import type { HandoutAsset } from './dock/useHandoutAssets'
@@ -24,19 +24,24 @@ import { ContextMenu } from './shared/ContextMenu'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import { useShowcase } from './showcase/useShowcase'
 import type { ShowcaseItem } from './showcase/showcaseTypes'
-import type { Character } from './shared/characterTypes'
+import type { Entity } from './shared/entityTypes'
+import { defaultNPCPermissions } from './shared/permissions'
+import { getEntityResources, getEntityAttributes } from './shared/entityAdapters'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './combat/combatUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 
 function RoomSession({ roomId }: { roomId: string }) {
   const { yDoc, isLoading, awareness } = useYjsConnection(roomId)
-  const { seats, mySeat, mySeatId, onlineSeatIds, claimSeat, createSeat, deleteSeat, leaveSeat, updateSeat } = useIdentity(yDoc, awareness)
-  const { room, setActiveScene, setCombatScene, enterCombat, exitCombat } = useRoom(yDoc)
-  const { scenes, addScene, updateScene, deleteScene, getScene } = useScenes(yDoc)
-  const { tokens, addToken, updateToken, deleteToken, getToken } = useCombatTokens(yDoc)
-  const { blueprints, addBlueprint, updateBlueprint, deleteBlueprint } = useTokenLibrary(yDoc)
-  const { characters, addCharacter, updateCharacter, deleteCharacter, getCharacter } = useCharacters(yDoc)
+  const world = useWorld(yDoc)
+  const { seats, mySeat, mySeatId, onlineSeatIds, claimSeat, createSeat, deleteSeat, leaveSeat, updateSeat } = useIdentity(world.seats, awareness)
+  const { room, setActiveScene, setCombatScene, enterCombat, exitCombat } = useRoom(world.room)
+  const { scenes, addScene, updateScene, deleteScene, getScene } = useScenes(world.scenes, yDoc)
+
+  const combatSceneId = room.mode === 'combat' ? room.combatSceneId : null
+  const { entities, addPartyEntity, addSceneEntity, updateEntity, deleteEntity, getEntity } = useEntities(world, room.activeSceneId, yDoc)
+  const { tokens, addToken, updateToken, deleteToken, getToken } = useSceneTokens(world, combatSceneId, yDoc)
+
   const { addItem: addShowcaseItem } = useShowcase(yDoc)
   const { assets: handoutAssets, addAsset: addHandoutAsset, updateAsset: updateHandoutAsset, deleteAsset: deleteHandoutAsset } = useHandoutAssets(yDoc)
 
@@ -49,36 +54,15 @@ function RoomSession({ roomId }: { roomId: string }) {
     if (mySeat) roleStore.set(mySeat.role)
   }, [mySeat?.role])
 
-  // Auto-create Character for Seat on first login (migration / new seat)
+  // Auto-set activeCharacterId if seat has an owned entity but no active one
   useEffect(() => {
     if (!mySeat || !mySeatId) return
-    // Check if this seat already has a linked character
-    const hasChar = characters.some(c => c.type === 'pc' && c.seatId === mySeatId)
-    if (!hasChar) {
-      const char: Character = {
-        id: generateTokenId(),
-        name: mySeat.name,
-        imageUrl: '',
-        color: mySeat.color,
-        type: 'pc',
-        seatId: mySeatId,
-        size: 1,
-        resources: [],
-        attributes: [],
-        statuses: [],
-        notes: '',
-        featured: true,
-      }
-      addCharacter(char)
-      updateSeat(mySeatId, { activeCharacterId: char.id })
-    } else if (!mySeat.activeCharacterId) {
-      // Seat exists but no activeCharacterId set — set it
-      const firstChar = characters.find(c => c.type === 'pc' && c.seatId === mySeatId)
-      if (firstChar) {
-        updateSeat(mySeatId, { activeCharacterId: firstChar.id })
-      }
+    if (mySeat.activeCharacterId) return // already set
+    const ownedEntity = entities.find(e => e.permissions.seats[mySeatId] === 'owner')
+    if (ownedEntity) {
+      updateSeat(mySeatId, { activeCharacterId: ownedEntity.id })
     }
-  }, [mySeat, mySeatId, characters])
+  }, [mySeat, mySeatId, entities])
 
   if (isLoading) {
     return (
@@ -114,36 +98,32 @@ function RoomSession({ roomId }: { roomId: string }) {
   const activeScene = getScene(room.activeSceneId)
   const combatScene = getScene(room.combatSceneId)
 
-  // Derive character data
-  const activeCharacter = getCharacter(mySeat.activeCharacterId ?? null)
+  // Derive entity data
+  const activeEntity = getEntity(mySeat.activeCharacterId ?? null)
   // For selected token in combat
   const selectedToken = isCombat ? getToken(selectedTokenId) : null
-  const selectedTokenCharacter = selectedToken ? getCharacter(selectedToken.characterId) : null
+  const selectedTokenEntity = selectedToken?.entityId ? getEntity(selectedToken.entityId) : null
 
   // Flatten resources + attributes into { key, value }[] for chat @key autocomplete
   const allProps = [
-    ...(activeCharacter?.resources ?? []).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
-    ...(activeCharacter?.attributes ?? []).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
-    ...(selectedTokenCharacter?.resources ?? []).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
-    ...(selectedTokenCharacter?.attributes ?? []).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
+    ...getEntityResources(activeEntity).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
+    ...getEntityAttributes(activeEntity).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
+    ...getEntityResources(selectedTokenEntity).filter(r => r.key).map(r => ({ key: r.key, value: String(r.current) })),
+    ...getEntityAttributes(selectedTokenEntity).filter(a => a.key).map(a => ({ key: a.key, value: String(a.value) })),
   ]
-  // Deduplicate by key — later entries (token character) override earlier (active character)
+  // Deduplicate by key — later entries (token entity) override earlier (active entity)
   const seatProperties = [...new Map(allProps.map(p => [p.key, p])).values()]
 
-  // Handle deleting a character (also delete linked combat tokens)
-  const handleDeleteCharacter = (charId: string) => {
-    // Delete any combat tokens linked to this character
-    tokens.forEach(t => {
-      if (t.characterId === charId) deleteToken(t.id)
-    })
-    deleteCharacter(charId)
-    if (inspectedCharacterId === charId) setInspectedCharacterId(null)
+  // Handle deleting an entity
+  const handleDeleteEntity = (entityId: string) => {
+    deleteEntity(entityId)
+    if (inspectedCharacterId === entityId) setInspectedCharacterId(null)
   }
 
   // Handle setting active character
-  const handleSetActiveCharacter = (charId: string) => {
+  const handleSetActiveCharacter = (entityId: string) => {
     if (mySeatId) {
-      updateSeat(mySeatId, { activeCharacterId: charId })
+      updateSeat(mySeatId, { activeCharacterId: entityId })
     }
   }
 
@@ -170,21 +150,18 @@ function RoomSession({ roomId }: { roomId: string }) {
   }
 
   const handleAddNpc = () => {
-    const newChar: Character = {
+    const newEntity: Entity = {
       id: generateTokenId(),
-      name: 'New Character',
+      name: 'New NPC',
       imageUrl: '',
       color: '#3b82f6',
-      type: 'npc',
       size: 1,
-      resources: [],
-      attributes: [],
-      statuses: [],
       notes: '',
-      featured: true,
+      ruleData: null,
+      permissions: defaultNPCPermissions(),
     }
-    addCharacter(newChar)
-    setInspectedCharacterId(newChar.id)
+    addSceneEntity(newEntity)
+    setInspectedCharacterId(newEntity.id)
     setBgContextMenu(null)
   }
 
@@ -194,7 +171,7 @@ function RoomSession({ roomId }: { roomId: string }) {
         <CombatViewer
           scene={combatScene}
           tokens={tokens}
-          getCharacter={getCharacter}
+          getEntity={getEntity}
           mySeatId={mySeatId!}
           role={mySeat.role}
           selectedTokenId={selectedTokenId}
@@ -211,26 +188,27 @@ function RoomSession({ roomId }: { roomId: string }) {
 
       {/* Top-center: Portrait bar */}
       <PortraitBar
-        characters={characters}
+        entities={entities}
         mySeatId={mySeatId}
+        role={mySeat.role}
         isGM={isGM}
         onlineSeatIds={onlineSeatIds}
         inspectedCharacterId={inspectedCharacterId}
         activeCharacterId={mySeat.activeCharacterId ?? null}
         onInspectCharacter={setInspectedCharacterId}
         onSetActiveCharacter={handleSetActiveCharacter}
-        onDeleteCharacter={handleDeleteCharacter}
-        onUpdateCharacter={updateCharacter}
+        onDeleteEntity={handleDeleteEntity}
+        onUpdateEntity={updateEntity}
       />
 
       {/* Top-right: Team dashboard */}
       <TeamDashboard yDoc={yDoc} isGM={isGM} />
 
       {/* Left: My character card (self-managed open/close via tab) */}
-      {activeCharacter && (
+      {activeEntity && (
         <MyCharacterCard
-          character={activeCharacter}
-          onUpdateCharacter={updateCharacter}
+          entity={activeEntity}
+          onUpdateEntity={updateEntity}
         />
       )}
 
@@ -248,24 +226,12 @@ function RoomSession({ roomId }: { roomId: string }) {
         senderId={mySeatId!}
         senderName={mySeat.name}
         senderColor={mySeat.color}
-        portraitUrl={mySeat.portraitUrl || activeCharacter?.imageUrl}
+        portraitUrl={mySeat.portraitUrl || activeEntity?.imageUrl}
         seatProperties={seatProperties}
-        favorites={activeCharacter?.favorites ?? []}
-        onAddFavorite={(fav) => {
-          if (!activeCharacter) return
-          const existing = activeCharacter.favorites ?? []
-          if (existing.some(f => f.formula === fav.formula)) return
-          updateCharacter(activeCharacter.id, { favorites: [...existing, fav] })
-        }}
-        onRemoveFavorite={(formula) => {
-          if (!activeCharacter) return
-          const existing = activeCharacter.favorites ?? []
-          updateCharacter(activeCharacter.id, { favorites: existing.filter(f => f.formula !== formula) })
-        }}
-        speakerCharacters={
+        speakerEntities={
           isGM
-            ? characters.filter(c => c.type === 'npc' || c.seatId === mySeatId)
-            : characters.filter(c => c.seatId === mySeatId)
+            ? entities
+            : entities.filter(e => e.permissions.seats[mySeatId!] === 'owner')
         }
       />
 
@@ -277,12 +243,9 @@ function RoomSession({ roomId }: { roomId: string }) {
           onSetCombatScene={setCombatScene}
           onAddScene={addScene}
           onDeleteScene={deleteScene}
-          blueprints={blueprints}
-          onAddBlueprint={addBlueprint}
-          onUpdateBlueprint={updateBlueprint}
-          onDeleteBlueprint={deleteBlueprint}
-          characters={characters}
-          onAddCharacter={addCharacter}
+          blueprints={world.blueprints}
+          entities={entities}
+          onAddSceneEntity={addSceneEntity}
           isCombat={isCombat}
           selectedToken={getToken(selectedTokenId)}
           onAddToken={addToken}
