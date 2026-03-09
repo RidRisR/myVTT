@@ -1,6 +1,5 @@
 import type React from 'react'
-import type { Character } from '../shared/characterTypes'
-import type { Resource, Attribute } from '../shared/tokenTypes'
+import type { Entity } from '../shared/entityTypes'
 import type { DiceTermResult } from '../shared/diceUtils'
 
 /** A clickable roll button on the character card */
@@ -57,10 +56,10 @@ export interface RollContext {
   tempModifier: number
 }
 
-/** Props the base provides to rule character cards */
-export interface CharacterCardProps {
-  character: Character
-  onUpdateCharacter: (id: string, updates: Partial<Character>) => void
+/** Props the base provides to rule entity cards */
+export interface EntityCardProps {
+  entity: Entity
+  onUpdateEntity: (id: string, updates: Partial<Entity>) => void
   onRollAction: (action: RollAction) => void
 }
 
@@ -68,10 +67,15 @@ export interface CharacterCardProps {
 export interface RuleSystem {
   id: string
   name: string
-  getDefaultAttributes(): Attribute[]
-  getDefaultResources(): Resource[]
-  CharacterCard: React.ComponentType<CharacterCardProps>
-  getRollActions(character: Character): RollAction[]
+  // Adapter methods for generic UI
+  getMainResource(entity: Entity): { current: number; max: number } | null
+  getPortraitResources(entity: Entity): { label: string; current: number; max: number; color: string }[]
+  getFormulaTokens(entity: Entity): Record<string, number>
+  getStatuses(entity: Entity): { label: string }[]
+  // Rule-specific UI
+  EntityCard: React.ComponentType<EntityCardProps>
+  // Dice
+  getRollActions(entity: Entity): RollAction[]
   evaluateRoll(termResults: DiceTermResult[], total: number, context: RollContext): JudgmentResult | null
   getDieStyles(termResults: DiceTermResult[]): DieStyle[]
   getJudgmentDisplay(result: JudgmentResult): JudgmentDisplay
