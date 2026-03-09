@@ -13,7 +13,7 @@ function getTokensMap(world: WorldMaps, sceneId: string | null): Y.Map<MapToken>
   return null
 }
 
-export function useSceneTokens(world: WorldMaps, sceneId: string | null, yDoc: Y.Doc) {
+export function useSceneTokens(world: WorldMaps, sceneId: string | null, _yDoc: Y.Doc) {
   const [tokens, setTokens] = useState<MapToken[]>([])
 
   const tokensMap = getTokensMap(world, sceneId)

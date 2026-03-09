@@ -39,7 +39,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   const { scenes, addScene, updateScene, deleteScene, getScene } = useScenes(world.scenes, yDoc)
 
   const combatSceneId = room.mode === 'combat' ? room.combatSceneId : null
-  const { entities, addPartyEntity, addSceneEntity, updateEntity, deleteEntity, getEntity } = useEntities(world, room.activeSceneId, yDoc)
+  const { entities, addSceneEntity, updateEntity, deleteEntity, getEntity } = useEntities(world, room.activeSceneId, yDoc)
   const { tokens, addToken, updateToken, deleteToken, getToken } = useSceneTokens(world, combatSceneId, yDoc)
 
   const { addItem: addShowcaseItem } = useShowcase(yDoc)
