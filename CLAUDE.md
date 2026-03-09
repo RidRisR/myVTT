@@ -113,3 +113,15 @@ Branch-specific constraints are documented in respective feature branch CLAUDE.m
 ### Commit Convention
 
 - Do NOT add `Co-Authored-By` or any AI attribution lines to commit messages
+
+## Current Branch: feature/rule-system
+
+### File Ownership
+
+- **May modify**: `src/rules/*` (new registry, daggerheart implementation)
+- **May modify**: `src/chat/*` (judgment display, roll actions)
+- **May modify**: `src/layout/*` (integrate RuleSystem.EntityCard)
+- **May modify**: `src/App.tsx` (add RuleSystem initialization)
+- **Do NOT touch**: `src/combat/*`
+- `entityAdapters.ts`: may add new functions, do not change existing signatures
+- `entityTypes.ts`: only append optional fields, do not change existing ones
