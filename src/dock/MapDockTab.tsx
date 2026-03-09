@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { Scene } from '../yjs/useScenes'
 import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
-import { generateTokenId } from '../combat/combatUtils'
+import { generateTokenId } from '../shared/idUtils'
 
 interface MapDockTabProps {
   scenes: Scene[]

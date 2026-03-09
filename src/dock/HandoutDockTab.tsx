@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { HandoutAsset } from './useHandoutAssets'
 import { uploadAsset } from '../shared/assetUpload'
-import { generateTokenId } from '../combat/combatUtils'
+import { generateTokenId } from '../shared/idUtils'
 
 interface HandoutDockTabProps {
   assets: HandoutAsset[]
