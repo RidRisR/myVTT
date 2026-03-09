@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import * as Y from 'yjs'
 import type { Scene } from '../yjs/useScenes'
-import type { CombatToken, TokenBlueprint } from '../combat/combatTypes'
-import type { Character } from '../shared/characterTypes'
+import type { MapToken, Entity, Blueprint } from '../shared/entityTypes'
+import { defaultNPCPermissions } from '../shared/permissions'
 import { generateTokenId } from '../combat/combatUtils'
 import { nextNpcName } from '../shared/characterUtils'
 import { MapDockTab } from './MapDockTab'
@@ -18,10 +19,7 @@ interface BottomDockProps {
   onAddScene: (scene: Scene) => void
   onDeleteScene: (id: string) => void
 
-  blueprints: TokenBlueprint[]
-  onAddBlueprint: (bp: TokenBlueprint) => void
-  onUpdateBlueprint: (id: string, updates: Partial<TokenBlueprint>) => void
-  onDeleteBlueprint: (id: string) => void
+  blueprints: Y.Map<unknown>
 
   handoutAssets: HandoutAsset[]
   onAddHandoutAsset: (asset: HandoutAsset) => void
@@ -29,14 +27,14 @@ interface BottomDockProps {
   onDeleteHandoutAsset: (id: string) => void
   onShowcaseHandout: (asset: HandoutAsset) => void
 
-  characters: Character[]
-  onAddCharacter: (char: Character) => void
+  entities: Entity[]
+  onAddSceneEntity: (entity: Entity) => void
   isCombat: boolean
 
-  selectedToken: CombatToken | null
-  onAddToken: (token: CombatToken) => void
+  selectedToken: MapToken | null
+  onAddToken: (token: MapToken) => void
   onDeleteToken: (id: string) => void
-  onUpdateToken: (id: string, updates: Partial<CombatToken>) => void
+  onUpdateToken: (id: string, updates: Partial<MapToken>) => void
   onSelectToken: (id: string | null) => void
 }
 
@@ -46,17 +44,14 @@ export function BottomDock({
   onSetCombatScene,
   onAddScene,
   onDeleteScene,
-  blueprints,
-  onAddBlueprint,
-  onUpdateBlueprint,
-  onDeleteBlueprint,
+  blueprints: blueprintsYMap,
   handoutAssets,
   onAddHandoutAsset,
   onEditHandoutAsset,
   onDeleteHandoutAsset,
   onShowcaseHandout,
-  characters,
-  onAddCharacter,
+  entities,
+  onAddSceneEntity,
   isCombat,
   selectedToken,
   onAddToken,
@@ -66,6 +61,38 @@ export function BottomDock({
 }: BottomDockProps) {
   const [activeTab, setActiveTab] = useState<TabId | null>(null)
   const dockRef = useRef<HTMLDivElement>(null)
+
+  // Read blueprints from Y.Map into a plain array
+  const [blueprints, setBlueprints] = useState<Blueprint[]>([])
+  useEffect(() => {
+    const read = () => {
+      const result: Blueprint[] = []
+      blueprintsYMap.forEach((val) => {
+        const bp = val as Blueprint
+        if (bp && bp.id) result.push(bp)
+      })
+      setBlueprints(result)
+    }
+    read()
+    blueprintsYMap.observe(read)
+    return () => blueprintsYMap.unobserve(read)
+  }, [blueprintsYMap])
+
+  // Blueprint CRUD (operates directly on Y.Map)
+  const handleAddBlueprint = useCallback((bp: Blueprint) => {
+    blueprintsYMap.set(bp.id, bp)
+  }, [blueprintsYMap])
+
+  const handleUpdateBlueprint = useCallback((id: string, updates: Partial<Blueprint>) => {
+    const existing = blueprintsYMap.get(id) as Blueprint | undefined
+    if (existing) {
+      blueprintsYMap.set(id, { ...existing, ...updates })
+    }
+  }, [blueprintsYMap])
+
+  const handleDeleteBlueprint = useCallback((id: string) => {
+    blueprintsYMap.delete(id)
+  }, [blueprintsYMap])
 
   // Click outside to collapse
   useEffect(() => {
@@ -83,32 +110,29 @@ export function BottomDock({
     setActiveTab(prev => prev === tab ? null : tab)
   }
 
-  // Create a new independent Character from a blueprint (unlinked — never deduplicates)
-  const createCharFromBlueprint = (bp: TokenBlueprint, featured: boolean): Character => {
-    const name = nextNpcName(bp.name, characters, bp.id)
-    const char: Character = {
+  // Create a new Entity from a blueprint
+  const createEntityFromBlueprint = (bp: Blueprint): Entity => {
+    const name = nextNpcName(bp.name, entities, bp.id)
+    const entity: Entity = {
       id: generateTokenId(),
       name,
       imageUrl: bp.imageUrl,
       color: bp.defaultColor,
-      type: 'npc',
-      blueprintId: bp.id,
       size: bp.defaultSize,
-      resources: [],
-      attributes: [],
-      statuses: [],
       notes: '',
-      featured,
+      ruleData: bp.defaultRuleData ?? null,
+      permissions: defaultNPCPermissions(),
+      blueprintId: bp.id,
     }
-    onAddCharacter(char)
-    return char
+    onAddSceneEntity(entity)
+    return entity
   }
 
-  const handleSpawnFromBlueprint = (bp: TokenBlueprint) => {
-    const char = createCharFromBlueprint(bp, false)
-    const token: CombatToken = {
+  const handleSpawnFromBlueprint = (bp: Blueprint) => {
+    const entity = createEntityFromBlueprint(bp)
+    const token: MapToken = {
       id: generateTokenId(),
-      characterId: char.id,
+      entityId: entity.id,
       x: 200,
       y: 200,
       size: bp.defaultSize,
@@ -118,8 +142,8 @@ export function BottomDock({
     onSelectToken(token.id)
   }
 
-  const handleAddToActive = (bp: TokenBlueprint) => {
-    createCharFromBlueprint(bp, true)
+  const handleAddToActive = (bp: Blueprint) => {
+    createEntityFromBlueprint(bp)
   }
 
   const handleDeleteSelected = () => {
@@ -209,9 +233,9 @@ export function BottomDock({
           {activeTab === 'tokens' && (
             <TokenDockTab
               blueprints={blueprints}
-              onAddBlueprint={onAddBlueprint}
-              onUpdateBlueprint={onUpdateBlueprint}
-              onDeleteBlueprint={onDeleteBlueprint}
+              onAddBlueprint={handleAddBlueprint}
+              onUpdateBlueprint={handleUpdateBlueprint}
+              onDeleteBlueprint={handleDeleteBlueprint}
               onSpawnToken={handleSpawnFromBlueprint}
               onAddToActive={handleAddToActive}
               isCombat={isCombat}

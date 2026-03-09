@@ -1,16 +1,16 @@
 import { useRef, useState } from 'react'
-import type { TokenBlueprint } from '../combat/combatTypes'
+import type { Blueprint } from '../shared/entityTypes'
 import { uploadAsset } from '../shared/assetUpload'
 import { generateTokenId } from '../combat/combatUtils'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 
 interface TokenDockTabProps {
-  blueprints: TokenBlueprint[]
-  onAddBlueprint: (bp: TokenBlueprint) => void
-  onUpdateBlueprint: (id: string, updates: Partial<TokenBlueprint>) => void
+  blueprints: Blueprint[]
+  onAddBlueprint: (bp: Blueprint) => void
+  onUpdateBlueprint: (id: string, updates: Partial<Blueprint>) => void
   onDeleteBlueprint: (id: string) => void
-  onSpawnToken: (bp: TokenBlueprint) => void
-  onAddToActive: (bp: TokenBlueprint) => void
+  onSpawnToken: (bp: Blueprint) => void
+  onAddToActive: (bp: Blueprint) => void
   isCombat: boolean
 }
 
@@ -37,7 +37,7 @@ export function TokenDockTab({
     setUploading(true)
     try {
       const imageUrl = await uploadAsset(file)
-      const bp: TokenBlueprint = {
+      const bp: Blueprint = {
         id: generateTokenId(),
         name: file.name.replace(/\.[^.]+$/, ''),
         imageUrl,
@@ -50,7 +50,7 @@ export function TokenDockTab({
     }
   }
 
-  const startEdit = (bp: TokenBlueprint) => {
+  const startEdit = (bp: Blueprint) => {
     setEditingId(bp.id)
     setEditName(bp.name)
   }
@@ -68,7 +68,7 @@ export function TokenDockTab({
     setContextMenu({ x: e.clientX, y: e.clientY, bpId })
   }
 
-  const getContextMenuItems = (bp: TokenBlueprint): ContextMenuItem[] => {
+  const getContextMenuItems = (bp: Blueprint): ContextMenuItem[] => {
     const items: ContextMenuItem[] = []
     if (isCombat) {
       items.push({ label: 'Spawn on map', onClick: () => onSpawnToken(bp) })
