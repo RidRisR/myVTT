@@ -35,6 +35,7 @@ Blueprint (模板)          Entity (实例)              Stage (视图)
 - **GM 预备实体** → `prepared` 容器（准备好但未放入场景）
 
 **删除规则**：
+
 - 删除场景 → 场景内所有 entity 一起删除
 - GM 可将场景内的重要实体"提升"到 `prepared`（从场景移出）
 - Token 渲染时如果 entityId 查不到实体 → 不渲染（无需级联删除）
@@ -77,6 +78,7 @@ Y.Map('world')                         ← 唯一顶层 shared type
 ### 设计要点
 
 **PC vs NPC 存储差异**：
+
 - **PC（party）**：嵌套 Y.Map，支持字段级 CRDT 合并。因为 GM 和玩家可能同时编辑同一个 PC 的不同字段。
 - **NPC/怪物（scene entities）**：纯对象，整体替换。因为只有 GM 操作，无并发冲突。且纯对象可以在场景间自由移动（读+写+删），嵌套 Y.Map 不能移动（Yjs 限制）。
 
@@ -85,6 +87,7 @@ Y.Map('world')                         ← 唯一顶层 shared type
 **嵌套 Y.Map 可删除**：`scenes.delete('<sceneId>')` 会完整删除该场景及其所有子 Map（entities、tokens），这是嵌套 Y.Map 相比顶层 shared type 的关键优势。
 
 **创建场景时用 transact**：
+
 ```typescript
 yDoc.transact(() => {
   const sceneMap = new Y.Map()
@@ -107,10 +110,10 @@ interface Entity {
   name: string
   imageUrl: string
   color: string
-  size: number               // 格子数 (1=1x1, 2=2x2)
-  blueprintId?: string       // 来源蓝图（如有）
-  notes: string              // 通用备注
-  ruleData: unknown          // 所有游戏数据，由规则系统定义
+  size: number // 格子数 (1=1x1, 2=2x2)
+  blueprintId?: string // 来源蓝图（如有）
+  notes: string // 通用备注
+  ruleData: unknown // 所有游戏数据，由规则系统定义
   permissions: {
     default: 'none' | 'observer' | 'owner'
     seats: Record<string, 'none' | 'observer' | 'owner'>
@@ -119,6 +122,7 @@ interface Entity {
 ```
 
 **删除的字段及原因**：
+
 - `type: 'pc' | 'npc'` → 移入 `ruleData.kind`
 - `seatId` → 由 `permissions.seats` 替代
 - `resources[]`, `attributes[]`, `statuses[]` → 全部移入 `ruleData`
@@ -154,7 +158,7 @@ interface DaggerheartNPCData {
 ```typescript
 interface MapToken {
   id: string
-  entityId?: string    // 可选 — 纯标记物无 entityId
+  entityId?: string // 可选 — 纯标记物无 entityId
   x: number
   y: number
   size: number
@@ -187,8 +191,8 @@ interface RuleSystem {
   name: string
 
   // Adapter — 通用 UI 调用这些
-  getMainResource(entity: Entity): { current: number, max: number } | null
-  getPortraitResources(entity: Entity): { label: string, current: number, max: number }[]
+  getMainResource(entity: Entity): { current: number; max: number } | null
+  getPortraitResources(entity: Entity): { label: string; current: number; max: number }[]
   getFormulaTokens(entity: Entity): Record<string, number>
   getStatuses(entity: Entity): { label: string }[]
 
@@ -207,11 +211,11 @@ interface RuleSystem {
 
 ### 三级权限
 
-| 级别 | 含义 |
-|------|------|
-| `none` | 看不到（GM-only 实体） |
+| 级别       | 含义                                     |
+| ---------- | ---------------------------------------- |
+| `none`     | 看不到（GM-only 实体）                   |
 | `observer` | 能看、不能改（名字、头像、公开状态可见） |
-| `owner` | 完全控制（编辑、移动 token、以角色发言） |
+| `owner`    | 完全控制（编辑、移动 token、以角色发言） |
 
 ### 权限存储
 
@@ -259,7 +263,7 @@ interface Seat {
   color: string
   role: 'GM' | 'PL'
   portraitUrl?: string
-  activeCharacterId?: string  // UI 焦点状态
+  activeCharacterId?: string // UI 焦点状态
 }
 ```
 
@@ -274,9 +278,9 @@ interface Seat {
 ```typescript
 interface ChatMessage {
   id: string
-  senderName: string       // 快照
-  senderImageUrl: string   // 快照
-  senderColor: string      // 快照
+  senderName: string // 快照
+  senderImageUrl: string // 快照
+  senderColor: string // 快照
   // ... message content
 }
 ```
@@ -295,13 +299,13 @@ interface ChatMessage {
 
 ## 附录：与 Foundry VTT 的对照
 
-| Foundry VTT | myVTT (新) | 说明 |
-|-------------|-----------|------|
-| Actor | Entity | 实体，持有完整状态 |
-| Token (linked) | MapToken (有 entityId) | 地图上的实体视图 |
-| Token (unlinked) | 不采用 | |
-| Actor.system | Entity.ruleData | 规则专属数据 |
-| User | Seat | 玩家身份 |
-| User.ownership | Entity.permissions | Per-entity 权限 |
-| Compendium | Blueprint | 可重用模板 |
-| Prototype Token | Blueprint.defaultSize 等 | token 默认配置 |
+| Foundry VTT      | myVTT (新)               | 说明               |
+| ---------------- | ------------------------ | ------------------ |
+| Actor            | Entity                   | 实体，持有完整状态 |
+| Token (linked)   | MapToken (有 entityId)   | 地图上的实体视图   |
+| Token (unlinked) | 不采用                   |                    |
+| Actor.system     | Entity.ruleData          | 规则专属数据       |
+| User             | Seat                     | 玩家身份           |
+| User.ownership   | Entity.permissions       | Per-entity 权限    |
+| Compendium       | Blueprint                | 可重用模板         |
+| Prototype Token  | Blueprint.defaultSize 等 | token 默认配置     |
