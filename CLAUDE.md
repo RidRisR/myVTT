@@ -113,3 +113,14 @@ Branch-specific constraints are documented in respective feature branch CLAUDE.m
 ### Commit Convention
 
 - Do NOT add `Co-Authored-By` or any AI attribution lines to commit messages
+
+## Current Branch: feature/konva-map
+
+### File Ownership
+
+- **May modify**: `src/combat/*` (full rewrite DOM → Konva)
+- **May modify**: `package.json` (add konva/react-konva, remove react-zoom-pan-pinch)
+- **Do NOT touch**: `src/rules/`, `src/chat/`, `src/layout/`, `src/entities/`
+- `entityTypes.ts`: only append optional fields, do not change existing ones
+- `entityAdapters.ts`: read-only, do not change signatures
+- Keep `CombatViewerProps` interface unchanged (App.tsx should not need changes)
