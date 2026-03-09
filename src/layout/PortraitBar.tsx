@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import type { Character } from '../shared/characterTypes'
+import type { Entity } from '../shared/entityTypes'
+import { canSee, canEdit } from '../shared/permissions'
+import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
@@ -10,16 +12,17 @@ import { CharacterEditPanel } from './CharacterEditPanel'
 type PortraitTabId = 'characters' | 'initiative'
 
 interface PortraitBarProps {
-  characters: Character[]
+  entities: Entity[]
   mySeatId: string | null
+  role: 'GM' | 'PL'
   isGM: boolean
   onlineSeatIds: Set<string>
   inspectedCharacterId: string | null
   activeCharacterId: string | null
   onInspectCharacter: (charId: string | null) => void
   onSetActiveCharacter: (charId: string) => void
-  onDeleteCharacter: (charId: string) => void
-  onUpdateCharacter: (id: string, updates: Partial<Character>) => void
+  onDeleteEntity: (entityId: string) => void
+  onUpdateEntity: (id: string, updates: Partial<Entity>) => void
 }
 
 const PORTRAIT_SIZE = 52
@@ -64,18 +67,19 @@ function ResourceRingBg({ index, size }: { index: number; size: number }) {
 }
 
 export function PortraitBar({
-  characters,
+  entities,
   mySeatId,
+  role,
   isGM,
   onlineSeatIds,
   inspectedCharacterId,
   activeCharacterId,
   onInspectCharacter,
   onSetActiveCharacter,
-  onDeleteCharacter,
-  onUpdateCharacter,
+  onDeleteEntity,
+  onUpdateEntity,
 }: PortraitBarProps) {
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; charId: string } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entityId: string } | null>(null)
   const [activeTab, setActiveTab] = useState<PortraitTabId>('characters')
 
   // Hover state
@@ -109,10 +113,10 @@ export function PortraitBar({
     }
   }, [inspectedCharacterId])
 
-  const handlePortraitMouseEnter = useCallback((charId: string, el: HTMLElement) => {
+  const handlePortraitMouseEnter = useCallback((entityId: string, el: HTMLElement) => {
     if (inspectedCharacterId) return // don't show hover when locked
     clearTimeout(hoverTimeoutRef.current)
-    setHoveredCharId(charId)
+    setHoveredCharId(entityId)
     setHoveredRect(el.getBoundingClientRect())
   }, [inspectedCharacterId])
 
@@ -131,57 +135,55 @@ export function PortraitBar({
     }
   }, [inspectedCharacterId])
 
-  const handlePortraitClick = useCallback((charId: string, el: HTMLElement) => {
-    if (inspectedCharacterId === charId) {
+  const handlePortraitClick = useCallback((entityId: string, el: HTMLElement) => {
+    if (inspectedCharacterId === entityId) {
       onInspectCharacter(null)
     } else {
       setLockedRect(el.getBoundingClientRect())
-      onInspectCharacter(charId)
+      onInspectCharacter(entityId)
     }
   }, [inspectedCharacterId, onInspectCharacter])
 
-  if (characters.length === 0) return null
+  // Filter to entities visible to this seat
+  const visibleEntities = entities.filter(e => mySeatId ? canSee(e, mySeatId, role) : isGM)
 
-  // Characters tab: PCs always + featured NPCs only
-  const featuredChars = characters.filter(c => c.type === 'pc' || (c.type === 'npc' && c.featured))
-  const pcChars = featuredChars.filter(c => c.type === 'pc')
-  const npcChars = featuredChars.filter(c => c.type === 'npc')
-  const hasSection = pcChars.length > 0 && npcChars.length > 0
+  if (visibleEntities.length === 0) return null
 
-  const handleContextMenu = (e: React.MouseEvent, charId: string) => {
+  // Split by ownership: "party" entities (owner exists) vs scene entities (no owners)
+  const partyEntities = visibleEntities.filter(e => Object.values(e.permissions.seats).includes('owner'))
+  const sceneEntities = visibleEntities.filter(e => !Object.values(e.permissions.seats).includes('owner'))
+  const hasSection = partyEntities.length > 0 && sceneEntities.length > 0
+
+  const handleContextMenu = (e: React.MouseEvent, entityId: string) => {
     e.preventDefault()
     e.stopPropagation()
-    setContextMenu({ x: e.clientX, y: e.clientY, charId })
+    setContextMenu({ x: e.clientX, y: e.clientY, entityId })
   }
 
-  const getContextMenuItems = (char: Character): ContextMenuItem[] => {
+  const getContextMenuItems = (entity: Entity): ContextMenuItem[] => {
     const items: ContextMenuItem[] = []
 
-    if (char.type === 'pc' && char.seatId === mySeatId) {
+    if (mySeatId && canEdit(entity, mySeatId, role)) {
       items.push({
         label: 'Set as active',
-        onClick: () => onSetActiveCharacter(char.id),
-        disabled: activeCharacterId === char.id,
+        onClick: () => onSetActiveCharacter(entity.id),
+        disabled: activeCharacterId === entity.id,
       })
     }
 
     items.push({
       label: 'Inspect',
       onClick: () => {
-        const el = portraitBarRef.current?.querySelector(`[data-char-id="${char.id}"]`) as HTMLElement | null
+        const el = portraitBarRef.current?.querySelector(`[data-char-id="${entity.id}"]`) as HTMLElement | null
         if (el) setLockedRect(el.getBoundingClientRect())
-        onInspectCharacter(char.id)
+        onInspectCharacter(entity.id)
       },
     })
 
-    if (isGM && char.type === 'npc') {
-      items.push({
-        label: char.featured ? 'Hide from portraits' : 'Show in portraits',
-        onClick: () => onUpdateCharacter(char.id, { featured: !char.featured }),
-      })
+    if (isGM && !Object.values(entity.permissions.seats).includes('owner')) {
       items.push({
         label: 'Remove from scene',
-        onClick: () => onDeleteCharacter(char.id),
+        onClick: () => onDeleteEntity(entity.id),
         color: '#f87171',
       })
     }
@@ -189,39 +191,43 @@ export function PortraitBar({
     return items
   }
 
-  const renderPortrait = (char: Character) => {
-    const isMine = char.type === 'pc' && char.seatId === mySeatId
-    const isOnline = isMine || (char.seatId ? onlineSeatIds.has(char.seatId) : false)
-    const isInspected = inspectedCharacterId === char.id
-    const isActive = activeCharacterId === char.id
+  const renderPortrait = (entity: Entity) => {
+    const isOwner = mySeatId ? canEdit(entity, mySeatId, role) : false
+    const isInspected = inspectedCharacterId === entity.id
+    const isActive = activeCharacterId === entity.id
 
-    const resources = char.resources.filter(r => r.max > 0)
+    const resources = getEntityResources(entity).filter(r => r.max > 0)
     const displayResources = resources.slice(0, 2) // max 2 rings
-    const statuses = char.statuses
+    const statuses = getEntityStatuses(entity)
     const maxStatusDots = 3
+
+    // Check if entity has an owner seat that is online
+    const ownerSeatId = Object.entries(entity.permissions.seats).find(([, v]) => v === 'owner')?.[0]
+    const isOnline = (ownerSeatId === mySeatId) || (ownerSeatId ? onlineSeatIds.has(ownerSeatId) : false)
+    const isPC = !!ownerSeatId
 
     return (
       <div
-        key={char.id}
-        data-char-id={char.id}
+        key={entity.id}
+        data-char-id={entity.id}
         style={{
           position: 'relative',
           cursor: 'pointer',
           transition: 'transform 0.15s ease',
         }}
         onClick={(e) => {
-          handlePortraitClick(char.id, e.currentTarget as HTMLElement)
+          handlePortraitClick(entity.id, e.currentTarget as HTMLElement)
         }}
-        onContextMenu={(e) => handleContextMenu(e, char.id)}
+        onContextMenu={(e) => handleContextMenu(e, entity.id)}
         onMouseEnter={(e) => {
-          if (!isMine) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'
-          handlePortraitMouseEnter(char.id, e.currentTarget as HTMLElement)
+          if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'
+          handlePortraitMouseEnter(entity.id, e.currentTarget as HTMLElement)
         }}
         onMouseLeave={(e) => {
-          if (!isMine) (e.currentTarget as HTMLElement).style.transform = 'scale(1)'
+          if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1)'
           handlePortraitMouseLeave()
         }}
-        title={`${char.name}${statuses.length > 0 ? '\n' + statuses.map(s => s.label).join(', ') : ''}`}
+        title={`${entity.name}${statuses.length > 0 ? '\n' + statuses.map(s => s.label).join(', ') : ''}`}
       >
         {/* SVG ring progress */}
         <svg
@@ -248,10 +254,10 @@ export function PortraitBar({
           alignItems: 'center',
           justifyContent: 'center',
         }}>
-          {char.imageUrl ? (
+          {entity.imageUrl ? (
             <img
-              src={char.imageUrl}
-              alt={char.name}
+              src={entity.imageUrl}
+              alt={entity.name}
               style={{
                 width: IMG_SIZE,
                 height: IMG_SIZE,
@@ -260,9 +266,9 @@ export function PortraitBar({
                 border: isInspected
                   ? '2px solid #fff'
                   : isActive
-                    ? `2px solid ${char.color}`
+                    ? `2px solid ${entity.color}`
                     : '2px solid rgba(255,255,255,0.15)',
-                boxShadow: isInspected ? `0 0 12px ${char.color}88` : 'none',
+                boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
                 display: 'block',
                 transition: 'border-color 0.2s, box-shadow 0.2s',
               }}
@@ -273,7 +279,7 @@ export function PortraitBar({
                 width: IMG_SIZE,
                 height: IMG_SIZE,
                 borderRadius: '50%',
-                background: `linear-gradient(135deg, ${char.color}, ${char.color}aa)`,
+                background: `linear-gradient(135deg, ${entity.color}, ${entity.color}aa)`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -284,18 +290,18 @@ export function PortraitBar({
                 border: isInspected
                   ? '2px solid #fff'
                   : '2px solid rgba(255,255,255,0.15)',
-                boxShadow: isInspected ? `0 0 12px ${char.color}88` : 'none',
+                boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
                 boxSizing: 'border-box',
                 transition: 'border-color 0.2s, box-shadow 0.2s',
               }}
             >
-              {char.name.charAt(0).toUpperCase()}
+              {entity.name.charAt(0).toUpperCase()}
             </div>
           )}
         </div>
 
         {/* Online indicator (PC only) */}
-        {char.type === 'pc' && isOnline && (
+        {isPC && isOnline && (
           <div
             style={{
               position: 'absolute',
@@ -351,7 +357,7 @@ export function PortraitBar({
         )}
 
         {/* NPC indicator (small diamond) */}
-        {char.type === 'npc' && (
+        {!isPC && (
           <div style={{
             position: 'absolute',
             bottom: 1,
@@ -381,9 +387,9 @@ export function PortraitBar({
     transition: 'color 0.15s, border-color 0.15s',
   })
 
-  // Determine which character to show in popover
+  // Determine which entity to show in popover
   const popoverCharId = inspectedCharacterId ?? hoveredCharId
-  const popoverChar = popoverCharId ? characters.find(c => c.id === popoverCharId) : null
+  const popoverEntity = popoverCharId ? visibleEntities.find(e => e.id === popoverCharId) : null
   const isLocked = !!inspectedCharacterId
 
   // Resolve rect: use lockedRect/hoveredRect, fallback to querying the portrait element
@@ -393,9 +399,9 @@ export function PortraitBar({
     if (el) rect = el.getBoundingClientRect()
   }
 
-  // Determine if the inspected character is editable
-  const isEditable = popoverChar && isLocked && (
-    (popoverChar.seatId === mySeatId) || (isGM && popoverChar.type === 'npc')
+  // Determine if the inspected entity is editable
+  const isEditable = popoverEntity && isLocked && mySeatId && (
+    canEdit(popoverEntity, mySeatId, role)
   )
   const popoverWidth = isLocked ? (isEditable ? 320 : 260) : 220
 
@@ -461,7 +467,7 @@ export function PortraitBar({
             pointerEvents: 'auto',
           }}
         >
-          {pcChars.map(renderPortrait)}
+          {partyEntities.map(renderPortrait)}
 
           {/* Separator between PCs and NPCs */}
           {hasSection && (
@@ -473,7 +479,7 @@ export function PortraitBar({
             }} />
           )}
 
-          {npcChars.map(renderPortrait)}
+          {sceneEntities.map(renderPortrait)}
         </div>
       )}
 
@@ -499,21 +505,21 @@ export function PortraitBar({
 
       {/* Context menu — rendered via portal to avoid transform offset */}
       {contextMenu && (() => {
-        const char = characters.find(c => c.id === contextMenu.charId)
-        if (!char) return null
+        const entity = visibleEntities.find(e => e.id === contextMenu.entityId)
+        if (!entity) return null
         return createPortal(
           <ContextMenu
             x={contextMenu.x}
             y={contextMenu.y}
-            items={getContextMenuItems(char)}
+            items={getContextMenuItems(entity)}
             onClose={() => setContextMenu(null)}
           />,
           document.body,
         )
       })()}
 
-      {/* Character popover — rendered via portal */}
-      {popoverChar && rect && createPortal(
+      {/* Entity popover — rendered via portal */}
+      {popoverEntity && rect && createPortal(
         <div
           ref={popoverRef}
           style={{
@@ -531,23 +537,23 @@ export function PortraitBar({
           {isLocked ? (
             isEditable ? (
               <CharacterEditPanel
-                character={popoverChar}
-                onUpdateCharacter={onUpdateCharacter}
+                character={popoverEntity}
+                onUpdateCharacter={onUpdateEntity}
                 onClose={() => onInspectCharacter(null)}
               />
             ) : (
               <CharacterDetailPanel
-                character={popoverChar}
-                isOnline={popoverChar.seatId ? (popoverChar.seatId === mySeatId || onlineSeatIds.has(popoverChar.seatId)) : false}
+                character={popoverEntity}
+                isOnline={false}
                 onClose={() => onInspectCharacter(null)}
               />
             )
           ) : (
             <CharacterHoverPreview
-              character={popoverChar}
-              isOnline={popoverChar.seatId ? (popoverChar.seatId === mySeatId || onlineSeatIds.has(popoverChar.seatId)) : false}
-              editable={(popoverChar.seatId === mySeatId) || (isGM && popoverChar.type === 'npc')}
-              onUpdateCharacter={onUpdateCharacter}
+              character={popoverEntity}
+              isOnline={false}
+              editable={mySeatId ? canEdit(popoverEntity, mySeatId, role) : false}
+              onUpdateCharacter={onUpdateEntity}
             />
           )}
         </div>,
