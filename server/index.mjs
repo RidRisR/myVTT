@@ -239,6 +239,16 @@ const server = http.createServer(app)
 const wss = new WSServer({ server })
 
 wss.on('connection', (conn, req) => {
+  // Validate room exists before allowing connection
+  const roomId = req.url?.slice(1)?.split('?')[0] // e.g. "/my-room" -> "my-room"
+  if (roomId) {
+    const rooms = readRooms()
+    if (!rooms.some(r => r.id === roomId)) {
+      console.warn(`Rejected connection to unknown room: ${roomId}`)
+      conn.close(4404, 'Room not found')
+      return
+    }
+  }
   setupWSConnection(conn, req)
 })
 
