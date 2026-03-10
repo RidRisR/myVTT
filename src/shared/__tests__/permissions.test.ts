@@ -2,35 +2,31 @@ import {
   getPermission,
   canSee,
   canEdit,
+  getEffectivePermissions,
   defaultPCPermissions,
   defaultNPCPermissions,
   hiddenNPCPermissions,
 } from '../permissions'
-import { makeEntity } from '../../__test-utils__/fixtures'
+import type { EntityPermissions } from '../entityTypes'
+import { makeToken, makeEntity } from '../../__test-utils__/fixtures'
 
-const ownerEntity = makeEntity({
-  permissions: { default: 'none', seats: { 'seat-1': 'owner' } },
-})
-const observerEntity = makeEntity({
-  permissions: { default: 'observer', seats: {} },
-})
-const hiddenEntity = makeEntity({
-  permissions: { default: 'none', seats: {} },
-})
+const ownerPerms: EntityPermissions = { default: 'none', seats: { 'seat-1': 'owner' } }
+const observerPerms: EntityPermissions = { default: 'observer', seats: {} }
+const hiddenPerms: EntityPermissions = { default: 'none', seats: {} }
 
 // ── getPermission ───────────────────────────────────────────────
 
 describe('getPermission', () => {
   it('returns seat-specific permission when present', () => {
-    expect(getPermission(ownerEntity, 'seat-1')).toBe('owner')
+    expect(getPermission(ownerPerms, 'seat-1')).toBe('owner')
   })
 
   it('falls back to default when seat not in record', () => {
-    expect(getPermission(ownerEntity, 'seat-unknown')).toBe('none')
+    expect(getPermission(ownerPerms, 'seat-unknown')).toBe('none')
   })
 
   it('returns default for entity with empty seats', () => {
-    expect(getPermission(observerEntity, 'seat-1')).toBe('observer')
+    expect(getPermission(observerPerms, 'seat-1')).toBe('observer')
   })
 })
 
@@ -38,19 +34,19 @@ describe('getPermission', () => {
 
 describe('canSee', () => {
   it('GM can always see', () => {
-    expect(canSee(hiddenEntity, 'seat-1', 'GM')).toBe(true)
+    expect(canSee(hiddenPerms, 'seat-1', 'GM')).toBe(true)
   })
 
   it('PL with none permission cannot see', () => {
-    expect(canSee(hiddenEntity, 'seat-1', 'PL')).toBe(false)
+    expect(canSee(hiddenPerms, 'seat-1', 'PL')).toBe(false)
   })
 
   it('PL with observer permission can see', () => {
-    expect(canSee(observerEntity, 'seat-1', 'PL')).toBe(true)
+    expect(canSee(observerPerms, 'seat-1', 'PL')).toBe(true)
   })
 
   it('PL with owner permission can see', () => {
-    expect(canSee(ownerEntity, 'seat-1', 'PL')).toBe(true)
+    expect(canSee(ownerPerms, 'seat-1', 'PL')).toBe(true)
   })
 })
 
@@ -58,19 +54,19 @@ describe('canSee', () => {
 
 describe('canEdit', () => {
   it('GM can always edit', () => {
-    expect(canEdit(hiddenEntity, 'seat-1', 'GM')).toBe(true)
+    expect(canEdit(hiddenPerms, 'seat-1', 'GM')).toBe(true)
   })
 
   it('PL with owner permission can edit', () => {
-    expect(canEdit(ownerEntity, 'seat-1', 'PL')).toBe(true)
+    expect(canEdit(ownerPerms, 'seat-1', 'PL')).toBe(true)
   })
 
   it('PL with observer permission cannot edit', () => {
-    expect(canEdit(observerEntity, 'seat-1', 'PL')).toBe(false)
+    expect(canEdit(observerPerms, 'seat-1', 'PL')).toBe(false)
   })
 
   it('PL with none permission cannot edit', () => {
-    expect(canEdit(hiddenEntity, 'seat-1', 'PL')).toBe(false)
+    expect(canEdit(hiddenPerms, 'seat-1', 'PL')).toBe(false)
   })
 })
 
@@ -93,5 +89,30 @@ describe('permission factories', () => {
     const perms = hiddenNPCPermissions()
     expect(perms.default).toBe('none')
     expect(Object.keys(perms.seats)).toHaveLength(0)
+  })
+})
+
+// ── getEffectivePermissions ─────────────────────────────────
+
+describe('getEffectivePermissions', () => {
+  it('returns token permissions when token has no entityId', () => {
+    const token = makeToken({ permissions: hiddenPerms })
+    const getEntity = () => null
+    expect(getEffectivePermissions(token, getEntity)).toBe(hiddenPerms)
+  })
+
+  it('returns entity permissions when token has entityId and entity exists', () => {
+    const entityPerms: EntityPermissions = { default: 'observer', seats: { 'seat-1': 'owner' } }
+    const token = makeToken({ entityId: 'e1', permissions: hiddenPerms })
+    const getEntity = (id: string) =>
+      id === 'e1' ? makeEntity({ id: 'e1', permissions: entityPerms }) : null
+    expect(getEffectivePermissions(token, getEntity)).toEqual(entityPerms)
+  })
+
+  it('falls back to token permissions when entityId set but entity not found', () => {
+    const tokenPerms: EntityPermissions = { default: 'observer', seats: {} }
+    const token = makeToken({ entityId: 'missing', permissions: tokenPerms })
+    const getEntity = () => null
+    expect(getEffectivePermissions(token, getEntity)).toBe(tokenPerms)
   })
 })

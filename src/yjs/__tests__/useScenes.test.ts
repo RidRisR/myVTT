@@ -16,6 +16,8 @@ function makeScene(overrides?: Partial<Scene>): Scene {
     gridOffsetX: 0,
     gridOffsetY: 0,
     sortOrder: 0,
+    combatActive: false,
+    battleMapUrl: '',
     ...overrides,
   }
 }
@@ -46,14 +48,14 @@ describe('useScenes', () => {
     expect(hook.result.current.scenes[0].name).toBe('Tavern')
   })
 
-  it('creates entities and tokens sub-maps on add', () => {
+  it('creates entityIds and tokens sub-maps on add', () => {
     const { hook, scenes } = setup()
 
     act(() => hook.result.current.addScene(makeScene({ id: 'sc-1' })))
 
     const sceneMap = scenes.get('sc-1')
     expect(sceneMap).toBeInstanceOf(Y.Map)
-    expect(sceneMap?.get('entities')).toBeInstanceOf(Y.Map)
+    expect(sceneMap?.get('entityIds')).toBeInstanceOf(Y.Map)
     expect(sceneMap?.get('tokens')).toBeInstanceOf(Y.Map)
   })
 
@@ -122,5 +124,100 @@ describe('useScenes', () => {
   it('returns null for nonexistent id', () => {
     const { hook } = setup()
     expect(hook.result.current.getScene('nope')).toBeNull()
+  })
+
+  // ── addEntityToScene / removeEntityFromScene ──────────────────
+
+  it('adds an entity to a scene', () => {
+    const { hook } = setup()
+    act(() => hook.result.current.addScene(makeScene({ id: 'sc-1' })))
+
+    act(() => hook.result.current.addEntityToScene('sc-1', 'ent-1'))
+
+    expect(hook.result.current.getSceneEntityIds('sc-1')).toContain('ent-1')
+  })
+
+  it('removes an entity from a scene', () => {
+    const { hook } = setup()
+    act(() => hook.result.current.addScene(makeScene({ id: 'sc-1' })))
+    act(() => hook.result.current.addEntityToScene('sc-1', 'ent-1'))
+    expect(hook.result.current.getSceneEntityIds('sc-1')).toContain('ent-1')
+
+    act(() => hook.result.current.removeEntityFromScene('sc-1', 'ent-1'))
+
+    expect(hook.result.current.getSceneEntityIds('sc-1')).not.toContain('ent-1')
+  })
+
+  it('no-ops addEntityToScene for nonexistent scene', () => {
+    const { hook } = setup()
+    // Should not throw
+    act(() => hook.result.current.addEntityToScene('no-scene', 'ent-1'))
+  })
+
+  it('no-ops removeEntityFromScene for nonexistent scene', () => {
+    const { hook } = setup()
+    act(() => hook.result.current.removeEntityFromScene('no-scene', 'ent-1'))
+  })
+
+  // ── getSceneEntityIds ─────────────────────────────────────────
+
+  it('returns empty array for nonexistent scene', () => {
+    const { hook } = setup()
+    expect(hook.result.current.getSceneEntityIds('nope')).toEqual([])
+  })
+
+  it('returns multiple entity IDs', () => {
+    const { hook } = setup()
+    act(() => hook.result.current.addScene(makeScene({ id: 'sc-1' })))
+    act(() => {
+      hook.result.current.addEntityToScene('sc-1', 'ent-1')
+      hook.result.current.addEntityToScene('sc-1', 'ent-2')
+      hook.result.current.addEntityToScene('sc-1', 'ent-3')
+    })
+
+    const ids = hook.result.current.getSceneEntityIds('sc-1')
+    expect(ids).toHaveLength(3)
+    expect(ids).toContain('ent-1')
+    expect(ids).toContain('ent-2')
+    expect(ids).toContain('ent-3')
+  })
+
+  // ── setCombatActive ───────────────────────────────────────────
+
+  it('sets combatActive on a scene', () => {
+    const { hook } = setup()
+    act(() => hook.result.current.addScene(makeScene({ id: 'sc-1' })))
+    expect(hook.result.current.getScene('sc-1')?.combatActive).toBe(false)
+
+    act(() => hook.result.current.setCombatActive('sc-1', true))
+
+    expect(hook.result.current.getScene('sc-1')?.combatActive).toBe(true)
+  })
+
+  it('no-ops setCombatActive for nonexistent scene', () => {
+    const { hook } = setup()
+    // Should not throw
+    act(() => hook.result.current.setCombatActive('no-scene', true))
+  })
+
+  // ── addScene with persistentEntityIds ─────────────────────────
+
+  it('adds persistent entity IDs when creating a scene', () => {
+    const { hook } = setup()
+    const scene = makeScene({ id: 'sc-1' })
+
+    act(() => hook.result.current.addScene(scene, ['ent-a', 'ent-b']))
+
+    const ids = hook.result.current.getSceneEntityIds('sc-1')
+    expect(ids).toContain('ent-a')
+    expect(ids).toContain('ent-b')
+  })
+
+  // ── updateScene no-op for nonexistent ─────────────────────────
+
+  it('no-ops updateScene for nonexistent scene', () => {
+    const { hook } = setup()
+    // Should not throw
+    act(() => hook.result.current.updateScene('no-scene', { name: 'Gone' }))
   })
 })

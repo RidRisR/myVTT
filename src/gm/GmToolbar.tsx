@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import type { Scene } from '../yjs/useScenes'
-import type { RoomState } from '../yjs/useRoom'
 import { SceneLibrary } from './SceneLibrary'
 import { isVideoUrl } from '../shared/assetUpload'
 
 interface GmToolbarProps {
   scenes: Scene[]
-  room: RoomState
+  activeSceneId: string | null
+  isCombat: boolean
   onSelectScene: (sceneId: string) => void
-  onEnterCombat: () => void
-  onExitCombat: () => void
+  onToggleCombat: () => void
   onAddScene: (scene: Scene) => void
   onUpdateScene: (id: string, updates: Partial<Scene>) => void
   onDeleteScene: (id: string) => void
@@ -17,18 +16,16 @@ interface GmToolbarProps {
 
 export function GmToolbar({
   scenes,
-  room,
+  activeSceneId,
+  isCombat,
   onSelectScene,
-  onEnterCombat,
-  onExitCombat,
+  onToggleCombat,
   onAddScene,
   onUpdateScene,
   onDeleteScene,
 }: GmToolbarProps) {
   const [showScenePicker, setShowScenePicker] = useState(false)
   const [showLibrary, setShowLibrary] = useState(false)
-
-  const isCombat = room.mode === 'combat'
 
   return (
     <>
@@ -119,8 +116,7 @@ export function GmToolbar({
                     gap: 8,
                     width: '100%',
                     padding: '8px 12px',
-                    background:
-                      scene.id === room.activeSceneId ? 'rgba(59,130,246,0.1)' : 'transparent',
+                    background: scene.id === activeSceneId ? 'rgba(59,130,246,0.1)' : 'transparent',
                     border: 'none',
                     borderRadius: 6,
                     cursor: 'pointer',
@@ -156,7 +152,7 @@ export function GmToolbar({
                   )}
                   <span
                     style={{
-                      fontWeight: scene.id === room.activeSceneId ? 600 : 400,
+                      fontWeight: scene.id === activeSceneId ? 600 : 400,
                       color: '#333',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -194,7 +190,7 @@ export function GmToolbar({
 
         {/* Combat toggle */}
         <button
-          onClick={isCombat ? onExitCombat : onEnterCombat}
+          onClick={onToggleCombat}
           style={{
             padding: '8px 14px',
             background: isCombat ? 'rgba(239,68,68,0.9)' : 'rgba(255,255,255,0.92)',

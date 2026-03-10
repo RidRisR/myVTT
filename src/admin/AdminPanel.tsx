@@ -5,6 +5,8 @@ interface RoomMeta {
   id: string
   name: string
   createdAt: number
+  gmToken?: string
+  playerToken?: string
 }
 
 export function AdminPanel() {
@@ -63,9 +65,13 @@ export function AdminPanel() {
     }
   }
 
-  const copyLink = (roomId: string) => {
-    const url = `${location.origin}${location.pathname}#room=${roomId}`
-    navigator.clipboard.writeText(url)
+  const buildLink = (roomId: string, token?: string) => {
+    const base = `${location.origin}${location.pathname}#room=${roomId}`
+    return token ? `${base}&token=${token}` : base
+  }
+
+  const copyLink = (roomId: string, token?: string) => {
+    navigator.clipboard.writeText(buildLink(roomId, token))
   }
 
   const formatDate = (ts: number) => {
@@ -229,7 +235,7 @@ export function AdminPanel() {
               </div>
 
               <a
-                href={`#room=${room.id}`}
+                href={`#room=${room.id}${room.gmToken ? `&token=${room.gmToken}` : ''}`}
                 style={{
                   ...btnStyle,
                   background: 'rgba(34,197,94,0.15)',
@@ -240,11 +246,11 @@ export function AdminPanel() {
                   textDecoration: 'none',
                 }}
               >
-                Enter
+                Enter (GM)
               </a>
 
               <button
-                onClick={() => copyLink(room.id)}
+                onClick={() => copyLink(room.id, room.gmToken)}
                 style={{
                   ...btnStyle,
                   background: 'rgba(59,130,246,0.15)',
@@ -254,7 +260,21 @@ export function AdminPanel() {
                   padding: '6px 14px',
                 }}
               >
-                Copy Link
+                GM Link
+              </button>
+
+              <button
+                onClick={() => copyLink(room.id, room.playerToken)}
+                style={{
+                  ...btnStyle,
+                  background: 'rgba(168,85,247,0.15)',
+                  color: '#c084fc',
+                  border: '1px solid rgba(168,85,247,0.2)',
+                  fontSize: 12,
+                  padding: '6px 14px',
+                }}
+              >
+                Player Link
               </button>
 
               <button

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
-import { useYjsConnection } from './yjs/useYjsConnection'
+import { useEffect, useState, useCallback } from 'react'
+import { useDualDocConnection } from './yjs/useDualDocConnection'
 import { AdminPanel } from './admin/AdminPanel'
 import { useRoom } from './yjs/useRoom'
 import { useScenes } from './yjs/useScenes'
+import type { Scene } from './yjs/useScenes'
 import { useWorld } from './yjs/useWorld'
 import { useEntities } from './entities/useEntities'
 import { useSceneTokens } from './combat/useSceneTokens'
@@ -17,6 +18,8 @@ import { useHandoutAssets } from './dock/useHandoutAssets'
 import type { HandoutAsset } from './dock/useHandoutAssets'
 
 import { GmToolbar } from './gm/GmToolbar'
+import { useGmMergedView } from './gm/useGmMergedView'
+import { revealEntity, hideEntity } from './gm/secretApi'
 import { HamburgerMenu } from './layout/HamburgerMenu'
 import { PortraitBar } from './layout/PortraitBar'
 import { MyCharacterCard } from './layout/MyCharacterCard'
@@ -27,13 +30,18 @@ import type { ShowcaseItem } from './showcase/showcaseTypes'
 import type { Entity } from './shared/entityTypes'
 import { defaultNPCPermissions } from './shared/permissions'
 import { getEntityResources, getEntityAttributes } from './shared/entityAdapters'
+import {
+  gcOrphanedEntities,
+  addEntityToAllScenes,
+  getPersistentEntityIds,
+} from './entities/entityLifecycle'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 
-function RoomSession({ roomId }: { roomId: string }) {
-  const { yDoc, isLoading, awareness } = useYjsConnection(roomId)
-  const world = useWorld(yDoc)
+function RoomSession({ roomId, token }: { roomId: string; token: string | null }) {
+  const { publicDoc, secretDoc, isLoading, awareness } = useDualDocConnection(roomId, token)
+  const world = useWorld(publicDoc)
   const {
     seats,
     mySeat,
@@ -45,32 +53,59 @@ function RoomSession({ roomId }: { roomId: string }) {
     leaveSeat,
     updateSeat,
   } = useIdentity(world.seats, awareness)
-  const { room, setActiveScene, setCombatScene, enterCombat, exitCombat } = useRoom(world.room)
-  const { scenes, addScene, updateScene, deleteScene, getScene } = useScenes(world.scenes, yDoc)
+  const { room, setActiveScene } = useRoom(world.room)
+  const {
+    scenes,
+    addScene,
+    updateScene,
+    deleteScene,
+    getScene,
+    addEntityToScene,
+    removeEntityFromScene,
+    getSceneEntityIds,
+    setCombatActive,
+  } = useScenes(world.scenes, publicDoc)
 
-  const combatSceneId = room.mode === 'combat' ? room.combatSceneId : null
-  const { entities, addSceneEntity, updateEntity, deleteEntity, getEntity } = useEntities(
-    world,
-    room.activeSceneId,
-    yDoc,
-  )
+  const { entities, addEntity, updateEntity, getEntity } = useEntities(world, publicDoc)
+  const mergedEntities = useGmMergedView(entities, secretDoc)
+
+  const activeScene = getScene(room.activeSceneId)
+  const isCombat = activeScene?.combatActive ?? false
+  const combatSceneId = isCombat ? room.activeSceneId : null
   const { tokens, addToken, updateToken, deleteToken, getToken } = useSceneTokens(
     world,
     combatSceneId,
   )
 
-  const { addItem: addShowcaseItem } = useShowcase(yDoc)
+  const { addItem: addShowcaseItem } = useShowcase(publicDoc)
   const {
     assets: handoutAssets,
     addAsset: addHandoutAsset,
     updateAsset: updateHandoutAsset,
     deleteAsset: deleteHandoutAsset,
-  } = useHandoutAssets(yDoc)
+  } = useHandoutAssets(publicDoc)
 
   const [inspectedCharacterId, setInspectedCharacterId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
   const [bgContextMenu, setBgContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [editingHandout, setEditingHandout] = useState<HandoutAsset | null>(null)
+
+  const handleRevealEntity = useCallback(
+    async (entityId: string) => {
+      if (!token) return
+      await revealEntity(roomId, token, entityId)
+    },
+    [roomId, token],
+  )
+
+  const handleHideEntity = useCallback(
+    async (entityId: string) => {
+      if (!token) return
+      await hideEntity(roomId, token, entityId)
+    },
+    [roomId, token],
+  )
+
   // Sync role from seat
   const mySeatRole = mySeat?.role
   useEffect(() => {
@@ -119,9 +154,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   }
 
   const isGM = mySeat.role === 'GM'
-  const isCombat = room.mode === 'combat'
-  const activeScene = getScene(room.activeSceneId)
-  const combatScene = getScene(room.combatSceneId)
 
   // Derive entity data
   const activeEntity = getEntity(mySeat.activeCharacterId ?? null)
@@ -147,10 +179,50 @@ function RoomSession({ roomId }: { roomId: string }) {
   // Deduplicate by key — later entries (token entity) override earlier (active entity)
   const seatProperties = [...new Map(allProps.map((p) => [p.key, p])).values()]
 
-  // Handle deleting an entity
-  const handleDeleteEntity = (entityId: string) => {
-    deleteEntity(entityId)
+  // Derive current scene's entity IDs for PortraitBar filtering
+  const sceneEntityIds = room.activeSceneId ? getSceneEntityIds(room.activeSceneId) : []
+
+  // Handle removing an entity from the current scene (without deleting it)
+  const handleRemoveFromScene = (entityId: string) => {
+    if (room.activeSceneId) removeEntityFromScene(room.activeSceneId, entityId)
     if (inspectedCharacterId === entityId) setInspectedCharacterId(null)
+  }
+
+  // Delete scene + garbage-collect orphaned non-persistent entities
+  const handleDeleteScene = (sceneId: string) => {
+    const entityIds = getSceneEntityIds(sceneId)
+    deleteScene(sceneId)
+    publicDoc.transact(() => {
+      const deleted = gcOrphanedEntities(entityIds, world.scenes, world.entities)
+      if (deleted.length > 0 && inspectedCharacterId && deleted.includes(inspectedCharacterId)) {
+        setInspectedCharacterId(null)
+      }
+    })
+  }
+
+  // Add scene with persistent entities auto-joined
+  const handleAddScene = (scene: Scene) => {
+    const persistentIds = getPersistentEntityIds(world.entities)
+    addScene(scene, persistentIds)
+  }
+
+  // Add entity — if persistent, auto-join all existing scenes
+  const handleAddEntity = (entity: Entity) => {
+    addEntity(entity)
+    if (entity.persistent) {
+      addEntityToAllScenes(entity.id, world.scenes)
+    }
+  }
+
+  // Update entity — if persistent toggled to true, auto-join all scenes
+  const handleUpdateEntity = (id: string, updates: Partial<Entity>) => {
+    if (updates.persistent === true) {
+      const existing = getEntity(id)
+      if (existing && !existing.persistent) {
+        addEntityToAllScenes(id, world.scenes)
+      }
+    }
+    updateEntity(id, updates)
   }
 
   // Handle setting active character
@@ -192,8 +264,10 @@ function RoomSession({ roomId }: { roomId: string }) {
       notes: '',
       ruleData: null,
       permissions: defaultNPCPermissions(),
+      persistent: false,
     }
-    addSceneEntity(newEntity)
+    handleAddEntity(newEntity)
+    if (room.activeSceneId) addEntityToScene(room.activeSceneId, newEntity.id)
     setInspectedCharacterId(newEntity.id)
     setBgContextMenu(null)
   }
@@ -202,7 +276,7 @@ function RoomSession({ roomId }: { roomId: string }) {
     <div>
       {isCombat ? (
         <CombatViewer
-          scene={combatScene}
+          scene={activeScene}
           tokens={tokens}
           getEntity={getEntity}
           mySeatId={mySeatId}
@@ -221,7 +295,8 @@ function RoomSession({ roomId }: { roomId: string }) {
 
       {/* Top-center: Portrait bar */}
       <PortraitBar
-        entities={entities}
+        entities={mergedEntities}
+        sceneEntityIds={sceneEntityIds}
         mySeatId={mySeatId}
         role={mySeat.role}
         isGM={isGM}
@@ -230,29 +305,33 @@ function RoomSession({ roomId }: { roomId: string }) {
         activeCharacterId={mySeat.activeCharacterId ?? null}
         onInspectCharacter={setInspectedCharacterId}
         onSetActiveCharacter={handleSetActiveCharacter}
-        onDeleteEntity={handleDeleteEntity}
-        onUpdateEntity={updateEntity}
+        onRemoveFromScene={handleRemoveFromScene}
+        onUpdateEntity={handleUpdateEntity}
+        onRevealEntity={handleRevealEntity}
+        onHideEntity={handleHideEntity}
       />
 
       {/* Top-right: Team dashboard */}
-      <TeamDashboard yDoc={yDoc} isGM={isGM} />
+      <TeamDashboard yDoc={publicDoc} isGM={isGM} />
 
       {/* Left: My character card (self-managed open/close via tab) */}
-      {activeEntity && <MyCharacterCard entity={activeEntity} onUpdateEntity={updateEntity} />}
+      {activeEntity && (
+        <MyCharacterCard entity={activeEntity} onUpdateEntity={handleUpdateEntity} />
+      )}
 
       {/* Center: Showcase spotlight overlay */}
-      <ShowcaseOverlay yDoc={yDoc} isGM={isGM} />
+      <ShowcaseOverlay yDoc={publicDoc} isGM={isGM} />
 
       {/* Bottom-right: Chat overlay */}
       <ChatPanel
-        yDoc={yDoc}
+        yDoc={publicDoc}
         senderId={mySeatId}
         senderName={mySeat.name}
         senderColor={mySeat.color}
         portraitUrl={mySeat.portraitUrl || activeEntity?.imageUrl}
         seatProperties={seatProperties}
         speakerEntities={
-          isGM ? entities : entities.filter((e) => e.permissions.seats[mySeatId] === 'owner')
+          isGM ? mergedEntities : entities.filter((e) => e.permissions.seats[mySeatId] === 'owner')
         }
       />
 
@@ -260,13 +339,16 @@ function RoomSession({ roomId }: { roomId: string }) {
       {isGM && (
         <BottomDock
           scenes={scenes}
-          combatSceneId={room.combatSceneId}
-          onSetCombatScene={setCombatScene}
-          onAddScene={addScene}
-          onDeleteScene={deleteScene}
+          activeSceneId={room.activeSceneId}
+          onSelectScene={setActiveScene}
+          onAddScene={handleAddScene}
+          onDeleteScene={handleDeleteScene}
           blueprints={world.blueprints}
           entities={entities}
-          onAddSceneEntity={addSceneEntity}
+          onAddEntity={handleAddEntity}
+          onAddEntityToScene={(entityId) => {
+            if (room.activeSceneId) addEntityToScene(room.activeSceneId, entityId)
+          }}
           isCombat={isCombat}
           selectedToken={getToken(selectedTokenId)}
           onAddToken={addToken}
@@ -285,13 +367,15 @@ function RoomSession({ roomId }: { roomId: string }) {
       {isGM && (
         <GmToolbar
           scenes={scenes}
-          room={room}
+          activeSceneId={room.activeSceneId}
+          isCombat={isCombat}
           onSelectScene={setActiveScene}
-          onEnterCombat={enterCombat}
-          onExitCombat={exitCombat}
-          onAddScene={addScene}
+          onToggleCombat={() => {
+            if (room.activeSceneId) setCombatActive(room.activeSceneId, !isCombat)
+          }}
+          onAddScene={handleAddScene}
           onUpdateScene={updateScene}
-          onDeleteScene={deleteScene}
+          onDeleteScene={handleDeleteScene}
         />
       )}
 
@@ -333,9 +417,15 @@ export default function App() {
     return <AdminPanel />
   }
 
-  const roomMatch = hash.match(/^#room=([a-zA-Z0-9_-]+)$/)
+  const roomMatch = hash.match(/^#room=([a-zA-Z0-9_-]+)(?:&token=([a-zA-Z0-9_-]+))?$/)
   if (roomMatch) {
-    return <RoomSession roomId={roomMatch[1]} />
+    return (
+      <RoomSession
+        key={`${roomMatch[1]}-${roomMatch[2] ?? ''}`}
+        roomId={roomMatch[1]}
+        token={roomMatch[2] ?? null}
+      />
+    )
   }
 
   return (

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTransformContext } from 'react-zoom-pan-pinch'
 import type { MapToken as MapTokenType, Entity } from '../shared/entityTypes'
-import { canSee } from '../shared/permissions'
+import { getEffectivePermissions, canSee } from '../shared/permissions'
 import type { Scene } from '../yjs/useScenes'
 import { MapToken } from './MapToken'
 import { canDragToken, screenToMap, snapToGrid } from './combatUtils'
@@ -40,15 +40,10 @@ export function TokenLayer({
   const dragRef = useRef<DragState | null>(null)
   const didDragRef = useRef(false)
 
-  // Filter tokens by visibility
+  // Filter tokens by visibility using unified permissions
   const visibleTokens = tokens.filter((t) => {
-    if (role === 'GM') return true
-    if (t.gmOnly) return false
-    if (t.entityId) {
-      const entity = getEntity(t.entityId)
-      if (entity && !canSee(entity, mySeatId, role)) return false
-    }
-    return true
+    const perms = getEffectivePermissions(t, getEntity)
+    return canSee(perms, mySeatId, role)
   })
 
   const handlePointerDown = useCallback(
@@ -196,7 +191,7 @@ export function TokenLayer({
             entity={entity}
             pixelSize={token.size * scene.gridSize}
             selected={token.id === selectedTokenId}
-            gmOnly={token.gmOnly && role === 'GM'}
+            isHidden={getEffectivePermissions(token, getEntity).default === 'none' && role === 'GM'}
             dragging={isDragging ?? false}
             dragX={isDragging ? drag?.currentMapX : undefined}
             dragY={isDragging ? drag?.currentMapY : undefined}

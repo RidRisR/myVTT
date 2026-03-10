@@ -35,5 +35,5 @@ export function screenToMap(
 export function canDragToken(role: 'GM' | 'PL', entity: Entity | null, mySeatId: string): boolean {
   if (role === 'GM') return true
   if (!entity) return false
-  return canEdit(entity, mySeatId, role)
+  return canEdit(entity.permissions, mySeatId, role)
 }
