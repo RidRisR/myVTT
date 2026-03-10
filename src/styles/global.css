@@ -1,13 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config "../../tailwind.config.ts";
 
 html {
   color-scheme: dark;
 }
 
 :focus-visible {
-  outline: 2px solid #D4A055;
+  outline: 2px solid #d4a055;
   outline-offset: 2px;
 }
 
