@@ -2,10 +2,7 @@ import { useEffect, useState } from 'react'
 import * as Y from 'yjs'
 import { WebsocketProvider } from 'y-websocket'
 import type { Awareness } from 'y-protocols/awareness'
-
-const WEBSOCKET_URL = import.meta.env.DEV
-  ? 'ws://localhost:4444'
-  : `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}`
+import { WEBSOCKET_URL } from '../shared/config'
 
 export function useYjsConnection(roomId: string) {
   const [yDoc] = useState(() => new Y.Doc())

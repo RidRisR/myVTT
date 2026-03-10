@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { API_BASE } from '../shared/config'
 
 interface RoomMeta {
   id: string
@@ -12,18 +13,16 @@ export function AdminPanel() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
-  const apiBase = import.meta.env.DEV ? 'http://localhost:4444' : ''
-
   const fetchRooms = useCallback(async () => {
     try {
-      const res = await fetch(`${apiBase}/api/rooms`)
+      const res = await fetch(`${API_BASE}/api/rooms`)
       setRooms(await res.json())
     } catch {
       setError('Failed to fetch rooms')
     } finally {
       setLoading(false)
     }
-  }, [apiBase])
+  }, [])
 
   useEffect(() => {
     fetchRooms()
@@ -37,7 +36,7 @@ export function AdminPanel() {
       return
     }
     try {
-      const res = await fetch(`${apiBase}/api/rooms`, {
+      const res = await fetch(`${API_BASE}/api/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
@@ -57,7 +56,7 @@ export function AdminPanel() {
   const handleDelete = async (roomId: string) => {
     if (!confirm(`Delete room "${roomId}"? This will permanently erase all data.`)) return
     try {
-      await fetch(`${apiBase}/api/rooms/${roomId}`, { method: 'DELETE' })
+      await fetch(`${API_BASE}/api/rooms/${roomId}`, { method: 'DELETE' })
       fetchRooms()
     } catch {
       setError('Delete failed')
