@@ -21,38 +21,24 @@ export interface WorldMaps {
   room: Y.Map<unknown>
 }
 
-function ensureSubMap(parent: Y.Map<unknown>, key: string, doc: Y.Doc): Y.Map<unknown> {
-  const existing = parent.get(key)
-  if (existing instanceof Y.Map) return existing
-  const created = new Y.Map()
-  doc.transact(() => {
-    parent.set(key, created)
-  })
-  return created
-}
-
-function ensureSubArray(parent: Y.Map<unknown>, key: string, doc: Y.Doc): Y.Array<unknown> {
-  const existing = parent.get(key)
-  if (existing instanceof Y.Array) return existing
-  const created = new Y.Array()
-  doc.transact(() => {
-    parent.set(key, created)
-  })
-  return created
+/**
+ * Create WorldMaps using top-level shared types.
+ * Uses yDoc.getMap/getArray which are guaranteed to return the same instance
+ * across all clients, avoiding race conditions from nested Y.Map creation.
+ */
+export function createWorldMaps(yDoc: Y.Doc): WorldMaps {
+  return {
+    world: yDoc.getMap('world'),
+    scenes: yDoc.getMap('world:scenes') as Y.Map<Y.Map<unknown>>,
+    party: yDoc.getMap('world:party') as Y.Map<Y.Map<unknown>>,
+    prepared: yDoc.getMap('world:prepared'),
+    blueprints: yDoc.getMap('world:blueprints'),
+    seats: yDoc.getMap('world:seats'),
+    chat: yDoc.getArray('world:chat') as Y.Array<unknown>,
+    room: yDoc.getMap('world:room'),
+  }
 }
 
 export function useWorld(yDoc: Y.Doc): WorldMaps {
-  return useMemo(() => {
-    const world = yDoc.getMap('world')
-    return {
-      world,
-      scenes: ensureSubMap(world, 'scenes', yDoc) as Y.Map<Y.Map<unknown>>,
-      party: ensureSubMap(world, 'party', yDoc) as Y.Map<Y.Map<unknown>>,
-      prepared: ensureSubMap(world, 'prepared', yDoc),
-      blueprints: ensureSubMap(world, 'blueprints', yDoc),
-      seats: ensureSubMap(world, 'seats', yDoc),
-      chat: ensureSubArray(world, 'chat', yDoc) as Y.Array<unknown>,
-      room: ensureSubMap(world, 'room', yDoc),
-    }
-  }, [yDoc])
+  return useMemo(() => createWorldMaps(yDoc), [yDoc])
 }
