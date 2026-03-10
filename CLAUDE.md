@@ -119,6 +119,7 @@ Branch-specific constraints are documented in respective feature branch CLAUDE.m
 ### Commit Convention
 
 - Do NOT add `Co-Authored-By` or any AI attribution lines to commit messages
+- Do NOT add AI-generated disclaimers (e.g., "Generated with Claude Code") to PR descriptions
 
 ## Current Branch: feature/konva-map
 
