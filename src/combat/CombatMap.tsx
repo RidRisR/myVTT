@@ -7,8 +7,8 @@ interface CombatMapProps {
 }
 
 export function CombatMap({ scene, children }: CombatMapProps) {
-  const { width, height, imageUrl, gridSize, gridVisible, gridColor, gridOffsetX, gridOffsetY } =
-    scene
+  const { width, height, gridSize, gridVisible, gridColor, gridOffsetX, gridOffsetY } = scene
+  const imageUrl = scene.tacticalMapImageUrl || scene.atmosphereImageUrl
 
   // Generate grid lines
   const vLines: number[] = []

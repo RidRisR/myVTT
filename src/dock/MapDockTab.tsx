@@ -34,10 +34,13 @@ export function MapDockTab({
       const scene: Scene = {
         id: generateTokenId(),
         name,
-        imageUrl,
+        atmosphereImageUrl: imageUrl,
+        tacticalMapImageUrl: '',
+        particlePreset: 'none',
         width: dims.w,
         height: dims.h,
         gridSize: 50,
+        gridSnap: true,
         gridVisible: false,
         gridColor: '#ffffff',
         gridOffsetX: 0,
@@ -89,9 +92,9 @@ export function MapDockTab({
               onMouseEnter={() => setHoveredId(scene.id)}
               onMouseLeave={() => setHoveredId(null)}
             >
-              {isVideoUrl(scene.imageUrl) ? (
+              {isVideoUrl(scene.atmosphereImageUrl) ? (
                 <video
-                  src={scene.imageUrl}
+                  src={scene.atmosphereImageUrl}
                   muted
                   loop
                   autoPlay
@@ -106,7 +109,7 @@ export function MapDockTab({
                 />
               ) : (
                 <img
-                  src={scene.imageUrl}
+                  src={scene.atmosphereImageUrl}
                   alt={scene.name}
                   style={{
                     width: '100%',

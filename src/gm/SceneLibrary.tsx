@@ -41,10 +41,13 @@ export function SceneLibrary({
         const scene: Scene = {
           id: generateId(),
           name: file.name.replace(/\.[^.]+$/, ''),
-          imageUrl,
+          atmosphereImageUrl: imageUrl,
+          tacticalMapImageUrl: '',
+          particlePreset: 'none',
           width: dims.w,
           height: dims.h,
           gridSize: 70,
+          gridSnap: true,
           gridVisible: false,
           gridColor: 'rgba(255,255,255,0.2)',
           gridOffsetX: 0,
@@ -165,9 +168,9 @@ export function SceneLibrary({
                 }
                 onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'none')}
               >
-                {isVideoUrl(scene.imageUrl) ? (
+                {isVideoUrl(scene.atmosphereImageUrl) ? (
                   <video
-                    src={scene.imageUrl}
+                    src={scene.atmosphereImageUrl}
                     muted
                     loop
                     autoPlay
@@ -181,7 +184,7 @@ export function SceneLibrary({
                   />
                 ) : (
                   <img
-                    src={scene.imageUrl}
+                    src={scene.atmosphereImageUrl}
                     alt={scene.name}
                     style={{
                       width: '100%',
