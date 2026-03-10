@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n server,vite -c blue,green \"node server/index.mjs\" \"vite\"",
+    "dev": "concurrently -n server,vite -c blue,green \"node --env-file=.env server/index.mjs\" \"vite\"",
     "dev:client": "vite",
-    "dev:server": "node server/index.mjs",
+    "dev:server": "node --env-file=.env server/index.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

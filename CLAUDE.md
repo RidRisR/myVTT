@@ -106,8 +106,8 @@ myVTT is a lightweight Virtual Tabletop built with React + Yjs + y-websocket for
 **Worktree conventions:**
 
 - Worktree directory: `.worktrees/<branch-name>` (already in `.gitignore`)
+- Each worktree has its own `.env` file for port/path isolation (see `.env.example`)
 - Shared functions live in `/src/shared/` to minimize cross-branch conflicts
-- Branch-specific constraints are documented in respective feature branch CLAUDE.md files
 
 ### Documentation Language
 
