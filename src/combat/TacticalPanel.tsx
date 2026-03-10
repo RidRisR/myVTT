@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
 import type { MapToken, Entity } from '../shared/entityTypes'
 import { CombatViewer } from './CombatViewer'
@@ -43,32 +44,13 @@ export function TacticalPanel({
       }}
     >
       {/* Header bar */}
-      <div
-        className="border-b border-border-glass"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 16px',
-          flexShrink: 0,
-        }}
-      >
-        <span className="text-text-primary" style={{ fontSize: 14, fontWeight: 500 }}>
-          Tactical Map
-        </span>
+      <div className="border-b border-border-glass flex items-center justify-between px-4 py-2 shrink-0">
+        <span className="text-text-primary text-sm font-medium">Tactical Map</span>
         <button
           onClick={onClose}
-          className="text-text-muted hover:text-text-primary"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 18,
-            lineHeight: 1,
-            padding: '4px 8px',
-          }}
+          className="bg-transparent border-none cursor-pointer text-text-muted p-1 flex transition-colors duration-fast hover:text-text-primary"
         >
-          &times;
+          <X size={18} strokeWidth={1.5} />
         </button>
       </div>
 

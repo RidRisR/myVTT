@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { SEAT_COLORS, type Seat } from './useIdentity'
 
 interface SeatSelectProps {
@@ -19,34 +20,17 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
   )
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        fontFamily: 'sans-serif',
-        background: '#f5f5f5',
-      }}
-    >
-      <div
-        style={{
-          background: '#fff',
-          borderRadius: 12,
-          padding: 32,
-          minWidth: 360,
-          boxShadow: '0 4px 24px rgba(0,0,0,0.1)',
-        }}
-      >
-        <h2 style={{ margin: '0 0 24px', fontSize: 20, textAlign: 'center' }}>Join Session</h2>
+    <div className="flex items-center justify-center h-screen font-sans bg-deep">
+      <div className="bg-glass backdrop-blur-[16px] rounded-xl p-8 min-w-[360px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-border-glass">
+        <h2 className="m-0 mb-6 text-xl text-center text-text-primary font-semibold">
+          Join Session
+        </h2>
 
         {/* Existing seats */}
         {seats.length > 0 && mode === 'choose' && (
           <>
-            <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
-              Claim an existing seat:
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+            <div className="text-[13px] text-text-muted mb-2">Claim an existing seat:</div>
+            <div className="flex flex-col gap-2 mb-4">
               {seats.map((seat) => {
                 const isOnline = onlineSeatIds.has(seat.id)
                 return (
@@ -54,51 +38,26 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                     key={seat.id}
                     onClick={() => !isOnline && onClaim(seat.id)}
                     disabled={isOnline}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '10px 16px',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: 8,
-                      background: isOnline ? '#f9fafb' : '#fff',
-                      cursor: isOnline ? 'not-allowed' : 'pointer',
-                      fontSize: 14,
-                      textAlign: 'left',
-                      opacity: isOnline ? 0.6 : 1,
-                    }}
+                    className={`flex items-center gap-3 px-4 py-2.5 border border-border-glass rounded-lg text-sm text-left transition-colors duration-fast ${
+                      isOnline
+                        ? 'bg-surface/50 cursor-not-allowed opacity-60'
+                        : 'bg-surface cursor-pointer hover:bg-hover'
+                    }`}
                   >
                     <div
-                      style={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: '50%',
-                        background: seat.color,
-                        flexShrink: 0,
-                      }}
+                      className="w-3 h-3 rounded-full shrink-0"
+                      style={{ background: seat.color }}
                     />
-                    <span style={{ flex: 1, fontWeight: 600 }}>{seat.name}</span>
+                    <span className="flex-1 font-semibold text-text-primary">{seat.name}</span>
                     {isOnline && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          padding: '2px 6px',
-                          borderRadius: 4,
-                          background: '#dcfce7',
-                          color: '#166534',
-                        }}
-                      >
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-success/20 text-success">
                         Online
                       </span>
                     )}
                     <span
-                      style={{
-                        fontSize: 11,
-                        padding: '2px 8px',
-                        borderRadius: 4,
-                        background: seat.role === 'GM' ? '#fef3c7' : '#dbeafe',
-                        color: seat.role === 'GM' ? '#92400e' : '#1e40af',
-                      }}
+                      className={`text-[11px] px-2 py-0.5 rounded ${
+                        seat.role === 'GM' ? 'bg-warning/20 text-warning' : 'bg-info/20 text-info'
+                      }`}
                     >
                       {seat.role}
                     </span>
@@ -108,25 +67,17 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                           e.stopPropagation()
                           onDelete(seat.id)
                         }}
-                        style={{
-                          fontSize: 12,
-                          color: '#999',
-                          cursor: 'pointer',
-                          padding: '0 4px',
-                          lineHeight: 1,
-                        }}
+                        className="text-text-muted/30 cursor-pointer transition-colors duration-fast hover:text-danger"
                         title="Delete seat"
                       >
-                        x
+                        <Trash2 size={12} strokeWidth={1.5} />
                       </span>
                     )}
                   </button>
                 )
               })}
             </div>
-            <div style={{ textAlign: 'center', color: '#999', fontSize: 12, margin: '12px 0' }}>
-              or
-            </div>
+            <div className="text-center text-text-muted/40 text-xs my-3">or</div>
           </>
         )}
 
@@ -134,17 +85,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
         {mode === 'choose' && (
           <button
             onClick={() => setMode('create')}
-            style={{
-              width: '100%',
-              padding: '10px 16px',
-              background: '#2563eb',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 600,
-            }}
+            className="w-full px-4 py-2.5 bg-accent text-deep border-none rounded-lg cursor-pointer text-sm font-semibold transition-colors duration-fast hover:bg-accent-bold"
           >
             Create New Seat
           </button>
@@ -153,10 +94,8 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
         {/* Create form */}
         {mode === 'create' && (
           <>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>
-                Name
-              </label>
+            <div className="mb-3">
+              <label className="text-xs text-text-muted block mb-1">Name</label>
               <input
                 autoFocus
                 value={name}
@@ -165,37 +104,24 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                   e.key === 'Enter' && name.trim() && onCreate(name.trim(), role, color)
                 }
                 placeholder="Your character name"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #ddd',
-                  borderRadius: 6,
-                  fontSize: 14,
-                  boxSizing: 'border-box',
-                }}
+                className="w-full px-3 py-2 border border-border-glass rounded-md text-sm bg-surface text-text-primary outline-none box-border placeholder:text-text-muted/40"
               />
             </div>
 
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>
-                Role
-              </label>
-              <div style={{ display: 'flex', gap: 8 }}>
+            <div className="mb-3">
+              <label className="text-xs text-text-muted block mb-1">Role</label>
+              <div className="flex gap-2">
                 {(['PL', 'GM'] as const).map((r) => (
                   <button
                     key={r}
                     onClick={() => setRole(r)}
-                    style={{
-                      flex: 1,
-                      padding: '8px 12px',
-                      border: '2px solid',
-                      borderColor: role === r ? '#2563eb' : '#e5e7eb',
-                      borderRadius: 6,
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontWeight: 600,
-                      background: role === r ? (r === 'GM' ? '#fef3c7' : '#dbeafe') : '#fff',
-                    }}
+                    className={`flex-1 px-3 py-2 border-2 rounded-md cursor-pointer text-sm font-semibold transition-colors duration-fast ${
+                      role === r
+                        ? r === 'GM'
+                          ? 'border-accent bg-accent/20 text-accent'
+                          : 'border-info bg-info/20 text-info'
+                        : 'border-border-glass bg-surface text-text-muted hover:bg-hover'
+                    }`}
                   >
                     {r}
                   </button>
@@ -203,24 +129,20 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 4 }}>
-                Color
-              </label>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <div className="mb-4">
+              <label className="text-xs text-text-muted block mb-1">Color</label>
+              <div className="flex gap-1.5 flex-wrap">
                 {SEAT_COLORS.map((c) => {
                   const taken = usedColors.includes(c)
                   return (
                     <div
                       key={c}
                       onClick={() => !taken && setColor(c)}
+                      className="w-7 h-7 rounded-full transition-colors duration-fast"
                       style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: '50%',
                         background: c,
                         cursor: taken ? 'not-allowed' : 'pointer',
-                        border: color === c ? '3px solid #111' : '3px solid transparent',
+                        border: color === c ? '3px solid #F0E6D8' : '3px solid transparent',
                         opacity: taken ? 0.25 : 1,
                       }}
                     />
@@ -229,35 +151,21 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="flex gap-2">
               <button
                 onClick={() => setMode('choose')}
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: 8,
-                  background: '#fff',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                }}
+                className="flex-1 py-2.5 border border-border-glass rounded-lg bg-surface cursor-pointer text-sm text-text-muted transition-colors duration-fast hover:bg-hover hover:text-text-primary"
               >
                 Back
               </button>
               <button
                 onClick={() => name.trim() && onCreate(name.trim(), role, color)}
                 disabled={!name.trim()}
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  background: name.trim() ? '#2563eb' : '#ccc',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: name.trim() ? 'pointer' : 'default',
-                  fontSize: 14,
-                  fontWeight: 600,
-                }}
+                className={`flex-1 py-2.5 border-none rounded-lg text-sm font-semibold transition-colors duration-fast ${
+                  name.trim()
+                    ? 'bg-accent text-deep cursor-pointer hover:bg-accent-bold'
+                    : 'bg-text-muted/30 text-text-muted/50 cursor-default'
+                }`}
               >
                 Join
               </button>

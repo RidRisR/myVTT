@@ -54,28 +54,17 @@ export function FocusedCard({
 
   if (item.type === 'text') {
     return (
-      <div ref={cardRef} style={{ textAlign: 'center', maxWidth: 600, padding: '20px 32px' }}>
+      <div ref={cardRef} className="text-center max-w-[600px] px-8 py-5">
         <div
+          className="italic text-2xl leading-relaxed text-white whitespace-pre-wrap"
           style={{
             fontFamily: "'Georgia', 'Times New Roman', serif",
-            fontStyle: 'italic',
-            fontSize: 24,
-            lineHeight: 1.6,
-            color: '#fff',
             textShadow: '0 0 20px rgba(255,255,255,0.4), 0 0 40px rgba(255,255,255,0.15)',
-            whiteSpace: 'pre-wrap',
           }}
         >
           {item.text}
         </div>
-        <div
-          style={{
-            marginTop: 12,
-            fontSize: 11,
-            color: 'rgba(255,255,255,0.4)',
-            fontFamily: 'sans-serif',
-          }}
-        >
+        <div className="mt-3 text-[11px] text-text-muted/40 font-sans">
           <span style={{ color: item.senderColor }}>{item.senderName}</span>
         </div>
         <ActionButtons
@@ -94,54 +83,31 @@ export function FocusedCard({
 
   // image / handout type — raw image, no card wrapper
   return (
-    <div
-      ref={cardRef}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 12,
-      }}
-    >
+    <div ref={cardRef} className="flex flex-col items-center gap-3">
       {item.imageUrl && (
         <img
           src={item.imageUrl}
           alt={item.title || ''}
+          className="max-w-[55vw] object-contain rounded shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
           style={{
-            maxWidth: '55vw',
             maxHeight: item.title || item.description ? '50vh' : '55vh',
-            objectFit: 'contain',
-            borderRadius: 4,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
           }}
         />
       )}
       {(item.title || item.description) && (
-        <div
-          style={{
-            textAlign: 'center',
-            maxWidth: '55vw',
-            fontFamily: 'sans-serif',
-          }}
-        >
+        <div className="text-center max-w-[55vw] font-sans">
           {item.title && (
             <div
-              style={{
-                fontSize: 16,
-                fontWeight: 600,
-                color: '#fff',
-                textShadow: '0 1px 8px rgba(0,0,0,0.6)',
-              }}
+              className="text-base font-semibold text-white"
+              style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}
             >
               {item.title}
             </div>
           )}
           {item.description && (
             <div
+              className="text-[13px] text-text-primary/70 leading-normal"
               style={{
-                fontSize: 13,
-                color: 'rgba(255,255,255,0.7)',
-                lineHeight: 1.5,
                 marginTop: item.title ? 4 : 0,
                 textShadow: '0 1px 6px rgba(0,0,0,0.5)',
               }}
@@ -186,44 +152,20 @@ function ActionButtons({
 }) {
   if (!canDismiss && !canPin && !canUnpin && !canDelete) return null
 
-  const btnBase: React.CSSProperties = {
-    padding: '5px 12px',
-    border: '1px solid rgba(255,255,255,0.15)',
-    borderRadius: 6,
-    fontSize: 11,
-    fontWeight: 500,
-    cursor: 'pointer',
-    fontFamily: 'sans-serif',
-    background: 'rgba(255,255,255,0.06)',
-    color: 'rgba(255,255,255,0.7)',
-  }
+  const btnBase =
+    'px-3 py-1 border border-border-glass rounded-md text-[11px] font-medium cursor-pointer font-sans bg-surface transition-colors duration-fast'
 
   return (
-    <div style={{ marginTop: 12, display: 'flex', gap: 8, justifyContent: 'center' }}>
+    <div className="mt-3 flex gap-2 justify-center">
       {canDismiss && (
-        <button
-          onClick={onDismiss}
-          style={btnBase}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.12)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-          }}
-        >
+        <button onClick={onDismiss} className={`${btnBase} text-text-primary/70 hover:bg-hover`}>
           Dismiss
         </button>
       )}
       {canPin && (
         <button
           onClick={onPin}
-          style={{ ...btnBase, borderColor: 'rgba(251,191,36,0.4)', color: '#fbbf24' }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(251,191,36,0.12)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-          }}
+          className={`${btnBase} border-accent/40 text-accent hover:bg-accent/10`}
         >
           Pin
         </button>
@@ -231,13 +173,7 @@ function ActionButtons({
       {canUnpin && (
         <button
           onClick={onUnpin}
-          style={{ ...btnBase, borderColor: 'rgba(251,191,36,0.4)', color: '#fbbf24' }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(251,191,36,0.12)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-          }}
+          className={`${btnBase} border-accent/40 text-accent hover:bg-accent/10`}
         >
           Unpin
         </button>
@@ -245,13 +181,7 @@ function ActionButtons({
       {canDelete && (
         <button
           onClick={onDelete}
-          style={{ ...btnBase, borderColor: 'rgba(239,68,68,0.4)', color: '#ef4444' }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(239,68,68,0.12)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-          }}
+          className={`${btnBase} border-danger/40 text-danger hover:bg-danger/10`}
         >
           Delete
         </button>

@@ -243,11 +243,7 @@ export function PortraitBar({
       <div
         key={entity.id}
         data-char-id={entity.id}
-        style={{
-          position: 'relative',
-          cursor: 'pointer',
-          transition: 'transform 0.15s ease',
-        }}
+        className="relative cursor-pointer transition-transform duration-fast"
         onClick={(e) => {
           handlePortraitClick(entity.id, e.currentTarget as HTMLElement)
         }}
@@ -266,7 +262,7 @@ export function PortraitBar({
         <svg
           width={PORTRAIT_SIZE}
           height={PORTRAIT_SIZE}
-          style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none' }}
+          className="absolute top-0 left-0 pointer-events-none"
         >
           {displayResources.map((_, i) => (
             <ResourceRingBg key={`bg-${i}`} index={i} size={PORTRAIT_SIZE} />
@@ -284,10 +280,8 @@ export function PortraitBar({
           style={{
             width: PORTRAIT_SIZE,
             height: PORTRAIT_SIZE,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
           }}
+          className="flex items-center justify-center"
         >
           {entity.imageUrl ? (
             <img
@@ -296,37 +290,25 @@ export function PortraitBar({
               style={{
                 width: IMG_SIZE,
                 height: IMG_SIZE,
-                borderRadius: '50%',
-                objectFit: 'cover',
                 border: isInspected
                   ? '2px solid #fff'
                   : isActive
                     ? `2px solid ${entity.color}`
                     : '2px solid rgba(255,255,255,0.15)',
                 boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
-                display: 'block',
-                transition: 'border-color 0.2s, box-shadow 0.2s',
               }}
+              className="rounded-full object-cover block transition-[border-color,box-shadow] duration-200"
             />
           ) : (
             <div
               style={{
                 width: IMG_SIZE,
                 height: IMG_SIZE,
-                borderRadius: '50%',
                 background: `linear-gradient(135deg, ${entity.color}, ${entity.color}aa)`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontSize: 14,
-                fontWeight: 700,
-                fontFamily: 'sans-serif',
                 border: isInspected ? '2px solid #fff' : '2px solid rgba(255,255,255,0.15)',
                 boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
-                boxSizing: 'border-box',
-                transition: 'border-color 0.2s, box-shadow 0.2s',
               }}
+              className="rounded-full flex items-center justify-center text-white text-sm font-bold font-sans box-border transition-[border-color,box-shadow] duration-200"
             >
               {entity.name.charAt(0).toUpperCase()}
             </div>
@@ -335,41 +317,19 @@ export function PortraitBar({
 
         {/* Online indicator (PC only) */}
         {isPC && isOnline && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 1,
-              right: 1,
-              width: 10,
-              height: 10,
-              borderRadius: '50%',
-              background: '#22c55e',
-              border: '2px solid rgba(15, 15, 25, 0.85)',
-              boxShadow: '0 0 6px rgba(34,197,94,0.5)',
-            }}
-          />
+          <div className="absolute bottom-px right-px w-2.5 h-2.5 rounded-full bg-success border-2 border-glass shadow-[0_0_6px_rgba(34,197,94,0.5)]" />
         )}
 
         {/* Status dots (top-right) */}
         {statuses.length > 0 && (
-          <div
-            style={{
-              position: 'absolute',
-              top: -1,
-              right: -2,
-              display: 'flex',
-              gap: 2,
-            }}
-          >
+          <div className="absolute -top-px -right-0.5 flex gap-0.5">
             {statuses.slice(0, maxStatusDots).map((s, i) => {
               const sc = statusColor(s.label)
               return (
                 <div
                   key={i}
+                  className="w-[7px] h-[7px] rounded-full"
                   style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
                     background: sc,
                     border: '1px solid rgba(15, 15, 25, 0.85)',
                     boxShadow: `0 0 4px ${sc}66`,
@@ -378,15 +338,7 @@ export function PortraitBar({
               )
             })}
             {statuses.length > maxStatusDots && (
-              <div
-                style={{
-                  fontSize: 7,
-                  fontWeight: 700,
-                  color: 'rgba(255,255,255,0.6)',
-                  fontFamily: 'sans-serif',
-                  lineHeight: '7px',
-                }}
-              >
+              <div className="text-[7px] font-bold text-text-muted/60 font-sans leading-[7px]">
                 +{statuses.length - maxStatusDots}
               </div>
             )}
@@ -396,35 +348,16 @@ export function PortraitBar({
         {/* NPC indicator (small diamond) */}
         {!isPC && (
           <div
+            className="absolute bottom-px left-px w-2 h-2 bg-warning rounded-[1px]"
             style={{
-              position: 'absolute',
-              bottom: 1,
-              left: 1,
-              width: 8,
-              height: 8,
-              background: '#fbbf24',
               transform: 'rotate(45deg)',
               border: '1px solid rgba(15, 15, 25, 0.85)',
-              borderRadius: 1,
             }}
           />
         )}
       </div>
     )
   }
-
-  const tabStyle = (isActive: boolean): React.CSSProperties => ({
-    padding: '3px 10px',
-    fontSize: 10,
-    fontWeight: 600,
-    fontFamily: 'sans-serif',
-    color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
-    background: 'none',
-    border: 'none',
-    borderBottom: isActive ? '2px solid #60a5fa' : '2px solid transparent',
-    cursor: 'pointer',
-    transition: 'color 0.15s, border-color 0.15s',
-  })
 
   // Determine which entity to show in popover
   const popoverCharId = inspectedCharacterId ?? hoveredCharId
@@ -461,37 +394,28 @@ export function PortraitBar({
   return (
     <div
       ref={portraitBarRef}
-      style={{
-        position: 'fixed',
-        top: 12,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 10000,
-        pointerEvents: 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 3,
-      }}
+      className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center gap-[3px]"
       onPointerDown={(e) => e.stopPropagation()}
     >
       {/* Tab buttons */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 2,
-          pointerEvents: 'auto',
-        }}
-      >
+      <div className="flex gap-0.5 pointer-events-auto">
         <button
           onClick={() => setActiveTab('characters')}
-          style={tabStyle(activeTab === 'characters')}
+          className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
+            activeTab === 'characters'
+              ? 'text-text-primary border-b-2 border-accent'
+              : 'text-text-muted/40 border-b-2 border-transparent'
+          }`}
         >
           Characters
         </button>
         <button
           onClick={() => setActiveTab('initiative')}
-          style={tabStyle(activeTab === 'initiative')}
+          className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
+            activeTab === 'initiative'
+              ? 'text-text-primary border-b-2 border-accent'
+              : 'text-text-muted/40 border-b-2 border-transparent'
+          }`}
         >
           Initiative
         </button>
@@ -499,56 +423,18 @@ export function PortraitBar({
 
       {/* Tab content */}
       {activeTab === 'characters' && (
-        <div
-          style={{
-            display: 'flex',
-            gap: 6,
-            alignItems: 'center',
-            background: 'rgba(15, 15, 25, 0.75)',
-            backdropFilter: 'blur(16px)',
-            borderRadius: 28,
-            padding: '5px 10px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            pointerEvents: 'auto',
-          }}
-        >
+        <div className="flex gap-1.5 items-center bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           {partyEntities.map(renderPortrait)}
 
           {/* Separator between PCs and NPCs */}
-          {hasSection && (
-            <div
-              style={{
-                width: 1,
-                height: 32,
-                background: 'rgba(255,255,255,0.12)',
-                margin: '0 2px',
-              }}
-            />
-          )}
+          {hasSection && <div className="w-px h-8 bg-border-glass mx-0.5" />}
 
           {sceneEntities.map(renderPortrait)}
         </div>
       )}
 
       {activeTab === 'initiative' && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '8px 20px',
-            background: 'rgba(15, 15, 25, 0.75)',
-            backdropFilter: 'blur(16px)',
-            borderRadius: 28,
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
-            fontSize: 12,
-            color: 'rgba(255,255,255,0.4)',
-            fontFamily: 'sans-serif',
-            pointerEvents: 'auto',
-          }}
-        >
+        <div className="flex items-center justify-center px-5 py-2 bg-glass backdrop-blur-[16px] rounded-[28px] border border-border-glass shadow-[0_4px_20px_rgba(0,0,0,0.25)] text-xs text-text-muted/40 font-sans pointer-events-auto">
           Coming soon
         </div>
       )}

@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from 'react'
+import { Send } from 'lucide-react'
 import { rollCompound, resolveFormula } from '../shared/diceUtils'
 import type { ChatMessage } from './chatTypes'
 
@@ -168,22 +169,13 @@ export function ChatInput({
   }
 
   return (
-    <div style={{ position: 'relative' }} onPointerDown={(e) => e.stopPropagation()}>
+    <div className="relative" onPointerDown={(e) => e.stopPropagation()}>
       {error && (
-        <div
-          style={{
-            color: '#fff',
-            fontSize: 11,
-            marginBottom: 4,
-            padding: '4px 10px',
-            background: 'rgba(220,38,38,0.9)',
-            borderRadius: 6,
-          }}
-        >
+        <div className="text-white text-[11px] mb-1 px-2.5 py-1 bg-danger/90 rounded-md">
           {error}
         </div>
       )}
-      <div style={{ display: 'flex', gap: 0 }}>
+      <div className="flex">
         <input
           ref={inputRef}
           value={input}
@@ -237,63 +229,20 @@ export function ChatInput({
           onFocus={onFocus}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
           placeholder="Type a message or .r 1d20+@STR"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            padding: '10px 14px',
-            border: 'none',
-            borderRadius: '10px 0 0 10px',
-            fontSize: 13,
-            boxSizing: 'border-box',
-            outline: 'none',
-            background: 'rgba(255,255,255,0.95)',
-            backdropFilter: 'blur(8px)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.1)',
-          }}
+          className="flex-1 min-w-0 px-3.5 py-2.5 border-none rounded-l-[10px] text-[13px] outline-none bg-surface backdrop-blur-[8px] text-text-primary placeholder:text-text-muted shadow-[0_2px_12px_rgba(0,0,0,0.2)]"
         />
         <button
           onClick={handleSend}
-          style={{
-            padding: '0 14px',
-            border: 'none',
-            borderRadius: '0 10px 10px 0',
-            fontSize: 14,
-            cursor: 'pointer',
-            background: 'rgba(59,130,246,0.9)',
-            color: '#fff',
-            fontWeight: 600,
-            transition: 'background 0.15s',
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(59,130,246,1)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(59,130,246,0.9)'
-          }}
+          className="px-3.5 border-none rounded-r-[10px] text-sm cursor-pointer bg-accent text-deep font-semibold transition-colors duration-fast shrink-0 hover:bg-accent-bold flex items-center justify-center"
           aria-label="Send"
         >
-          ➤
+          <Send size={16} strokeWidth={1.5} />
         </button>
       </div>
 
       {/* @ autocomplete dropdown */}
       {showSuggestions && filteredSuggestions.length > 0 && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '100%',
-            left: 0,
-            right: 0,
-            marginBottom: 6,
-            background: 'rgba(255,255,255,0.96)',
-            backdropFilter: 'blur(8px)',
-            borderRadius: 10,
-            boxShadow: '0 -4px 16px rgba(0,0,0,0.1)',
-            maxHeight: 180,
-            overflowY: 'auto',
-          }}
-        >
+        <div className="absolute bottom-full left-0 right-0 mb-1.5 bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_-4px_16px_rgba(0,0,0,0.3)] max-h-[180px] overflow-y-auto">
           {filteredSuggestions.map((s, i) => (
             <div
               key={s.key}
@@ -301,28 +250,18 @@ export function ChatInput({
                 e.preventDefault()
                 applySuggestion(s.key)
               }}
-              style={{
-                padding: '7px 14px',
-                cursor: 'pointer',
-                fontSize: 12,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                background: i === suggestionIndex ? 'rgba(59,130,246,0.08)' : 'transparent',
-              }}
+              className={`px-3.5 py-[7px] cursor-pointer text-xs flex justify-between items-center transition-colors duration-fast ${
+                i === suggestionIndex ? 'bg-accent/10' : 'bg-transparent hover:bg-hover'
+              }`}
             >
               <span>
-                <span style={{ fontWeight: 600, color: '#333' }}>@{s.key}</span>
-                <span style={{ color: '#999', marginLeft: 8 }}>{s.value}</span>
+                <span className="font-semibold text-text-primary">@{s.key}</span>
+                <span className="text-text-muted ml-2">{s.value}</span>
               </span>
               <span
-                style={{
-                  fontSize: 9,
-                  padding: '1px 5px',
-                  borderRadius: 3,
-                  background: s.from === 'token' ? '#fef3c7' : '#dbeafe',
-                  color: s.from === 'token' ? '#92400e' : '#1e40af',
-                }}
+                className={`text-[9px] px-[5px] py-px rounded-[3px] ${
+                  s.from === 'token' ? 'bg-warning/20 text-warning' : 'bg-info/20 text-info'
+                }`}
               >
                 {s.from}
               </span>

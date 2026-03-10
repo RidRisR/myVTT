@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react'
-import { Image, Swords, Layout, BookOpen } from 'lucide-react'
+import { useState } from 'react'
+import { Image, Swords, X } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
-import { SceneListPanel } from './SceneListPanel'
-import { SceneConfigPanel } from './SceneConfigPanel'
+import { SceneLibrary } from './SceneLibrary'
+import { isVideoUrl } from '../shared/assetUpload'
 
 interface GmToolbarProps {
   scenes: Scene[]
@@ -10,6 +10,7 @@ interface GmToolbarProps {
   isCombat: boolean
   onSelectScene: (sceneId: string) => void
   onToggleCombat: () => void
+  onAddScene: (scene: Scene) => void
   onUpdateScene: (id: string, updates: Partial<Scene>) => void
   onDeleteScene: (id: string) => void
 }
@@ -20,104 +21,112 @@ export function GmToolbar({
   isCombat,
   onSelectScene,
   onToggleCombat,
+  onAddScene,
   onUpdateScene,
   onDeleteScene,
 }: GmToolbarProps) {
-  const [showSceneList, setShowSceneList] = useState(false)
-  const [editingSceneId, setEditingSceneId] = useState<string | null>(null)
-
-  const editingScene = editingSceneId ? (scenes.find((s) => s.id === editingSceneId) ?? null) : null
-
-  const handleEditScene = useCallback((sceneId: string) => {
-    setEditingSceneId(sceneId)
-  }, [])
-
-  const handleCloseSceneList = useCallback(() => {
-    setShowSceneList(false)
-  }, [])
-
-  const handleCloseConfig = useCallback(() => {
-    setEditingSceneId(null)
-  }, [])
-
-  const toolbarBtnClass =
-    'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors duration-fast'
-
-  const defaultBtnClass = `${toolbarBtnClass} bg-glass backdrop-blur-[12px] border border-border-glass text-text-primary hover:bg-hover`
+  const [showScenePicker, setShowScenePicker] = useState(false)
+  const [showLibrary, setShowLibrary] = useState(false)
 
   return (
     <>
       {/* Toolbar */}
       <div
-        className="fixed z-toast flex gap-1.5"
-        style={{ bottom: 12, left: 16 }}
+        className="fixed bottom-3 left-4 z-toast flex gap-1.5 font-sans"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        {/* 1. Scene management */}
-        <button
-          onClick={() => {
-            setShowSceneList(!showSceneList)
-            if (!showSceneList) setEditingSceneId(null)
-          }}
-          className={`${toolbarBtnClass} ${
-            showSceneList
-              ? 'bg-accent/20 backdrop-blur-[12px] border border-accent/40 text-accent-bold'
-              : 'bg-glass backdrop-blur-[12px] border border-border-glass text-text-primary hover:bg-hover'
-          }`}
-          title="Scene management"
-        >
-          <Image size={16} strokeWidth={1.5} />
-          Scenes
-        </button>
+        {/* Scene picker */}
+        <div className="relative">
+          <button
+            onClick={() => setShowScenePicker(!showScenePicker)}
+            className="flex items-center gap-1.5 rounded-lg bg-glass backdrop-blur-[12px] border border-border-glass px-3.5 py-2 text-xs font-semibold text-text-primary shadow-[0_2px_12px_rgba(0,0,0,0.3)] cursor-pointer hover:bg-hover transition-colors duration-fast"
+          >
+            <Image size={14} strokeWidth={1.5} />
+            Scenes
+          </button>
 
-        {/* 2. Tactical toggle */}
+          {/* Scene dropdown */}
+          {showScenePicker && (
+            <div className="absolute bottom-full left-0 mb-1.5 bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] min-w-[200px] max-h-[300px] overflow-y-auto p-1">
+              {scenes.length === 0 && (
+                <div className="px-4 py-3 text-text-muted text-xs text-center">No scenes yet</div>
+              )}
+              {scenes.map((scene) => (
+                <button
+                  key={scene.id}
+                  onClick={() => {
+                    onSelectScene(scene.id)
+                    setShowScenePicker(false)
+                  }}
+                  className={`flex items-center gap-2 w-full px-3 py-2 border-none rounded-md cursor-pointer text-xs text-left transition-colors duration-fast ${
+                    scene.id === activeSceneId
+                      ? 'bg-accent/20 text-accent'
+                      : 'bg-transparent text-text-primary hover:bg-hover'
+                  }`}
+                >
+                  {isVideoUrl(scene.atmosphereImageUrl) ? (
+                    <video
+                      src={scene.atmosphereImageUrl}
+                      muted
+                      playsInline
+                      className="w-9 h-6 object-cover rounded-sm shrink-0"
+                    />
+                  ) : (
+                    <img
+                      src={scene.atmosphereImageUrl}
+                      alt=""
+                      className="w-9 h-6 object-cover rounded-sm shrink-0"
+                    />
+                  )}
+                  <span
+                    className={`overflow-hidden text-ellipsis whitespace-nowrap ${
+                      scene.id === activeSceneId ? 'font-semibold' : 'font-normal'
+                    }`}
+                  >
+                    {scene.name || 'Untitled'}
+                  </span>
+                </button>
+              ))}
+              <div className="border-t border-border-glass my-1" />
+              <button
+                onClick={() => {
+                  setShowScenePicker(false)
+                  setShowLibrary(true)
+                }}
+                className="w-full px-3 py-2 bg-transparent border-none rounded-md cursor-pointer text-xs text-accent font-semibold text-left hover:bg-hover transition-colors duration-fast"
+              >
+                Manage Scenes...
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Combat toggle */}
         <button
           onClick={onToggleCombat}
-          className={`${toolbarBtnClass} ${
+          className={`flex items-center gap-1.5 rounded-lg backdrop-blur-[12px] border border-border-glass px-3.5 py-2 text-xs font-semibold cursor-pointer shadow-[0_2px_12px_rgba(0,0,0,0.3)] transition-colors duration-fast ${
             isCombat
-              ? 'bg-danger backdrop-blur-[12px] border border-danger text-text-primary'
-              : 'bg-glass backdrop-blur-[12px] border border-border-glass text-text-primary hover:bg-hover'
+              ? 'bg-danger text-white hover:bg-danger/80'
+              : 'bg-glass text-text-primary hover:bg-hover'
           }`}
-          title={isCombat ? 'Exit combat mode' : 'Enter combat mode'}
         >
-          <Swords size={16} strokeWidth={1.5} />
+          {isCombat ? <X size={14} strokeWidth={1.5} /> : <Swords size={14} strokeWidth={1.5} />}
           {isCombat ? 'Exit Combat' : 'Combat'}
-        </button>
-
-        {/* 3. Asset dock toggle (placeholder) */}
-        <button className={defaultBtnClass} title="Asset library">
-          <Layout size={16} strokeWidth={1.5} />
-          Assets
-        </button>
-
-        {/* 4. Showcase (placeholder) */}
-        <button className={defaultBtnClass} title="Showcase / Handouts">
-          <BookOpen size={16} strokeWidth={1.5} />
-          Showcase
         </button>
       </div>
 
-      {/* Scene List Panel */}
-      {showSceneList && (
-        <SceneListPanel
+      {/* Scene Library Modal */}
+      {showLibrary && (
+        <SceneLibrary
           scenes={scenes}
-          activeSceneId={activeSceneId}
-          onSelectScene={onSelectScene}
-          onEditScene={handleEditScene}
-          onClose={handleCloseSceneList}
-        />
-      )}
-
-      {/* Scene Config Panel */}
-      {editingScene && (
-        <SceneConfigPanel
-          scene={editingScene}
-          onUpdateScene={onUpdateScene}
-          onDeleteScene={(id) => {
-            onDeleteScene(id)
-            setEditingSceneId(null)
+          onClose={() => setShowLibrary(false)}
+          onAdd={onAddScene}
+          onUpdate={onUpdateScene}
+          onDelete={onDeleteScene}
+          onSelect={(id) => {
+            onSelectScene(id)
+            setShowLibrary(false)
           }}
-          onClose={handleCloseConfig}
         />
       )}
     </>
