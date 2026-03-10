@@ -23,6 +23,7 @@ interface PortraitBarProps {
   onSetActiveCharacter: (charId: string) => void
   onDeleteEntity: (entityId: string) => void
   onUpdateEntity: (id: string, updates: Partial<Entity>) => void
+  onAddPC?: () => void
 }
 
 const PORTRAIT_SIZE = 52
@@ -88,6 +89,7 @@ export function PortraitBar({
   onSetActiveCharacter,
   onDeleteEntity,
   onUpdateEntity,
+  onAddPC,
 }: PortraitBarProps) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entityId: string } | null>(
     null,
@@ -166,7 +168,7 @@ export function PortraitBar({
   // Filter to entities visible to this seat
   const visibleEntities = entities.filter((e) => (mySeatId ? canSee(e, mySeatId, role) : isGM))
 
-  if (visibleEntities.length === 0) return null
+  if (visibleEntities.length === 0 && !onAddPC) return null
 
   // Split by ownership: "party" entities (owner exists) vs scene entities (no owners)
   const partyEntities = visibleEntities.filter((e) =>
@@ -520,6 +522,38 @@ export function PortraitBar({
           )}
 
           {sceneEntities.map(renderPortrait)}
+
+          {/* Add PC button */}
+          {onAddPC && (
+            <div
+              onClick={onAddPC}
+              style={{
+                width: PORTRAIT_SIZE,
+                height: PORTRAIT_SIZE,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                borderRadius: '50%',
+                border: '2px dashed rgba(255,255,255,0.2)',
+                color: 'rgba(255,255,255,0.35)',
+                fontSize: 20,
+                fontWeight: 300,
+                transition: 'border-color 0.15s, color 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.4)'
+                ;(e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.6)'
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.2)'
+                ;(e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.35)'
+              }}
+              title="Create new character"
+            >
+              +
+            </div>
+          )}
         </div>
       )}
 

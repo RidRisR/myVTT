@@ -63,6 +63,13 @@ export interface EntityCardProps {
   onRollAction: (action: RollAction) => void
 }
 
+/** A custom chat command registered by a rule system (e.g. ".dd" for Daggerheart duality dice) */
+export interface ChatCommand {
+  prefix: string // ".dd" — the dot-command trigger
+  name: string // "Duality Roll" — used as actionName on the roll message
+  buildFormula: (args: string) => string // ".dd +2" → "2d12+2"
+}
+
 /** The main interface rules implement */
 export interface RuleSystem {
   id: string
@@ -86,4 +93,8 @@ export interface RuleSystem {
   getDieStyles(termResults: DiceTermResult[]): DieStyle[]
   getJudgmentDisplay(result: JudgmentResult): JudgmentDisplay
   getModifierOptions(): ModifierOption[]
+  // Chat commands
+  getChatCommands(): ChatCommand[]
+  // Defaults
+  getDefaultRuleData(): unknown
 }

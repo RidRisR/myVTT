@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import type { ChatRollMessage } from './chatTypes'
+import type { DieStyle } from '../rules/types'
 import { DiceReel } from './DiceReel'
+import { JudgmentBadge } from './JudgmentBadge'
 import { calcTotalAnimDuration, SPIN_DURATION, STOP_INTERVAL } from './diceAnimUtils'
 
 interface DiceResultCardProps {
@@ -19,6 +21,17 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
     const timer = setTimeout(() => setTotalRevealed(true), duration)
     return () => clearTimeout(timer)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Build DieStyle lookup from message (if present)
+  const dieStyleMap = useMemo(() => {
+    const map = new Map<string, DieStyle>()
+    if (message.dieStyles) {
+      for (const ds of message.dieStyles) {
+        map.set(`${ds.termIndex}-${ds.dieIndex}`, ds)
+      }
+    }
+    return map
+  }, [message.dieStyles])
 
   // Count total dice and build shuffled stop order
   const totalDice = message.terms.reduce(
@@ -55,6 +68,7 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
       const stopDelay = SPIN_DURATION + order * STOP_INTERVAL
       diceIndex++
       const isDropped = !tr.keptIndices.includes(ri)
+      const style = dieStyleMap.get(`${ti}-${ri}`)
       return (
         <DiceReel
           key={`${ti}-${ri}`}
@@ -63,6 +77,8 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
           stopDelay={shouldAnimate.current ? stopDelay : 0}
           dropped={isDropped}
           dropRevealDelay={shouldAnimate.current ? allLandedTime : undefined}
+          color={style?.color}
+          label={style?.label}
         />
       )
     })
@@ -149,6 +165,11 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
         >
           {totalRevealed ? message.total : '?'}
         </span>
+
+        {/* Judgment badge (appears after total reveal) */}
+        {totalRevealed && message.judgmentDisplay && (
+          <JudgmentBadge display={message.judgmentDisplay} animate={shouldAnimate.current} />
+        )}
       </div>
     </>
   )
