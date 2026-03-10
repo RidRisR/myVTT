@@ -16,7 +16,7 @@ import { roleStore } from './shared/roleState'
 import { SeatSelect } from './identity/SeatSelect'
 import { ChatPanel } from './chat/ChatPanel'
 import { SceneViewer } from './scene/SceneViewer'
-import { CombatViewer } from './combat/CombatViewer'
+import { TacticalPanel } from './combat/TacticalPanel'
 import { BottomDock } from './dock/BottomDock'
 
 import { GmToolbar } from './gm/GmToolbar'
@@ -262,8 +262,10 @@ function RoomSession({ roomId }: { roomId: string }) {
 
   return (
     <div>
-      {isCombat ? (
-        <CombatViewer
+      <SceneViewer scene={activeScene} onContextMenu={handleBgContextMenu} />
+
+      {isCombat && (
+        <TacticalPanel
           scene={activeScene}
           tokens={tokens}
           getEntity={getEntity}
@@ -273,9 +275,10 @@ function RoomSession({ roomId }: { roomId: string }) {
           onSelectToken={setSelectedTokenId}
           onUpdateToken={updateToken}
           onContextMenu={handleBgContextMenu}
+          onClose={() => {
+            if (room.activeSceneId) setCombatActive(room.activeSceneId, false)
+          }}
         />
-      ) : (
-        <SceneViewer scene={activeScene} onContextMenu={handleBgContextMenu} />
       )}
 
       {/* Top-left: Hamburger menu */}
