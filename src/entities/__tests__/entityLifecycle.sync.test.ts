@@ -120,10 +120,7 @@ describe('permissions concurrent updates', () => {
     expect(seats2.get('seat-2')).toBe('owner')
   })
 
-  it('concurrent updateEntity with permissions — clear+reset causes seat loss (known issue)', () => {
-    // This test documents a known limitation of updatePermissions():
-    // it clears all seats then re-sets, which loses concurrent seat additions.
-    // The two clients may DISAGREE on final state after sync.
+  it('concurrent updateEntity with different seats — both survive after CRDT merge', () => {
     const { doc1, doc2, world1, world2 } = createDeferredPair()
     const hook1 = renderHook(() => useEntities(world1, doc1))
     const hook2 = renderHook(() => useEntities(world2, doc2))
@@ -139,7 +136,6 @@ describe('permissions concurrent updates', () => {
     flushInAct(doc1, doc2)
 
     // Client A sets seat-1, Client B sets seat-2 — both via updateEntity hook
-    // updatePermissions() clears all seats before setting new ones
     act(() =>
       hook1.result.current.updateEntity('e1', {
         permissions: { default: 'observer', seats: { 'seat-1': 'owner' } },
@@ -156,16 +152,12 @@ describe('permissions concurrent updates', () => {
     const e1 = hook1.result.current.entities.find((e) => e.id === 'e1')
     const e2 = hook2.result.current.entities.find((e) => e.id === 'e1')
 
-    // KNOWN ISSUE: clear+reset causes clients to potentially disagree or lose seats.
-    // After Yjs CRDT merge, the result may not contain both seats.
-    // At minimum, both clients should converge to the same final state.
-    expect(e1?.permissions.default).toBe(e2?.permissions.default)
+    // Both clients should converge to the same state
+    expect(e1?.permissions).toEqual(e2?.permissions)
 
-    // Document: check if both seats survived
-    const allSeats1 = Object.keys(e1?.permissions.seats ?? {})
-    const allSeats2 = Object.keys(e2?.permissions.seats ?? {})
-    // Both clients should at least converge
-    expect(allSeats1.sort()).toEqual(allSeats2.sort())
+    // Both seats should survive — each client only deletes seats not in its own update
+    expect(e1?.permissions.seats['seat-1']).toBe('owner')
+    expect(e1?.permissions.seats['seat-2']).toBe('owner')
   })
 })
 
