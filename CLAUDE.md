@@ -38,20 +38,25 @@ myVTT is a lightweight Virtual Tabletop built with React + Yjs + y-websocket for
 
 - `yDoc` created in `useState` (not useEffect) for component sharing
 - Do NOT call `yDoc.destroy()` in cleanup - lifecycle managed by useState
-- Global containers use top-level shared types: `yDoc.getMap('world:seats')`, `yDoc.getMap('world:room')`, `yDoc.getArray('world:chat')`, etc. — managed via `createWorldMaps()` in `src/yjs/useWorld.ts`
-- Scene data uses nested Y.Maps: `world:scenes` → `sceneId` → `entities`/`tokens` (created by user action, not auto-init)
+- All containers use top-level shared types: `yDoc.getMap('scenes')`, `yDoc.getMap('room')`, etc. — managed via `createWorldMaps()` in `src/yjs/useWorld.ts`
+- Top-level keys: `scenes`, `roster`, `blueprints`, `seats`, `room`, `chat_log`, `team_metrics`, `showcase_items`, `handout_assets`
+- Scene data uses nested Y.Maps: `scenes` → `sceneId` → `entities`/`tokens` (created by user action, not auto-init)
+- Roster entities use nested Y.Maps with `permissions` and `ruleData` as nested Y.Map structures for field-level CRDT
 
 **Yjs Nesting Rules (IMPORTANT):**
 
-- Global containers (seats, room, scenes, party, etc.) MUST use top-level shared types: `yDoc.getMap('world:xxx')` / `yDoc.getArray('world:xxx')`
+- Global containers (seats, room, scenes, roster, etc.) MUST use top-level shared types: `yDoc.getMap('xxx')`
 - NEVER use `ensureSubMap` or check-then-create patterns (`if (!exists) parent.set(key, new Y.Map())`) during initialization — this causes race conditions when multiple clients connect before sync completes
 - Nested Y.Map creation (`parent.set(key, new Y.Map())`) is ONLY allowed inside explicit user actions (e.g., addScene), where: (1) the operation happens after WebSocket sync is complete, (2) the key is a unique ID (UUID), not a fixed string, (3) only one client triggers the creation
+- Plain objects stored as Y.Map values have NO field-level CRDT — use nested Y.Map for fields that need concurrent editing
 
 **Entity System:**
 
-- Core type: `Entity` (id, name, avatar, permissions, resources, attributes, statuses, notes)
-- Combat tokens: `MapToken` extends Entity with map coordinates (x, y, size)
-- Blueprints: reusable token templates stored in `token_blueprints` map
+- Core type: `Entity` (id, name, imageUrl, color, size, notes, ruleData, permissions)
+- `roster` = cross-scene persistent characters (PC + NPC), nested Y.Map with field-level CRDT
+- `scene.entities` = scene-specific entities, plain objects
+- Combat tokens: `MapToken` with optional entityId for linking to entities
+- Blueprints: reusable token templates stored in `blueprints` map
 - Adapters: `entityAdapters.ts` provides read-only getters (getEntityResources, getEntityAttributes, etc.)
 
 ### react-zoom-pan-pinch
