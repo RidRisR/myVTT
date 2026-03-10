@@ -1,10 +1,43 @@
 // src/entities/useEntities.ts
 import { useEffect, useState, useCallback } from 'react'
 import * as Y from 'yjs'
-import type { Entity } from '../shared/entityTypes'
+import type { Entity, EntityPermissions, PermissionLevel } from '../shared/entityTypes'
 import type { WorldMaps } from '../yjs/useWorld'
 
-type EntityWithSource = Entity & { _source: 'party' | 'prepared' | string }
+type EntityWithSource = Entity & { _source: 'roster' | string }
+
+/** Read permissions from a nested Y.Map back to a plain EntityPermissions object */
+function readPermissions(yMap: Y.Map<unknown>): EntityPermissions {
+  const permYMap = yMap.get('permissions')
+  if (permYMap instanceof Y.Map) {
+    const seatsYMap = permYMap.get('seats')
+    const seats: Record<string, PermissionLevel> = {}
+    if (seatsYMap instanceof Y.Map) {
+      seatsYMap.forEach((val, key) => {
+        seats[key] = val as PermissionLevel
+      })
+    }
+    return {
+      default: (permYMap.get('default') as PermissionLevel) ?? 'observer',
+      seats,
+    }
+  }
+  return { default: 'observer', seats: {} }
+}
+
+/** Read ruleData from a nested Y.Map back to a plain object (or null) */
+function readRuleData(yMap: Y.Map<unknown>): unknown {
+  const ruleYMap = yMap.get('ruleData')
+  if (ruleYMap instanceof Y.Map) {
+    if (ruleYMap.size === 0) return null
+    const obj: Record<string, unknown> = {}
+    ruleYMap.forEach((val, key) => {
+      obj[key] = val
+    })
+    return obj
+  }
+  return null
+}
 
 function readYMapEntity(yMap: Y.Map<unknown>): Entity {
   return {
@@ -15,11 +48,31 @@ function readYMapEntity(yMap: Y.Map<unknown>): Entity {
     size: (yMap.get('size') as number) ?? 1,
     blueprintId: yMap.get('blueprintId') as string | undefined,
     notes: (yMap.get('notes') as string) ?? '',
-    ruleData: yMap.get('ruleData') ?? null,
-    permissions: (yMap.get('permissions') as Entity['permissions']) ?? {
-      default: 'observer',
-      seats: {},
-    },
+    ruleData: readRuleData(yMap),
+    permissions: readPermissions(yMap),
+  }
+}
+
+/** Write permissions as a nested Y.Map structure */
+function writePermissions(entityYMap: Y.Map<unknown>, permissions: EntityPermissions) {
+  const permYMap = new Y.Map<unknown>()
+  entityYMap.set('permissions', permYMap)
+  permYMap.set('default', permissions.default)
+  const seatsYMap = new Y.Map<unknown>()
+  permYMap.set('seats', seatsYMap)
+  for (const [seatId, level] of Object.entries(permissions.seats)) {
+    seatsYMap.set(seatId, level)
+  }
+}
+
+/** Write ruleData as a nested Y.Map structure */
+function writeRuleData(entityYMap: Y.Map<unknown>, ruleData: unknown) {
+  const ruleYMap = new Y.Map<unknown>()
+  entityYMap.set('ruleData', ruleYMap)
+  if (ruleData && typeof ruleData === 'object') {
+    for (const [key, value] of Object.entries(ruleData as Record<string, unknown>)) {
+      ruleYMap.set(key, value)
+    }
   }
 }
 
@@ -31,8 +84,42 @@ function setYMapFields(yMap: Y.Map<unknown>, entity: Entity) {
   yMap.set('size', entity.size)
   if (entity.blueprintId) yMap.set('blueprintId', entity.blueprintId)
   yMap.set('notes', entity.notes)
-  yMap.set('ruleData', entity.ruleData)
-  yMap.set('permissions', entity.permissions)
+  writeRuleData(yMap, entity.ruleData)
+  writePermissions(yMap, entity.permissions)
+}
+
+/** Update permissions Y.Map in place (merge into existing nested structure) */
+function updatePermissions(entityYMap: Y.Map<unknown>, permissions: EntityPermissions) {
+  const permYMap = entityYMap.get('permissions')
+  if (permYMap instanceof Y.Map) {
+    permYMap.set('default', permissions.default)
+    const seatsYMap = permYMap.get('seats')
+    if (seatsYMap instanceof Y.Map) {
+      // Clear existing seats and set new ones
+      seatsYMap.forEach((_v, k) => seatsYMap.delete(k))
+      for (const [seatId, level] of Object.entries(permissions.seats)) {
+        seatsYMap.set(seatId, level)
+      }
+    }
+  } else {
+    // Fallback: create from scratch
+    writePermissions(entityYMap, permissions)
+  }
+}
+
+/** Update ruleData Y.Map in place (merge top-level keys) */
+function updateRuleData(entityYMap: Y.Map<unknown>, ruleData: unknown) {
+  const ruleYMap = entityYMap.get('ruleData')
+  if (ruleYMap instanceof Y.Map) {
+    if (ruleData && typeof ruleData === 'object') {
+      for (const [key, value] of Object.entries(ruleData as Record<string, unknown>)) {
+        ruleYMap.set(key, value)
+      }
+    }
+  } else {
+    // Fallback: create from scratch
+    writeRuleData(entityYMap, ruleData)
+  }
 }
 
 export function useEntities(world: WorldMaps, currentSceneId: string | null, yDoc: Y.Doc) {
@@ -42,18 +129,10 @@ export function useEntities(world: WorldMaps, currentSceneId: string | null, yDo
   const rebuild = useCallback(() => {
     const result: EntityWithSource[] = []
 
-    // Party (PCs) — nested Y.Maps
-    world.party.forEach((yMap) => {
+    // Roster (cross-scene persistent characters) — nested Y.Maps
+    world.roster.forEach((yMap) => {
       if (yMap instanceof Y.Map) {
-        result.push({ ...readYMapEntity(yMap), _source: 'party' })
-      }
-    })
-
-    // Prepared (GM staging) — plain objects
-    world.prepared.forEach((val) => {
-      const entity = val as Entity
-      if (entity && entity.id) {
-        result.push({ ...entity, _source: 'prepared' })
+        result.push({ ...readYMapEntity(yMap), _source: 'roster' })
       }
     })
 
@@ -79,11 +158,8 @@ export function useEntities(world: WorldMaps, currentSceneId: string | null, yDo
   useEffect(() => {
     rebuild()
 
-    // Party: observeDeep because values are nested Y.Maps
-    world.party.observeDeep(rebuild)
-
-    // Prepared: observe (plain objects, top-level changes only)
-    world.prepared.observe(rebuild)
+    // Roster: observeDeep because values are nested Y.Maps
+    world.roster.observeDeep(rebuild)
 
     // Current scene entities
     let sceneEntitiesMap: Y.Map<unknown> | null = null
@@ -98,8 +174,7 @@ export function useEntities(world: WorldMaps, currentSceneId: string | null, yDo
     }
 
     return () => {
-      world.party.unobserveDeep(rebuild)
-      world.prepared.unobserve(rebuild)
+      world.roster.unobserveDeep(rebuild)
       if (sceneEntitiesMap instanceof Y.Map) {
         sceneEntitiesMap.unobserve(rebuild)
       }
@@ -108,12 +183,12 @@ export function useEntities(world: WorldMaps, currentSceneId: string | null, yDo
 
   // --- CRUD ---
 
-  /** Add PC to party (nested Y.Map) */
-  const addPartyEntity = useCallback(
+  /** Add entity to roster (nested Y.Map for field-level CRDT) */
+  const addRosterEntity = useCallback(
     (entity: Entity) => {
       yDoc.transact(() => {
         const yMap = new Y.Map<unknown>()
-        world.party.set(entity.id, yMap)
+        world.roster.set(entity.id, yMap)
         setYMapFields(yMap, entity)
       })
     },
@@ -135,32 +210,23 @@ export function useEntities(world: WorldMaps, currentSceneId: string | null, yDo
     [world, currentSceneId],
   )
 
-  /** Add entity to prepared (plain object) */
-  const addPreparedEntity = useCallback(
-    (entity: Entity) => {
-      world.prepared.set(entity.id, entity)
-    },
-    [world],
-  )
-
   /** Update entity (auto-detects source) */
   const updateEntity = useCallback(
     (id: string, updates: Partial<Entity>) => {
-      // Check party first (nested Y.Map)
-      const partyYMap = world.party.get(id)
-      if (partyYMap instanceof Y.Map) {
+      // Check roster first (nested Y.Map)
+      const rosterYMap = world.roster.get(id)
+      if (rosterYMap instanceof Y.Map) {
         yDoc.transact(() => {
           for (const [key, value] of Object.entries(updates)) {
-            partyYMap.set(key, value)
+            if (key === 'permissions') {
+              updatePermissions(rosterYMap, value as EntityPermissions)
+            } else if (key === 'ruleData') {
+              updateRuleData(rosterYMap, value)
+            } else {
+              rosterYMap.set(key, value)
+            }
           }
         })
-        return
-      }
-
-      // Check prepared
-      const preparedEntity = world.prepared.get(id) as Entity | undefined
-      if (preparedEntity) {
-        world.prepared.set(id, { ...preparedEntity, ...updates })
         return
       }
 
@@ -185,12 +251,8 @@ export function useEntities(world: WorldMaps, currentSceneId: string | null, yDo
   /** Delete entity from wherever it lives */
   const deleteEntity = useCallback(
     (id: string) => {
-      if (world.party.has(id)) {
-        world.party.delete(id)
-        return
-      }
-      if (world.prepared.has(id)) {
-        world.prepared.delete(id)
+      if (world.roster.has(id)) {
+        world.roster.delete(id)
         return
       }
       if (currentSceneId) {
@@ -215,8 +277,8 @@ export function useEntities(world: WorldMaps, currentSceneId: string | null, yDo
     [entities],
   )
 
-  /** Promote entity from scene to prepared (GM collection) */
-  const promoteToGM = useCallback(
+  /** Promote entity from scene to roster (cross-scene persistent) */
+  const promoteToRoster = useCallback(
     (id: string) => {
       if (!currentSceneId) return
       const sceneMap = world.scenes.get(currentSceneId)
@@ -226,7 +288,9 @@ export function useEntities(world: WorldMaps, currentSceneId: string | null, yDo
       const entity = sceneEntities.get(id)
       if (!entity) return
       yDoc.transact(() => {
-        world.prepared.set(id, entity)
+        const yMap = new Y.Map<unknown>()
+        world.roster.set(id, yMap)
+        setYMapFields(yMap, entity)
         sceneEntities.delete(id)
       })
     },
@@ -235,12 +299,11 @@ export function useEntities(world: WorldMaps, currentSceneId: string | null, yDo
 
   return {
     entities: entities as Entity[],
-    addPartyEntity,
+    addRosterEntity,
     addSceneEntity,
-    addPreparedEntity,
     updateEntity,
     deleteEntity,
     getEntity,
-    promoteToGM,
+    promoteToRoster,
   }
 }
