@@ -15,7 +15,7 @@ export function SceneViewer({ scene, onContextMenu }: SceneViewerProps) {
   const currentUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
-    const newUrl = scene?.imageUrl ?? null
+    const newUrl = scene?.atmosphereImageUrl ?? null
     if (newUrl === currentUrlRef.current) return
 
     if (currentUrlRef.current && newUrl) {
@@ -32,7 +32,7 @@ export function SceneViewer({ scene, onContextMenu }: SceneViewerProps) {
       setPrevUrl(null)
     }
     currentUrlRef.current = newUrl
-  }, [scene?.imageUrl])
+  }, [scene?.atmosphereImageUrl])
 
   if (!currentUrl) {
     return (

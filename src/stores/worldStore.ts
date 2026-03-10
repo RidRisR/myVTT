@@ -13,10 +13,13 @@ import type { ShowcaseItem } from '../showcase/showcaseTypes'
 export interface Scene {
   id: string
   name: string
-  imageUrl: string
+  atmosphereImageUrl: string
+  tacticalMapImageUrl: string
+  particlePreset: string
   width: number
   height: number
   gridSize: number
+  gridSnap: boolean
   gridVisible: boolean
   gridColor: string
   gridOffsetX: number
@@ -102,10 +105,16 @@ function readScenes(yScenes: Y.Map<Y.Map<unknown>>): Scene[] {
     scenes.push({
       id,
       name: (sceneMap.get('name') as string) ?? '',
-      imageUrl: (sceneMap.get('imageUrl') as string) ?? '',
+      atmosphereImageUrl:
+        (sceneMap.get('atmosphereImageUrl') as string) ??
+        (sceneMap.get('imageUrl') as string) ??
+        '',
+      tacticalMapImageUrl: (sceneMap.get('tacticalMapImageUrl') as string) ?? '',
+      particlePreset: (sceneMap.get('particlePreset') as string) ?? 'none',
       width: (sceneMap.get('width') as number) ?? 0,
       height: (sceneMap.get('height') as number) ?? 0,
       gridSize: (sceneMap.get('gridSize') as number) ?? 50,
+      gridSnap: (sceneMap.get('gridSnap') as boolean) ?? true,
       gridVisible: (sceneMap.get('gridVisible') as boolean) ?? true,
       gridColor: (sceneMap.get('gridColor') as string) ?? 'rgba(255,255,255,0.15)',
       gridOffsetX: (sceneMap.get('gridOffsetX') as number) ?? 0,
@@ -324,14 +333,7 @@ interface WorldState {
   deleteTeamTracker: (id: string) => void
 }
 
-const DEFAULT_TRACKER_COLORS = [
-  '#ef4444',
-  '#22c55e',
-  '#3b82f6',
-  '#f59e0b',
-  '#a855f7',
-  '#ec4899',
-]
+const DEFAULT_TRACKER_COLORS = ['#ef4444', '#22c55e', '#3b82f6', '#f59e0b', '#a855f7', '#ec4899']
 
 export const useWorldStore = create<WorldState>((set, get) => ({
   // Initial data
@@ -468,10 +470,13 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       const sceneMap = new Y.Map<unknown>()
       yScenes.set(scene.id, sceneMap)
       sceneMap.set('name', scene.name)
-      sceneMap.set('imageUrl', scene.imageUrl)
+      sceneMap.set('atmosphereImageUrl', scene.atmosphereImageUrl)
+      sceneMap.set('tacticalMapImageUrl', scene.tacticalMapImageUrl)
+      sceneMap.set('particlePreset', scene.particlePreset)
       sceneMap.set('width', scene.width)
       sceneMap.set('height', scene.height)
       sceneMap.set('gridSize', scene.gridSize)
+      sceneMap.set('gridSnap', scene.gridSnap)
       sceneMap.set('gridVisible', scene.gridVisible)
       sceneMap.set('gridColor', scene.gridColor)
       sceneMap.set('gridOffsetX', scene.gridOffsetX)
@@ -594,12 +599,16 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   addToken: (token: MapToken) => {
-    const tokensMap = getTokensMap(get()._yScenes!, get()._activeTokenSceneId)
+    const yScenes = get()._yScenes
+    if (!yScenes) return
+    const tokensMap = getTokensMap(yScenes, get()._activeTokenSceneId)
     tokensMap?.set(token.id, token)
   },
 
   updateToken: (id: string, updates: Partial<MapToken>) => {
-    const tokensMap = getTokensMap(get()._yScenes!, get()._activeTokenSceneId)
+    const yScenes = get()._yScenes
+    if (!yScenes) return
+    const tokensMap = getTokensMap(yScenes, get()._activeTokenSceneId)
     if (!tokensMap) return
     const existing = tokensMap.get(id)
     if (existing) {
@@ -608,7 +617,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   deleteToken: (id: string) => {
-    const tokensMap = getTokensMap(get()._yScenes!, get()._activeTokenSceneId)
+    const yScenes = get()._yScenes
+    if (!yScenes) return
+    const tokensMap = getTokensMap(yScenes, get()._activeTokenSceneId)
     tokensMap?.delete(id)
   },
 
@@ -675,8 +686,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const yMetrics = get()._yMetrics
     if (!yMetrics) return
     const id =
-      self.crypto?.randomUUID?.() ??
-      Math.random().toString(36).slice(2) + Date.now().toString(36)
+      self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
     const count = yMetrics.size
     const tracker: TeamTracker = {
       id,
