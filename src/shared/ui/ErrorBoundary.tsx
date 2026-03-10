@@ -1,5 +1,6 @@
-import { Component } from 'react'
+import { Component, createElement } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
+import { AlertCircle } from 'lucide-react'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -42,21 +43,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <div className="max-w-md w-full rounded-lg border border-border-glass bg-surface p-6 shadow-lg shadow-black/30">
             {/* Error icon */}
             <div className="flex items-center gap-3 mb-4">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                className="shrink-0 text-danger"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
-                <path
-                  d="M12 8v4M12 16v0"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
+              {createElement(AlertCircle, {
+                size: 24,
+                strokeWidth: 1.5,
+                className: 'shrink-0 text-danger',
+                'aria-hidden': true,
+              })}
               <h2 className="text-lg font-semibold text-text-primary">Something went wrong</h2>
             </div>
 

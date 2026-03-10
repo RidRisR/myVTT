@@ -7,6 +7,7 @@ import { MessageScrollArea } from './MessageScrollArea'
 import { ToastStack, type ToastItem } from './ToastStack'
 import { ChatInput } from './ChatInput'
 import { Avatar } from './Avatar'
+import { ChevronUp, ChevronDown } from 'lucide-react'
 
 interface ChatPanelProps {
   yDoc: Y.Doc
@@ -36,26 +37,12 @@ function SpeakerPickerItem({
   isActive: boolean
   onSelect: () => void
 }) {
-  const [hover, setHover] = useState(false)
   return (
     <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
       onClick={onSelect}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '6px 10px',
-        borderRadius: 8,
-        cursor: 'pointer',
-        background: isActive
-          ? 'rgba(59,130,246,0.2)'
-          : hover
-            ? 'rgba(255,255,255,0.08)'
-            : 'transparent',
-        transition: 'background 0.15s',
-      }}
+      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors duration-fast ${
+        isActive ? 'bg-accent/20' : 'hover:bg-hover'
+      }`}
     >
       <Avatar
         portraitUrl={identity.portraitUrl}
@@ -64,14 +51,9 @@ function SpeakerPickerItem({
         size={28}
       />
       <div
-        style={{
-          fontSize: 13,
-          fontWeight: isActive ? 600 : 400,
-          color: isActive ? '#93c5fd' : '#e2e8f0',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
+        className={`text-[13px] overflow-hidden text-ellipsis whitespace-nowrap ${
+          isActive ? 'font-semibold text-accent' : 'font-normal text-text-primary'
+        }`}
       >
         {identity.name}
       </div>
@@ -96,7 +78,6 @@ export function ChatPanel({
   const initialLoadRef = useRef(true)
   const expandedRef = useRef(expanded)
   expandedRef.current = expanded
-  const [expandHover, setExpandHover] = useState(false)
 
   // Speaker switching
   const [speakerCharId, setSpeakerCharId] = useState<string | null>(null)
@@ -261,32 +242,16 @@ export function ChatPanel({
       {showSpeakerPicker && (
         <div
           ref={speakerPickerRef}
+          className="fixed z-toast bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-y-auto p-1.5"
           style={{
-            position: 'fixed',
             bottom: 62,
             right: 440,
             width: 200,
             maxHeight: 280,
-            zIndex: 10001,
-            background: 'rgba(15, 15, 25, 0.92)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 12,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-            overflowY: 'auto',
-            padding: 6,
           }}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <div
-            style={{
-              fontSize: 10,
-              color: 'rgba(255,255,255,0.3)',
-              padding: '4px 10px',
-              textTransform: 'uppercase',
-              letterSpacing: 1,
-            }}
-          >
+          <div className="text-[10px] text-text-muted/30 px-2.5 py-1 uppercase tracking-wider">
             Speak as
           </div>
           {/* Seat identity (player) */}
@@ -320,59 +285,29 @@ export function ChatPanel({
 
       {/* Chat input + buttons (always visible) */}
       <div
-        style={{
-          position: 'fixed',
-          bottom: 12,
-          right: 16,
-          width: 546,
-          zIndex: 10000,
-          display: 'flex',
-          gap: 6,
-          alignItems: 'stretch',
-        }}
+        className="fixed bottom-3 right-4 z-toast flex gap-1.5 items-stretch"
+        style={{ width: 546 }}
       >
         {/* Expand/collapse toggle */}
         <button
           onClick={() => setExpanded((v) => !v)}
-          onMouseEnter={() => setExpandHover(true)}
-          onMouseLeave={() => setExpandHover(false)}
-          style={{
-            width: 36,
-            borderRadius: 10,
-            background: expandHover ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            cursor: 'pointer',
-            transition: 'all 0.15s',
-            color: 'rgba(255,255,255,0.5)',
-            fontSize: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backdropFilter: 'blur(8px)',
-            flexShrink: 0,
-          }}
+          className="w-9 rounded-[10px] bg-surface border border-border-glass cursor-pointer transition-all duration-fast text-text-muted text-sm flex items-center justify-center backdrop-blur-[8px] shrink-0 hover:bg-hover hover:text-text-primary"
           aria-label={expanded ? 'Collapse chat history' : 'Expand chat history'}
         >
-          {expanded ? '▼' : '▲'}
+          {expanded ? (
+            <ChevronDown size={16} strokeWidth={1.5} />
+          ) : (
+            <ChevronUp size={16} strokeWidth={1.5} />
+          )}
         </button>
 
         {/* Speaker avatar button */}
         <button
           ref={speakerBtnRef}
           onClick={() => setShowSpeakerPicker((v) => !v)}
+          className="w-9 h-9 rounded-[10px] bg-transparent cursor-pointer p-0 flex items-center justify-center shrink-0 transition-[border-color] duration-fast"
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: 'transparent',
-            border: showSpeakerPicker ? '2px solid rgba(59,130,246,0.6)' : '2px solid transparent',
-            cursor: 'pointer',
-            padding: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            transition: 'border-color 0.15s',
+            border: showSpeakerPicker ? '2px solid rgba(212,160,85,0.6)' : '2px solid transparent',
           }}
           aria-label="Switch speaker"
         >
@@ -384,7 +319,7 @@ export function ChatPanel({
           />
         </button>
 
-        <div style={{ flex: 1 }}>
+        <div className="flex-1">
           <ChatInput
             senderId={activeSpeaker.id}
             senderName={activeSpeaker.name}
