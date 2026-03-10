@@ -211,6 +211,124 @@ describe('useEntities', () => {
     expect(ruleData.resources).toEqual({ hp: { cur: 5, max: 10 } })
   })
 
+  // ── fallback branches ──────────────────────────────────────
+
+  it('readPermissions returns default when permissions is not a Y.Map', () => {
+    const { hook, world, yDoc } = setup()
+    // Manually create entity with permissions as a plain string (not Y.Map)
+    act(() => {
+      yDoc.transact(() => {
+        const yMap = new Y.Map<unknown>()
+        world.entities.set('bad-1', yMap)
+        yMap.set('id', 'bad-1')
+        yMap.set('name', 'Broken')
+        yMap.set('imageUrl', '')
+        yMap.set('color', '')
+        yMap.set('size', 1)
+        yMap.set('notes', '')
+        yMap.set('persistent', false)
+        yMap.set('ruleData', new Y.Map())
+        yMap.set('permissions', 'not-a-ymap') // plain value, not Y.Map
+      })
+    })
+
+    const found = hook.result.current.entities.find((e) => e.id === 'bad-1')
+    expect(found?.permissions).toEqual({ default: 'observer', seats: {} })
+  })
+
+  it('readRuleData returns null when ruleData is not a Y.Map', () => {
+    const { hook, world, yDoc } = setup()
+    act(() => {
+      yDoc.transact(() => {
+        const yMap = new Y.Map<unknown>()
+        world.entities.set('bad-2', yMap)
+        yMap.set('id', 'bad-2')
+        yMap.set('name', 'Broken')
+        yMap.set('imageUrl', '')
+        yMap.set('color', '')
+        yMap.set('size', 1)
+        yMap.set('notes', '')
+        yMap.set('persistent', false)
+        yMap.set('ruleData', 'not-a-ymap')
+        const permYMap = new Y.Map<unknown>()
+        yMap.set('permissions', permYMap)
+        permYMap.set('default', 'observer')
+        permYMap.set('seats', new Y.Map())
+      })
+    })
+
+    const found = hook.result.current.entities.find((e) => e.id === 'bad-2')
+    expect(found?.ruleData).toBeNull()
+  })
+
+  it('updatePermissions falls back to writePermissions when permissions is not Y.Map', () => {
+    const { hook, world, yDoc } = setup()
+    // Create entity with permissions as plain value
+    act(() => {
+      yDoc.transact(() => {
+        const yMap = new Y.Map<unknown>()
+        world.entities.set('bad-3', yMap)
+        yMap.set('id', 'bad-3')
+        yMap.set('name', 'Broken')
+        yMap.set('imageUrl', '')
+        yMap.set('color', '')
+        yMap.set('size', 1)
+        yMap.set('notes', '')
+        yMap.set('persistent', false)
+        yMap.set('ruleData', new Y.Map())
+        yMap.set('permissions', 'not-a-ymap')
+      })
+    })
+
+    // updateEntity should fix it via fallback writePermissions
+    act(() =>
+      hook.result.current.updateEntity('bad-3', {
+        permissions: { default: 'none', seats: { 'seat-1': 'owner' } },
+      }),
+    )
+
+    const found = hook.result.current.getEntity('bad-3')
+    expect(found?.permissions).toEqual({ default: 'none', seats: { 'seat-1': 'owner' } })
+  })
+
+  it('updateRuleData falls back to writeRuleData when ruleData is not Y.Map', () => {
+    const { hook, world, yDoc } = setup()
+    act(() => {
+      yDoc.transact(() => {
+        const yMap = new Y.Map<unknown>()
+        world.entities.set('bad-4', yMap)
+        yMap.set('id', 'bad-4')
+        yMap.set('name', 'Broken')
+        yMap.set('imageUrl', '')
+        yMap.set('color', '')
+        yMap.set('size', 1)
+        yMap.set('notes', '')
+        yMap.set('persistent', false)
+        yMap.set('ruleData', 'not-a-ymap')
+        const permYMap = new Y.Map<unknown>()
+        yMap.set('permissions', permYMap)
+        permYMap.set('default', 'observer')
+        permYMap.set('seats', new Y.Map())
+      })
+    })
+
+    act(() =>
+      hook.result.current.updateEntity('bad-4', {
+        ruleData: { kind: 'npc', level: 1 },
+      }),
+    )
+
+    const found = hook.result.current.getEntity('bad-4')
+    expect(found?.ruleData).toEqual({ kind: 'npc', level: 1 })
+  })
+
+  it('updateEntity no-ops for nonexistent entity', () => {
+    const { hook } = setup()
+    // Should not throw
+    act(() => hook.result.current.updateEntity('nonexistent', { name: 'Ghost' }))
+    expect(hook.result.current.entities).toHaveLength(0)
+  })
+
   it('concurrent permissions updates on different seats merge correctly', () => {
     const doc1 = new Y.Doc()
     const doc2 = new Y.Doc()
