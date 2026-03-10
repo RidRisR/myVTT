@@ -46,12 +46,19 @@ function RoomSession({ roomId }: { roomId: string }) {
     updateSeat,
   } = useIdentity(world.seats, awareness)
   const { room, setActiveScene } = useRoom(world.room)
-  const { scenes, addScene, updateScene, deleteScene, getScene, setCombatActive } = useScenes(
-    world.scenes,
-    yDoc,
-  )
+  const {
+    scenes,
+    addScene,
+    updateScene,
+    deleteScene,
+    getScene,
+    addEntityToScene,
+    removeEntityFromScene,
+    getSceneEntityIds,
+    setCombatActive,
+  } = useScenes(world.scenes, yDoc)
 
-  const { entities, addEntity, updateEntity, deleteEntity, getEntity } = useEntities(world, yDoc)
+  const { entities, addEntity, updateEntity, getEntity } = useEntities(world, yDoc)
 
   const activeScene = getScene(room.activeSceneId)
   const isCombat = activeScene?.combatActive ?? false
@@ -146,9 +153,12 @@ function RoomSession({ roomId }: { roomId: string }) {
   // Deduplicate by key — later entries (token entity) override earlier (active entity)
   const seatProperties = [...new Map(allProps.map((p) => [p.key, p])).values()]
 
-  // Handle deleting an entity
-  const handleDeleteEntity = (entityId: string) => {
-    deleteEntity(entityId)
+  // Derive current scene's entity IDs for PortraitBar filtering
+  const sceneEntityIds = room.activeSceneId ? getSceneEntityIds(room.activeSceneId) : []
+
+  // Handle removing an entity from the current scene (without deleting it)
+  const handleRemoveFromScene = (entityId: string) => {
+    if (room.activeSceneId) removeEntityFromScene(room.activeSceneId, entityId)
     if (inspectedCharacterId === entityId) setInspectedCharacterId(null)
   }
 
@@ -194,6 +204,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       persistent: false,
     }
     addEntity(newEntity)
+    if (room.activeSceneId) addEntityToScene(room.activeSceneId, newEntity.id)
     setInspectedCharacterId(newEntity.id)
     setBgContextMenu(null)
   }
@@ -222,6 +233,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       {/* Top-center: Portrait bar */}
       <PortraitBar
         entities={entities}
+        sceneEntityIds={sceneEntityIds}
         mySeatId={mySeatId}
         role={mySeat.role}
         isGM={isGM}
@@ -230,7 +242,7 @@ function RoomSession({ roomId }: { roomId: string }) {
         activeCharacterId={mySeat.activeCharacterId ?? null}
         onInspectCharacter={setInspectedCharacterId}
         onSetActiveCharacter={handleSetActiveCharacter}
-        onDeleteEntity={handleDeleteEntity}
+        onRemoveFromScene={handleRemoveFromScene}
         onUpdateEntity={updateEntity}
       />
 
@@ -267,6 +279,9 @@ function RoomSession({ roomId }: { roomId: string }) {
           blueprints={world.blueprints}
           entities={entities}
           onAddEntity={addEntity}
+          onAddEntityToScene={(entityId) => {
+            if (room.activeSceneId) addEntityToScene(room.activeSceneId, entityId)
+          }}
           isCombat={isCombat}
           selectedToken={getToken(selectedTokenId)}
           onAddToken={addToken}
