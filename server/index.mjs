@@ -6,9 +6,10 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { createRequire } from 'module'
 import multer from 'multer'
+import { deepCopyYMap, jsonToYMap } from './ymapUtils.mjs'
 
 const require = createRequire(import.meta.url)
-const { setupWSConnection, setPersistence } = require('y-websocket/bin/utils')
+const { setupWSConnection, setPersistence, getYDoc } = require('y-websocket/bin/utils')
 const { LeveldbPersistence } = require('y-leveldb')
 const Y = require('yjs')
 const { Server: WSServer } = require('ws')
@@ -29,29 +30,62 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 // Set up LevelDB persistence
 const ldb = new LeveldbPersistence(PERSISTENCE_DIR)
 
+const docReadyMap = new Map()
+
 setPersistence({
   provider: ldb,
   bindState: async (docName, ydoc) => {
+    let resolveReady
+    docReadyMap.set(docName, new Promise(r => { resolveReady = r }))
+
     const persistedYdoc = await ldb.getYDoc(docName)
-    const newUpdates = Y.encodeStateAsUpdate(persistedYdoc)
+    let newUpdates = Y.encodeStateAsUpdate(persistedYdoc)
+
+    // Migration: :public first load inherits from bare roomId
+    if (docName.endsWith(':public')) {
+      const entities = persistedYdoc.getMap('entities')
+      const scenes = persistedYdoc.getMap('scenes')
+      if (entities.size === 0 && scenes.size === 0) {
+        const bareRoomId = docName.replace(':public', '')
+        try {
+          const legacyDoc = await ldb.getYDoc(bareRoomId)
+          if (legacyDoc.getMap('entities').size > 0 || legacyDoc.getMap('scenes').size > 0) {
+            console.log(`[migration] ${docName}: inheriting from ${bareRoomId}`)
+            newUpdates = Y.encodeStateAsUpdate(legacyDoc)
+          }
+        } catch (_) { /* no legacy doc */ }
+      }
+    }
+
     Y.applyUpdate(ydoc, newUpdates)
 
-    // Migrate roster → entities (one-time, from pre-refactor data)
-    const roster = ydoc.getMap('roster')
-    const entities = ydoc.getMap('entities')
-    if (roster.size > 0 && entities.size === 0) {
-      ydoc.transact(() => {
-        roster.forEach((val, key) => entities.set(key, val))
-      })
-      console.log(`[migration] ${docName}: migrated ${roster.size} entries from roster → entities`)
+    // Migrate roster → entities (one-time, skip for secret docs)
+    if (!docName.endsWith(':secret')) {
+      const roster = ydoc.getMap('roster')
+      const entities = ydoc.getMap('entities')
+      if (roster.size > 0 && entities.size === 0) {
+        ydoc.transact(() => {
+          roster.forEach((val, key) => entities.set(key, val))
+        })
+        console.log(`[migration] ${docName}: migrated ${roster.size} entries from roster → entities`)
+      }
     }
 
     ydoc.on('update', (update) => {
       ldb.storeUpdate(docName, update)
     })
+
+    resolveReady()
   },
   writeState: async (_docName, _ydoc) => {},
 })
+
+async function getReadyDoc(docName) {
+  const doc = getYDoc(docName)
+  const ready = docReadyMap.get(docName)
+  if (ready) await ready
+  return doc
+}
 
 // Express app
 const app = express()
@@ -59,8 +93,8 @@ const app = express()
 // CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*')
-  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
-  res.header('Access-Control-Allow-Headers', 'Content-Type')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   if (req.method === 'OPTIONS') return res.sendStatus(204)
   next()
 })
@@ -80,6 +114,23 @@ function writeRooms(rooms) {
   fs.writeFileSync(ROOMS_FILE, JSON.stringify(rooms, null, 2))
 }
 
+// One-time migration: add tokens to existing rooms
+;(() => {
+  const rooms = readRooms()
+  let migrated = 0
+  for (const room of rooms) {
+    if (!room.gmToken) {
+      room.gmToken = `gm_${room.id}_${crypto.randomBytes(32).toString('hex')}`
+      room.playerToken = `pl_${room.id}_${crypto.randomBytes(32).toString('hex')}`
+      migrated++
+    }
+  }
+  if (migrated > 0) {
+    writeRooms(rooms)
+    console.log(`[migration] Added tokens to ${migrated} existing room(s)`)
+  }
+})()
+
 // Room management API
 app.get('/api/rooms', (_req, res) => {
   res.json(readRooms())
@@ -89,8 +140,10 @@ app.post('/api/rooms', (req, res) => {
   const { name } = req.body
   if (!name) return res.status(400).json({ error: 'name is required' })
   const id = crypto.randomUUID().slice(0, 8)
+  const gmToken = `gm_${id}_${crypto.randomBytes(32).toString('hex')}`
+  const playerToken = `pl_${id}_${crypto.randomBytes(32).toString('hex')}`
   const rooms = readRooms()
-  const room = { id, name, createdAt: Date.now() }
+  const room = { id, name, createdAt: Date.now(), gmToken, playerToken }
   rooms.push(room)
   writeRooms(rooms)
   console.log(`Room created: ${id} ("${name}")`)
@@ -104,10 +157,12 @@ app.delete('/api/rooms/:id', async (req, res) => {
   if (idx === -1) return res.status(404).json({ error: 'Room not found' })
   rooms.splice(idx, 1)
   writeRooms(rooms)
-  try {
-    await ldb.clearDocument(roomId)
-  } catch (e) {
-    console.warn(`Could not clear LevelDB for ${roomId}:`, e.message)
+  for (const suffix of ['', ':public', ':secret']) {
+    try {
+      await ldb.clearDocument(`${roomId}${suffix}`)
+    } catch (e) {
+      console.warn(`Could not clear LevelDB for ${roomId}${suffix}:`, e.message)
+    }
   }
   console.log(`Room deleted: ${roomId}`)
   res.json({ ok: true })
@@ -150,6 +205,214 @@ app.delete('/api/uploads/:filename', (req, res) => {
   fs.unlinkSync(filePath)
   console.log(`Deleted: ${filename}`)
   res.json({ ok: true })
+})
+
+// --- GM Authentication Middleware ---
+
+function requireGM(req, res, next) {
+  const roomId = req.params.id
+  const rooms = readRooms()
+  const room = rooms.find(r => r.id === roomId)
+  if (!room) return res.status(404).json({ error: 'Room not found' })
+  const auth = req.headers.authorization
+  if (!auth?.startsWith('Bearer ') || auth.slice(7) !== room.gmToken) {
+    return res.status(401).json({ error: 'Invalid GM token' })
+  }
+  req.room = room
+  next()
+}
+
+// --- Cleanup helper ---
+
+function cleanupEntityFromPublic(pubDoc, entityId) {
+  const Y_local = Y
+  pubDoc.transact(() => {
+    pubDoc.getMap('entities').delete(entityId)
+    pubDoc.getMap('scenes').forEach((sceneMap) => {
+      if (!(sceneMap instanceof Y_local.Map)) return
+      const eIds = sceneMap.get('entityIds')
+      if (eIds instanceof Y_local.Map) eIds.delete(entityId)
+      const tokens = sceneMap.get('tokens')
+      if (tokens instanceof Y_local.Map) {
+        const toDelete = []
+        tokens.forEach((t, tid) => {
+          if (t && typeof t === 'object' && t.entityId === entityId) toDelete.push(tid)
+        })
+        toDelete.forEach(tid => tokens.delete(tid))
+      }
+    })
+  })
+}
+
+// --- Secret Entity REST API ---
+
+// Reveal: move entity from secret → public
+app.post('/api/rooms/:id/entities/reveal', requireGM, async (req, res) => {
+  const { entityId } = req.body
+  if (!entityId) return res.status(400).json({ error: 'entityId required' })
+  const roomId = req.params.id
+
+  try {
+    const pubDoc = await getReadyDoc(`${roomId}:public`)
+    const secDoc = await getReadyDoc(`${roomId}:secret`)
+    const pubEntities = pubDoc.getMap('entities')
+    const secEntities = secDoc.getMap('secret_entities')
+
+    // Idempotent: already in public
+    if (pubEntities.get(entityId) instanceof Y.Map) {
+      if (secEntities.has(entityId)) {
+        secDoc.transact(() => { secEntities.delete(entityId) })
+      }
+      return res.json({ ok: true, note: 'already_revealed' })
+    }
+
+    const source = secEntities.get(entityId)
+    if (!(source instanceof Y.Map)) {
+      return res.status(404).json({ error: 'Entity not found in secret_entities' })
+    }
+
+    // Deep-copy to public + fix permissions if 'none'
+    pubDoc.transact(() => {
+      const target = new Y.Map()
+      pubEntities.set(entityId, target)
+      deepCopyYMap(source, target)
+      const permYMap = target.get('permissions')
+      if (permYMap instanceof Y.Map && permYMap.get('default') === 'none') {
+        permYMap.set('default', 'observer')
+      }
+    })
+
+    // Delete from secret
+    secDoc.transact(() => { secEntities.delete(entityId) })
+
+    console.log(`[reveal] ${roomId}: entity ${entityId} moved secret→public`)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(`[reveal] Error:`, err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Hide: move entity from public → secret
+app.post('/api/rooms/:id/entities/hide', requireGM, async (req, res) => {
+  const { entityId } = req.body
+  if (!entityId) return res.status(400).json({ error: 'entityId required' })
+  const roomId = req.params.id
+
+  try {
+    const pubDoc = await getReadyDoc(`${roomId}:public`)
+    const secDoc = await getReadyDoc(`${roomId}:secret`)
+    const pubEntities = pubDoc.getMap('entities')
+    const secEntities = secDoc.getMap('secret_entities')
+
+    // Idempotent: already in secret
+    if (secEntities.get(entityId) instanceof Y.Map) {
+      cleanupEntityFromPublic(pubDoc, entityId)
+      return res.json({ ok: true, note: 'already_hidden' })
+    }
+
+    const source = pubEntities.get(entityId)
+    if (!(source instanceof Y.Map)) {
+      return res.status(404).json({ error: 'Entity not found in entities' })
+    }
+
+    // Deep-copy to secret
+    secDoc.transact(() => {
+      const target = new Y.Map()
+      secEntities.set(entityId, target)
+      deepCopyYMap(source, target)
+    })
+
+    // Cleanup from public
+    cleanupEntityFromPublic(pubDoc, entityId)
+
+    console.log(`[hide] ${roomId}: entity ${entityId} moved public→secret`)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(`[hide] Error:`, err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Create hidden entity
+app.post('/api/rooms/:id/secret-entities', requireGM, async (req, res) => {
+  const { entity } = req.body
+  if (!entity?.id) return res.status(400).json({ error: 'entity.id required' })
+
+  try {
+    const secDoc = await getReadyDoc(`${req.params.id}:secret`)
+    const secEntities = secDoc.getMap('secret_entities')
+
+    if (secEntities.get(entity.id) instanceof Y.Map) {
+      return res.status(409).json({ error: 'Entity already exists in secret_entities' })
+    }
+
+    secDoc.transact(() => {
+      const yMap = new Y.Map()
+      secEntities.set(entity.id, yMap)
+      jsonToYMap(yMap, entity)
+    })
+
+    console.log(`[secret-entity] ${req.params.id}: created ${entity.id}`)
+    res.status(201).json({ ok: true })
+  } catch (err) {
+    console.error(`[secret-entity] Create error:`, err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Update hidden entity
+app.patch('/api/rooms/:id/secret-entities/:entityId', requireGM, async (req, res) => {
+  const { updates } = req.body
+  if (!updates) return res.status(400).json({ error: 'updates object required' })
+
+  try {
+    const secDoc = await getReadyDoc(`${req.params.id}:secret`)
+    const entityYMap = secDoc.getMap('secret_entities').get(req.params.entityId)
+    if (!(entityYMap instanceof Y.Map)) {
+      return res.status(404).json({ error: 'Entity not found in secret_entities' })
+    }
+
+    secDoc.transact(() => {
+      for (const [key, value] of Object.entries(updates)) {
+        if (key === 'id') continue
+        if ((key === 'permissions' || key === 'ruleData') && value && typeof value === 'object') {
+          entityYMap.delete(key)
+          const nested = new Y.Map()
+          entityYMap.set(key, nested)
+          jsonToYMap(nested, value)
+        } else {
+          entityYMap.set(key, value)
+        }
+      }
+    })
+
+    console.log(`[secret-entity] ${req.params.id}: updated ${req.params.entityId}`)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(`[secret-entity] Update error:`, err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Delete hidden entity
+app.delete('/api/rooms/:id/secret-entities/:entityId', requireGM, async (req, res) => {
+  try {
+    const secDoc = await getReadyDoc(`${req.params.id}:secret`)
+    const secEntities = secDoc.getMap('secret_entities')
+
+    if (!secEntities.has(req.params.entityId)) {
+      return res.status(404).json({ error: 'Entity not found in secret_entities' })
+    }
+
+    secDoc.transact(() => { secEntities.delete(req.params.entityId) })
+
+    console.log(`[secret-entity] ${req.params.id}: deleted ${req.params.entityId}`)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error(`[secret-entity] Delete error:`, err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
 })
 
 // Admin page
@@ -251,17 +514,42 @@ const server = http.createServer(app)
 const wss = new WSServer({ server })
 
 wss.on('connection', (conn, req) => {
-  // Validate room exists before allowing connection
-  const roomId = req.url?.slice(1)?.split('?')[0] // e.g. "/my-room" -> "my-room"
-  if (roomId) {
-    const rooms = readRooms()
-    if (!rooms.some(r => r.id === roomId)) {
-      console.warn(`Rejected connection to unknown room: ${roomId}`)
-      conn.close(4404, 'Room not found')
+  const url = new URL(req.url, `http://${req.headers.host}`)
+  const docPath = url.pathname.slice(1)
+  const token = url.searchParams.get('token')
+  const [roomId, docType = 'public'] = docPath.split(':')
+
+  const rooms = readRooms()
+  const room = rooms.find(r => r.id === roomId)
+  if (!room) {
+    console.warn(`Rejected connection to unknown room: ${roomId}`)
+    conn.close(4404, 'Room not found')
+    return
+  }
+
+  if (docType !== 'public' && docType !== 'secret') {
+    conn.close(4400, 'Invalid document type')
+    return
+  }
+
+  // Transition period: allow tokenless connections to public
+  if (token) {
+    const isGM = token === room.gmToken
+    const isPlayer = token === room.playerToken
+    if (!isGM && !isPlayer) {
+      conn.close(4401, 'Invalid token')
       return
     }
+    if (docType === 'secret' && !isGM) {
+      conn.close(4403, 'Forbidden')
+      return
+    }
+  } else if (docType === 'secret') {
+    conn.close(4401, 'Token required')
+    return
   }
-  setupWSConnection(conn, req)
+
+  setupWSConnection(conn, req, { docName: docPath })
 })
 
 // Allow slow uploads (10 min timeout for large video files)
