@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { Users } from 'lucide-react'
 import type { Entity } from '../shared/entityTypes'
 import { canSee, canEdit } from '../shared/permissions'
 import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
@@ -173,7 +174,16 @@ export function PortraitBar({
       (mySeatId ? canSee(e.permissions, mySeatId, role) : isGM),
   )
 
-  if (visibleEntities.length === 0) return null
+  if (visibleEntities.length === 0) {
+    return (
+      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center">
+        <div className="flex items-center gap-1.5 bg-glass backdrop-blur-[16px] rounded-[28px] px-4 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
+          <Users size={14} strokeWidth={1.5} className="text-text-muted/40" />
+          <span className="text-text-muted/40 text-[11px]">No characters yet</span>
+        </div>
+      </div>
+    )
+  }
 
   // Split by ownership: "party" entities (owner exists) vs scene entities (no owners)
   const partyEntities = visibleEntities.filter((e) =>
