@@ -3,6 +3,7 @@ import { useYjsConnection } from './yjs/useYjsConnection'
 import { AdminPanel } from './admin/AdminPanel'
 import { useRoom } from './yjs/useRoom'
 import { useScenes } from './yjs/useScenes'
+import type { Scene } from './yjs/useScenes'
 import { useWorld } from './yjs/useWorld'
 import { useEntities } from './entities/useEntities'
 import { useSceneTokens } from './combat/useSceneTokens'
@@ -27,6 +28,11 @@ import type { ShowcaseItem } from './showcase/showcaseTypes'
 import type { Entity } from './shared/entityTypes'
 import { defaultNPCPermissions } from './shared/permissions'
 import { getEntityResources, getEntityAttributes } from './shared/entityAdapters'
+import {
+  gcOrphanedEntities,
+  addEntityToAllScenes,
+  getPersistentEntityIds,
+} from './entities/entityLifecycle'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
@@ -162,6 +168,43 @@ function RoomSession({ roomId }: { roomId: string }) {
     if (inspectedCharacterId === entityId) setInspectedCharacterId(null)
   }
 
+  // Delete scene + garbage-collect orphaned non-persistent entities
+  const handleDeleteScene = (sceneId: string) => {
+    const entityIds = getSceneEntityIds(sceneId)
+    deleteScene(sceneId)
+    yDoc.transact(() => {
+      const deleted = gcOrphanedEntities(entityIds, world.scenes, world.entities)
+      if (deleted.length > 0 && inspectedCharacterId && deleted.includes(inspectedCharacterId)) {
+        setInspectedCharacterId(null)
+      }
+    })
+  }
+
+  // Add scene with persistent entities auto-joined
+  const handleAddScene = (scene: Scene) => {
+    const persistentIds = getPersistentEntityIds(world.entities)
+    addScene(scene, persistentIds)
+  }
+
+  // Add entity — if persistent, auto-join all existing scenes
+  const handleAddEntity = (entity: Entity) => {
+    addEntity(entity)
+    if (entity.persistent) {
+      addEntityToAllScenes(entity.id, world.scenes)
+    }
+  }
+
+  // Update entity — if persistent toggled to true, auto-join all scenes
+  const handleUpdateEntity = (id: string, updates: Partial<Entity>) => {
+    if (updates.persistent === true) {
+      const existing = getEntity(id)
+      if (existing && !existing.persistent) {
+        addEntityToAllScenes(id, world.scenes)
+      }
+    }
+    updateEntity(id, updates)
+  }
+
   // Handle setting active character
   const handleSetActiveCharacter = (entityId: string) => {
     if (mySeatId) {
@@ -203,7 +246,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       permissions: defaultNPCPermissions(),
       persistent: false,
     }
-    addEntity(newEntity)
+    handleAddEntity(newEntity)
     if (room.activeSceneId) addEntityToScene(room.activeSceneId, newEntity.id)
     setInspectedCharacterId(newEntity.id)
     setBgContextMenu(null)
@@ -243,14 +286,16 @@ function RoomSession({ roomId }: { roomId: string }) {
         onInspectCharacter={setInspectedCharacterId}
         onSetActiveCharacter={handleSetActiveCharacter}
         onRemoveFromScene={handleRemoveFromScene}
-        onUpdateEntity={updateEntity}
+        onUpdateEntity={handleUpdateEntity}
       />
 
       {/* Top-right: Team dashboard */}
       <TeamDashboard yDoc={yDoc} isGM={isGM} />
 
       {/* Left: My character card (self-managed open/close via tab) */}
-      {activeEntity && <MyCharacterCard entity={activeEntity} onUpdateEntity={updateEntity} />}
+      {activeEntity && (
+        <MyCharacterCard entity={activeEntity} onUpdateEntity={handleUpdateEntity} />
+      )}
 
       {/* Center: Showcase spotlight overlay */}
       <ShowcaseOverlay yDoc={yDoc} isGM={isGM} />
@@ -274,11 +319,11 @@ function RoomSession({ roomId }: { roomId: string }) {
           scenes={scenes}
           activeSceneId={room.activeSceneId}
           onSelectScene={setActiveScene}
-          onAddScene={addScene}
-          onDeleteScene={deleteScene}
+          onAddScene={handleAddScene}
+          onDeleteScene={handleDeleteScene}
           blueprints={world.blueprints}
           entities={entities}
-          onAddEntity={addEntity}
+          onAddEntity={handleAddEntity}
           onAddEntityToScene={(entityId) => {
             if (room.activeSceneId) addEntityToScene(room.activeSceneId, entityId)
           }}
@@ -306,9 +351,9 @@ function RoomSession({ roomId }: { roomId: string }) {
           onToggleCombat={() => {
             if (room.activeSceneId) setCombatActive(room.activeSceneId, !isCombat)
           }}
-          onAddScene={addScene}
+          onAddScene={handleAddScene}
           onUpdateScene={updateScene}
-          onDeleteScene={deleteScene}
+          onDeleteScene={handleDeleteScene}
         />
       )}
 
