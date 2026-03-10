@@ -4,10 +4,13 @@ import * as Y from 'yjs'
 export interface Scene {
   id: string
   name: string
-  imageUrl: string
+  atmosphereImageUrl: string
+  tacticalMapImageUrl: string
+  particlePreset: string
   width: number
   height: number
   gridSize: number
+  gridSnap: boolean
   gridVisible: boolean
   gridColor: string
   gridOffsetX: number
@@ -24,10 +27,16 @@ function readScenes(yScenes: Y.Map<Y.Map<unknown>>): Scene[] {
     scenes.push({
       id,
       name: (sceneMap.get('name') as string) ?? '',
-      imageUrl: (sceneMap.get('imageUrl') as string) ?? '',
+      atmosphereImageUrl:
+        (sceneMap.get('atmosphereImageUrl') as string) ??
+        (sceneMap.get('imageUrl') as string) ??
+        '',
+      tacticalMapImageUrl: (sceneMap.get('tacticalMapImageUrl') as string) ?? '',
+      particlePreset: (sceneMap.get('particlePreset') as string) ?? 'none',
       width: (sceneMap.get('width') as number) ?? 0,
       height: (sceneMap.get('height') as number) ?? 0,
       gridSize: (sceneMap.get('gridSize') as number) ?? 50,
+      gridSnap: (sceneMap.get('gridSnap') as boolean) ?? true,
       gridVisible: (sceneMap.get('gridVisible') as boolean) ?? true,
       gridColor: (sceneMap.get('gridColor') as string) ?? 'rgba(255,255,255,0.15)',
       gridOffsetX: (sceneMap.get('gridOffsetX') as number) ?? 0,
@@ -56,10 +65,13 @@ export function useScenes(yScenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc) {
       const sceneMap = new Y.Map<unknown>()
       yScenes.set(scene.id, sceneMap)
       sceneMap.set('name', scene.name)
-      sceneMap.set('imageUrl', scene.imageUrl)
+      sceneMap.set('atmosphereImageUrl', scene.atmosphereImageUrl)
+      sceneMap.set('tacticalMapImageUrl', scene.tacticalMapImageUrl)
+      sceneMap.set('particlePreset', scene.particlePreset)
       sceneMap.set('width', scene.width)
       sceneMap.set('height', scene.height)
       sceneMap.set('gridSize', scene.gridSize)
+      sceneMap.set('gridSnap', scene.gridSnap)
       sceneMap.set('gridVisible', scene.gridVisible)
       sceneMap.set('gridColor', scene.gridColor)
       sceneMap.set('gridOffsetX', scene.gridOffsetX)
@@ -102,10 +114,16 @@ export function useScenes(yScenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc) {
     return {
       id,
       name: (sceneMap.get('name') as string) ?? '',
-      imageUrl: (sceneMap.get('imageUrl') as string) ?? '',
+      atmosphereImageUrl:
+        (sceneMap.get('atmosphereImageUrl') as string) ??
+        (sceneMap.get('imageUrl') as string) ??
+        '',
+      tacticalMapImageUrl: (sceneMap.get('tacticalMapImageUrl') as string) ?? '',
+      particlePreset: (sceneMap.get('particlePreset') as string) ?? 'none',
       width: (sceneMap.get('width') as number) ?? 0,
       height: (sceneMap.get('height') as number) ?? 0,
       gridSize: (sceneMap.get('gridSize') as number) ?? 50,
+      gridSnap: (sceneMap.get('gridSnap') as boolean) ?? true,
       gridVisible: (sceneMap.get('gridVisible') as boolean) ?? true,
       gridColor: (sceneMap.get('gridColor') as string) ?? 'rgba(255,255,255,0.15)',
       gridOffsetX: (sceneMap.get('gridOffsetX') as number) ?? 0,

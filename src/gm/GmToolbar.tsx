@@ -124,9 +124,9 @@ export function GmToolbar({
                     textAlign: 'left',
                   }}
                 >
-                  {isVideoUrl(scene.imageUrl) ? (
+                  {isVideoUrl(scene.atmosphereImageUrl) ? (
                     <video
-                      src={scene.imageUrl}
+                      src={scene.atmosphereImageUrl}
                       muted
                       playsInline
                       style={{
@@ -139,7 +139,7 @@ export function GmToolbar({
                     />
                   ) : (
                     <img
-                      src={scene.imageUrl}
+                      src={scene.atmosphereImageUrl}
                       alt=""
                       style={{
                         width: 36,
