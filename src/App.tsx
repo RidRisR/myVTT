@@ -360,7 +360,6 @@ function RoomSession({ roomId }: { roomId: string }) {
           onToggleCombat={() => {
             if (room.activeSceneId) setCombatActive(room.activeSceneId, !isCombat)
           }}
-          onAddScene={handleAddScene}
           onUpdateScene={updateScene}
           onDeleteScene={handleDeleteScene}
         />
