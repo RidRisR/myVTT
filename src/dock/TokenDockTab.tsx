@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { X, Plus } from 'lucide-react'
+import { X, Plus, CircleDot } from 'lucide-react'
 import type { Blueprint } from '../shared/entityTypes'
 import { uploadAsset } from '../shared/assetUpload'
 import { generateTokenId } from '../shared/idUtils'
@@ -94,6 +94,14 @@ export function TokenDockTab({
         className="hidden"
         onChange={handleUpload}
       />
+
+      {blueprints.length === 0 && (
+        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+          <CircleDot size={32} strokeWidth={1} className="text-text-muted/40" />
+          <p className="text-text-muted text-sm">No token blueprints</p>
+          <p className="text-text-muted/50 text-xs">Upload token images to build your collection</p>
+        </div>
+      )}
 
       <div
         className="grid gap-2.5"

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { X, Plus } from 'lucide-react'
+import { X, Plus, Map } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
 import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
 import { generateTokenId } from '../shared/idUtils'
@@ -66,6 +66,14 @@ export function MapDockTab({
         className="hidden"
         onChange={handleUpload}
       />
+
+      {scenes.length === 0 && (
+        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+          <Map size={32} strokeWidth={1} className="text-text-muted/40" />
+          <p className="text-text-muted text-sm">No maps yet</p>
+          <p className="text-text-muted/50 text-xs">Upload an image to create your first scene</p>
+        </div>
+      )}
 
       <div
         className="grid gap-2"

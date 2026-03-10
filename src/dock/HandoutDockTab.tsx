@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Pencil, X, Plus, Loader } from 'lucide-react'
+import { Pencil, X, Plus, Loader, FileImage } from 'lucide-react'
 import type { HandoutAsset } from './useHandoutAssets'
 import { uploadAsset } from '../shared/assetUpload'
 import { generateTokenId } from '../shared/idUtils'
@@ -45,6 +45,14 @@ export function HandoutDockTab({
         className="hidden"
         onChange={handleUpload}
       />
+      {assets.length === 0 && (
+        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+          <FileImage size={32} strokeWidth={1} className="text-text-muted/40" />
+          <p className="text-text-muted text-sm">No handouts yet</p>
+          <p className="text-text-muted/50 text-xs">Upload images to share with your players</p>
+        </div>
+      )}
+
       <div
         className="grid gap-2"
         style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))' }}
