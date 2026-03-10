@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { X } from 'lucide-react'
 import type { TeamTracker } from './useTeamMetrics'
 import { ResourceBar } from '../shared/ui/ResourceBar'
 
@@ -22,14 +23,8 @@ const COLORS = [
   '#f97316',
 ]
 
-const inputStyle = {
-  background: 'rgba(255,255,255,0.08)',
-  color: '#fff',
-  border: '1px solid rgba(255,255,255,0.12)',
-  borderRadius: 4,
-  outline: 'none',
-  fontFamily: 'inherit',
-}
+const inputCls =
+  'bg-surface text-text-primary border border-border-glass rounded outline-none font-inherit'
 
 export function TeamMetricsTab({
   trackers,
@@ -99,18 +94,12 @@ export function TeamMetricsTab({
         return (
           <div key={t.id} style={{ marginBottom: 12 }}>
             {/* Header: name + current/max inputs + color + remove */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+            <div className="flex items-center gap-1 mb-1">
               <input
                 value={t.label}
                 onChange={(e) => onUpdateTracker(t.id, { label: e.target.value })}
                 placeholder="Name"
-                style={{
-                  ...inputStyle,
-                  flex: 1,
-                  fontSize: 11,
-                  padding: '4px 6px',
-                  fontWeight: 600,
-                }}
+                className={`${inputCls} flex-1 text-[11px] px-1.5 py-1 font-semibold`}
               />
               <input
                 key={`cur-${t.id}-${t.current}`}
@@ -123,16 +112,9 @@ export function TeamMetricsTab({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
                 }}
-                style={{
-                  ...inputStyle,
-                  width: 32,
-                  textAlign: 'center',
-                  fontSize: 11,
-                  padding: '4px 2px',
-                  fontWeight: 700,
-                }}
+                className={`${inputCls} w-8 text-center text-[11px] px-0.5 py-1 font-bold`}
               />
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>/</span>
+              <span className="text-[10px] text-text-muted/30">/</span>
               <input
                 key={`max-${t.id}-${t.max}`}
                 defaultValue={t.max}
@@ -145,57 +127,19 @@ export function TeamMetricsTab({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
                 }}
-                style={{
-                  ...inputStyle,
-                  width: 32,
-                  textAlign: 'center',
-                  fontSize: 11,
-                  padding: '4px 2px',
-                  fontWeight: 700,
-                }}
+                className={`${inputCls} w-8 text-center text-[11px] px-0.5 py-1 font-bold`}
               />
               <div
                 onClick={() => setColorPickerOpen(colorPickerOpen === t.id ? null : t.id)}
-                style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: '50%',
-                  background: t.color,
-                  border: '2px solid rgba(255,255,255,0.25)',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  transition: 'border-color 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'
-                }}
+                className="w-3.5 h-3.5 rounded-full border-2 border-text-muted/25 cursor-pointer shrink-0 transition-colors duration-fast hover:border-text-muted/50"
+                style={{ background: t.color }}
                 title="Change color"
               />
               <button
                 onClick={() => onDeleteTracker(t.id)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.2)',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  padding: 2,
-                  lineHeight: 1,
-                  flexShrink: 0,
-                  transition: 'color 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#ef4444'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.2)'
-                }}
+                className="bg-transparent border-none cursor-pointer text-text-muted/20 p-0.5 leading-none shrink-0 transition-colors duration-fast hover:text-danger"
               >
-                ×
+                <X size={14} strokeWidth={1.5} />
               </button>
             </div>
 
@@ -213,10 +157,7 @@ export function TeamMetricsTab({
 
             {/* Color picker — collapsed by default */}
             {colorPickerOpen === t.id && (
-              <div
-                ref={colorPickerRef}
-                style={{ display: 'flex', gap: 4, marginTop: 6, justifyContent: 'center' }}
-              >
+              <div ref={colorPickerRef} className="flex gap-1 mt-1.5 justify-center">
                 {COLORS.map((c) => (
                   <div
                     key={c}
@@ -224,14 +165,10 @@ export function TeamMetricsTab({
                       onUpdateTracker(t.id, { color: c })
                       setColorPickerOpen(null)
                     }}
+                    className="w-4 h-4 rounded-full cursor-pointer transition-colors duration-fast"
                     style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
                       background: c,
-                      cursor: 'pointer',
                       border: c === t.color ? '2px solid #fff' : '2px solid transparent',
-                      transition: 'border-color 0.15s',
                     }}
                   />
                 ))}
@@ -246,27 +183,7 @@ export function TeamMetricsTab({
         (!addingNew ? (
           <button
             onClick={() => setAddingNew(true)}
-            style={{
-              marginTop: 6,
-              width: '100%',
-              padding: '7px 0',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 8,
-              cursor: 'pointer',
-              color: 'rgba(255,255,255,0.4)',
-              fontSize: 11,
-              fontWeight: 600,
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
-            }}
+            className="mt-1.5 w-full py-[7px] bg-surface border border-border-glass rounded-lg cursor-pointer text-text-muted/40 text-[11px] font-semibold transition-colors duration-fast hover:bg-hover hover:text-text-muted/70"
           >
             + Add Metric
           </button>
@@ -284,20 +201,7 @@ export function TeamMetricsTab({
               }
             }}
             placeholder="Metric name..."
-            style={{
-              marginTop: 6,
-              width: '100%',
-              padding: '7px 10px',
-              background: 'rgba(255,255,255,0.08)',
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: 8,
-              outline: 'none',
-              fontSize: 11,
-              fontWeight: 600,
-              fontFamily: 'inherit',
-              boxSizing: 'border-box',
-            }}
+            className="mt-1.5 w-full py-[7px] px-2.5 bg-surface text-text-primary border border-border-glass rounded-lg outline-none text-[11px] font-semibold font-inherit box-border"
           />
         ))}
     </div>

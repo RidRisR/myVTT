@@ -1,3 +1,5 @@
+import { Loader } from 'lucide-react'
+
 interface DisconnectOverlayProps {
   isDisconnected: boolean
 }
@@ -13,30 +15,12 @@ export function DisconnectOverlay({ isDisconnected }: DisconnectOverlayProps) {
     >
       {/* Spinner */}
       <div className="mb-6">
-        <svg
-          width="48"
-          height="48"
-          viewBox="0 0 24 24"
+        <Loader
+          size={48}
+          strokeWidth={1.5}
           className="animate-spin text-accent"
           aria-hidden="true"
-        >
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="2"
-            fill="none"
-            opacity="0.25"
-          />
-          <path
-            d="M12 2a10 10 0 0 1 10 10"
-            stroke="currentColor"
-            strokeWidth="2"
-            fill="none"
-            strokeLinecap="round"
-          />
-        </svg>
+        />
       </div>
 
       {/* Message */}

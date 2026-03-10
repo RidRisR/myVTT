@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { CheckCircle, XCircle, AlertTriangle, Info, Undo2, X } from 'lucide-react'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'undo'
 
@@ -20,15 +21,12 @@ interface ToastProps {
   onDismiss: (id: string) => void
 }
 
-const icons: Record<ToastType, string> = {
-  success:
-    '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 12l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-  error:
-    '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-  warning:
-    '<path d="M12 2L2 22h20L12 2z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><path d="M12 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="18" r="1" fill="currentColor"/>',
-  info: '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 8v0M12 12v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-  undo: '<path d="M3 7v6h6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 13a9 9 0 1 0 2.1-5.4L3 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+const IconMap: Record<ToastType, typeof CheckCircle> = {
+  success: CheckCircle,
+  error: XCircle,
+  warning: AlertTriangle,
+  info: Info,
+  undo: Undo2,
 }
 
 const typeColorClasses: Record<ToastType, string> = {
@@ -85,14 +83,10 @@ export function Toast({ toast, onDismiss }: ToastProps) {
       ].join(' ')}
     >
       {/* Icon */}
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        className="shrink-0"
-        dangerouslySetInnerHTML={{ __html: icons[toast.type] }}
-        aria-hidden="true"
-      />
+      {(() => {
+        const Icon = IconMap[toast.type]
+        return <Icon size={20} strokeWidth={1.5} className="shrink-0" aria-hidden="true" />
+      })()}
 
       {/* Message */}
       <span className="text-sm text-text-primary flex-1 min-w-0">{toast.message}</span>
@@ -121,14 +115,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
         className="shrink-0 rounded p-1 text-text-muted hover:text-text-primary hover:bg-hover transition-colors duration-fast motion-reduce:transition-none"
         aria-label="Close notification"
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M18 6L6 18M6 6l12 12"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
+        <X size={14} strokeWidth={2} aria-hidden="true" />
       </button>
     </div>
   )

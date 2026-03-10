@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as Y from 'yjs'
+import { Map, CircleUser, BookOpen, Trash2, Eye, EyeOff } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
 import type { MapToken, Entity, Blueprint } from '../shared/entityTypes'
 import { defaultNPCPermissions } from '../shared/permissions'
@@ -172,72 +173,15 @@ export function BottomDock({
     onUpdateToken(selectedToken.id, { permissions: newPerms })
   }
 
-  const tabBtnStyle = (isActive: boolean): React.CSSProperties => ({
-    padding: '7px 14px',
-    background: isActive ? 'rgba(255,255,255,0.1)' : 'rgba(30,30,50,0.85)',
-    backdropFilter: 'blur(8px)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderBottom: isActive ? '2px solid #60a5fa' : '1px solid rgba(255,255,255,0.12)',
-    borderRadius: 8,
-    fontSize: 12,
-    fontWeight: 600,
-    color: isActive ? '#fff' : '#b0b0b0',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 5,
-    whiteSpace: 'nowrap',
-    fontFamily: 'sans-serif',
-    transition: 'all 0.15s',
-  })
-
-  const actionBtnStyle: React.CSSProperties = {
-    padding: '7px 12px',
-    background: 'rgba(30,30,50,0.85)',
-    backdropFilter: 'blur(8px)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: 8,
-    fontSize: 12,
-    fontWeight: 600,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 5,
-    whiteSpace: 'nowrap',
-    fontFamily: 'sans-serif',
-  }
-
   return (
     <div
       ref={dockRef}
-      style={{
-        position: 'fixed',
-        bottom: 12,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 10000,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}
+      className="fixed bottom-3 left-1/2 -translate-x-1/2 z-toast flex flex-col items-center"
       onPointerDown={(e) => e.stopPropagation()}
     >
       {/* Expanded content area */}
       {activeTab !== null && (
-        <div
-          style={{
-            marginBottom: 6,
-            background: 'rgba(15, 15, 25, 0.92)',
-            backdropFilter: 'blur(16px)',
-            borderRadius: 12,
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-            minWidth: 400,
-            maxHeight: 220,
-            overflowY: 'auto',
-            padding: 12,
-          }}
-        >
+        <div className="mb-1.5 bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.4)] min-w-[400px] max-h-[220px] overflow-y-auto p-3">
           {activeTab === 'maps' && (
             <MapDockTab
               scenes={scenes}
@@ -271,78 +215,53 @@ export function BottomDock({
       )}
 
       {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div className="flex gap-1.5">
         {/* Maps tab */}
-        <button onClick={() => toggleTab('maps')} style={tabBtnStyle(activeTab === 'maps')}>
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <path d="M21 15l-5-5L5 21" />
-          </svg>
+        <button
+          onClick={() => toggleTab('maps')}
+          className={`flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg backdrop-blur-[8px] border border-border-glass text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-all duration-fast ${
+            activeTab === 'maps'
+              ? 'bg-hover border-b-2 border-b-accent text-text-primary'
+              : 'bg-glass text-text-muted hover:bg-hover hover:text-text-primary'
+          }`}
+        >
+          <Map size={14} strokeWidth={1.5} />
           Maps
         </button>
 
         {/* Tokens tab */}
-        <button onClick={() => toggleTab('tokens')} style={tabBtnStyle(activeTab === 'tokens')}>
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="8" r="5" />
-            <path d="M20 21a8 8 0 0 0-16 0" />
-          </svg>
+        <button
+          onClick={() => toggleTab('tokens')}
+          className={`flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg backdrop-blur-[8px] border border-border-glass text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-all duration-fast ${
+            activeTab === 'tokens'
+              ? 'bg-hover border-b-2 border-b-accent text-text-primary'
+              : 'bg-glass text-text-muted hover:bg-hover hover:text-text-primary'
+          }`}
+        >
+          <CircleUser size={14} strokeWidth={1.5} />
           Tokens
         </button>
 
         {/* Handouts tab */}
-        <button onClick={() => toggleTab('handouts')} style={tabBtnStyle(activeTab === 'handouts')}>
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-          </svg>
+        <button
+          onClick={() => toggleTab('handouts')}
+          className={`flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg backdrop-blur-[8px] border border-border-glass text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-all duration-fast ${
+            activeTab === 'handouts'
+              ? 'bg-hover border-b-2 border-b-accent text-text-primary'
+              : 'bg-glass text-text-muted hover:bg-hover hover:text-text-primary'
+          }`}
+        >
+          <BookOpen size={14} strokeWidth={1.5} />
           Handouts
         </button>
 
         {/* Action: Delete selected token */}
         {selectedToken && (
-          <button onClick={handleDeleteSelected} style={{ ...actionBtnStyle, color: '#f87171' }}>
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1.5 14a2 2 0 0 1-2 2H8.5a2 2 0 0 1-2-2L5 6" />
-            </svg>
+          <button
+            onClick={handleDeleteSelected}
+            className="flex items-center gap-1.5 px-3 py-[7px] bg-glass backdrop-blur-[8px] border border-border-glass rounded-lg text-xs font-semibold cursor-pointer whitespace-nowrap font-sans text-danger hover:bg-danger/10 transition-colors duration-fast"
+          >
+            <Trash2 size={14} strokeWidth={1.5} />
             Delete
           </button>
         )}
@@ -354,34 +273,15 @@ export function BottomDock({
             return (
               <button
                 onClick={handleToggleVisibility}
-                style={{
-                  ...actionBtnStyle,
-                  color: isHidden ? '#fbbf24' : '#a0a0a0',
-                }}
+                className={`flex items-center gap-1.5 px-3 py-[7px] bg-glass backdrop-blur-[8px] border border-border-glass rounded-lg text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-colors duration-fast ${
+                  isHidden ? 'text-warning' : 'text-text-muted'
+                }`}
               >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  {isHidden ? (
-                    <>
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
-                    </>
-                  ) : (
-                    <>
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </>
-                  )}
-                </svg>
+                {isHidden ? (
+                  <EyeOff size={14} strokeWidth={1.5} />
+                ) : (
+                  <Eye size={14} strokeWidth={1.5} />
+                )}
                 {isHidden ? 'Hidden' : 'Visible'}
               </button>
             )

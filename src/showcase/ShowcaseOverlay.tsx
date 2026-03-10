@@ -201,46 +201,20 @@ export function ShowcaseOverlay({ yDoc, isGM }: ShowcaseOverlayProps) {
   const isPinned = !!pinnedItemId
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 15000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        pointerEvents: 'none',
-        fontFamily: 'sans-serif',
-      }}
-    >
+    <div className="fixed inset-0 z-overlay flex items-center justify-center pointer-events-none font-sans">
       {/* Subtle backdrop dimming — fade out when dismissed */}
       <div
+        className="absolute inset-0 pointer-events-none"
         style={{
-          position: 'absolute',
-          inset: 0,
           background:
             'radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)',
-          pointerEvents: 'none',
           opacity: isDismissedView ? 0 : 1,
           transition: isSnapped ? 'opacity 0.3s ease' : 'none',
         }}
       />
 
       {/* Carousel container */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          pointerEvents: 'none',
-        }}
-      >
+      <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
         {items.map((item, index) => {
           const dist = index - scrollY
           const absDist = Math.abs(dist)

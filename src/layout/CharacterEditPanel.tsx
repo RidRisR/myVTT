@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { X } from 'lucide-react'
 import type { Entity } from '../shared/entityTypes'
 import { uploadAsset } from '../shared/assetUpload'
 import {
@@ -100,7 +101,7 @@ export function CharacterEditPanel({
   const attributes = getEntityAttributes(character)
   const statuses = getEntityStatuses(character)
 
-  /* ── Resource helpers ── */
+  /* -- Resource helpers -- */
   const updateResource = (index: number, updates: Partial<ResourceView>) => {
     const next = [...resources]
     next[index] = { ...next[index], ...updates }
@@ -121,7 +122,7 @@ export function CharacterEditPanel({
     )
   }
 
-  /* ── Attribute helpers ── */
+  /* -- Attribute helpers -- */
   const updateAttribute = (index: number, updates: Partial<AttributeView>) => {
     const next = [...attributes]
     next[index] = { ...next[index], ...updates }
@@ -139,7 +140,7 @@ export function CharacterEditPanel({
     )
   }
 
-  /* ── Status helpers ── */
+  /* -- Status helpers -- */
   const addStatus = () => {
     const label = statusInput.trim()
     if (!label || statuses.some((s) => s.label === label)) return
@@ -155,7 +156,7 @@ export function CharacterEditPanel({
     )
   }
 
-  /* ── Portrait upload ── */
+  /* -- Portrait upload -- */
   const handlePortraitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -171,49 +172,35 @@ export function CharacterEditPanel({
     }
   }
 
-  /* ── Tab renderers ── */
+  /* -- Tab renderers -- */
   const renderInfo = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="flex flex-col gap-2.5">
       {/* Portrait + name */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div className="flex items-center gap-3">
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          style={{ display: 'none' }}
+          className="hidden"
           onChange={handlePortraitUpload}
         />
         <div
           onClick={() => fileInputRef.current?.click()}
-          style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+          className="relative cursor-pointer shrink-0"
           title="Click to change portrait"
         >
           {character.imageUrl ? (
             <img
               src={character.imageUrl}
               alt={character.name}
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: `3px solid ${character.color}`,
-                display: 'block',
-              }}
+              className="w-12 h-12 rounded-full object-cover block"
+              style={{ border: `3px solid ${character.color}` }}
             />
           ) : (
             <div
+              className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold"
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
                 background: `linear-gradient(135deg, ${character.color}, ${character.color}aa)`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontSize: 20,
-                fontWeight: 700,
                 border: `3px solid ${character.color}`,
                 boxSizing: 'border-box',
               }}
@@ -223,18 +210,9 @@ export function CharacterEditPanel({
           )}
           {/* Upload overlay */}
           <div
+            className="absolute inset-0 rounded-full flex items-center justify-center transition-colors duration-fast text-[10px] text-white font-semibold"
             style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '50%',
               background: uploading ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'background 0.15s',
-              fontSize: 10,
-              color: '#fff',
-              fontWeight: 600,
             }}
             onMouseEnter={(e) => {
               if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0.5)'
@@ -246,17 +224,8 @@ export function CharacterEditPanel({
             {uploading ? '...' : ''}
           </div>
         </div>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label
-            style={{
-              fontSize: 9,
-              color: 'rgba(255,255,255,0.4)',
-              textTransform: 'uppercase',
-              letterSpacing: 0.8,
-            }}
-          >
-            Name
-          </label>
+        <div className="flex-1 flex flex-col gap-1">
+          <label className="text-[9px] text-text-muted/40 uppercase tracking-wider">Name</label>
           <input
             value={character.name}
             onChange={(e) => updateChar({ name: e.target.value })}
@@ -267,39 +236,20 @@ export function CharacterEditPanel({
 
       {/* Color */}
       <div ref={colorPickerOpen === 'character' ? colorPickerRef : undefined}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label
-            style={{
-              fontSize: 9,
-              color: 'rgba(255,255,255,0.4)',
-              textTransform: 'uppercase',
-              letterSpacing: 0.8,
-            }}
-          >
-            Color
-          </label>
+        <div className="flex items-center gap-2">
+          <label className="text-[9px] text-text-muted/40 uppercase tracking-wider">Color</label>
           <div
             onClick={() => setColorPickerOpen(colorPickerOpen === 'character' ? null : 'character')}
+            className="w-[18px] h-[18px] rounded-full cursor-pointer transition-[border-color] duration-fast hover:border-white/50"
             style={{
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
               background: character.color,
               border: '2px solid rgba(255,255,255,0.3)',
-              cursor: 'pointer',
-              transition: 'border-color 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'
             }}
             title="Change color"
           />
         </div>
         {colorPickerOpen === 'character' && (
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 6 }}>
+          <div className="flex gap-[5px] flex-wrap mt-1.5">
             {[
               '#3b82f6',
               '#ef4444',
@@ -316,14 +266,10 @@ export function CharacterEditPanel({
                   updateChar({ color: c })
                   setColorPickerOpen(null)
                 }}
+                className="w-[22px] h-[22px] rounded-full cursor-pointer transition-[border-color] duration-fast"
                 style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: '50%',
                   background: c,
-                  cursor: 'pointer',
                   border: c === character.color ? '2px solid #fff' : '2px solid transparent',
-                  transition: 'border-color 0.15s',
                 }}
               />
             ))}
@@ -372,7 +318,7 @@ export function CharacterEditPanel({
                   fontWeight: 700,
                 }}
               />
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>/</span>
+              <span className="text-[10px] text-text-muted/30">/</span>
               <input
                 key={`max-${i}-${res.max}`}
                 defaultValue={res.max}
@@ -396,21 +342,10 @@ export function CharacterEditPanel({
               />
               <div
                 onClick={() => setColorPickerOpen(colorPickerOpen === i ? null : i)}
+                className="w-3 h-3 rounded-full cursor-pointer shrink-0 transition-[border-color] duration-fast hover:border-white/50"
                 style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: '50%',
                   background: res.color,
                   border: '2px solid rgba(255,255,255,0.25)',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  transition: 'border-color 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'
                 }}
                 title="Change color"
               />
@@ -438,12 +373,9 @@ export function CharacterEditPanel({
               showButtons
               onChange={(val: number) => updateResource(i, { current: val })}
             />
-            {/* Color picker — collapsed by default */}
+            {/* Color picker -- collapsed by default */}
             {colorPickerOpen === i && (
-              <div
-                ref={colorPickerRef}
-                style={{ display: 'flex', gap: 3, marginTop: 5, justifyContent: 'center' }}
-              >
+              <div ref={colorPickerRef} className="flex gap-[3px] mt-[5px] justify-center">
                 {[
                   '#22c55e',
                   '#3b82f6',
@@ -460,14 +392,10 @@ export function CharacterEditPanel({
                       updateResource(i, { color: c })
                       setColorPickerOpen(null)
                     }}
+                    className="w-3.5 h-3.5 rounded-full cursor-pointer transition-[border-color] duration-fast"
                     style={{
-                      width: 14,
-                      height: 14,
-                      borderRadius: '50%',
                       background: c,
-                      cursor: 'pointer',
                       border: c === res.color ? '2px solid #fff' : '2px solid transparent',
-                      transition: 'border-color 0.15s',
                     }}
                   />
                 ))}
@@ -562,45 +490,24 @@ export function CharacterEditPanel({
 
   const renderStatuses = () => (
     <div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+      <div className="flex flex-wrap gap-1.5 mb-2.5">
         {statuses.map((s, i) => {
           const sc = statusColor(s.label)
           return (
             <span
               key={i}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[14px] text-xs font-semibold"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '4px 10px 4px 12px',
-                borderRadius: 14,
                 background: `${sc}22`,
                 color: sc,
-                fontSize: 12,
-                fontWeight: 600,
                 border: `1px solid ${sc}33`,
               }}
             >
               {s.label}
               <button
                 onClick={() => removeStatus(i)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: sc,
-                  fontSize: 14,
-                  padding: 0,
-                  lineHeight: 1,
-                  opacity: 0.6,
-                  transition: 'opacity 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '1'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '0.6'
-                }}
+                className="bg-transparent border-none cursor-pointer text-sm p-0 leading-none opacity-60 transition-opacity duration-fast hover:opacity-100"
+                style={{ color: sc }}
               >
                 x
               </button>
@@ -608,12 +515,10 @@ export function CharacterEditPanel({
           )
         })}
         {statuses.length === 0 && (
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>
-            No active statuses
-          </span>
+          <span className="text-xs text-text-muted/25 italic">No active statuses</span>
         )}
       </div>
-      <div style={{ display: 'flex', gap: 4 }}>
+      <div className="flex gap-1">
         <input
           value={statusInput}
           onChange={(e) => setStatusInput(e.target.value)}
@@ -625,24 +530,7 @@ export function CharacterEditPanel({
         />
         <button
           onClick={addStatus}
-          style={{
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 6,
-            cursor: 'pointer',
-            color: 'rgba(255,255,255,0.4)',
-            fontSize: 11,
-            padding: '6px 12px',
-            transition: 'background 0.15s, color 0.15s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.15)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
-          }}
+          className="bg-surface border border-border-glass rounded-md cursor-pointer text-text-muted/40 text-[11px] px-3 py-1.5 transition-colors duration-fast hover:bg-hover hover:text-text-muted/70"
         >
           Add
         </button>
@@ -680,95 +568,42 @@ export function CharacterEditPanel({
 
   return (
     <div
+      className="bg-glass backdrop-blur-[16px] rounded-[14px] shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-border-glass font-sans text-text-primary flex flex-col"
       style={{
         width: 320,
-        background: 'rgba(15, 15, 25, 0.92)',
-        backdropFilter: 'blur(16px)',
-        borderRadius: 14,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        fontFamily: 'sans-serif',
-        color: '#e4e4e7',
         maxHeight: 'inherit',
-        boxSizing: 'border-box' as const,
-        display: 'flex',
-        flexDirection: 'column' as const,
+        boxSizing: 'border-box',
       }}
       onPointerDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 14px 8px',
-          flexShrink: 0,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: 'rgba(255,255,255,0.5)',
-            textTransform: 'uppercase',
-            letterSpacing: 0.8,
-          }}
-        >
+      <div className="flex items-center justify-between px-3.5 pt-3 pb-2 shrink-0">
+        <span className="text-[11px] font-bold text-text-muted/50 uppercase tracking-wider">
           Character
         </span>
         <button
           onClick={onClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'rgba(255,255,255,0.3)',
-            fontSize: 18,
-            padding: '0 2px',
-            lineHeight: 1,
-            transition: 'color 0.15s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'rgba(255,255,255,0.3)'
-          }}
+          className="bg-transparent border-none cursor-pointer text-text-muted/30 p-0.5 leading-none transition-colors duration-fast hover:text-text-muted/70"
         >
-          x
+          <X size={16} strokeWidth={1.5} />
         </button>
       </div>
 
       {/* Tab bar */}
-      <div
-        style={{
-          display: 'flex',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          flexShrink: 0,
-        }}
-      >
+      <div className="flex border-t border-border-glass border-b border-b-border-glass shrink-0">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 py-[7px] bg-transparent border-none cursor-pointer text-[8px] font-bold tracking-wider uppercase transition-colors duration-fast font-sans ${
+              activeTab === tab.id
+                ? 'bg-surface/60 text-white'
+                : 'text-text-muted/35 hover:text-text-muted/60'
+            }`}
             style={{
-              flex: 1,
-              padding: '7px 0',
-              background: activeTab === tab.id ? 'rgba(255,255,255,0.06)' : 'transparent',
-              border: 'none',
               borderBottom:
                 activeTab === tab.id ? `2px solid ${character.color}` : '2px solid transparent',
-              cursor: 'pointer',
-              color: activeTab === tab.id ? '#fff' : 'rgba(255,255,255,0.35)',
-              fontSize: 8,
-              fontWeight: 700,
-              letterSpacing: 0.8,
-              textTransform: 'uppercase',
-              transition: 'color 0.15s, background 0.15s, border-color 0.15s',
-              fontFamily: 'sans-serif',
             }}
           >
             {tab.label}
@@ -777,9 +612,7 @@ export function CharacterEditPanel({
       </div>
 
       {/* Tab content */}
-      <div style={{ padding: '12px 14px 14px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
-        {tabContent[activeTab]()}
-      </div>
+      <div className="px-3.5 py-3 overflow-y-auto flex-1 min-h-0">{tabContent[activeTab]()}</div>
     </div>
   )
 }
