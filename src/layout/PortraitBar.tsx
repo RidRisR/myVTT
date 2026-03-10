@@ -164,7 +164,9 @@ export function PortraitBar({
   )
 
   // Filter to entities visible to this seat
-  const visibleEntities = entities.filter((e) => (mySeatId ? canSee(e, mySeatId, role) : isGM))
+  const visibleEntities = entities.filter((e) =>
+    mySeatId ? canSee(e.permissions, mySeatId, role) : isGM,
+  )
 
   if (visibleEntities.length === 0) return null
 
@@ -186,7 +188,7 @@ export function PortraitBar({
   const getContextMenuItems = (entity: Entity): ContextMenuItem[] => {
     const items: ContextMenuItem[] = []
 
-    if (mySeatId && canEdit(entity, mySeatId, role)) {
+    if (mySeatId && canEdit(entity.permissions, mySeatId, role)) {
       items.push({
         label: 'Set as active',
         onClick: () => onSetActiveCharacter(entity.id),
@@ -217,7 +219,7 @@ export function PortraitBar({
   }
 
   const renderPortrait = (entity: Entity) => {
-    const isOwner = mySeatId ? canEdit(entity, mySeatId, role) : false
+    const isOwner = mySeatId ? canEdit(entity.permissions, mySeatId, role) : false
     const isInspected = inspectedCharacterId === entity.id
     const isActive = activeCharacterId === entity.id
 
@@ -434,7 +436,8 @@ export function PortraitBar({
   }
 
   // Determine if the inspected entity is editable
-  const isEditable = popoverEntity && isLocked && mySeatId && canEdit(popoverEntity, mySeatId, role)
+  const isEditable =
+    popoverEntity && isLocked && mySeatId && canEdit(popoverEntity.permissions, mySeatId, role)
   const popoverWidth = isLocked ? (isEditable ? 320 : 260) : 220
 
   // Calculate popover position
@@ -597,7 +600,7 @@ export function PortraitBar({
               <CharacterHoverPreview
                 character={popoverEntity}
                 isOnline={false}
-                editable={mySeatId ? canEdit(popoverEntity, mySeatId, role) : false}
+                editable={mySeatId ? canEdit(popoverEntity.permissions, mySeatId, role) : false}
                 onUpdateCharacter={onUpdateEntity}
               />
             )}

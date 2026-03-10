@@ -13,6 +13,8 @@ export interface Scene {
   gridOffsetX: number
   gridOffsetY: number
   sortOrder: number
+  combatActive: boolean
+  battleMapUrl: string
 }
 
 function readScenes(yScenes: Y.Map<Y.Map<unknown>>): Scene[] {
@@ -31,6 +33,8 @@ function readScenes(yScenes: Y.Map<Y.Map<unknown>>): Scene[] {
       gridOffsetX: (sceneMap.get('gridOffsetX') as number) ?? 0,
       gridOffsetY: (sceneMap.get('gridOffsetY') as number) ?? 0,
       sortOrder: (sceneMap.get('sortOrder') as number) ?? 0,
+      combatActive: (sceneMap.get('combatActive') as boolean) ?? false,
+      battleMapUrl: (sceneMap.get('battleMapUrl') as string) ?? '',
     })
   })
   scenes.sort((a, b) => a.sortOrder - b.sortOrder)
@@ -47,7 +51,7 @@ export function useScenes(yScenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc) {
     return () => yScenes.unobserveDeep(observer)
   }, [yScenes])
 
-  const addScene = (scene: Scene) => {
+  const addScene = (scene: Scene, persistentEntityIds?: string[]) => {
     yDoc.transact(() => {
       const sceneMap = new Y.Map<unknown>()
       yScenes.set(scene.id, sceneMap)
@@ -61,8 +65,17 @@ export function useScenes(yScenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc) {
       sceneMap.set('gridOffsetX', scene.gridOffsetX)
       sceneMap.set('gridOffsetY', scene.gridOffsetY)
       sceneMap.set('sortOrder', scene.sortOrder)
-      // Nested containers for entities and tokens
-      sceneMap.set('entities', new Y.Map())
+      sceneMap.set('combatActive', false)
+      sceneMap.set('battleMapUrl', '')
+      // entityIds: references to entities in this scene
+      const entityIdsMap = new Y.Map<boolean>()
+      sceneMap.set('entityIds', entityIdsMap)
+      if (persistentEntityIds) {
+        for (const eid of persistentEntityIds) {
+          entityIdsMap.set(eid, true)
+        }
+      }
+      // tokens: combat tokens for this scene
       sceneMap.set('tokens', new Y.Map())
     })
   }
@@ -98,8 +111,54 @@ export function useScenes(yScenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc) {
       gridOffsetX: (sceneMap.get('gridOffsetX') as number) ?? 0,
       gridOffsetY: (sceneMap.get('gridOffsetY') as number) ?? 0,
       sortOrder: (sceneMap.get('sortOrder') as number) ?? 0,
+      combatActive: (sceneMap.get('combatActive') as boolean) ?? false,
+      battleMapUrl: (sceneMap.get('battleMapUrl') as string) ?? '',
     }
   }
 
-  return { scenes, addScene, updateScene, deleteScene, getScene }
+  const addEntityToScene = (sceneId: string, entityId: string) => {
+    const sceneMap = yScenes.get(sceneId)
+    if (!(sceneMap instanceof Y.Map)) return
+    const entityIds = sceneMap.get('entityIds')
+    if (entityIds instanceof Y.Map) {
+      entityIds.set(entityId, true)
+    }
+  }
+
+  const removeEntityFromScene = (sceneId: string, entityId: string) => {
+    const sceneMap = yScenes.get(sceneId)
+    if (!(sceneMap instanceof Y.Map)) return
+    const entityIds = sceneMap.get('entityIds')
+    if (entityIds instanceof Y.Map) {
+      entityIds.delete(entityId)
+    }
+  }
+
+  const getSceneEntityIds = (sceneId: string): string[] => {
+    const sceneMap = yScenes.get(sceneId)
+    if (!(sceneMap instanceof Y.Map)) return []
+    const entityIds = sceneMap.get('entityIds')
+    if (!(entityIds instanceof Y.Map)) return []
+    const ids: string[] = []
+    entityIds.forEach((_val, key) => ids.push(key))
+    return ids
+  }
+
+  const setCombatActive = (sceneId: string, active: boolean) => {
+    const sceneMap = yScenes.get(sceneId)
+    if (!(sceneMap instanceof Y.Map)) return
+    sceneMap.set('combatActive', active)
+  }
+
+  return {
+    scenes,
+    addScene,
+    updateScene,
+    deleteScene,
+    getScene,
+    addEntityToScene,
+    removeEntityFromScene,
+    getSceneEntityIds,
+    setCombatActive,
+  }
 }

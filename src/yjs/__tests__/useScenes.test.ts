@@ -16,6 +16,8 @@ function makeScene(overrides?: Partial<Scene>): Scene {
     gridOffsetX: 0,
     gridOffsetY: 0,
     sortOrder: 0,
+    combatActive: false,
+    battleMapUrl: '',
     ...overrides,
   }
 }
@@ -46,14 +48,14 @@ describe('useScenes', () => {
     expect(hook.result.current.scenes[0].name).toBe('Tavern')
   })
 
-  it('creates entities and tokens sub-maps on add', () => {
+  it('creates entityIds and tokens sub-maps on add', () => {
     const { hook, scenes } = setup()
 
     act(() => hook.result.current.addScene(makeScene({ id: 'sc-1' })))
 
     const sceneMap = scenes.get('sc-1')
     expect(sceneMap).toBeInstanceOf(Y.Map)
-    expect(sceneMap?.get('entities')).toBeInstanceOf(Y.Map)
+    expect(sceneMap?.get('entityIds')).toBeInstanceOf(Y.Map)
     expect(sceneMap?.get('tokens')).toBeInstanceOf(Y.Map)
   })
 
