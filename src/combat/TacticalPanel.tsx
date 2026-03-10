@@ -1,7 +1,7 @@
 import { X } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
 import type { MapToken, Entity } from '../shared/entityTypes'
-import { CombatViewer } from './CombatViewer'
+import { KonvaMap } from './KonvaMap'
 
 interface TacticalPanelProps {
   scene: Scene | null
@@ -42,6 +42,7 @@ export function TacticalPanel({
         flexDirection: 'column',
         overflow: 'hidden',
       }}
+      onContextMenu={onContextMenu}
     >
       {/* Header bar */}
       <div className="border-b border-border-glass flex items-center justify-between px-4 py-2 shrink-0">
@@ -56,7 +57,7 @@ export function TacticalPanel({
 
       {/* Panel body */}
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        <CombatViewer
+        <KonvaMap
           scene={scene}
           tokens={tokens}
           getEntity={getEntity}
@@ -65,7 +66,6 @@ export function TacticalPanel({
           selectedTokenId={selectedTokenId}
           onSelectToken={onSelectToken}
           onUpdateToken={onUpdateToken}
-          onContextMenu={onContextMenu}
         />
       </div>
     </div>
