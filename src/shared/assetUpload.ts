@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.DEV ? 'http://localhost:4444' : ''
+import { API_BASE } from './config'
 
 export { API_BASE }
 
