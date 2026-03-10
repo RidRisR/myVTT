@@ -173,8 +173,9 @@ export function createParticleEngine(
   canvas: HTMLCanvasElement,
   presetName: string,
 ): ParticleEngine {
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Cannot get 2d context')
+  const maybeCtx = canvas.getContext('2d')
+  if (!maybeCtx) throw new Error('Cannot get 2d context')
+  const ctx: CanvasRenderingContext2D = maybeCtx
   let particles: Particle[] = []
   let currentConfig: ParticlePresetConfig | null = null
   let animId = 0
