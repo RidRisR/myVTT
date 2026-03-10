@@ -14,10 +14,12 @@ const Y = require('yjs')
 const { Server: WSServer } = require('ws')
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const PORT = parseInt(process.env.PORT || '4444')
+const PORT = parseInt(process.env.VITE_SERVER_PORT || process.env.PORT || '4444')
 const HOST = process.env.HOST || '0.0.0.0'
 const PERSISTENCE_DIR = process.env.YPERSISTENCE || './db'
-const UPLOADS_DIR = path.join(__dirname, 'uploads')
+const UPLOADS_DIR = process.env.UPLOADS_DIR
+  ? path.resolve(process.env.UPLOADS_DIR)
+  : path.join(__dirname, 'uploads')
 
 // Ensure uploads directory exists
 if (!fs.existsSync(UPLOADS_DIR)) {

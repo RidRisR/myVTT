@@ -91,13 +91,12 @@ myVTT is a lightweight Virtual Tabletop built with React + Yjs + y-websocket for
 
 ### Parallel Development Strategy
 
-This project supports parallel feature development using git worktrees:
+This project supports parallel feature development using git worktrees.
+Each worktree has its own `.env` file for port/path isolation (see `.env.example`).
 
 1. Shared functions extracted to `/src/shared/` (idUtils, entityTypes, etc.)
 2. Feature branches work independently with minimal conflicts
-3. Merge strategy: sequential integration with rebase
-
-Branch-specific constraints are documented in respective feature branch CLAUDE.md files.
+3. Merge strategy: sequential integration via Pull Request
 
 ### Branch Protection
 
@@ -113,14 +112,3 @@ Branch-specific constraints are documented in respective feature branch CLAUDE.m
 ### Commit Convention
 
 - Do NOT add `Co-Authored-By` or any AI attribution lines to commit messages
-
-## Current Branch: feature/konva-map
-
-### File Ownership
-
-- **May modify**: `src/combat/*` (full rewrite DOM → Konva)
-- **May modify**: `package.json` (add konva/react-konva, remove react-zoom-pan-pinch)
-- **Do NOT touch**: `src/rules/`, `src/chat/`, `src/layout/`, `src/entities/`
-- `entityTypes.ts`: only append optional fields, do not change existing ones
-- `entityAdapters.ts`: read-only, do not change signatures
-- Keep `CombatViewerProps` interface unchanged (App.tsx should not need changes)
