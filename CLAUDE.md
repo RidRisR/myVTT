@@ -38,8 +38,14 @@ myVTT is a lightweight Virtual Tabletop built with React + Yjs + y-websocket for
 
 - `yDoc` created in `useState` (not useEffect) for component sharing
 - Do NOT call `yDoc.destroy()` in cleanup - lifecycle managed by useState
-- Main maps: `room`, `scenes`, `combat_tokens`, `token_blueprints`, `players`, `team_trackers`
-- Chat log: `yDoc.getArray('chat_log')` with Y.Array.observe()
+- Global containers use top-level shared types: `yDoc.getMap('world:seats')`, `yDoc.getMap('world:room')`, `yDoc.getArray('world:chat')`, etc. — managed via `createWorldMaps()` in `src/yjs/useWorld.ts`
+- Scene data uses nested Y.Maps: `world:scenes` → `sceneId` → `entities`/`tokens` (created by user action, not auto-init)
+
+**Yjs Nesting Rules (IMPORTANT):**
+
+- Global containers (seats, room, scenes, party, etc.) MUST use top-level shared types: `yDoc.getMap('world:xxx')` / `yDoc.getArray('world:xxx')`
+- NEVER use `ensureSubMap` or check-then-create patterns (`if (!exists) parent.set(key, new Y.Map())`) during initialization — this causes race conditions when multiple clients connect before sync completes
+- Nested Y.Map creation (`parent.set(key, new Y.Map())`) is ONLY allowed inside explicit user actions (e.g., addScene), where: (1) the operation happens after WebSocket sync is complete, (2) the key is a unique ID (UUID), not a fixed string, (3) only one client triggers the creation
 
 **Entity System:**
 
@@ -117,3 +123,4 @@ myVTT is a lightweight Virtual Tabletop built with React + Yjs + y-websocket for
 ### Commit Convention
 
 - Do NOT add `Co-Authored-By` or any AI attribution lines to commit messages
+- Do NOT add AI-generated disclaimers (e.g., "Generated with Claude Code") to PR descriptions
