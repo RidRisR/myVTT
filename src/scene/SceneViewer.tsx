@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { Scene } from '../yjs/useScenes'
 import { isVideoUrl } from '../shared/assetUpload'
+import { ParticleLayer } from './ParticleLayer'
 
 interface SceneViewerProps {
   scene: Scene | null
@@ -147,6 +148,9 @@ export function SceneViewer({ scene, onContextMenu }: SceneViewerProps) {
             }
           }}
         />
+      )}
+      {scene?.particlePreset && scene.particlePreset !== 'none' && (
+        <ParticleLayer preset={scene.particlePreset} />
       )}
     </div>
   )
