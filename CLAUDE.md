@@ -89,20 +89,25 @@ myVTT is a lightweight Virtual Tabletop built with React + Yjs + y-websocket for
 - [ ] UX polish
 - [ ] Cloud deployment (Nginx + HTTPS + Docker)
 
-### Parallel Development Strategy
+### Git Workflow (IMPORTANT)
 
-This project supports parallel feature development using git worktrees.
-Each worktree has its own `.env` file for port/path isolation (see `.env.example`).
+**All development MUST use git worktrees with dedicated branches:**
 
-1. Shared functions extracted to `/src/shared/` (idUtils, entityTypes, etc.)
-2. Feature branches work independently with minimal conflicts
-3. Merge strategy: sequential integration via Pull Request
+1. Create a new worktree + branch for every feature or fix: `git worktree add .worktrees/<branch-name> -b <branch-name>`
+2. Do all work inside the worktree directory
+3. Submit a Pull Request to merge into `main` — direct pushes are NOT allowed
 
-### Branch Protection
+**Linear history — squash merge only:**
 
-- **`main` branch is protected** - direct pushes are NOT allowed
-- All changes MUST go through Pull Requests
-- Create a feature/fix branch, commit there, then open a PR to merge into main
+- The `main` branch MUST maintain a linear commit history
+- PRs MUST be merged using **squash merge** (`gh pr merge --squash`) — never use merge commits or rebase merge
+- This keeps `main` clean: one commit per PR, no merge bubbles
+
+**Worktree conventions:**
+
+- Worktree directory: `.worktrees/<branch-name>` (already in `.gitignore`)
+- Each worktree has its own `.env` file for port/path isolation (see `.env.example`)
+- Shared functions live in `/src/shared/` to minimize cross-branch conflicts
 
 ### Documentation Language
 
