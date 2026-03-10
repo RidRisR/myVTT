@@ -95,8 +95,11 @@ function updatePermissions(entityYMap: Y.Map<unknown>, permissions: EntityPermis
     permYMap.set('default', permissions.default)
     const seatsYMap = permYMap.get('seats')
     if (seatsYMap instanceof Y.Map) {
-      // Clear existing seats and set new ones
-      seatsYMap.forEach((_v, k) => seatsYMap.delete(k))
+      // Delete seats not in the new set, upsert seats that are
+      const newSeatIds = new Set(Object.keys(permissions.seats))
+      seatsYMap.forEach((_v, k) => {
+        if (!newSeatIds.has(k)) seatsYMap.delete(k)
+      })
       for (const [seatId, level] of Object.entries(permissions.seats)) {
         seatsYMap.set(seatId, level)
       }
