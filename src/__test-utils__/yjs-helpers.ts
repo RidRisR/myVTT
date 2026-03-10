@@ -36,6 +36,35 @@ export function createSyncedPair(): {
   }
 }
 
+/**
+ * Create two Y.Docs WITHOUT automatic sync.
+ * Call flushSync() to manually propagate all pending updates.
+ * Simulates network delay where operations happen concurrently.
+ */
+export function createDeferredPair(): {
+  doc1: Y.Doc
+  doc2: Y.Doc
+  world1: WorldMaps
+  world2: WorldMaps
+  flushSync: () => void
+} {
+  const doc1 = new Y.Doc()
+  const doc2 = new Y.Doc()
+
+  const flushSync = () => {
+    Y.applyUpdate(doc2, Y.encodeStateAsUpdate(doc1))
+    Y.applyUpdate(doc1, Y.encodeStateAsUpdate(doc2))
+  }
+
+  return {
+    doc1,
+    doc2,
+    world1: createWorldMaps(doc1),
+    world2: createWorldMaps(doc2),
+    flushSync,
+  }
+}
+
 /** Add a scene with entityIds + tokens sub-maps to a scenes Y.Map */
 export function addSceneToDoc(scenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc, sceneId: string) {
   yDoc.transact(() => {
