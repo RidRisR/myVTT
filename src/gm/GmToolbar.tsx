@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { Image, Swords, Layout, BookOpen } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
-import { SceneLibrary } from './SceneLibrary'
-import { isVideoUrl } from '../shared/assetUpload'
+import { SceneListPanel } from './SceneListPanel'
+import { SceneConfigPanel } from './SceneConfigPanel'
 
 interface GmToolbarProps {
   scenes: Scene[]
@@ -9,7 +10,6 @@ interface GmToolbarProps {
   isCombat: boolean
   onSelectScene: (sceneId: string) => void
   onToggleCombat: () => void
-  onAddScene: (scene: Scene) => void
   onUpdateScene: (id: string, updates: Partial<Scene>) => void
   onDeleteScene: (id: string) => void
 }
@@ -20,231 +20,104 @@ export function GmToolbar({
   isCombat,
   onSelectScene,
   onToggleCombat,
-  onAddScene,
   onUpdateScene,
   onDeleteScene,
 }: GmToolbarProps) {
-  const [showScenePicker, setShowScenePicker] = useState(false)
-  const [showLibrary, setShowLibrary] = useState(false)
+  const [showSceneList, setShowSceneList] = useState(false)
+  const [editingSceneId, setEditingSceneId] = useState<string | null>(null)
+
+  const editingScene = editingSceneId ? (scenes.find((s) => s.id === editingSceneId) ?? null) : null
+
+  const handleEditScene = useCallback((sceneId: string) => {
+    setEditingSceneId(sceneId)
+  }, [])
+
+  const handleCloseSceneList = useCallback(() => {
+    setShowSceneList(false)
+  }, [])
+
+  const handleCloseConfig = useCallback(() => {
+    setEditingSceneId(null)
+  }, [])
+
+  const toolbarBtnClass =
+    'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors duration-fast'
+
+  const defaultBtnClass = `${toolbarBtnClass} bg-glass backdrop-blur-[12px] border border-border-glass text-text-primary hover:bg-hover`
 
   return (
     <>
       {/* Toolbar */}
       <div
-        style={{
-          position: 'fixed',
-          bottom: 12,
-          left: 16,
-          zIndex: 10000,
-          display: 'flex',
-          gap: 6,
-          fontFamily: 'sans-serif',
-        }}
+        className="fixed z-toast flex gap-1.5"
+        style={{ bottom: 12, left: 16 }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        {/* Scene picker */}
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setShowScenePicker(!showScenePicker)}
-            style={{
-              padding: '8px 14px',
-              background: 'rgba(255,255,255,0.92)',
-              backdropFilter: 'blur(8px)',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <path d="M21 15l-5-5L5 21" />
-            </svg>
-            Scenes
-          </button>
+        {/* 1. Scene management */}
+        <button
+          onClick={() => {
+            setShowSceneList(!showSceneList)
+            if (!showSceneList) setEditingSceneId(null)
+          }}
+          className={`${toolbarBtnClass} ${
+            showSceneList
+              ? 'bg-accent/20 backdrop-blur-[12px] border border-accent/40 text-accent-bold'
+              : 'bg-glass backdrop-blur-[12px] border border-border-glass text-text-primary hover:bg-hover'
+          }`}
+          title="Scene management"
+        >
+          <Image size={16} strokeWidth={1.5} />
+          Scenes
+        </button>
 
-          {/* Scene dropdown */}
-          {showScenePicker && (
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '100%',
-                left: 0,
-                marginBottom: 6,
-                background: 'rgba(255,255,255,0.96)',
-                backdropFilter: 'blur(8px)',
-                borderRadius: 10,
-                boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
-                minWidth: 200,
-                maxHeight: 300,
-                overflowY: 'auto',
-                padding: 4,
-              }}
-            >
-              {scenes.length === 0 && (
-                <div
-                  style={{ padding: '12px 16px', color: '#999', fontSize: 12, textAlign: 'center' }}
-                >
-                  No scenes yet
-                </div>
-              )}
-              {scenes.map((scene) => (
-                <button
-                  key={scene.id}
-                  onClick={() => {
-                    onSelectScene(scene.id)
-                    setShowScenePicker(false)
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    width: '100%',
-                    padding: '8px 12px',
-                    background: scene.id === activeSceneId ? 'rgba(59,130,246,0.1)' : 'transparent',
-                    border: 'none',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    textAlign: 'left',
-                  }}
-                >
-                  {isVideoUrl(scene.atmosphereImageUrl) ? (
-                    <video
-                      src={scene.atmosphereImageUrl}
-                      muted
-                      playsInline
-                      style={{
-                        width: 36,
-                        height: 24,
-                        objectFit: 'cover',
-                        borderRadius: 3,
-                        flexShrink: 0,
-                      }}
-                    />
-                  ) : (
-                    <img
-                      src={scene.atmosphereImageUrl}
-                      alt=""
-                      style={{
-                        width: 36,
-                        height: 24,
-                        objectFit: 'cover',
-                        borderRadius: 3,
-                        flexShrink: 0,
-                      }}
-                    />
-                  )}
-                  <span
-                    style={{
-                      fontWeight: scene.id === activeSceneId ? 600 : 400,
-                      color: '#333',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {scene.name || 'Untitled'}
-                  </span>
-                </button>
-              ))}
-              <div style={{ borderTop: '1px solid #eee', margin: '4px 0' }} />
-              <button
-                onClick={() => {
-                  setShowScenePicker(false)
-                  setShowLibrary(true)
-                }}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  color: '#2563eb',
-                  fontWeight: 600,
-                  textAlign: 'left',
-                }}
-              >
-                Manage Scenes...
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Combat toggle */}
+        {/* 2. Tactical toggle */}
         <button
           onClick={onToggleCombat}
-          style={{
-            padding: '8px 14px',
-            background: isCombat ? 'rgba(239,68,68,0.9)' : 'rgba(255,255,255,0.92)',
-            backdropFilter: 'blur(8px)',
-            border: 'none',
-            borderRadius: 8,
-            fontSize: 12,
-            fontWeight: 600,
-            color: isCombat ? '#fff' : '#333',
-            cursor: 'pointer',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-          }}
+          className={`${toolbarBtnClass} ${
+            isCombat
+              ? 'bg-danger backdrop-blur-[12px] border border-danger text-text-primary'
+              : 'bg-glass backdrop-blur-[12px] border border-border-glass text-text-primary hover:bg-hover'
+          }`}
+          title={isCombat ? 'Exit combat mode' : 'Enter combat mode'}
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {isCombat ? (
-              <>
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </>
-            ) : (
-              <>
-                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-                <polyline points="14 2 14 8 20 8" />
-              </>
-            )}
-          </svg>
+          <Swords size={16} strokeWidth={1.5} />
           {isCombat ? 'Exit Combat' : 'Combat'}
+        </button>
+
+        {/* 3. Asset dock toggle (placeholder) */}
+        <button className={defaultBtnClass} title="Asset library">
+          <Layout size={16} strokeWidth={1.5} />
+          Assets
+        </button>
+
+        {/* 4. Showcase (placeholder) */}
+        <button className={defaultBtnClass} title="Showcase / Handouts">
+          <BookOpen size={16} strokeWidth={1.5} />
+          Showcase
         </button>
       </div>
 
-      {/* Scene Library Modal */}
-      {showLibrary && (
-        <SceneLibrary
+      {/* Scene List Panel */}
+      {showSceneList && (
+        <SceneListPanel
           scenes={scenes}
-          onClose={() => setShowLibrary(false)}
-          onAdd={onAddScene}
-          onUpdate={onUpdateScene}
-          onDelete={onDeleteScene}
-          onSelect={(id) => {
-            onSelectScene(id)
-            setShowLibrary(false)
+          activeSceneId={activeSceneId}
+          onSelectScene={onSelectScene}
+          onEditScene={handleEditScene}
+          onClose={handleCloseSceneList}
+        />
+      )}
+
+      {/* Scene Config Panel */}
+      {editingScene && (
+        <SceneConfigPanel
+          scene={editingScene}
+          onUpdateScene={onUpdateScene}
+          onDeleteScene={(id) => {
+            onDeleteScene(id)
+            setEditingSceneId(null)
           }}
+          onClose={handleCloseConfig}
         />
       )}
     </>
