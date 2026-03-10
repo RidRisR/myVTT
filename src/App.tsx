@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useYjsConnection } from './yjs/useYjsConnection'
+import { useEffect, useState, useCallback } from 'react'
+import { useDualDocConnection } from './yjs/useDualDocConnection'
 import { AdminPanel } from './admin/AdminPanel'
 import { useRoom } from './yjs/useRoom'
 import { useScenes } from './yjs/useScenes'
@@ -18,6 +18,8 @@ import { useHandoutAssets } from './dock/useHandoutAssets'
 import type { HandoutAsset } from './dock/useHandoutAssets'
 
 import { GmToolbar } from './gm/GmToolbar'
+import { useGmMergedView } from './gm/useGmMergedView'
+import { revealEntity, hideEntity } from './gm/secretApi'
 import { HamburgerMenu } from './layout/HamburgerMenu'
 import { PortraitBar } from './layout/PortraitBar'
 import { MyCharacterCard } from './layout/MyCharacterCard'
@@ -37,9 +39,9 @@ import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 
-function RoomSession({ roomId }: { roomId: string }) {
-  const { yDoc, isLoading, awareness } = useYjsConnection(roomId)
-  const world = useWorld(yDoc)
+function RoomSession({ roomId, token }: { roomId: string; token: string | null }) {
+  const { publicDoc, secretDoc, isLoading, awareness } = useDualDocConnection(roomId, token)
+  const world = useWorld(publicDoc)
   const {
     seats,
     mySeat,
@@ -62,9 +64,10 @@ function RoomSession({ roomId }: { roomId: string }) {
     removeEntityFromScene,
     getSceneEntityIds,
     setCombatActive,
-  } = useScenes(world.scenes, yDoc)
+  } = useScenes(world.scenes, publicDoc)
 
-  const { entities, addEntity, updateEntity, getEntity } = useEntities(world, yDoc)
+  const { entities, addEntity, updateEntity, getEntity } = useEntities(world, publicDoc)
+  const mergedEntities = useGmMergedView(entities, secretDoc)
 
   const activeScene = getScene(room.activeSceneId)
   const isCombat = activeScene?.combatActive ?? false
@@ -74,18 +77,35 @@ function RoomSession({ roomId }: { roomId: string }) {
     combatSceneId,
   )
 
-  const { addItem: addShowcaseItem } = useShowcase(yDoc)
+  const { addItem: addShowcaseItem } = useShowcase(publicDoc)
   const {
     assets: handoutAssets,
     addAsset: addHandoutAsset,
     updateAsset: updateHandoutAsset,
     deleteAsset: deleteHandoutAsset,
-  } = useHandoutAssets(yDoc)
+  } = useHandoutAssets(publicDoc)
 
   const [inspectedCharacterId, setInspectedCharacterId] = useState<string | null>(null)
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
   const [bgContextMenu, setBgContextMenu] = useState<{ x: number; y: number } | null>(null)
   const [editingHandout, setEditingHandout] = useState<HandoutAsset | null>(null)
+
+  const handleRevealEntity = useCallback(
+    async (entityId: string) => {
+      if (!token) return
+      await revealEntity(roomId, token, entityId)
+    },
+    [roomId, token],
+  )
+
+  const handleHideEntity = useCallback(
+    async (entityId: string) => {
+      if (!token) return
+      await hideEntity(roomId, token, entityId)
+    },
+    [roomId, token],
+  )
+
   // Sync role from seat
   const mySeatRole = mySeat?.role
   useEffect(() => {
@@ -172,7 +192,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   const handleDeleteScene = (sceneId: string) => {
     const entityIds = getSceneEntityIds(sceneId)
     deleteScene(sceneId)
-    yDoc.transact(() => {
+    publicDoc.transact(() => {
       const deleted = gcOrphanedEntities(entityIds, world.scenes, world.entities)
       if (deleted.length > 0 && inspectedCharacterId && deleted.includes(inspectedCharacterId)) {
         setInspectedCharacterId(null)
@@ -275,7 +295,7 @@ function RoomSession({ roomId }: { roomId: string }) {
 
       {/* Top-center: Portrait bar */}
       <PortraitBar
-        entities={entities}
+        entities={mergedEntities}
         sceneEntityIds={sceneEntityIds}
         mySeatId={mySeatId}
         role={mySeat.role}
@@ -287,10 +307,12 @@ function RoomSession({ roomId }: { roomId: string }) {
         onSetActiveCharacter={handleSetActiveCharacter}
         onRemoveFromScene={handleRemoveFromScene}
         onUpdateEntity={handleUpdateEntity}
+        onRevealEntity={handleRevealEntity}
+        onHideEntity={handleHideEntity}
       />
 
       {/* Top-right: Team dashboard */}
-      <TeamDashboard yDoc={yDoc} isGM={isGM} />
+      <TeamDashboard yDoc={publicDoc} isGM={isGM} />
 
       {/* Left: My character card (self-managed open/close via tab) */}
       {activeEntity && (
@@ -298,18 +320,18 @@ function RoomSession({ roomId }: { roomId: string }) {
       )}
 
       {/* Center: Showcase spotlight overlay */}
-      <ShowcaseOverlay yDoc={yDoc} isGM={isGM} />
+      <ShowcaseOverlay yDoc={publicDoc} isGM={isGM} />
 
       {/* Bottom-right: Chat overlay */}
       <ChatPanel
-        yDoc={yDoc}
+        yDoc={publicDoc}
         senderId={mySeatId}
         senderName={mySeat.name}
         senderColor={mySeat.color}
         portraitUrl={mySeat.portraitUrl || activeEntity?.imageUrl}
         seatProperties={seatProperties}
         speakerEntities={
-          isGM ? entities : entities.filter((e) => e.permissions.seats[mySeatId] === 'owner')
+          isGM ? mergedEntities : entities.filter((e) => e.permissions.seats[mySeatId] === 'owner')
         }
       />
 
@@ -395,9 +417,15 @@ export default function App() {
     return <AdminPanel />
   }
 
-  const roomMatch = hash.match(/^#room=([a-zA-Z0-9_-]+)$/)
+  const roomMatch = hash.match(/^#room=([a-zA-Z0-9_-]+)(?:&token=([a-zA-Z0-9_-]+))?$/)
   if (roomMatch) {
-    return <RoomSession roomId={roomMatch[1]} />
+    return (
+      <RoomSession
+        key={`${roomMatch[1]}-${roomMatch[2] ?? ''}`}
+        roomId={roomMatch[1]}
+        token={roomMatch[2] ?? null}
+      />
+    )
   }
 
   return (

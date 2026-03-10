@@ -11,8 +11,12 @@ import { CharacterEditPanel } from './CharacterEditPanel'
 
 type PortraitTabId = 'characters' | 'initiative'
 
+interface MergedEntity extends Entity {
+  _hidden?: boolean
+}
+
 interface PortraitBarProps {
-  entities: Entity[]
+  entities: MergedEntity[]
   sceneEntityIds: string[]
   mySeatId: string | null
   role: 'GM' | 'PL'
@@ -24,6 +28,8 @@ interface PortraitBarProps {
   onSetActiveCharacter: (charId: string) => void
   onRemoveFromScene: (entityId: string) => void
   onUpdateEntity: (id: string, updates: Partial<Entity>) => void
+  onRevealEntity?: (entityId: string) => void
+  onHideEntity?: (entityId: string) => void
 }
 
 const PORTRAIT_SIZE = 52
@@ -90,6 +96,8 @@ export function PortraitBar({
   onSetActiveCharacter,
   onRemoveFromScene,
   onUpdateEntity,
+  onRevealEntity,
+  onHideEntity,
 }: PortraitBarProps) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entityId: string } | null>(
     null,
@@ -169,8 +177,9 @@ export function PortraitBar({
   const sceneIdSet = new Set(sceneEntityIds)
   const visibleEntities = entities.filter(
     (e) =>
-      (e.persistent || sceneIdSet.has(e.id)) &&
-      (mySeatId ? canSee(e.permissions, mySeatId, role) : isGM),
+      (e as MergedEntity)._hidden ||
+      ((e.persistent || sceneIdSet.has(e.id)) &&
+        (mySeatId ? canSee(e.permissions, mySeatId, role) : isGM)),
   )
 
   if (visibleEntities.length === 0) return null
@@ -190,7 +199,7 @@ export function PortraitBar({
     setContextMenu({ x: e.clientX, y: e.clientY, entityId })
   }
 
-  const getContextMenuItems = (entity: Entity): ContextMenuItem[] => {
+  const getContextMenuItems = (entity: MergedEntity): ContextMenuItem[] => {
     const items: ContextMenuItem[] = []
 
     if (mySeatId && canEdit(entity.permissions, mySeatId, role)) {
@@ -212,7 +221,23 @@ export function PortraitBar({
       },
     })
 
-    if (isGM && !entity.persistent) {
+    if (isGM && entity._hidden && onRevealEntity) {
+      items.push({
+        label: 'Reveal',
+        onClick: () => onRevealEntity(entity.id),
+        color: '#22c55e',
+      })
+    }
+
+    if (isGM && !entity._hidden && onHideEntity) {
+      items.push({
+        label: 'Hide',
+        onClick: () => onHideEntity(entity.id),
+        color: '#f59e0b',
+      })
+    }
+
+    if (isGM && !entity.persistent && !entity._hidden) {
       items.push({
         label: 'Remove from scene',
         onClick: () => onRemoveFromScene(entity.id),
@@ -223,10 +248,11 @@ export function PortraitBar({
     return items
   }
 
-  const renderPortrait = (entity: Entity) => {
+  const renderPortrait = (entity: MergedEntity) => {
     const isOwner = mySeatId ? canEdit(entity.permissions, mySeatId, role) : false
     const isInspected = inspectedCharacterId === entity.id
     const isActive = activeCharacterId === entity.id
+    const isHidden = !!entity._hidden
 
     const resources = getEntityResources(entity).filter((r) => r.max > 0)
     const displayResources = resources.slice(0, 2) // max 2 rings
@@ -246,7 +272,8 @@ export function PortraitBar({
         style={{
           position: 'relative',
           cursor: 'pointer',
-          transition: 'transform 0.15s ease',
+          transition: 'transform 0.15s ease, opacity 0.15s ease',
+          opacity: isHidden ? 0.4 : 1,
         }}
         onClick={(e) => {
           handlePortraitClick(entity.id, e.currentTarget as HTMLElement)
