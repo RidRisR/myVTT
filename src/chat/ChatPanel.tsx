@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import * as Y from 'yjs'
-import type { ChatMessage } from './chatTypes'
+import type { ChatMessage, ChatRollMessage } from './chatTypes'
 import type { Entity } from '../shared/entityTypes'
+import type { RuleSystem } from '../rules/types'
 import { getEntityResources, getEntityAttributes } from '../shared/entityAdapters'
 import { MessageScrollArea } from './MessageScrollArea'
 import { ToastStack, type ToastItem } from './ToastStack'
@@ -17,6 +18,7 @@ interface ChatPanelProps {
   seatProperties: { key: string; value: string }[]
   selectedTokenProps?: { key: string; value: string }[]
   speakerEntities: Entity[]
+  ruleSystem?: RuleSystem
 }
 
 /** Resolved identity used for sending messages */
@@ -88,6 +90,7 @@ export function ChatPanel({
   seatProperties,
   selectedTokenProps = [],
   speakerEntities,
+  ruleSystem,
 }: ChatPanelProps) {
   const [expanded, setExpanded] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -227,9 +230,24 @@ export function ChatPanel({
 
   const handleSend = useCallback(
     (message: ChatMessage) => {
+      // Enrich named roll commands (e.g. .dd) with rule system judgment
+      if (message.type === 'roll' && ruleSystem && message.actionName) {
+        const rollMsg = message as ChatRollMessage
+        if (!rollMsg.judgment) {
+          const judgment = ruleSystem.evaluateRoll(rollMsg.terms, rollMsg.total, {
+            activeModifierIds: [],
+            tempModifier: 0,
+          })
+          if (judgment) {
+            rollMsg.judgment = judgment
+            rollMsg.dieStyles = ruleSystem.getDieStyles(rollMsg.terms)
+            rollMsg.judgmentDisplay = ruleSystem.getJudgmentDisplay(judgment)
+          }
+        }
+      }
       yChat.push([message])
     },
-    [yChat],
+    [yChat, ruleSystem],
   )
 
   // Tab to cycle speaker: seat → entity1 → entity2 → ... → seat
@@ -394,6 +412,7 @@ export function ChatPanel({
             selectedTokenProps={selectedTokenProps}
             seatProperties={activeSpeakerProps}
             onCycleSpeaker={speakerEntities.length > 0 ? handleCycleSpeaker : undefined}
+            customCommands={ruleSystem?.getChatCommands()}
           />
         </div>
       </div>

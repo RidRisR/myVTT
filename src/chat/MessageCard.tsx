@@ -147,6 +147,20 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         <div style={{ ...headerStyle, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={nameStyle}>{message.senderName}</span>
+            {message.actionName && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: 'rgba(147,197,253,0.8)',
+                  background: 'rgba(59,130,246,0.15)',
+                  padding: '1px 7px',
+                  borderRadius: 4,
+                }}
+              >
+                {message.actionName}
+              </span>
+            )}
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>
               .r {message.expression}
               {message.resolvedExpression && (

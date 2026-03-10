@@ -6,6 +6,106 @@ import type { WorldMaps } from '../yjs/useWorld'
 
 type EntityWithSource = Entity & { _source: 'party' | 'prepared' | string }
 
+/**
+ * Read ruleData from a nested Y.Map structure back into a plain object.
+ * Backward compat: if ruleData is a plain value (old data), returns it directly.
+ */
+function readRuleDataFromYMap(yMap: Y.Map<unknown>): unknown {
+  const ruleDataVal = yMap.get('ruleData')
+  if (!(ruleDataVal instanceof Y.Map)) return ruleDataVal ?? null
+
+  const rd: Record<string, unknown> = {}
+  ruleDataVal.forEach((val: unknown, key: string) => {
+    if (val instanceof Y.Map) {
+      const arr: unknown[] = []
+      ;(val as Y.Map<unknown>).forEach((v: unknown) => arr.push(v))
+      rd[key] = arr
+    } else if (val instanceof Y.Array) {
+      rd[key] = (val as Y.Array<unknown>).toArray()
+    } else {
+      rd[key] = val
+    }
+  })
+  return rd
+}
+
+/**
+ * Write ruleData as a multi-level nested Y structure for fine-grained CRDT merging.
+ * resources → Y.Map (keyed by resource name)
+ * attributes → Y.Map (keyed by attribute name)
+ * statuses → Y.Array
+ */
+function setRuleDataYMaps(parentYMap: Y.Map<unknown>, ruleData: unknown) {
+  const ruleDataMap = new Y.Map<unknown>()
+  if (ruleData && typeof ruleData === 'object') {
+    const rd = ruleData as Record<string, unknown>
+
+    if (rd.resources && typeof rd.resources === 'object') {
+      const resMap = new Y.Map<unknown>()
+      const entries: [string, unknown][] = Array.isArray(rd.resources)
+        ? (rd.resources as Array<{ key: string }>).map((r) => [r.key, r])
+        : Object.entries(rd.resources as Record<string, unknown>)
+      for (const [k, v] of entries) resMap.set(k, v)
+      ruleDataMap.set('resources', resMap)
+    }
+
+    if (rd.attributes && typeof rd.attributes === 'object') {
+      const attrMap = new Y.Map<unknown>()
+      const entries: [string, unknown][] = Array.isArray(rd.attributes)
+        ? (rd.attributes as Array<{ key: string }>).map((a) => [a.key, a])
+        : Object.entries(rd.attributes as Record<string, unknown>)
+      for (const [k, v] of entries) attrMap.set(k, v)
+      ruleDataMap.set('attributes', attrMap)
+    }
+
+    if (Array.isArray(rd.statuses)) {
+      const statusArr = new Y.Array<unknown>()
+      statusArr.push(rd.statuses)
+      ruleDataMap.set('statuses', statusArr)
+    }
+
+    for (const [k, v] of Object.entries(rd)) {
+      if (!['resources', 'attributes', 'statuses'].includes(k)) {
+        ruleDataMap.set(k, v)
+      }
+    }
+  }
+  parentYMap.set('ruleData', ruleDataMap)
+}
+
+/**
+ * Merge ruleData updates into existing nested Y.Map structure.
+ * Only touches the specific sub-keys provided (e.g. { resources: { HP: {...} } }).
+ */
+function mergeRuleDataUpdate(partyYMap: Y.Map<unknown>, ruleDataUpdates: Record<string, unknown>) {
+  const ruleDataMap = partyYMap.get('ruleData')
+  if (!(ruleDataMap instanceof Y.Map)) {
+    setRuleDataYMaps(partyYMap, ruleDataUpdates)
+    return
+  }
+
+  for (const [subKey, subVal] of Object.entries(ruleDataUpdates)) {
+    if (subKey === 'resources' || subKey === 'attributes') {
+      let subMap = (ruleDataMap as Y.Map<unknown>).get(subKey)
+      if (!(subMap instanceof Y.Map)) {
+        subMap = new Y.Map<unknown>()
+        ;(ruleDataMap as Y.Map<unknown>).set(subKey, subMap)
+      }
+      if (typeof subVal === 'object' && subVal !== null && !Array.isArray(subVal)) {
+        for (const [k, v] of Object.entries(subVal as Record<string, unknown>)) {
+          ;(subMap as Y.Map<unknown>).set(k, v)
+        }
+      }
+    } else if (subKey === 'statuses' && Array.isArray(subVal)) {
+      const arr = new Y.Array<unknown>()
+      arr.push(subVal)
+      ;(ruleDataMap as Y.Map<unknown>).set('statuses', arr)
+    } else {
+      ;(ruleDataMap as Y.Map<unknown>).set(subKey, subVal)
+    }
+  }
+}
+
 function readYMapEntity(yMap: Y.Map<unknown>): Entity {
   return {
     id: yMap.get('id') as string,
@@ -15,7 +115,7 @@ function readYMapEntity(yMap: Y.Map<unknown>): Entity {
     size: (yMap.get('size') as number) ?? 1,
     blueprintId: yMap.get('blueprintId') as string | undefined,
     notes: (yMap.get('notes') as string) ?? '',
-    ruleData: yMap.get('ruleData') ?? null,
+    ruleData: readRuleDataFromYMap(yMap),
     permissions: (yMap.get('permissions') as Entity['permissions']) ?? {
       default: 'observer',
       seats: {},
@@ -31,7 +131,7 @@ function setYMapFields(yMap: Y.Map<unknown>, entity: Entity) {
   yMap.set('size', entity.size)
   if (entity.blueprintId) yMap.set('blueprintId', entity.blueprintId)
   yMap.set('notes', entity.notes)
-  yMap.set('ruleData', entity.ruleData)
+  setRuleDataYMaps(yMap, entity.ruleData)
   yMap.set('permissions', entity.permissions)
 }
 
@@ -151,7 +251,11 @@ export function useEntities(world: WorldMaps, currentSceneId: string | null, yDo
       if (partyYMap instanceof Y.Map) {
         yDoc.transact(() => {
           for (const [key, value] of Object.entries(updates)) {
-            partyYMap.set(key, value)
+            if (key === 'ruleData' && value && typeof value === 'object') {
+              mergeRuleDataUpdate(partyYMap, value as Record<string, unknown>)
+            } else {
+              partyYMap.set(key, value)
+            }
           }
         })
         return

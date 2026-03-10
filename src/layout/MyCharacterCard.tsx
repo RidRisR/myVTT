@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Entity } from '../shared/entityTypes'
+import type { RuleSystem, RollAction } from '../rules/types'
 import {
   getEntityResources,
   getEntityAttributes,
@@ -15,6 +16,8 @@ import { MiniHoldButton } from '../shared/ui/MiniHoldButton'
 interface MyCharacterCardProps {
   entity: Entity
   onUpdateEntity: (id: string, updates: Partial<Entity>) => void
+  ruleSystem?: RuleSystem
+  onRollAction?: (action: RollAction) => void
 }
 
 type TabId = 'resources' | 'attributes' | 'statuses' | 'notes'
@@ -69,7 +72,12 @@ function updateRuleData(entity: Entity, key: string, value: unknown): Partial<En
   return { ruleData: { ...rd, [key]: value } }
 }
 
-export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps) {
+export function MyCharacterCard({
+  entity,
+  onUpdateEntity,
+  ruleSystem,
+  onRollAction,
+}: MyCharacterCardProps) {
   const [open, setOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('resources')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -562,223 +570,241 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
             color: '#e4e4e7',
           }}
         >
-          {/* ── Header (portrait + name) ── */}
-          <div style={{ padding: '20px 16px 0', flexShrink: 0 }}>
-            {/* Portrait */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                marginBottom: 12,
-              }}
-            >
-              <div
-                style={{ position: 'relative', cursor: 'pointer' }}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {entity.imageUrl ? (
-                  <img
-                    src={entity.imageUrl}
-                    alt={entity.name}
-                    style={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      border: `3px solid ${entity.color}`,
-                      boxShadow: `0 0 20px ${entity.color}33`,
-                      display: 'block',
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: '50%',
-                      background: `linear-gradient(135deg, ${entity.color}, ${entity.color}99)`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#fff',
-                      fontSize: 32,
-                      fontWeight: 700,
-                      boxShadow: `0 0 20px ${entity.color}33`,
-                    }}
-                  >
-                    {entity.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                {uploading && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      borderRadius: '50%',
-                      background: 'rgba(0,0,0,0.5)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#fff',
-                    }}
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      style={{ animation: 'spin 1s linear infinite' }}
-                    >
-                      <path d="M12 2a10 10 0 0 1 10 10" />
-                    </svg>
-                  </div>
-                )}
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    borderRadius: '50%',
-                    background: 'rgba(0,0,0,0)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'background 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    ;(e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.3)'
-                  }}
-                  onMouseLeave={(e) => {
-                    ;(e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0)'
-                  }}
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{ opacity: 0.7 }}
-                  >
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                </div>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handlePortraitUpload}
-                style={{ display: 'none' }}
+          {ruleSystem ? (
+            /* ── Rule-managed content (portrait, name, everything) ── */
+            <div style={{ overflowY: 'auto', height: 680 }}>
+              <ruleSystem.EntityCard
+                entity={entity}
+                onUpdateEntity={onUpdateEntity}
+                onRollAction={onRollAction ?? (() => {})}
               />
             </div>
-
-            {/* Name */}
-            <div style={{ textAlign: 'center', marginBottom: 14 }}>
-              {editingName ? (
-                <input
-                  autoFocus
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  onBlur={handleSaveName}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveName()
-                    if (e.key === 'Escape') {
-                      setEditingName(false)
-                      setEditName(entity.name)
-                    }
-                  }}
-                  style={{
-                    width: '80%',
-                    padding: '3px 8px',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: 6,
-                    fontSize: 16,
-                    fontWeight: 700,
-                    background: 'rgba(255,255,255,0.06)',
-                    color: '#fff',
-                    outline: 'none',
-                    textAlign: 'center',
-                    letterSpacing: 0.3,
-                    boxSizing: 'border-box',
-                    fontFamily: 'sans-serif',
-                  }}
-                />
-              ) : (
+          ) : (
+            /* ── Fallback: generic tabs (no rule system) ── */
+            <>
+              {/* ── Header (portrait + name) ── */}
+              <div style={{ padding: '20px 16px 0', flexShrink: 0 }}>
+                {/* Portrait */}
                 <div
-                  onClick={() => setEditingName(true)}
                   style={{
-                    fontWeight: 700,
-                    fontSize: 16,
-                    color: '#fff',
-                    letterSpacing: 0.3,
-                    cursor: 'text',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    marginBottom: 12,
                   }}
-                  title="Click to rename"
                 >
-                  {entity.name}
+                  <div
+                    style={{ position: 'relative', cursor: 'pointer' }}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {entity.imageUrl ? (
+                      <img
+                        src={entity.imageUrl}
+                        alt={entity.name}
+                        style={{
+                          width: 80,
+                          height: 80,
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          border: `3px solid ${entity.color}`,
+                          boxShadow: `0 0 20px ${entity.color}33`,
+                          display: 'block',
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 80,
+                          height: 80,
+                          borderRadius: '50%',
+                          background: `linear-gradient(135deg, ${entity.color}, ${entity.color}99)`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#fff',
+                          fontSize: 32,
+                          fontWeight: 700,
+                          boxShadow: `0 0 20px ${entity.color}33`,
+                        }}
+                      >
+                        {entity.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {uploading && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          borderRadius: '50%',
+                          background: 'rgba(0,0,0,0.5)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#fff',
+                        }}
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          style={{ animation: 'spin 1s linear infinite' }}
+                        >
+                          <path d="M12 2a10 10 0 0 1 10 10" />
+                        </svg>
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        borderRadius: '50%',
+                        background: 'rgba(0,0,0,0)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'background 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        ;(e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.3)'
+                      }}
+                      onMouseLeave={(e) => {
+                        ;(e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0)'
+                      }}
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{ opacity: 0.7 }}
+                      >
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                    </div>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePortraitUpload}
+                    style={{ display: 'none' }}
+                  />
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* ── Tab bar ── */}
-          <div
-            style={{
-              display: 'flex',
-              borderTop: '1px solid rgba(255,255,255,0.06)',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              flexShrink: 0,
-            }}
-          >
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                {/* Name */}
+                <div style={{ textAlign: 'center', marginBottom: 14 }}>
+                  {editingName ? (
+                    <input
+                      autoFocus
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onBlur={handleSaveName}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveName()
+                        if (e.key === 'Escape') {
+                          setEditingName(false)
+                          setEditName(entity.name)
+                        }
+                      }}
+                      style={{
+                        width: '80%',
+                        padding: '3px 8px',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: 6,
+                        fontSize: 16,
+                        fontWeight: 700,
+                        background: 'rgba(255,255,255,0.06)',
+                        color: '#fff',
+                        outline: 'none',
+                        textAlign: 'center',
+                        letterSpacing: 0.3,
+                        boxSizing: 'border-box',
+                        fontFamily: 'sans-serif',
+                      }}
+                    />
+                  ) : (
+                    <div
+                      onClick={() => setEditingName(true)}
+                      style={{
+                        fontWeight: 700,
+                        fontSize: 16,
+                        color: '#fff',
+                        letterSpacing: 0.3,
+                        cursor: 'text',
+                      }}
+                      title="Click to rename"
+                    >
+                      {entity.name}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Tab bar ── */}
+              <div
                 style={{
-                  flex: 1,
-                  padding: '8px 0',
-                  background: activeTab === tab.id ? 'rgba(255,255,255,0.06)' : 'transparent',
-                  border: 'none',
-                  borderBottom:
-                    activeTab === tab.id ? `2px solid ${entity.color}` : '2px solid transparent',
-                  cursor: 'pointer',
-                  color: activeTab === tab.id ? '#fff' : 'rgba(255,255,255,0.35)',
-                  fontSize: 9,
-                  fontWeight: 700,
-                  letterSpacing: 0.8,
-                  textTransform: 'uppercase',
-                  transition: 'color 0.15s, background 0.15s, border-color 0.15s',
-                  fontFamily: 'sans-serif',
-                }}
-                onMouseEnter={(e) => {
-                  if (activeTab !== tab.id) e.currentTarget.style.color = 'rgba(255,255,255,0.6)'
-                }}
-                onMouseLeave={(e) => {
-                  if (activeTab !== tab.id) e.currentTarget.style.color = 'rgba(255,255,255,0.35)'
+                  display: 'flex',
+                  borderTop: '1px solid rgba(255,255,255,0.06)',
+                  borderBottom: '1px solid rgba(255,255,255,0.06)',
+                  flexShrink: 0,
                 }}
               >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+                {TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 0',
+                      background: activeTab === tab.id ? 'rgba(255,255,255,0.06)' : 'transparent',
+                      border: 'none',
+                      borderBottom:
+                        activeTab === tab.id
+                          ? `2px solid ${entity.color}`
+                          : '2px solid transparent',
+                      cursor: 'pointer',
+                      color: activeTab === tab.id ? '#fff' : 'rgba(255,255,255,0.35)',
+                      fontSize: 9,
+                      fontWeight: 700,
+                      letterSpacing: 0.8,
+                      textTransform: 'uppercase',
+                      transition: 'color 0.15s, background 0.15s, border-color 0.15s',
+                      fontFamily: 'sans-serif',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (activeTab !== tab.id)
+                        e.currentTarget.style.color = 'rgba(255,255,255,0.6)'
+                    }}
+                    onMouseLeave={(e) => {
+                      if (activeTab !== tab.id)
+                        e.currentTarget.style.color = 'rgba(255,255,255,0.35)'
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
-          {/* ── Tab content (fixed height, scroll if needed) ── */}
-          <div
-            style={{
-              padding: '14px 16px 16px',
-              overflowY: 'auto',
-              height: 500,
-            }}
-          >
-            {tabContent[activeTab]()}
-          </div>
+              {/* ── Tab content (fixed height, scroll if needed) ── */}
+              <div
+                style={{
+                  padding: '14px 16px 16px',
+                  overflowY: 'auto',
+                  height: 500,
+                }}
+              >
+                {tabContent[activeTab]()}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Tab handle — always visible */}

@@ -1,5 +1,5 @@
 import type { DiceTermResult } from '../shared/diceUtils'
-import type { JudgmentResult } from '../rules/types'
+import type { JudgmentResult, DieStyle, JudgmentDisplay } from '../rules/types'
 
 export interface ChatTextMessage {
   type: 'text'
@@ -26,6 +26,8 @@ export interface ChatRollMessage {
   timestamp: number
   actionName?: string
   judgment?: JudgmentResult
+  dieStyles?: DieStyle[]
+  judgmentDisplay?: JudgmentDisplay
   modifiersApplied?: string[]
 }
 

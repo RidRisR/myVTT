@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from 'react'
 import { rollCompound, resolveFormula } from '../shared/diceUtils'
 import type { ChatMessage } from './chatTypes'
+import type { ChatCommand } from '../rules/types'
 
 interface Suggestion {
   key: string
@@ -18,6 +19,7 @@ interface ChatInputProps {
   onSend: (message: ChatMessage) => void
   onFocus?: () => void
   onCycleSpeaker?: () => void
+  customCommands?: ChatCommand[]
 }
 
 function generateId(): string {
@@ -36,6 +38,7 @@ export function ChatInput({
   onSend,
   onFocus,
   onCycleSpeaker,
+  customCommands = [],
 }: ChatInputProps) {
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
@@ -100,6 +103,17 @@ export function ChatInput({
     const trimmed = input.trim()
     if (!trimmed) return
 
+    // Check custom commands from rule system (e.g. ".dd")
+    for (const cmd of customCommands) {
+      const re = new RegExp(`^\\${cmd.prefix}\\s*(.*)$`, 'i')
+      const match = trimmed.match(re)
+      if (match) {
+        const formula = cmd.buildFormula(match[1].trim())
+        handleRoll(formula, cmd.name)
+        return
+      }
+    }
+
     // Check if it's a dice roll
     const rollMatch = trimmed.match(/^\.r\s*(.+)$/i)
     if (rollMatch) {
@@ -122,7 +136,7 @@ export function ChatInput({
     }
   }
 
-  const handleRoll = (formula: string) => {
+  const handleRoll = (formula: string, actionName?: string) => {
     // Resolve @key references using provided token props
     const tokenProps = selectedTokenProps
 
@@ -162,6 +176,7 @@ export function ChatInput({
       terms: result.termResults,
       total: result.total,
       timestamp: Date.now(),
+      actionName,
     })
     setInput('')
     setError('')

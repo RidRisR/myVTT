@@ -9,6 +9,10 @@ interface DiceReelProps {
   dropped?: boolean
   /** Delay (seconds) before showing dropped styling — wait for all dice to land */
   dropRevealDelay?: number
+  /** Override border/glow color (e.g. Hope=gold, Fear=purple) */
+  color?: string
+  /** Tiny label below the die (e.g. "Hope", "Fear") */
+  label?: string
 }
 
 type Phase = 'spinning' | 'landing' | 'stopped'
@@ -19,6 +23,8 @@ export function DiceReel({
   stopDelay,
   dropped = false,
   dropRevealDelay,
+  color,
+  label,
 }: DiceReelProps) {
   // Lock animation params at mount — immune to later prop changes (e.g. isNew toggling)
   const initialRef = useRef({ stopDelay, result, sides, dropRevealDelay })
@@ -78,6 +84,9 @@ export function DiceReel({
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const borderColor = color ? `${color}4D` : 'rgba(96, 165, 250, 0.3)'
+  const glowColor = color ?? 'rgba(59, 130, 246, 1)'
+
   const baseStyle: React.CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
@@ -87,7 +96,7 @@ export function DiceReel({
     padding: '0 8px',
     borderRadius: 6,
     background: 'rgba(30, 41, 59, 0.6)',
-    border: '1px solid rgba(96, 165, 250, 0.3)',
+    border: `1px solid ${borderColor}`,
     color: '#e2e8f0',
     fontSize: 16,
     fontWeight: 600,
@@ -102,16 +111,43 @@ export function DiceReel({
     spinning: {
       ...baseStyle,
       filter: 'blur(1.5px)',
-      boxShadow: '0 0 16px rgba(59, 130, 246, 0.5)',
+      boxShadow: `0 0 16px ${glowColor}80`,
     },
     landing: {
       ...baseStyle,
       filter: 'blur(0)',
       animation: 'diceLand 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-      boxShadow: '0 0 20px rgba(59, 130, 246, 0.8), inset 0 0 8px rgba(96, 165, 250, 0.3)',
+      boxShadow: `0 0 20px ${glowColor}CC, inset 0 0 8px ${glowColor}4D`,
     },
     stopped: baseStyle,
   }
 
-  return <span style={phaseStyles[phase]}>{displayValue}</span>
+  const dieEl = <span style={phaseStyles[phase]}>{displayValue}</span>
+
+  if (!label) return dieEl
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 2,
+      }}
+    >
+      {dieEl}
+      <span
+        style={{
+          fontSize: 8,
+          color: color ?? '#94a3b8',
+          fontWeight: 600,
+          letterSpacing: 0.5,
+          textTransform: 'uppercase',
+          lineHeight: 1,
+        }}
+      >
+        {label}
+      </span>
+    </span>
+  )
 }
