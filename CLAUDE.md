@@ -89,21 +89,25 @@ myVTT is a lightweight Virtual Tabletop built with React + Yjs + y-websocket for
 - [ ] UX polish
 - [ ] Cloud deployment (Nginx + HTTPS + Docker)
 
-### Parallel Development Strategy
+### Git Workflow (IMPORTANT)
 
-This project supports parallel feature development using git worktrees:
+**All development MUST use git worktrees with dedicated branches:**
 
-1. Shared functions extracted to `/src/shared/` (idUtils, entityTypes, etc.)
-2. Feature branches work independently with minimal conflicts
-3. Merge strategy: sequential integration with rebase
+1. Create a new worktree + branch for every feature or fix: `git worktree add .worktrees/<branch-name> -b <branch-name>`
+2. Do all work inside the worktree directory
+3. Submit a Pull Request to merge into `main` — direct pushes are NOT allowed
 
-Branch-specific constraints are documented in respective feature branch CLAUDE.md files.
+**Linear history — squash merge only:**
 
-### Branch Protection
+- The `main` branch MUST maintain a linear commit history
+- PRs MUST be merged using **squash merge** (`gh pr merge --squash`) — never use merge commits or rebase merge
+- This keeps `main` clean: one commit per PR, no merge bubbles
 
-- **`main` branch is protected** - direct pushes are NOT allowed
-- All changes MUST go through Pull Requests
-- Create a feature/fix branch, commit there, then open a PR to merge into main
+**Worktree conventions:**
+
+- Worktree directory: `.worktrees/<branch-name>` (already in `.gitignore`)
+- Shared functions live in `/src/shared/` to minimize cross-branch conflicts
+- Branch-specific constraints are documented in respective feature branch CLAUDE.md files
 
 ### Documentation Language
 
@@ -113,14 +117,3 @@ Branch-specific constraints are documented in respective feature branch CLAUDE.m
 ### Commit Convention
 
 - Do NOT add `Co-Authored-By` or any AI attribution lines to commit messages
-
-## Current Branch: feature/konva-map
-
-### File Ownership
-
-- **May modify**: `src/combat/*` (full rewrite DOM → Konva)
-- **May modify**: `package.json` (add konva/react-konva, remove react-zoom-pan-pinch)
-- **Do NOT touch**: `src/rules/`, `src/chat/`, `src/layout/`, `src/entities/`
-- `entityTypes.ts`: only append optional fields, do not change existing ones
-- `entityAdapters.ts`: read-only, do not change signatures
-- Keep `CombatViewerProps` interface unchanged (App.tsx should not need changes)
