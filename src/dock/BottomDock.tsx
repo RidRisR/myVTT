@@ -29,6 +29,7 @@ interface BottomDockProps {
 
   entities: Entity[]
   onAddEntity: (entity: Entity) => void
+  onAddEntityToScene: (entityId: string) => void
   isCombat: boolean
 
   selectedToken: MapToken | null
@@ -52,6 +53,7 @@ export function BottomDock({
   onShowcaseHandout,
   entities,
   onAddEntity,
+  onAddEntityToScene,
   isCombat,
   selectedToken,
   onAddToken,
@@ -135,6 +137,7 @@ export function BottomDock({
       blueprintId: bp.id,
     }
     onAddEntity(entity)
+    onAddEntityToScene(entity.id)
     return entity
   }
 

@@ -13,6 +13,7 @@ type PortraitTabId = 'characters' | 'initiative'
 
 interface PortraitBarProps {
   entities: Entity[]
+  sceneEntityIds: string[]
   mySeatId: string | null
   role: 'GM' | 'PL'
   isGM: boolean
@@ -21,7 +22,7 @@ interface PortraitBarProps {
   activeCharacterId: string | null
   onInspectCharacter: (charId: string | null) => void
   onSetActiveCharacter: (charId: string) => void
-  onDeleteEntity: (entityId: string) => void
+  onRemoveFromScene: (entityId: string) => void
   onUpdateEntity: (id: string, updates: Partial<Entity>) => void
 }
 
@@ -78,6 +79,7 @@ function ResourceRingBg({ index, size }: { index: number; size: number }) {
 
 export function PortraitBar({
   entities,
+  sceneEntityIds,
   mySeatId,
   role,
   isGM,
@@ -86,7 +88,7 @@ export function PortraitBar({
   activeCharacterId,
   onInspectCharacter,
   onSetActiveCharacter,
-  onDeleteEntity,
+  onRemoveFromScene,
   onUpdateEntity,
 }: PortraitBarProps) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entityId: string } | null>(
@@ -163,9 +165,12 @@ export function PortraitBar({
     [inspectedCharacterId, onInspectCharacter],
   )
 
-  // Filter to entities visible to this seat
-  const visibleEntities = entities.filter((e) =>
-    mySeatId ? canSee(e.permissions, mySeatId, role) : isGM,
+  // Filter to entities in the current scene (or persistent) and visible to this seat
+  const sceneIdSet = new Set(sceneEntityIds)
+  const visibleEntities = entities.filter(
+    (e) =>
+      (e.persistent || sceneIdSet.has(e.id)) &&
+      (mySeatId ? canSee(e.permissions, mySeatId, role) : isGM),
   )
 
   if (visibleEntities.length === 0) return null
@@ -207,10 +212,10 @@ export function PortraitBar({
       },
     })
 
-    if (isGM && !Object.values(entity.permissions.seats).includes('owner')) {
+    if (isGM && !entity.persistent) {
       items.push({
         label: 'Remove from scene',
-        onClick: () => onDeleteEntity(entity.id),
+        onClick: () => onRemoveFromScene(entity.id),
         color: '#f87171',
       })
     }
