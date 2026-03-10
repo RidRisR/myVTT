@@ -17,6 +17,7 @@ export interface Entity {
   notes: string
   ruleData: unknown
   permissions: EntityPermissions
+  persistent: boolean
 }
 
 export interface MapToken {
@@ -25,7 +26,7 @@ export interface MapToken {
   x: number
   y: number
   size: number
-  gmOnly: boolean
+  permissions: EntityPermissions
   label?: string
   imageUrl?: string
   color?: string

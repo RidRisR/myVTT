@@ -10,6 +10,7 @@ export function makeEntity(overrides?: Partial<Entity>): Entity {
     notes: '',
     ruleData: null,
     permissions: { default: 'observer', seats: {} },
+    persistent: false,
     ...overrides,
   }
 }
@@ -20,7 +21,7 @@ export function makeToken(overrides?: Partial<MapToken>): MapToken {
     x: 100,
     y: 200,
     size: 1,
-    gmOnly: false,
+    permissions: { default: 'observer', seats: {} },
     ...overrides,
   }
 }

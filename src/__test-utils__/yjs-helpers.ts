@@ -11,20 +11,6 @@ export function createTestDoc(): { yDoc: Y.Doc } & WorldMaps {
   return { yDoc, ...createWorldMaps(yDoc) }
 }
 
-function buildWorldMaps(yDoc: Y.Doc): WorldMaps {
-  const world = yDoc.getMap('world')
-  return {
-    world,
-    scenes: world.get('scenes') as Y.Map<Y.Map<unknown>>,
-    party: world.get('party') as Y.Map<Y.Map<unknown>>,
-    prepared: world.get('prepared') as Y.Map<unknown>,
-    blueprints: world.get('blueprints') as Y.Map<unknown>,
-    seats: world.get('seats') as Y.Map<unknown>,
-    chat: world.get('chat') as Y.Array<unknown>,
-    room: world.get('room') as Y.Map<unknown>,
-  }
-}
-
 /**
  * Create two Y.Docs with bidirectional sync via Y.applyUpdate.
  * Simulates two clients connected to the same room without real WebSocket.
@@ -42,32 +28,16 @@ export function createSyncedPair(): {
   doc1.on('update', (update: Uint8Array) => Y.applyUpdate(doc2, update))
   doc2.on('update', (update: Uint8Array) => Y.applyUpdate(doc1, update))
 
-  // Initialize world structure on doc1 (auto-syncs to doc2)
-  const world1Root = doc1.getMap('world')
-  doc1.transact(() => {
-    world1Root.set('scenes', new Y.Map())
-    world1Root.set('party', new Y.Map())
-    world1Root.set('prepared', new Y.Map())
-    world1Root.set('blueprints', new Y.Map())
-    world1Root.set('seats', new Y.Map())
-    world1Root.set('chat', new Y.Array())
-    world1Root.set('room', new Y.Map())
-  })
-
   return {
     doc1,
     doc2,
-    world1: buildWorldMaps(doc1),
-    world2: buildWorldMaps(doc2),
+    world1: createWorldMaps(doc1),
+    world2: createWorldMaps(doc2),
   }
 }
 
-/** Add a scene with entities + tokens sub-maps to a scenes Y.Map */
-export function addSceneToDoc(
-  scenes: Y.Map<Y.Map<unknown>>,
-  yDoc: Y.Doc,
-  sceneId: string,
-) {
+/** Add a scene with entityIds + tokens sub-maps to a scenes Y.Map */
+export function addSceneToDoc(scenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc, sceneId: string) {
   yDoc.transact(() => {
     const sceneMap = new Y.Map<unknown>()
     scenes.set(sceneId, sceneMap)
@@ -81,7 +51,9 @@ export function addSceneToDoc(
     sceneMap.set('gridOffsetX', 0)
     sceneMap.set('gridOffsetY', 0)
     sceneMap.set('sortOrder', 0)
-    sceneMap.set('entities', new Y.Map())
+    sceneMap.set('combatActive', false)
+    sceneMap.set('battleMapUrl', '')
+    sceneMap.set('entityIds', new Y.Map())
     sceneMap.set('tokens', new Y.Map())
   })
 }

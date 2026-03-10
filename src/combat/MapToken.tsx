@@ -6,7 +6,7 @@ interface MapTokenProps {
   entity: Entity | null
   pixelSize: number
   selected: boolean
-  gmOnly: boolean
+  isHidden: boolean
   dragging: boolean
   dragX?: number
   dragY?: number
@@ -19,7 +19,7 @@ export function MapToken({
   entity,
   pixelSize,
   selected,
-  gmOnly,
+  isHidden,
   dragging,
   dragX,
   dragY,
@@ -64,8 +64,8 @@ export function MapToken({
           boxShadow: selected
             ? `0 0 0 2px ${color}, 0 0 16px ${color}66`
             : `0 2px 8px rgba(0,0,0,0.4)`,
-          opacity: gmOnly ? 0.5 : 1,
-          borderStyle: gmOnly ? 'dashed' : 'solid',
+          opacity: isHidden ? 0.5 : 1,
+          borderStyle: isHidden ? 'dashed' : 'solid',
           boxSizing: 'border-box',
           transition: 'border-color 0.15s, box-shadow 0.15s',
         }}

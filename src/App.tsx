@@ -45,15 +45,17 @@ function RoomSession({ roomId }: { roomId: string }) {
     leaveSeat,
     updateSeat,
   } = useIdentity(world.seats, awareness)
-  const { room, setActiveScene, setCombatScene, enterCombat, exitCombat } = useRoom(world.room)
-  const { scenes, addScene, updateScene, deleteScene, getScene } = useScenes(world.scenes, yDoc)
-
-  const combatSceneId = room.mode === 'combat' ? room.combatSceneId : null
-  const { entities, addSceneEntity, updateEntity, deleteEntity, getEntity } = useEntities(
-    world,
-    room.activeSceneId,
+  const { room, setActiveScene } = useRoom(world.room)
+  const { scenes, addScene, updateScene, deleteScene, getScene, setCombatActive } = useScenes(
+    world.scenes,
     yDoc,
   )
+
+  const { entities, addEntity, updateEntity, deleteEntity, getEntity } = useEntities(world, yDoc)
+
+  const activeScene = getScene(room.activeSceneId)
+  const isCombat = activeScene?.combatActive ?? false
+  const combatSceneId = isCombat ? room.activeSceneId : null
   const { tokens, addToken, updateToken, deleteToken, getToken } = useSceneTokens(
     world,
     combatSceneId,
@@ -119,9 +121,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   }
 
   const isGM = mySeat.role === 'GM'
-  const isCombat = room.mode === 'combat'
-  const activeScene = getScene(room.activeSceneId)
-  const combatScene = getScene(room.combatSceneId)
 
   // Derive entity data
   const activeEntity = getEntity(mySeat.activeCharacterId ?? null)
@@ -192,8 +191,9 @@ function RoomSession({ roomId }: { roomId: string }) {
       notes: '',
       ruleData: null,
       permissions: defaultNPCPermissions(),
+      persistent: false,
     }
-    addSceneEntity(newEntity)
+    addEntity(newEntity)
     setInspectedCharacterId(newEntity.id)
     setBgContextMenu(null)
   }
@@ -202,7 +202,7 @@ function RoomSession({ roomId }: { roomId: string }) {
     <div>
       {isCombat ? (
         <CombatViewer
-          scene={combatScene}
+          scene={activeScene}
           tokens={tokens}
           getEntity={getEntity}
           mySeatId={mySeatId}
@@ -260,13 +260,13 @@ function RoomSession({ roomId }: { roomId: string }) {
       {isGM && (
         <BottomDock
           scenes={scenes}
-          combatSceneId={room.combatSceneId}
-          onSetCombatScene={setCombatScene}
+          activeSceneId={room.activeSceneId}
+          onSelectScene={setActiveScene}
           onAddScene={addScene}
           onDeleteScene={deleteScene}
           blueprints={world.blueprints}
           entities={entities}
-          onAddSceneEntity={addSceneEntity}
+          onAddEntity={addEntity}
           isCombat={isCombat}
           selectedToken={getToken(selectedTokenId)}
           onAddToken={addToken}
@@ -285,10 +285,12 @@ function RoomSession({ roomId }: { roomId: string }) {
       {isGM && (
         <GmToolbar
           scenes={scenes}
-          room={room}
+          activeSceneId={room.activeSceneId}
+          isCombat={isCombat}
           onSelectScene={setActiveScene}
-          onEnterCombat={enterCombat}
-          onExitCombat={exitCombat}
+          onToggleCombat={() => {
+            if (room.activeSceneId) setCombatActive(room.activeSceneId, !isCombat)
+          }}
           onAddScene={addScene}
           onUpdateScene={updateScene}
           onDeleteScene={deleteScene}

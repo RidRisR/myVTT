@@ -5,16 +5,16 @@ import { generateTokenId } from '../shared/idUtils'
 
 interface MapDockTabProps {
   scenes: Scene[]
-  combatSceneId: string | null
-  onSetCombatScene: (sceneId: string) => void
+  activeSceneId: string | null
+  onSelectScene: (sceneId: string) => void
   onAddScene: (scene: Scene) => void
   onDeleteScene: (id: string) => void
 }
 
 export function MapDockTab({
   scenes,
-  combatSceneId,
-  onSetCombatScene,
+  activeSceneId,
+  onSelectScene,
   onAddScene,
   onDeleteScene,
 }: MapDockTabProps) {
@@ -43,9 +43,11 @@ export function MapDockTab({
         gridOffsetX: 0,
         gridOffsetY: 0,
         sortOrder: scenes.length,
+        combatActive: false,
+        battleMapUrl: '',
       }
       onAddScene(scene)
-      onSetCombatScene(scene.id)
+      onSelectScene(scene.id)
     } finally {
       setUploading(false)
     }
@@ -69,7 +71,7 @@ export function MapDockTab({
         }}
       >
         {scenes.map((scene) => {
-          const isActive = scene.id === combatSceneId
+          const isActive = scene.id === activeSceneId
           const isHovered = hoveredId === scene.id
           return (
             <div
@@ -83,7 +85,7 @@ export function MapDockTab({
                 boxShadow: isActive ? '0 0 12px rgba(59,130,246,0.3)' : 'none',
                 transition: 'border-color 0.15s, box-shadow 0.15s',
               }}
-              onClick={() => onSetCombatScene(scene.id)}
+              onClick={() => onSelectScene(scene.id)}
               onMouseEnter={() => setHoveredId(scene.id)}
               onMouseLeave={() => setHoveredId(null)}
             >
