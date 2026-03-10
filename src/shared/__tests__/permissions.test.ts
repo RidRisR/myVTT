@@ -2,11 +2,13 @@ import {
   getPermission,
   canSee,
   canEdit,
+  getEffectivePermissions,
   defaultPCPermissions,
   defaultNPCPermissions,
   hiddenNPCPermissions,
 } from '../permissions'
 import type { EntityPermissions } from '../entityTypes'
+import { makeToken, makeEntity } from '../../__test-utils__/fixtures'
 
 const ownerPerms: EntityPermissions = { default: 'none', seats: { 'seat-1': 'owner' } }
 const observerPerms: EntityPermissions = { default: 'observer', seats: {} }
@@ -87,5 +89,30 @@ describe('permission factories', () => {
     const perms = hiddenNPCPermissions()
     expect(perms.default).toBe('none')
     expect(Object.keys(perms.seats)).toHaveLength(0)
+  })
+})
+
+// ── getEffectivePermissions ─────────────────────────────────
+
+describe('getEffectivePermissions', () => {
+  it('returns token permissions when token has no entityId', () => {
+    const token = makeToken({ permissions: hiddenPerms })
+    const getEntity = () => null
+    expect(getEffectivePermissions(token, getEntity)).toBe(hiddenPerms)
+  })
+
+  it('returns entity permissions when token has entityId and entity exists', () => {
+    const entityPerms: EntityPermissions = { default: 'observer', seats: { 'seat-1': 'owner' } }
+    const token = makeToken({ entityId: 'e1', permissions: hiddenPerms })
+    const getEntity = (id: string) =>
+      id === 'e1' ? makeEntity({ id: 'e1', permissions: entityPerms }) : null
+    expect(getEffectivePermissions(token, getEntity)).toEqual(entityPerms)
+  })
+
+  it('falls back to token permissions when entityId set but entity not found', () => {
+    const tokenPerms: EntityPermissions = { default: 'observer', seats: {} }
+    const token = makeToken({ entityId: 'missing', permissions: tokenPerms })
+    const getEntity = () => null
+    expect(getEffectivePermissions(token, getEntity)).toBe(tokenPerms)
   })
 })
