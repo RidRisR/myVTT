@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from 'react'
+import { MessageSquare } from 'lucide-react'
 import type { ChatMessage } from './chatTypes'
 import { MessageCard } from './MessageCard'
 
@@ -90,14 +91,22 @@ export function MessageScrollArea({ messages, newMessageIds }: MessageScrollArea
           onScroll={checkIfAtBottom}
           onWheel={(e) => e.stopPropagation()}
         >
-          {messages.map((msg) => (
-            <MessageCard
-              key={msg.id}
-              message={msg}
-              isNew={newMessageIds.has(msg.id)}
-              animationStyle="scroll"
-            />
-          ))}
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+              <MessageSquare size={32} strokeWidth={1} className="text-text-muted/40" />
+              <p className="text-text-muted text-sm">No messages yet</p>
+              <p className="text-text-muted/50 text-xs">Start the adventure!</p>
+            </div>
+          ) : (
+            messages.map((msg) => (
+              <MessageCard
+                key={msg.id}
+                message={msg}
+                isNew={newMessageIds.has(msg.id)}
+                animationStyle="scroll"
+              />
+            ))
+          )}
         </div>
       </div>
     </>
