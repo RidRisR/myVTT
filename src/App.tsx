@@ -1,21 +1,23 @@
 import { useEffect, useState } from 'react'
 import { useYjsConnection } from './yjs/useYjsConnection'
 import { AdminPanel } from './admin/AdminPanel'
-import { useRoom } from './yjs/useRoom'
-import { useScenes } from './yjs/useScenes'
-import type { Scene } from './yjs/useScenes'
+import { useWorldStore } from './stores/worldStore'
+import type { Scene, HandoutAsset } from './stores/worldStore'
+import { useIdentityStore } from './stores/identityStore'
+import { useUiStore } from './stores/uiStore'
+import {
+  selectActiveScene,
+  selectIsCombat,
+  deriveSeatProperties,
+  selectSpeakerEntities,
+} from './stores/selectors'
 import { useWorld } from './yjs/useWorld'
-import { useEntities } from './entities/useEntities'
-import { useSceneTokens } from './combat/useSceneTokens'
-import { SeatSelect } from './identity/SeatSelect'
-import { useIdentity } from './identity/useIdentity'
 import { roleStore } from './shared/roleState'
+import { SeatSelect } from './identity/SeatSelect'
 import { ChatPanel } from './chat/ChatPanel'
 import { SceneViewer } from './scene/SceneViewer'
 import { CombatViewer } from './combat/CombatViewer'
 import { BottomDock } from './dock/BottomDock'
-import { useHandoutAssets } from './dock/useHandoutAssets'
-import type { HandoutAsset } from './dock/useHandoutAssets'
 
 import { GmToolbar } from './gm/GmToolbar'
 import { HamburgerMenu } from './layout/HamburgerMenu'
@@ -23,11 +25,9 @@ import { PortraitBar } from './layout/PortraitBar'
 import { MyCharacterCard } from './layout/MyCharacterCard'
 import { ContextMenu } from './shared/ContextMenu'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
-import { useShowcase } from './showcase/useShowcase'
 import type { ShowcaseItem } from './showcase/showcaseTypes'
 import type { Entity } from './shared/entityTypes'
 import { defaultNPCPermissions } from './shared/permissions'
-import { getEntityResources, getEntityAttributes } from './shared/entityAdapters'
 import {
   gcOrphanedEntities,
   addEntityToAllScenes,
@@ -40,62 +40,89 @@ import { TeamDashboard } from './team/TeamDashboard'
 function RoomSession({ roomId }: { roomId: string }) {
   const { yDoc, isLoading, awareness } = useYjsConnection(roomId)
   const world = useWorld(yDoc)
-  const {
-    seats,
-    mySeat,
-    mySeatId,
-    onlineSeatIds,
-    claimSeat,
-    createSeat,
-    deleteSeat,
-    leaveSeat,
-    updateSeat,
-  } = useIdentity(world.seats, awareness)
-  const { room, setActiveScene } = useRoom(world.room)
-  const {
-    scenes,
-    addScene,
-    updateScene,
-    deleteScene,
-    getScene,
-    addEntityToScene,
-    removeEntityFromScene,
-    getSceneEntityIds,
-    setCombatActive,
-  } = useScenes(world.scenes, yDoc)
 
-  const { entities, addEntity, updateEntity, getEntity } = useEntities(world, yDoc)
+  // Initialize stores with Yjs data
+  const initWorld = useWorldStore((s) => s.init)
+  const initIdentity = useIdentityStore((s) => s.init)
 
-  const activeScene = getScene(room.activeSceneId)
-  const isCombat = activeScene?.combatActive ?? false
-  const combatSceneId = isCombat ? room.activeSceneId : null
-  const { tokens, addToken, updateToken, deleteToken, getToken } = useSceneTokens(
-    world,
-    combatSceneId,
-  )
+  useEffect(() => {
+    const cleanupWorld = initWorld(yDoc)
+    const cleanupIdentity = initIdentity(world.seats, awareness)
+    return () => {
+      cleanupWorld()
+      cleanupIdentity()
+    }
+  }, [yDoc, awareness, world.seats, initWorld, initIdentity])
 
-  const { addItem: addShowcaseItem } = useShowcase(yDoc)
-  const {
-    assets: handoutAssets,
-    addAsset: addHandoutAsset,
-    updateAsset: updateHandoutAsset,
-    deleteAsset: deleteHandoutAsset,
-  } = useHandoutAssets(yDoc)
+  // World store subscriptions
+  const room = useWorldStore((s) => s.room)
+  const scenes = useWorldStore((s) => s.scenes)
+  const entities = useWorldStore((s) => s.entities)
+  const tokens = useWorldStore((s) => s.tokens)
+  const handoutAssets = useWorldStore((s) => s.handoutAssets)
+  const activeScene = useWorldStore(selectActiveScene)
+  const isCombat = useWorldStore(selectIsCombat)
 
-  const [inspectedCharacterId, setInspectedCharacterId] = useState<string | null>(null)
-  const [selectedTokenId, setSelectedTokenId] = useState<string | null>(null)
-  const [bgContextMenu, setBgContextMenu] = useState<{ x: number; y: number } | null>(null)
-  const [editingHandout, setEditingHandout] = useState<HandoutAsset | null>(null)
+  // World store actions
+  const setActiveScene = useWorldStore((s) => s.setActiveScene)
+  const addScene = useWorldStore((s) => s.addScene)
+  const updateScene = useWorldStore((s) => s.updateScene)
+  const deleteSceneRaw = useWorldStore((s) => s.deleteScene)
+  const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
+  const removeEntityFromScene = useWorldStore((s) => s.removeEntityFromScene)
+  const getSceneEntityIds = useWorldStore((s) => s.getSceneEntityIds)
+  const setCombatActive = useWorldStore((s) => s.setCombatActive)
+  const addEntity = useWorldStore((s) => s.addEntity)
+  const updateEntity = useWorldStore((s) => s.updateEntity)
+  const addToken = useWorldStore((s) => s.addToken)
+  const updateToken = useWorldStore((s) => s.updateToken)
+  const deleteToken = useWorldStore((s) => s.deleteToken)
+  const addShowcaseItem = useWorldStore((s) => s.addShowcaseItem)
+  const addHandoutAsset = useWorldStore((s) => s.addHandoutAsset)
+  const updateHandoutAsset = useWorldStore((s) => s.updateHandoutAsset)
+  const deleteHandoutAsset = useWorldStore((s) => s.deleteHandoutAsset)
+  const setActiveTokenScene = useWorldStore((s) => s.setActiveTokenScene)
+
+  // Identity store subscriptions
+  const seats = useIdentityStore((s) => s.seats)
+  const mySeatId = useIdentityStore((s) => s.mySeatId)
+  const onlineSeatIds = useIdentityStore((s) => s.onlineSeatIds)
+  const getMySeat = useIdentityStore((s) => s.getMySeat)
+  const mySeat = getMySeat()
+
+  // Identity store actions
+  const claimSeat = useIdentityStore((s) => s.claimSeat)
+  const createSeat = useIdentityStore((s) => s.createSeat)
+  const deleteSeat = useIdentityStore((s) => s.deleteSeat)
+  const leaveSeat = useIdentityStore((s) => s.leaveSeat)
+  const updateSeat = useIdentityStore((s) => s.updateSeat)
+
+  // UI store
+  const inspectedCharacterId = useUiStore((s) => s.inspectedCharacterId)
+  const selectedTokenId = useUiStore((s) => s.selectedTokenId)
+  const bgContextMenu = useUiStore((s) => s.bgContextMenu)
+  const editingHandout = useUiStore((s) => s.editingHandout)
+  const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
+  const setSelectedTokenId = useUiStore((s) => s.setSelectedTokenId)
+  const setBgContextMenu = useUiStore((s) => s.setBgContextMenu)
+  const setEditingHandout = useUiStore((s) => s.setEditingHandout)
+
   // Sync role from seat
   const mySeatRole = mySeat?.role
   useEffect(() => {
     if (mySeatRole) roleStore.set(mySeatRole)
   }, [mySeatRole])
 
+  // Manage token observer based on combat scene
+  const combatSceneId = isCombat ? room.activeSceneId : null
+  useEffect(() => {
+    setActiveTokenScene(combatSceneId)
+  }, [combatSceneId, setActiveTokenScene])
+
   // Auto-set activeCharacterId if seat has an owned entity but no active one
   useEffect(() => {
     if (!mySeat || !mySeatId) return
-    if (mySeat.activeCharacterId) return // already set
+    if (mySeat.activeCharacterId) return
     const ownedEntity = entities.find((e) => e.permissions.seats[mySeatId] === 'owner')
     if (ownedEntity) {
       updateSeat(mySeatId, { activeCharacterId: ownedEntity.id })
@@ -136,42 +163,27 @@ function RoomSession({ roomId }: { roomId: string }) {
   const isGM = mySeat.role === 'GM'
 
   // Derive entity data
+  const getEntity = (id: string | null): Entity | null => {
+    if (!id) return null
+    return entities.find((e) => e.id === id) ?? null
+  }
+
   const activeEntity = getEntity(mySeat.activeCharacterId ?? null)
-  // For selected token in combat
-  const selectedToken = isCombat ? getToken(selectedTokenId) : null
+  const selectedToken = isCombat ? (tokens.find((t) => t.id === selectedTokenId) ?? null) : null
   const selectedTokenEntity = selectedToken?.entityId ? getEntity(selectedToken.entityId) : null
 
-  // Flatten resources + attributes into { key, value }[] for chat @key autocomplete
-  const allProps = [
-    ...getEntityResources(activeEntity)
-      .filter((r) => r.key)
-      .map((r) => ({ key: r.key, value: String(r.current) })),
-    ...getEntityAttributes(activeEntity)
-      .filter((a) => a.key)
-      .map((a) => ({ key: a.key, value: String(a.value) })),
-    ...getEntityResources(selectedTokenEntity)
-      .filter((r) => r.key)
-      .map((r) => ({ key: r.key, value: String(r.current) })),
-    ...getEntityAttributes(selectedTokenEntity)
-      .filter((a) => a.key)
-      .map((a) => ({ key: a.key, value: String(a.value) })),
-  ]
-  // Deduplicate by key — later entries (token entity) override earlier (active entity)
-  const seatProperties = [...new Map(allProps.map((p) => [p.key, p])).values()]
+  const seatProperties = deriveSeatProperties(activeEntity, selectedTokenEntity)
 
-  // Derive current scene's entity IDs for PortraitBar filtering
   const sceneEntityIds = room.activeSceneId ? getSceneEntityIds(room.activeSceneId) : []
 
-  // Handle removing an entity from the current scene (without deleting it)
   const handleRemoveFromScene = (entityId: string) => {
     if (room.activeSceneId) removeEntityFromScene(room.activeSceneId, entityId)
     if (inspectedCharacterId === entityId) setInspectedCharacterId(null)
   }
 
-  // Delete scene + garbage-collect orphaned non-persistent entities
   const handleDeleteScene = (sceneId: string) => {
     const entityIds = getSceneEntityIds(sceneId)
-    deleteScene(sceneId)
+    deleteSceneRaw(sceneId)
     yDoc.transact(() => {
       const deleted = gcOrphanedEntities(entityIds, world.scenes, world.entities)
       if (deleted.length > 0 && inspectedCharacterId && deleted.includes(inspectedCharacterId)) {
@@ -180,13 +192,11 @@ function RoomSession({ roomId }: { roomId: string }) {
     })
   }
 
-  // Add scene with persistent entities auto-joined
   const handleAddScene = (scene: Scene) => {
     const persistentIds = getPersistentEntityIds(world.entities)
     addScene(scene, persistentIds)
   }
 
-  // Add entity — if persistent, auto-join all existing scenes
   const handleAddEntity = (entity: Entity) => {
     addEntity(entity)
     if (entity.persistent) {
@@ -194,7 +204,6 @@ function RoomSession({ roomId }: { roomId: string }) {
     }
   }
 
-  // Update entity — if persistent toggled to true, auto-join all scenes
   const handleUpdateEntity = (id: string, updates: Partial<Entity>) => {
     if (updates.persistent === true) {
       const existing = getEntity(id)
@@ -205,7 +214,6 @@ function RoomSession({ roomId }: { roomId: string }) {
     updateEntity(id, updates)
   }
 
-  // Handle setting active character
   const handleSetActiveCharacter = (entityId: string) => {
     if (mySeatId) {
       updateSeat(mySeatId, { activeCharacterId: entityId })
@@ -308,9 +316,7 @@ function RoomSession({ roomId }: { roomId: string }) {
         senderColor={mySeat.color}
         portraitUrl={mySeat.portraitUrl || activeEntity?.imageUrl}
         seatProperties={seatProperties}
-        speakerEntities={
-          isGM ? entities : entities.filter((e) => e.permissions.seats[mySeatId] === 'owner')
-        }
+        speakerEntities={selectSpeakerEntities(entities, mySeatId, isGM)}
       />
 
       {/* Bottom dock: asset library (maps + tokens) — visible in both modes for GM */}
@@ -328,7 +334,7 @@ function RoomSession({ roomId }: { roomId: string }) {
             if (room.activeSceneId) addEntityToScene(room.activeSceneId, entityId)
           }}
           isCombat={isCombat}
-          selectedToken={getToken(selectedTokenId)}
+          selectedToken={selectedToken}
           onAddToken={addToken}
           onDeleteToken={deleteToken}
           onUpdateToken={updateToken}
