@@ -50,6 +50,7 @@ interface KonvaMapProps {
   onUpdateToken: (id: string, updates: Partial<MapToken>) => void
   onDeleteToken: (id: string) => void
   onAddToken: (token: MapToken) => void
+  onDropEntityOnMap?: (entityId: string, mapX: number, mapY: number) => void
 }
 
 const MIN_SCALE = 0.1
@@ -67,6 +68,7 @@ export function KonvaMap({
   onUpdateToken,
   onDeleteToken,
   onAddToken,
+  onDropEntityOnMap,
 }: KonvaMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Konva.Stage>(null)
@@ -361,6 +363,42 @@ export function KonvaMap({
         overflow: 'hidden',
         background: '#111',
         position: 'relative',
+      }}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes('application/x-entity-id')) {
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'copy'
+        }
+      }}
+      onDrop={(e) => {
+        e.preventDefault()
+        const entityId = e.dataTransfer.getData('application/x-entity-id')
+        if (!entityId || !onDropEntityOnMap) return
+
+        // Convert screen coordinates to map coordinates
+        const container = containerRef.current
+        if (!container) return
+        const rect = container.getBoundingClientRect()
+        const screenX = e.clientX - rect.left
+        const screenY = e.clientY - rect.top
+        // Inverse of stage transform: mapCoord = (screenCoord - stagePos) / stageScale
+        let mapX = (screenX - stagePos.x) / stageScale
+        let mapY = (screenY - stagePos.y) / stageScale
+
+        // Grid snap
+        if (scene?.gridSnap) {
+          const snapped = snapToGrid(
+            mapX,
+            mapY,
+            scene.gridSize,
+            scene.gridOffsetX,
+            scene.gridOffsetY,
+          )
+          mapX = snapped.x
+          mapY = snapped.y
+        }
+
+        onDropEntityOnMap(entityId, mapX, mapY)
       }}
     >
       {containerSize.width > 0 && containerSize.height > 0 && (
