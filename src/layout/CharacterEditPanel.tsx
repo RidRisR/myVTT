@@ -12,6 +12,8 @@ import {
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../shared/ui/ResourceBar'
 import { MiniHoldButton } from '../shared/ui/MiniHoldButton'
+import { useIdentityStore } from '../stores/identityStore'
+import { useAwarenessResource, getRemoteEdit } from '../shared/hooks/useAwarenessResource'
 
 interface CharacterEditPanelProps {
   character: Entity
@@ -76,6 +78,16 @@ export function CharacterEditPanel({
   const [colorPickerOpen, setColorPickerOpen] = useState<'character' | number | null>(null)
   const colorPickerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Awareness for resource drag broadcasting
+  const awareness = useIdentityStore((s) => s.getAwareness())
+  const mySeatId = useIdentityStore((s) => s.mySeatId)
+  const mySeat = useIdentityStore((s) => s.getMySeat())
+  const { broadcastEditing, clearEditing, remoteEdits } = useAwarenessResource(
+    awareness,
+    mySeatId,
+    mySeat?.color ?? null,
+  )
 
   // Close color picker on click outside
   useEffect(() => {
@@ -282,6 +294,7 @@ export function CharacterEditPanel({
   const renderResources = () => (
     <div>
       {resources.map((res, i) => {
+        const remoteEdit = getRemoteEdit(remoteEdits, character.id, String(i))
         return (
           <div key={i} style={{ marginBottom: 10 }}>
             {/* Header: name + current/max inputs + remove */}
@@ -372,6 +385,14 @@ export function CharacterEditPanel({
               draggable
               showButtons
               onChange={(val: number) => updateResource(i, { current: val })}
+              onDragStart={() => broadcastEditing(character.id, String(i), res.current)}
+              onDragMove={(val: number) => broadcastEditing(character.id, String(i), val)}
+              onDragEnd={(val: number) => {
+                updateResource(i, { current: val })
+                clearEditing()
+              }}
+              remoteDragValue={remoteEdit?.value ?? null}
+              softLockColor={remoteEdit?.color ?? null}
             />
             {/* Color picker -- collapsed by default */}
             {colorPickerOpen === i && (
