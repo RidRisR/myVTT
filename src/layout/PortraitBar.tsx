@@ -271,6 +271,11 @@ export function PortraitBar({
       <div
         key={entity.id}
         data-char-id={entity.id}
+        draggable={isGM}
+        onDragStart={(e) => {
+          e.dataTransfer.setData('application/x-entity-id', entity.id)
+          e.dataTransfer.effectAllowed = 'copy'
+        }}
         className="relative cursor-pointer transition-transform duration-fast"
         onClick={(e) => {
           handlePortraitClick(entity.id, e.currentTarget as HTMLElement)

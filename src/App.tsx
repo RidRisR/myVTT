@@ -26,7 +26,7 @@ import { MyCharacterCard } from './layout/MyCharacterCard'
 import { ContextMenu } from './shared/ContextMenu'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import type { ShowcaseItem } from './showcase/showcaseTypes'
-import type { Entity } from './shared/entityTypes'
+import type { Entity, MapToken } from './shared/entityTypes'
 import { defaultNPCPermissions } from './shared/permissions'
 import {
   gcOrphanedEntities,
@@ -262,6 +262,24 @@ function RoomSession({ roomId }: { roomId: string }) {
     setBgContextMenu(null)
   }
 
+  const handleDropEntityOnMap = (entityId: string, mapX: number, mapY: number) => {
+    const entity = getEntity(entityId)
+    if (!entity) return
+    const newToken: MapToken = {
+      id: generateTokenId(),
+      entityId: entity.id,
+      x: mapX,
+      y: mapY,
+      size: entity.size || 1,
+      color: entity.color,
+      imageUrl: entity.imageUrl,
+      label: entity.name,
+      permissions: { default: entity.permissions.default, seats: { ...entity.permissions.seats } },
+    }
+    addToken(newToken)
+    setSelectedTokenId(newToken.id)
+  }
+
   return (
     <div>
       <SceneViewer scene={activeScene} onContextMenu={handleBgContextMenu} />
@@ -278,6 +296,7 @@ function RoomSession({ roomId }: { roomId: string }) {
           onUpdateToken={updateToken}
           onDeleteToken={deleteToken}
           onAddToken={addToken}
+          onDropEntityOnMap={handleDropEntityOnMap}
           onContextMenu={handleBgContextMenu}
           onClose={() => {
             if (room.activeSceneId) setCombatActive(room.activeSceneId, false)

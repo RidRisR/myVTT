@@ -14,6 +14,7 @@ interface TacticalPanelProps {
   onUpdateToken: (id: string, updates: Partial<MapToken>) => void
   onDeleteToken: (id: string) => void
   onAddToken: (token: MapToken) => void
+  onDropEntityOnMap?: (entityId: string, mapX: number, mapY: number) => void
   onContextMenu?: (e: React.MouseEvent) => void
   onClose: () => void
 }
@@ -29,6 +30,7 @@ export function TacticalPanel({
   onUpdateToken,
   onDeleteToken,
   onAddToken,
+  onDropEntityOnMap,
   onContextMenu,
   onClose,
 }: TacticalPanelProps) {
@@ -72,6 +74,7 @@ export function TacticalPanel({
           onUpdateToken={onUpdateToken}
           onDeleteToken={onDeleteToken}
           onAddToken={onAddToken}
+          onDropEntityOnMap={onDropEntityOnMap}
         />
       </div>
     </div>
