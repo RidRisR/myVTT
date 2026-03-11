@@ -39,8 +39,10 @@ export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneView
 
   const blurOverlay = (
     <div
-      className={`absolute inset-0 z-10 pointer-events-none transition-opacity duration-slow ease-out motion-reduce:duration-0 ${
-        blurred ? 'opacity-100' : 'opacity-0'
+      className={`absolute inset-0 z-10 pointer-events-none motion-reduce:duration-0 ${
+        blurred
+          ? 'opacity-100 transition-opacity duration-slow ease-out'
+          : 'opacity-0 transition-opacity duration-normal ease-in'
       }`}
       style={{ backdropFilter: 'blur(8px)', background: 'rgba(8,5,18,0.52)' }}
     />
