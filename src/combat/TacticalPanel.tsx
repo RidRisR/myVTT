@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react'
 import type { Scene } from '../stores/worldStore'
 import type { MapToken, Entity } from '../shared/entityTypes'
 import { useUiStore } from '../stores/uiStore'
@@ -15,7 +16,7 @@ interface TacticalPanelProps {
   onDeleteToken: (id: string) => void
   onAddToken: (token: MapToken) => void
   onDropEntityOnMap?: (entityId: string, mapX: number, mapY: number) => void
-  onContextMenu?: (e: React.MouseEvent) => void
+  onContextMenu?: (e: MouseEvent) => void
 }
 
 export function TacticalPanel({
