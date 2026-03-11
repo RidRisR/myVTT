@@ -36,6 +36,7 @@ interface KonvaTokenLayerProps {
   containerOffset: { x: number; y: number }
   onTokenContextMenu?: (event: TokenContextMenuEvent) => void
   onTokenHover?: (event: TokenHoverEvent | null) => void
+  gmViewAsPlayer?: boolean
 }
 
 const DRAG_THRESHOLD = 3
@@ -54,6 +55,7 @@ export function KonvaTokenLayer({
   containerOffset,
   onTokenContextMenu,
   onTokenHover,
+  gmViewAsPlayer = false,
 }: KonvaTokenLayerProps) {
   // Track whether a real drag happened (vs. click)
   const didDragRef = useRef(false)
@@ -69,10 +71,13 @@ export function KonvaTokenLayer({
     color: string
   } | null>(null)
 
+  // When GM is previewing as player, use 'PL' for visibility checks
+  const effectiveRole = gmViewAsPlayer && role === 'GM' ? 'PL' : role
+
   // Filter tokens by visibility
   const visibleTokens = tokens.filter((t) => {
     const perms = getEffectivePermissions(t, getEntity)
-    return canSee(perms, mySeatId, role)
+    return canSee(perms, mySeatId, effectiveRole)
   })
 
   const clearHoverTimer = useCallback(() => {
