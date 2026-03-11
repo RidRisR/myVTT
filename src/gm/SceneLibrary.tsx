@@ -56,6 +56,8 @@ export function SceneLibrary({
           sortOrder: scenes.length,
           combatActive: false,
           battleMapUrl: '',
+          initiativeOrder: [],
+          initiativeIndex: 0,
         }
         onAdd(scene)
       }

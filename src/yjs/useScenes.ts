@@ -18,6 +18,8 @@ export interface Scene {
   sortOrder: number
   combatActive: boolean
   battleMapUrl: string
+  initiativeOrder: string[]
+  initiativeIndex: number
 }
 
 function readScenes(yScenes: Y.Map<Y.Map<unknown>>): Scene[] {
@@ -44,6 +46,8 @@ function readScenes(yScenes: Y.Map<Y.Map<unknown>>): Scene[] {
       sortOrder: (sceneMap.get('sortOrder') as number) ?? 0,
       combatActive: (sceneMap.get('combatActive') as boolean) ?? false,
       battleMapUrl: (sceneMap.get('battleMapUrl') as string) ?? '',
+      initiativeOrder: (sceneMap.get('initiativeOrder') as string[]) ?? [],
+      initiativeIndex: (sceneMap.get('initiativeIndex') as number) ?? 0,
     })
   })
   scenes.sort((a, b) => a.sortOrder - b.sortOrder)
@@ -131,6 +135,8 @@ export function useScenes(yScenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc) {
       sortOrder: (sceneMap.get('sortOrder') as number) ?? 0,
       combatActive: (sceneMap.get('combatActive') as boolean) ?? false,
       battleMapUrl: (sceneMap.get('battleMapUrl') as string) ?? '',
+      initiativeOrder: (sceneMap.get('initiativeOrder') as string[]) ?? [],
+      initiativeIndex: (sceneMap.get('initiativeIndex') as number) ?? 0,
     }
   }
 
