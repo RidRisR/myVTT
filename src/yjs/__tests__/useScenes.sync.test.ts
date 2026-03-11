@@ -15,6 +15,8 @@ const baseScene: Scene = {
   gridOffsetX: 0,
   gridOffsetY: 0,
   sortOrder: 0,
+  combatActive: false,
+  battleMapUrl: '',
 }
 
 describe('useScenes — multi-client sync', () => {
@@ -25,7 +27,7 @@ describe('useScenes — multi-client sync', () => {
     return { doc1, doc2, world1, world2, hook1, hook2 }
   }
 
-  it('Client A adds scene → Client B sees it with entities/tokens sub-maps', () => {
+  it('Client A adds scene → Client B sees it with entityIds/tokens sub-maps', () => {
     const { hook1, hook2, world2 } = setup()
 
     act(() => hook1.result.current.addScene(baseScene))
@@ -36,8 +38,8 @@ describe('useScenes — multi-client sync', () => {
     // Verify nested containers synced
     const sceneMap = world2.scenes.get('scene-1')
     expect(sceneMap).toBeInstanceOf(Y.Map)
-    expect(sceneMap!.get('entities')).toBeInstanceOf(Y.Map)
-    expect(sceneMap!.get('tokens')).toBeInstanceOf(Y.Map)
+    expect((sceneMap as Y.Map<unknown>).get('entityIds')).toBeInstanceOf(Y.Map)
+    expect((sceneMap as Y.Map<unknown>).get('tokens')).toBeInstanceOf(Y.Map)
   })
 
   it('Client A updates gridSize → Client B syncs', () => {

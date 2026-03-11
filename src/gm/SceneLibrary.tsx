@@ -50,6 +50,8 @@ export function SceneLibrary({
           gridOffsetX: 0,
           gridOffsetY: 0,
           sortOrder: scenes.length,
+          combatActive: false,
+          battleMapUrl: '',
         }
         onAdd(scene)
       }

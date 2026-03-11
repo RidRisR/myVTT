@@ -14,8 +14,8 @@ type TabId = 'maps' | 'tokens' | 'handouts'
 
 interface BottomDockProps {
   scenes: Scene[]
-  combatSceneId: string | null
-  onSetCombatScene: (sceneId: string) => void
+  activeSceneId: string | null
+  onSelectScene: (sceneId: string) => void
   onAddScene: (scene: Scene) => void
   onDeleteScene: (id: string) => void
 
@@ -28,7 +28,8 @@ interface BottomDockProps {
   onShowcaseHandout: (asset: HandoutAsset) => void
 
   entities: Entity[]
-  onAddSceneEntity: (entity: Entity) => void
+  onAddEntity: (entity: Entity) => void
+  onAddEntityToScene: (entityId: string) => void
   isCombat: boolean
 
   selectedToken: MapToken | null
@@ -40,8 +41,8 @@ interface BottomDockProps {
 
 export function BottomDock({
   scenes,
-  combatSceneId,
-  onSetCombatScene,
+  activeSceneId,
+  onSelectScene,
   onAddScene,
   onDeleteScene,
   blueprints: blueprintsYMap,
@@ -51,7 +52,8 @@ export function BottomDock({
   onDeleteHandoutAsset,
   onShowcaseHandout,
   entities,
-  onAddSceneEntity,
+  onAddEntity,
+  onAddEntityToScene,
   isCombat,
   selectedToken,
   onAddToken,
@@ -131,9 +133,11 @@ export function BottomDock({
       notes: '',
       ruleData: bp.defaultRuleData ?? null,
       permissions: defaultNPCPermissions(),
+      persistent: false,
       blueprintId: bp.id,
     }
-    onAddSceneEntity(entity)
+    onAddEntity(entity)
+    onAddEntityToScene(entity.id)
     return entity
   }
 
@@ -145,7 +149,7 @@ export function BottomDock({
       x: 200,
       y: 200,
       size: bp.defaultSize,
-      gmOnly: false,
+      permissions: defaultNPCPermissions(),
     }
     onAddToken(token)
     onSelectToken(token.id)
@@ -161,9 +165,11 @@ export function BottomDock({
     onSelectToken(null)
   }
 
-  const handleToggleGmOnly = () => {
+  const handleToggleVisibility = () => {
     if (!selectedToken) return
-    onUpdateToken(selectedToken.id, { gmOnly: !selectedToken.gmOnly })
+    const isHidden = selectedToken.permissions.default === 'none'
+    const newPerms = isHidden ? defaultNPCPermissions() : { default: 'none' as const, seats: {} }
+    onUpdateToken(selectedToken.id, { permissions: newPerms })
   }
 
   const tabBtnStyle = (isActive: boolean): React.CSSProperties => ({
@@ -235,8 +241,8 @@ export function BottomDock({
           {activeTab === 'maps' && (
             <MapDockTab
               scenes={scenes}
-              combatSceneId={combatSceneId}
-              onSetCombatScene={onSetCombatScene}
+              activeSceneId={activeSceneId}
+              onSelectScene={onSelectScene}
               onAddScene={onAddScene}
               onDeleteScene={onDeleteScene}
             />
@@ -342,40 +348,44 @@ export function BottomDock({
         )}
 
         {/* Action: Toggle visibility */}
-        {selectedToken && (
-          <button
-            onClick={handleToggleGmOnly}
-            style={{
-              ...actionBtnStyle,
-              color: selectedToken.gmOnly ? '#fbbf24' : '#a0a0a0',
-            }}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              {selectedToken.gmOnly ? (
-                <>
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                  <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                  <line x1="1" y1="1" x2="23" y2="23" />
-                </>
-              ) : (
-                <>
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                  <circle cx="12" cy="12" r="3" />
-                </>
-              )}
-            </svg>
-            {selectedToken.gmOnly ? 'Hidden' : 'Visible'}
-          </button>
-        )}
+        {selectedToken &&
+          (() => {
+            const isHidden = selectedToken.permissions.default === 'none'
+            return (
+              <button
+                onClick={handleToggleVisibility}
+                style={{
+                  ...actionBtnStyle,
+                  color: isHidden ? '#fbbf24' : '#a0a0a0',
+                }}
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  {isHidden ? (
+                    <>
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </>
+                  ) : (
+                    <>
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </>
+                  )}
+                </svg>
+                {isHidden ? 'Hidden' : 'Visible'}
+              </button>
+            )
+          })()}
       </div>
     </div>
   )

@@ -1,18 +1,33 @@
 // src/shared/permissions.ts
-import type { Entity, PermissionLevel } from './entityTypes'
+import type { Entity, EntityPermissions, MapToken, PermissionLevel } from './entityTypes'
 
-export function getPermission(entity: Entity, seatId: string): PermissionLevel {
-  return entity.permissions.seats[seatId] ?? entity.permissions.default
+export function getPermission(permissions: EntityPermissions, seatId: string): PermissionLevel {
+  return permissions.seats[seatId] ?? permissions.default
 }
 
-export function canSee(entity: Entity, seatId: string, role: 'GM' | 'PL'): boolean {
+export function canSee(permissions: EntityPermissions, seatId: string, role: 'GM' | 'PL'): boolean {
   if (role === 'GM') return true
-  return getPermission(entity, seatId) !== 'none'
+  return getPermission(permissions, seatId) !== 'none'
 }
 
-export function canEdit(entity: Entity, seatId: string, role: 'GM' | 'PL'): boolean {
+export function canEdit(
+  permissions: EntityPermissions,
+  seatId: string,
+  role: 'GM' | 'PL',
+): boolean {
   if (role === 'GM') return true
-  return getPermission(entity, seatId) === 'owner'
+  return getPermission(permissions, seatId) === 'owner'
+}
+
+export function getEffectivePermissions(
+  token: MapToken,
+  getEntity: (id: string) => Entity | null,
+): EntityPermissions {
+  if (token.entityId) {
+    const entity = getEntity(token.entityId)
+    if (entity) return entity.permissions
+  }
+  return token.permissions
 }
 
 export function defaultPCPermissions(ownerSeatId: string): Entity['permissions'] {

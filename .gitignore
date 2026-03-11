@@ -29,3 +29,4 @@ dist/
 server/uploads/
 .worktrees/
 .claude
+coverage/

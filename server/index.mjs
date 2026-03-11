@@ -35,6 +35,17 @@ setPersistence({
     const persistedYdoc = await ldb.getYDoc(docName)
     const newUpdates = Y.encodeStateAsUpdate(persistedYdoc)
     Y.applyUpdate(ydoc, newUpdates)
+
+    // Migrate roster → entities (one-time, from pre-refactor data)
+    const roster = ydoc.getMap('roster')
+    const entities = ydoc.getMap('entities')
+    if (roster.size > 0 && entities.size === 0) {
+      ydoc.transact(() => {
+        roster.forEach((val, key) => entities.set(key, val))
+      })
+      console.log(`[migration] ${docName}: migrated ${roster.size} entries from roster → entities`)
+    }
+
     ydoc.on('update', (update) => {
       ldb.storeUpdate(docName, update)
     })

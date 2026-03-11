@@ -8,7 +8,7 @@ RUN npm run build
 FROM node:20-alpine
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
 COPY server/ server/
 COPY --from=build /app/dist dist/
 EXPOSE 4444
