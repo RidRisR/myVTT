@@ -213,12 +213,17 @@ export function CharacterHoverPreview({
                 draggable={canEdit}
                 showButtons={canEdit}
                 onChange={(val: number) => updateResource(i, { current: val })}
-                onDragStart={canEdit ? () => broadcastEditing(character.id, String(allIdx), res.current) : undefined}
-                onDragMove={canEdit ? (val: number) => broadcastEditing(character.id, String(allIdx), val) : undefined}
-                onDragEnd={canEdit ? (val: number) => {
-                  updateResource(i, { current: val })
-                  clearEditing()
-                } : undefined}
+                onDragStart={
+                  canEdit
+                    ? () => broadcastEditing(character.id, String(allIdx), res.current)
+                    : undefined
+                }
+                onDragMove={
+                  canEdit
+                    ? (val: number) => broadcastEditing(character.id, String(allIdx), val)
+                    : undefined
+                }
+                onDragEnd={canEdit ? () => clearEditing() : undefined}
                 remoteDragValue={remoteEdit?.value ?? null}
                 softLockColor={remoteEdit?.color ?? null}
                 style={{ marginBottom: i < resources.length - 1 ? 5 : 0 }}

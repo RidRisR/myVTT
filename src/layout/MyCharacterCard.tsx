@@ -209,126 +209,129 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
       {resources.map((res, i) => {
         const remoteEdit = getRemoteEdit(remoteEdits, entity.id, String(i))
         return (
-        <div key={i} style={{ marginBottom: 10 }}>
-          {/* Header: name + current/max inputs + remove */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-            <input
-              value={res.key}
-              onChange={(e) => updateResource(i, { key: e.target.value })}
-              placeholder="Name"
-              style={{ ...inputStyle, flex: 1, fontSize: 11, padding: '3px 6px', fontWeight: 600 }}
-            />
-            <input
-              key={`cur-${i}-${res.current}`}
-              defaultValue={res.current}
-              onBlur={(e) => {
-                const v = parseInt(e.target.value)
-                if (!isNaN(v)) updateResource(i, { current: Math.max(0, Math.min(v, res.max)) })
-                else e.target.value = String(res.current)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-              }}
-              style={{
-                ...inputStyle,
-                width: 32,
-                textAlign: 'center',
-                fontSize: 11,
-                padding: '3px 2px',
-                fontWeight: 700,
-              }}
-            />
-            <span className="text-[10px] text-text-muted/30">/</span>
-            <input
-              key={`max-${i}-${res.max}`}
-              defaultValue={res.max}
-              onBlur={(e) => {
-                const v = parseInt(e.target.value)
-                if (!isNaN(v) && v > 0)
-                  updateResource(i, { max: v, current: Math.min(res.current, v) })
-                else e.target.value = String(res.max)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-              }}
-              style={{
-                ...inputStyle,
-                width: 32,
-                textAlign: 'center',
-                fontSize: 11,
-                padding: '3px 2px',
-                fontWeight: 700,
-              }}
-            />
-            <div
-              onClick={() => setColorPickerOpen(colorPickerOpen === i ? null : i)}
-              className="w-3 h-3 rounded-full cursor-pointer shrink-0 transition-[border-color] duration-fast hover:border-white/50"
-              style={{
-                background: res.color,
-                border: '2px solid rgba(255,255,255,0.25)',
-              }}
-              title="Change color"
-            />
-            <button
-              onClick={() => removeResource(i)}
-              style={removeBtnStyle}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#ef4444'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgba(255,255,255,0.2)'
-              }}
-            >
-              x
-            </button>
-          </div>
-          <ResourceBar
-            current={res.current}
-            max={res.max}
-            color={res.color}
-            height={18}
-            valueDisplay="inline"
-            draggable
-            showButtons
-            onChange={(val: number) => updateResource(i, { current: val })}
-            onDragStart={() => broadcastEditing(entity.id, String(i), res.current)}
-            onDragMove={(val: number) => broadcastEditing(entity.id, String(i), val)}
-            onDragEnd={(val: number) => {
-              updateResource(i, { current: val })
-              clearEditing()
-            }}
-            remoteDragValue={remoteEdit?.value ?? null}
-            softLockColor={remoteEdit?.color ?? null}
-          />
-          {/* Color picker -- collapsed by default */}
-          {colorPickerOpen === i && (
-            <div ref={colorPickerRef} className="flex gap-[3px] mt-[5px] justify-center">
-              {[
-                '#22c55e',
-                '#3b82f6',
-                '#8b5cf6',
-                '#f59e0b',
-                '#06b6d4',
-                '#ec4899',
-                '#ef4444',
-                '#f97316',
-              ].map((c) => (
-                <div
-                  key={c}
-                  onClick={() => {
-                    updateResource(i, { color: c })
-                    setColorPickerOpen(null)
-                  }}
-                  className="w-3.5 h-3.5 rounded-full cursor-pointer transition-[border-color] duration-fast"
-                  style={{
-                    background: c,
-                    border: c === res.color ? '2px solid #fff' : '2px solid transparent',
-                  }}
-                />
-              ))}
+          <div key={i} style={{ marginBottom: 10 }}>
+            {/* Header: name + current/max inputs + remove */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+              <input
+                value={res.key}
+                onChange={(e) => updateResource(i, { key: e.target.value })}
+                placeholder="Name"
+                style={{
+                  ...inputStyle,
+                  flex: 1,
+                  fontSize: 11,
+                  padding: '3px 6px',
+                  fontWeight: 600,
+                }}
+              />
+              <input
+                key={`cur-${i}-${res.current}`}
+                defaultValue={res.current}
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value)
+                  if (!isNaN(v)) updateResource(i, { current: Math.max(0, Math.min(v, res.max)) })
+                  else e.target.value = String(res.current)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                }}
+                style={{
+                  ...inputStyle,
+                  width: 32,
+                  textAlign: 'center',
+                  fontSize: 11,
+                  padding: '3px 2px',
+                  fontWeight: 700,
+                }}
+              />
+              <span className="text-[10px] text-text-muted/30">/</span>
+              <input
+                key={`max-${i}-${res.max}`}
+                defaultValue={res.max}
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value)
+                  if (!isNaN(v) && v > 0)
+                    updateResource(i, { max: v, current: Math.min(res.current, v) })
+                  else e.target.value = String(res.max)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                }}
+                style={{
+                  ...inputStyle,
+                  width: 32,
+                  textAlign: 'center',
+                  fontSize: 11,
+                  padding: '3px 2px',
+                  fontWeight: 700,
+                }}
+              />
+              <div
+                onClick={() => setColorPickerOpen(colorPickerOpen === i ? null : i)}
+                className="w-3 h-3 rounded-full cursor-pointer shrink-0 transition-[border-color] duration-fast hover:border-white/50"
+                style={{
+                  background: res.color,
+                  border: '2px solid rgba(255,255,255,0.25)',
+                }}
+                title="Change color"
+              />
+              <button
+                onClick={() => removeResource(i)}
+                style={removeBtnStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#ef4444'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.2)'
+                }}
+              >
+                x
+              </button>
             </div>
-          )}
-        </div>
+            <ResourceBar
+              current={res.current}
+              max={res.max}
+              color={res.color}
+              height={18}
+              valueDisplay="inline"
+              draggable
+              showButtons
+              onChange={(val: number) => updateResource(i, { current: val })}
+              onDragStart={() => broadcastEditing(entity.id, String(i), res.current)}
+              onDragMove={(val: number) => broadcastEditing(entity.id, String(i), val)}
+              onDragEnd={() => clearEditing()}
+              remoteDragValue={remoteEdit?.value ?? null}
+              softLockColor={remoteEdit?.color ?? null}
+            />
+            {/* Color picker -- collapsed by default */}
+            {colorPickerOpen === i && (
+              <div ref={colorPickerRef} className="flex gap-[3px] mt-[5px] justify-center">
+                {[
+                  '#22c55e',
+                  '#3b82f6',
+                  '#8b5cf6',
+                  '#f59e0b',
+                  '#06b6d4',
+                  '#ec4899',
+                  '#ef4444',
+                  '#f97316',
+                ].map((c) => (
+                  <div
+                    key={c}
+                    onClick={() => {
+                      updateResource(i, { color: c })
+                      setColorPickerOpen(null)
+                    }}
+                    className="w-3.5 h-3.5 rounded-full cursor-pointer transition-[border-color] duration-fast"
+                    style={{
+                      background: c,
+                      border: c === res.color ? '2px solid #fff' : '2px solid transparent',
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         )
       })}
       <button

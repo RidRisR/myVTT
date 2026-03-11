@@ -73,14 +73,8 @@ export function ResourceBar({
     const onMove = (moveEvent: PointerEvent) => {
       const newValue = computeValue(moveEvent.clientX)
       setLocalDragValue(newValue)
-      // If awareness-aware: broadcast via onDragMove only
-      if (onDragMove) {
-        onDragMove(newValue)
-      }
-      // If NOT awareness-aware (legacy): write on every move
-      if (!onDragMove && !onDragEnd && onChange) {
-        onChange(newValue)
-      }
+      onDragMove?.(newValue) // awareness broadcast (soft lock)
+      onChange?.(newValue) // Yjs write on every move
     }
 
     const onUp = (upEvent: PointerEvent) => {
@@ -90,12 +84,10 @@ export function ResourceBar({
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
 
-      // Commit final value
       if (onDragEnd) {
-        onDragEnd(finalValue)
-      } else if (onChange) {
-        onChange(finalValue)
+        onDragEnd(finalValue) // e.g. clearEditing()
       }
+      onChange?.(finalValue) // final write (in case pointer moved between last move and up)
     }
 
     setIsDragging(true)
@@ -103,15 +95,11 @@ export function ResourceBar({
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
 
-    // immediate update
+    // immediate update on pointer down
     const initialValue = computeValue(e.nativeEvent.clientX)
     setLocalDragValue(initialValue)
-    if (onDragMove) {
-      onDragMove(initialValue)
-    }
-    if (!onDragMove && !onDragEnd && onChange) {
-      onChange(initialValue)
-    }
+    onDragMove?.(initialValue)
+    onChange?.(initialValue)
   }
 
   const handleIncrement = () => {
@@ -155,7 +143,7 @@ export function ResourceBar({
         >
           {showLabel && <span>{label}</span>}
           {valueDisplay === 'outside' && (
-            <span style={{ color: isRemoteLocked ? softLockColor! : color }}>
+            <span style={{ color: isRemoteLocked ? (softLockColor ?? color) : color }}>
               {displayValue} / {max}
             </span>
           )}
@@ -237,7 +225,7 @@ export function ResourceBar({
                 width: 6,
                 height: 6,
                 borderRadius: '50%',
-                background: softLockColor!,
+                background: softLockColor ?? undefined,
                 boxShadow: `0 0 4px ${softLockColor}`,
                 pointerEvents: 'none',
                 zIndex: 1,

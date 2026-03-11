@@ -5,6 +5,7 @@ import type { MapToken, Entity } from '../shared/entityTypes'
 import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
 import { useUiStore } from '../stores/uiStore'
+import { useIdentityStore } from '../stores/identityStore'
 import { KonvaGrid } from './KonvaGrid'
 import { KonvaTokenLayer } from './KonvaTokenLayer'
 import type { TokenContextMenuEvent, TokenHoverEvent } from './KonvaTokenLayer'
@@ -88,6 +89,44 @@ export function KonvaMap({
   // Active tool from UI store
   const activeTool = useUiStore((s) => s.activeTool)
   const isSelectMode = activeTool === 'select'
+
+  // Awareness for real-time token drag broadcasting
+  const awareness = useIdentityStore((s) => s.getAwareness())
+  const mySeat = useIdentityStore((s) => s.getMySeat())
+  const [remoteTokenDrags, setRemoteTokenDrags] = useState<
+    Map<number, { tokenId: string; x: number; y: number; color: string }>
+  >(() => new Map())
+
+  useEffect(() => {
+    if (!awareness) return
+    const update = () => {
+      const next = new Map<number, { tokenId: string; x: number; y: number; color: string }>()
+      awareness.getStates().forEach((state, clientId) => {
+        if (clientId === awareness.clientID) return
+        const drag = state['tokenDrag'] as
+          | { tokenId: string; x: number; y: number; color: string }
+          | null
+          | undefined
+        if (drag?.tokenId) next.set(clientId, drag)
+      })
+      setRemoteTokenDrags(next)
+    }
+    update()
+    awareness.on('change', update)
+    return () => awareness.off('change', update)
+  }, [awareness])
+
+  const handleTokenDragMove = useCallback(
+    (tokenId: string, x: number, y: number) => {
+      if (!awareness || !mySeat) return
+      awareness.setLocalStateField('tokenDrag', { tokenId, x, y, color: mySeat.color })
+    },
+    [awareness, mySeat],
+  )
+
+  const handleTokenDragEnd = useCallback(() => {
+    awareness?.setLocalStateField('tokenDrag', null)
+  }, [awareness])
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -477,21 +516,16 @@ export function KonvaMap({
             onTokenContextMenu={handleTokenContextMenu}
             onTokenHover={handleTokenHover}
             gmViewAsPlayer={gmViewAsPlayer}
+            onTokenDragMove={handleTokenDragMove}
+            onTokenDragEnd={handleTokenDragEnd}
+            remoteTokenDrags={remoteTokenDrags}
           />
 
           {/* Measurement tool layer — above tokens */}
-          <MeasureTool
-            active={activeTool === 'measure'}
-            scene={scene}
-            stageRef={stageRef}
-          />
+          <MeasureTool active={activeTool === 'measure'} scene={scene} stageRef={stageRef} />
 
           {/* Range template layer — above tokens */}
-          <RangeTemplate
-            activeTool={activeTool}
-            scene={scene}
-            stageRef={stageRef}
-          />
+          <RangeTemplate activeTool={activeTool} scene={scene} stageRef={stageRef} />
         </Stage>
       )}
 

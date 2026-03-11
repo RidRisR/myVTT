@@ -387,10 +387,7 @@ export function CharacterEditPanel({
               onChange={(val: number) => updateResource(i, { current: val })}
               onDragStart={() => broadcastEditing(character.id, String(i), res.current)}
               onDragMove={(val: number) => broadcastEditing(character.id, String(i), val)}
-              onDragEnd={(val: number) => {
-                updateResource(i, { current: val })
-                clearEditing()
-              }}
+              onDragEnd={() => clearEditing()}
               remoteDragValue={remoteEdit?.value ?? null}
               softLockColor={remoteEdit?.color ?? null}
             />
