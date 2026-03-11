@@ -7,10 +7,13 @@ function makeScene(overrides?: Partial<Scene>): Scene {
   return {
     id: 'scene-1',
     name: 'Tavern',
-    imageUrl: '/img/tavern.jpg',
+    atmosphereImageUrl: '/img/tavern.jpg',
+    tacticalMapImageUrl: '',
+    particlePreset: 'none',
     width: 1920,
     height: 1080,
     gridSize: 50,
+    gridSnap: true,
     gridVisible: true,
     gridColor: 'rgba(255,255,255,0.15)',
     gridOffsetX: 0,
@@ -18,6 +21,8 @@ function makeScene(overrides?: Partial<Scene>): Scene {
     sortOrder: 0,
     combatActive: false,
     battleMapUrl: '',
+    initiativeOrder: [],
+    initiativeIndex: 0,
     ...overrides,
   }
 }

@@ -28,7 +28,7 @@ function flushInAct(
 // ── Entity field concurrent updates ──────────────────────────
 
 describe('entity concurrent field updates', () => {
-  it('same field concurrent update — both clients converge', () => {
+  it('same field concurrent update — both clients converge (Y.Text merge)', () => {
     const { doc1, doc2, world1, world2 } = createDeferredPair()
     const hook1 = renderHook(() => useEntities(world1, doc1))
     const hook2 = renderHook(() => useEntities(world2, doc2))
@@ -41,14 +41,18 @@ describe('entity concurrent field updates', () => {
     act(() => hook1.result.current.updateEntity('e1', { name: 'Name-A' }))
     act(() => hook2.result.current.updateEntity('e1', { name: 'Name-B' }))
 
-    // Flush sync — Yjs resolves conflict deterministically
+    // Flush sync — Y.Text merges concurrent inserts (character-level CRDT)
     flushInAct(doc1, doc2)
 
-    // Both clients should agree on the same name (one wins)
+    // Both clients should converge to the same merged value.
+    // With Y.Text, concurrent delete-all + insert produces a merge of both
+    // texts (not last-write-wins). The merged result contains both strings.
     const e1 = hook1.result.current.entities.find((e) => e.id === 'e1')
     const e2 = hook2.result.current.entities.find((e) => e.id === 'e1')
     expect(e1?.name).toBe(e2?.name)
-    expect(['Name-A', 'Name-B']).toContain(e1?.name)
+    // Y.Text merge: both inserts survive, so the result contains both substrings
+    expect(e1?.name).toContain('Name-A')
+    expect(e1?.name).toContain('Name-B')
   })
 
   it('different fields concurrent update — both merge', () => {

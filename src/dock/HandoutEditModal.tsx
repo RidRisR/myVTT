@@ -40,115 +40,50 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
     onClose()
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    background: 'transparent',
-    border: 'none',
-    outline: 'none',
-    color: '#fff',
-    fontFamily: 'sans-serif',
-    boxSizing: 'border-box',
-    textAlign: 'center',
-  }
-
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 20000,
-        background: 'rgba(0,0,0,0.7)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
+      className="fixed inset-0 z-modal bg-black/70 flex items-center justify-center"
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <div
-        ref={panelRef}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 12,
-          maxWidth: '70vw',
-        }}
-      >
+      <div ref={panelRef} className="flex flex-col items-center gap-3 max-w-[70vw]">
         {/* Image — matches FocusedCard layout */}
         <img
           src={asset.imageUrl}
           alt=""
-          style={{
-            maxWidth: '55vw',
-            maxHeight: '50vh',
-            objectFit: 'contain',
-            borderRadius: 4,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
-          }}
+          className="max-w-[55vw] max-h-[50vh] object-contain rounded shadow-[0_4px_24px_rgba(0,0,0,0.6)]"
         />
 
         {/* Editable title/description — WYSIWYG matching FocusedCard */}
-        <div style={{ textAlign: 'center', maxWidth: '55vw', width: '100%' }}>
+        <div className="text-center max-w-[55vw] w-full">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Add title..."
             autoFocus
-            style={{
-              ...inputStyle,
-              fontSize: 16,
-              fontWeight: 600,
-              textShadow: '0 1px 8px rgba(0,0,0,0.6)',
-            }}
+            className="w-full bg-transparent border-none outline-none text-text-primary font-sans text-center text-base font-semibold"
+            style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}
           />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add description..."
             rows={2}
-            style={{
-              ...inputStyle,
-              fontSize: 13,
-              lineHeight: 1.5,
-              marginTop: 4,
-              color: 'rgba(255,255,255,0.7)',
-              textShadow: '0 1px 6px rgba(0,0,0,0.5)',
-              resize: 'none',
-            }}
+            className="w-full bg-transparent border-none outline-none text-text-primary/70 font-sans text-center text-[13px] leading-normal mt-1 resize-none"
+            style={{ textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}
           />
         </div>
 
         {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex gap-2">
           <button
             onClick={onClose}
-            style={{
-              padding: '6px 16px',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: 'pointer',
-              fontFamily: 'sans-serif',
-              background: 'rgba(255,255,255,0.06)',
-              color: 'rgba(255,255,255,0.7)',
-            }}
+            className="px-4 py-1.5 border border-border-glass rounded-md text-xs font-medium cursor-pointer font-sans bg-surface text-text-primary/70 transition-colors duration-fast hover:bg-hover"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            style={{
-              padding: '6px 16px',
-              border: 'none',
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'sans-serif',
-              background: 'rgba(59,130,246,0.85)',
-              color: '#fff',
-            }}
+            className="px-4 py-1.5 border-none rounded-md text-xs font-semibold cursor-pointer font-sans bg-accent text-deep transition-colors duration-fast hover:bg-accent-bold"
           >
             Save
           </button>

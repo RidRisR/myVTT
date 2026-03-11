@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { X, Plus, CircleDot } from 'lucide-react'
 import type { Blueprint } from '../shared/entityTypes'
 import { uploadAsset } from '../shared/assetUpload'
 import { generateTokenId } from '../shared/idUtils'
@@ -90,29 +91,28 @@ export function TokenDockTab({
         ref={fileRef}
         type="file"
         accept="image/*"
-        style={{ display: 'none' }}
+        className="hidden"
         onChange={handleUpload}
       />
 
+      {blueprints.length === 0 && (
+        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+          <CircleDot size={32} strokeWidth={1} className="text-text-muted/40" />
+          <p className="text-text-muted text-sm">No token blueprints</p>
+          <p className="text-text-muted/50 text-xs">Upload token images to build your collection</p>
+        </div>
+      )}
+
       <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
-          gap: 10,
-        }}
+        className="grid gap-2.5"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', contentVisibility: 'auto' }}
       >
         {blueprints.map((bp) => {
           const isHovered = hoveredId === bp.id
           return (
             <div
               key={bp.id}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 4,
-                position: 'relative',
-              }}
+              className="flex flex-col items-center gap-1 relative"
               onMouseEnter={() => setHoveredId(bp.id)}
               onMouseLeave={() => setHoveredId(null)}
               onContextMenu={(e) => handleContextMenu(e, bp.id)}
@@ -120,27 +120,16 @@ export function TokenDockTab({
               {/* Circular token image */}
               <div
                 onClick={() => (isCombat ? onSpawnToken(bp) : onAddToActive(bp))}
+                className="w-14 h-14 rounded-full overflow-hidden cursor-pointer shrink-0 transition-shadow duration-fast"
                 style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  overflow: 'hidden',
                   border: `3px solid ${bp.defaultColor}`,
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  transition: 'box-shadow 0.15s',
                   boxShadow: isHovered ? `0 0 12px ${bp.defaultColor}44` : 'none',
                 }}
               >
                 <img
                   src={bp.imageUrl}
                   alt={bp.name}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
+                  className="w-full h-full object-cover block"
                   draggable={false}
                 />
               </div>
@@ -156,31 +145,12 @@ export function TokenDockTab({
                     if (e.key === 'Escape') setEditingId(null)
                   }}
                   autoFocus
-                  style={{
-                    width: 64,
-                    fontSize: 9,
-                    textAlign: 'center',
-                    background: 'rgba(255,255,255,0.1)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: 4,
-                    color: '#fff',
-                    outline: 'none',
-                    padding: '2px 4px',
-                  }}
+                  className="w-16 text-[9px] text-center bg-surface border border-border-glass rounded text-text-primary outline-none px-1 py-0.5"
                 />
               ) : (
                 <span
                   onDoubleClick={() => startEdit(bp)}
-                  style={{
-                    fontSize: 9,
-                    color: 'rgba(255,255,255,0.6)',
-                    textAlign: 'center',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    maxWidth: 72,
-                    cursor: 'default',
-                  }}
+                  className="text-[9px] text-text-muted/60 text-center overflow-hidden text-ellipsis whitespace-nowrap max-w-[72px] cursor-default"
                 >
                   {bp.name}
                 </span>
@@ -193,27 +163,9 @@ export function TokenDockTab({
                     e.stopPropagation()
                     onDeleteBlueprint(bp.id)
                   }}
-                  style={{
-                    position: 'absolute',
-                    top: -2,
-                    right: 2,
-                    width: 16,
-                    height: 16,
-                    borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.7)',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#f87171',
-                    fontSize: 11,
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    lineHeight: 1,
-                    padding: 0,
-                  }}
+                  className="absolute -top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 border-none cursor-pointer text-danger flex items-center justify-center p-0"
                 >
-                  ×
+                  <X size={10} strokeWidth={2.5} />
                 </button>
               )}
             </div>
@@ -221,41 +173,14 @@ export function TokenDockTab({
         })}
 
         {/* Upload card */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 4,
-          }}
-        >
+        <div className="flex flex-col items-center gap-1">
           <div
             onClick={() => fileRef.current?.click()}
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: '50%',
-              border: '2px dashed rgba(255,255,255,0.15)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'rgba(255,255,255,0.3)',
-              fontSize: 22,
-              transition: 'border-color 0.15s, color 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.5)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
-              e.currentTarget.style.color = 'rgba(255,255,255,0.3)'
-            }}
+            className="w-14 h-14 rounded-full border-2 border-dashed border-border-glass cursor-pointer flex items-center justify-center text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50"
           >
-            {uploading ? '...' : '+'}
+            {uploading ? '...' : <Plus size={22} strokeWidth={1.5} />}
           </div>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>Add Token</span>
+          <span className="text-[9px] text-text-muted/30">Add Token</span>
         </div>
       </div>
 

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
+import { Image } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
 import { isVideoUrl } from '../shared/assetUpload'
+import { ParticleLayer } from './ParticleLayer'
 
 interface SceneViewerProps {
   scene: Scene | null
@@ -15,7 +17,7 @@ export function SceneViewer({ scene, onContextMenu }: SceneViewerProps) {
   const currentUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
-    const newUrl = scene?.imageUrl ?? null
+    const newUrl = scene?.atmosphereImageUrl ?? null
     if (newUrl === currentUrlRef.current) return
 
     if (currentUrlRef.current && newUrl) {
@@ -32,25 +34,19 @@ export function SceneViewer({ scene, onContextMenu }: SceneViewerProps) {
       setPrevUrl(null)
     }
     currentUrlRef.current = newUrl
-  }, [scene?.imageUrl])
+  }, [scene?.atmosphereImageUrl])
 
   if (!currentUrl) {
     return (
       <div
         onContextMenu={onContextMenu}
-        style={{
-          width: '100vw',
-          height: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#1a1a2e',
-          color: '#666',
-          fontFamily: 'sans-serif',
-          fontSize: 16,
-        }}
+        className="w-screen h-screen flex items-center justify-center bg-deep"
       >
-        No scene selected
+        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+          <Image size={32} strokeWidth={1} className="text-text-muted/40" />
+          <p className="text-text-muted text-sm">No scene selected</p>
+          <p className="text-text-muted/50 text-xs">Upload a scene from the asset dock</p>
+        </div>
       </div>
     )
   }
@@ -147,6 +143,9 @@ export function SceneViewer({ scene, onContextMenu }: SceneViewerProps) {
             }
           }}
         />
+      )}
+      {scene?.particlePreset && scene.particlePreset !== 'none' && (
+        <ParticleLayer preset={scene.particlePreset} />
       )}
     </div>
   )

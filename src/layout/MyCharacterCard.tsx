@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Camera, ChevronRight, Loader } from 'lucide-react'
 import type { Entity } from '../shared/entityTypes'
 import {
   getEntityResources,
@@ -11,6 +12,8 @@ import { barColorForKey, statusColor } from '../shared/tokenUtils'
 import { uploadAsset } from '../shared/assetUpload'
 import { ResourceBar } from '../shared/ui/ResourceBar'
 import { MiniHoldButton } from '../shared/ui/MiniHoldButton'
+import { useIdentityStore } from '../stores/identityStore'
+import { useAwarenessResource, getRemoteEdit } from '../shared/hooks/useAwarenessResource'
 
 interface MyCharacterCardProps {
   entity: Entity
@@ -26,7 +29,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'notes', label: 'NOTES' },
 ]
 
-/* ── reusable styles ── */
+/* -- reusable styles -- */
 const inputStyle: React.CSSProperties = {
   padding: '5px 7px',
   border: '1px solid rgba(255,255,255,0.1)',
@@ -79,6 +82,16 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
   const [colorPickerOpen, setColorPickerOpen] = useState<number | null>(null)
   const colorPickerRef = useRef<HTMLDivElement>(null)
 
+  // Awareness for resource drag broadcasting
+  const awareness = useIdentityStore((s) => s.getAwareness())
+  const mySeatId = useIdentityStore((s) => s.mySeatId)
+  const mySeat = useIdentityStore((s) => s.getMySeat())
+  const { broadcastEditing, clearEditing, remoteEdits } = useAwarenessResource(
+    awareness,
+    mySeatId,
+    mySeat?.color ?? null,
+  )
+
   // Sync editName when entity name changes externally
   useEffect(() => {
     setEditName(entity.name)
@@ -112,7 +125,7 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
   const statuses = getEntityStatuses(entity)
   const notes = entity.notes
 
-  /* ── Portrait upload ── */
+  /* -- Portrait upload -- */
   const handlePortraitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -128,7 +141,7 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
     }
   }
 
-  /* ── Resource helpers ── */
+  /* -- Resource helpers -- */
   const updateResource = (index: number, updates: Partial<ResourceView>) => {
     const next = [...resources]
     next[index] = { ...next[index], ...updates }
@@ -150,7 +163,7 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
     )
   }
 
-  /* ── Attribute helpers ── */
+  /* -- Attribute helpers -- */
   const updateAttribute = (index: number, updates: Partial<AttributeView>) => {
     const next = [...attributes]
     next[index] = { ...next[index], ...updates }
@@ -171,7 +184,7 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
     )
   }
 
-  /* ── Status helpers ── */
+  /* -- Status helpers -- */
   const addStatus = () => {
     const label = statusInput.trim()
     if (!label) return
@@ -190,141 +203,137 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
     )
   }
 
-  /* ── Tab content renderers ── */
+  /* -- Tab content renderers -- */
   const renderResources = () => (
     <div>
-      {resources.map((res, i) => (
-        <div key={i} style={{ marginBottom: 10 }}>
-          {/* Header: name + current/max inputs + remove */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-            <input
-              value={res.key}
-              onChange={(e) => updateResource(i, { key: e.target.value })}
-              placeholder="Name"
-              style={{ ...inputStyle, flex: 1, fontSize: 11, padding: '3px 6px', fontWeight: 600 }}
-            />
-            <input
-              key={`cur-${i}-${res.current}`}
-              defaultValue={res.current}
-              onBlur={(e) => {
-                const v = parseInt(e.target.value)
-                if (!isNaN(v)) updateResource(i, { current: Math.max(0, Math.min(v, res.max)) })
-                else e.target.value = String(res.current)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-              }}
-              style={{
-                ...inputStyle,
-                width: 32,
-                textAlign: 'center',
-                fontSize: 11,
-                padding: '3px 2px',
-                fontWeight: 700,
-              }}
-            />
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>/</span>
-            <input
-              key={`max-${i}-${res.max}`}
-              defaultValue={res.max}
-              onBlur={(e) => {
-                const v = parseInt(e.target.value)
-                if (!isNaN(v) && v > 0)
-                  updateResource(i, { max: v, current: Math.min(res.current, v) })
-                else e.target.value = String(res.max)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-              }}
-              style={{
-                ...inputStyle,
-                width: 32,
-                textAlign: 'center',
-                fontSize: 11,
-                padding: '3px 2px',
-                fontWeight: 700,
-              }}
-            />
-            <div
-              onClick={() => setColorPickerOpen(colorPickerOpen === i ? null : i)}
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: '50%',
-                background: res.color,
-                border: '2px solid rgba(255,255,255,0.25)',
-                cursor: 'pointer',
-                flexShrink: 0,
-                transition: 'border-color 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'
-              }}
-              title="Change color"
-            />
-            <button
-              onClick={() => removeResource(i)}
-              style={removeBtnStyle}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#ef4444'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgba(255,255,255,0.2)'
-              }}
-            >
-              ×
-            </button>
-          </div>
-          <ResourceBar
-            current={res.current}
-            max={res.max}
-            color={res.color}
-            height={18}
-            valueDisplay="inline"
-            draggable
-            showButtons
-            onChange={(val: number) => updateResource(i, { current: val })}
-          />
-          {/* Color picker — collapsed by default */}
-          {colorPickerOpen === i && (
-            <div
-              ref={colorPickerRef}
-              style={{ display: 'flex', gap: 3, marginTop: 5, justifyContent: 'center' }}
-            >
-              {[
-                '#22c55e',
-                '#3b82f6',
-                '#8b5cf6',
-                '#f59e0b',
-                '#06b6d4',
-                '#ec4899',
-                '#ef4444',
-                '#f97316',
-              ].map((c) => (
-                <div
-                  key={c}
-                  onClick={() => {
-                    updateResource(i, { color: c })
-                    setColorPickerOpen(null)
-                  }}
-                  style={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: '50%',
-                    background: c,
-                    cursor: 'pointer',
-                    border: c === res.color ? '2px solid #fff' : '2px solid transparent',
-                    transition: 'border-color 0.15s',
-                  }}
-                />
-              ))}
+      {resources.map((res, i) => {
+        const remoteEdit = getRemoteEdit(remoteEdits, entity.id, String(i))
+        return (
+          <div key={i} style={{ marginBottom: 10 }}>
+            {/* Header: name + current/max inputs + remove */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+              <input
+                value={res.key}
+                onChange={(e) => updateResource(i, { key: e.target.value })}
+                placeholder="Name"
+                style={{
+                  ...inputStyle,
+                  flex: 1,
+                  fontSize: 11,
+                  padding: '3px 6px',
+                  fontWeight: 600,
+                }}
+              />
+              <input
+                key={`cur-${i}-${res.current}`}
+                defaultValue={res.current}
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value)
+                  if (!isNaN(v)) updateResource(i, { current: Math.max(0, Math.min(v, res.max)) })
+                  else e.target.value = String(res.current)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                }}
+                style={{
+                  ...inputStyle,
+                  width: 32,
+                  textAlign: 'center',
+                  fontSize: 11,
+                  padding: '3px 2px',
+                  fontWeight: 700,
+                }}
+              />
+              <span className="text-[10px] text-text-muted/30">/</span>
+              <input
+                key={`max-${i}-${res.max}`}
+                defaultValue={res.max}
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value)
+                  if (!isNaN(v) && v > 0)
+                    updateResource(i, { max: v, current: Math.min(res.current, v) })
+                  else e.target.value = String(res.max)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                }}
+                style={{
+                  ...inputStyle,
+                  width: 32,
+                  textAlign: 'center',
+                  fontSize: 11,
+                  padding: '3px 2px',
+                  fontWeight: 700,
+                }}
+              />
+              <div
+                onClick={() => setColorPickerOpen(colorPickerOpen === i ? null : i)}
+                className="w-3 h-3 rounded-full cursor-pointer shrink-0 transition-[border-color] duration-fast hover:border-white/50"
+                style={{
+                  background: res.color,
+                  border: '2px solid rgba(255,255,255,0.25)',
+                }}
+                title="Change color"
+              />
+              <button
+                onClick={() => removeResource(i)}
+                style={removeBtnStyle}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#ef4444'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.2)'
+                }}
+              >
+                x
+              </button>
             </div>
-          )}
-        </div>
-      ))}
+            <ResourceBar
+              current={res.current}
+              max={res.max}
+              color={res.color}
+              height={18}
+              valueDisplay="inline"
+              draggable
+              showButtons
+              onChange={(val: number) => updateResource(i, { current: val })}
+              onDragStart={() => broadcastEditing(entity.id, String(i), res.current)}
+              onDragMove={(val: number) => broadcastEditing(entity.id, String(i), val)}
+              onDragEnd={() => clearEditing()}
+              remoteDragValue={remoteEdit?.value ?? null}
+              softLockColor={remoteEdit?.color ?? null}
+            />
+            {/* Color picker -- collapsed by default */}
+            {colorPickerOpen === i && (
+              <div ref={colorPickerRef} className="flex gap-[3px] mt-[5px] justify-center">
+                {[
+                  '#22c55e',
+                  '#3b82f6',
+                  '#8b5cf6',
+                  '#f59e0b',
+                  '#06b6d4',
+                  '#ec4899',
+                  '#ef4444',
+                  '#f97316',
+                ].map((c) => (
+                  <div
+                    key={c}
+                    onClick={() => {
+                      updateResource(i, { color: c })
+                      setColorPickerOpen(null)
+                    }}
+                    className="w-3.5 h-3.5 rounded-full cursor-pointer transition-[border-color] duration-fast"
+                    style={{
+                      background: c,
+                      border: c === res.color ? '2px solid #fff' : '2px solid transparent',
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
       <button
         onClick={addResource}
         style={addBtnStyle}
@@ -353,7 +362,7 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
             style={{ ...inputStyle, flex: 1, fontSize: 12, padding: '5px 8px', fontWeight: 600 }}
           />
           <MiniHoldButton
-            label="−"
+            label="-"
             onTick={() => updateAttribute(i, { value: Math.max(0, attr.value - 1) })}
             color="#ef4444"
           />
@@ -388,7 +397,7 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
               e.currentTarget.style.color = 'rgba(255,255,255,0.2)'
             }}
           >
-            ×
+            x
           </button>
         </div>
       ))}
@@ -411,58 +420,35 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
 
   const renderStatuses = () => (
     <div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+      <div className="flex flex-wrap gap-1.5 mb-2.5">
         {statuses.map((s, i) => {
           const sc = statusColor(s.label)
           return (
             <span
               key={i}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[14px] text-xs font-semibold"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '4px 10px 4px 12px',
-                borderRadius: 14,
                 background: `${sc}22`,
                 color: sc,
-                fontSize: 12,
-                fontWeight: 600,
                 border: `1px solid ${sc}33`,
               }}
             >
               {s.label}
               <button
                 onClick={() => removeStatus(i)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: sc,
-                  fontSize: 14,
-                  padding: 0,
-                  lineHeight: 1,
-                  opacity: 0.6,
-                  transition: 'opacity 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '1'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '0.6'
-                }}
+                className="bg-transparent border-none cursor-pointer text-sm p-0 leading-none opacity-60 transition-opacity duration-fast hover:opacity-100"
+                style={{ color: sc }}
               >
-                ×
+                x
               </button>
             </span>
           )
         })}
         {statuses.length === 0 && (
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>
-            No active statuses
-          </span>
+          <span className="text-xs text-text-muted/25 italic">No active statuses</span>
         )}
       </div>
-      <div style={{ display: 'flex', gap: 4 }}>
+      <div className="flex gap-1">
         <input
           value={statusInput}
           onChange={(e) => setStatusInput(e.target.value)}
@@ -474,24 +460,7 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
         />
         <button
           onClick={addStatus}
-          style={{
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 6,
-            cursor: 'pointer',
-            color: 'rgba(255,255,255,0.4)',
-            fontSize: 11,
-            padding: '6px 12px',
-            transition: 'background 0.15s, color 0.15s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.15)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
-          }}
+          className="bg-surface border border-border-glass rounded-md cursor-pointer text-text-muted/40 text-[11px] px-3 py-1.5 transition-colors duration-fast hover:bg-hover hover:text-text-muted/70"
         >
           Add
         </button>
@@ -528,82 +497,41 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        top: '50%',
-        left: 0,
-        transform: 'translateY(-50%)',
-        zIndex: 10000,
-        display: 'flex',
-        pointerEvents: 'none',
-      }}
+      className="fixed top-1/2 left-0 -translate-y-1/2 z-toast flex pointer-events-none"
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div
+        className="flex items-center pointer-events-auto"
         style={{
-          display: 'flex',
-          alignItems: 'center',
           transform: open ? 'translateX(0)' : 'translateX(-280px)',
           transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          pointerEvents: 'auto',
         }}
       >
         {/* Card panel */}
-        <div
-          style={{
-            width: 272,
-            background: 'rgba(15, 15, 25, 0.88)',
-            backdropFilter: 'blur(16px)',
-            borderRadius: '0 14px 14px 0',
-            boxShadow: '4px 0 32px rgba(0,0,0,0.3)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderLeft: 'none',
-            fontFamily: 'sans-serif',
-            color: '#e4e4e7',
-          }}
-        >
-          {/* ── Header (portrait + name) ── */}
-          <div style={{ padding: '20px 16px 0', flexShrink: 0 }}>
+        <div className="w-[272px] bg-glass backdrop-blur-[16px] rounded-r-[14px] shadow-[4px_0_32px_rgba(0,0,0,0.3)] border border-border-glass border-l-0 font-sans text-text-primary">
+          {/* Header (portrait + name) */}
+          <div className="pt-5 px-4 shrink-0">
             {/* Portrait */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                marginBottom: 12,
-              }}
-            >
+            <div className="flex flex-col items-center mb-3">
               <div
-                style={{ position: 'relative', cursor: 'pointer' }}
+                className="relative cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {entity.imageUrl ? (
                   <img
                     src={entity.imageUrl}
                     alt={entity.name}
+                    className="w-20 h-20 rounded-full object-cover block"
                     style={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: '50%',
-                      objectFit: 'cover',
                       border: `3px solid ${entity.color}`,
                       boxShadow: `0 0 20px ${entity.color}33`,
-                      display: 'block',
                     }}
                   />
                 ) : (
                   <div
+                    className="w-20 h-20 rounded-full flex items-center justify-center text-white text-[32px] font-bold"
                     style={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: '50%',
                       background: `linear-gradient(135deg, ${entity.color}, ${entity.color}99)`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#fff',
-                      fontSize: 32,
-                      fontWeight: 700,
                       boxShadow: `0 0 20px ${entity.color}33`,
                     }}
                   >
@@ -611,42 +539,13 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
                   </div>
                 )}
                 {uploading && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      borderRadius: '50%',
-                      background: 'rgba(0,0,0,0.5)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#fff',
-                    }}
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      style={{ animation: 'spin 1s linear infinite' }}
-                    >
-                      <path d="M12 2a10 10 0 0 1 10 10" />
-                    </svg>
+                  <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center text-white">
+                    <Loader size={20} strokeWidth={1.5} className="animate-spin" />
                   </div>
                 )}
                 <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    borderRadius: '50%',
-                    background: 'rgba(0,0,0,0)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'background 0.2s',
-                  }}
+                  className="absolute inset-0 rounded-full flex items-center justify-center transition-colors duration-200"
+                  style={{ background: 'rgba(0,0,0,0)' }}
                   onMouseEnter={(e) => {
                     ;(e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.3)'
                   }}
@@ -654,20 +553,7 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
                     ;(e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0)'
                   }}
                 >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{ opacity: 0.7 }}
-                  >
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
+                  <Camera size={16} strokeWidth={1.5} className="text-white opacity-70" />
                 </div>
               </div>
               <input
@@ -675,12 +561,12 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
                 type="file"
                 accept="image/*"
                 onChange={handlePortraitUpload}
-                style={{ display: 'none' }}
+                className="hidden"
               />
             </div>
 
             {/* Name */}
-            <div style={{ textAlign: 'center', marginBottom: 14 }}>
+            <div className="text-center mb-3.5">
               {editingName ? (
                 <input
                   autoFocus
@@ -694,32 +580,12 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
                       setEditName(entity.name)
                     }
                   }}
-                  style={{
-                    width: '80%',
-                    padding: '3px 8px',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: 6,
-                    fontSize: 16,
-                    fontWeight: 700,
-                    background: 'rgba(255,255,255,0.06)',
-                    color: '#fff',
-                    outline: 'none',
-                    textAlign: 'center',
-                    letterSpacing: 0.3,
-                    boxSizing: 'border-box',
-                    fontFamily: 'sans-serif',
-                  }}
+                  className="w-4/5 px-2 py-0.5 border border-border-glass rounded-md text-base font-bold bg-surface text-white outline-none text-center tracking-wide font-sans"
                 />
               ) : (
                 <div
                   onClick={() => setEditingName(true)}
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 16,
-                    color: '#fff',
-                    letterSpacing: 0.3,
-                    cursor: 'text',
-                  }}
+                  className="font-bold text-base text-white tracking-wide cursor-text"
                   title="Click to rename"
                 >
                   {entity.name}
@@ -728,40 +594,20 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
             </div>
           </div>
 
-          {/* ── Tab bar ── */}
-          <div
-            style={{
-              display: 'flex',
-              borderTop: '1px solid rgba(255,255,255,0.06)',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-              flexShrink: 0,
-            }}
-          >
+          {/* Tab bar */}
+          <div className="flex border-t border-border-glass border-b border-b-border-glass shrink-0">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 py-2 bg-transparent border-none cursor-pointer text-[9px] font-bold tracking-wider uppercase transition-colors duration-fast font-sans ${
+                  activeTab === tab.id
+                    ? 'bg-surface/60 text-white'
+                    : 'text-text-muted/35 hover:text-text-muted/60'
+                }`}
                 style={{
-                  flex: 1,
-                  padding: '8px 0',
-                  background: activeTab === tab.id ? 'rgba(255,255,255,0.06)' : 'transparent',
-                  border: 'none',
                   borderBottom:
                     activeTab === tab.id ? `2px solid ${entity.color}` : '2px solid transparent',
-                  cursor: 'pointer',
-                  color: activeTab === tab.id ? '#fff' : 'rgba(255,255,255,0.35)',
-                  fontSize: 9,
-                  fontWeight: 700,
-                  letterSpacing: 0.8,
-                  textTransform: 'uppercase',
-                  transition: 'color 0.15s, background 0.15s, border-color 0.15s',
-                  fontFamily: 'sans-serif',
-                }}
-                onMouseEnter={(e) => {
-                  if (activeTab !== tab.id) e.currentTarget.style.color = 'rgba(255,255,255,0.6)'
-                }}
-                onMouseLeave={(e) => {
-                  if (activeTab !== tab.id) e.currentTarget.style.color = 'rgba(255,255,255,0.35)'
                 }}
               >
                 {tab.label}
@@ -769,101 +615,42 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
             ))}
           </div>
 
-          {/* ── Tab content (fixed height, scroll if needed) ── */}
-          <div
-            style={{
-              padding: '14px 16px 16px',
-              overflowY: 'auto',
-              height: 500,
-            }}
-          >
+          {/* Tab content (fixed height, scroll if needed) */}
+          <div className="px-4 py-3.5 overflow-y-auto" style={{ height: 500 }}>
             {tabContent[activeTab]()}
           </div>
         </div>
 
-        {/* Tab handle — always visible */}
+        {/* Tab handle -- always visible */}
         <div
           onClick={() => setOpen(!open)}
-          style={{
-            width: 36,
-            padding: '12px 0',
-            background: 'rgba(15, 15, 25, 0.85)',
-            backdropFilter: 'blur(12px)',
-            borderRadius: '0 10px 10px 0',
-            cursor: 'pointer',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 6,
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderLeft: 'none',
-            boxShadow: '4px 0 16px rgba(0,0,0,0.2)',
-            transition: 'background 0.15s',
-            marginLeft: -1,
-          }}
-          onMouseEnter={(e) => {
-            ;(e.currentTarget as HTMLElement).style.background = 'rgba(25, 25, 40, 0.92)'
-          }}
-          onMouseLeave={(e) => {
-            ;(e.currentTarget as HTMLElement).style.background = 'rgba(15, 15, 25, 0.85)'
-          }}
+          className="w-9 py-3 bg-glass backdrop-blur-[12px] rounded-r-[10px] cursor-pointer flex flex-col items-center gap-1.5 border border-border-glass border-l-0 shadow-[4px_0_16px_rgba(0,0,0,0.2)] transition-colors duration-fast -ml-px hover:bg-surface"
         >
           {entity.imageUrl ? (
             <img
               src={entity.imageUrl}
               alt=""
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: `2px solid ${entity.color}`,
-              }}
+              className="w-6 h-6 rounded-full object-cover"
+              style={{ border: `2px solid ${entity.color}` }}
             />
           ) : (
             <div
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                background: entity.color,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                fontSize: 11,
-                fontWeight: 700,
-                fontFamily: 'sans-serif',
-              }}
+              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[11px] font-bold font-sans"
+              style={{ background: entity.color }}
             >
               {entity.name.charAt(0).toUpperCase()}
             </div>
           )}
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="rgba(255,255,255,0.4)"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <ChevronRight
+            size={10}
+            strokeWidth={2.5}
+            className="text-text-muted/40 transition-transform duration-300"
             style={{
               transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.3s ease',
             }}
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          />
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   )
 }

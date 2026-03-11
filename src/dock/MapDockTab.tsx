@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { X, Plus, Map } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
 import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
 import { generateTokenId } from '../shared/idUtils'
@@ -34,10 +35,13 @@ export function MapDockTab({
       const scene: Scene = {
         id: generateTokenId(),
         name,
-        imageUrl,
+        atmosphereImageUrl: imageUrl,
+        tacticalMapImageUrl: '',
+        particlePreset: 'none',
         width: dims.w,
         height: dims.h,
         gridSize: 50,
+        gridSnap: true,
         gridVisible: false,
         gridColor: '#ffffff',
         gridOffsetX: 0,
@@ -45,6 +49,8 @@ export function MapDockTab({
         sortOrder: scenes.length,
         combatActive: false,
         battleMapUrl: '',
+        initiativeOrder: [],
+        initiativeIndex: 0,
       }
       onAddScene(scene)
       onSelectScene(scene.id)
@@ -59,16 +65,21 @@ export function MapDockTab({
         ref={fileRef}
         type="file"
         accept="image/*,video/mp4,video/webm,video/quicktime"
-        style={{ display: 'none' }}
+        className="hidden"
         onChange={handleUpload}
       />
 
+      {scenes.length === 0 && (
+        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+          <Map size={32} strokeWidth={1} className="text-text-muted/40" />
+          <p className="text-text-muted text-sm">No maps yet</p>
+          <p className="text-text-muted/50 text-xs">Upload an image to create your first scene</p>
+        </div>
+      )}
+
       <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-          gap: 8,
-        }}
+        className="grid gap-2"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', contentVisibility: 'auto' }}
       >
         {scenes.map((scene) => {
           const isActive = scene.id === activeSceneId
@@ -76,58 +87,39 @@ export function MapDockTab({
           return (
             <div
               key={scene.id}
-              style={{
-                position: 'relative',
-                cursor: 'pointer',
-                borderRadius: 8,
-                overflow: 'hidden',
-                border: isActive ? '2px solid #3b82f6' : '2px solid rgba(255,255,255,0.08)',
-                boxShadow: isActive ? '0 0 12px rgba(59,130,246,0.3)' : 'none',
-                transition: 'border-color 0.15s, box-shadow 0.15s',
-              }}
+              className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-fast ${
+                isActive
+                  ? 'border-accent shadow-[0_0_12px_rgba(212,160,85,0.3)]'
+                  : 'border-border-glass'
+              }`}
               onClick={() => onSelectScene(scene.id)}
               onMouseEnter={() => setHoveredId(scene.id)}
               onMouseLeave={() => setHoveredId(null)}
             >
-              {isVideoUrl(scene.imageUrl) ? (
+              {isVideoUrl(scene.atmosphereImageUrl) ? (
                 <video
-                  src={scene.imageUrl}
+                  src={scene.atmosphereImageUrl}
                   muted
                   loop
                   autoPlay
                   playsInline
-                  style={{
-                    width: '100%',
-                    height: 70,
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
+                  className="w-full object-cover block"
+                  style={{ height: 70 }}
                   draggable={false}
                 />
               ) : (
                 <img
-                  src={scene.imageUrl}
+                  src={scene.atmosphereImageUrl}
                   alt={scene.name}
-                  style={{
-                    width: '100%',
-                    height: 70,
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
+                  className="w-full object-cover block"
+                  style={{ height: 70 }}
                   draggable={false}
                 />
               )}
               <div
-                style={{
-                  padding: '4px 6px',
-                  fontSize: 10,
-                  color: isActive ? '#fff' : 'rgba(255,255,255,0.6)',
-                  fontWeight: isActive ? 600 : 400,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  background: 'rgba(0,0,0,0.3)',
-                }}
+                className={`px-1.5 py-1 text-[10px] overflow-hidden text-ellipsis whitespace-nowrap bg-black/30 ${
+                  isActive ? 'text-text-primary font-semibold' : 'text-text-muted/60'
+                }`}
               >
                 {scene.name || 'Untitled'}
               </div>
@@ -139,27 +131,9 @@ export function MapDockTab({
                     e.stopPropagation()
                     onDeleteScene(scene.id)
                   }}
-                  style={{
-                    position: 'absolute',
-                    top: 4,
-                    right: 4,
-                    width: 18,
-                    height: 18,
-                    borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.6)',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#f87171',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    lineHeight: 1,
-                    padding: 0,
-                  }}
+                  className="absolute top-1 right-1 w-[18px] h-[18px] rounded-full bg-black/60 border-none cursor-pointer text-danger flex items-center justify-center p-0"
                 >
-                  ×
+                  <X size={10} strokeWidth={2.5} />
                 </button>
               )}
             </div>
@@ -169,35 +143,15 @@ export function MapDockTab({
         {/* Upload card */}
         <div
           onClick={() => fileRef.current?.click()}
-          style={{
-            height: 70 + 24, // match image + label height
-            borderRadius: 8,
-            border: '2px dashed rgba(255,255,255,0.15)',
-            cursor: 'pointer',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 4,
-            color: 'rgba(255,255,255,0.3)',
-            fontSize: 20,
-            transition: 'border-color 0.15s, color 0.15s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.5)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.3)'
-          }}
+          className="rounded-lg border-2 border-dashed border-border-glass cursor-pointer flex flex-col items-center justify-center gap-1 text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50"
+          style={{ height: 94 }}
         >
           {uploading ? (
-            <span style={{ fontSize: 11 }}>Uploading...</span>
+            <span className="text-[11px]">Uploading...</span>
           ) : (
             <>
-              <span>+</span>
-              <span style={{ fontSize: 10 }}>Add Map</span>
+              <Plus size={20} strokeWidth={1.5} />
+              <span className="text-[10px]">Add Map</span>
             </>
           )}
         </div>

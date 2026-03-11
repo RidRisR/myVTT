@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Menu, LogOut } from 'lucide-react'
 import type { Seat } from '../identity/useIdentity'
 import { SEAT_COLORS } from '../identity/useIdentity'
 import { uploadAsset } from '../shared/assetUpload'
@@ -62,144 +63,64 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        top: 12,
-        left: 16,
-        zIndex: 10000,
-        fontFamily: 'sans-serif',
-      }}
+      className="fixed top-3 left-4 z-toast font-sans"
       onPointerDown={(e) => e.stopPropagation()}
     >
       <button
         onClick={() => setOpen(!open)}
-        style={{
-          padding: '8px 10px',
-          background: open ? 'rgba(25, 25, 40, 0.92)' : 'rgba(15, 15, 25, 0.75)',
-          backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 10,
-          cursor: 'pointer',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.25)',
-          display: 'flex',
-          alignItems: 'center',
-          transition: 'background 0.15s',
-        }}
-        onMouseEnter={(e) => {
-          ;(e.currentTarget as HTMLElement).style.background = 'rgba(25, 25, 40, 0.92)'
-        }}
-        onMouseLeave={(e) => {
-          if (!open) (e.currentTarget as HTMLElement).style.background = 'rgba(15, 15, 25, 0.75)'
-        }}
+        className={`p-2 rounded-lg backdrop-blur-[16px] border border-border-glass cursor-pointer shadow-[0_2px_12px_rgba(0,0,0,0.25)] flex items-center transition-colors duration-fast ${
+          open ? 'bg-surface' : 'bg-glass hover:bg-surface'
+        }`}
       >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="rgba(255,255,255,0.7)"
-          strokeWidth="2"
-          strokeLinecap="round"
-        >
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
+        <Menu size={16} strokeWidth={1.5} className="text-text-muted" />
       </button>
 
       {open && (
         <>
           <div
-            style={{ position: 'fixed', inset: 0, zIndex: -1 }}
+            className="fixed inset-0 -z-[1]"
             onClick={() => {
               setOpen(false)
               setEditing(false)
             }}
           />
-          <div
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              marginTop: 6,
-              background: 'rgba(15, 15, 25, 0.92)',
-              backdropFilter: 'blur(16px)',
-              borderRadius: 12,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              minWidth: 220,
-              padding: 6,
-              zIndex: 10001,
-              animation: 'menuFadeIn 0.15s ease-out',
-            }}
-          >
-            <style>{`
-              @keyframes menuFadeIn {
-                from { opacity: 0; transform: translateY(-4px); }
-                to { opacity: 1; transform: translateY(0); }
-              }
-            `}</style>
-
+          <div className="absolute top-full left-0 mt-1.5 bg-glass backdrop-blur-[16px] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.35)] border border-border-glass min-w-[220px] p-1.5 z-toast animate-fade-in">
             {/* Seat profile section */}
-            <div style={{ padding: '10px 12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="px-3 py-2.5">
+              <div className="flex items-center gap-2.5">
                 {/* Portrait — clickable to upload */}
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  style={{ display: 'none' }}
+                  className="hidden"
                   onChange={handlePortraitUpload}
                 />
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+                  className="relative cursor-pointer shrink-0"
                   title="Click to change avatar"
                 >
                   {mySeat.portraitUrl ? (
                     <img
                       src={mySeat.portraitUrl}
                       alt=""
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: `2px solid ${mySeat.color}`,
-                        display: 'block',
-                      }}
+                      className="w-9 h-9 rounded-full object-cover block"
+                      style={{ border: `2px solid ${mySeat.color}` }}
                     />
                   ) : (
                     <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '50%',
-                        background: mySeat.color,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#fff',
-                        fontSize: 14,
-                        fontWeight: 700,
-                      }}
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                      style={{ background: mySeat.color }}
                     >
                       {mySeat.name.charAt(0).toUpperCase()}
                     </div>
                   )}
                   {/* Hover overlay */}
                   <div
+                    className="absolute inset-0 rounded-full flex items-center justify-center transition-colors duration-fast text-[9px] text-white"
                     style={{
-                      position: 'absolute',
-                      inset: 0,
-                      borderRadius: '50%',
                       background: uploading ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'background 0.15s',
-                      fontSize: 9,
-                      color: '#fff',
                     }}
                     onMouseEnter={(e) => {
                       if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0.4)'
@@ -213,7 +134,7 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                 </div>
 
                 {/* Name + role */}
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="flex-1 min-w-0">
                   {editing ? (
                     <input
                       autoFocus
@@ -227,42 +148,21 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                           setEditName(mySeat.name)
                         }
                       }}
-                      style={{
-                        width: '100%',
-                        padding: '3px 6px',
-                        border: '1px solid rgba(255,255,255,0.2)',
-                        borderRadius: 6,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        background: 'rgba(255,255,255,0.06)',
-                        color: '#fff',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
+                      className="w-full px-1.5 py-0.5 border border-border-glass rounded-md text-[13px] font-semibold bg-surface text-text-primary outline-none"
                     />
                   ) : (
                     <div
                       onClick={() => setEditing(true)}
-                      style={{
-                        fontWeight: 600,
-                        fontSize: 13,
-                        color: '#fff',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        cursor: 'text',
-                      }}
+                      className="font-semibold text-[13px] text-text-primary overflow-hidden text-ellipsis whitespace-nowrap cursor-text"
                       title="Click to rename"
                     >
                       {mySeat.name}
                     </div>
                   )}
                   <div
+                    className="text-[10px] font-medium mt-px"
                     style={{
-                      fontSize: 10,
                       color: mySeat.role === 'GM' ? '#fbbf24' : '#60a5fa',
-                      fontWeight: 500,
-                      marginTop: 1,
                     }}
                   >
                     {mySeat.role === 'GM' ? 'Game Master' : 'Player'}
@@ -271,69 +171,31 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
               </div>
 
               {/* Color picker */}
-              <div style={{ display: 'flex', gap: 5, marginTop: 10, flexWrap: 'wrap' }}>
+              <div className="flex gap-1.5 mt-2.5 flex-wrap">
                 {SEAT_COLORS.map((c) => (
                   <div
                     key={c}
                     onClick={() => onUpdateSeat(mySeat.id, { color: c })}
+                    className="w-[18px] h-[18px] rounded-full cursor-pointer transition-[border-color] duration-fast"
                     style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: '50%',
                       background: c,
-                      cursor: 'pointer',
                       border: c === mySeat.color ? '2px solid #fff' : '2px solid transparent',
-                      transition: 'border-color 0.15s',
                     }}
                   />
                 ))}
               </div>
             </div>
 
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '2px 8px' }} />
+            <div className="h-px bg-border-glass mx-2 my-0.5" />
 
             <button
               onClick={() => {
                 setOpen(false)
                 onLeaveSeat()
               }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                background: 'transparent',
-                border: 'none',
-                borderRadius: 8,
-                cursor: 'pointer',
-                fontSize: 12,
-                color: '#f87171',
-                fontWeight: 500,
-                textAlign: 'left',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                ;(e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.1)'
-              }}
-              onMouseLeave={(e) => {
-                ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-              }}
+              className="w-full px-3 py-2 bg-transparent border-none rounded-lg cursor-pointer text-xs text-danger font-medium text-left flex items-center gap-2 transition-colors duration-fast hover:bg-danger/10"
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
+              <LogOut size={14} strokeWidth={1.5} />
               Leave Seat
             </button>
           </div>

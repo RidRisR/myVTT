@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { X, Trash2, Upload } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
 import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
 
@@ -41,10 +42,13 @@ export function SceneLibrary({
         const scene: Scene = {
           id: generateId(),
           name: file.name.replace(/\.[^.]+$/, ''),
-          imageUrl,
+          atmosphereImageUrl: imageUrl,
+          tacticalMapImageUrl: '',
+          particlePreset: 'none',
           width: dims.w,
           height: dims.h,
           gridSize: 70,
+          gridSnap: true,
           gridVisible: false,
           gridColor: 'rgba(255,255,255,0.2)',
           gridOffsetX: 0,
@@ -52,6 +56,8 @@ export function SceneLibrary({
           sortOrder: scenes.length,
           combatActive: false,
           battleMapUrl: '',
+          initiativeOrder: [],
+          initiativeIndex: 0,
         }
         onAdd(scene)
       }
@@ -76,122 +82,57 @@ export function SceneLibrary({
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 10002,
-        background: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'sans-serif',
-      }}
+      className="fixed inset-0 z-overlay bg-black/50 flex items-center justify-center font-sans"
       onClick={onClose}
     >
       <div
-        style={{
-          width: 520,
-          maxHeight: '80vh',
-          background: '#fff',
-          borderRadius: 14,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
-        }}
+        className="bg-glass backdrop-blur-[16px] rounded-[14px] border border-border-glass shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden"
+        style={{ width: 520, maxHeight: '80vh' }}
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid #e5e7eb',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <span style={{ fontWeight: 700, fontSize: 16, color: '#111' }}>Scene Library</span>
+        <div className="px-5 py-4 border-b border-border-glass flex items-center justify-between">
+          <span className="font-bold text-base text-text-primary">Scene Library</span>
           <button
             onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: '#999',
-              padding: 4,
-              display: 'flex',
-            }}
+            className="bg-transparent border-none cursor-pointer text-text-muted p-1 flex transition-colors duration-fast hover:text-text-primary"
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <X size={18} strokeWidth={1.5} />
           </button>
         </div>
 
         {/* Scene grid */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+        <div className="flex-1 overflow-y-auto p-4">
           <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(140, 1fr))',
-              gap: 12,
-            }}
+            className="grid gap-3"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}
           >
             {scenes.map((scene) => (
               <div
                 key={scene.id}
-                style={{
-                  borderRadius: 8,
-                  overflow: 'hidden',
-                  border: '1px solid #e5e7eb',
-                  cursor: 'pointer',
-                  transition: 'box-shadow 0.15s',
-                }}
+                className="rounded-lg overflow-hidden border border-border-glass cursor-pointer transition-shadow duration-fast hover:shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
                 onClick={() => onSelect(scene.id)}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.12)')
-                }
-                onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'none')}
               >
-                {isVideoUrl(scene.imageUrl) ? (
+                {isVideoUrl(scene.atmosphereImageUrl) ? (
                   <video
-                    src={scene.imageUrl}
+                    src={scene.atmosphereImageUrl}
                     muted
                     loop
                     autoPlay
                     playsInline
-                    style={{
-                      width: '100%',
-                      height: 90,
-                      objectFit: 'cover',
-                      display: 'block',
-                    }}
+                    className="w-full object-cover block"
+                    style={{ height: 90 }}
                   />
                 ) : (
                   <img
-                    src={scene.imageUrl}
+                    src={scene.atmosphereImageUrl}
                     alt={scene.name}
-                    style={{
-                      width: '100%',
-                      height: 90,
-                      objectFit: 'cover',
-                      display: 'block',
-                    }}
+                    className="w-full object-cover block"
+                    style={{ height: 90 }}
                   />
                 )}
-                <div style={{ padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div className="px-2 py-1.5 flex items-center gap-1">
                   {editingId === scene.id ? (
                     <input
                       autoFocus
@@ -203,17 +144,11 @@ export function SceneLibrary({
                         if (e.key === 'Escape') setEditingId(null)
                       }}
                       onClick={(e) => e.stopPropagation()}
-                      style={{
-                        flex: 1,
-                        fontSize: 11,
-                        border: '1px solid #ddd',
-                        borderRadius: 3,
-                        padding: '2px 4px',
-                      }}
+                      className="flex-1 text-[11px] border border-border-glass rounded-[3px] px-1 py-0.5 bg-surface text-text-primary outline-none"
                     />
                   ) : (
                     <span
-                      style={{ flex: 1, fontSize: 11, color: '#333', fontWeight: 500 }}
+                      className="flex-1 text-[11px] text-text-primary font-medium"
                       onDoubleClick={(e) => {
                         e.stopPropagation()
                         startRename(scene)
@@ -227,28 +162,10 @@ export function SceneLibrary({
                       e.stopPropagation()
                       onDelete(scene.id)
                     }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#ccc',
-                      fontSize: 12,
-                      padding: '0 2px',
-                      lineHeight: 1,
-                    }}
+                    className="bg-transparent border-none cursor-pointer text-text-muted/30 p-0.5 leading-none transition-colors duration-fast hover:text-danger"
                     title="Delete"
                   >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
+                    <Trash2 size={12} strokeWidth={1.5} />
                   </button>
                 </div>
               </div>
@@ -256,43 +173,32 @@ export function SceneLibrary({
           </div>
 
           {scenes.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 40, color: '#999', fontSize: 13 }}>
+            <div className="text-center py-10 text-text-muted text-[13px]">
               No scenes yet. Upload an image to get started.
             </div>
           )}
         </div>
 
         {/* Upload button */}
-        <div
-          style={{
-            padding: '12px 20px',
-            borderTop: '1px solid #e5e7eb',
-            display: 'flex',
-            justifyContent: 'flex-end',
-          }}
-        >
+        <div className="px-5 py-3 border-t border-border-glass flex justify-end">
           <input
             ref={fileRef}
             type="file"
             accept="image/*,video/mp4,video/webm,video/quicktime"
             multiple
-            style={{ display: 'none' }}
+            className="hidden"
             onChange={(e) => handleUpload(e.target.files)}
           />
           <button
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            style={{
-              padding: '8px 18px',
-              background: uploading ? '#94a3b8' : '#2563eb',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: uploading ? 'wait' : 'pointer',
-            }}
+            className={`flex items-center gap-2 px-4 py-2 border-none rounded-md text-[13px] font-semibold ${
+              uploading
+                ? 'bg-text-muted text-deep cursor-wait'
+                : 'bg-accent text-deep cursor-pointer hover:bg-accent-bold'
+            } transition-colors duration-fast`}
           >
+            <Upload size={14} strokeWidth={1.5} />
             {uploading ? 'Uploading...' : 'Upload Scenes'}
           </button>
         </div>

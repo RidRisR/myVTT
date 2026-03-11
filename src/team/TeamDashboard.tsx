@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import * as Y from 'yjs'
+import { ChevronDown } from 'lucide-react'
 import { useTeamMetrics } from './useTeamMetrics'
 import { TeamMetricsTab } from './TeamMetricsTab'
 
@@ -22,65 +23,25 @@ export function TeamDashboard({ yDoc, isGM }: TeamDashboardProps) {
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        top: 12,
-        right: 16,
-        width: 546,
-        zIndex: 10000,
-        fontFamily: 'sans-serif',
-        pointerEvents: 'auto',
-      }}
+      className="fixed top-3 right-4 z-ui font-sans pointer-events-auto"
+      style={{ width: 546 }}
       onPointerDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
     >
-      <div
-        style={{
-          background: 'rgba(15, 15, 25, 0.92)',
-          backdropFilter: 'blur(16px)',
-          borderRadius: 12,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          overflow: 'hidden',
-          color: '#e4e4e7',
-        }}
-      >
+      <div className="bg-glass backdrop-blur-[16px] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-border-glass overflow-hidden text-text-primary">
         {/* Tab bar + expand/collapse (only when expanded) */}
         {expanded && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'stretch',
-              borderBottom: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <div style={{ display: 'flex', flex: 1 }}>
+          <div className="flex items-stretch border-b border-border-glass">
+            <div className="flex flex-1">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  style={{
-                    flex: 1,
-                    padding: '10px 16px',
-                    background: 'transparent',
-                    border: 'none',
-                    borderBottom:
-                      activeTab === tab.id ? '2px solid #3b82f6' : '2px solid transparent',
-                    cursor: 'pointer',
-                    color: activeTab === tab.id ? '#fff' : 'rgba(255,255,255,0.4)',
-                    fontSize: 9,
-                    fontWeight: 700,
-                    letterSpacing: 0.8,
-                    textTransform: 'uppercase',
-                    transition: 'color 0.15s, border-color 0.15s',
-                    fontFamily: 'sans-serif',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (activeTab !== tab.id) e.currentTarget.style.color = 'rgba(255,255,255,0.6)'
-                  }}
-                  onMouseLeave={(e) => {
-                    if (activeTab !== tab.id) e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
-                  }}
+                  className={`flex-1 px-4 py-2.5 bg-transparent border-none cursor-pointer text-[9px] font-bold tracking-wider uppercase font-sans transition-colors duration-fast ${
+                    activeTab === tab.id
+                      ? 'text-text-primary border-b-2 border-b-accent'
+                      : 'text-text-muted/40 border-b-2 border-b-transparent hover:text-text-muted/60'
+                  }`}
                 >
                   {tab.label}
                 </button>
@@ -89,43 +50,16 @@ export function TeamDashboard({ yDoc, isGM }: TeamDashboardProps) {
             {isGM && (
               <button
                 onClick={() => setExpanded(!expanded)}
-                style={{
-                  width: 42,
-                  background: 'rgba(255,255,255,0.03)',
-                  border: 'none',
-                  borderLeft: '1px solid rgba(255,255,255,0.06)',
-                  cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.35)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'background 0.15s, color 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.08)'
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
-                  e.currentTarget.style.color = 'rgba(255,255,255,0.35)'
-                }}
+                className="w-[42px] bg-surface/30 border-none border-l border-l-border-glass cursor-pointer text-text-muted/35 flex items-center justify-center transition-colors duration-fast hover:bg-hover hover:text-text-muted/70"
               >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                <ChevronDown
+                  size={12}
+                  strokeWidth={2.5}
+                  className="transition-transform duration-normal"
                   style={{
                     transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.2s ease',
                   }}
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
+                />
               </button>
             )}
           </div>
@@ -133,10 +67,8 @@ export function TeamDashboard({ yDoc, isGM }: TeamDashboardProps) {
 
         {/* Active tab content */}
         <div
-          style={{
-            padding: expanded ? '12px 14px 14px' : '10px 14px',
-            cursor: !expanded && isGM ? 'pointer' : 'default',
-          }}
+          className={expanded ? 'px-3.5 pt-3 pb-3.5' : 'px-3.5 py-2.5'}
+          style={{ cursor: !expanded && isGM ? 'pointer' : 'default' }}
           onClick={() => {
             if (!expanded && isGM) setExpanded(true)
           }}

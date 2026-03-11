@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Pencil, X, Plus, Loader, FileImage } from 'lucide-react'
 import type { HandoutAsset } from './useHandoutAssets'
 import { uploadAsset } from '../shared/assetUpload'
 import { generateTokenId } from '../shared/idUtils'
@@ -41,29 +42,27 @@ export function HandoutDockTab({
         ref={fileRef}
         type="file"
         accept="image/*"
-        style={{ display: 'none' }}
+        className="hidden"
         onChange={handleUpload}
       />
+      {assets.length === 0 && (
+        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+          <FileImage size={32} strokeWidth={1} className="text-text-muted/40" />
+          <p className="text-text-muted text-sm">No handouts yet</p>
+          <p className="text-text-muted/50 text-xs">Upload images to share with your players</p>
+        </div>
+      )}
+
       <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-          gap: 8,
-        }}
+        className="grid gap-2"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))' }}
       >
         {assets.map((asset) => {
           const isHovered = hoveredId === asset.id
           return (
             <div
               key={asset.id}
-              style={{
-                position: 'relative',
-                cursor: 'pointer',
-                borderRadius: 8,
-                overflow: 'hidden',
-                border: '2px solid rgba(255,255,255,0.08)',
-                transition: 'border-color 0.15s',
-              }}
+              className="relative cursor-pointer rounded-lg overflow-hidden border-2 border-border-glass transition-colors duration-fast hover:border-text-muted/20"
               onClick={() => onShowcase(asset)}
               onMouseEnter={() => setHoveredId(asset.id)}
               onMouseLeave={() => setHoveredId(null)}
@@ -71,27 +70,13 @@ export function HandoutDockTab({
               <img
                 src={asset.imageUrl}
                 alt=""
-                style={{ width: '100%', height: 70, objectFit: 'cover', display: 'block' }}
+                className="w-full object-cover block"
+                style={{ height: 70 }}
                 draggable={false}
               />
               {/* Title indicator */}
               {asset.title && !isHovered && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    padding: '2px 6px',
-                    background: 'rgba(0,0,0,0.6)',
-                    fontSize: 9,
-                    color: 'rgba(255,255,255,0.8)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    fontFamily: 'sans-serif',
-                  }}
-                >
+                <div className="absolute bottom-0 left-0 right-0 px-1.5 py-0.5 bg-black/60 text-[9px] text-text-primary/80 whitespace-nowrap overflow-hidden text-ellipsis font-sans">
                   {asset.title}
                 </div>
               )}
@@ -103,36 +88,9 @@ export function HandoutDockTab({
                       e.stopPropagation()
                       onEditAsset(asset)
                     }}
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      left: 4,
-                      width: 18,
-                      height: 18,
-                      borderRadius: '50%',
-                      background: 'rgba(0,0,0,0.6)',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: 'rgba(255,255,255,0.8)',
-                      fontSize: 10,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 0,
-                    }}
+                    className="absolute top-1 left-1 w-[18px] h-[18px] rounded-full bg-black/60 border-none cursor-pointer text-text-primary/80 flex items-center justify-center p-0"
                   >
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                    </svg>
+                    <Pencil size={10} strokeWidth={2.5} />
                   </button>
                   {/* Delete button */}
                   <button
@@ -140,27 +98,9 @@ export function HandoutDockTab({
                       e.stopPropagation()
                       onDeleteAsset(asset.id)
                     }}
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      right: 4,
-                      width: 18,
-                      height: 18,
-                      borderRadius: '50%',
-                      background: 'rgba(0,0,0,0.6)',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#f87171',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      lineHeight: 1,
-                      padding: 0,
-                    }}
+                    className="absolute top-1 right-1 w-[18px] h-[18px] rounded-full bg-black/60 border-none cursor-pointer text-danger flex items-center justify-center p-0"
                   >
-                    ×
+                    <X size={10} strokeWidth={2.5} />
                   </button>
                 </>
               )}
@@ -171,29 +111,14 @@ export function HandoutDockTab({
         {/* Upload card */}
         <div
           onClick={() => fileRef.current?.click()}
-          style={{
-            height: 70,
-            borderRadius: 8,
-            border: '2px dashed rgba(255,255,255,0.15)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 4,
-            color: 'rgba(255,255,255,0.3)',
-            fontSize: 20,
-            transition: 'border-color 0.15s, color 0.15s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.5)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
-            e.currentTarget.style.color = 'rgba(255,255,255,0.3)'
-          }}
+          className="rounded-lg border-2 border-dashed border-border-glass cursor-pointer flex items-center justify-center gap-1 text-text-muted/30 text-xl transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50"
+          style={{ height: 70 }}
         >
-          {uploading ? <span style={{ fontSize: 11 }}>...</span> : '+'}
+          {uploading ? (
+            <Loader size={14} strokeWidth={1.5} className="animate-spin" />
+          ) : (
+            <Plus size={20} strokeWidth={1.5} />
+          )}
         </div>
       </div>
     </div>

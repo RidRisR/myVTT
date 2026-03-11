@@ -8,6 +8,8 @@ import {
 } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../shared/ui/ResourceBar'
+import { useIdentityStore } from '../stores/identityStore'
+import { useAwarenessResource, getRemoteEdit } from '../shared/hooks/useAwarenessResource'
 
 interface CharacterHoverPreviewProps {
   character: Entity
@@ -24,6 +26,16 @@ export function CharacterHoverPreview({
   editable,
   onUpdateCharacter,
 }: CharacterHoverPreviewProps) {
+  // Awareness for resource drag broadcasting
+  const awareness = useIdentityStore((s) => s.getAwareness())
+  const mySeatId = useIdentityStore((s) => s.mySeatId)
+  const mySeat = useIdentityStore((s) => s.getMySeat())
+  const { broadcastEditing, clearEditing, remoteEdits } = useAwarenessResource(
+    awareness,
+    mySeatId,
+    mySeat?.color ?? null,
+  )
+
   const allResources = getEntityResources(character)
   const resources = allResources.filter((r) => r.max > 0)
   const attributes = getEntityAttributes(character)
@@ -186,21 +198,38 @@ export function CharacterHoverPreview({
       {/* Stats tab: Resources + Statuses */}
       {showStats && (
         <>
-          {resources.map((res, i) => (
-            <ResourceBar
-              key={i}
-              label={res.key || 'Unnamed'}
-              current={res.current}
-              max={res.max}
-              color={res.color}
-              height={canEdit ? 10 : 6}
-              valueDisplay={canEdit ? 'inline' : 'outside'}
-              draggable={canEdit}
-              showButtons={canEdit}
-              onChange={(val: number) => updateResource(i, { current: val })}
-              style={{ marginBottom: i < resources.length - 1 ? 5 : 0 }}
-            />
-          ))}
+          {resources.map((res, i) => {
+            const allIdx = allResources.indexOf(res)
+            const remoteEdit = getRemoteEdit(remoteEdits, character.id, String(allIdx))
+            return (
+              <ResourceBar
+                key={i}
+                label={res.key || 'Unnamed'}
+                current={res.current}
+                max={res.max}
+                color={res.color}
+                height={canEdit ? 10 : 6}
+                valueDisplay={canEdit ? 'inline' : 'outside'}
+                draggable={canEdit}
+                showButtons={canEdit}
+                onChange={(val: number) => updateResource(i, { current: val })}
+                onDragStart={
+                  canEdit
+                    ? () => broadcastEditing(character.id, String(allIdx), res.current)
+                    : undefined
+                }
+                onDragMove={
+                  canEdit
+                    ? (val: number) => broadcastEditing(character.id, String(allIdx), val)
+                    : undefined
+                }
+                onDragEnd={canEdit ? () => clearEditing() : undefined}
+                remoteDragValue={remoteEdit?.value ?? null}
+                softLockColor={remoteEdit?.color ?? null}
+                style={{ marginBottom: i < resources.length - 1 ? 5 : 0 }}
+              />
+            )
+          })}
 
           {/* Statuses */}
           {(statuses.length > 0 || canEdit) && (
