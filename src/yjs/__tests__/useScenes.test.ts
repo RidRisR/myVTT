@@ -21,6 +21,8 @@ function makeScene(overrides?: Partial<Scene>): Scene {
     sortOrder: 0,
     combatActive: false,
     battleMapUrl: '',
+    initiativeOrder: [],
+    initiativeIndex: 0,
     ...overrides,
   }
 }

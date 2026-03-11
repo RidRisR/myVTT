@@ -72,6 +72,8 @@ function RoomSession({ roomId }: { roomId: string }) {
   const removeEntityFromScene = useWorldStore((s) => s.removeEntityFromScene)
   const getSceneEntityIds = useWorldStore((s) => s.getSceneEntityIds)
   const setCombatActive = useWorldStore((s) => s.setCombatActive)
+  const setInitiativeOrder = useWorldStore((s) => s.setInitiativeOrder)
+  const advanceInitiative = useWorldStore((s) => s.advanceInitiative)
   const addEntity = useWorldStore((s) => s.addEntity)
   const updateEntity = useWorldStore((s) => s.updateEntity)
   const addToken = useWorldStore((s) => s.addToken)
@@ -300,6 +302,14 @@ function RoomSession({ roomId }: { roomId: string }) {
         onSetActiveCharacter={handleSetActiveCharacter}
         onRemoveFromScene={handleRemoveFromScene}
         onUpdateEntity={handleUpdateEntity}
+        isCombat={isCombat}
+        activeScene={activeScene}
+        onSetInitiativeOrder={(order) => {
+          if (room.activeSceneId) setInitiativeOrder(room.activeSceneId, order)
+        }}
+        onAdvanceInitiative={() => {
+          if (room.activeSceneId) advanceInitiative(room.activeSceneId)
+        }}
       />
 
       {/* Top-right: Team dashboard */}

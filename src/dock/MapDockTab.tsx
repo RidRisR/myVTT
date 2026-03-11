@@ -49,6 +49,8 @@ export function MapDockTab({
         sortOrder: scenes.length,
         combatActive: false,
         battleMapUrl: '',
+        initiativeOrder: [],
+        initiativeIndex: 0,
       }
       onAddScene(scene)
       onSelectScene(scene.id)
