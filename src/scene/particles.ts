@@ -34,13 +34,13 @@ export const PRESETS: Record<string, ParticlePresetConfig> = {
     shape: 'circle',
   },
   dust: {
-    count: 60,
+    count: 90,
     colors: ['#b0a890', '#c8b898', '#a09880', '#d0c8b0', '#908878'],
-    sizeRange: [0.8, 2.5],
+    sizeRange: [1.2, 3.5],
     speedRange: [0.1, 0.4],
     direction: { x: [-0.5, 0.5], y: [-0.3, 0.3] },
-    opacityRange: [0.15, 0.5],
-    glow: false,
+    opacityRange: [0.25, 0.65],
+    glow: true,
     shape: 'circle',
   },
   rain: {
