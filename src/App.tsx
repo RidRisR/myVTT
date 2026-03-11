@@ -36,6 +36,7 @@ import {
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
+import { ToastProvider } from './shared/ui/ToastProvider'
 
 function RoomSession({ roomId }: { roomId: string }) {
   const { yDoc, isLoading, awareness } = useYjsConnection(roomId)
@@ -281,143 +282,145 @@ function RoomSession({ roomId }: { roomId: string }) {
   }
 
   return (
-    <div>
-      <SceneViewer scene={activeScene} onContextMenu={handleBgContextMenu} />
+    <ToastProvider>
+      <div>
+        <SceneViewer scene={activeScene} onContextMenu={handleBgContextMenu} />
 
-      {isCombat && (
-        <TacticalPanel
-          scene={activeScene}
-          tokens={tokens}
-          getEntity={getEntity}
+        {isCombat && (
+          <TacticalPanel
+            scene={activeScene}
+            tokens={tokens}
+            getEntity={getEntity}
+            mySeatId={mySeatId}
+            role={mySeat.role}
+            selectedTokenId={selectedTokenId}
+            onSelectToken={setSelectedTokenId}
+            onUpdateToken={updateToken}
+            onDeleteToken={deleteToken}
+            onAddToken={addToken}
+            onDropEntityOnMap={handleDropEntityOnMap}
+            onContextMenu={handleBgContextMenu}
+            onClose={() => {
+              if (room.activeSceneId) setCombatActive(room.activeSceneId, false)
+            }}
+            onAdvanceInitiative={() => {
+              if (room.activeSceneId) advanceInitiative(room.activeSceneId)
+            }}
+            onUpdateScene={updateScene}
+          />
+        )}
+
+        {/* Top-left: Hamburger menu */}
+        <HamburgerMenu mySeat={mySeat} onUpdateSeat={updateSeat} onLeaveSeat={leaveSeat} />
+
+        {/* Top-center: Portrait bar */}
+        <PortraitBar
+          entities={entities}
+          sceneEntityIds={sceneEntityIds}
           mySeatId={mySeatId}
           role={mySeat.role}
-          selectedTokenId={selectedTokenId}
-          onSelectToken={setSelectedTokenId}
-          onUpdateToken={updateToken}
-          onDeleteToken={deleteToken}
-          onAddToken={addToken}
-          onDropEntityOnMap={handleDropEntityOnMap}
-          onContextMenu={handleBgContextMenu}
-          onClose={() => {
-            if (room.activeSceneId) setCombatActive(room.activeSceneId, false)
+          isGM={isGM}
+          onlineSeatIds={onlineSeatIds}
+          inspectedCharacterId={inspectedCharacterId}
+          activeCharacterId={mySeat.activeCharacterId ?? null}
+          onInspectCharacter={setInspectedCharacterId}
+          onSetActiveCharacter={handleSetActiveCharacter}
+          onRemoveFromScene={handleRemoveFromScene}
+          onUpdateEntity={handleUpdateEntity}
+          isCombat={isCombat}
+          activeScene={activeScene}
+          onSetInitiativeOrder={(order) => {
+            if (room.activeSceneId) setInitiativeOrder(room.activeSceneId, order)
           }}
           onAdvanceInitiative={() => {
             if (room.activeSceneId) advanceInitiative(room.activeSceneId)
           }}
-          onUpdateScene={updateScene}
         />
-      )}
 
-      {/* Top-left: Hamburger menu */}
-      <HamburgerMenu mySeat={mySeat} onUpdateSeat={updateSeat} onLeaveSeat={leaveSeat} />
+        {/* Top-right: Team dashboard */}
+        <TeamDashboard yDoc={yDoc} isGM={isGM} />
 
-      {/* Top-center: Portrait bar */}
-      <PortraitBar
-        entities={entities}
-        sceneEntityIds={sceneEntityIds}
-        mySeatId={mySeatId}
-        role={mySeat.role}
-        isGM={isGM}
-        onlineSeatIds={onlineSeatIds}
-        inspectedCharacterId={inspectedCharacterId}
-        activeCharacterId={mySeat.activeCharacterId ?? null}
-        onInspectCharacter={setInspectedCharacterId}
-        onSetActiveCharacter={handleSetActiveCharacter}
-        onRemoveFromScene={handleRemoveFromScene}
-        onUpdateEntity={handleUpdateEntity}
-        isCombat={isCombat}
-        activeScene={activeScene}
-        onSetInitiativeOrder={(order) => {
-          if (room.activeSceneId) setInitiativeOrder(room.activeSceneId, order)
-        }}
-        onAdvanceInitiative={() => {
-          if (room.activeSceneId) advanceInitiative(room.activeSceneId)
-        }}
-      />
+        {/* Left: My character card (self-managed open/close via tab) */}
+        {activeEntity && (
+          <MyCharacterCard entity={activeEntity} onUpdateEntity={handleUpdateEntity} />
+        )}
 
-      {/* Top-right: Team dashboard */}
-      <TeamDashboard yDoc={yDoc} isGM={isGM} />
+        {/* Center: Showcase spotlight overlay */}
+        <ShowcaseOverlay yDoc={yDoc} isGM={isGM} />
 
-      {/* Left: My character card (self-managed open/close via tab) */}
-      {activeEntity && (
-        <MyCharacterCard entity={activeEntity} onUpdateEntity={handleUpdateEntity} />
-      )}
-
-      {/* Center: Showcase spotlight overlay */}
-      <ShowcaseOverlay yDoc={yDoc} isGM={isGM} />
-
-      {/* Bottom-right: Chat overlay */}
-      <ChatPanel
-        yDoc={yDoc}
-        senderId={mySeatId}
-        senderName={mySeat.name}
-        senderColor={mySeat.color}
-        portraitUrl={mySeat.portraitUrl || activeEntity?.imageUrl}
-        seatProperties={seatProperties}
-        speakerEntities={selectSpeakerEntities(entities, mySeatId, isGM)}
-      />
-
-      {/* Bottom dock: asset library (maps + tokens) — visible in both modes for GM */}
-      {isGM && (
-        <BottomDock
-          scenes={scenes}
-          activeSceneId={room.activeSceneId}
-          onSelectScene={setActiveScene}
-          onAddScene={handleAddScene}
-          onDeleteScene={handleDeleteScene}
-          blueprints={world.blueprints}
-          entities={entities}
-          onAddEntity={handleAddEntity}
-          onAddEntityToScene={(entityId) => {
-            if (room.activeSceneId) addEntityToScene(room.activeSceneId, entityId)
-          }}
-          isCombat={isCombat}
-          selectedToken={selectedToken}
-          onAddToken={addToken}
-          onDeleteToken={deleteToken}
-          onUpdateToken={updateToken}
-          onSelectToken={setSelectedTokenId}
-          handoutAssets={handoutAssets}
-          onAddHandoutAsset={addHandoutAsset}
-          onEditHandoutAsset={setEditingHandout}
-          onDeleteHandoutAsset={deleteHandoutAsset}
-          onShowcaseHandout={handleShowcaseHandout}
+        {/* Bottom-right: Chat overlay */}
+        <ChatPanel
+          yDoc={yDoc}
+          senderId={mySeatId}
+          senderName={mySeat.name}
+          senderColor={mySeat.color}
+          portraitUrl={mySeat.portraitUrl || activeEntity?.imageUrl}
+          seatProperties={seatProperties}
+          speakerEntities={selectSpeakerEntities(entities, mySeatId, isGM)}
         />
-      )}
 
-      {/* Bottom-left: GM Toolbar */}
-      {isGM && (
-        <GmToolbar
-          scenes={scenes}
-          activeSceneId={room.activeSceneId}
-          isCombat={isCombat}
-          onSelectScene={setActiveScene}
-          onToggleCombat={() => {
-            if (room.activeSceneId) setCombatActive(room.activeSceneId, !isCombat)
-          }}
-          onUpdateScene={updateScene}
-          onDeleteScene={handleDeleteScene}
-        />
-      )}
+        {/* Bottom dock: asset library (maps + tokens) — visible in both modes for GM */}
+        {isGM && (
+          <BottomDock
+            scenes={scenes}
+            activeSceneId={room.activeSceneId}
+            onSelectScene={setActiveScene}
+            onAddScene={handleAddScene}
+            onDeleteScene={handleDeleteScene}
+            blueprints={world.blueprints}
+            entities={entities}
+            onAddEntity={handleAddEntity}
+            onAddEntityToScene={(entityId) => {
+              if (room.activeSceneId) addEntityToScene(room.activeSceneId, entityId)
+            }}
+            isCombat={isCombat}
+            selectedToken={selectedToken}
+            onAddToken={addToken}
+            onDeleteToken={deleteToken}
+            onUpdateToken={updateToken}
+            onSelectToken={setSelectedTokenId}
+            handoutAssets={handoutAssets}
+            onAddHandoutAsset={addHandoutAsset}
+            onEditHandoutAsset={setEditingHandout}
+            onDeleteHandoutAsset={deleteHandoutAsset}
+            onShowcaseHandout={handleShowcaseHandout}
+          />
+        )}
 
-      {/* Background right-click context menu (GM only) */}
-      {bgContextMenu && (
-        <ContextMenu
-          x={bgContextMenu.x}
-          y={bgContextMenu.y}
-          items={[{ label: 'Add NPC', onClick: handleAddNpc }]}
-          onClose={() => setBgContextMenu(null)}
-        />
-      )}
+        {/* Bottom-left: GM Toolbar */}
+        {isGM && (
+          <GmToolbar
+            scenes={scenes}
+            activeSceneId={room.activeSceneId}
+            isCombat={isCombat}
+            onSelectScene={setActiveScene}
+            onToggleCombat={() => {
+              if (room.activeSceneId) setCombatActive(room.activeSceneId, !isCombat)
+            }}
+            onUpdateScene={updateScene}
+            onDeleteScene={handleDeleteScene}
+          />
+        )}
 
-      {editingHandout && (
-        <HandoutEditModal
-          asset={editingHandout}
-          onSave={updateHandoutAsset}
-          onClose={() => setEditingHandout(null)}
-        />
-      )}
-    </div>
+        {/* Background right-click context menu (GM only) */}
+        {bgContextMenu && (
+          <ContextMenu
+            x={bgContextMenu.x}
+            y={bgContextMenu.y}
+            items={[{ label: 'Add NPC', onClick: handleAddNpc }]}
+            onClose={() => setBgContextMenu(null)}
+          />
+        )}
+
+        {editingHandout && (
+          <HandoutEditModal
+            asset={editingHandout}
+            onSave={updateHandoutAsset}
+            onClose={() => setEditingHandout(null)}
+          />
+        )}
+      </div>
+    </ToastProvider>
   )
 }
 
