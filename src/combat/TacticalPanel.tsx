@@ -17,6 +17,7 @@ interface TacticalPanelProps {
   onAddToken: (token: MapToken) => void
   onDropEntityOnMap?: (entityId: string, mapX: number, mapY: number) => void
   onContextMenu?: (e: MouseEvent) => void
+  visible: boolean
 }
 
 export function TacticalPanel({
@@ -32,11 +33,20 @@ export function TacticalPanel({
   onAddToken,
   onDropEntityOnMap,
   onContextMenu,
+  visible,
 }: TacticalPanelProps) {
   const gmViewAsPlayer = useUiStore((s) => s.gmViewAsPlayer)
 
   return (
-    <div className="z-combat" style={{ position: 'fixed', inset: 0 }} onContextMenu={onContextMenu}>
+    <div
+      className={`z-combat motion-reduce:duration-0 ${
+        visible
+          ? 'opacity-100 transition-opacity duration-slow ease-out pointer-events-auto'
+          : 'opacity-0 transition-opacity duration-normal ease-in pointer-events-none'
+      }`}
+      style={{ position: 'fixed', inset: 0 }}
+      onContextMenu={visible ? onContextMenu : undefined}
+    >
       {/* Screen-space vignette overlay — edge darkening for immersive map/background blending */}
       <div
         className="absolute inset-0 pointer-events-none z-10"
