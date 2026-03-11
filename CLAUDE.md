@@ -192,6 +192,12 @@ All styling uses **Tailwind CSS v4**. Do NOT write inline styles.
 - PRs MUST be merged using **squash merge** (`gh pr merge --squash`) — never use merge commits or rebase merge
 - This keeps `main` clean: one commit per PR, no merge bubbles
 
+**Merge requires explicit user consent (IMPORTANT):**
+
+- **NEVER merge a PR** without the user explicitly saying so (e.g. "merge", "合并", "merge the PR")
+- Creating a PR and merging a PR are two separate steps — do NOT merge immediately after creating
+- After creating a PR, stop and wait for the user to review and give the go-ahead
+
 **Worktree conventions:**
 
 - Worktree directory: `.worktrees/<branch-name>` (already in `.gitignore`)
