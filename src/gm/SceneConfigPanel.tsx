@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Trash2 } from 'lucide-react'
+import { X, Trash2, Upload, XCircle } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
 import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
+import { uploadAsset } from '../shared/assetUpload'
 
 interface SceneConfigPanelProps {
   scene: Scene
@@ -19,19 +20,25 @@ export function SceneConfigPanel({
   onClose,
 }: SceneConfigPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
+  const audioInputRef = useRef<HTMLInputElement>(null)
 
   const [name, setName] = useState(scene.name)
   const [particlePreset, setParticlePreset] = useState(scene.particlePreset)
+  const [ambientAudioUrl, setAmbientAudioUrl] = useState(scene.ambientAudioUrl)
+  const [ambientAudioVolume, setAmbientAudioVolume] = useState(scene.ambientAudioVolume)
   const [gridVisible, setGridVisible] = useState(scene.gridVisible)
   const [gridSize, setGridSize] = useState(scene.gridSize)
   const [gridSnap, setGridSnap] = useState(scene.gridSnap)
   const [gridColor, setGridColor] = useState(scene.gridColor)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [audioUploading, setAudioUploading] = useState(false)
 
   // Reset form when scene changes
   useEffect(() => {
     setName(scene.name)
     setParticlePreset(scene.particlePreset)
+    setAmbientAudioUrl(scene.ambientAudioUrl)
+    setAmbientAudioVolume(scene.ambientAudioVolume)
     setGridVisible(scene.gridVisible)
     setGridSize(scene.gridSize)
     setGridSnap(scene.gridSnap)
@@ -41,6 +48,8 @@ export function SceneConfigPanel({
     scene.id,
     scene.name,
     scene.particlePreset,
+    scene.ambientAudioUrl,
+    scene.ambientAudioVolume,
     scene.gridVisible,
     scene.gridSize,
     scene.gridSnap,
@@ -62,12 +71,29 @@ export function SceneConfigPanel({
     onUpdateScene(scene.id, {
       name: name.trim() || 'Untitled',
       particlePreset,
+      ambientAudioUrl,
+      ambientAudioVolume,
       gridVisible,
       gridSize,
       gridSnap,
       gridColor,
     })
     onClose()
+  }
+
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAudioUploading(true)
+    try {
+      const url = await uploadAsset(file)
+      setAmbientAudioUrl(url)
+    } catch (err) {
+      console.error('Audio upload failed:', err)
+    } finally {
+      setAudioUploading(false)
+      if (audioInputRef.current) audioInputRef.current.value = ''
+    }
   }
 
   const handleDelete = () => {
@@ -84,11 +110,16 @@ export function SceneConfigPanel({
 
   const labelClass = 'text-text-muted text-xs font-medium'
 
+  // Extract filename from URL for display
+  const audioFileName = ambientAudioUrl
+    ? decodeURIComponent(ambientAudioUrl.split('/').pop() ?? '').slice(0, 30)
+    : ''
+
   return (
     <div
       ref={panelRef}
       className="fixed z-toast bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] flex flex-col"
-      style={{ bottom: 56, left: 286, width: 300, maxHeight: 520 }}
+      style={{ bottom: 56, left: 286, width: 300, maxHeight: 580 }}
       onPointerDown={(e) => e.stopPropagation()}
     >
       {/* Header */}
@@ -146,6 +177,68 @@ export function SceneConfigPanel({
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Ambient audio section */}
+        <div className="flex flex-col gap-2">
+          <span className="text-text-muted text-xs font-semibold uppercase tracking-wide">
+            Ambient Audio
+          </span>
+
+          {/* Custom audio upload */}
+          <div className="flex flex-col gap-1">
+            <label className={labelClass}>Custom Audio</label>
+            <input
+              ref={audioInputRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={handleAudioUpload}
+            />
+
+            {ambientAudioUrl ? (
+              <div className="flex items-center gap-1.5">
+                <div className="flex-1 text-text-muted text-xs bg-surface rounded px-2 py-1.5 border border-border-glass truncate">
+                  {audioFileName}
+                </div>
+                <button
+                  onClick={() => setAmbientAudioUrl('')}
+                  className="text-text-muted hover:text-danger transition-colors duration-fast p-1 cursor-pointer shrink-0"
+                  title="Remove audio"
+                >
+                  <XCircle size={14} strokeWidth={1.5} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => audioInputRef.current?.click()}
+                disabled={audioUploading}
+                className="flex items-center justify-center gap-1.5 w-full bg-surface text-text-muted text-xs rounded px-2 py-2 border border-dashed border-border-glass hover:border-accent hover:text-accent transition-colors duration-fast cursor-pointer disabled:opacity-50"
+              >
+                <Upload size={12} strokeWidth={1.5} />
+                {audioUploading ? 'Uploading...' : 'Upload audio file'}
+              </button>
+            )}
+          </div>
+
+          {/* Volume slider */}
+          <div className="flex items-center justify-between gap-2">
+            <label className={labelClass}>Volume</label>
+            <div className="flex items-center gap-2 flex-1 max-w-[160px]">
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={ambientAudioVolume}
+                onChange={(e) => setAmbientAudioVolume(parseFloat(e.target.value))}
+                className="flex-1 accent-accent h-1"
+              />
+              <span className="text-text-muted text-[10px] w-8 text-right">
+                {Math.round(ambientAudioVolume * 100)}%
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Grid settings section */}

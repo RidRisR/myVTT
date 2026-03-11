@@ -47,6 +47,9 @@ export function MapDockTab({
         gridOffsetX: 0,
         gridOffsetY: 0,
         sortOrder: scenes.length,
+        ambientPreset: 'none',
+        ambientAudioUrl: '',
+        ambientAudioVolume: 0.5,
         combatActive: false,
         battleMapUrl: '',
         initiativeOrder: [],
@@ -79,7 +82,10 @@ export function MapDockTab({
 
       <div
         className="grid gap-2"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', contentVisibility: 'auto' }}
+        style={{
+          gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+          contentVisibility: 'auto',
+        }}
       >
         {scenes.map((scene) => {
           const isActive = scene.id === activeSceneId

@@ -16,6 +16,7 @@ import { roleStore } from './shared/roleState'
 import { SeatSelect } from './identity/SeatSelect'
 import { ChatPanel } from './chat/ChatPanel'
 import { SceneViewer } from './scene/SceneViewer'
+import { AmbientAudio } from './scene/AmbientAudio'
 import { TacticalPanel } from './combat/TacticalPanel'
 import { BottomDock } from './dock/BottomDock'
 
@@ -285,6 +286,10 @@ function RoomSession({ roomId }: { roomId: string }) {
     <ToastProvider>
       <div>
         <SceneViewer scene={activeScene} onContextMenu={handleBgContextMenu} />
+        <AmbientAudio
+          audioUrl={activeScene?.ambientAudioUrl}
+          volume={activeScene?.ambientAudioVolume ?? 0.5}
+        />
 
         {isCombat && (
           <TacticalPanel

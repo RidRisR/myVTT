@@ -16,6 +16,9 @@ export interface Scene {
   gridOffsetX: number
   gridOffsetY: number
   sortOrder: number
+  ambientPreset: string
+  ambientAudioUrl: string
+  ambientAudioVolume: number
   combatActive: boolean
   battleMapUrl: string
   initiativeOrder: string[]
@@ -44,6 +47,9 @@ function readScenes(yScenes: Y.Map<Y.Map<unknown>>): Scene[] {
       gridOffsetX: (sceneMap.get('gridOffsetX') as number) ?? 0,
       gridOffsetY: (sceneMap.get('gridOffsetY') as number) ?? 0,
       sortOrder: (sceneMap.get('sortOrder') as number) ?? 0,
+      ambientPreset: (sceneMap.get('ambientPreset') as string) ?? 'none',
+      ambientAudioUrl: (sceneMap.get('ambientAudioUrl') as string) ?? '',
+      ambientAudioVolume: (sceneMap.get('ambientAudioVolume') as number) ?? 0.5,
       combatActive: (sceneMap.get('combatActive') as boolean) ?? false,
       battleMapUrl: (sceneMap.get('battleMapUrl') as string) ?? '',
       initiativeOrder: (sceneMap.get('initiativeOrder') as string[]) ?? [],
@@ -81,6 +87,9 @@ export function useScenes(yScenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc) {
       sceneMap.set('gridOffsetX', scene.gridOffsetX)
       sceneMap.set('gridOffsetY', scene.gridOffsetY)
       sceneMap.set('sortOrder', scene.sortOrder)
+      sceneMap.set('ambientPreset', scene.ambientPreset ?? 'none')
+      sceneMap.set('ambientAudioUrl', scene.ambientAudioUrl ?? '')
+      sceneMap.set('ambientAudioVolume', scene.ambientAudioVolume ?? 0.5)
       sceneMap.set('combatActive', false)
       sceneMap.set('battleMapUrl', '')
       // entityIds: references to entities in this scene
@@ -133,6 +142,9 @@ export function useScenes(yScenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc) {
       gridOffsetX: (sceneMap.get('gridOffsetX') as number) ?? 0,
       gridOffsetY: (sceneMap.get('gridOffsetY') as number) ?? 0,
       sortOrder: (sceneMap.get('sortOrder') as number) ?? 0,
+      ambientPreset: (sceneMap.get('ambientPreset') as string) ?? 'none',
+      ambientAudioUrl: (sceneMap.get('ambientAudioUrl') as string) ?? '',
+      ambientAudioVolume: (sceneMap.get('ambientAudioVolume') as number) ?? 0.5,
       combatActive: (sceneMap.get('combatActive') as boolean) ?? false,
       battleMapUrl: (sceneMap.get('battleMapUrl') as string) ?? '',
       initiativeOrder: (sceneMap.get('initiativeOrder') as string[]) ?? [],
