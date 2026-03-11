@@ -37,6 +37,9 @@ interface KonvaTokenLayerProps {
   onTokenContextMenu?: (event: TokenContextMenuEvent) => void
   onTokenHover?: (event: TokenHoverEvent | null) => void
   gmViewAsPlayer?: boolean
+  onTokenDragMove?: (tokenId: string, x: number, y: number) => void
+  onTokenDragEnd?: () => void
+  remoteTokenDrags?: Map<number, { tokenId: string; x: number; y: number; color: string }>
 }
 
 const DRAG_THRESHOLD = 3
@@ -56,6 +59,9 @@ export function KonvaTokenLayer({
   onTokenContextMenu,
   onTokenHover,
   gmViewAsPlayer = false,
+  onTokenDragMove,
+  onTokenDragEnd,
+  remoteTokenDrags,
 }: KonvaTokenLayerProps) {
   // Track whether a real drag happened (vs. click)
   const didDragRef = useRef(false)
@@ -119,6 +125,11 @@ export function KonvaTokenLayer({
         }
       }
 
+      // Broadcast position for real-time awareness
+      if (draggingTokenIdRef.current) {
+        onTokenDragMove?.(draggingTokenIdRef.current, node.x(), node.y())
+      }
+
       // Show ghost token at snap position (only when gridSnap is enabled)
       if (scene.gridSnap && didDragRef.current) {
         const snapped = snapToGrid(
@@ -143,7 +154,15 @@ export function KonvaTokenLayer({
         })
       }
     },
-    [scene.gridSnap, scene.gridSize, scene.gridOffsetX, scene.gridOffsetY, tokens, getEntity],
+    [
+      scene.gridSnap,
+      scene.gridSize,
+      scene.gridOffsetX,
+      scene.gridOffsetY,
+      tokens,
+      getEntity,
+      onTokenDragMove,
+    ],
   )
 
   const handleDragEnd = useCallback(
@@ -180,8 +199,16 @@ export function KonvaTokenLayer({
         }
       }
       dragStartPosRef.current = null
+      onTokenDragEnd?.()
     },
-    [scene.gridSnap, scene.gridSize, scene.gridOffsetX, scene.gridOffsetY, onUpdateToken],
+    [
+      scene.gridSnap,
+      scene.gridSize,
+      scene.gridOffsetX,
+      scene.gridOffsetY,
+      onUpdateToken,
+      onTokenDragEnd,
+    ],
   )
 
   const handleSelect = useCallback(
@@ -257,10 +284,16 @@ export function KonvaTokenLayer({
           getEffectivePermissions(token, getEntity).default === 'none' && role === 'GM'
         const canDrag = canDragToken(role, entity, mySeatId)
 
+        // Apply remote drag position if another user is dragging this token
+        const remoteDrag = remoteTokenDrags
+          ? Array.from(remoteTokenDrags.values()).find((d) => d.tokenId === token.id)
+          : undefined
+        const displayToken = remoteDrag ? { ...token, x: remoteDrag.x, y: remoteDrag.y } : token
+
         return (
           <KonvaToken
             key={token.id}
-            token={token}
+            token={displayToken}
             entity={entity}
             pixelSize={token.size * scene.gridSize}
             selected={token.id === selectedTokenId}

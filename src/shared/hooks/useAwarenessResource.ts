@@ -20,7 +20,7 @@ export interface AwarenessResourceState {
 export type RemoteEditMap = Map<string, AwarenessResourceState>
 
 const AWARENESS_FIELD = 'resourceDrag'
-const THROTTLE_MS = 50 // ~20fps
+const THROTTLE_MS = 16 // ~60fps
 
 function remoteEditKey(entityId: string, field: string): string {
   return `${entityId}:${field}`
@@ -29,7 +29,7 @@ function remoteEditKey(entityId: string, field: string): string {
 /**
  * Hook that manages awareness-based resource drag broadcasting and listening.
  *
- * - `broadcastEditing(entityId, field, value)`: call on every drag move (throttled internally)
+ * - `broadcastEditing(entityId, field, value)`: call on every drag move (throttled internally to ~60fps)
  * - `clearEditing()`: call on pointerUp
  * - `remoteEdits`: Map of currently active remote resource drags
  */
@@ -40,6 +40,12 @@ export function useAwarenessResource(
 ) {
   const [remoteEdits, setRemoteEdits] = useState<RemoteEditMap>(() => new Map())
   const lastBroadcastRef = useRef(0)
+  const pendingBroadcastRef = useRef<{
+    entityId: string
+    field: string
+    value: number
+    timeoutId: number
+  } | null>(null)
 
   // Broadcast that the local user is dragging a resource
   const broadcastEditing = useCallback(
@@ -47,16 +53,38 @@ export function useAwarenessResource(
       if (!awareness || !mySeatId) return
 
       const now = Date.now()
-      if (now - lastBroadcastRef.current < THROTTLE_MS) return
-      lastBroadcastRef.current = now
+      const timeSinceLastBroadcast = now - lastBroadcastRef.current
 
-      awareness.setLocalStateField(AWARENESS_FIELD, {
-        entityId,
-        field,
-        value,
-        seatId: mySeatId,
-        color: mySeatColor ?? '#3b82f6',
-      } satisfies AwarenessResourceState)
+      const broadcast = () => {
+        lastBroadcastRef.current = Date.now()
+        awareness.setLocalStateField(AWARENESS_FIELD, {
+          entityId,
+          field,
+          value,
+          seatId: mySeatId,
+          color: mySeatColor ?? '#3b82f6',
+        } satisfies AwarenessResourceState)
+      }
+
+      // If enough time has passed, broadcast immediately
+      if (timeSinceLastBroadcast >= THROTTLE_MS) {
+        broadcast()
+        // Clear any pending broadcast since we just sent one
+        if (pendingBroadcastRef.current) {
+          clearTimeout(pendingBroadcastRef.current.timeoutId)
+          pendingBroadcastRef.current = null
+        }
+      } else {
+        // Schedule a deferred broadcast to ensure the last value is always sent
+        if (pendingBroadcastRef.current) {
+          clearTimeout(pendingBroadcastRef.current.timeoutId)
+        }
+        const timeoutId = window.setTimeout(() => {
+          broadcast()
+          pendingBroadcastRef.current = null
+        }, THROTTLE_MS - timeSinceLastBroadcast)
+        pendingBroadcastRef.current = { entityId, field, value, timeoutId }
+      }
     },
     [awareness, mySeatId, mySeatColor],
   )
@@ -64,6 +92,11 @@ export function useAwarenessResource(
   // Clear the local editing state (call on pointerUp)
   const clearEditing = useCallback(() => {
     if (!awareness) return
+    // Clear any pending broadcast
+    if (pendingBroadcastRef.current) {
+      clearTimeout(pendingBroadcastRef.current.timeoutId)
+      pendingBroadcastRef.current = null
+    }
     awareness.setLocalStateField(AWARENESS_FIELD, null)
   }, [awareness])
 
