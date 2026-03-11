@@ -1,0 +1,193 @@
+import { useEffect, useRef } from 'react'
+import type { MapToken, Entity } from '../shared/entityTypes'
+
+interface TokenContextMenuProps {
+  x: number
+  y: number
+  tokenId: string | null
+  token: MapToken | null
+  entity: Entity | null
+  role: 'GM' | 'PL'
+  onClose: () => void
+  onDeleteToken: (id: string) => void
+  onUpdateToken: (id: string, updates: Partial<MapToken>) => void
+  onCreateToken: (x: number, y: number) => void
+  onCopyToken: (token: MapToken) => void
+  mapX: number
+  mapY: number
+}
+
+const SIZE_OPTIONS = [1, 2, 3, 4] as const
+
+export function TokenContextMenu({
+  x,
+  y,
+  tokenId,
+  token,
+  entity,
+  role,
+  onClose,
+  onDeleteToken,
+  onUpdateToken,
+  onCreateToken,
+  onCopyToken,
+  mapX,
+  mapY,
+}: TokenContextMenuProps) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Click-outside-to-close
+  useEffect(() => {
+    const handlePointerDown = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        onClose()
+      }
+    }
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [onClose])
+
+  // Escape key to close
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  // PL: don't show context menu
+  if (role !== 'GM') return null
+
+  const isTokenMenu = tokenId !== null && token !== null
+  const isHidden = token
+    ? (entity?.permissions.default ?? token.permissions.default) === 'none'
+    : false
+  const currentSize = token?.size ?? 1
+  const tokenName = entity?.name ?? token?.label ?? 'Token'
+
+  return (
+    <div
+      ref={ref}
+      className="fixed z-popover bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans"
+      style={{ left: x, top: y }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      {isTokenMenu ? (
+        <>
+          {/* Header: token name */}
+          <div
+            className="px-3 py-1.5 text-text-muted text-xs font-medium border-b border-border-glass mb-1"
+            style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+          >
+            {tokenName}
+          </div>
+
+          {/* Copy Token */}
+          <MenuItem
+            label="Copy Token"
+            onClick={() => {
+              if (token) onCopyToken(token)
+              onClose()
+            }}
+          />
+
+          {/* Separator */}
+          <div className="border-t border-border-glass my-1" />
+
+          {/* Size submenu — radio style */}
+          <div className="px-3 py-1 text-text-muted" style={{ fontSize: 10, fontWeight: 600 }}>
+            Size
+          </div>
+          <div className="flex gap-1 px-3 py-1">
+            {SIZE_OPTIONS.map((s) => (
+              <button
+                key={s}
+                onClick={() => {
+                  onUpdateToken(tokenId, { size: s })
+                  onClose()
+                }}
+                className="border-none cursor-pointer rounded text-xs font-bold transition-colors duration-100"
+                style={{
+                  width: 28,
+                  height: 24,
+                  background: s === currentSize ? 'rgba(212,160,85,0.3)' : 'transparent',
+                  color: s === currentSize ? '#D4A055' : '#F0E6D8',
+                  border:
+                    s === currentSize ? '1px solid rgba(212,160,85,0.5)' : '1px solid transparent',
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
+          {/* Separator */}
+          <div className="border-t border-border-glass my-1" />
+
+          {/* Visibility toggle */}
+          <MenuItem
+            label={isHidden ? 'Show Token' : 'Hide Token'}
+            onClick={() => {
+              const newDefault = isHidden ? 'observer' : 'none'
+              onUpdateToken(tokenId, {
+                permissions: {
+                  ...token.permissions,
+                  default: newDefault,
+                },
+              })
+              onClose()
+            }}
+          />
+
+          {/* Separator */}
+          <div className="border-t border-border-glass my-1" />
+
+          {/* Delete Token */}
+          <MenuItem
+            label="Delete Token"
+            danger
+            onClick={() => {
+              onDeleteToken(tokenId)
+              onClose()
+            }}
+          />
+        </>
+      ) : (
+        /* Empty space menu */
+        <MenuItem
+          label="Create Token"
+          onClick={() => {
+            onCreateToken(mapX, mapY)
+            onClose()
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── MenuItem helper ──
+
+function MenuItem({
+  label,
+  onClick,
+  danger,
+}: {
+  label: string
+  onClick: () => void
+  danger?: boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="block w-full px-3 py-1.5 bg-transparent border-none text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover"
+      style={{
+        color: danger ? '#C04040' : '#F0E6D8',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
