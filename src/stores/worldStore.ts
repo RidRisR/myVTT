@@ -27,6 +27,8 @@ export interface Scene {
   sortOrder: number
   combatActive: boolean
   battleMapUrl: string
+  initiativeOrder: string[]
+  initiativeIndex: number
 }
 
 export interface RoomState {
@@ -122,6 +124,8 @@ function readScenes(yScenes: Y.Map<Y.Map<unknown>>): Scene[] {
       sortOrder: (sceneMap.get('sortOrder') as number) ?? 0,
       combatActive: (sceneMap.get('combatActive') as boolean) ?? false,
       battleMapUrl: (sceneMap.get('battleMapUrl') as string) ?? '',
+      initiativeOrder: (sceneMap.get('initiativeOrder') as string[]) ?? [],
+      initiativeIndex: (sceneMap.get('initiativeIndex') as number) ?? 0,
     })
   })
   scenes.sort((a, b) => a.sortOrder - b.sortOrder)
@@ -300,6 +304,8 @@ interface WorldState {
   removeEntityFromScene: (sceneId: string, entityId: string) => void
   getSceneEntityIds: (sceneId: string) => string[]
   setCombatActive: (sceneId: string, active: boolean) => void
+  setInitiativeOrder: (sceneId: string, order: string[]) => void
+  advanceInitiative: (sceneId: string) => void
 
   // Entity actions
   addEntity: (entity: Entity) => void
@@ -557,6 +563,25 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const sceneMap = yScenes.get(sceneId)
     if (!(sceneMap instanceof Y.Map)) return
     sceneMap.set('combatActive', active)
+  },
+
+  setInitiativeOrder: (sceneId: string, order: string[]) => {
+    const yScenes = get()._yScenes
+    if (!yScenes) return
+    const sceneMap = yScenes.get(sceneId)
+    if (!(sceneMap instanceof Y.Map)) return
+    sceneMap.set('initiativeOrder', order)
+  },
+
+  advanceInitiative: (sceneId: string) => {
+    const yScenes = get()._yScenes
+    if (!yScenes) return
+    const sceneMap = yScenes.get(sceneId)
+    if (!(sceneMap instanceof Y.Map)) return
+    const order = (sceneMap.get('initiativeOrder') as string[]) ?? []
+    if (order.length === 0) return
+    const current = (sceneMap.get('initiativeIndex') as number) ?? 0
+    sceneMap.set('initiativeIndex', (current + 1) % order.length)
   },
 
   // ── Entity actions ──

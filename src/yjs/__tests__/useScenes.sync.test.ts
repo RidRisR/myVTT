@@ -20,6 +20,8 @@ const baseScene: Scene = {
   sortOrder: 0,
   combatActive: false,
   battleMapUrl: '',
+  initiativeOrder: [],
+  initiativeIndex: 0,
 }
 
 describe('useScenes — multi-client sync', () => {
