@@ -559,17 +559,7 @@ export function KonvaMap({
       )}
 
       {/* Zoom helper controls — HTML overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4,
-          zIndex: 10,
-        }}
-      >
+      <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
         <ZoomButton label="+" onClick={handleZoomIn} title="Zoom in" />
         <ZoomButton label="\u2212" onClick={handleZoomOut} title="Zoom out" />
         <ZoomButton label="\u2922" onClick={handleFitToWindow} title="Fit to window" />
@@ -696,23 +686,8 @@ function ZoomButton({
     <button
       onClick={onClick}
       title={title}
-      style={{
-        width: 28,
-        height: 28,
-        borderRadius: 4,
-        border: '1px solid rgba(180,160,130,0.15)',
-        background: 'rgba(20,15,12,0.88)',
-        color: '#F0E6D8',
-        fontSize: 16,
-        fontWeight: 700,
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 0,
-        lineHeight: 1,
-        backdropFilter: 'blur(8px)',
-      }}
+      aria-label={title}
+      className="w-7 h-7 rounded flex items-center justify-center p-0 leading-none text-base font-bold cursor-pointer border border-border-glass bg-glass backdrop-blur-[8px] text-text-primary hover:bg-hover transition-colors duration-fast"
     >
       {label}
     </button>

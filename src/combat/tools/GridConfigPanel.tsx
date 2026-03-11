@@ -48,20 +48,14 @@ export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPan
   return (
     <div
       ref={panelRef}
-      className="bg-glass backdrop-blur-[12px] border border-border-glass rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
-      style={{
-        position: 'fixed',
-        bottom: GM_TOOLBAR_HEIGHT,
-        left: 12,
-        width: 200,
-        zIndex: 10001, // above GmToolbar (z-toast: 10000)
-        padding: '12px',
-      }}
+      className="fixed left-3 w-[200px] p-3 z-popover bg-glass backdrop-blur-[12px] border border-border-glass rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
+      style={{ bottom: GM_TOOLBAR_HEIGHT }}
     >
       <div className="text-text-primary text-xs font-medium mb-3">Grid Settings</div>
 
-      <FieldRow label="Cell Size">
+      <FieldRow label="Cell Size" htmlFor="grid-cell-size">
         <NumberInput
+          id="grid-cell-size"
           value={gridSize}
           min={10}
           max={500}
@@ -72,8 +66,9 @@ export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPan
         />
       </FieldRow>
 
-      <FieldRow label="Offset X">
+      <FieldRow label="Offset X" htmlFor="grid-offset-x">
         <NumberInput
+          id="grid-offset-x"
           value={gridOffsetX}
           min={-500}
           max={500}
@@ -84,8 +79,9 @@ export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPan
         />
       </FieldRow>
 
-      <FieldRow label="Offset Y">
+      <FieldRow label="Offset Y" htmlFor="grid-offset-y">
         <NumberInput
+          id="grid-offset-y"
           value={gridOffsetY}
           min={-500}
           max={500}
@@ -96,8 +92,9 @@ export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPan
         />
       </FieldRow>
 
-      <FieldRow label="Color">
+      <FieldRow label="Color" htmlFor="grid-color">
         <input
+          id="grid-color"
           type="color"
           value={gridColor}
           onChange={(e) => {
@@ -113,21 +110,33 @@ export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPan
 
 // ── Helpers ──
 
-function FieldRow({ label, children }: { label: string; children: React.ReactNode }) {
+function FieldRow({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string
+  htmlFor: string
+  children: React.ReactNode
+}) {
   return (
     <div className="flex items-center justify-between mb-2">
-      <span className="text-text-muted text-xs">{label}</span>
+      <label htmlFor={htmlFor} className="text-text-muted text-xs">
+        {label}
+      </label>
       {children}
     </div>
   )
 }
 
 function NumberInput({
+  id,
   value,
   min,
   max,
   onChange,
 }: {
+  id: string
   value: number
   min: number
   max: number
@@ -135,6 +144,7 @@ function NumberInput({
 }) {
   return (
     <input
+      id={id}
       type="number"
       value={value}
       min={min}

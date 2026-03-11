@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import {
   Image,
@@ -23,12 +23,12 @@ interface GmToolbarProps {
   scenes: Scene[]
   activeSceneId: string | null
   isCombat: boolean
-  activeScene: Scene | null // ← new
+  activeScene: Scene | null
   onSelectScene: (sceneId: string) => void
   onToggleCombat: () => void
   onUpdateScene: (id: string, updates: Partial<Scene>) => void
   onDeleteScene: (id: string) => void
-  onAdvanceInitiative: () => void // ← new
+  onAdvanceInitiative: () => void
 }
 
 type RangeSubTool = 'range-circle' | 'range-cone' | 'range-rect'
@@ -54,6 +54,7 @@ export function GmToolbar({
   const [showSceneList, setShowSceneList] = useState(false)
   const [editingSceneId, setEditingSceneId] = useState<string | null>(null)
   const [showGridConfig, setShowGridConfig] = useState(false)
+  const [showRangeMenu, setShowRangeMenu] = useState(false)
 
   const activeTool = useUiStore((s) => s.activeTool)
   const setActiveTool = useUiStore((s) => s.setActiveTool)
@@ -64,18 +65,32 @@ export function GmToolbar({
 
   const handleToggleGrid = () => {
     if (!activeScene) return
+    const next = !activeScene.gridVisible
     onUpdateScene(activeScene.id, {
-      gridVisible: !activeScene.gridVisible,
-      gridSnap: !activeScene.gridSnap,
+      gridVisible: next,
+      gridSnap: next,
     })
   }
 
   const isRangeActive = isRangeTool(activeTool)
 
+  // Close range submenu when switching away from range tools
+  useEffect(() => {
+    if (!isRangeActive) setShowRangeMenu(false)
+  }, [isRangeActive])
+
+  // Close range submenu on click outside toolbar
+  useEffect(() => {
+    if (!showRangeMenu) return
+    const close = () => setShowRangeMenu(false)
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [showRangeMenu])
+
   return (
     <>
       <div
-        className="fixed bottom-3 left-4 z-toast flex flex-col gap-1.5 font-sans"
+        className="fixed bottom-3 left-4 z-ui flex flex-col gap-1.5 font-sans"
         onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Upper row: tactical tools (only when isCombat) */}
@@ -96,28 +111,33 @@ export function GmToolbar({
               onClick={() => setActiveTool('measure')}
             />
             {/* Range with upward-opening submenu */}
-            <div className="relative group">
+            <div className="relative">
               <TacticalToolBtn
                 icon={<Circle size={16} strokeWidth={1.5} />}
                 active={isRangeActive}
                 title="Range templates"
-                onClick={() => setActiveTool(isRangeActive ? 'select' : 'range-circle')}
+                onClick={() => setShowRangeMenu((v) => !v)}
               />
-              <div className="absolute bottom-full left-0 mb-1 hidden group-hover:flex flex-col bg-glass backdrop-blur-[12px] border border-border-glass rounded py-1 z-10 min-w-[90px]">
-                {RANGE_TOOLS.map((tool) => (
-                  <button
-                    key={tool}
-                    onClick={() => setActiveTool(tool)}
-                    className={`px-2.5 py-1.5 text-xs text-left border-none cursor-pointer transition-colors duration-fast ${
-                      activeTool === tool
-                        ? 'bg-accent text-deep'
-                        : 'bg-transparent text-text-muted hover:text-text-primary hover:bg-hover'
-                    }`}
-                  >
-                    {RANGE_LABELS[tool]}
-                  </button>
-                ))}
-              </div>
+              {showRangeMenu && (
+                <div className="absolute bottom-full left-0 mb-1 flex flex-col bg-glass backdrop-blur-[12px] border border-border-glass rounded py-1 z-popover min-w-[90px]">
+                  {RANGE_TOOLS.map((tool) => (
+                    <button
+                      key={tool}
+                      onClick={() => {
+                        setActiveTool(tool)
+                        setShowRangeMenu(false)
+                      }}
+                      className={`px-2.5 py-1.5 text-xs text-left border-none cursor-pointer transition-colors duration-fast ${
+                        activeTool === tool
+                          ? 'bg-accent text-deep'
+                          : 'bg-transparent text-text-muted hover:text-text-primary hover:bg-hover'
+                      }`}
+                    >
+                      {RANGE_LABELS[tool]}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Separator */}
@@ -247,6 +267,7 @@ function TacticalToolBtn({
     <button
       onClick={onClick}
       title={title}
+      aria-label={title}
       className={`w-8 h-8 flex items-center justify-center rounded cursor-pointer border-none transition-colors duration-fast focus:ring-2 focus:ring-accent focus:outline-none ${
         active
           ? 'bg-accent text-deep'

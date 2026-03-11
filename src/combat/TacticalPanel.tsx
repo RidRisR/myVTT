@@ -39,12 +39,11 @@ export function TacticalPanel({
 
   return (
     <div
-      className={`z-combat motion-reduce:duration-0 ${
+      className={`fixed inset-0 z-combat motion-reduce:duration-0 ${
         visible
           ? 'opacity-100 transition-opacity duration-slow ease-out pointer-events-auto'
           : 'opacity-0 transition-opacity duration-normal ease-in pointer-events-none'
       }`}
-      style={{ position: 'fixed', inset: 0 }}
       onContextMenu={visible ? onContextMenu : undefined}
     >
       {/* Screen-space vignette overlay — edge darkening for immersive map/background blending */}

@@ -39,12 +39,11 @@ export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneView
 
   const blurOverlay = (
     <div
-      className={`absolute inset-0 z-10 pointer-events-none motion-reduce:duration-0 ${
+      className={`absolute inset-0 z-10 pointer-events-none motion-reduce:duration-0 backdrop-blur-[8px] bg-deep/50 ${
         blurred
           ? 'opacity-100 transition-opacity duration-slow ease-out'
           : 'opacity-0 transition-opacity duration-normal ease-in'
       }`}
-      style={{ backdropFilter: 'blur(8px)', background: 'rgba(8,5,18,0.52)' }}
     />
   )
 
@@ -67,13 +66,7 @@ export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneView
   return (
     <div
       onContextMenu={onContextMenu}
-      className="bg-deep"
-      style={{
-        width: '100vw',
-        height: '100vh',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
+      className="bg-deep w-screen h-screen relative overflow-hidden"
     >
       {/* Combat blur + darken overlay — always rendered, opacity transition for smooth enter/exit */}
       {blurOverlay}
