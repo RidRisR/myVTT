@@ -291,7 +291,7 @@ function RoomSession({ roomId }: { roomId: string }) {
           volume={activeScene?.ambientAudioVolume ?? 0.5}
         />
 
-        {isCombat && (
+        {activeScene && (
           <TacticalPanel
             scene={activeScene}
             tokens={tokens}
@@ -305,6 +305,7 @@ function RoomSession({ roomId }: { roomId: string }) {
             onAddToken={addToken}
             onDropEntityOnMap={handleDropEntityOnMap}
             onContextMenu={handleBgContextMenu}
+            visible={isCombat}
           />
         )}
 
