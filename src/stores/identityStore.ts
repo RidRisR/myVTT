@@ -38,8 +38,9 @@ interface IdentityState {
   _ySeats: Y.Map<Seat> | null
   _awareness: Awareness | null
 
-  // Derived getter
+  // Derived getters
   getMySeat: () => Seat | null
+  getAwareness: () => Awareness | null
 
   // Init — connects Yjs observer + awareness listener
   init: (ySeats: Y.Map<unknown>, awareness: Awareness | null) => () => void
@@ -65,6 +66,8 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
     if (!mySeatId || !_ySeats) return null
     return _ySeats.get(mySeatId) ?? null
   },
+
+  getAwareness: () => get()._awareness,
 
   init: (ySeats: Y.Map<unknown>, awareness: Awareness | null) => {
     const yPlayers = ySeats as Y.Map<Seat>

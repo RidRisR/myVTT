@@ -12,6 +12,8 @@ import { barColorForKey, statusColor } from '../shared/tokenUtils'
 import { uploadAsset } from '../shared/assetUpload'
 import { ResourceBar } from '../shared/ui/ResourceBar'
 import { MiniHoldButton } from '../shared/ui/MiniHoldButton'
+import { useIdentityStore } from '../stores/identityStore'
+import { useAwarenessResource, getRemoteEdit } from '../shared/hooks/useAwarenessResource'
 
 interface MyCharacterCardProps {
   entity: Entity
@@ -79,6 +81,16 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
   const [editName, setEditName] = useState(entity.name)
   const [colorPickerOpen, setColorPickerOpen] = useState<number | null>(null)
   const colorPickerRef = useRef<HTMLDivElement>(null)
+
+  // Awareness for resource drag broadcasting
+  const awareness = useIdentityStore((s) => s.getAwareness())
+  const mySeatId = useIdentityStore((s) => s.mySeatId)
+  const mySeat = useIdentityStore((s) => s.getMySeat())
+  const { broadcastEditing, clearEditing, remoteEdits } = useAwarenessResource(
+    awareness,
+    mySeatId,
+    mySeat?.color ?? null,
+  )
 
   // Sync editName when entity name changes externally
   useEffect(() => {
@@ -194,7 +206,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
   /* -- Tab content renderers -- */
   const renderResources = () => (
     <div>
-      {resources.map((res, i) => (
+      {resources.map((res, i) => {
+        const remoteEdit = getRemoteEdit(remoteEdits, entity.id, String(i))
+        return (
         <div key={i} style={{ marginBottom: 10 }}>
           {/* Header: name + current/max inputs + remove */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
@@ -277,6 +291,14 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
             draggable
             showButtons
             onChange={(val: number) => updateResource(i, { current: val })}
+            onDragStart={() => broadcastEditing(entity.id, String(i), res.current)}
+            onDragMove={(val: number) => broadcastEditing(entity.id, String(i), val)}
+            onDragEnd={(val: number) => {
+              updateResource(i, { current: val })
+              clearEditing()
+            }}
+            remoteDragValue={remoteEdit?.value ?? null}
+            softLockColor={remoteEdit?.color ?? null}
           />
           {/* Color picker -- collapsed by default */}
           {colorPickerOpen === i && (
@@ -307,7 +329,8 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
             </div>
           )}
         </div>
-      ))}
+        )
+      })}
       <button
         onClick={addResource}
         style={addBtnStyle}

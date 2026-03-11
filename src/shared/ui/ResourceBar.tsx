@@ -12,6 +12,16 @@ interface ResourceBarProps {
   draggable?: boolean
   showButtons?: boolean
   onChange?: (newCurrent: number) => void
+  /** Called when pointer-drag begins */
+  onDragStart?: () => void
+  /** Called on every move during drag (for awareness broadcast, NOT Yjs write) */
+  onDragMove?: (value: number) => void
+  /** Called on pointerUp to commit the final drag value (Yjs write) */
+  onDragEnd?: (value: number) => void
+  /** If a remote user is dragging this bar, display their live value */
+  remoteDragValue?: number | null
+  /** Soft-lock indicator color — shown when a remote user is editing */
+  softLockColor?: string | null
   className?: string
   style?: React.CSSProperties
 }
@@ -27,14 +37,26 @@ export function ResourceBar({
   draggable = false,
   showButtons = false,
   onChange,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+  remoteDragValue,
+  softLockColor,
   className,
   style,
 }: ResourceBarProps) {
   const [isDragging, setIsDragging] = useState(false)
+  const [localDragValue, setLocalDragValue] = useState<number | null>(null)
   const barRef = useRef<HTMLDivElement>(null)
 
+  // Determine displayed value: local drag > remote drag > committed
+  const displayValue =
+    localDragValue != null ? localDragValue : remoteDragValue != null ? remoteDragValue : current
+
   const handleBarDrag = (e: React.PointerEvent) => {
-    if (!draggable || !onChange) return
+    if (!draggable) return
+    // Need at least one of: onChange, onDragEnd
+    if (!onChange && !onDragEnd) return
     e.preventDefault()
     e.stopPropagation()
 
@@ -43,25 +65,53 @@ export function ResourceBar({
 
     const rect = bar.getBoundingClientRect()
 
-    const onMove = (moveEvent: PointerEvent) => {
-      const x = moveEvent.clientX
-      const ratio = Math.max(0, Math.min(1, (x - rect.left) / rect.width))
-      const newValue = Math.round(ratio * max)
-      onChange(newValue)
+    const computeValue = (clientX: number) => {
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+      return Math.round(ratio * max)
     }
 
-    const onUp = () => {
+    const onMove = (moveEvent: PointerEvent) => {
+      const newValue = computeValue(moveEvent.clientX)
+      setLocalDragValue(newValue)
+      // If awareness-aware: broadcast via onDragMove only
+      if (onDragMove) {
+        onDragMove(newValue)
+      }
+      // If NOT awareness-aware (legacy): write on every move
+      if (!onDragMove && !onDragEnd && onChange) {
+        onChange(newValue)
+      }
+    }
+
+    const onUp = (upEvent: PointerEvent) => {
+      const finalValue = computeValue(upEvent.clientX)
       setIsDragging(false)
+      setLocalDragValue(null)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+
+      // Commit final value
+      if (onDragEnd) {
+        onDragEnd(finalValue)
+      } else if (onChange) {
+        onChange(finalValue)
+      }
     }
 
     setIsDragging(true)
+    onDragStart?.()
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
 
     // immediate update
-    onMove(e.nativeEvent)
+    const initialValue = computeValue(e.nativeEvent.clientX)
+    setLocalDragValue(initialValue)
+    if (onDragMove) {
+      onDragMove(initialValue)
+    }
+    if (!onDragMove && !onDragEnd && onChange) {
+      onChange(initialValue)
+    }
   }
 
   const handleIncrement = () => {
@@ -74,9 +124,12 @@ export function ResourceBar({
     onChange(Math.max(current - 1, 0))
   }
 
-  const percentage = max > 0 ? (current / max) * 100 : 0
+  const percentage = max > 0 ? (displayValue / max) * 100 : 0
   const radius = Math.min(height / 2, 8)
   const inlineFontSize = Math.max(8, height * 0.5)
+
+  // Soft lock: show ring when a remote user is editing
+  const isRemoteLocked = !!softLockColor && !isDragging
 
   return (
     <div
@@ -102,8 +155,8 @@ export function ResourceBar({
         >
           {showLabel && <span>{label}</span>}
           {valueDisplay === 'outside' && (
-            <span style={{ color }}>
-              {current} / {max}
+            <span style={{ color: isRemoteLocked ? softLockColor! : color }}>
+              {displayValue} / {max}
             </span>
           )}
         </div>
@@ -132,6 +185,10 @@ export function ResourceBar({
             cursor: draggable ? 'ew-resize' : 'default',
             flex: showButtons ? 1 : undefined,
             width: showButtons ? undefined : '100%',
+            // Soft lock ring
+            boxShadow: isRemoteLocked
+              ? `0 0 0 2px ${softLockColor}, 0 0 8px ${softLockColor}66`
+              : undefined,
           }}
         >
           {/* Fill */}
@@ -143,7 +200,7 @@ export function ResourceBar({
               height: '100%',
               width: `${percentage}%`,
               background: `linear-gradient(90deg, ${color}, ${color}cc)`,
-              transition: isDragging ? 'none' : 'width 0.2s ease',
+              transition: isDragging || remoteDragValue != null ? 'none' : 'width 0.2s ease',
             }}
           />
 
@@ -166,8 +223,26 @@ export function ResourceBar({
                 pointerEvents: 'none',
               }}
             >
-              {current} / {max}
+              {displayValue} / {max}
             </div>
+          )}
+
+          {/* Soft lock dot indicator (top-right) */}
+          {isRemoteLocked && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 2,
+                right: 2,
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: softLockColor!,
+                boxShadow: `0 0 4px ${softLockColor}`,
+                pointerEvents: 'none',
+                zIndex: 1,
+              }}
+            />
           )}
         </div>
 
