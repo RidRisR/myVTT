@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X, Plus, Map } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
 import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
@@ -10,7 +10,10 @@ interface MapDockTabProps {
   onSelectScene: (sceneId: string) => void
   onAddScene: (scene: Scene) => void
   onDeleteScene: (id: string) => void
+  onSetAsTacticalMap?: (imageUrl: string) => void
 }
+
+type ContextMenu = { sceneId: string; x: number; y: number }
 
 export function MapDockTab({
   scenes,
@@ -18,10 +21,20 @@ export function MapDockTab({
   onSelectScene,
   onAddScene,
   onDeleteScene,
+  onSetAsTacticalMap,
 }: MapDockTabProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
+
+  // Close context menu on outside click
+  useEffect(() => {
+    if (!contextMenu) return
+    const close = () => setContextMenu(null)
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [contextMenu])
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -99,6 +112,10 @@ export function MapDockTab({
                   : 'border-border-glass'
               }`}
               onClick={() => onSelectScene(scene.id)}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                setContextMenu({ sceneId: scene.id, x: e.clientX, y: e.clientY })
+              }}
               onMouseEnter={() => setHoveredId(scene.id)}
               onMouseLeave={() => setHoveredId(null)}
             >
@@ -162,6 +179,41 @@ export function MapDockTab({
           )}
         </div>
       </div>
+
+      {/* Right-click context menu */}
+      {contextMenu &&
+        (() => {
+          const scene = scenes.find((s) => s.id === contextMenu.sceneId)
+          if (!scene) return null
+          return (
+            <div
+              className="fixed z-[10002] bg-glass backdrop-blur-[12px] border border-border-glass rounded-lg py-1 shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+              style={{ left: contextMenu.x, top: contextMenu.y }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => {
+                  onSelectScene(scene.id)
+                  setContextMenu(null)
+                }}
+                className="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer border-none bg-transparent transition-colors duration-fast"
+              >
+                切换到此场景
+              </button>
+              {onSetAsTacticalMap && scene.atmosphereImageUrl && (
+                <button
+                  onClick={() => {
+                    onSetAsTacticalMap(scene.atmosphereImageUrl)
+                    setContextMenu(null)
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer border-none bg-transparent transition-colors duration-fast"
+                >
+                  设为当前场景的战术地图
+                </button>
+              )}
+            </div>
+          )
+        })()}
     </div>
   )
 }

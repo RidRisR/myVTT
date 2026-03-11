@@ -19,6 +19,7 @@ interface BottomDockProps {
   onSelectScene: (sceneId: string) => void
   onAddScene: (scene: Scene) => void
   onDeleteScene: (id: string) => void
+  onSetAsTacticalMap?: (imageUrl: string) => void
 
   blueprints: Y.Map<unknown>
 
@@ -46,6 +47,7 @@ export function BottomDock({
   onSelectScene,
   onAddScene,
   onDeleteScene,
+  onSetAsTacticalMap,
   blueprints: blueprintsYMap,
   handoutAssets,
   onAddHandoutAsset,
@@ -189,6 +191,7 @@ export function BottomDock({
               onSelectScene={onSelectScene}
               onAddScene={onAddScene}
               onDeleteScene={onDeleteScene}
+              onSetAsTacticalMap={onSetAsTacticalMap}
             />
           )}
           {activeTab === 'tokens' && (

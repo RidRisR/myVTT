@@ -382,6 +382,10 @@ function RoomSession({ roomId }: { roomId: string }) {
             onEditHandoutAsset={setEditingHandout}
             onDeleteHandoutAsset={deleteHandoutAsset}
             onShowcaseHandout={handleShowcaseHandout}
+            onSetAsTacticalMap={(imageUrl) => {
+              if (room.activeSceneId)
+                updateScene(room.activeSceneId, { tacticalMapImageUrl: imageUrl })
+            }}
           />
         )}
 
