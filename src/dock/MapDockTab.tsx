@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Plus, Map } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
 import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
@@ -180,12 +181,12 @@ export function MapDockTab({
         </div>
       </div>
 
-      {/* Right-click context menu */}
+      {/* Right-click context menu — portaled to body to escape CSS transform stacking context */}
       {contextMenu &&
         (() => {
           const scene = scenes.find((s) => s.id === contextMenu.sceneId)
           if (!scene) return null
-          return (
+          return createPortal(
             <div
               className="fixed z-[10002] bg-glass backdrop-blur-[12px] border border-border-glass rounded-lg py-1 shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
               style={{ left: contextMenu.x, top: contextMenu.y }}
@@ -211,7 +212,8 @@ export function MapDockTab({
                   设为当前场景的战术地图
                 </button>
               )}
-            </div>
+            </div>,
+            document.body,
           )
         })()}
     </div>
