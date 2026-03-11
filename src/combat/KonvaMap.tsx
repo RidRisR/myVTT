@@ -430,7 +430,7 @@ export function KonvaMap({
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        background: '#111',
+        background: 'transparent',
         position: 'relative',
       }}
       onDragOver={(e) => {
@@ -582,7 +582,9 @@ export function KonvaMap({
 // ── Background Layer ──
 
 function BackgroundLayer({ scene }: { scene: Scene }) {
-  const imageUrl = scene.tacticalMapImageUrl || scene.atmosphereImageUrl
+  const imageUrl = scene.tacticalMapImageUrl // no fallback to atmosphereImageUrl
+  if (!imageUrl) return null // transparent when no tactical map image
+
   const isVideo = isVideoUrl(imageUrl)
 
   if (isVideo) {

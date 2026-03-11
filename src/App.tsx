@@ -285,7 +285,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   return (
     <ToastProvider>
       <div>
-        <SceneViewer scene={activeScene} onContextMenu={handleBgContextMenu} />
+        <SceneViewer scene={activeScene} blurred={isCombat} onContextMenu={handleBgContextMenu} />
         <AmbientAudio
           audioUrl={activeScene?.ambientAudioUrl}
           volume={activeScene?.ambientAudioVolume ?? 0.5}
@@ -305,13 +305,6 @@ function RoomSession({ roomId }: { roomId: string }) {
             onAddToken={addToken}
             onDropEntityOnMap={handleDropEntityOnMap}
             onContextMenu={handleBgContextMenu}
-            onClose={() => {
-              if (room.activeSceneId) setCombatActive(room.activeSceneId, false)
-            }}
-            onAdvanceInitiative={() => {
-              if (room.activeSceneId) advanceInitiative(room.activeSceneId)
-            }}
-            onUpdateScene={updateScene}
           />
         )}
 
@@ -398,12 +391,16 @@ function RoomSession({ roomId }: { roomId: string }) {
             scenes={scenes}
             activeSceneId={room.activeSceneId}
             isCombat={isCombat}
+            activeScene={activeScene}
             onSelectScene={setActiveScene}
             onToggleCombat={() => {
               if (room.activeSceneId) setCombatActive(room.activeSceneId, !isCombat)
             }}
             onUpdateScene={updateScene}
             onDeleteScene={handleDeleteScene}
+            onAdvanceInitiative={() => {
+              if (room.activeSceneId) advanceInitiative(room.activeSceneId)
+            }}
           />
         )}
 
