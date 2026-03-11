@@ -4,11 +4,14 @@ import type Konva from 'konva'
 import type { MapToken, Entity } from '../shared/entityTypes'
 import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
+import { useUiStore } from '../stores/uiStore'
 import { KonvaGrid } from './KonvaGrid'
 import { KonvaTokenLayer } from './KonvaTokenLayer'
 import type { TokenContextMenuEvent, TokenHoverEvent } from './KonvaTokenLayer'
 import { TokenContextMenu } from './TokenContextMenu'
 import { TokenTooltip } from './TokenTooltip'
+import { MeasureTool } from './tools/MeasureTool'
+import { RangeTemplate } from './tools/RangeTemplate'
 import { useImage } from './useImage'
 import { generateTokenId } from '../shared/idUtils'
 import { snapToGrid } from './combatUtils'
@@ -75,6 +78,10 @@ export function KonvaMap({
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
   const [stageScale, setStageScale] = useState(1)
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 })
+
+  // Active tool from UI store
+  const activeTool = useUiStore((s) => s.activeTool)
+  const isSelectMode = activeTool === 'select'
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -410,7 +417,7 @@ export function KonvaMap({
           scaleY={stageScale}
           x={stagePos.x}
           y={stagePos.y}
-          draggable
+          draggable={isSelectMode}
           onWheel={handleWheel}
           onClick={handleStageClick}
           onTap={handleStageClick}
@@ -446,6 +453,20 @@ export function KonvaMap({
             containerOffset={containerOffsetRef.current}
             onTokenContextMenu={handleTokenContextMenu}
             onTokenHover={handleTokenHover}
+          />
+
+          {/* Measurement tool layer — above tokens */}
+          <MeasureTool
+            active={activeTool === 'measure'}
+            scene={scene}
+            stageRef={stageRef}
+          />
+
+          {/* Range template layer — above tokens */}
+          <RangeTemplate
+            activeTool={activeTool}
+            scene={scene}
+            stageRef={stageRef}
           />
         </Stage>
       )}
