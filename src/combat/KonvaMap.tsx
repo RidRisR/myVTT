@@ -15,6 +15,7 @@ import { RangeTemplate } from './tools/RangeTemplate'
 import { useImage } from './useImage'
 import { generateTokenId } from '../shared/idUtils'
 import { snapToGrid } from './combatUtils'
+import { useToast } from '../shared/ui/useToast'
 
 // Random pastel-ish colors for new tokens
 const TOKEN_COLORS = [
@@ -54,6 +55,7 @@ interface KonvaMapProps {
   onDeleteToken: (id: string) => void
   onAddToken: (token: MapToken) => void
   onDropEntityOnMap?: (entityId: string, mapX: number, mapY: number) => void
+  gmViewAsPlayer?: boolean
 }
 
 const MIN_SCALE = 0.1
@@ -72,12 +74,16 @@ export function KonvaMap({
   onDeleteToken,
   onAddToken,
   onDropEntityOnMap,
+  gmViewAsPlayer = false,
 }: KonvaMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Konva.Stage>(null)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
   const [stageScale, setStageScale] = useState(1)
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 })
+
+  // Toast for undo-able actions
+  const { toast } = useToast()
 
   // Active tool from UI store
   const activeTool = useUiStore((s) => s.activeTool)
@@ -327,6 +333,23 @@ export function KonvaMap({
     [scene, onAddToken],
   )
 
+  // Undo-able token deletion
+  const handleDeleteToken = useCallback(
+    (tokenId: string) => {
+      const token = tokens.find((t) => t.id === tokenId)
+      if (!token) return
+      onDeleteToken(tokenId)
+      toast('undo', 'Token deleted', {
+        duration: 5000,
+        action: {
+          label: 'Undo',
+          onClick: () => onAddToken(token),
+        },
+      })
+    },
+    [tokens, onDeleteToken, onAddToken, toast],
+  )
+
   // Resolve context menu token + entity
   const contextMenuToken = contextMenu?.tokenId
     ? (tokens.find((t) => t.id === contextMenu.tokenId) ?? null)
@@ -453,6 +476,7 @@ export function KonvaMap({
             containerOffset={containerOffsetRef.current}
             onTokenContextMenu={handleTokenContextMenu}
             onTokenHover={handleTokenHover}
+            gmViewAsPlayer={gmViewAsPlayer}
           />
 
           {/* Measurement tool layer — above tokens */}
@@ -481,7 +505,7 @@ export function KonvaMap({
           entity={contextMenuEntity}
           role={role}
           onClose={handleCloseContextMenu}
-          onDeleteToken={onDeleteToken}
+          onDeleteToken={handleDeleteToken}
           onUpdateToken={onUpdateToken}
           onCreateToken={handleCreateToken}
           onCopyToken={handleCopyToken}

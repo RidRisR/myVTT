@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import type { Scene } from '../stores/worldStore'
 import type { MapToken, Entity } from '../shared/entityTypes'
+import { useUiStore } from '../stores/uiStore'
 import { KonvaMap } from './KonvaMap'
 import { TacticalToolbar } from './TacticalToolbar'
 import { GridConfigPanel } from './tools/GridConfigPanel'
@@ -40,6 +41,7 @@ export function TacticalPanel({
   onAdvanceInitiative,
   onUpdateScene,
 }: TacticalPanelProps) {
+  const gmViewAsPlayer = useUiStore((s) => s.gmViewAsPlayer)
   const [showGridConfig, setShowGridConfig] = useState(false)
 
   const handleToggleGrid = useCallback(() => {
@@ -87,6 +89,7 @@ export function TacticalPanel({
           onToggleGrid={handleToggleGrid}
           onAdvanceInitiative={onAdvanceInitiative}
           onClose={onClose}
+          role={role}
         />
 
         {/* Map area */}
@@ -103,6 +106,7 @@ export function TacticalPanel({
             onDeleteToken={onDeleteToken}
             onAddToken={onAddToken}
             onDropEntityOnMap={onDropEntityOnMap}
+            gmViewAsPlayer={gmViewAsPlayer}
           />
         </div>
 

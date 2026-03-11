@@ -105,7 +105,7 @@ export function TokenDockTab({
 
       <div
         className="grid gap-2.5"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))' }}
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', contentVisibility: 'auto' }}
       >
         {blueprints.map((bp) => {
           const isHovered = hoveredId === bp.id
