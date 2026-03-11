@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { Scene } from '../../stores/worldStore'
 
+/** Bottom offset so GridConfigPanel clears the dual-row GmToolbar (~68px) + 4px gap */
+const GM_TOOLBAR_HEIGHT = 72
+
 interface GridConfigPanelProps {
   scene: Scene
   onUpdateScene: (sceneId: string, updates: Partial<Scene>) => void
@@ -48,7 +51,7 @@ export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPan
       className="bg-glass backdrop-blur-[12px] border border-border-glass rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
       style={{
         position: 'fixed',
-        bottom: 72, // GmToolbar dual-row height ~68px, 4px gap
+        bottom: GM_TOOLBAR_HEIGHT,
         left: 12,
         width: 200,
         zIndex: 10001, // above GmToolbar (z-toast: 10000)

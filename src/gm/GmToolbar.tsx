@@ -66,7 +66,7 @@ export function GmToolbar({
     if (!activeScene) return
     onUpdateScene(activeScene.id, {
       gridVisible: !activeScene.gridVisible,
-      gridSnap: !activeScene.gridVisible,
+      gridSnap: !activeScene.gridSnap,
     })
   }
 
