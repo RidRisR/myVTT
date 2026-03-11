@@ -6,10 +6,11 @@ import { ParticleLayer } from './ParticleLayer'
 
 interface SceneViewerProps {
   scene: Scene | null
+  blurred?: boolean
   onContextMenu?: (e: React.MouseEvent) => void
 }
 
-export function SceneViewer({ scene, onContextMenu }: SceneViewerProps) {
+export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneViewerProps) {
   const [prevUrl, setPrevUrl] = useState<string | null>(null)
   const [currentUrl, setCurrentUrl] = useState<string | null>(null)
   const [fading, setFading] = useState(false)
@@ -40,8 +41,15 @@ export function SceneViewer({ scene, onContextMenu }: SceneViewerProps) {
     return (
       <div
         onContextMenu={onContextMenu}
-        className="w-screen h-screen flex items-center justify-center bg-deep"
+        className="w-screen h-screen flex items-center justify-center bg-deep relative"
       >
+        {/* Same blur overlay as main branch */}
+        <div
+          className={`absolute inset-0 z-10 pointer-events-none transition-opacity duration-slow ease-out motion-reduce:duration-0 ${
+            blurred ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{ backdropFilter: 'blur(8px)', background: 'rgba(8,5,18,0.52)' }}
+        />
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
           <Image size={32} strokeWidth={1} className="text-text-muted/40" />
           <p className="text-text-muted text-sm">No scene selected</p>
@@ -62,6 +70,14 @@ export function SceneViewer({ scene, onContextMenu }: SceneViewerProps) {
         background: '#000',
       }}
     >
+      {/* Combat blur + darken overlay — always rendered, opacity transition for smooth enter/exit */}
+      <div
+        className={`absolute inset-0 z-10 pointer-events-none transition-opacity duration-slow ease-out motion-reduce:duration-0 ${
+          blurred ? 'opacity-100' : 'opacity-0'
+        }`}
+        style={{ backdropFilter: 'blur(8px)', background: 'rgba(8,5,18,0.52)' }}
+      />
+
       {/* Previous media (during crossfade) */}
       {prevUrl &&
         (isVideoUrl(prevUrl) ? (
