@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Trash2 } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
+import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
 
 interface SceneConfigPanelProps {
   scene: Scene
@@ -25,7 +26,7 @@ export function SceneConfigPanel({
   const [gridSize, setGridSize] = useState(scene.gridSize)
   const [gridSnap, setGridSnap] = useState(scene.gridSnap)
   const [gridColor, setGridColor] = useState(scene.gridColor)
-  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Reset form when scene changes
   useEffect(() => {
@@ -35,7 +36,7 @@ export function SceneConfigPanel({
     setGridSize(scene.gridSize)
     setGridSnap(scene.gridSnap)
     setGridColor(scene.gridColor)
-    setConfirmDelete(false)
+    setShowDeleteConfirm(false)
   }, [
     scene.id,
     scene.name,
@@ -70,10 +71,10 @@ export function SceneConfigPanel({
   }
 
   const handleDelete = () => {
-    if (!confirmDelete) {
-      setConfirmDelete(true)
-      return
-    }
+    setShowDeleteConfirm(true)
+  }
+
+  const handleConfirmDelete = () => {
     onDeleteScene(scene.id)
     onClose()
   }
@@ -228,12 +229,10 @@ export function SceneConfigPanel({
         {/* Delete button */}
         <button
           onClick={handleDelete}
-          className={`flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded transition-colors duration-fast cursor-pointer ${
-            confirmDelete ? 'bg-danger text-text-primary' : 'text-danger hover:bg-danger/15'
-          }`}
+          className="flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded transition-colors duration-fast cursor-pointer text-danger hover:bg-danger/15"
         >
           <Trash2 size={14} strokeWidth={1.5} />
-          {confirmDelete ? 'Confirm Delete' : 'Delete'}
+          Delete
         </button>
 
         {/* Save button */}
@@ -244,6 +243,17 @@ export function SceneConfigPanel({
           Save
         </button>
       </div>
+      {/* Delete confirm dialog */}
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title="Delete Scene"
+          message={`Are you sure you want to delete "${scene.name}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   )
 }

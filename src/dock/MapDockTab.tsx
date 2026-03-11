@@ -79,7 +79,7 @@ export function MapDockTab({
 
       <div
         className="grid gap-2"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))' }}
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', contentVisibility: 'auto' }}
       >
         {scenes.map((scene) => {
           const isActive = scene.id === activeSceneId

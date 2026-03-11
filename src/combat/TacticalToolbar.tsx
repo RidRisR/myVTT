@@ -6,6 +6,8 @@ import {
   Settings,
   ChevronRight,
   X,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { useUiStore, type ActiveTool } from '../stores/uiStore'
 
@@ -17,6 +19,7 @@ interface TacticalToolbarProps {
   onToggleGrid: () => void
   onAdvanceInitiative: () => void
   onClose: () => void
+  role: 'GM' | 'PL'
 }
 
 type RangeSubTool = 'range-circle' | 'range-cone' | 'range-rect'
@@ -33,9 +36,12 @@ export function TacticalToolbar({
   onToggleGrid,
   onAdvanceInitiative,
   onClose,
+  role,
 }: TacticalToolbarProps) {
   const activeTool = useUiStore((s) => s.activeTool)
   const setActiveTool = useUiStore((s) => s.setActiveTool)
+  const gmViewAsPlayer = useUiStore((s) => s.gmViewAsPlayer)
+  const setGmViewAsPlayer = useUiStore((s) => s.setGmViewAsPlayer)
 
   return (
     <div
@@ -76,6 +82,22 @@ export function TacticalToolbar({
         title="Grid settings"
         onClick={onToggleGridConfig}
       />
+
+      {/* Player view toggle — GM only */}
+      {role === 'GM' && (
+        <>
+          <div className="w-6 h-px bg-border-glass my-1" />
+          <ToolButton
+            icon={gmViewAsPlayer
+              ? <EyeOff size={18} strokeWidth={1.5} />
+              : <Eye size={18} strokeWidth={1.5} />
+            }
+            active={gmViewAsPlayer}
+            title="Toggle Player View"
+            onClick={() => setGmViewAsPlayer(!gmViewAsPlayer)}
+          />
+        </>
+      )}
 
       {/* Divider */}
       <div className="w-6 h-px bg-border-glass my-1" />
