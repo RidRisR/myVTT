@@ -10,6 +10,29 @@ interface ContextMenuState {
 }
 
 export type ActiveTool = 'select' | 'measure' | 'range-circle' | 'range-cone' | 'range-rect'
+export type ThemeId = 'warm' | 'cold'
+
+function getStoredTheme(): ThemeId {
+  try {
+    const v = localStorage.getItem('vtt-theme')
+    if (v === 'warm' || v === 'cold') return v
+  } catch {
+    /* ignore */
+  }
+  return 'warm'
+}
+
+function applyTheme(theme: ThemeId) {
+  document.documentElement.setAttribute('data-theme', theme)
+  try {
+    localStorage.setItem('vtt-theme', theme)
+  } catch {
+    /* ignore */
+  }
+}
+
+// Apply stored theme immediately on module load
+applyTheme(getStoredTheme())
 
 interface UiState {
   inspectedCharacterId: string | null
@@ -18,6 +41,7 @@ interface UiState {
   editingHandout: HandoutAsset | null
   activeTool: ActiveTool
   gmViewAsPlayer: boolean
+  theme: ThemeId
 
   setInspectedCharacterId: (id: string | null) => void
   setSelectedTokenId: (id: string | null) => void
@@ -25,6 +49,7 @@ interface UiState {
   setEditingHandout: (asset: HandoutAsset | null) => void
   setActiveTool: (tool: ActiveTool) => void
   setGmViewAsPlayer: (val: boolean) => void
+  setTheme: (theme: ThemeId) => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -34,6 +59,7 @@ export const useUiStore = create<UiState>((set) => ({
   editingHandout: null,
   activeTool: 'select',
   gmViewAsPlayer: false,
+  theme: getStoredTheme(),
 
   setInspectedCharacterId: (id) => set({ inspectedCharacterId: id }),
   setSelectedTokenId: (id) => set({ selectedTokenId: id }),
@@ -41,4 +67,8 @@ export const useUiStore = create<UiState>((set) => ({
   setEditingHandout: (asset) => set({ editingHandout: asset }),
   setActiveTool: (tool) => set({ activeTool: tool }),
   setGmViewAsPlayer: (val) => set({ gmViewAsPlayer: val }),
+  setTheme: (theme) => {
+    applyTheme(theme)
+    set({ theme })
+  },
 }))

@@ -10,6 +10,7 @@ services:
       - ./src:/app/src
       - ./server:/app/server
       - ./index.html:/app/index.html
+      - ./tailwind.config.ts:/app/tailwind.config.ts
       - vtt-data:/app/db
       - vtt-uploads:/app/server/uploads
     environment:
