@@ -6,7 +6,38 @@ import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
 import { KonvaGrid } from './KonvaGrid'
 import { KonvaTokenLayer } from './KonvaTokenLayer'
+import type { TokenContextMenuEvent, TokenHoverEvent } from './KonvaTokenLayer'
+import { TokenContextMenu } from './TokenContextMenu'
+import { TokenTooltip } from './TokenTooltip'
 import { useImage } from './useImage'
+import { generateTokenId } from '../shared/idUtils'
+import { snapToGrid } from './combatUtils'
+
+// Random pastel-ish colors for new tokens
+const TOKEN_COLORS = [
+  '#e74c3c',
+  '#3498db',
+  '#2ecc71',
+  '#9b59b6',
+  '#f39c12',
+  '#1abc9c',
+  '#e67e22',
+  '#e91e63',
+  '#00bcd4',
+  '#8bc34a',
+]
+
+function randomColor(): string {
+  return TOKEN_COLORS[Math.floor(Math.random() * TOKEN_COLORS.length)]
+}
+
+interface ContextMenuState {
+  screenX: number
+  screenY: number
+  tokenId: string | null
+  mapX: number
+  mapY: number
+}
 
 interface KonvaMapProps {
   scene: Scene | null
@@ -17,6 +48,8 @@ interface KonvaMapProps {
   selectedTokenId: string | null
   onSelectToken: (id: string | null) => void
   onUpdateToken: (id: string, updates: Partial<MapToken>) => void
+  onDeleteToken: (id: string) => void
+  onAddToken: (token: MapToken) => void
 }
 
 const MIN_SCALE = 0.1
@@ -32,6 +65,8 @@ export function KonvaMap({
   selectedTokenId,
   onSelectToken,
   onUpdateToken,
+  onDeleteToken,
+  onAddToken,
 }: KonvaMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Konva.Stage>(null)
@@ -39,10 +74,24 @@ export function KonvaMap({
   const [stageScale, setStageScale] = useState(1)
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 })
 
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+
+  // Tooltip state
+  const [tooltipState, setTooltipState] = useState<TokenHoverEvent | null>(null)
+
+  // Track container offset for screen coordinate calculations
+  const containerOffsetRef = useRef({ x: 0, y: 0 })
+
   // Track container size with ResizeObserver
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+
+    const updateOffset = () => {
+      const rect = container.getBoundingClientRect()
+      containerOffsetRef.current = { x: rect.left, y: rect.top }
+    }
 
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0]
@@ -51,6 +100,7 @@ export function KonvaMap({
           width: entry.contentRect.width,
           height: entry.contentRect.height,
         })
+        updateOffset()
       }
     })
     observer.observe(container)
@@ -60,6 +110,7 @@ export function KonvaMap({
       width: container.clientWidth,
       height: container.clientHeight,
     })
+    updateOffset()
 
     return () => observer.disconnect()
   }, [])
@@ -172,6 +223,113 @@ export function KonvaMap({
     setStagePos({ x: stage.x(), y: stage.y() })
   }, [])
 
+  // Right-click on empty stage area
+  const handleStageContextMenu = useCallback(
+    (e: Konva.KonvaEventObject<PointerEvent>) => {
+      e.evt.preventDefault()
+      if (role !== 'GM') return
+
+      const target = e.target
+      const stage = target.getStage()
+      const isStage = target === stage
+      const isLayer = target.nodeType === 'Layer'
+
+      // Only handle right-click on empty space (stage/layer), not on tokens
+      if (!isStage && !isLayer) return
+
+      const pointer = stage?.getRelativePointerPosition()
+      if (!pointer) return
+
+      setContextMenu({
+        screenX: e.evt.clientX,
+        screenY: e.evt.clientY,
+        tokenId: null,
+        mapX: pointer.x,
+        mapY: pointer.y,
+      })
+    },
+    [role],
+  )
+
+  // Token context menu handler from KonvaTokenLayer
+  const handleTokenContextMenu = useCallback((event: TokenContextMenuEvent) => {
+    setTooltipState(null)
+    setContextMenu({
+      screenX: event.screenX,
+      screenY: event.screenY,
+      tokenId: event.tokenId,
+      mapX: event.mapX,
+      mapY: event.mapY,
+    })
+  }, [])
+
+  // Token hover handler
+  const handleTokenHover = useCallback(
+    (event: TokenHoverEvent | null) => {
+      // Don't show tooltip while context menu is open
+      if (contextMenu) return
+      setTooltipState(event)
+    },
+    [contextMenu],
+  )
+
+  // Close context menu
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu(null)
+  }, [])
+
+  // Create token on empty space
+  const handleCreateToken = useCallback(
+    (mapX: number, mapY: number) => {
+      if (!scene) return
+      let x = mapX
+      let y = mapY
+      if (scene.gridSnap) {
+        const snapped = snapToGrid(x, y, scene.gridSize, scene.gridOffsetX, scene.gridOffsetY)
+        x = snapped.x
+        y = snapped.y
+      }
+      const newToken: MapToken = {
+        id: generateTokenId(),
+        x,
+        y,
+        size: 1,
+        color: randomColor(),
+        permissions: { default: 'observer', seats: {} },
+      }
+      onAddToken(newToken)
+    },
+    [scene, onAddToken],
+  )
+
+  // Copy token (create duplicate at offset)
+  const handleCopyToken = useCallback(
+    (token: MapToken) => {
+      if (!scene) return
+      const gridSize = scene.gridSize
+      const newToken: MapToken = {
+        ...token,
+        id: generateTokenId(),
+        x: token.x + gridSize,
+        y: token.y + gridSize,
+      }
+      onAddToken(newToken)
+    },
+    [scene, onAddToken],
+  )
+
+  // Resolve context menu token + entity
+  const contextMenuToken = contextMenu?.tokenId
+    ? (tokens.find((t) => t.id === contextMenu.tokenId) ?? null)
+    : null
+  const contextMenuEntity = contextMenuToken?.entityId ? getEntity(contextMenuToken.entityId) : null
+
+  // Resolve tooltip token + entity
+  const tooltipToken = tooltipState
+    ? (tokens.find((t) => t.id === tooltipState.tokenId) ?? null)
+    : null
+  const tooltipEntity = tooltipToken?.entityId ? getEntity(tooltipToken.entityId) : null
+
   // No scene state
   if (!scene) {
     return (
@@ -219,6 +377,7 @@ export function KonvaMap({
           onClick={handleStageClick}
           onTap={handleStageClick}
           onDragEnd={handleDragEnd}
+          onContextMenu={handleStageContextMenu}
         >
           {/* Background layer — non-interactive */}
           <BackgroundLayer scene={scene} />
@@ -245,8 +404,41 @@ export function KonvaMap({
             onSelectToken={onSelectToken}
             onUpdateToken={onUpdateToken}
             stageScale={stageScale}
+            stagePos={stagePos}
+            containerOffset={containerOffsetRef.current}
+            onTokenContextMenu={handleTokenContextMenu}
+            onTokenHover={handleTokenHover}
           />
         </Stage>
+      )}
+
+      {/* Context menu — HTML overlay */}
+      {contextMenu && (
+        <TokenContextMenu
+          x={contextMenu.screenX}
+          y={contextMenu.screenY}
+          tokenId={contextMenu.tokenId}
+          token={contextMenuToken}
+          entity={contextMenuEntity}
+          role={role}
+          onClose={handleCloseContextMenu}
+          onDeleteToken={onDeleteToken}
+          onUpdateToken={onUpdateToken}
+          onCreateToken={handleCreateToken}
+          onCopyToken={handleCopyToken}
+          mapX={contextMenu.mapX}
+          mapY={contextMenu.mapY}
+        />
+      )}
+
+      {/* Tooltip — HTML overlay */}
+      {tooltipState && tooltipToken && (
+        <TokenTooltip
+          token={tooltipToken}
+          entity={tooltipEntity}
+          screenX={tooltipState.screenX}
+          screenY={tooltipState.screenY}
+        />
       )}
 
       {/* Zoom helper controls — HTML overlay */}
@@ -280,7 +472,9 @@ function BackgroundLayer({ scene }: { scene: Scene }) {
     return <VideoBackground url={imageUrl} width={scene.width} height={scene.height} />
   }
 
-  return <ImageBackground url={imageUrl} width={scene.width} height={scene.height} name={scene.name} />
+  return (
+    <ImageBackground url={imageUrl} width={scene.width} height={scene.height} name={scene.name} />
+  )
 }
 
 function ImageBackground({
@@ -319,15 +513,7 @@ function ImageBackground({
   )
 }
 
-function VideoBackground({
-  url,
-  width,
-  height,
-}: {
-  url: string
-  width: number
-  height: number
-}) {
+function VideoBackground({ url, width, height }: { url: string; width: number; height: number }) {
   const imageRef = useRef<Konva.Image>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const animRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null)
@@ -370,14 +556,7 @@ function VideoBackground({
   return (
     <Layer listening={false}>
       {videoRef.current && (
-        <Image
-          ref={imageRef}
-          image={videoRef.current}
-          x={0}
-          y={0}
-          width={width}
-          height={height}
-        />
+        <Image ref={imageRef} image={videoRef.current} x={0} y={0} width={width} height={height} />
       )}
     </Layer>
   )
