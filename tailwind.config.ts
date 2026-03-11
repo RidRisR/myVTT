@@ -5,15 +5,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        glass: 'rgba(20,15,12,0.88)',
-        deep: '#140f0c',
-        surface: 'rgba(35,28,22,0.92)',
-        'text-primary': '#F0E6D8',
-        'text-muted': '#A09080',
-        'border-glass': 'rgba(180,160,130,0.15)',
+        glass: 'rgba(var(--color-glass), 0.88)',
+        deep: 'var(--color-deep)',
+        surface: 'rgba(var(--color-surface), 0.92)',
+        'text-primary': 'var(--color-text-primary)',
+        'text-muted': 'var(--color-text-muted)',
+        'border-glass': 'rgba(var(--color-border-glass), 0.15)',
         hover: 'rgba(255,255,255,0.15)',
-        accent: '#D4A055',
-        'accent-bold': '#E8B86A',
+        accent: 'var(--color-accent)',
+        'accent-bold': 'var(--color-accent-bold)',
         success: '#408040',
         danger: '#C04040',
         warning: '#fbbf24',

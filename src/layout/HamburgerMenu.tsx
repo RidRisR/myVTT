@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { Menu, LogOut } from 'lucide-react'
+import { Menu, LogOut, Sun, Moon } from 'lucide-react'
 import type { Seat } from '../identity/useIdentity'
 import { SEAT_COLORS } from '../identity/useIdentity'
 import { uploadAsset } from '../shared/assetUpload'
+import { useUiStore } from '../stores/uiStore'
 
 interface HamburgerMenuProps {
   mySeat: Seat
@@ -188,6 +189,10 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
 
             <div className="h-px bg-border-glass mx-2 my-0.5" />
 
+            <ThemeToggle />
+
+            <div className="h-px bg-border-glass mx-2 my-0.5" />
+
             <button
               onClick={() => {
                 setOpen(false)
@@ -202,5 +207,21 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
         </>
       )}
     </div>
+  )
+}
+
+function ThemeToggle() {
+  const theme = useUiStore((s) => s.theme)
+  const setTheme = useUiStore((s) => s.setTheme)
+  const isWarm = theme === 'warm'
+
+  return (
+    <button
+      onClick={() => setTheme(isWarm ? 'cold' : 'warm')}
+      className="w-full px-3 py-2 bg-transparent border-none rounded-lg cursor-pointer text-xs text-text-muted font-medium text-left flex items-center gap-2 transition-colors duration-fast hover:bg-hover hover:text-text-primary"
+    >
+      {isWarm ? <Moon size={14} strokeWidth={1.5} /> : <Sun size={14} strokeWidth={1.5} />}
+      {isWarm ? 'Cold Arcane' : 'Warm Alchemy'}
+    </button>
   )
 }
