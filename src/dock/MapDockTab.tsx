@@ -107,12 +107,17 @@ export function MapDockTab({
           return (
             <div
               key={scene.id}
+              role="button"
+              tabIndex={0}
               className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-fast ${
                 isActive
                   ? 'border-accent shadow-[0_0_12px_rgba(212,160,85,0.3)]'
                   : 'border-border-glass'
               }`}
               onClick={() => onSelectScene(scene.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') onSelectScene(scene.id)
+              }}
               onContextMenu={(e) => {
                 e.preventDefault()
                 setContextMenu({ sceneId: scene.id, x: e.clientX, y: e.clientY })
@@ -151,6 +156,7 @@ export function MapDockTab({
               {/* Delete button on hover */}
               {isHovered && (
                 <button
+                  aria-label="Delete scene"
                   onClick={(e) => {
                     e.stopPropagation()
                     onDeleteScene(scene.id)
@@ -165,20 +171,21 @@ export function MapDockTab({
         })}
 
         {/* Upload card */}
-        <div
+        <button
+          type="button"
           onClick={() => fileRef.current?.click()}
-          className="rounded-lg border-2 border-dashed border-border-glass cursor-pointer flex flex-col items-center justify-center gap-1 text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50"
+          className="rounded-lg border-2 border-dashed border-border-glass cursor-pointer flex flex-col items-center justify-center gap-1 text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50 bg-transparent"
           style={{ height: 94 }}
         >
           {uploading ? (
-            <span className="text-[11px]">Uploading...</span>
+            <span className="text-[11px]">Uploading…</span>
           ) : (
             <>
               <Plus size={20} strokeWidth={1.5} />
               <span className="text-[10px]">Add Map</span>
             </>
           )}
-        </div>
+        </button>
       </div>
 
       {/* Right-click context menu — portaled to body to escape CSS transform stacking context */}
@@ -188,7 +195,7 @@ export function MapDockTab({
           if (!scene) return null
           return createPortal(
             <div
-              className="fixed z-[10002] bg-glass backdrop-blur-[12px] border border-border-glass rounded-lg py-1 shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
+              className="fixed z-popover bg-glass backdrop-blur-[12px] border border-border-glass rounded-lg py-1 shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
               style={{ left: contextMenu.x, top: contextMenu.y }}
               onPointerDown={(e) => e.stopPropagation()}
             >
