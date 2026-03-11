@@ -274,6 +274,8 @@ function RoomSession({ roomId }: { roomId: string }) {
           selectedTokenId={selectedTokenId}
           onSelectToken={setSelectedTokenId}
           onUpdateToken={updateToken}
+          onDeleteToken={deleteToken}
+          onAddToken={addToken}
           onContextMenu={handleBgContextMenu}
           onClose={() => {
             if (room.activeSceneId) setCombatActive(room.activeSceneId, false)

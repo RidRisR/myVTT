@@ -14,9 +14,12 @@ interface KonvaTokenProps {
   canDrag: boolean
   stageScale: number
   onSelect: (tokenId: string) => void
-  onDragStart: (e: Konva.KonvaEventObject<DragEvent>) => void
-  onDragMove: (e: Konva.KonvaEventObject<DragEvent>) => void
+  onDragStart: (e: Konva.KonvaEventObject<DragEvent>, tokenId: string) => void
+  onDragMove: (e: Konva.KonvaEventObject<DragEvent>, tokenId: string) => void
   onDragEnd: (e: Konva.KonvaEventObject<DragEvent>, tokenId: string) => void
+  onContextMenu?: (e: Konva.KonvaEventObject<PointerEvent>, tokenId: string) => void
+  onMouseEnter?: (e: Konva.KonvaEventObject<MouseEvent>, tokenId: string) => void
+  onMouseLeave?: (e: Konva.KonvaEventObject<MouseEvent>, tokenId: string) => void
 }
 
 export function KonvaToken({
@@ -31,8 +34,10 @@ export function KonvaToken({
   onDragStart,
   onDragMove,
   onDragEnd,
+  onContextMenu,
+  onMouseEnter,
+  onMouseLeave,
 }: KonvaTokenProps) {
-
   const color = entity?.color ?? token.color ?? '#888'
   const imageUrl = entity?.imageUrl ?? token.imageUrl ?? ''
   const name = entity?.name ?? token.label ?? ''
@@ -66,9 +71,16 @@ export function KonvaToken({
         e.cancelBubble = true
         onSelect(token.id)
       }}
-      onDragStart={onDragStart}
-      onDragMove={onDragMove}
+      onDragStart={(e) => onDragStart(e, token.id)}
+      onDragMove={(e) => onDragMove(e, token.id)}
       onDragEnd={(e) => onDragEnd(e, token.id)}
+      onContextMenu={(e) => {
+        e.evt.preventDefault()
+        e.cancelBubble = true
+        onContextMenu?.(e, token.id)
+      }}
+      onMouseEnter={(e) => onMouseEnter?.(e, token.id)}
+      onMouseLeave={(e) => onMouseLeave?.(e, token.id)}
     >
       {/* Clipped circle for the token visual */}
       <Group
@@ -121,13 +133,7 @@ export function KonvaToken({
       />
 
       {/* Overlay group — scaled inversely so it stays constant screen size */}
-      <Group
-        x={radius}
-        y={pixelSize + 2}
-        scaleX={invScale}
-        scaleY={invScale}
-        listening={false}
-      >
+      <Group x={radius} y={pixelSize + 2} scaleX={invScale} scaleY={invScale} listening={false}>
         {/* Name label */}
         {name.length > 0 && (
           <Text
@@ -179,15 +185,13 @@ export function KonvaToken({
             {statuses.slice(0, 3).map((s, i) => {
               const sc = statusColor(s.label)
               const chipWidth = Math.min(s.label.length * 5 + 8, 40)
-              const totalWidth = statuses.slice(0, 3).reduce(
-                (sum, st) => sum + Math.min(st.label.length * 5 + 8, 40) + 2,
-                -2,
-              )
+              const totalWidth = statuses
+                .slice(0, 3)
+                .reduce((sum, st) => sum + Math.min(st.label.length * 5 + 8, 40) + 2, -2)
               const startX = -totalWidth / 2
               let offsetX = startX
               for (let j = 0; j < i; j++) {
-                offsetX +=
-                  Math.min(statuses[j].label.length * 5 + 8, 40) + 2
+                offsetX += Math.min(statuses[j].label.length * 5 + 8, 40) + 2
               }
               return (
                 <Group key={i} x={offsetX} y={0}>
@@ -217,15 +221,12 @@ export function KonvaToken({
             })}
             {statuses.length > 3 && (
               <Group
-                x={
-                  (() => {
-                    const totalWidth = statuses.slice(0, 3).reduce(
-                      (sum, st) => sum + Math.min(st.label.length * 5 + 8, 40) + 2,
-                      -2,
-                    )
-                    return totalWidth / 2 + 4
-                  })()
-                }
+                x={(() => {
+                  const totalWidth = statuses
+                    .slice(0, 3)
+                    .reduce((sum, st) => sum + Math.min(st.label.length * 5 + 8, 40) + 2, -2)
+                  return totalWidth / 2 + 4
+                })()}
                 y={0}
               >
                 <Rect
