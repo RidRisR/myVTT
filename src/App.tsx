@@ -301,6 +301,10 @@ function RoomSession({ roomId }: { roomId: string }) {
           onClose={() => {
             if (room.activeSceneId) setCombatActive(room.activeSceneId, false)
           }}
+          onAdvanceInitiative={() => {
+            if (room.activeSceneId) advanceInitiative(room.activeSceneId)
+          }}
+          onUpdateScene={updateScene}
         />
       )}
 
