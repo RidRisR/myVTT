@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Layer, Line, Rect, Text, Group } from 'react-konva'
 import type Konva from 'konva'
 import type { Scene } from '../../stores/worldStore'
@@ -108,7 +108,7 @@ export function MeasureTool({ active, scene, stageRef }: MeasureToolProps) {
       const pos = getMapPos()
       if (!pos) return
 
-      setDrawing((prev) => prev ? { ...prev, end: pos } : null)
+      setDrawing((prev) => (prev ? { ...prev, end: pos } : null))
     }
 
     const handleMouseUp = (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -160,15 +160,7 @@ export function MeasureTool({ active, scene, stageRef }: MeasureToolProps) {
 
 // ── Measurement Line + Label ──
 
-function MeasurementLine({
-  start,
-  end,
-  distance,
-}: {
-  start: Point
-  end: Point
-  distance: string
-}) {
+function MeasurementLine({ start, end, distance }: { start: Point; end: Point; distance: string }) {
   const midX = (start.x + end.x) / 2
   const midY = (start.y + end.y) / 2
 
@@ -191,19 +183,10 @@ function MeasurementLine({
         strokeWidth={2}
       />
       {/* Small circle at end */}
-      <Line
-        points={[end.x - 3, end.y, end.x + 3, end.y]}
-        stroke={MEASURE_COLOR}
-        strokeWidth={2}
-      />
+      <Line points={[end.x - 3, end.y, end.x + 3, end.y]} stroke={MEASURE_COLOR} strokeWidth={2} />
       {/* Label background */}
       <Group x={midX - textWidth / 2} y={midY - textHeight / 2}>
-        <Rect
-          width={textWidth}
-          height={textHeight}
-          fill={LABEL_BG_COLOR}
-          cornerRadius={3}
-        />
+        <Rect width={textWidth} height={textHeight} fill={LABEL_BG_COLOR} cornerRadius={3} />
         <Text
           text={distance}
           fontSize={LABEL_FONT_SIZE}
