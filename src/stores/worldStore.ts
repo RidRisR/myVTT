@@ -6,6 +6,7 @@
 import { create } from 'zustand'
 import * as Y from 'yjs'
 import type { Entity, EntityPermissions, MapToken, Blueprint } from '../shared/entityTypes'
+import { readTextField, writeTextField, updateTextField } from '../shared/yTextHelper'
 import type { ShowcaseItem } from '../showcase/showcaseTypes'
 
 // ── Types ──
@@ -88,12 +89,12 @@ function readRuleData(yMap: Y.Map<unknown>): unknown {
 function readYMapEntity(yMap: Y.Map<unknown>): Entity {
   return {
     id: yMap.get('id') as string,
-    name: (yMap.get('name') as string) ?? '',
+    name: readTextField(yMap, 'name'),
     imageUrl: (yMap.get('imageUrl') as string) ?? '',
     color: (yMap.get('color') as string) ?? '',
     size: (yMap.get('size') as number) ?? 1,
     blueprintId: yMap.get('blueprintId') as string | undefined,
-    notes: (yMap.get('notes') as string) ?? '',
+    notes: readTextField(yMap, 'notes'),
     ruleData: readRuleData(yMap),
     permissions: readPermissions(yMap),
     persistent: (yMap.get('persistent') as boolean) ?? false,
@@ -209,12 +210,12 @@ function writeRuleData(entityYMap: Y.Map<unknown>, ruleData: unknown) {
 
 function setYMapFields(yMap: Y.Map<unknown>, entity: Entity) {
   yMap.set('id', entity.id)
-  yMap.set('name', entity.name)
+  writeTextField(yMap, 'name', entity.name)
   yMap.set('imageUrl', entity.imageUrl)
   yMap.set('color', entity.color)
   yMap.set('size', entity.size)
   if (entity.blueprintId) yMap.set('blueprintId', entity.blueprintId)
-  yMap.set('notes', entity.notes)
+  writeTextField(yMap, 'notes', entity.notes)
   yMap.set('persistent', entity.persistent)
   writeRuleData(yMap, entity.ruleData)
   writePermissions(yMap, entity.permissions)
@@ -606,6 +607,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           updatePermissionsInPlace(entityYMap, value as EntityPermissions)
         } else if (key === 'ruleData') {
           updateRuleDataInPlace(entityYMap, value)
+        } else if (key === 'name' || key === 'notes') {
+          updateTextField(entityYMap, key, value as string)
         } else {
           entityYMap.set(key, value)
         }
