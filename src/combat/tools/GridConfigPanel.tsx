@@ -47,11 +47,11 @@ export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPan
       ref={panelRef}
       className="bg-glass backdrop-blur-[12px] border border-border-glass rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
       style={{
-        position: 'absolute',
-        left: 48,
-        top: 8,
+        position: 'fixed',
+        bottom: 72, // GmToolbar dual-row height ~68px, 4px gap
+        left: 12,
         width: 200,
-        zIndex: 20,
+        zIndex: 10001, // above GmToolbar (z-toast: 10000)
         padding: '12px',
       }}
     >
