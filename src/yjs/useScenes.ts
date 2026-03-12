@@ -186,6 +186,24 @@ export function useScenes(yScenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc) {
     sceneMap.set('combatActive', active)
   }
 
+  const duplicateScene = (sourceId: string, newId: string) => {
+    const source = getScene(sourceId)
+    if (!source) return
+    const entityIds = getSceneEntityIds(sourceId)
+    addScene(
+      {
+        ...source,
+        id: newId,
+        name: `${source.name} (copy)`,
+        sortOrder: source.sortOrder + 1,
+        combatActive: false,
+        initiativeOrder: [],
+        initiativeIndex: 0,
+      },
+      entityIds,
+    )
+  }
+
   return {
     scenes,
     addScene,
@@ -196,5 +214,6 @@ export function useScenes(yScenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc) {
     removeEntityFromScene,
     getSceneEntityIds,
     setCombatActive,
+    duplicateScene,
   }
 }

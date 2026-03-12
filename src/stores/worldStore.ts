@@ -311,6 +311,7 @@ interface WorldState {
   removeEntityFromScene: (sceneId: string, entityId: string) => void
   getSceneEntityIds: (sceneId: string) => string[]
   setCombatActive: (sceneId: string, active: boolean) => void
+  duplicateScene: (sourceId: string, newId: string) => void
   setInitiativeOrder: (sceneId: string, order: string[]) => void
   advanceInitiative: (sceneId: string) => void
 
@@ -573,6 +574,25 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const sceneMap = yScenes.get(sceneId)
     if (!(sceneMap instanceof Y.Map)) return
     sceneMap.set('combatActive', active)
+  },
+
+  duplicateScene: (sourceId: string, newId: string) => {
+    const { addScene, getScene, getSceneEntityIds } = get()
+    const source = getScene(sourceId)
+    if (!source) return
+    const entityIds = getSceneEntityIds(sourceId)
+    addScene(
+      {
+        ...source,
+        id: newId,
+        name: `${source.name} (copy)`,
+        sortOrder: source.sortOrder + 1,
+        combatActive: false,
+        initiativeOrder: [],
+        initiativeIndex: 0,
+      },
+      entityIds,
+    )
   },
 
   setInitiativeOrder: (sceneId: string, order: string[]) => {

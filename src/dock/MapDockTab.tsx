@@ -1,41 +1,41 @@
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { X, Plus, Map } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Plus, FolderOpen } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
 import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
 import { generateTokenId } from '../shared/idUtils'
+import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 
 interface MapDockTabProps {
   scenes: Scene[]
   activeSceneId: string | null
-  onSelectScene: (sceneId: string) => void
+  isCombat: boolean
   onAddScene: (scene: Scene) => void
   onDeleteScene: (id: string) => void
+  onSetAsBackground?: (sceneId: string, imageUrl: string) => void
   onSetAsTacticalMap?: (imageUrl: string) => void
+  onShowcaseImage?: (imageUrl: string) => void
 }
 
-type ContextMenu = { sceneId: string; x: number; y: number }
+interface ContextState {
+  x: number
+  y: number
+  scene: Scene
+}
 
 export function MapDockTab({
   scenes,
   activeSceneId,
-  onSelectScene,
+  isCombat,
   onAddScene,
   onDeleteScene,
+  onSetAsBackground,
   onSetAsTacticalMap,
+  onShowcaseImage,
 }: MapDockTabProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
-
-  // Close context menu on outside click
-  useEffect(() => {
-    if (!contextMenu) return
-    const close = () => setContextMenu(null)
-    document.addEventListener('pointerdown', close)
-    return () => document.removeEventListener('pointerdown', close)
-  }, [contextMenu])
+  const [contextMenu, setContextMenu] = useState<ContextState | null>(null)
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -70,10 +70,46 @@ export function MapDockTab({
         initiativeIndex: 0,
       }
       onAddScene(scene)
-      onSelectScene(scene.id)
     } finally {
       setUploading(false)
     }
+  }
+
+  const handleContextMenu = (e: React.MouseEvent, scene: Scene) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({ x: e.clientX, y: e.clientY, scene })
+  }
+
+  const buildContextMenuItems = (scene: Scene): ContextMenuItem[] => {
+    const imageUrl = scene.atmosphereImageUrl
+    const items: ContextMenuItem[] = []
+
+    if (onSetAsBackground && activeSceneId && imageUrl) {
+      items.push({
+        label: 'Set as Scene Background',
+        onClick: () => onSetAsBackground(activeSceneId, imageUrl),
+      })
+    }
+    if (onSetAsTacticalMap && imageUrl) {
+      items.push({
+        label: 'Set as Tactical Map',
+        onClick: () => onSetAsTacticalMap(imageUrl),
+      })
+    }
+    if (onShowcaseImage && imageUrl) {
+      items.push({
+        label: 'Showcase to Players',
+        onClick: () => onShowcaseImage(imageUrl),
+      })
+    }
+    items.push({
+      label: 'Delete',
+      onClick: () => onDeleteScene(scene.id),
+      color: 'var(--color-danger)',
+    })
+
+    return items
   }
 
   return (
@@ -88,9 +124,9 @@ export function MapDockTab({
 
       {scenes.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-          <Map size={32} strokeWidth={1} className="text-text-muted/40" />
-          <p className="text-text-muted text-sm">No maps yet</p>
-          <p className="text-text-muted/50 text-xs">Upload an image to create your first scene</p>
+          <FolderOpen size={32} strokeWidth={1} className="text-text-muted/40" />
+          <p className="text-text-muted text-sm">No images yet</p>
+          <p className="text-text-muted/50 text-xs">Upload an image to get started</p>
         </div>
       )}
 
@@ -114,14 +150,27 @@ export function MapDockTab({
                   ? 'border-accent shadow-[0_0_12px_rgba(212,160,85,0.3)]'
                   : 'border-border-glass'
               }`}
-              onClick={() => onSelectScene(scene.id)}
+              onClick={() => {
+                const imageUrl = scene.atmosphereImageUrl
+                if (!activeSceneId || !imageUrl) return
+                if (isCombat) {
+                  onSetAsTacticalMap?.(imageUrl)
+                } else {
+                  onSetAsBackground?.(activeSceneId, imageUrl)
+                }
+              }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') onSelectScene(scene.id)
+                if (e.key === 'Enter' || e.key === ' ') {
+                  const imageUrl = scene.atmosphereImageUrl
+                  if (!activeSceneId || !imageUrl) return
+                  if (isCombat) {
+                    onSetAsTacticalMap?.(imageUrl)
+                  } else {
+                    onSetAsBackground?.(activeSceneId, imageUrl)
+                  }
+                }
               }}
-              onContextMenu={(e) => {
-                e.preventDefault()
-                setContextMenu({ sceneId: scene.id, x: e.clientX, y: e.clientY })
-              }}
+              onContextMenu={(e) => handleContextMenu(e, scene)}
               onMouseEnter={() => setHoveredId(scene.id)}
               onMouseLeave={() => setHoveredId(null)}
             >
@@ -153,18 +202,11 @@ export function MapDockTab({
                 {scene.name || 'Untitled'}
               </div>
 
-              {/* Delete button on hover */}
+              {/* Hover indicator for right-click */}
               {isHovered && (
-                <button
-                  aria-label="Delete scene"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDeleteScene(scene.id)
-                  }}
-                  className="absolute top-1 right-1 w-[18px] h-[18px] rounded-full bg-black/60 border-none cursor-pointer text-danger flex items-center justify-center p-0"
-                >
-                  <X size={10} strokeWidth={2.5} />
-                </button>
+                <div className="absolute top-1 right-1 w-[18px] h-[18px] rounded-full bg-black/40 flex items-center justify-center text-white/50 text-[8px]">
+                  ···
+                </div>
               )}
             </div>
           )
@@ -182,47 +224,21 @@ export function MapDockTab({
           ) : (
             <>
               <Plus size={20} strokeWidth={1.5} />
-              <span className="text-[10px]">Add Map</span>
+              <span className="text-[10px]">Upload</span>
             </>
           )}
         </button>
       </div>
 
-      {/* Right-click context menu — portaled to body to escape CSS transform stacking context */}
-      {contextMenu &&
-        (() => {
-          const scene = scenes.find((s) => s.id === contextMenu.sceneId)
-          if (!scene) return null
-          return createPortal(
-            <div
-              className="fixed z-popover bg-glass backdrop-blur-[12px] border border-border-glass rounded-lg py-1 shadow-[0_4px_16px_rgba(0,0,0,0.4)]"
-              style={{ left: contextMenu.x, top: contextMenu.y }}
-              onPointerDown={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => {
-                  onSelectScene(scene.id)
-                  setContextMenu(null)
-                }}
-                className="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer border-none bg-transparent transition-colors duration-fast"
-              >
-                切换到此场景
-              </button>
-              {onSetAsTacticalMap && scene.atmosphereImageUrl && (
-                <button
-                  onClick={() => {
-                    onSetAsTacticalMap(scene.atmosphereImageUrl)
-                    setContextMenu(null)
-                  }}
-                  className="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer border-none bg-transparent transition-colors duration-fast"
-                >
-                  设为当前场景的战术地图
-                </button>
-              )}
-            </div>,
-            document.body,
-          )
-        })()}
+      {/* Right-click context menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={buildContextMenuItems(contextMenu.scene)}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   )
 }

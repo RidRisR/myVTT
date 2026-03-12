@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Users, ChevronRight } from 'lucide-react'
+import { Users, ChevronRight, ChevronUp } from 'lucide-react'
+import { useUiStore } from '../stores/uiStore'
 import type { Entity } from '../shared/entityTypes'
 import type { Scene } from '../stores/worldStore'
 import { canSee, canEdit } from '../shared/permissions'
@@ -101,6 +102,9 @@ export function PortraitBar({
   onSetInitiativeOrder,
   onAdvanceInitiative,
 }: PortraitBarProps) {
+  const portraitBarVisible = useUiStore((s) => s.portraitBarVisible)
+  const setPortraitBarVisible = useUiStore((s) => s.setPortraitBarVisible)
+
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entityId: string } | null>(
     null,
   )
@@ -191,6 +195,21 @@ export function PortraitBar({
       (e.persistent || sceneIdSet.has(e.id)) &&
       (mySeatId ? canSee(e.permissions, mySeatId, role) : isGM),
   )
+
+  // Collapsed state: show small expand button
+  if (!portraitBarVisible) {
+    return (
+      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center">
+        <button
+          onClick={() => setPortraitBarVisible(true)}
+          className="pointer-events-auto flex items-center gap-1 bg-glass backdrop-blur-[12px] rounded-full px-3 py-1.5 border border-border-glass text-text-muted text-[10px] cursor-pointer hover:bg-hover transition-colors duration-fast shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
+        >
+          <ChevronUp size={12} strokeWidth={1.5} className="rotate-180" />
+          Portraits
+        </button>
+      </div>
+    )
+  }
 
   if (visibleEntities.length === 0) {
     return (
@@ -430,8 +449,8 @@ export function PortraitBar({
       className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center gap-[3px]"
       onPointerDown={(e) => e.stopPropagation()}
     >
-      {/* Tab buttons */}
-      <div className="flex gap-0.5 pointer-events-auto">
+      {/* Tab buttons + collapse */}
+      <div className="flex gap-0.5 items-center pointer-events-auto">
         <button
           onClick={() => setActiveTab('characters')}
           className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
@@ -451,6 +470,13 @@ export function PortraitBar({
           }`}
         >
           Initiative
+        </button>
+        <button
+          onClick={() => setPortraitBarVisible(false)}
+          className="ml-1 p-0.5 text-text-muted/30 hover:text-text-muted/60 bg-transparent border-none cursor-pointer transition-colors duration-fast"
+          title="Hide portraits"
+        >
+          <ChevronUp size={12} strokeWidth={1.5} />
         </button>
       </div>
 

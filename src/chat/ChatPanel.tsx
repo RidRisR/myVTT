@@ -8,6 +8,7 @@ import { ToastStack, type ToastItem } from './ToastStack'
 import { ChatInput } from './ChatInput'
 import { Avatar } from './Avatar'
 import { ChevronUp, ChevronDown } from 'lucide-react'
+import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 
 interface ChatPanelProps {
   yDoc: Y.Doc
@@ -286,7 +287,7 @@ export function ChatPanel({
       {/* Chat input + buttons (always visible) */}
       <div
         className="fixed bottom-3 right-4 z-toast flex gap-1.5 items-stretch"
-        style={{ width: 546 }}
+        style={{ width: RIGHT_PANEL_WIDTH }}
       >
         {/* Expand/collapse toggle */}
         <button

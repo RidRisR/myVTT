@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import * as Y from 'yjs'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useTeamMetrics } from './useTeamMetrics'
 import { TeamMetricsTab } from './TeamMetricsTab'
+import { useUiStore } from '../stores/uiStore'
+import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 
 interface TeamDashboardProps {
   yDoc: Y.Doc
@@ -17,14 +19,34 @@ export function TeamDashboard({ yDoc, isGM }: TeamDashboardProps) {
   const { trackers, addTracker, updateTracker, deleteTracker } = useTeamMetrics(yDoc)
   const [activeTab, setActiveTab] = useState<TabId>('metrics')
   const [expanded, setExpanded] = useState(false)
+  const teamPanelVisible = useUiStore((s) => s.teamPanelVisible)
+  const setTeamPanelVisible = useUiStore((s) => s.setTeamPanelVisible)
 
   // Hide entire dashboard if no trackers and not GM
   if (trackers.length === 0 && !isGM) return null
 
+  // Collapsed: show small expand button
+  if (!teamPanelVisible) {
+    return (
+      <div
+        className="fixed top-3 right-4 z-ui font-sans pointer-events-auto"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => setTeamPanelVisible(true)}
+          className="flex items-center gap-1 bg-glass backdrop-blur-[12px] rounded-lg px-2.5 py-1.5 border border-border-glass text-text-muted text-[10px] cursor-pointer hover:bg-hover transition-colors duration-fast shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
+        >
+          <ChevronRight size={12} strokeWidth={1.5} className="rotate-180" />
+          Team
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div
       className="fixed top-3 right-4 z-ui font-sans pointer-events-auto"
-      style={{ width: 546 }}
+      style={{ width: RIGHT_PANEL_WIDTH }}
       onPointerDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
     >
@@ -47,21 +69,30 @@ export function TeamDashboard({ yDoc, isGM }: TeamDashboardProps) {
                 </button>
               ))}
             </div>
-            {isGM && (
+            <div className="flex">
+              {isGM && (
+                <button
+                  onClick={() => setExpanded(!expanded)}
+                  className="w-[36px] bg-surface/30 border-none border-l border-l-border-glass cursor-pointer text-text-muted/35 flex items-center justify-center transition-colors duration-fast hover:bg-hover hover:text-text-muted/70"
+                >
+                  <ChevronDown
+                    size={12}
+                    strokeWidth={2.5}
+                    className="transition-transform duration-normal"
+                    style={{
+                      transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                    }}
+                  />
+                </button>
+              )}
               <button
-                onClick={() => setExpanded(!expanded)}
-                className="w-[42px] bg-surface/30 border-none border-l border-l-border-glass cursor-pointer text-text-muted/35 flex items-center justify-center transition-colors duration-fast hover:bg-hover hover:text-text-muted/70"
+                onClick={() => setTeamPanelVisible(false)}
+                className="w-[36px] bg-surface/30 border-none border-l border-l-border-glass cursor-pointer text-text-muted/35 flex items-center justify-center transition-colors duration-fast hover:bg-hover hover:text-text-muted/70"
+                title="Hide panel"
               >
-                <ChevronDown
-                  size={12}
-                  strokeWidth={2.5}
-                  className="transition-transform duration-normal"
-                  style={{
-                    transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                  }}
-                />
+                <ChevronRight size={12} strokeWidth={2.5} />
               </button>
-            )}
+            </div>
           </div>
         )}
 

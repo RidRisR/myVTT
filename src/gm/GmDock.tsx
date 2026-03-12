@@ -1,25 +1,43 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import * as Y from 'yjs'
-import { Map, CircleUser, BookOpen, Trash2, Eye, EyeOff } from 'lucide-react'
+import {
+  FolderOpen,
+  CircleUser,
+  BookOpen,
+  Dice5,
+  Swords,
+  X,
+  Trash2,
+  Eye,
+  EyeOff,
+  ChevronDown,
+} from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
 import type { MapToken, Entity, Blueprint } from '../shared/entityTypes'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { generateTokenId } from '../shared/idUtils'
 import { nextNpcName } from '../shared/characterUtils'
-import { MapDockTab } from './MapDockTab'
-import { TokenDockTab } from './TokenDockTab'
-import { HandoutDockTab } from './HandoutDockTab'
-import type { HandoutAsset } from './useHandoutAssets'
+import { MapDockTab } from '../dock/MapDockTab'
+import { TokenDockTab } from '../dock/TokenDockTab'
+import { HandoutDockTab } from '../dock/HandoutDockTab'
+import type { HandoutAsset } from '../dock/useHandoutAssets'
 
-type TabId = 'maps' | 'tokens' | 'handouts'
+type TabId = 'gallery' | 'tokens' | 'handouts' | 'dice'
 
-interface BottomDockProps {
+// Wrap tab content components with React.memo to avoid re-renders on tab switch
+const MemoMapDockTab = memo(MapDockTab)
+const MemoTokenDockTab = memo(TokenDockTab)
+const MemoHandoutDockTab = memo(HandoutDockTab)
+
+interface GmDockProps {
   scenes: Scene[]
   activeSceneId: string | null
-  onSelectScene: (sceneId: string) => void
+  isCombat: boolean
   onAddScene: (scene: Scene) => void
   onDeleteScene: (id: string) => void
-  onSetAsTacticalMap?: (imageUrl: string) => void
+  onUpdateScene: (id: string, updates: Partial<Scene>) => void
+  onToggleCombat: () => void
+  onShowcaseImage?: (imageUrl: string) => void
 
   blueprints: Y.Map<unknown>
 
@@ -32,22 +50,24 @@ interface BottomDockProps {
   entities: Entity[]
   onAddEntity: (entity: Entity) => void
   onAddEntityToScene: (entityId: string) => void
-  isCombat: boolean
 
   selectedToken: MapToken | null
   onAddToken: (token: MapToken) => void
   onDeleteToken: (id: string) => void
   onUpdateToken: (id: string, updates: Partial<MapToken>) => void
   onSelectToken: (id: string | null) => void
+  onSetAsTacticalMap?: (imageUrl: string) => void
 }
 
-export function BottomDock({
+export function GmDock({
   scenes,
   activeSceneId,
-  onSelectScene,
+  isCombat,
   onAddScene,
   onDeleteScene,
-  onSetAsTacticalMap,
+  onUpdateScene,
+  onToggleCombat,
+  onShowcaseImage,
   blueprints: blueprintsYMap,
   handoutAssets,
   onAddHandoutAsset,
@@ -57,18 +77,19 @@ export function BottomDock({
   entities,
   onAddEntity,
   onAddEntityToScene,
-  isCombat,
   selectedToken,
   onAddToken,
   onDeleteToken,
   onUpdateToken,
   onSelectToken,
-}: BottomDockProps) {
+  onSetAsTacticalMap,
+}: GmDockProps) {
   const [activeTab, setActiveTab] = useState<TabId | null>(null)
+  const [collapsed, setCollapsed] = useState(false)
   const dockRef = useRef<HTMLDivElement>(null)
 
   // Read blueprints from Y.Map into a plain array
-  const [blueprints, setBlueprints] = useState<Blueprint[]>([])
+  const [blueprintList, setBlueprintList] = useState<Blueprint[]>([])
   useEffect(() => {
     const read = () => {
       const result: Blueprint[] = []
@@ -76,14 +97,14 @@ export function BottomDock({
         const bp = val as Blueprint
         if (bp && bp.id) result.push(bp)
       })
-      setBlueprints(result)
+      setBlueprintList(result)
     }
     read()
     blueprintsYMap.observe(read)
     return () => blueprintsYMap.unobserve(read)
   }, [blueprintsYMap])
 
-  // Blueprint CRUD (operates directly on Y.Map)
+  // Blueprint CRUD
   const handleAddBlueprint = useCallback(
     (bp: Blueprint) => {
       blueprintsYMap.set(bp.id, bp)
@@ -124,7 +145,7 @@ export function BottomDock({
     setActiveTab((prev) => (prev === tab ? null : tab))
   }
 
-  // Create a new Entity from a blueprint
+  // Spawn entity from blueprint
   const createEntityFromBlueprint = (bp: Blueprint): Entity => {
     const name = nextNpcName(bp.name, entities, bp.id)
     const entity: Entity = {
@@ -175,6 +196,30 @@ export function BottomDock({
     onUpdateToken(selectedToken.id, { permissions: newPerms })
   }
 
+  if (collapsed) {
+    return (
+      <div
+        className="fixed bottom-3 left-1/2 -translate-x-1/2 z-toast"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => setCollapsed(false)}
+          className="flex items-center gap-1 rounded-lg bg-glass backdrop-blur-[12px] border border-border-glass px-3 py-1.5 text-xs text-text-muted cursor-pointer hover:bg-hover transition-colors duration-fast"
+        >
+          <ChevronDown size={14} strokeWidth={1.5} className="rotate-180" />
+          GM Tools
+        </button>
+      </div>
+    )
+  }
+
+  const tabBtnClass = (tab: TabId) =>
+    `flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg backdrop-blur-[8px] border border-border-glass text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-all duration-fast ${
+      activeTab === tab
+        ? 'bg-hover border-b-2 border-b-accent text-text-primary'
+        : 'bg-glass text-text-muted hover:bg-hover hover:text-text-primary'
+    }`
+
   return (
     <div
       ref={dockRef}
@@ -182,21 +227,25 @@ export function BottomDock({
       onPointerDown={(e) => e.stopPropagation()}
     >
       {/* Expanded content area */}
-      {activeTab !== null && (
+      {activeTab !== null && activeTab !== 'dice' && (
         <div className="mb-1.5 bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.4)] min-w-[400px] max-h-[220px] overflow-y-auto p-3">
-          {activeTab === 'maps' && (
-            <MapDockTab
+          {activeTab === 'gallery' && (
+            <MemoMapDockTab
               scenes={scenes}
               activeSceneId={activeSceneId}
-              onSelectScene={onSelectScene}
+              isCombat={isCombat}
               onAddScene={onAddScene}
               onDeleteScene={onDeleteScene}
+              onSetAsBackground={(sceneId, imageUrl) =>
+                onUpdateScene(sceneId, { atmosphereImageUrl: imageUrl })
+              }
               onSetAsTacticalMap={onSetAsTacticalMap}
+              onShowcaseImage={onShowcaseImage}
             />
           )}
           {activeTab === 'tokens' && (
-            <TokenDockTab
-              blueprints={blueprints}
+            <MemoTokenDockTab
+              blueprints={blueprintList}
               onAddBlueprint={handleAddBlueprint}
               onUpdateBlueprint={handleUpdateBlueprint}
               onDeleteBlueprint={handleDeleteBlueprint}
@@ -206,7 +255,7 @@ export function BottomDock({
             />
           )}
           {activeTab === 'handouts' && (
-            <HandoutDockTab
+            <MemoHandoutDockTab
               assets={handoutAssets}
               onAddAsset={onAddHandoutAsset}
               onEditAsset={onEditHandoutAsset}
@@ -217,78 +266,94 @@ export function BottomDock({
         </div>
       )}
 
+      {/* Dice placeholder content */}
+      {activeTab === 'dice' && (
+        <div className="mb-1.5 bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.4)] min-w-[300px] p-6 flex flex-col items-center gap-2">
+          <Dice5 size={28} strokeWidth={1} className="text-text-muted/40" />
+          <p className="text-text-muted text-xs">Dice system coming soon</p>
+        </div>
+      )}
+
       {/* Tab bar */}
       <div className="flex gap-1.5">
-        {/* Maps tab */}
-        <button
-          onClick={() => toggleTab('maps')}
-          className={`flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg backdrop-blur-[8px] border border-border-glass text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-all duration-fast ${
-            activeTab === 'maps'
-              ? 'bg-hover border-b-2 border-b-accent text-text-primary'
-              : 'bg-glass text-text-muted hover:bg-hover hover:text-text-primary'
-          }`}
-        >
-          <Map size={14} strokeWidth={1.5} />
-          Maps
+        <button onClick={() => toggleTab('gallery')} className={tabBtnClass('gallery')}>
+          <FolderOpen size={14} strokeWidth={1.5} />
+          Gallery
         </button>
 
-        {/* Tokens tab */}
-        <button
-          onClick={() => toggleTab('tokens')}
-          className={`flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg backdrop-blur-[8px] border border-border-glass text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-all duration-fast ${
-            activeTab === 'tokens'
-              ? 'bg-hover border-b-2 border-b-accent text-text-primary'
-              : 'bg-glass text-text-muted hover:bg-hover hover:text-text-primary'
-          }`}
-        >
+        <button onClick={() => toggleTab('tokens')} className={tabBtnClass('tokens')}>
           <CircleUser size={14} strokeWidth={1.5} />
           Tokens
         </button>
 
-        {/* Handouts tab */}
-        <button
-          onClick={() => toggleTab('handouts')}
-          className={`flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg backdrop-blur-[8px] border border-border-glass text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-all duration-fast ${
-            activeTab === 'handouts'
-              ? 'bg-hover border-b-2 border-b-accent text-text-primary'
-              : 'bg-glass text-text-muted hover:bg-hover hover:text-text-primary'
-          }`}
-        >
+        <button onClick={() => toggleTab('handouts')} className={tabBtnClass('handouts')}>
           <BookOpen size={14} strokeWidth={1.5} />
           Handouts
         </button>
 
-        {/* Action: Delete selected token */}
+        <button onClick={() => toggleTab('dice')} className={tabBtnClass('dice')}>
+          <Dice5 size={14} strokeWidth={1.5} />
+          Dice
+        </button>
+
+        {/* Separator */}
+        <div className="w-px bg-border-glass self-stretch my-1" />
+
+        {/* Combat toggle (fixed, not a tab) */}
+        <button
+          onClick={onToggleCombat}
+          className={`flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg backdrop-blur-[8px] border border-border-glass text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-all duration-fast ${
+            isCombat
+              ? 'bg-danger text-white hover:bg-danger/80'
+              : 'bg-glass text-text-muted hover:bg-hover hover:text-text-primary'
+          }`}
+        >
+          {isCombat ? <X size={14} strokeWidth={1.5} /> : <Swords size={14} strokeWidth={1.5} />}
+          {isCombat ? 'Exit' : 'Combat'}
+        </button>
+
+        {/* Token actions (contextual) */}
         {selectedToken && (
-          <button
-            onClick={handleDeleteSelected}
-            className="flex items-center gap-1.5 px-3 py-[7px] bg-glass backdrop-blur-[8px] border border-border-glass rounded-lg text-xs font-semibold cursor-pointer whitespace-nowrap font-sans text-danger hover:bg-danger/10 transition-colors duration-fast"
-          >
-            <Trash2 size={14} strokeWidth={1.5} />
-            Delete
-          </button>
+          <>
+            <button
+              onClick={handleDeleteSelected}
+              className="flex items-center gap-1.5 px-3 py-[7px] bg-glass backdrop-blur-[8px] border border-border-glass rounded-lg text-xs font-semibold cursor-pointer whitespace-nowrap font-sans text-danger hover:bg-danger/10 transition-colors duration-fast"
+            >
+              <Trash2 size={14} strokeWidth={1.5} />
+              Delete
+            </button>
+            {(() => {
+              const isHidden = selectedToken.permissions.default === 'none'
+              return (
+                <button
+                  onClick={handleToggleVisibility}
+                  className={`flex items-center gap-1.5 px-3 py-[7px] bg-glass backdrop-blur-[8px] border border-border-glass rounded-lg text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-colors duration-fast ${
+                    isHidden ? 'text-warning' : 'text-text-muted'
+                  }`}
+                >
+                  {isHidden ? (
+                    <EyeOff size={14} strokeWidth={1.5} />
+                  ) : (
+                    <Eye size={14} strokeWidth={1.5} />
+                  )}
+                  {isHidden ? 'Hidden' : 'Visible'}
+                </button>
+              )
+            })()}
+          </>
         )}
 
-        {/* Action: Toggle visibility */}
-        {selectedToken &&
-          (() => {
-            const isHidden = selectedToken.permissions.default === 'none'
-            return (
-              <button
-                onClick={handleToggleVisibility}
-                className={`flex items-center gap-1.5 px-3 py-[7px] bg-glass backdrop-blur-[8px] border border-border-glass rounded-lg text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-colors duration-fast ${
-                  isHidden ? 'text-warning' : 'text-text-muted'
-                }`}
-              >
-                {isHidden ? (
-                  <EyeOff size={14} strokeWidth={1.5} />
-                ) : (
-                  <Eye size={14} strokeWidth={1.5} />
-                )}
-                {isHidden ? 'Hidden' : 'Visible'}
-              </button>
-            )
-          })()}
+        {/* Collapse button */}
+        <button
+          onClick={() => {
+            setCollapsed(true)
+            setActiveTab(null)
+          }}
+          className="flex items-center px-2 py-[7px] bg-glass backdrop-blur-[8px] border border-border-glass rounded-lg text-text-muted cursor-pointer hover:bg-hover transition-colors duration-fast"
+          title="Collapse toolbar"
+        >
+          <ChevronDown size={14} strokeWidth={1.5} />
+        </button>
       </div>
     </div>
   )

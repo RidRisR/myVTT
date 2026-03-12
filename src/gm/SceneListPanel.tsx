@@ -1,13 +1,18 @@
-import { useEffect, useRef } from 'react'
-import { X, Pencil } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { X, Pencil, Copy, Plus, Trash2 } from 'lucide-react'
 import type { Scene } from '../yjs/useScenes'
 import { isVideoUrl } from '../shared/assetUpload'
+import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
 
 interface SceneListPanelProps {
   scenes: Scene[]
   activeSceneId: string | null
   onSelectScene: (sceneId: string) => void
   onEditScene: (sceneId: string) => void
+  onDeleteScene: (sceneId: string) => void
+  onRenameScene: (sceneId: string, name: string) => void
+  onDuplicateScene: (sceneId: string) => void
+  onCreateScene: () => void
   onClose: () => void
 }
 
@@ -16,9 +21,17 @@ export function SceneListPanel({
   activeSceneId,
   onSelectScene,
   onEditScene,
+  onDeleteScene,
+  onRenameScene,
+  onDuplicateScene,
+  onCreateScene,
   onClose,
 }: SceneListPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const renameInputRef = useRef<HTMLInputElement>(null)
 
   // Click-outside-to-close
   useEffect(() => {
@@ -31,11 +44,25 @@ export function SceneListPanel({
     return () => document.removeEventListener('pointerdown', handler)
   }, [onClose])
 
+  // Auto-focus rename input
+  useEffect(() => {
+    if (renamingId) renameInputRef.current?.focus()
+  }, [renamingId])
+
+  const commitRename = () => {
+    if (renamingId && renameValue.trim()) {
+      onRenameScene(renamingId, renameValue.trim())
+    }
+    setRenamingId(null)
+  }
+
+  const deletingScene = deletingId ? scenes.find((s) => s.id === deletingId) : null
+
   return (
     <div
       ref={panelRef}
       className="fixed z-toast bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] flex flex-col"
-      style={{ bottom: 56, left: 16, width: 260, maxHeight: 400 }}
+      style={{ bottom: 56, left: 16, width: 280, maxHeight: 420 }}
       onPointerDown={(e) => e.stopPropagation()}
     >
       {/* Header */}
@@ -50,73 +77,133 @@ export function SceneListPanel({
       </div>
 
       {/* Scene list */}
-      <div className="flex-1 overflow-y-auto p-1.5">
-        {scenes.length === 0 ? (
-          <div className="text-text-muted text-xs text-center py-8 px-4">
-            No scenes yet. Upload from the asset dock.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-1">
-            {scenes.map((scene) => {
-              const isActive = scene.id === activeSceneId
-              return (
-                <div
-                  key={scene.id}
-                  className={`flex items-center gap-2 rounded-md px-2 py-1.5 cursor-pointer transition-colors duration-fast group ${
-                    isActive
-                      ? 'bg-accent/15 border border-accent/30'
-                      : 'border border-transparent hover:bg-hover'
-                  }`}
-                  onClick={() => onSelectScene(scene.id)}
-                >
-                  {/* Thumbnail */}
-                  <div className="w-12 h-8 rounded overflow-hidden flex-shrink-0 bg-deep">
-                    {scene.atmosphereImageUrl ? (
-                      isVideoUrl(scene.atmosphereImageUrl) ? (
-                        <video
-                          src={scene.atmosphereImageUrl}
-                          muted
-                          playsInline
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <img
-                          src={scene.atmosphereImageUrl}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      )
+      <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex flex-col gap-1.5">
+          {scenes.map((scene) => {
+            const isActive = scene.id === activeSceneId
+            return (
+              <div
+                key={scene.id}
+                className={`relative rounded-lg overflow-hidden cursor-pointer transition-all duration-standard group ${
+                  isActive
+                    ? 'border-2 border-accent/40 opacity-100'
+                    : 'border border-border-glass opacity-70 hover:opacity-100'
+                }`}
+                onClick={() => onSelectScene(scene.id)}
+              >
+                {/* Background image */}
+                <div className="w-full h-16 bg-deep">
+                  {scene.atmosphereImageUrl ? (
+                    isVideoUrl(scene.atmosphereImageUrl) ? (
+                      <video
+                        src={scene.atmosphereImageUrl}
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
-                      <div className="w-full h-full bg-surface" />
-                    )}
-                  </div>
-
-                  {/* Name */}
-                  <span
-                    className={`flex-1 text-xs truncate ${
-                      isActive ? 'text-accent-bold font-semibold' : 'text-text-primary'
-                    }`}
-                  >
-                    {scene.name || 'Untitled'}
-                  </span>
-
-                  {/* Edit button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onEditScene(scene.id)
-                    }}
-                    className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-accent transition-all duration-fast p-1 cursor-pointer"
-                    title="Edit scene"
-                  >
-                    <Pencil size={14} strokeWidth={1.5} />
-                  </button>
+                      <img
+                        src={scene.atmosphereImageUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    )
+                  ) : (
+                    <div className="w-full h-full bg-surface" />
+                  )}
                 </div>
-              )
-            })}
+
+                {/* Gradient overlay with name and actions */}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-2.5 py-1.5 flex items-center justify-between">
+                  {renamingId === scene.id ? (
+                    <input
+                      ref={renameInputRef}
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onBlur={commitRename}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') commitRename()
+                        if (e.key === 'Escape') setRenamingId(null)
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs bg-black/40 text-white border border-white/30 rounded px-1.5 py-0.5 outline-none w-full mr-1"
+                    />
+                  ) : (
+                    <span
+                      className={`text-xs truncate ${
+                        isActive ? 'text-white font-semibold' : 'text-white/80'
+                      }`}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation()
+                        setRenamingId(scene.id)
+                        setRenameValue(scene.name || '')
+                      }}
+                      title="Double-click to rename"
+                    >
+                      {scene.name || 'Untitled'}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDuplicateScene(scene.id)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-white transition-all duration-fast p-1 cursor-pointer"
+                      title="Duplicate scene"
+                    >
+                      <Copy size={12} strokeWidth={1.5} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onEditScene(scene.id)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-white transition-all duration-fast p-1 cursor-pointer"
+                      title="Edit scene"
+                    >
+                      <Pencil size={12} strokeWidth={1.5} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeletingId(scene.id)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-danger transition-all duration-fast p-1 cursor-pointer"
+                      title="Delete scene"
+                    >
+                      <Trash2 size={12} strokeWidth={1.5} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Create new scene card */}
+          <div
+            className="h-9 rounded-lg border border-dashed border-border-glass flex items-center justify-center gap-1.5 cursor-pointer text-text-muted hover:text-text-primary hover:border-accent/30 transition-colors duration-fast"
+            onClick={onCreateScene}
+          >
+            <Plus size={14} strokeWidth={1.5} />
+            <span className="text-xs">New Scene</span>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Delete confirmation */}
+      {deletingScene && (
+        <ConfirmDialog
+          title="Delete Scene"
+          message={`Are you sure you want to delete "${deletingScene.name || 'Untitled'}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={() => {
+            onDeleteScene(deletingScene.id)
+            setDeletingId(null)
+          }}
+          onCancel={() => setDeletingId(null)}
+        />
+      )}
     </div>
   )
 }
