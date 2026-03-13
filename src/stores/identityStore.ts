@@ -1,11 +1,10 @@
 // src/stores/identityStore.ts
-// Identity store: seats, mySeat, awareness, online tracking.
-// Yjs observer on seats map writes into the store.
-// Awareness broadcasts are managed here.
+// Identity store: seats, mySeat, online tracking via Socket.io.
+// REST API for seat CRUD; Socket.io events for real-time updates.
 
 import { create } from 'zustand'
-import * as Y from 'yjs'
-import type { Awareness } from 'y-protocols/awareness'
+import type { Socket } from 'socket.io-client'
+import { api } from '../shared/api'
 
 export interface Seat {
   id: string
@@ -29,28 +28,35 @@ export const SEAT_COLORS = [
   '#f97316',
 ]
 
+const SEAT_WS_EVENTS = [
+  'seat:created',
+  'seat:updated',
+  'seat:deleted',
+  'seat:online',
+  'seat:offline',
+]
+
 interface IdentityState {
   seats: Seat[]
   mySeatId: string | null
   onlineSeatIds: Set<string>
 
-  // Yjs refs (set during init)
-  _ySeats: Y.Map<Seat> | null
-  _awareness: Awareness | null
+  // Internal refs
+  _socket: Socket | null
+  _roomId: string | null
 
   // Derived getters
   getMySeat: () => Seat | null
-  getAwareness: () => Awareness | null
 
-  // Init — connects Yjs observer + awareness listener
-  init: (ySeats: Y.Map<unknown>, awareness: Awareness | null) => () => void
+  // Init — connects Socket.io listeners + loads seats
+  init: (roomId: string, socket: Socket) => Promise<() => void>
 
   // Actions
   claimSeat: (seatId: string) => void
-  createSeat: (name: string, role: 'GM' | 'PL', color?: string) => string
+  createSeat: (name: string, role: 'GM' | 'PL', color?: string) => Promise<string>
   leaveSeat: () => void
-  deleteSeat: (seatId: string) => void
-  updateSeat: (seatId: string, updates: Partial<Omit<Seat, 'id'>>) => void
+  deleteSeat: (seatId: string) => Promise<void>
+  updateSeat: (seatId: string, updates: Partial<Omit<Seat, 'id'>>) => Promise<void>
 }
 
 export const useIdentityStore = create<IdentityState>((set, get) => ({
@@ -58,58 +64,70 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
   mySeatId: null,
   onlineSeatIds: new Set(),
 
-  _ySeats: null,
-  _awareness: null,
+  _socket: null,
+  _roomId: null,
 
   getMySeat: () => {
-    const { mySeatId, _ySeats } = get()
-    if (!mySeatId || !_ySeats) return null
-    return _ySeats.get(mySeatId) ?? null
+    const { mySeatId, seats } = get()
+    if (!mySeatId) return null
+    return seats.find((s) => s.id === mySeatId) ?? null
   },
 
-  getAwareness: () => get()._awareness,
+  init: async (roomId, socket) => {
+    set({ _socket: socket, _roomId: roomId })
 
-  init: (ySeats: Y.Map<unknown>, awareness: Awareness | null) => {
-    const yPlayers = ySeats as Y.Map<Seat>
-    set({ _ySeats: yPlayers, _awareness: awareness })
+    // Load seats from REST
+    const seats = await api.get<Seat[]>(`/api/rooms/${roomId}/seats`)
+    set({ seats })
 
-    // Seats observer
-    const updateSeats = () => {
-      const allSeats: Seat[] = []
-      yPlayers.forEach((seat) => allSeats.push(seat))
-      set({ seats: allSeats })
+    // Auto-claim from sessionStorage
+    const cached = sessionStorage.getItem(SEAT_STORAGE_KEY)
+    if (cached && seats.some((s) => s.id === cached)) {
+      set({ mySeatId: cached })
+      // Announce presence
+      socket.emit('seat:claim', { seatId: cached })
+    }
 
-      // Auto-claim from sessionStorage on initial sync
-      const { mySeatId } = get()
-      if (!mySeatId) {
-        const cached = sessionStorage.getItem(SEAT_STORAGE_KEY)
-        if (cached && yPlayers.has(cached)) {
-          set({ mySeatId: cached })
+    // Register WS event listeners
+    socket.on('seat:created', (seat: Seat) => {
+      set((s) => ({ seats: [...s.seats, seat] }))
+    })
+    socket.on('seat:updated', (seat: Seat) => {
+      set((s) => ({
+        seats: s.seats.map((existing) => (existing.id === seat.id ? seat : existing)),
+      }))
+    })
+    socket.on('seat:deleted', ({ id }: { id: string }) => {
+      set((s) => {
+        const newState: Partial<IdentityState> = {
+          seats: s.seats.filter((seat) => seat.id !== id),
         }
-      }
-    }
-    updateSeats()
-    yPlayers.observe(updateSeats)
+        // If my seat was deleted, unclaim
+        if (s.mySeatId === id) {
+          newState.mySeatId = null
+          sessionStorage.removeItem(SEAT_STORAGE_KEY)
+        }
+        return newState
+      })
+    })
+    socket.on('seat:online', ({ seatId }: { seatId: string }) => {
+      set((s) => {
+        const next = new Set(s.onlineSeatIds)
+        next.add(seatId)
+        return { onlineSeatIds: next }
+      })
+    })
+    socket.on('seat:offline', ({ seatId }: { seatId: string }) => {
+      set((s) => {
+        const next = new Set(s.onlineSeatIds)
+        next.delete(seatId)
+        return { onlineSeatIds: next }
+      })
+    })
 
-    // Awareness observer for online tracking
-    let awarenessCleanup: (() => void) | undefined
-    if (awareness) {
-      const updateOnline = () => {
-        const online = new Set<string>()
-        awareness.getStates().forEach((state, clientId) => {
-          if (clientId === awareness.clientID) return
-          if (state.seat?.seatId) online.add(state.seat.seatId)
-        })
-        set({ onlineSeatIds: online })
-      }
-      updateOnline()
-      awareness.on('change', updateOnline)
-      awarenessCleanup = () => awareness.off('change', updateOnline)
-    }
-
+    // Return cleanup
     return () => {
-      yPlayers.unobserve(updateSeats)
-      awarenessCleanup?.()
+      SEAT_WS_EVENTS.forEach((e) => socket.off(e))
     }
   },
 
@@ -117,51 +135,47 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
     set({ mySeatId: seatId })
     sessionStorage.setItem(SEAT_STORAGE_KEY, seatId)
 
-    // Broadcast via awareness
-    const { _awareness: awareness, _ySeats: yPlayers } = get()
-    if (awareness && yPlayers) {
-      const seat = yPlayers.get(seatId)
-      if (seat) {
-        awareness.setLocalStateField('seat', {
-          seatId: seat.id,
-          name: seat.name,
-          color: seat.color,
-        })
-      }
+    // Announce presence via socket
+    const { _socket: socket } = get()
+    if (socket) {
+      socket.emit('seat:claim', { seatId })
     }
   },
 
-  createSeat: (name: string, role: 'GM' | 'PL', color?: string) => {
-    const { _ySeats: yPlayers, seats, claimSeat } = get()
-    if (!yPlayers) return ''
-    const id =
-      self.crypto?.randomUUID?.() ??
-      Math.random().toString(36).slice(2) + Date.now().toString(36)
+  createSeat: async (name: string, role: 'GM' | 'PL', color?: string) => {
+    const { _roomId: roomId, seats, claimSeat } = get()
+    if (!roomId) return ''
     const seatColor = color ?? SEAT_COLORS[seats.length % SEAT_COLORS.length]
-    const seat: Seat = { id, name, color: seatColor, role }
-    yPlayers.set(id, seat)
-    claimSeat(id)
-    return id
+    const seat = await api.post<Seat>(`/api/rooms/${roomId}/seats`, {
+      name,
+      role,
+      color: seatColor,
+    })
+    // Store update will come via WS event, but claim immediately
+    claimSeat(seat.id)
+    return seat.id
   },
 
   leaveSeat: () => {
+    const { _socket: socket, mySeatId } = get()
+    if (socket && mySeatId) {
+      socket.emit('seat:leave', { seatId: mySeatId })
+    }
     set({ mySeatId: null })
     sessionStorage.removeItem(SEAT_STORAGE_KEY)
-    const { _awareness: awareness } = get()
-    if (awareness) {
-      awareness.setLocalStateField('seat', null)
-    }
   },
 
-  deleteSeat: (seatId: string) => {
-    get()._ySeats?.delete(seatId)
+  deleteSeat: async (seatId: string) => {
+    const { _roomId: roomId } = get()
+    if (!roomId) return
+    await api.delete(`/api/rooms/${roomId}/seats/${seatId}`)
+    // Store update via WS event
   },
 
-  updateSeat: (seatId: string, updates: Partial<Omit<Seat, 'id'>>) => {
-    const yPlayers = get()._ySeats
-    if (!yPlayers) return
-    const seat = yPlayers.get(seatId)
-    if (!seat) return
-    yPlayers.set(seatId, { ...seat, ...updates })
+  updateSeat: async (seatId: string, updates: Partial<Omit<Seat, 'id'>>) => {
+    const { _roomId: roomId } = get()
+    if (!roomId) return
+    await api.patch(`/api/rooms/${roomId}/seats/${seatId}`, updates)
+    // Store update via WS event
   },
 }))
