@@ -27,6 +27,7 @@
     ]
   },
   "dependencies": {
+    "classic-level": "^3.0.0",
     "express": "^5.2.1",
     "konva": "^10.2.0",
     "lucide-react": "^0.577.0",

@@ -6,6 +6,7 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { createRequire } from 'module'
 import multer from 'multer'
+import { ClassicLevel } from 'classic-level'
 
 const require = createRequire(import.meta.url)
 const { setupWSConnection, setPersistence } = require('y-websocket/bin/utils')
@@ -16,41 +17,52 @@ const { Server: WSServer } = require('ws')
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PORT = parseInt(process.env.VITE_SERVER_PORT || process.env.PORT || '4444')
 const HOST = process.env.HOST || '0.0.0.0'
-const PERSISTENCE_DIR = process.env.YPERSISTENCE || './db'
-const UPLOADS_DIR = process.env.UPLOADS_DIR
-  ? path.resolve(process.env.UPLOADS_DIR)
-  : path.join(__dirname, 'uploads')
+const DATA_DIR = process.env.DATA_DIR || './data'
 
-// Ensure uploads directory exists
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true })
+// Per-room isolated LevelDB instances
+const roomYjsDbs = new Map()
+const roomAssetDbs = new Map()
+
+function getRoomYjsDb(roomId) {
+  if (!roomYjsDbs.has(roomId)) {
+    const dbPath = path.join(DATA_DIR, 'rooms', roomId, 'db', 'yjs')
+    fs.mkdirSync(dbPath, { recursive: true })
+    roomYjsDbs.set(roomId, new LeveldbPersistence(dbPath))
+  }
+  return roomYjsDbs.get(roomId)
 }
 
-// Set up LevelDB persistence
-const ldb = new LeveldbPersistence(PERSISTENCE_DIR)
+// Pending promise pattern to prevent concurrent ClassicLevel instances (LEVEL_LOCKED)
+const pendingAssetDbs = new Map()
 
+function getRoomAssetDb(roomId) {
+  if (roomAssetDbs.has(roomId)) return roomAssetDbs.get(roomId)
+  if (pendingAssetDbs.has(roomId)) return pendingAssetDbs.get(roomId)
+
+  const dbPath = path.join(DATA_DIR, 'rooms', roomId, 'db', 'assets')
+  fs.mkdirSync(dbPath, { recursive: true })
+  const db = new ClassicLevel(dbPath, { valueEncoding: 'json' })
+  const ready = db.open().then(() => {
+    roomAssetDbs.set(roomId, db)
+    pendingAssetDbs.delete(roomId)
+    return db
+  })
+  pendingAssetDbs.set(roomId, ready)
+  return ready
+}
+
+// Y-websocket persistence: per-room yjs LevelDB
 setPersistence({
-  provider: ldb,
   bindState: async (docName, ydoc) => {
-    const persistedYdoc = await ldb.getYDoc(docName)
+    const db = getRoomYjsDb(docName)
+    const persistedYdoc = await db.getYDoc(docName)
     const newUpdates = Y.encodeStateAsUpdate(persistedYdoc)
     Y.applyUpdate(ydoc, newUpdates)
-
-    // Migrate roster → entities (one-time, from pre-refactor data)
-    const roster = ydoc.getMap('roster')
-    const entities = ydoc.getMap('entities')
-    if (roster.size > 0 && entities.size === 0) {
-      ydoc.transact(() => {
-        roster.forEach((val, key) => entities.set(key, val))
-      })
-      console.log(`[migration] ${docName}: migrated ${roster.size} entries from roster → entities`)
-    }
-
     ydoc.on('update', (update) => {
-      ldb.storeUpdate(docName, update)
+      db.storeUpdate(docName, update)
     })
   },
-  writeState: async (_docName, _ydoc) => {},
+  writeState: async () => {},
 })
 
 // Express app
@@ -59,7 +71,7 @@ const app = express()
 // CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*')
-  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
   res.header('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') return res.sendStatus(204)
   next()
@@ -69,7 +81,7 @@ app.use((req, res, next) => {
 app.use(express.json())
 
 // Room metadata storage
-const ROOMS_FILE = path.join(PERSISTENCE_DIR, 'rooms.json')
+const ROOMS_FILE = path.join(DATA_DIR, 'rooms.json')
 
 function readRooms() {
   if (!fs.existsSync(ROOMS_FILE)) return []
@@ -77,6 +89,7 @@ function readRooms() {
 }
 
 function writeRooms(rooms) {
+  fs.mkdirSync(path.dirname(ROOMS_FILE), { recursive: true })
   fs.writeFileSync(ROOMS_FILE, JSON.stringify(rooms, null, 2))
 }
 
@@ -97,147 +110,150 @@ app.post('/api/rooms', (req, res) => {
   res.status(201).json(room)
 })
 
+// Track per-room WebSocket connections for cleanup
+const roomConnections = new Map()
+
 app.delete('/api/rooms/:id', async (req, res) => {
   const roomId = req.params.id
   const rooms = readRooms()
-  const idx = rooms.findIndex(r => r.id === roomId)
+  const idx = rooms.findIndex((r) => r.id === roomId)
   if (idx === -1) return res.status(404).json({ error: 'Room not found' })
   rooms.splice(idx, 1)
   writeRooms(rooms)
-  try {
-    await ldb.clearDocument(roomId)
-  } catch (e) {
-    console.warn(`Could not clear LevelDB for ${roomId}:`, e.message)
+
+  // Close active WebSocket connections first (prevent writes to destroyed LevelDB)
+  const conns = roomConnections.get(roomId)
+  if (conns) {
+    for (const conn of conns) conn.close(4410, 'Room deleted')
+    roomConnections.delete(roomId)
   }
+
+  // Close both LevelDB instances
+  const yjsDb = roomYjsDbs.get(roomId)
+  if (yjsDb) {
+    await yjsDb.destroy()
+    roomYjsDbs.delete(roomId)
+  }
+  const assetDb = roomAssetDbs.get(roomId)
+  if (assetDb) {
+    await assetDb.close()
+    roomAssetDbs.delete(roomId)
+  }
+
+  // Delete entire room directory
+  const roomDir = path.join(DATA_DIR, 'rooms', roomId)
+  if (fs.existsSync(roomDir)) fs.rmSync(roomDir, { recursive: true, force: true })
+
   console.log(`Room deleted: ${roomId}`)
   res.json({ ok: true })
 })
 
-// Static file serving for uploads
-app.use('/uploads', express.static(UPLOADS_DIR, {
-  maxAge: '1y',
-  immutable: true,
-}))
+// Per-room file upload
+function getRoomUploadMiddleware(roomId) {
+  const uploadsDir = path.join(DATA_DIR, 'rooms', roomId, 'uploads')
+  fs.mkdirSync(uploadsDir, { recursive: true })
+  const storage = multer.diskStorage({
+    destination: uploadsDir,
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.bin'
+      cb(null, `${crypto.randomUUID()}${ext}`)
+    },
+  })
+  return multer({ storage, limits: { fileSize: 200 * 1024 * 1024 } })
+}
 
-// Multer storage config
-const storage = multer.diskStorage({
-  destination: UPLOADS_DIR,
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase() || '.bin'
-    cb(null, `${crypto.randomUUID()}${ext}`)
-  },
+app.post('/api/rooms/:roomId/upload', (req, res, next) => {
+  const upload = getRoomUploadMiddleware(req.params.roomId)
+  upload.single('file')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message })
+    if (!req.file) return res.status(400).json({ error: 'No file found' })
+    console.log(
+      `Uploaded: ${req.file.filename} (${req.file.size} bytes) to room ${req.params.roomId}`,
+    )
+    res.json({ url: `/api/rooms/${req.params.roomId}/uploads/${req.file.filename}` })
+    next()
+  })
 })
-const upload = multer({ storage, limits: { fileSize: 200 * 1024 * 1024 } })
 
-// Upload endpoint
-app.post('/api/upload', upload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file found' })
-  }
-  console.log(`Uploaded: ${req.file.filename} (${req.file.size} bytes)`)
-  res.json({ url: `/uploads/${req.file.filename}` })
-})
-
-// Delete uploaded file
-app.delete('/api/uploads/:filename', (req, res) => {
+// Serve uploaded files per room
+app.get('/api/rooms/:roomId/uploads/:filename', (req, res) => {
   const filename = path.basename(req.params.filename)
-  const filePath = path.join(UPLOADS_DIR, filename)
+  const filePath = path.resolve(DATA_DIR, 'rooms', req.params.roomId, 'uploads', filename)
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' })
+  res.sendFile(filePath, { maxAge: '1y', immutable: true })
+})
 
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: 'Not found' })
-  }
-
+// Delete uploaded file per room
+app.delete('/api/rooms/:roomId/uploads/:filename', (req, res) => {
+  const filename = path.basename(req.params.filename)
+  const filePath = path.join(DATA_DIR, 'rooms', req.params.roomId, 'uploads', filename)
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' })
   fs.unlinkSync(filePath)
-  console.log(`Deleted: ${filename}`)
+  console.log(`Deleted: ${filename} from room ${req.params.roomId}`)
   res.json({ ok: true })
 })
 
-// Admin page
-app.get('/admin', (_req, res) => {
-  const files = fs.readdirSync(UPLOADS_DIR).map((name) => {
-    const stat = fs.statSync(path.join(UPLOADS_DIR, name))
-    return { name, size: stat.size }
-  })
-
-  const formatSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+// Asset metadata CRUD API (classic-level)
+app.get('/api/rooms/:roomId/assets', async (req, res) => {
+  try {
+    const db = await getRoomAssetDb(req.params.roomId)
+    const assets = []
+    for await (const [key, value] of db.iterator()) {
+      assets.push({ id: key, ...value })
+    }
+    res.json(assets)
+  } catch (e) {
+    console.error(`[assets] GET failed for room ${req.params.roomId}:`, e.message)
+    res.status(500).json({ error: 'Failed to read assets' })
   }
+})
 
-  const fileCards = files.map((f) => `
-    <div class="card">
-      <img src="/uploads/${f.name}" alt="${f.name}" />
-      <div class="info">
-        <div class="name" title="${f.name}">${f.name.slice(0, 12)}...${f.name.slice(-4)}</div>
-        <div class="size">${formatSize(f.size)}</div>
-      </div>
-      <button onclick="deleteFile('${f.name}')" class="del">Delete</button>
-    </div>
-  `).join('')
-
-  res.send(`<!DOCTYPE html>
-<html><head>
-<meta charset="utf-8">
-<title>Asset Manager</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, sans-serif; background: #f5f5f5; padding: 24px; }
-  h1 { font-size: 20px; margin-bottom: 16px; color: #333; }
-  .toolbar { display: flex; gap: 8px; margin-bottom: 24px; align-items: center; }
-  .toolbar input[type=file] { flex: 1; }
-  .toolbar button { padding: 8px 20px; background: #2563eb; color: #fff; border: none;
-    border-radius: 6px; cursor: pointer; font-size: 14px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
-  .card { background: #fff; border-radius: 8px; overflow: hidden;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-  .card img { width: 100%; height: 140px; object-fit: cover; background: #eee; }
-  .info { padding: 8px 12px; }
-  .name { font-size: 12px; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .size { font-size: 11px; color: #999; margin-top: 2px; }
-  .del { width: 100%; padding: 6px; background: none; border: none; border-top: 1px solid #eee;
-    color: #dc2626; cursor: pointer; font-size: 12px; }
-  .del:hover { background: #fef2f2; }
-  .empty { color: #999; text-align: center; padding: 48px; }
-  .count { color: #999; font-size: 13px; }
-</style>
-</head><body>
-  <h1>Asset Manager <span class="count">(${files.length} files)</span></h1>
-  <div class="toolbar">
-    <input type="file" id="fileInput" accept="image/*,video/*" multiple />
-    <button onclick="uploadFiles()">Upload</button>
-  </div>
-  <div class="grid">
-    ${fileCards || '<div class="empty">No files uploaded</div>'}
-  </div>
-  ${files.length === 0 ? '<div class="empty">No files uploaded</div>' : ''}
-<script>
-async function deleteFile(name) {
-  if (!confirm('Delete ' + name + '?')) return
-  await fetch('/api/uploads/' + name, { method: 'DELETE' })
-  location.reload()
-}
-async function uploadFiles() {
-  const input = document.getElementById('fileInput')
-  if (!input.files.length) return
-  for (const file of input.files) {
-    const fd = new FormData()
-    fd.append('file', file)
-    await fetch('/api/upload', { method: 'POST', body: fd })
+app.post('/api/rooms/:roomId/assets', async (req, res) => {
+  try {
+    const db = await getRoomAssetDb(req.params.roomId)
+    const id = crypto.randomUUID().slice(0, 12)
+    const asset = { ...req.body, createdAt: Date.now() }
+    await db.put(id, asset)
+    res.status(201).json({ id, ...asset })
+  } catch (e) {
+    console.error(`[assets] POST failed for room ${req.params.roomId}:`, e.message)
+    res.status(500).json({ error: 'Failed to create asset' })
   }
-  location.reload()
-}
-</script>
-</body></html>`)
+})
+
+app.patch('/api/rooms/:roomId/assets/:assetId', async (req, res) => {
+  try {
+    const db = await getRoomAssetDb(req.params.roomId)
+    const existing = await db.get(req.params.assetId)
+    const updated = { ...existing, ...req.body, updatedAt: Date.now() }
+    await db.put(req.params.assetId, updated)
+    res.json({ id: req.params.assetId, ...updated })
+  } catch (e) {
+    if (e.code === 'LEVEL_NOT_FOUND') return res.status(404).json({ error: 'Asset not found' })
+    console.error(`[assets] PATCH failed for room ${req.params.roomId}:`, e.message)
+    res.status(500).json({ error: 'Failed to update asset' })
+  }
+})
+
+app.delete('/api/rooms/:roomId/assets/:assetId', async (req, res) => {
+  try {
+    const db = await getRoomAssetDb(req.params.roomId)
+    await db.del(req.params.assetId)
+    res.json({ ok: true })
+  } catch (e) {
+    if (e.code === 'LEVEL_NOT_FOUND') return res.status(404).json({ error: 'Asset not found' })
+    console.error(`[assets] DELETE failed for room ${req.params.roomId}:`, e.message)
+    res.status(500).json({ error: 'Failed to delete asset' })
+  }
 })
 
 // Serve built frontend in production
 const distPath = path.join(__dirname, '..', 'dist')
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath))
-  // SPA fallback: non-API, non-upload routes serve index.html
+  // SPA fallback: non-API routes serve index.html
   app.use((req, res, next) => {
-    if (req.method !== 'GET' || req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) return next()
+    if (req.method !== 'GET' || req.path.startsWith('/api/')) return next()
     res.sendFile(path.join(distPath, 'index.html'))
   })
 } else {
@@ -251,15 +267,24 @@ const server = http.createServer(app)
 const wss = new WSServer({ server })
 
 wss.on('connection', (conn, req) => {
-  // Validate room exists before allowing connection
-  const roomId = req.url?.slice(1)?.split('?')[0] // e.g. "/my-room" -> "my-room"
+  const roomId = req.url?.slice(1)?.split('?')[0]
   if (roomId) {
     const rooms = readRooms()
-    if (!rooms.some(r => r.id === roomId)) {
+    if (!rooms.some((r) => r.id === roomId)) {
       console.warn(`Rejected connection to unknown room: ${roomId}`)
       conn.close(4404, 'Room not found')
       return
     }
+    // Track connection for cleanup on room deletion
+    if (!roomConnections.has(roomId)) roomConnections.set(roomId, new Set())
+    roomConnections.get(roomId).add(conn)
+    conn.on('close', () => {
+      const conns = roomConnections.get(roomId)
+      if (conns) {
+        conns.delete(conn)
+        if (conns.size === 0) roomConnections.delete(roomId)
+      }
+    })
   }
   setupWSConnection(conn, req)
 })
@@ -270,6 +295,5 @@ server.timeout = 10 * 60 * 1000
 
 server.listen(PORT, HOST, () => {
   console.log(`y-websocket server running on ws://${HOST}:${PORT}`)
-  console.log(`Persistence directory: ${PERSISTENCE_DIR}`)
-  console.log(`Uploads directory: ${UPLOADS_DIR}`)
+  console.log(`Data directory: ${DATA_DIR}`)
 })
