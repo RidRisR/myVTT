@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Image } from 'lucide-react'
-import type { Scene } from '../yjs/useScenes'
+import type { Scene } from '../stores/worldStore'
+import type { Atmosphere } from '../shared/entityTypes'
 import { SceneListPanel } from './SceneListPanel'
 import { SceneConfigPanel } from './SceneConfigPanel'
 
@@ -8,7 +9,10 @@ interface SceneButtonProps {
   scenes: Scene[]
   activeSceneId: string | null
   onSelectScene: (sceneId: string) => void
-  onUpdateScene: (id: string, updates: Partial<Scene>) => void
+  onUpdateScene: (
+    id: string,
+    updates: { name?: string; sortOrder?: number; atmosphere?: Partial<Atmosphere> },
+  ) => void
   onDeleteScene: (id: string) => void
   onDuplicateScene: (sceneId: string) => void
   onCreateScene: () => void

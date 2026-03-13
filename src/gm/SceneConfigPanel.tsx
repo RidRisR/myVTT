@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Trash2, Upload, XCircle } from 'lucide-react'
-import type { Scene } from '../yjs/useScenes'
+import type { Scene } from '../stores/worldStore'
+import type { Atmosphere } from '../shared/entityTypes'
 import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
 import { uploadAsset } from '../shared/assetUpload'
 
 interface SceneConfigPanelProps {
   scene: Scene
-  onUpdateScene: (id: string, updates: Partial<Scene>) => void
+  onUpdateScene: (
+    id: string,
+    updates: { name?: string; sortOrder?: number; atmosphere?: Partial<Atmosphere> },
+  ) => void
   onDeleteScene: (id: string) => void
   onClose: () => void
 }
@@ -23,37 +27,25 @@ export function SceneConfigPanel({
   const audioInputRef = useRef<HTMLInputElement>(null)
 
   const [name, setName] = useState(scene.name)
-  const [particlePreset, setParticlePreset] = useState(scene.particlePreset)
-  const [ambientAudioUrl, setAmbientAudioUrl] = useState(scene.ambientAudioUrl)
-  const [ambientAudioVolume, setAmbientAudioVolume] = useState(scene.ambientAudioVolume)
-  const [gridVisible, setGridVisible] = useState(scene.gridVisible)
-  const [gridSize, setGridSize] = useState(scene.gridSize)
-  const [gridSnap, setGridSnap] = useState(scene.gridSnap)
-  const [gridColor, setGridColor] = useState(scene.gridColor)
+  const [particlePreset, setParticlePreset] = useState(scene.atmosphere.particlePreset)
+  const [ambientAudioUrl, setAmbientAudioUrl] = useState(scene.atmosphere.ambientAudioUrl)
+  const [ambientAudioVolume, setAmbientAudioVolume] = useState(scene.atmosphere.ambientAudioVolume)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [audioUploading, setAudioUploading] = useState(false)
 
   // Reset form when scene changes
   useEffect(() => {
     setName(scene.name)
-    setParticlePreset(scene.particlePreset)
-    setAmbientAudioUrl(scene.ambientAudioUrl)
-    setAmbientAudioVolume(scene.ambientAudioVolume)
-    setGridVisible(scene.gridVisible)
-    setGridSize(scene.gridSize)
-    setGridSnap(scene.gridSnap)
-    setGridColor(scene.gridColor)
+    setParticlePreset(scene.atmosphere.particlePreset)
+    setAmbientAudioUrl(scene.atmosphere.ambientAudioUrl)
+    setAmbientAudioVolume(scene.atmosphere.ambientAudioVolume)
     setShowDeleteConfirm(false)
   }, [
     scene.id,
     scene.name,
-    scene.particlePreset,
-    scene.ambientAudioUrl,
-    scene.ambientAudioVolume,
-    scene.gridVisible,
-    scene.gridSize,
-    scene.gridSnap,
-    scene.gridColor,
+    scene.atmosphere.particlePreset,
+    scene.atmosphere.ambientAudioUrl,
+    scene.atmosphere.ambientAudioVolume,
   ])
 
   // Click-outside-to-close
@@ -70,13 +62,11 @@ export function SceneConfigPanel({
   const handleSave = () => {
     onUpdateScene(scene.id, {
       name: name.trim() || 'Untitled',
-      particlePreset,
-      ambientAudioUrl,
-      ambientAudioVolume,
-      gridVisible,
-      gridSize,
-      gridSnap,
-      gridColor,
+      atmosphere: {
+        particlePreset,
+        ambientAudioUrl,
+        ambientAudioVolume,
+      },
     })
     onClose()
   }
@@ -151,15 +141,7 @@ export function SceneConfigPanel({
         <div className="flex flex-col gap-1">
           <label className={labelClass}>Atmosphere Image</label>
           <div className="text-text-muted text-xs bg-surface rounded px-2 py-1.5 border border-border-glass truncate">
-            {scene.atmosphereImageUrl || 'None — set via asset dock'}
-          </div>
-        </div>
-
-        {/* Tactical map (read-only) */}
-        <div className="flex flex-col gap-1">
-          <label className={labelClass}>Tactical Map</label>
-          <div className="text-text-muted text-xs bg-surface rounded px-2 py-1.5 border border-border-glass truncate">
-            {scene.tacticalMapImageUrl || 'None — set via asset dock'}
+            {scene.atmosphere.imageUrl || 'None — set via asset dock'}
           </div>
         </div>
 
@@ -237,81 +219,6 @@ export function SceneConfigPanel({
               <span className="text-text-muted text-[10px] w-8 text-right">
                 {Math.round(ambientAudioVolume * 100)}%
               </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Grid settings section */}
-        <div className="flex flex-col gap-2">
-          <span className="text-text-muted text-xs font-semibold uppercase tracking-wide">
-            Grid
-          </span>
-
-          {/* Grid visible toggle */}
-          <label className="flex items-center justify-between cursor-pointer">
-            <span className={labelClass}>Visible</span>
-            <button
-              type="button"
-              onClick={() => setGridVisible(!gridVisible)}
-              className={`w-8 h-4.5 rounded-full transition-colors duration-fast cursor-pointer ${
-                gridVisible ? 'bg-accent' : 'bg-surface border border-border-glass'
-              }`}
-            >
-              <div
-                className={`w-3.5 h-3.5 rounded-full bg-text-primary transition-transform duration-fast ${
-                  gridVisible ? 'translate-x-4' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
-          </label>
-
-          {/* Grid size */}
-          <div className="flex items-center justify-between gap-2">
-            <label className={labelClass}>Size (px)</label>
-            <input
-              type="number"
-              value={gridSize}
-              onChange={(e) => setGridSize(Math.max(10, parseInt(e.target.value) || 10))}
-              className="w-20 bg-surface text-text-primary text-xs rounded px-2 py-1.5 border border-border-glass focus:border-accent focus:outline-none transition-colors duration-fast"
-              min={10}
-              max={500}
-            />
-          </div>
-
-          {/* Grid snap toggle */}
-          <label className="flex items-center justify-between cursor-pointer">
-            <span className={labelClass}>Snap to Grid</span>
-            <button
-              type="button"
-              onClick={() => setGridSnap(!gridSnap)}
-              className={`w-8 h-4.5 rounded-full transition-colors duration-fast cursor-pointer ${
-                gridSnap ? 'bg-accent' : 'bg-surface border border-border-glass'
-              }`}
-            >
-              <div
-                className={`w-3.5 h-3.5 rounded-full bg-text-primary transition-transform duration-fast ${
-                  gridSnap ? 'translate-x-4' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
-          </label>
-
-          {/* Grid color */}
-          <div className="flex items-center justify-between gap-2">
-            <label className={labelClass}>Color</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={gridColor.startsWith('rgba') ? '#ffffff' : gridColor}
-                onChange={(e) => setGridColor(e.target.value)}
-                className="w-6 h-6 rounded border border-border-glass cursor-pointer bg-transparent"
-              />
-              <input
-                type="text"
-                value={gridColor}
-                onChange={(e) => setGridColor(e.target.value)}
-                className="w-28 bg-surface text-text-primary text-xs rounded px-2 py-1.5 border border-border-glass focus:border-accent focus:outline-none transition-colors duration-fast"
-              />
             </div>
           </div>
         </div>

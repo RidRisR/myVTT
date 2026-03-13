@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { X, Pencil, Copy, Plus, Trash2 } from 'lucide-react'
-import type { Scene } from '../yjs/useScenes'
+import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
 import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
 
@@ -93,17 +93,17 @@ export function SceneListPanel({
               >
                 {/* Background image */}
                 <div className="w-full h-16 bg-deep">
-                  {scene.atmosphereImageUrl ? (
-                    isVideoUrl(scene.atmosphereImageUrl) ? (
+                  {scene.atmosphere.imageUrl ? (
+                    isVideoUrl(scene.atmosphere.imageUrl) ? (
                       <video
-                        src={scene.atmosphereImageUrl}
+                        src={scene.atmosphere.imageUrl}
                         muted
                         playsInline
                         className="w-full h-full object-cover"
                       />
                     ) : (
                       <img
-                        src={scene.atmosphereImageUrl}
+                        src={scene.atmosphere.imageUrl}
                         alt=""
                         className="w-full h-full object-cover"
                       />

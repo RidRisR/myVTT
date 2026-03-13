@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { useYjsConnection } from './yjs/useYjsConnection'
 import { AdminPanel } from './admin/AdminPanel'
 import { useWorldStore } from './stores/worldStore'
-import type { Scene, HandoutAsset } from './stores/worldStore'
+import type { HandoutAsset } from './stores/worldStore'
 import { useIdentityStore } from './stores/identityStore'
 import { useUiStore } from './stores/uiStore'
 import {
   selectActiveScene,
   selectIsCombat,
+  selectCombatInfo,
   deriveSeatProperties,
   selectSpeakerEntities,
 } from './stores/selectors'
@@ -27,7 +28,7 @@ import { MyCharacterCard } from './layout/MyCharacterCard'
 import { ContextMenu } from './shared/ContextMenu'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import type { ShowcaseItem } from './showcase/showcaseTypes'
-import type { Entity, MapToken } from './shared/entityTypes'
+import type { Entity, MapToken, Atmosphere } from './shared/entityTypes'
 import { defaultNPCPermissions } from './shared/permissions'
 import {
   gcOrphanedEntities,
@@ -64,6 +65,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   const handoutAssets = useWorldStore((s) => s.handoutAssets)
   const activeScene = useWorldStore(selectActiveScene)
   const isCombat = useWorldStore(selectIsCombat)
+  const combatInfo = useWorldStore(selectCombatInfo)
 
   // World store actions
   const setActiveScene = useWorldStore((s) => s.setActiveScene)
@@ -73,7 +75,9 @@ function RoomSession({ roomId }: { roomId: string }) {
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
   const removeEntityFromScene = useWorldStore((s) => s.removeEntityFromScene)
   const getSceneEntityIds = useWorldStore((s) => s.getSceneEntityIds)
-  const setCombatActive = useWorldStore((s) => s.setCombatActive)
+  const activateEncounter = useWorldStore((s) => s.activateEncounter)
+  const endCombat = useWorldStore((s) => s.endCombat)
+  const setCombatMapUrl = useWorldStore((s) => s.setCombatMapUrl)
   const duplicateScene = useWorldStore((s) => s.duplicateScene)
   const setInitiativeOrder = useWorldStore((s) => s.setInitiativeOrder)
   const advanceInitiative = useWorldStore((s) => s.advanceInitiative)
@@ -86,7 +90,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const addHandoutAsset = useWorldStore((s) => s.addHandoutAsset)
   const updateHandoutAsset = useWorldStore((s) => s.updateHandoutAsset)
   const deleteHandoutAsset = useWorldStore((s) => s.deleteHandoutAsset)
-  const setActiveTokenScene = useWorldStore((s) => s.setActiveTokenScene)
 
   // Identity store subscriptions
   const seats = useIdentityStore((s) => s.seats)
@@ -117,12 +120,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   useEffect(() => {
     if (mySeatRole) roleStore.set(mySeatRole)
   }, [mySeatRole])
-
-  // Manage token observer based on combat scene
-  const combatSceneId = isCombat ? room.activeSceneId : null
-  useEffect(() => {
-    setActiveTokenScene(combatSceneId)
-  }, [combatSceneId, setActiveTokenScene])
 
   // Auto-set activeCharacterId if seat has an owned entity but no active one
   useEffect(() => {
@@ -197,9 +194,9 @@ function RoomSession({ roomId }: { roomId: string }) {
     })
   }
 
-  const handleAddScene = (scene: Scene) => {
+  const handleAddScene = (id: string, name: string, atmosphere: Atmosphere) => {
     const persistentIds = getPersistentEntityIds(world.entities)
-    addScene(scene, persistentIds)
+    addScene(id, name, atmosphere, persistentIds)
   }
 
   const handleAddEntity = (entity: Entity) => {
@@ -288,13 +285,13 @@ function RoomSession({ roomId }: { roomId: string }) {
       <div>
         <SceneViewer scene={activeScene} blurred={isCombat} onContextMenu={handleBgContextMenu} />
         <AmbientAudio
-          audioUrl={activeScene?.ambientAudioUrl}
-          volume={activeScene?.ambientAudioVolume ?? 0.5}
+          audioUrl={activeScene?.atmosphere.ambientAudioUrl}
+          volume={activeScene?.atmosphere.ambientAudioVolume ?? 0.5}
         />
 
         {activeScene && (
           <TacticalPanel
-            scene={activeScene}
+            combatInfo={combatInfo}
             tokens={tokens}
             getEntity={getEntity}
             mySeatId={mySeatId}
@@ -328,13 +325,9 @@ function RoomSession({ roomId }: { roomId: string }) {
           onRemoveFromScene={handleRemoveFromScene}
           onUpdateEntity={handleUpdateEntity}
           isCombat={isCombat}
-          activeScene={activeScene}
-          onSetInitiativeOrder={(order) => {
-            if (room.activeSceneId) setInitiativeOrder(room.activeSceneId, order)
-          }}
-          onAdvanceInitiative={() => {
-            if (room.activeSceneId) advanceInitiative(room.activeSceneId)
-          }}
+          combatInfo={combatInfo}
+          onSetInitiativeOrder={setInitiativeOrder}
+          onAdvanceInitiative={advanceInitiative}
         />
 
         {/* Top-right: Team dashboard */}
@@ -369,7 +362,11 @@ function RoomSession({ roomId }: { roomId: string }) {
             onDeleteScene={handleDeleteScene}
             onUpdateScene={updateScene}
             onToggleCombat={() => {
-              if (room.activeSceneId) setCombatActive(room.activeSceneId, !isCombat)
+              if (isCombat) {
+                endCombat()
+              } else if (room.activeSceneId) {
+                activateEncounter(room.activeSceneId)
+              }
             }}
             onShowcaseImage={(imageUrl) => {
               addShowcaseItem({
@@ -383,7 +380,6 @@ function RoomSession({ roomId }: { roomId: string }) {
                 timestamp: Date.now(),
               })
             }}
-            blueprints={world.blueprints}
             entities={entities}
             onAddEntity={handleAddEntity}
             onAddEntityToScene={(entityId) => {
@@ -400,8 +396,7 @@ function RoomSession({ roomId }: { roomId: string }) {
             onDeleteHandoutAsset={deleteHandoutAsset}
             onShowcaseHandout={handleShowcaseHandout}
             onSetAsTacticalMap={(imageUrl: string) => {
-              if (room.activeSceneId)
-                updateScene(room.activeSceneId, { tacticalMapImageUrl: imageUrl })
+              setCombatMapUrl(imageUrl, 0, 0)
             }}
           />
         )}
@@ -418,28 +413,14 @@ function RoomSession({ roomId }: { roomId: string }) {
               duplicateScene(sceneId, crypto.randomUUID())
             }}
             onCreateScene={() => {
-              handleAddScene({
-                id: crypto.randomUUID(),
-                name: 'New Scene',
-                atmosphereImageUrl: '',
-                tacticalMapImageUrl: '',
-                particlePreset: 'none',
+              handleAddScene(crypto.randomUUID(), 'New Scene', {
+                imageUrl: '',
                 width: 0,
                 height: 0,
-                gridSize: 50,
-                gridSnap: true,
-                gridVisible: true,
-                gridColor: 'rgba(255,255,255,0.15)',
-                gridOffsetX: 0,
-                gridOffsetY: 0,
-                sortOrder: scenes.length,
+                particlePreset: 'none',
                 ambientPreset: 'none',
                 ambientAudioUrl: '',
                 ambientAudioVolume: 0.5,
-                combatActive: false,
-                battleMapUrl: '',
-                initiativeOrder: [],
-                initiativeIndex: 0,
               })
             }}
           />

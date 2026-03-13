@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { Users, ChevronRight, ChevronUp } from 'lucide-react'
 import { useUiStore } from '../stores/uiStore'
 import type { Entity } from '../shared/entityTypes'
-import type { Scene } from '../stores/worldStore'
+import type { CombatInfo } from '../stores/worldStore'
 import { canSee, canEdit } from '../shared/permissions'
 import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
@@ -28,7 +28,7 @@ interface PortraitBarProps {
   onRemoveFromScene: (entityId: string) => void
   onUpdateEntity: (id: string, updates: Partial<Entity>) => void
   isCombat: boolean
-  activeScene: Scene | null
+  combatInfo: CombatInfo | null
   onSetInitiativeOrder: (order: string[]) => void
   onAdvanceInitiative: () => void
 }
@@ -98,7 +98,7 @@ export function PortraitBar({
   onRemoveFromScene,
   onUpdateEntity,
   isCombat,
-  activeScene,
+  combatInfo,
   onSetInitiativeOrder,
   onAdvanceInitiative,
 }: PortraitBarProps) {
@@ -494,8 +494,8 @@ export function PortraitBar({
 
       {activeTab === 'initiative' &&
         (() => {
-          const initiativeOrder = activeScene?.initiativeOrder ?? []
-          const initiativeIndex = activeScene?.initiativeIndex ?? 0
+          const initiativeOrder = combatInfo?.initiativeOrder ?? []
+          const initiativeIndex = combatInfo?.initiativeIndex ?? 0
 
           // If no initiative order set, show setup button (GM) or empty state
           if (initiativeOrder.length === 0) {

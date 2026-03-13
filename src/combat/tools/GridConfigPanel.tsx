@@ -1,31 +1,36 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import type { Scene } from '../../stores/worldStore'
+import type { CombatInfo } from '../../stores/worldStore'
 
 /** Bottom offset so GridConfigPanel clears the dual-row GmToolbar (~68px) + 4px gap */
 const GM_TOOLBAR_HEIGHT = 72
 
 interface GridConfigPanelProps {
-  scene: Scene
-  onUpdateScene: (sceneId: string, updates: Partial<Scene>) => void
+  combatInfo: CombatInfo
+  onUpdateGrid: (updates: Partial<CombatInfo['grid']>) => void
   onClose: () => void
 }
 
-export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPanelProps) {
+export function GridConfigPanel({ combatInfo, onUpdateGrid, onClose }: GridConfigPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Local state synced from scene props
-  const [gridSize, setGridSize] = useState(scene.gridSize)
-  const [gridOffsetX, setGridOffsetX] = useState(scene.gridOffsetX)
-  const [gridOffsetY, setGridOffsetY] = useState(scene.gridOffsetY)
-  const [gridColor, setGridColor] = useState(scene.gridColor)
+  // Local state synced from combatInfo props
+  const [gridSize, setGridSize] = useState(combatInfo.grid.size)
+  const [gridOffsetX, setGridOffsetX] = useState(combatInfo.grid.offsetX)
+  const [gridOffsetY, setGridOffsetY] = useState(combatInfo.grid.offsetY)
+  const [gridColor, setGridColor] = useState(combatInfo.grid.color)
 
-  // Re-sync local state when scene changes externally
+  // Re-sync local state when combatInfo changes externally
   useEffect(() => {
-    setGridSize(scene.gridSize)
-    setGridOffsetX(scene.gridOffsetX)
-    setGridOffsetY(scene.gridOffsetY)
-    setGridColor(scene.gridColor)
-  }, [scene.gridSize, scene.gridOffsetX, scene.gridOffsetY, scene.gridColor])
+    setGridSize(combatInfo.grid.size)
+    setGridOffsetX(combatInfo.grid.offsetX)
+    setGridOffsetY(combatInfo.grid.offsetY)
+    setGridColor(combatInfo.grid.color)
+  }, [
+    combatInfo.grid.size,
+    combatInfo.grid.offsetX,
+    combatInfo.grid.offsetY,
+    combatInfo.grid.color,
+  ])
 
   // Click outside to close
   useEffect(() => {
@@ -39,10 +44,10 @@ export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPan
   }, [onClose])
 
   const commitChange = useCallback(
-    (updates: Partial<Scene>) => {
-      onUpdateScene(scene.id, updates)
+    (updates: Partial<CombatInfo['grid']>) => {
+      onUpdateGrid(updates)
     },
-    [scene.id, onUpdateScene],
+    [onUpdateGrid],
   )
 
   return (
@@ -61,7 +66,7 @@ export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPan
           max={500}
           onChange={(v) => {
             setGridSize(v)
-            commitChange({ gridSize: v })
+            commitChange({ size: v })
           }}
         />
       </FieldRow>
@@ -74,7 +79,7 @@ export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPan
           max={500}
           onChange={(v) => {
             setGridOffsetX(v)
-            commitChange({ gridOffsetX: v })
+            commitChange({ offsetX: v })
           }}
         />
       </FieldRow>
@@ -87,7 +92,7 @@ export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPan
           max={500}
           onChange={(v) => {
             setGridOffsetY(v)
-            commitChange({ gridOffsetY: v })
+            commitChange({ offsetY: v })
           }}
         />
       </FieldRow>
@@ -99,7 +104,7 @@ export function GridConfigPanel({ scene, onUpdateScene, onClose }: GridConfigPan
           value={gridColor}
           onChange={(e) => {
             setGridColor(e.target.value)
-            commitChange({ gridColor: e.target.value })
+            commitChange({ color: e.target.value })
           }}
           className="w-8 h-6 p-0 border border-border-glass rounded cursor-pointer bg-transparent"
         />

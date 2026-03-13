@@ -3,15 +3,17 @@ import { useMemo } from 'react'
 import * as Y from 'yjs'
 
 export interface WorldMaps {
-  /** Y.Map of sceneId → Y.Map (each scene contains config keys, 'entityIds' Y.Map, 'tokens' Y.Map) */
+  /** Y.Map of sceneId → Y.Map (each scene contains atmosphere, entityIds Y.Map, encounters Y.Map) */
   scenes: Y.Map<Y.Map<unknown>>
   /** Y.Map of entityId → Y.Map (all entities, field-level CRDT) */
   entities: Y.Map<Y.Map<unknown>>
-  /** Y.Map of blueprintId → plain Blueprint object */
-  blueprints: Y.Map<unknown>
+  /** Y.Map for active combat runtime state */
+  combat: Y.Map<unknown>
+  /** Y.Map for showcase items */
+  showcase: Y.Map<unknown>
   /** Y.Map of seatId → plain Seat object */
   seats: Y.Map<unknown>
-  /** Y.Map of room-level state (activeSceneId) */
+  /** Y.Map of room-level state (activeSceneId, activeEncounterId) */
   room: Y.Map<unknown>
 }
 
@@ -24,7 +26,8 @@ export function createWorldMaps(yDoc: Y.Doc): WorldMaps {
   return {
     scenes: yDoc.getMap('scenes') as Y.Map<Y.Map<unknown>>,
     entities: yDoc.getMap('entities') as Y.Map<Y.Map<unknown>>,
-    blueprints: yDoc.getMap('blueprints'),
+    combat: yDoc.getMap('combat'),
+    showcase: yDoc.getMap('showcase'),
     seats: yDoc.getMap('seats'),
     room: yDoc.getMap('room'),
   }

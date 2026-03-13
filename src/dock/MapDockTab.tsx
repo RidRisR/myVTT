@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Plus, FolderOpen } from 'lucide-react'
-import type { Scene } from '../yjs/useScenes'
+import type { Scene } from '../stores/worldStore'
 import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
 import { generateTokenId } from '../shared/idUtils'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
@@ -49,25 +49,18 @@ export function MapDockTab({
       const scene: Scene = {
         id: generateTokenId(),
         name,
-        atmosphereImageUrl: imageUrl,
-        tacticalMapImageUrl: '',
-        particlePreset: 'none',
-        width: dims.w,
-        height: dims.h,
-        gridSize: 50,
-        gridSnap: true,
-        gridVisible: false,
-        gridColor: '#ffffff',
-        gridOffsetX: 0,
-        gridOffsetY: 0,
         sortOrder: scenes.length,
-        ambientPreset: 'none',
-        ambientAudioUrl: '',
-        ambientAudioVolume: 0.5,
-        combatActive: false,
-        battleMapUrl: '',
-        initiativeOrder: [],
-        initiativeIndex: 0,
+        atmosphere: {
+          imageUrl: imageUrl,
+          width: dims.w,
+          height: dims.h,
+          particlePreset: 'none',
+          ambientPreset: '',
+          ambientAudioUrl: '',
+          ambientAudioVolume: 0.5,
+        },
+        entityIds: [],
+        encounters: {},
       }
       onAddScene(scene)
     } finally {
@@ -82,7 +75,7 @@ export function MapDockTab({
   }
 
   const buildContextMenuItems = (scene: Scene): ContextMenuItem[] => {
-    const imageUrl = scene.atmosphereImageUrl
+    const imageUrl = scene.atmosphere.imageUrl
     const items: ContextMenuItem[] = []
 
     if (onSetAsBackground && activeSceneId && imageUrl) {
@@ -151,7 +144,7 @@ export function MapDockTab({
                   : 'border-border-glass'
               }`}
               onClick={() => {
-                const imageUrl = scene.atmosphereImageUrl
+                const imageUrl = scene.atmosphere.imageUrl
                 if (!activeSceneId || !imageUrl) return
                 if (isCombat) {
                   onSetAsTacticalMap?.(imageUrl)
@@ -161,7 +154,7 @@ export function MapDockTab({
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
-                  const imageUrl = scene.atmosphereImageUrl
+                  const imageUrl = scene.atmosphere.imageUrl
                   if (!activeSceneId || !imageUrl) return
                   if (isCombat) {
                     onSetAsTacticalMap?.(imageUrl)
@@ -174,9 +167,9 @@ export function MapDockTab({
               onMouseEnter={() => setHoveredId(scene.id)}
               onMouseLeave={() => setHoveredId(null)}
             >
-              {isVideoUrl(scene.atmosphereImageUrl) ? (
+              {isVideoUrl(scene.atmosphere.imageUrl) ? (
                 <video
-                  src={scene.atmosphereImageUrl}
+                  src={scene.atmosphere.imageUrl}
                   muted
                   loop
                   autoPlay
@@ -187,7 +180,7 @@ export function MapDockTab({
                 />
               ) : (
                 <img
-                  src={scene.atmosphereImageUrl}
+                  src={scene.atmosphere.imageUrl}
                   alt={scene.name}
                   className="w-full object-cover block"
                   style={{ height: 70 }}
