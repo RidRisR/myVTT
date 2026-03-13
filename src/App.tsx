@@ -18,9 +18,9 @@ import { ChatPanel } from './chat/ChatPanel'
 import { SceneViewer } from './scene/SceneViewer'
 import { AmbientAudio } from './scene/AmbientAudio'
 import { TacticalPanel } from './combat/TacticalPanel'
-import { BottomDock } from './dock/BottomDock'
+import { GmDock } from './gm/GmDock'
 
-import { GmToolbar } from './gm/GmToolbar'
+import { SceneButton } from './gm/SceneButton'
 import { HamburgerMenu } from './layout/HamburgerMenu'
 import { PortraitBar } from './layout/PortraitBar'
 import { MyCharacterCard } from './layout/MyCharacterCard'
@@ -74,6 +74,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   const removeEntityFromScene = useWorldStore((s) => s.removeEntityFromScene)
   const getSceneEntityIds = useWorldStore((s) => s.getSceneEntityIds)
   const setCombatActive = useWorldStore((s) => s.setCombatActive)
+  const duplicateScene = useWorldStore((s) => s.duplicateScene)
   const setInitiativeOrder = useWorldStore((s) => s.setInitiativeOrder)
   const advanceInitiative = useWorldStore((s) => s.advanceInitiative)
   const addEntity = useWorldStore((s) => s.addEntity)
@@ -133,6 +134,20 @@ function RoomSession({ roomId }: { roomId: string }) {
     }
   }, [mySeat, mySeatId, entities, updateSeat])
 
+  // Derive entity data (hooks must be before early returns)
+  const getEntity = (id: string | null): Entity | null => {
+    if (!id) return null
+    return entities.find((e) => e.id === id) ?? null
+  }
+
+  const activeEntity = getEntity(mySeat?.activeCharacterId ?? null)
+  const selectedToken = isCombat ? (tokens.find((t) => t.id === selectedTokenId) ?? null) : null
+  const selectedTokenEntity = selectedToken?.entityId ? getEntity(selectedToken.entityId) : null
+
+  const seatProperties = deriveSeatProperties(activeEntity, selectedTokenEntity)
+
+  const sceneEntityIds = room.activeSceneId ? getSceneEntityIds(room.activeSceneId) : []
+
   if (isLoading) {
     return (
       <div
@@ -165,20 +180,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   }
 
   const isGM = mySeat.role === 'GM'
-
-  // Derive entity data
-  const getEntity = (id: string | null): Entity | null => {
-    if (!id) return null
-    return entities.find((e) => e.id === id) ?? null
-  }
-
-  const activeEntity = getEntity(mySeat.activeCharacterId ?? null)
-  const selectedToken = isCombat ? (tokens.find((t) => t.id === selectedTokenId) ?? null) : null
-  const selectedTokenEntity = selectedToken?.entityId ? getEntity(selectedToken.entityId) : null
-
-  const seatProperties = deriveSeatProperties(activeEntity, selectedTokenEntity)
-
-  const sceneEntityIds = room.activeSceneId ? getSceneEntityIds(room.activeSceneId) : []
 
   const handleRemoveFromScene = (entityId: string) => {
     if (room.activeSceneId) removeEntityFromScene(room.activeSceneId, entityId)
@@ -358,21 +359,36 @@ function RoomSession({ roomId }: { roomId: string }) {
           speakerEntities={selectSpeakerEntities(entities, mySeatId, isGM)}
         />
 
-        {/* Bottom dock: asset library (maps + tokens) — visible in both modes for GM */}
+        {/* Bottom center: GM Dock (unified toolbar) */}
         {isGM && (
-          <BottomDock
+          <GmDock
             scenes={scenes}
             activeSceneId={room.activeSceneId}
-            onSelectScene={setActiveScene}
+            isCombat={isCombat}
             onAddScene={handleAddScene}
             onDeleteScene={handleDeleteScene}
+            onUpdateScene={updateScene}
+            onToggleCombat={() => {
+              if (room.activeSceneId) setCombatActive(room.activeSceneId, !isCombat)
+            }}
+            onShowcaseImage={(imageUrl) => {
+              addShowcaseItem({
+                id: crypto.randomUUID(),
+                type: 'image',
+                imageUrl,
+                senderId: mySeatId,
+                senderName: mySeat.name,
+                senderColor: mySeat.color,
+                ephemeral: false,
+                timestamp: Date.now(),
+              })
+            }}
             blueprints={world.blueprints}
             entities={entities}
             onAddEntity={handleAddEntity}
             onAddEntityToScene={(entityId) => {
               if (room.activeSceneId) addEntityToScene(room.activeSceneId, entityId)
             }}
-            isCombat={isCombat}
             selectedToken={selectedToken}
             onAddToken={addToken}
             onDeleteToken={deleteToken}
@@ -383,28 +399,48 @@ function RoomSession({ roomId }: { roomId: string }) {
             onEditHandoutAsset={setEditingHandout}
             onDeleteHandoutAsset={deleteHandoutAsset}
             onShowcaseHandout={handleShowcaseHandout}
-            onSetAsTacticalMap={(imageUrl) => {
+            onSetAsTacticalMap={(imageUrl: string) => {
               if (room.activeSceneId)
                 updateScene(room.activeSceneId, { tacticalMapImageUrl: imageUrl })
             }}
           />
         )}
 
-        {/* Bottom-left: GM Toolbar */}
+        {/* Bottom-left: Scene Button (GM only) */}
         {isGM && (
-          <GmToolbar
+          <SceneButton
             scenes={scenes}
             activeSceneId={room.activeSceneId}
-            isCombat={isCombat}
-            activeScene={activeScene}
             onSelectScene={setActiveScene}
-            onToggleCombat={() => {
-              if (room.activeSceneId) setCombatActive(room.activeSceneId, !isCombat)
-            }}
             onUpdateScene={updateScene}
             onDeleteScene={handleDeleteScene}
-            onAdvanceInitiative={() => {
-              if (room.activeSceneId) advanceInitiative(room.activeSceneId)
+            onDuplicateScene={(sceneId) => {
+              duplicateScene(sceneId, crypto.randomUUID())
+            }}
+            onCreateScene={() => {
+              handleAddScene({
+                id: crypto.randomUUID(),
+                name: 'New Scene',
+                atmosphereImageUrl: '',
+                tacticalMapImageUrl: '',
+                particlePreset: 'none',
+                width: 0,
+                height: 0,
+                gridSize: 50,
+                gridSnap: true,
+                gridVisible: true,
+                gridColor: 'rgba(255,255,255,0.15)',
+                gridOffsetX: 0,
+                gridOffsetY: 0,
+                sortOrder: scenes.length,
+                ambientPreset: 'none',
+                ambientAudioUrl: '',
+                ambientAudioVolume: 0.5,
+                combatActive: false,
+                battleMapUrl: '',
+                initiativeOrder: [],
+                initiativeIndex: 0,
+              })
             }}
           />
         )}

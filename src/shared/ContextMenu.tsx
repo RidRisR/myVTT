@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 export interface ContextMenuItem {
   label: string
@@ -16,6 +17,23 @@ interface ContextMenuProps {
 
 export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ left: x, top: y })
+
+  // Adjust position to stay within viewport
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    let left = x
+    let top = y
+    if (left + rect.width > vw) left = vw - rect.width - 8
+    if (top + rect.height > vh) top = y - rect.height
+    if (top < 0) top = 8
+    if (left < 0) left = 8
+    setPos({ left, top })
+  }, [x, y])
 
   useEffect(() => {
     const handleClick = (e: PointerEvent) => {
@@ -27,11 +45,11 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
     return () => document.removeEventListener('pointerdown', handleClick)
   }, [onClose])
 
-  return (
+  return createPortal(
     <div
       ref={ref}
-      className="fixed z-popover bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans"
-      style={{ left: x, top: y }}
+      className="fixed z-toast bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans"
+      style={{ left: pos.left, top: pos.top }}
       onPointerDown={(e) => e.stopPropagation()}
     >
       {items.map((item, i) => (
@@ -54,6 +72,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
           {item.label}
         </button>
       ))}
-    </div>
+    </div>,
+    document.body,
   )
 }

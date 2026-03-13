@@ -43,6 +43,10 @@ interface UiState {
   gmViewAsPlayer: boolean
   theme: ThemeId
 
+  // Panel visibility
+  portraitBarVisible: boolean
+  teamPanelVisible: boolean
+
   setInspectedCharacterId: (id: string | null) => void
   setSelectedTokenId: (id: string | null) => void
   setBgContextMenu: (menu: ContextMenuState | null) => void
@@ -50,6 +54,8 @@ interface UiState {
   setActiveTool: (tool: ActiveTool) => void
   setGmViewAsPlayer: (val: boolean) => void
   setTheme: (theme: ThemeId) => void
+  setPortraitBarVisible: (visible: boolean) => void
+  setTeamPanelVisible: (visible: boolean) => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -60,6 +66,8 @@ export const useUiStore = create<UiState>((set) => ({
   activeTool: 'select',
   gmViewAsPlayer: false,
   theme: getStoredTheme(),
+  portraitBarVisible: true,
+  teamPanelVisible: true,
 
   setInspectedCharacterId: (id) => set({ inspectedCharacterId: id }),
   setSelectedTokenId: (id) => set({ selectedTokenId: id }),
@@ -71,4 +79,6 @@ export const useUiStore = create<UiState>((set) => ({
     applyTheme(theme)
     set({ theme })
   },
+  setPortraitBarVisible: (visible) => set({ portraitBarVisible: visible }),
+  setTeamPanelVisible: (visible) => set({ teamPanelVisible: visible }),
 }))

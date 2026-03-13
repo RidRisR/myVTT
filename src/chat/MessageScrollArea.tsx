@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { MessageSquare } from 'lucide-react'
+import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 import type { ChatMessage } from './chatTypes'
 import { MessageCard } from './MessageCard'
 
@@ -67,7 +68,7 @@ export function MessageScrollArea({ messages, newMessageIds }: MessageScrollArea
           position: 'fixed',
           bottom: 68,
           right: 16,
-          width: 420,
+          width: RIGHT_PANEL_WIDTH,
           zIndex: 10000,
           display: 'flex',
           flexDirection: 'column',
