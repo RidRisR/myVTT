@@ -321,8 +321,9 @@ function RoomSession({ roomId }: { roomId: string }) {
     setSelectedTokenId(newToken.id)
   }
 
-  // Convert entities Record to array for components that still expect arrays
+  // Convert Record types to arrays for components that still expect arrays
   const entitiesArray = Object.values(entities)
+  const tokensArray = Object.values(tokens)
 
   return (
     <ToastProvider>
@@ -336,7 +337,7 @@ function RoomSession({ roomId }: { roomId: string }) {
         {activeScene && (
           <TacticalPanel
             combatInfo={combatInfo}
-            tokens={tokens}
+            tokens={tokensArray}
             getEntity={getEntity}
             mySeatId={mySeatId}
             role={mySeat.role}
@@ -356,7 +357,7 @@ function RoomSession({ roomId }: { roomId: string }) {
 
         {/* Top-center: Portrait bar */}
         <PortraitBar
-          entities={entities}
+          entities={entitiesArray}
           sceneEntityIds={sceneEntityIds}
           mySeatId={mySeatId}
           role={mySeat.role}

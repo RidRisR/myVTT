@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Menu, LogOut, Sun, Moon } from 'lucide-react'
-import type { Seat } from '../identity/useIdentity'
-import { SEAT_COLORS } from '../identity/useIdentity'
+import { SEAT_COLORS, type Seat } from '../stores/identityStore'
 import { uploadAsset } from '../shared/assetUpload'
 import { useUiStore } from '../stores/uiStore'
 

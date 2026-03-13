@@ -11,6 +11,7 @@ import type {
   Atmosphere,
 } from '../shared/entityTypes'
 import type { ShowcaseItem } from '../showcase/showcaseTypes'
+import type { ChatMessage } from '../chat/chatTypes'
 import { api } from '../shared/api'
 
 // ── Types ──
@@ -62,17 +63,8 @@ export interface TeamTracker {
   sortOrder: number
 }
 
-export interface ChatMessage {
-  id: string
-  type: 'text' | 'roll'
-  senderId: string
-  senderName: string
-  senderColor: string
-  portraitUrl?: string | null
-  content?: string | null
-  rollData?: unknown
-  timestamp: number
-}
+// ChatMessage type re-exported from chatTypes for backward compatibility
+export type { ChatMessage } from '../chat/chatTypes'
 
 export interface AssetRecord {
   id: string

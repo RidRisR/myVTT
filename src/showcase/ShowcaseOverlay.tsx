@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import * as Y from 'yjs'
-import { useShowcase } from './useShowcase'
+import { useWorldStore } from '../stores/worldStore'
 import { FocusedCard } from './FocusedCard'
 import { PeekCard } from './PeekCard'
 
@@ -11,13 +10,33 @@ const MAX_VISIBLE_DIST = 2.5
 const EPHEMERAL_COLLAPSE_MS = 8000
 
 interface ShowcaseOverlayProps {
-  yDoc: Y.Doc
+  roomId: string
   isGM: boolean
 }
 
-export function ShowcaseOverlay({ yDoc, isGM }: ShowcaseOverlayProps) {
-  const { items, deleteItem, newItemId, clearNewItemId, pinnedItemId, pinItem, unpinItem } =
-    useShowcase(yDoc)
+export function ShowcaseOverlay({ roomId, isGM }: ShowcaseOverlayProps) {
+  const items = useWorldStore((s) => s.showcaseItems)
+  const deleteItem = useWorldStore((s) => s.deleteShowcaseItem)
+  const pinnedItemId = useWorldStore((s) => s.showcasePinnedItemId)
+  const pinItem = useWorldStore((s) => s.pinShowcaseItem)
+  const unpinItem = useWorldStore((s) => s.unpinShowcaseItem)
+
+  // Track new item arrivals
+  const [newItemId, setNewItemId] = useState<string | null>(null)
+  const prevIdsRef = useRef<Set<string>>(new Set(items.map((i) => i.id)))
+
+  useEffect(() => {
+    const nextIds = new Set(items.map((i) => i.id))
+    for (const id of nextIds) {
+      if (!prevIdsRef.current.has(id)) {
+        setNewItemId(id)
+        break
+      }
+    }
+    prevIdsRef.current = nextIds
+  }, [items])
+
+  const clearNewItemId = useCallback(() => setNewItemId(null), [])
 
   // scrollY as React state (source of truth for rendering)
   // scrollY can go up to items.length — that's the "dismissed" empty slot at queue head

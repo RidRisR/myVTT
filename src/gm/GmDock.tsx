@@ -18,7 +18,7 @@ import { nextNpcName } from '../shared/characterUtils'
 import { MapDockTab } from '../dock/MapDockTab'
 import { TokenDockTab } from '../dock/TokenDockTab'
 import { HandoutDockTab } from '../dock/HandoutDockTab'
-import type { HandoutAsset } from '../dock/useHandoutAssets'
+import type { HandoutAsset } from '../stores/worldStore'
 
 type TabId = 'gallery' | 'tokens' | 'handouts' | 'dice'
 

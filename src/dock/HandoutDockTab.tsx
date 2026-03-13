@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Pencil, X, Plus, Loader, FileImage } from 'lucide-react'
-import type { HandoutAsset } from './useHandoutAssets'
+import type { HandoutAsset } from '../stores/worldStore'
 import { uploadAsset } from '../shared/assetUpload'
 import { generateTokenId } from '../shared/idUtils'
 

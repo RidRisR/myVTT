@@ -10,7 +10,13 @@ export function chatRoutes(dataDir: string, io: Server): Router {
   const room = withRoom(dataDir)
 
   function toMessage(row: Record<string, unknown>) {
-    return parseJsonFields(toCamel<Record<string, unknown>>(row), 'rollData')
+    const msg = parseJsonFields(toCamel<Record<string, unknown>>(row), 'rollData')
+    // Flatten rollData into top-level fields for client ChatRollMessage compatibility
+    if (msg.rollData && typeof msg.rollData === 'object') {
+      const { rollData, ...rest } = msg
+      return { ...rest, ...(rollData as Record<string, unknown>) }
+    }
+    return msg
   }
 
   // Get chat history (supports incremental fetch)

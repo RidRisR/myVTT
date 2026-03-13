@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { HandoutAsset } from './useHandoutAssets'
+import type { HandoutAsset } from '../stores/worldStore'
 
 interface HandoutEditModalProps {
   asset: HandoutAsset
