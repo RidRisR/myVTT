@@ -424,7 +424,10 @@ function RoomSession({ roomId }: { roomId: string }) {
             onDeleteHandoutAsset={deleteHandoutAsset}
             onShowcaseHandout={handleShowcaseHandout}
             onSetAsTacticalMap={(imageUrl: string) => {
-              setCombatMapUrl(imageUrl, 0, 0)
+              const img = new Image()
+              img.onload = () => setCombatMapUrl(imageUrl, img.naturalWidth, img.naturalHeight)
+              img.onerror = () => setCombatMapUrl(imageUrl, 1920, 1080)
+              img.src = imageUrl
             }}
           />
         )}
