@@ -1,4 +1,5 @@
 import { API_BASE } from './config'
+import { getCurrentRoomId } from './assetApi'
 
 export { API_BASE }
 
@@ -27,10 +28,11 @@ export function getMediaDimensions(url: string): Promise<{ w: number; h: number 
 }
 
 export async function uploadAsset(file: File): Promise<string> {
+  const roomId = getCurrentRoomId()
   const formData = new FormData()
   formData.append('file', file)
 
-  const res = await fetch(`${API_BASE}/api/upload`, {
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/upload`, {
     method: 'POST',
     body: formData,
   })
