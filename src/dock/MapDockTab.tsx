@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState } from 'react'
-import { Plus, FolderOpen } from 'lucide-react'
+import { Plus, FolderOpen, Loader2 } from 'lucide-react'
 import { useAssetStore } from '../stores/assetStore'
 import type { AssetMeta } from '../shared/assetTypes'
 import { isVideoUrl } from '../shared/assetUpload'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
+import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
+import { useToast } from '../shared/ui/useToast'
 
 interface MapDockTabProps {
   activeSceneId: string | null
@@ -30,11 +32,15 @@ export function MapDockTab({
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextState | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AssetMeta | null>(null)
 
   const allAssets = useAssetStore((s) => s.assets)
+  const loading = useAssetStore((s) => s.loading)
   const upload = useAssetStore((s) => s.upload)
   const remove = useAssetStore((s) => s.remove)
   const assets = useMemo(() => allAssets.filter((a) => a.type === 'image'), [allAssets])
+
+  const { toast } = useToast()
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -43,8 +49,19 @@ export function MapDockTab({
     setUploading(true)
     try {
       await upload(file, { type: 'image' })
+      toast('success', `Uploaded ${file.name}`)
+    } catch (err) {
+      toast('error', `Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleDelete = async (asset: AssetMeta) => {
+    try {
+      await remove(asset.id)
+    } catch (err) {
+      toast('error', `Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
   }
 
@@ -77,11 +94,21 @@ export function MapDockTab({
     }
     items.push({
       label: 'Delete',
-      onClick: () => remove(asset.id),
+      onClick: () => setDeleteTarget(asset),
       color: 'var(--color-danger)',
     })
 
     return items
+  }
+
+  // Loading state
+  if (loading && assets.length === 0) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-8">
+        <Loader2 size={20} strokeWidth={1.5} className="text-text-muted/40 animate-spin" />
+        <span className="text-text-muted text-sm">Loading assets…</span>
+      </div>
+    )
   }
 
   return (
@@ -177,11 +204,15 @@ export function MapDockTab({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="rounded-lg border-2 border-dashed border-border-glass cursor-pointer flex flex-col items-center justify-center gap-1 text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50 bg-transparent"
+          disabled={uploading}
+          className="rounded-lg border-2 border-dashed border-border-glass cursor-pointer flex flex-col items-center justify-center gap-1 text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50 bg-transparent disabled:cursor-not-allowed disabled:opacity-50"
           style={{ height: 94 }}
         >
           {uploading ? (
-            <span className="text-[11px]">Uploading…</span>
+            <>
+              <Loader2 size={20} strokeWidth={1.5} className="animate-spin" />
+              <span className="text-[10px]">Uploading…</span>
+            </>
           ) : (
             <>
               <Plus size={20} strokeWidth={1.5} />
@@ -198,6 +229,21 @@ export function MapDockTab({
           y={contextMenu.y}
           items={buildContextMenuItems(contextMenu.asset)}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {/* Delete confirmation dialog */}
+      {deleteTarget && (
+        <ConfirmDialog
+          title="Delete Asset"
+          message={`Are you sure you want to delete "${deleteTarget.name}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={() => {
+            handleDelete(deleteTarget)
+            setDeleteTarget(null)
+          }}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </div>
