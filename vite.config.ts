@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
     test: {
       globals: true,
       environment: 'jsdom',
-      include: ['src/**/*.test.ts', 'server/**/*.test.mjs'],
+      include: ['src/**/*.test.ts', 'server/**/*.test.{ts,mjs}'],
       environmentMatchGlobs: [['server/**', 'node']],
       setupFiles: ['./src/__test-utils__/setup.ts'],
     },
