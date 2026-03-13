@@ -58,6 +58,20 @@ export function chatRoutes(dataDir: string, io: Server): Router {
     res.status(201).json(message)
   })
 
+  // Retract a message
+  router.post('/api/rooms/:roomId/chat/retract/:id', room, (req, res) => {
+    const existing = req.roomDb!
+      .prepare('SELECT * FROM chat_messages WHERE id = ?')
+      .get(req.params.id) as Record<string, unknown> | undefined
+    if (!existing) {
+      res.status(404).json({ error: 'Message not found' })
+      return
+    }
+    req.roomDb!.prepare('DELETE FROM chat_messages WHERE id = ?').run(req.params.id)
+    io.to(req.roomId!).emit('chat:retracted', { id: req.params.id })
+    res.json({ ok: true })
+  })
+
   // Server-side dice roll
   router.post('/api/rooms/:roomId/roll', room, async (req, res) => {
     try {

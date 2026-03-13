@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { useSocket } from './shared/hooks/useSocket'
 import { AdminPanel } from './admin/AdminPanel'
 import { useWorldStore } from './stores/worldStore'
@@ -34,6 +34,8 @@ import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './shared/ui/ToastProvider'
+
+const EMPTY_IDS: string[] = []
 
 function RoomSession({ roomId }: { roomId: string }) {
   const { socket, connectionStatus } = useSocket(roomId)
@@ -103,7 +105,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const deleteSceneRaw = useWorldStore((s) => s.deleteScene)
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
   const removeEntityFromScene = useWorldStore((s) => s.removeEntityFromScene)
-  const getSceneEntityIds = useWorldStore((s) => s.getSceneEntityIds)
   const activateEncounter = useWorldStore((s) => s.activateEncounter)
   const endCombat = useWorldStore((s) => s.endCombat)
   const setCombatMapUrl = useWorldStore((s) => s.setCombatMapUrl)
@@ -177,8 +178,20 @@ function RoomSession({ roomId }: { roomId: string }) {
   const selectedTokenEntity = selectedToken?.entityId ? getEntity(selectedToken.entityId) : null
 
   const seatProperties = deriveSeatProperties(activeEntity, selectedTokenEntity)
+  const isGMForSpeakers = mySeat?.role === 'GM'
+  const speakerEntities = useMemo(
+    () => selectSpeakerEntities(entities, mySeatId, isGMForSpeakers ?? false),
+    [entities, mySeatId, isGMForSpeakers],
+  )
 
-  const sceneEntityIds = room.activeSceneId ? getSceneEntityIds(room.activeSceneId) : []
+  const sceneEntityIds =
+    useWorldStore(
+      (s) => (room.activeSceneId ? s.sceneEntityMap[room.activeSceneId] : undefined),
+    ) ?? EMPTY_IDS
+
+  // Convert Record types to arrays for components that still expect arrays
+  const entitiesArray = useMemo(() => Object.values(entities), [entities])
+  const tokensArray = useMemo(() => Object.values(tokens), [tokens])
 
   // Auto-create a default scene when GM enters a room with no scenes
   const isGMRole = mySeat?.role === 'GM'
@@ -321,10 +334,6 @@ function RoomSession({ roomId }: { roomId: string }) {
     setSelectedTokenId(newToken.id)
   }
 
-  // Convert Record types to arrays for components that still expect arrays
-  const entitiesArray = Object.values(entities)
-  const tokensArray = Object.values(tokens)
-
   return (
     <ToastProvider>
       <div>
@@ -394,7 +403,7 @@ function RoomSession({ roomId }: { roomId: string }) {
           senderColor={mySeat.color}
           portraitUrl={mySeat.portraitUrl || activeEntity?.imageUrl}
           seatProperties={seatProperties}
-          speakerEntities={selectSpeakerEntities(entities, mySeatId, isGM)}
+          speakerEntities={speakerEntities}
         />
 
         {/* Bottom center: GM Dock (unified toolbar) */}

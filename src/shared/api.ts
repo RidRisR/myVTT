@@ -12,7 +12,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     const err = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(err.error || res.statusText)
   }
-  // Handle empty responses (204, empty body)
+  // Handle empty responses (204, empty body).
+  // Note: callers using GET expect T to be defined; 204 only occurs for DELETE/POST.
   if (res.status === 204 || res.headers.get('content-length') === '0') {
     return undefined as T
   }

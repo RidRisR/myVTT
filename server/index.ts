@@ -8,7 +8,7 @@ import { Server as SocketIOServer } from 'socket.io'
 import { fileURLToPath } from 'url'
 import { setupSocketAuth } from './ws'
 import { setupAwareness } from './awareness'
-import { getGlobalDb } from './db'
+import { getGlobalDb, closeAllDbs } from './db'
 import { roomRoutes } from './routes/rooms'
 import { seatRoutes } from './routes/seats'
 import { sceneRoutes } from './routes/scenes'
@@ -25,7 +25,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const PORT = parseInt(process.env.VITE_SERVER_PORT || process.env.PORT || '4444')
 const HOST = process.env.HOST || '0.0.0.0'
-const DATA_DIR = process.env.DATA_DIR || './data'
+const DATA_DIR = path.resolve(process.env.DATA_DIR || './data')
 
 // ── Express app ──
 const app = express()
@@ -107,5 +107,19 @@ getGlobalDb(DATA_DIR)
 server.listen(PORT, HOST, () => {
   console.log(`myVTT server (Socket.io + SQLite) running on http://${HOST}:${PORT}`)
 })
+
+// Graceful shutdown
+function shutdown() {
+  console.log('Shutting down...')
+  io.close()
+  server.close(() => {
+    closeAllDbs()
+    process.exit(0)
+  })
+  // Force exit after 5s if graceful shutdown stalls
+  setTimeout(() => process.exit(1), 5000)
+}
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
 
 export { app, io, DATA_DIR }

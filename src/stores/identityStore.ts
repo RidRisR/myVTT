@@ -151,7 +151,10 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
       role,
       color: seatColor,
     })
-    // Store update will come via WS event, but claim immediately
+    // Optimistically add seat to avoid race between claim and WS event
+    set((s) => ({
+      seats: s.seats.some((x) => x.id === seat.id) ? s.seats : [...s.seats, seat],
+    }))
     claimSeat(seat.id)
     return seat.id
   },

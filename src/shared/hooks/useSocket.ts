@@ -15,13 +15,9 @@ export function useSocket(roomId: string) {
       query: { roomId },
     })
 
+    // 'connect' fires on initial connection AND every reconnect
     s.on('connect', () => setConnectionStatus('connected'))
     s.on('disconnect', () => setConnectionStatus('disconnected'))
-
-    s.io.on('reconnect', () => {
-      setConnectionStatus('connected')
-      // reinit triggered by connectionStatus change in App.tsx
-    })
 
     socketRef.current = s
     setSocket(s)

@@ -86,11 +86,19 @@ export function assetRoutes(dataDir: string, io: Server): Router {
       const name = req.body.name || req.file.originalname
       const extra = req.body.extra ? JSON.parse(req.body.extra) : {}
 
-      req.roomDb!
-        .prepare(
-          'INSERT INTO assets (id, url, name, type, created_at, extra) VALUES (?, ?, ?, ?, ?, ?)',
-        )
-        .run(id, url, name, assetType, Date.now(), JSON.stringify(extra))
+      try {
+        req.roomDb!
+          .prepare(
+            'INSERT INTO assets (id, url, name, type, created_at, extra) VALUES (?, ?, ?, ?, ?, ?)',
+          )
+          .run(id, url, name, assetType, Date.now(), JSON.stringify(extra))
+      } catch {
+        // Atomic cleanup: DB insert failed → remove orphaned file
+        const filePath = path.join(dir, req.file.filename)
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+        res.status(500).json({ error: 'Failed to save asset metadata' })
+        return
+      }
 
       const asset = toAsset(
         req.roomDb!.prepare('SELECT * FROM assets WHERE id = ?').get(id) as Record<

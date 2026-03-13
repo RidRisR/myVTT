@@ -13,8 +13,9 @@ export const selectRoom = (s: { room: RoomState }) => s.room
 export const selectActiveSceneId = (s: { room: RoomState }) => s.room.activeSceneId
 export const selectScenes = (s: { scenes: Scene[] }) => s.scenes
 export const selectEntities = (s: { entities: Record<string, Entity> }) => s.entities
+const EMPTY_TOKENS: Record<string, MapToken> = {}
 export const selectTokens = (s: { combatInfo: CombatInfo | null }): Record<string, MapToken> =>
-  s.combatInfo?.tokens ?? {}
+  s.combatInfo?.tokens ?? EMPTY_TOKENS
 export const selectCombatInfo = (s: { combatInfo: CombatInfo | null }) => s.combatInfo
 
 export const selectActiveScene = (s: { room: RoomState; scenes: Scene[] }): Scene | null => {

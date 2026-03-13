@@ -52,7 +52,7 @@ export function initRoomSchema(db: Database.Database): void {
       size REAL DEFAULT 1,
       notes TEXT DEFAULT '',
       rule_data TEXT DEFAULT '{}',
-      permissions TEXT DEFAULT '{"default":"observer","seats":{}}',
+      permissions TEXT DEFAULT '{"default":"none","seats":{}}',
       persistent INTEGER DEFAULT 0,
       blueprint_id TEXT
     );
@@ -109,6 +109,7 @@ export function initRoomSchema(db: Database.Database): void {
       url TEXT NOT NULL,
       name TEXT DEFAULT '',
       type TEXT NOT NULL DEFAULT 'image',
+      tags TEXT DEFAULT '[]',
       created_at INTEGER NOT NULL,
       extra TEXT DEFAULT '{}'
     );
@@ -117,8 +118,8 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS team_trackers (
       id TEXT PRIMARY KEY,
       label TEXT NOT NULL DEFAULT '',
-      current REAL DEFAULT 0,
-      max REAL DEFAULT 0,
+      current INTEGER DEFAULT 0,
+      max INTEGER DEFAULT 0,
       color TEXT DEFAULT '#3b82f6',
       sort_order INTEGER DEFAULT 0
     );
@@ -126,8 +127,8 @@ export function initRoomSchema(db: Database.Database): void {
     -- Showcase items
     CREATE TABLE IF NOT EXISTS showcase_items (
       id TEXT PRIMARY KEY,
-      image_url TEXT NOT NULL,
-      title TEXT DEFAULT '',
+      type TEXT NOT NULL DEFAULT 'image',
+      data TEXT DEFAULT '{}',
       pinned INTEGER DEFAULT 0,
       sort_order INTEGER DEFAULT 0,
       created_at INTEGER NOT NULL

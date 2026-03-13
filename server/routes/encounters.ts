@@ -2,7 +2,7 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import type { Server } from 'socket.io'
-import { withRoom } from '../middleware'
+import { withRoom, withRole } from '../middleware'
 import { toCamel, toCamelAll, parseJsonFields, toBoolFields } from '../db'
 
 export function encounterRoutes(dataDir: string, io: Server): Router {
@@ -14,9 +14,12 @@ export function encounterRoutes(dataDir: string, io: Server): Router {
     return toBoolFields(r, 'gmOnly')
   }
 
-  router.get('/api/rooms/:roomId/scenes/:sceneId/encounters', room, (req, res) => {
+  router.get('/api/rooms/:roomId/scenes/:sceneId/encounters', room, withRole, (req, res) => {
+    const where = req.role === 'GM'
+      ? 'WHERE scene_id = ?'
+      : 'WHERE scene_id = ? AND gm_only = 0'
     const rows = req.roomDb!
-      .prepare('SELECT * FROM encounters WHERE scene_id = ?')
+      .prepare(`SELECT * FROM encounters ${where}`)
       .all(req.params.sceneId) as Record<string, unknown>[]
     res.json(rows.map(toEncounter))
   })

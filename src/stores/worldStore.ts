@@ -182,6 +182,10 @@ interface WorldState {
   sendRoll: (data: { formula: string; resolvedExpression?: string; senderId: string; senderName: string; senderColor: string; portraitUrl?: string }) => Promise<void>
 }
 
+// ── Constants (stable references to avoid infinite re-renders in selectors) ──
+
+const EMPTY_IDS: string[] = []
+
 // ── Helpers ──
 
 async function loadAll(roomId: string) {
@@ -210,7 +214,16 @@ async function loadAll(roomId: string) {
         }
       : null
 
-  return { scenes, entities, chatMessages: chat, combatInfo, teamTrackers: trackers, room: state, assets, showcaseItems: showcase }
+  // Build sceneEntityMap: for each scene, fetch its entity IDs
+  const sceneEntityMap: Record<string, string[]> = {}
+  await Promise.all(
+    scenes.map(async (scene) => {
+      const ids = await api.get<string[]>(`/api/rooms/${roomId}/scenes/${scene.id}/entities`)
+      sceneEntityMap[scene.id] = ids
+    }),
+  )
+
+  return { scenes, entities, chatMessages: chat, combatInfo, teamTrackers: trackers, room: state, assets, showcaseItems: showcase, sceneEntityMap }
 }
 
 function registerSocketEvents(socket: Socket, set: (fn: (s: WorldState) => Partial<WorldState>) => void) {
@@ -345,6 +358,11 @@ function registerSocketEvents(socket: Socket, set: (fn: (s: WorldState) => Parti
   socket.on('asset:created', (asset: AssetRecord) => {
     set((s) => ({ assets: [asset, ...s.assets] }))
   })
+  socket.on('asset:updated', (asset: AssetRecord) => {
+    set((s) => ({
+      assets: s.assets.map((a) => (a.id === asset.id ? asset : a)),
+    }))
+  })
   socket.on('asset:deleted', ({ id }: { id: string }) => {
     set((s) => ({ assets: s.assets.filter((a) => a.id !== id) }))
   })
@@ -367,7 +385,7 @@ const WS_EVENTS = [
   'room:state:updated',
   'tracker:created', 'tracker:updated', 'tracker:deleted',
   'showcase:created', 'showcase:updated', 'showcase:deleted', 'showcase:cleared',
-  'asset:created', 'asset:deleted',
+  'asset:created', 'asset:updated', 'asset:deleted',
   'encounter:created', 'encounter:updated', 'encounter:deleted',
 ]
 
@@ -399,10 +417,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
     // Parallel load all initial data
     const data = await loadAll(roomId)
-    set({
-      ...data,
-      sceneEntityMap: {},
-    })
+    set(data)
 
     // Register WS event listeners
     registerSocketEvents(socket, set as (fn: (s: WorldState) => Partial<WorldState>) => void)
@@ -417,7 +432,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const { _roomId: roomId } = get()
     if (!roomId) return
     const data = await loadAll(roomId)
-    set({ ...data, sceneEntityMap: {} })
+    set(data)
   },
 
   // ── Room actions ──
@@ -466,7 +481,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   getSceneEntityIds: (sceneId) => {
-    return get().sceneEntityMap[sceneId] ?? []
+    return get().sceneEntityMap[sceneId] ?? EMPTY_IDS
   },
 
   duplicateScene: async (sourceId, _newId) => {

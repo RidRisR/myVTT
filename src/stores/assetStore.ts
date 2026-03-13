@@ -1,12 +1,6 @@
 import { create } from 'zustand'
 import type { AssetMeta } from '../shared/assetTypes'
-import {
-  fetchAssets,
-  createAssetMeta,
-  updateAsset,
-  deleteAsset,
-  getCurrentRoomId,
-} from '../shared/assetApi'
+import { fetchAssets, updateAsset, deleteAsset } from '../shared/assetApi'
 import { uploadAsset } from '../shared/assetUpload'
 
 interface AssetStore {
@@ -51,17 +45,20 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   },
 
   upload: async (file, meta) => {
-    const roomId = get().roomId || getCurrentRoomId()
-    // Upload the file first
-    const url = await uploadAsset(file)
-    // Then create the metadata entry
-    const assetMeta: Omit<AssetMeta, 'id' | 'createdAt'> = {
-      url,
+    // Single request: file + metadata sent together via FormData
+    const result = await uploadAsset(file, {
       name: meta.name || file.name,
       type: meta.type || 'image',
-      tags: meta.tags || [],
+      extra: { tags: meta.tags || [] },
+    })
+    const asset: AssetMeta = {
+      id: result.id,
+      url: result.url,
+      name: result.name,
+      type: (result.type as AssetMeta['type']) || 'image',
+      tags: (result.extra?.tags as string[]) || [],
+      createdAt: result.createdAt,
     }
-    const asset = await createAssetMeta(roomId, assetMeta)
     set((s) => ({ assets: [...s.assets, asset] }))
     return asset
   },

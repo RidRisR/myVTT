@@ -83,6 +83,30 @@ export function seatRoutes(dataDir: string, io: Server): Router {
     res.json(updated)
   })
 
+  // Claim a seat (bind current user to seat)
+  router.post('/api/rooms/:roomId/seats/:id/claim', room, (req, res) => {
+    const existing = req.roomDb!
+      .prepare('SELECT id FROM seats WHERE id = ?')
+      .get(req.params.id)
+    if (!existing) {
+      res.status(404).json({ error: 'Seat not found' })
+      return
+    }
+    // TODO: use JWT userId after identity system (doc 53)
+    const userId = req.body.userId || 'anonymous'
+    req.roomDb!
+      .prepare('UPDATE seats SET user_id = ? WHERE id = ?')
+      .run(userId, req.params.id)
+    const updated = toCamel(
+      req.roomDb!.prepare('SELECT * FROM seats WHERE id = ?').get(req.params.id) as Record<
+        string,
+        unknown
+      >,
+    )
+    io.to(req.roomId!).emit('seat:updated', updated)
+    res.json(updated)
+  })
+
   router.delete('/api/rooms/:roomId/seats/:id', room, (req, res) => {
     req.roomDb!.prepare('DELETE FROM seats WHERE id = ?').run(req.params.id)
     io.to(req.roomId!).emit('seat:deleted', { id: req.params.id })

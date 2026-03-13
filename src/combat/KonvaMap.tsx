@@ -91,7 +91,8 @@ export function KonvaMap({
   const isSelectMode = activeTool === 'select'
 
   // Awareness for real-time token drag broadcasting
-  const awareness = useIdentityStore((s) => s.getAwareness())
+  // TODO: migrate to Socket.io awareness (getAwareness was Yjs-only)
+  const awareness = null as null
   const mySeat = useIdentityStore((s) => s.getMySeat())
   const [remoteTokenDrags, setRemoteTokenDrags] = useState<
     Map<number, { tokenId: string; x: number; y: number; color: string }>

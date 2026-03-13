@@ -31,3 +31,4 @@ server/uploads/
 .claude
 coverage/
 .superpowers/
+data/

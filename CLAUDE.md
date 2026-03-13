@@ -126,6 +126,9 @@ Data flow: **Yjs → zustand store → React components** (via fine-grained sele
 - Yjs observers write into zustand stores; components subscribe via selectors — never read Y.Map directly in render
 - Do NOT use SyncedStore (abandoned, incompatible with React 19)
 - Do NOT add derived-data methods (`.filter()`, `.sort()`) to zustand stores — they return new references on every call and cause infinite re-renders when used as selectors. Use `useMemo` in components instead
+- **Selector fallback values MUST be module-level constants** — `?? {}` or `?? []` inside a selector creates a new reference every call, breaking zustand's `Object.is()` equality check and causing infinite re-renders. Use `const EMPTY: X[] = []` at module scope instead.
+- **All hooks MUST be placed before any early return** — React requires the same number of hooks in the same order on every render. `useMemo`/`useEffect`/`useWorldStore()` after `if (loading) return ...` will crash when the condition flips.
+- **Avoid inline derived computations in render** — `Object.values(record)`, `arr.filter(...)`, or function calls that return new arrays/objects MUST be wrapped in `useMemo` with proper deps, not called directly in the render body or JSX props.
 
 **Store files in `src/stores/`:**
 

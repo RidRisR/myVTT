@@ -3,6 +3,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import http from 'http'
 import express from 'express'
 import { Server as SocketIOServer } from 'socket.io'
+import request from 'supertest'
 import { getGlobalDb, getRoomDb, closeAllDbs } from '../db'
 import { roomRoutes } from '../routes/rooms'
 import { seatRoutes } from '../routes/seats'
@@ -14,6 +15,7 @@ import { chatRoutes } from '../routes/chat'
 import { trackerRoutes } from '../routes/trackers'
 import { showcaseRoutes } from '../routes/showcase'
 import { stateRoutes } from '../routes/state'
+import { assetRoutes } from '../routes/assets'
 import { setupSocketAuth } from '../ws'
 import { setupAwareness } from '../awareness'
 import path from 'path'
@@ -24,12 +26,14 @@ let server: http.Server
 let io: SocketIOServer
 let baseUrl: string
 let dataDir: string
+let testApp: express.Express
 
 beforeAll(async () => {
   // Use temp directory for test data
   dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'myvtt-test-'))
 
-  const app = express()
+  testApp = express()
+  const app = testApp
   app.use(express.json())
 
   // Room ID validation
@@ -57,6 +61,7 @@ beforeAll(async () => {
   app.use(trackerRoutes(dataDir, io))
   app.use(showcaseRoutes(dataDir, io))
   app.use(stateRoutes(dataDir, io))
+  app.use(assetRoutes(dataDir, io))
 
   // Initialize global DB
   getGlobalDb(dataDir)
@@ -304,11 +309,12 @@ describe('Full room lifecycle', () => {
   let showcaseId: string
   it('creates a showcase item', async () => {
     const { status, data } = await api('POST', `/api/rooms/${roomId}/showcase`, {
-      imageUrl: 'treasure.jpg',
-      title: 'Ancient Map',
+      type: 'image',
+      data: { imageUrl: 'treasure.jpg', title: 'Ancient Map' },
     })
     expect(status).toBe(201)
-    expect(data.title).toBe('Ancient Map')
+    expect(data.type).toBe('image')
+    expect(data.data.title).toBe('Ancient Map')
     expect(data.pinned).toBe(false)
     showcaseId = data.id
   })
@@ -332,6 +338,44 @@ describe('Full room lifecycle', () => {
       activeSceneId: sceneId,
     })
     expect(data.activeSceneId).toBe(sceneId)
+  })
+
+  // ── Assets: upload → serve → delete round-trip ──
+  // Regression test for Bug #4 (two-step upload) and Bug #5 (sendFile relative path)
+  it('uploads a file via FormData and serves it back', async () => {
+    const fileContent = Buffer.from('test-image-binary-data-12345')
+
+    // Upload via supertest (proper multipart handling)
+    const uploadRes = await request(testApp)
+      .post(`/api/rooms/${roomId}/assets`)
+      .attach('file', fileContent, { filename: 'test.png', contentType: 'image/png' })
+      .field('name', 'Test Image')
+      .field('type', 'image')
+    expect(uploadRes.status).toBe(201)
+    expect(uploadRes.body.id).toBeTruthy()
+    expect(uploadRes.body.url).toContain('/uploads/')
+    expect(uploadRes.body.name).toBe('Test Image')
+    expect(uploadRes.body.type).toBe('image')
+
+    const assetUrl = uploadRes.body.url
+    const assetId = uploadRes.body.id
+
+    // Serve the uploaded file — verifies sendFile works with absolute path (Bug #5)
+    const serveRes = await request(testApp).get(assetUrl)
+    expect(serveRes.status).toBe(200)
+    expect(Buffer.from(serveRes.body).equals(fileContent)).toBe(true)
+
+    // List assets — should include the uploaded asset
+    const listRes = await api('GET', `/api/rooms/${roomId}/assets`)
+    expect(listRes.data.some((a: { id: string }) => a.id === assetId)).toBe(true)
+
+    // Delete the asset — should clean up disk file
+    const delRes = await api('DELETE', `/api/rooms/${roomId}/assets/${assetId}`)
+    expect(delRes.status).toBe(200)
+
+    // File should no longer be served
+    const goneRes = await request(testApp).get(assetUrl)
+    expect(goneRes.status).toBe(404)
   })
 
   // ── Cleanup ──
