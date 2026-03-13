@@ -32,7 +32,7 @@ interface GmDockProps {
   scenes: Scene[]
   activeSceneId: string | null
   isCombat: boolean
-  onAddScene: (scene: Scene) => void
+  onAddScene: (id: string, name: string, atmosphere: Atmosphere) => void
   onDeleteScene: (id: string) => void
   onUpdateScene: (
     id: string,

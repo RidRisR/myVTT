@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Plus, FolderOpen } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
+import type { Atmosphere } from '../shared/entityTypes'
 import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
 import { generateTokenId } from '../shared/idUtils'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
@@ -9,7 +10,7 @@ interface MapDockTabProps {
   scenes: Scene[]
   activeSceneId: string | null
   isCombat: boolean
-  onAddScene: (scene: Scene) => void
+  onAddScene: (id: string, name: string, atmosphere: Atmosphere) => void
   onDeleteScene: (id: string) => void
   onSetAsBackground?: (sceneId: string, imageUrl: string) => void
   onSetAsTacticalMap?: (imageUrl: string) => void
@@ -46,23 +47,15 @@ export function MapDockTab({
       const imageUrl = await uploadAsset(file)
       const name = file.name.replace(/\.[^.]+$/, '')
       const dims = await getMediaDimensions(imageUrl)
-      const scene: Scene = {
-        id: generateTokenId(),
-        name,
-        sortOrder: scenes.length,
-        atmosphere: {
-          imageUrl: imageUrl,
-          width: dims.w,
-          height: dims.h,
-          particlePreset: 'none',
-          ambientPreset: '',
-          ambientAudioUrl: '',
-          ambientAudioVolume: 0.5,
-        },
-        entityIds: [],
-        encounters: {},
-      }
-      onAddScene(scene)
+      onAddScene(generateTokenId(), name, {
+        imageUrl,
+        width: dims.w,
+        height: dims.h,
+        particlePreset: 'none',
+        ambientPreset: '',
+        ambientAudioUrl: '',
+        ambientAudioVolume: 0.5,
+      })
     } finally {
       setUploading(false)
     }
