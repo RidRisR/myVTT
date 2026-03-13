@@ -149,6 +149,25 @@ function RoomSession({ roomId }: { roomId: string }) {
 
   const sceneEntityIds = room.activeSceneId ? getSceneEntityIds(room.activeSceneId) : []
 
+  // Auto-create a default scene when GM enters a room with no scenes (after sync)
+  const isGMRole = mySeat?.role === 'GM'
+  useEffect(() => {
+    if (isLoading || !isGMRole) return
+    if (scenes.length > 0) return
+    if (room.activeSceneId) return
+    const id = crypto.randomUUID()
+    addScene(id, 'Scene 1', {
+      imageUrl: '',
+      width: 1920,
+      height: 1080,
+      particlePreset: 'none',
+      ambientPreset: '',
+      ambientAudioUrl: '',
+      ambientAudioVolume: 0.5,
+    })
+    setActiveScene(id)
+  }, [isLoading, isGMRole, scenes.length, room.activeSceneId, addScene, setActiveScene])
+
   if (isLoading) {
     return (
       <div
