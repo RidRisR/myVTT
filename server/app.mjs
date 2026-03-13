@@ -185,7 +185,7 @@ app.get('/api/rooms/:roomId/uploads/:filename', (req, res) => {
   const filename = path.basename(req.params.filename)
   const filePath = path.resolve(DATA_DIR, 'rooms', req.params.roomId, 'uploads', filename)
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' })
-  res.sendFile(filePath, { maxAge: '1y', immutable: true })
+  res.sendFile(filePath, { maxAge: '1y', immutable: true, dotfiles: 'allow' })
 })
 
 // Delete uploaded file per room

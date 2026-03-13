@@ -180,6 +180,7 @@ All styling uses **Tailwind CSS v4**. Do NOT write inline styles.
 - All route parameters used in filesystem paths MUST be validated against `/^[a-zA-Z0-9_-]+$/` — enforced by `app.param('roomId', ...)` middleware
 - multer uploads MUST have `fileFilter` restricting to allowed MIME types (image/video/audio)
 - Asset deletion MUST clean up both metadata (LevelDB) and the associated file on disk
+- `res.sendFile()` MUST include `dotfiles: 'allow'` when serving user-uploaded files — Express's `send` module silently returns 404 for paths containing dot-prefixed directories (e.g., `.worktrees/`)
 
 ## Development Workflow
 
@@ -254,6 +255,21 @@ All styling uses **Tailwind CSS v4**. Do NOT write inline styles.
 - **Test files**: `src/**/__tests__/` directories
 - **Test utilities**: `src/__test-utils__/` (fixtures, yjs-helpers, setup)
 - Commands: `npm test` (single run) · `npm run test:watch` · `npm run test:coverage`
+
+### Bug Fix Workflow (IMPORTANT)
+
+Every bug fix MUST follow this process — fixing the symptom alone is not enough:
+
+1. **Fix the bug** — apply the minimal correct fix
+2. **Add a regression test** — write a test that would have caught this bug. The test must fail without the fix and pass with it
+3. **Think about systemic prevention** — ask: "What category of bug is this? Can a rule, convention, or structural guard prevent the entire category?" If yes, add it to CLAUDE.md or as a lint rule/middleware/type constraint
+4. **Update CLAUDE.md if needed** — if the bug revealed a non-obvious framework behavior or environment quirk, document it so the same mistake isn't repeated
+
+Examples of systemic prevention:
+
+- Express `send` module rejects dotfile paths → documented + test added for file serving round-trip
+- `app.param()` middleware → structural guard that auto-validates all routes, not just the ones we remember to check
+- classic-level v3 returns `undefined` instead of throwing → documented API difference
 
 ## Product Design Principles
 

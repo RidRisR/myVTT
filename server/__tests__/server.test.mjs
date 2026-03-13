@@ -86,6 +86,22 @@ describe('file upload MIME type filtering', () => {
     expect(res.status).toBe(200)
   })
 
+  it('uploaded file can be served back via GET', async () => {
+    const content = Buffer.from('serve-test-image-data')
+    const uploadRes = await request(app)
+      .post(`/api/rooms/${testRoomId}/upload`)
+      .attach('file', content, {
+        filename: 'serve-test.png',
+        contentType: 'image/png',
+      })
+    expect(uploadRes.status).toBe(200)
+
+    // GET the uploaded file — must return 200 with matching content
+    const serveRes = await request(app).get(uploadRes.body.url)
+    expect(serveRes.status).toBe(200)
+    expect(Buffer.from(serveRes.body).equals(content)).toBe(true)
+  })
+
   it('rejects non-media file uploads', async () => {
     const res = await request(app)
       .post(`/api/rooms/${testRoomId}/upload`)
