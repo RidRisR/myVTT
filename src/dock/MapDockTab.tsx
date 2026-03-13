@@ -1,17 +1,13 @@
 import { useRef, useState } from 'react'
 import { Plus, FolderOpen } from 'lucide-react'
-import type { Scene } from '../stores/worldStore'
-import type { Atmosphere } from '../shared/entityTypes'
-import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
-import { generateTokenId } from '../shared/idUtils'
+import { useAssetStore } from '../stores/assetStore'
+import type { AssetMeta } from '../shared/assetTypes'
+import { isVideoUrl } from '../shared/assetUpload'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 
 interface MapDockTabProps {
-  scenes: Scene[]
   activeSceneId: string | null
   isCombat: boolean
-  onAddScene: (id: string, name: string, atmosphere: Atmosphere) => void
-  onDeleteScene: (id: string) => void
   onSetAsBackground?: (sceneId: string, imageUrl: string) => void
   onSetAsTacticalMap?: (imageUrl: string) => void
   onShowcaseImage?: (imageUrl: string) => void
@@ -20,15 +16,12 @@ interface MapDockTabProps {
 interface ContextState {
   x: number
   y: number
-  scene: Scene
+  asset: AssetMeta
 }
 
 export function MapDockTab({
-  scenes,
   activeSceneId,
   isCombat,
-  onAddScene,
-  onDeleteScene,
   onSetAsBackground,
   onSetAsTacticalMap,
   onShowcaseImage,
@@ -38,60 +31,52 @@ export function MapDockTab({
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextState | null>(null)
 
+  const assets = useAssetStore((s) => s.imageAssets())
+  const upload = useAssetStore((s) => s.upload)
+  const remove = useAssetStore((s) => s.remove)
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
     setUploading(true)
     try {
-      const imageUrl = await uploadAsset(file)
-      const name = file.name.replace(/\.[^.]+$/, '')
-      const dims = await getMediaDimensions(imageUrl)
-      onAddScene(generateTokenId(), name, {
-        imageUrl,
-        width: dims.w,
-        height: dims.h,
-        particlePreset: 'none',
-        ambientPreset: '',
-        ambientAudioUrl: '',
-        ambientAudioVolume: 0.5,
-      })
+      await upload(file, { type: 'image' })
     } finally {
       setUploading(false)
     }
   }
 
-  const handleContextMenu = (e: React.MouseEvent, scene: Scene) => {
+  const handleContextMenu = (e: React.MouseEvent, asset: AssetMeta) => {
     e.preventDefault()
     e.stopPropagation()
-    setContextMenu({ x: e.clientX, y: e.clientY, scene })
+    setContextMenu({ x: e.clientX, y: e.clientY, asset })
   }
 
-  const buildContextMenuItems = (scene: Scene): ContextMenuItem[] => {
-    const imageUrl = scene.atmosphere.imageUrl
+  const buildContextMenuItems = (asset: AssetMeta): ContextMenuItem[] => {
     const items: ContextMenuItem[] = []
 
-    if (onSetAsBackground && activeSceneId && imageUrl) {
+    if (onSetAsBackground && activeSceneId && asset.url) {
       items.push({
         label: 'Set as Scene Background',
-        onClick: () => onSetAsBackground(activeSceneId, imageUrl),
+        onClick: () => onSetAsBackground(activeSceneId, asset.url),
       })
     }
-    if (onSetAsTacticalMap && imageUrl) {
+    if (onSetAsTacticalMap && asset.url) {
       items.push({
         label: 'Set as Tactical Map',
-        onClick: () => onSetAsTacticalMap(imageUrl),
+        onClick: () => onSetAsTacticalMap(asset.url),
       })
     }
-    if (onShowcaseImage && imageUrl) {
+    if (onShowcaseImage && asset.url) {
       items.push({
         label: 'Showcase to Players',
-        onClick: () => onShowcaseImage(imageUrl),
+        onClick: () => onShowcaseImage(asset.url),
       })
     }
     items.push({
       label: 'Delete',
-      onClick: () => onDeleteScene(scene.id),
+      onClick: () => remove(asset.id),
       color: 'var(--color-danger)',
     })
 
@@ -108,7 +93,7 @@ export function MapDockTab({
         onChange={handleUpload}
       />
 
-      {scenes.length === 0 && (
+      {assets.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
           <FolderOpen size={32} strokeWidth={1} className="text-text-muted/40" />
           <p className="text-text-muted text-sm">No images yet</p>
@@ -123,46 +108,39 @@ export function MapDockTab({
           contentVisibility: 'auto',
         }}
       >
-        {scenes.map((scene) => {
-          const isActive = scene.id === activeSceneId
-          const isHovered = hoveredId === scene.id
+        {assets.map((asset) => {
+          const isHovered = hoveredId === asset.id
           return (
             <div
-              key={scene.id}
+              key={asset.id}
               role="button"
               tabIndex={0}
-              className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-fast ${
-                isActive
-                  ? 'border-accent shadow-[0_0_12px_rgba(212,160,85,0.3)]'
-                  : 'border-border-glass'
-              }`}
+              className="relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-fast border-border-glass"
               onClick={() => {
-                const imageUrl = scene.atmosphere.imageUrl
-                if (!activeSceneId || !imageUrl) return
+                if (!activeSceneId || !asset.url) return
                 if (isCombat) {
-                  onSetAsTacticalMap?.(imageUrl)
+                  onSetAsTacticalMap?.(asset.url)
                 } else {
-                  onSetAsBackground?.(activeSceneId, imageUrl)
+                  onSetAsBackground?.(activeSceneId, asset.url)
                 }
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
-                  const imageUrl = scene.atmosphere.imageUrl
-                  if (!activeSceneId || !imageUrl) return
+                  if (!activeSceneId || !asset.url) return
                   if (isCombat) {
-                    onSetAsTacticalMap?.(imageUrl)
+                    onSetAsTacticalMap?.(asset.url)
                   } else {
-                    onSetAsBackground?.(activeSceneId, imageUrl)
+                    onSetAsBackground?.(activeSceneId, asset.url)
                   }
                 }
               }}
-              onContextMenu={(e) => handleContextMenu(e, scene)}
-              onMouseEnter={() => setHoveredId(scene.id)}
+              onContextMenu={(e) => handleContextMenu(e, asset)}
+              onMouseEnter={() => setHoveredId(asset.id)}
               onMouseLeave={() => setHoveredId(null)}
             >
-              {isVideoUrl(scene.atmosphere.imageUrl) ? (
+              {isVideoUrl(asset.url) ? (
                 <video
-                  src={scene.atmosphere.imageUrl}
+                  src={asset.url}
                   muted
                   loop
                   autoPlay
@@ -173,19 +151,15 @@ export function MapDockTab({
                 />
               ) : (
                 <img
-                  src={scene.atmosphere.imageUrl}
-                  alt={scene.name}
+                  src={asset.url}
+                  alt={asset.name}
                   className="w-full object-cover block"
                   style={{ height: 70 }}
                   draggable={false}
                 />
               )}
-              <div
-                className={`px-1.5 py-1 text-[10px] overflow-hidden text-ellipsis whitespace-nowrap bg-black/30 ${
-                  isActive ? 'text-text-primary font-semibold' : 'text-text-muted/60'
-                }`}
-              >
-                {scene.name || 'Untitled'}
+              <div className="px-1.5 py-1 text-[10px] overflow-hidden text-ellipsis whitespace-nowrap bg-black/30 text-text-muted/60">
+                {asset.name || 'Untitled'}
               </div>
 
               {/* Hover indicator for right-click */}
@@ -221,7 +195,7 @@ export function MapDockTab({
         <ContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
-          items={buildContextMenuItems(contextMenu.scene)}
+          items={buildContextMenuItems(contextMenu.asset)}
           onClose={() => setContextMenu(null)}
         />
       )}

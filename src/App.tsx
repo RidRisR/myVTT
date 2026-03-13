@@ -5,6 +5,7 @@ import { useWorldStore } from './stores/worldStore'
 import type { HandoutAsset } from './stores/worldStore'
 import { useIdentityStore } from './stores/identityStore'
 import { useUiStore } from './stores/uiStore'
+import { useAssetStore } from './stores/assetStore'
 import {
   selectActiveScene,
   selectIsCombat,
@@ -48,14 +49,17 @@ function RoomSession({ roomId }: { roomId: string }) {
   const initWorld = useWorldStore((s) => s.init)
   const initIdentity = useIdentityStore((s) => s.init)
 
+  const initAssets = useAssetStore((s) => s.init)
+
   useEffect(() => {
     const cleanupWorld = initWorld(yDoc)
     const cleanupIdentity = initIdentity(world.seats, awareness)
+    initAssets(roomId)
     return () => {
       cleanupWorld()
       cleanupIdentity()
     }
-  }, [yDoc, awareness, world.seats, initWorld, initIdentity])
+  }, [yDoc, awareness, world.seats, initWorld, initIdentity, initAssets, roomId])
 
   // World store subscriptions
   const room = useWorldStore((s) => s.room)
@@ -355,11 +359,8 @@ function RoomSession({ roomId }: { roomId: string }) {
         {/* Bottom center: GM Dock (unified toolbar) */}
         {isGM && (
           <GmDock
-            scenes={scenes}
             activeSceneId={room.activeSceneId}
             isCombat={isCombat}
-            onAddScene={handleAddScene}
-            onDeleteScene={handleDeleteScene}
             onUpdateScene={updateScene}
             onToggleCombat={() => {
               if (isCombat) {

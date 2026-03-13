@@ -11,7 +11,6 @@ import {
   EyeOff,
   ChevronDown,
 } from 'lucide-react'
-import type { Scene } from '../stores/worldStore'
 import type { MapToken, Entity, Blueprint, Atmosphere } from '../shared/entityTypes'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { generateTokenId } from '../shared/idUtils'
@@ -29,11 +28,8 @@ const MemoTokenDockTab = memo(TokenDockTab)
 const MemoHandoutDockTab = memo(HandoutDockTab)
 
 interface GmDockProps {
-  scenes: Scene[]
   activeSceneId: string | null
   isCombat: boolean
-  onAddScene: (id: string, name: string, atmosphere: Atmosphere) => void
-  onDeleteScene: (id: string) => void
   onUpdateScene: (
     id: string,
     updates: { name?: string; sortOrder?: number; atmosphere?: Partial<Atmosphere> },
@@ -60,11 +56,8 @@ interface GmDockProps {
 }
 
 export function GmDock({
-  scenes,
   activeSceneId,
   isCombat,
-  onAddScene,
-  onDeleteScene,
   onUpdateScene,
   onToggleCombat,
   onShowcaseImage,
@@ -189,11 +182,8 @@ export function GmDock({
         <div className="mb-1.5 bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.4)] min-w-[400px] max-h-[220px] overflow-y-auto p-3">
           {activeTab === 'gallery' && (
             <MemoMapDockTab
-              scenes={scenes}
               activeSceneId={activeSceneId}
               isCombat={isCombat}
-              onAddScene={onAddScene}
-              onDeleteScene={onDeleteScene}
               onSetAsBackground={(sceneId, imageUrl) =>
                 onUpdateScene(sceneId, { atmosphere: { imageUrl } })
               }
