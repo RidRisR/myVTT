@@ -39,9 +39,7 @@
     "react-dom": "^19.2.0",
     "react-konva": "^19.2.3",
     "socket.io": "^4.8.3",
-    "y-leveldb": "^0.2.0",
-    "y-websocket": "^2.1.0",
-    "yjs": "^13.6.29",
+    "socket.io-client": "^4.8.3",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
