@@ -282,12 +282,98 @@ wss.on('connection', (conn, req) => {
       const conns = roomConnections.get(roomId)
       if (conns) {
         conns.delete(conn)
-        if (conns.size === 0) roomConnections.delete(roomId)
+        if (conns.size === 0) {
+          roomConnections.delete(roomId)
+          // Delayed GC: clean orphaned entities when room empties
+          setTimeout(async () => {
+            if (!roomConnections.has(roomId) || roomConnections.get(roomId).size === 0) {
+              await performGC(roomId)
+            }
+          }, 5000)
+        }
       }
     })
   }
   setupWSConnection(conn, req)
 })
+
+// Delayed GC: remove orphaned non-persistent entities when room empties
+async function performGC(roomId) {
+  try {
+    const db = getRoomYjsDb(roomId)
+    const ydoc = await db.getYDoc(roomId)
+    const entities = ydoc.getMap('entities')
+    const scenes = ydoc.getMap('scenes')
+
+    // Collect all entity IDs referenced by any scene
+    const referencedIds = new Set()
+    scenes.forEach((sceneMap) => {
+      const entityIds = sceneMap.get('entityIds')
+      if (entityIds) entityIds.forEach((_val, id) => referencedIds.add(id))
+    })
+
+    // Find orphaned non-persistent entities
+    const orphans = []
+    entities.forEach((entityMap, id) => {
+      if (!entityMap.get('persistent') && !referencedIds.has(id)) {
+        orphans.push(id)
+      }
+    })
+
+    // Clean broken encounter token references
+    let tokensCleaned = false
+    scenes.forEach((sceneMap) => {
+      const encounters = sceneMap.get('encounters')
+      if (!encounters) return
+      encounters.forEach((enc, encId) => {
+        const tokens = enc.tokens
+        if (!tokens) return
+        let changed = false
+        for (const [tid, t] of Object.entries(tokens)) {
+          if (t.entityId && !entities.has(t.entityId)) {
+            delete tokens[tid].entityId
+            changed = true
+          }
+        }
+        if (changed) {
+          encounters.set(encId, enc)
+          tokensCleaned = true
+        }
+      })
+    })
+
+    if (orphans.length === 0 && !tokensCleaned) {
+      ydoc.destroy()
+      return
+    }
+
+    // Append-only delta persistence strategy (crash-safe)
+    //
+    // Why not clearDocument + storeUpdate (compaction):
+    // - y-leveldb doesn't expose underlying LevelDB batch API
+    // - clearDocument deletes ALL keys by prefix, including just-written updates
+    // - Crash between clear and rewrite = permanent data loss
+    //
+    // Delta approach:
+    // - Register update listener first, then transact mutations
+    // - Delta updates auto-persist via listener
+    // - Worst case on crash: partial writes, next GC retries
+    ydoc.on('update', (update) => {
+      db.storeUpdate(roomId, update)
+    })
+
+    ydoc.transact(() => {
+      orphans.forEach((id) => entities.delete(id))
+    })
+
+    console.log(
+      `[GC] Room ${roomId}: cleaned ${orphans.length} orphaned entities, tokensCleaned=${tokensCleaned}`,
+    )
+    ydoc.destroy()
+  } catch (e) {
+    console.warn(`[GC] Room ${roomId} failed:`, e.message)
+  }
+}
 
 // Allow slow uploads (10 min timeout for large video files)
 server.requestTimeout = 10 * 60 * 1000
