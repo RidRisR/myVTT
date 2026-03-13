@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Plus, FolderOpen } from 'lucide-react'
 import { useAssetStore } from '../stores/assetStore'
 import type { AssetMeta } from '../shared/assetTypes'
@@ -31,9 +31,10 @@ export function MapDockTab({
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextState | null>(null)
 
-  const assets = useAssetStore((s) => s.imageAssets())
+  const allAssets = useAssetStore((s) => s.assets)
   const upload = useAssetStore((s) => s.upload)
   const remove = useAssetStore((s) => s.remove)
+  const assets = useMemo(() => allAssets.filter((a) => a.type === 'image'), [allAssets])
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
