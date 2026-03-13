@@ -9,6 +9,7 @@ import type {
   Entity,
   EntityPermissions,
   MapToken,
+  Blueprint,
   Atmosphere,
   EncounterData,
 } from '../shared/entityTypes'
@@ -182,6 +183,15 @@ function readEntities(yEntities: Y.Map<Y.Map<unknown>>): Entity[] {
   return result
 }
 
+function readBlueprints(yBlueprints: Y.Map<unknown>): Blueprint[] {
+  const result: Blueprint[] = []
+  yBlueprints.forEach((val, key) => {
+    const bp = val as Blueprint
+    result.push({ ...bp, id: key })
+  })
+  return result
+}
+
 function readTokens(tokensMap: Y.Map<MapToken> | null): MapToken[] {
   if (!tokensMap) return []
   const result: MapToken[] = []
@@ -318,6 +328,7 @@ interface WorldState {
   room: RoomState
   scenes: Scene[]
   entities: Entity[]
+  blueprints: Blueprint[]
   combatInfo: CombatInfo | null
   tokens: MapToken[]
   showcaseItems: ShowcaseItem[]
@@ -329,6 +340,7 @@ interface WorldState {
   _yDoc: Y.Doc | null
   _yScenes: Y.Map<Y.Map<unknown>> | null
   _yEntities: Y.Map<Y.Map<unknown>> | null
+  _yBlueprints: Y.Map<unknown> | null
   _yRoom: Y.Map<unknown> | null
   _yCombat: Y.Map<unknown> | null
   _yShowcase: Y.Map<ShowcaseItem> | null
@@ -365,6 +377,11 @@ interface WorldState {
   saveEncounter: (sceneId: string, encounterId: string, name: string) => void
   updateCombatGrid: (updates: Partial<CombatInfo['grid']>) => void
   setCombatMapUrl: (mapUrl: string, width: number, height: number) => void
+
+  // Blueprint actions
+  addBlueprint: (bp: Blueprint) => void
+  updateBlueprint: (id: string, updates: Partial<Blueprint>) => void
+  deleteBlueprint: (id: string) => void
 
   // Entity actions
   addEntity: (entity: Entity) => void
@@ -406,6 +423,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   room: { activeSceneId: null, activeEncounterId: null },
   scenes: [],
   entities: [],
+  blueprints: [],
   combatInfo: null,
   tokens: [],
   showcaseItems: [],
@@ -417,6 +435,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   _yDoc: null,
   _yScenes: null,
   _yEntities: null,
+  _yBlueprints: null,
   _yRoom: null,
   _yCombat: null,
   _yShowcase: null,
@@ -427,6 +446,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   init: (yDoc: Y.Doc) => {
     const yScenes = yDoc.getMap('scenes') as Y.Map<Y.Map<unknown>>
     const yEntities = yDoc.getMap('entities') as Y.Map<Y.Map<unknown>>
+    const yBlueprints = yDoc.getMap('blueprints')
     const yRoom = yDoc.getMap('room')
     const yCombat = yDoc.getMap('combat')
     const yShowcase = yDoc.getMap<ShowcaseItem>('showcase_items')
@@ -438,6 +458,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       _yDoc: yDoc,
       _yScenes: yScenes,
       _yEntities: yEntities,
+      _yBlueprints: yBlueprints,
       _yRoom: yRoom,
       _yCombat: yCombat,
       _yShowcase: yShowcase,
@@ -450,6 +471,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       room: readRoom(yRoom),
       scenes: readScenes(yScenes),
       entities: readEntities(yEntities),
+      blueprints: readBlueprints(yBlueprints),
       combatInfo: readCombatInfo(yCombat),
       showcaseItems: readShowcaseItems(yShowcase),
       showcasePinnedItemId: (yRoom.get('pinnedShowcaseId') as string) ?? null,
@@ -466,6 +488,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     }
     const scenesObserver = () => set({ scenes: readScenes(yScenes) })
     const entitiesObserver = () => set({ entities: readEntities(yEntities) })
+    const blueprintsObserver = () => set({ blueprints: readBlueprints(yBlueprints) })
     const showcaseObserver = () => set({ showcaseItems: readShowcaseItems(yShowcase) })
     const handoutsObserver = () => set({ handoutAssets: readHandoutAssets(yHandouts) })
     const metricsObserver = () => set({ teamTrackers: readTeamTrackers(yMetrics) })
@@ -494,6 +517,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     yRoom.observe(roomObserver)
     yScenes.observeDeep(scenesObserver)
     yEntities.observeDeep(entitiesObserver)
+    yBlueprints.observe(blueprintsObserver)
     yShowcase.observe(showcaseObserver)
     yHandouts.observe(handoutsObserver)
     yMetrics.observe(metricsObserver)
@@ -507,6 +531,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       yRoom.unobserve(roomObserver)
       yScenes.unobserveDeep(scenesObserver)
       yEntities.unobserveDeep(entitiesObserver)
+      yBlueprints.unobserve(blueprintsObserver)
       yShowcase.unobserve(showcaseObserver)
       yHandouts.unobserve(handoutsObserver)
       yMetrics.unobserve(metricsObserver)
@@ -755,6 +780,26 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       yCombat.set('mapWidth', width)
       yCombat.set('mapHeight', height)
     })
+  },
+
+  // ── Blueprint actions ──
+  addBlueprint: (bp: Blueprint) => {
+    const yBlueprints = get()._yBlueprints
+    if (!yBlueprints) return
+    const { id, ...data } = bp
+    yBlueprints.set(id, data)
+  },
+
+  updateBlueprint: (id: string, updates: Partial<Blueprint>) => {
+    const yBlueprints = get()._yBlueprints
+    if (!yBlueprints) return
+    const existing = yBlueprints.get(id) as Blueprint | undefined
+    if (!existing) return
+    yBlueprints.set(id, { ...existing, ...updates })
+  },
+
+  deleteBlueprint: (id: string) => {
+    get()._yBlueprints?.delete(id)
   },
 
   // ── Entity actions ──
