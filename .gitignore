@@ -30,3 +30,4 @@ server/uploads/
 .worktrees/
 .claude
 coverage/
+.superpowers/

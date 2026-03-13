@@ -3,7 +3,7 @@
 // Components use these with useWorldStore(selector) for fine-grained subscriptions.
 
 import type { Entity, MapToken } from '../shared/entityTypes'
-import type { Scene, RoomState } from './worldStore'
+import type { Scene, RoomState, CombatInfo } from './worldStore'
 import type { Seat } from './identityStore'
 import { getEntityResources, getEntityAttributes } from '../shared/entityAdapters'
 
@@ -14,7 +14,7 @@ export const selectActiveSceneId = (s: { room: RoomState }) => s.room.activeScen
 export const selectScenes = (s: { scenes: Scene[] }) => s.scenes
 export const selectEntities = (s: { entities: Entity[] }) => s.entities
 export const selectTokens = (s: { tokens: MapToken[] }) => s.tokens
-export const selectBlueprints = (s: { blueprints: unknown[] }) => s.blueprints
+export const selectCombatInfo = (s: { combatInfo: CombatInfo | null }) => s.combatInfo
 
 export const selectActiveScene = (s: { room: RoomState; scenes: Scene[] }): Scene | null => {
   const id = s.room.activeSceneId
@@ -22,9 +22,8 @@ export const selectActiveScene = (s: { room: RoomState; scenes: Scene[] }): Scen
   return s.scenes.find((sc) => sc.id === id) ?? null
 }
 
-export const selectIsCombat = (s: { room: RoomState; scenes: Scene[] }): boolean => {
-  const scene = selectActiveScene(s)
-  return scene?.combatActive ?? false
+export const selectIsCombat = (s: { room: RoomState }): boolean => {
+  return s.room.activeEncounterId != null
 }
 
 // ── Entity lookups ──

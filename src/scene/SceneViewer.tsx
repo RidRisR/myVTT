@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Image } from 'lucide-react'
-import type { Scene } from '../yjs/useScenes'
+import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
 import { ParticleLayer } from './ParticleLayer'
 
@@ -18,7 +18,7 @@ export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneView
   const currentUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
-    const newUrl = scene?.atmosphereImageUrl ?? null
+    const newUrl = scene?.atmosphere.imageUrl ?? null
     if (newUrl === currentUrlRef.current) return
 
     if (currentUrlRef.current && newUrl) {
@@ -35,7 +35,7 @@ export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneView
       setPrevUrl(null)
     }
     currentUrlRef.current = newUrl
-  }, [scene?.atmosphereImageUrl])
+  }, [scene?.atmosphere.imageUrl])
 
   const blurOverlay = (
     <div
@@ -153,8 +153,8 @@ export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneView
           }}
         />
       )}
-      {scene?.particlePreset && scene.particlePreset !== 'none' && (
-        <ParticleLayer preset={scene.particlePreset} />
+      {scene?.atmosphere.particlePreset && scene.atmosphere.particlePreset !== 'none' && (
+        <ParticleLayer preset={scene.atmosphere.particlePreset} />
       )}
     </div>
   )

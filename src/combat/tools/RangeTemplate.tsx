@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Layer, Circle, Wedge, Rect, Line, Text, Group, Rect as BgRect } from 'react-konva'
 import type Konva from 'konva'
-import type { Scene } from '../../stores/worldStore'
+import type { CombatInfo } from '../../stores/worldStore'
 import type { ActiveTool } from '../../stores/uiStore'
 
 interface Point {
@@ -18,7 +18,7 @@ interface RangeShape {
 
 interface RangeTemplateProps {
   activeTool: ActiveTool
-  scene: Scene
+  combatInfo: CombatInfo
   stageRef: React.RefObject<Konva.Stage | null>
 }
 
@@ -37,20 +37,20 @@ function getRangeMode(tool: ActiveTool): 'circle' | 'cone' | 'rect' | null {
   return null
 }
 
-function calcLabel(mode: string, origin: Point, end: Point, scene: Scene): string {
+function calcLabel(mode: string, origin: Point, end: Point, combatInfo: CombatInfo): string {
   const dx = end.x - origin.x
   const dy = end.y - origin.y
   const pixelDist = Math.sqrt(dx * dx + dy * dy)
 
-  const inCells = scene.gridSnap && scene.gridSize > 0
+  const inCells = combatInfo.grid.snap && combatInfo.grid.size > 0
 
   if (mode === 'circle') {
-    const radius = inCells ? Math.round(pixelDist / scene.gridSize) : Math.round(pixelDist)
+    const radius = inCells ? Math.round(pixelDist / combatInfo.grid.size) : Math.round(pixelDist)
     const unit = inCells ? 'cell' : 'px'
     return `r=${radius} ${unit}${radius !== 1 && inCells ? 's' : ''}`
   }
   if (mode === 'cone') {
-    const length = inCells ? Math.round(pixelDist / scene.gridSize) : Math.round(pixelDist)
+    const length = inCells ? Math.round(pixelDist / combatInfo.grid.size) : Math.round(pixelDist)
     const unit = inCells ? 'cell' : 'px'
     return `${length} ${unit}${length !== 1 && inCells ? 's' : ''}`
   }
@@ -58,8 +58,8 @@ function calcLabel(mode: string, origin: Point, end: Point, scene: Scene): strin
     const w = Math.abs(dx)
     const h = Math.abs(dy)
     if (inCells) {
-      const cw = Math.round(w / scene.gridSize)
-      const ch = Math.round(h / scene.gridSize)
+      const cw = Math.round(w / combatInfo.grid.size)
+      const ch = Math.round(h / combatInfo.grid.size)
       return `${cw}x${ch} cells`
     }
     return `${Math.round(w)}x${Math.round(h)} px`
@@ -67,7 +67,7 @@ function calcLabel(mode: string, origin: Point, end: Point, scene: Scene): strin
   return ''
 }
 
-export function RangeTemplate({ activeTool, scene, stageRef }: RangeTemplateProps) {
+export function RangeTemplate({ activeTool, combatInfo, stageRef }: RangeTemplateProps) {
   const mode = getRangeMode(activeTool)
   const [drawing, setDrawing] = useState<{ origin: Point; end: Point } | null>(null)
   const [persisted, setPersisted] = useState<RangeShape[]>([])
@@ -134,7 +134,7 @@ export function RangeTemplate({ activeTool, scene, stageRef }: RangeTemplateProp
       const pos = getMapPos()
       if (!pos) return
 
-      setDrawing((prev) => prev ? { ...prev, end: pos } : null)
+      setDrawing((prev) => (prev ? { ...prev, end: pos } : null))
     }
 
     const handleMouseUp = (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -145,7 +145,7 @@ export function RangeTemplate({ activeTool, scene, stageRef }: RangeTemplateProp
       setDrawing((prev) => {
         if (!prev || !mode) return null
         if (shiftRef.current) {
-          const label = calcLabel(mode, prev.origin, prev.end, scene)
+          const label = calcLabel(mode, prev.origin, prev.end, combatInfo)
           setPersisted((arr) => [...arr, { mode, origin: prev.origin, end: prev.end, label }])
         }
         return null
@@ -161,7 +161,7 @@ export function RangeTemplate({ activeTool, scene, stageRef }: RangeTemplateProp
       stage.off('mousemove.range')
       stage.off('mouseup.range')
     }
-  }, [mode, scene, stageRef])
+  }, [mode, combatInfo, stageRef])
 
   // Nothing to render if no active range tool and no persisted shapes
   if (!mode && persisted.length === 0) return null
@@ -180,7 +180,7 @@ export function RangeTemplate({ activeTool, scene, stageRef }: RangeTemplateProp
             mode,
             origin: drawing.origin,
             end: drawing.end,
-            label: calcLabel(mode, drawing.origin, drawing.end, scene),
+            label: calcLabel(mode, drawing.origin, drawing.end, combatInfo),
           }}
         />
       )}
@@ -289,12 +289,7 @@ function ShapeLabel({ x, y, text }: { x: number; y: number; text: string }) {
 
   return (
     <Group x={x - textWidth / 2} y={y - textHeight / 2}>
-      <BgRect
-        width={textWidth}
-        height={textHeight}
-        fill={LABEL_BG_COLOR}
-        cornerRadius={3}
-      />
+      <BgRect width={textWidth} height={textHeight} fill={LABEL_BG_COLOR} cornerRadius={3} />
       <Text
         text={text}
         fontSize={LABEL_FONT_SIZE}

@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react'
 import * as Y from 'yjs'
 import { useEntities } from '../useEntities'
-import { useScenes } from '../../yjs/useScenes'
+// useScenes hook removed in data layer refactor — scene operations tested via worldStore
 import {
   gcOrphanedEntities,
   addEntityToAllScenes,
@@ -15,10 +15,7 @@ import {
 import { makeEntity } from '../../__test-utils__/fixtures'
 
 /** Flush deferred sync inside act() so React hooks pick up changes */
-function flushInAct(
-  doc1: Y.Doc,
-  doc2: Y.Doc,
-) {
+function flushInAct(doc1: Y.Doc, doc2: Y.Doc) {
   act(() => {
     Y.applyUpdate(doc2, Y.encodeStateAsUpdate(doc1))
     Y.applyUpdate(doc1, Y.encodeStateAsUpdate(doc2))
@@ -330,35 +327,37 @@ describe('persistent entity auto-join — distributed', () => {
   it('new scene with getPersistentEntityIds includes persistent entities', () => {
     const { doc1, doc2, world1, world2 } = createSyncedPair()
     const hook1 = renderHook(() => useEntities(world1, doc1))
-    const hook2 = renderHook(() => useScenes(world2.scenes, doc2))
 
     // Create persistent entity
     act(() => hook1.result.current.addEntity(makeEntity({ id: 'pc-1', persistent: true })))
 
-    // Create new scene and pass persistent entity IDs
+    // Create new scene via Yjs directly and pass persistent entity IDs
     const persistentIds = getPersistentEntityIds(world2.entities)
     expect(persistentIds).toContain('pc-1')
 
-    act(() =>
-      hook2.result.current.addScene(
-        {
-          id: 'scene-new',
-          name: 'New Scene',
+    act(() => {
+      doc2.transact(() => {
+        const sceneMap = new Y.Map<unknown>()
+        world2.scenes.set('scene-new', sceneMap)
+        sceneMap.set('name', 'New Scene')
+        sceneMap.set('atmosphere', {
           imageUrl: '',
           width: 1000,
           height: 1000,
-          gridSize: 50,
-          gridVisible: true,
-          gridColor: 'rgba(255,255,255,0.15)',
-          gridOffsetX: 0,
-          gridOffsetY: 0,
-          sortOrder: 0,
-          combatActive: false,
-          battleMapUrl: '',
-        },
-        persistentIds,
-      ),
-    )
+          particlePreset: 'none',
+          ambientPreset: '',
+          ambientAudioUrl: '',
+          ambientAudioVolume: 0.5,
+        })
+        sceneMap.set('sortOrder', 0)
+        const entityIdsMap = new Y.Map<boolean>()
+        sceneMap.set('entityIds', entityIdsMap)
+        for (const eid of persistentIds) {
+          entityIdsMap.set(eid, true)
+        }
+        sceneMap.set('encounters', new Y.Map())
+      })
+    })
 
     // Both clients should see pc-1 in the new scene
     const ids1 = (world1.scenes.get('scene-new') as Y.Map<unknown>).get(

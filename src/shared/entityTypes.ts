@@ -40,3 +40,70 @@ export interface Blueprint {
   defaultColor: string
   defaultRuleData?: unknown
 }
+
+// --- New types for data layer refactor (SceneV2 replaces Scene in Task 8) ---
+
+export interface Atmosphere {
+  imageUrl: string
+  width: number
+  height: number
+  particlePreset: 'none' | 'embers' | 'snow' | 'dust' | 'rain' | 'fireflies'
+  ambientPreset: string
+  ambientAudioUrl: string
+  ambientAudioVolume: number
+}
+
+export interface EncounterData {
+  name: string
+  mapUrl: string
+  mapWidth: number
+  mapHeight: number
+  grid: {
+    size: number
+    snap: boolean
+    visible: boolean
+    color: string
+    offsetX: number
+    offsetY: number
+  }
+  tokens: Record<
+    string,
+    {
+      name: string
+      imageUrl: string
+      color: string
+      size: number
+      x: number
+      y: number
+      entityId?: string
+      ruleData?: unknown
+      blueprintId?: string
+    }
+  >
+}
+
+export interface SceneV2 {
+  id: string
+  name: string
+  sortOrder: number
+  atmosphere: Atmosphere
+  entityIds: string[]
+  encounters: Record<string, EncounterData>
+}
+
+export interface CombatState {
+  mapUrl: string
+  mapWidth: number
+  mapHeight: number
+  grid: {
+    size: number
+    snap: boolean
+    visible: boolean
+    color: string
+    offsetX: number
+    offsetY: number
+  }
+  tokens: MapToken[]
+  initiativeOrder: string[]
+  initiativeIndex: number
+}

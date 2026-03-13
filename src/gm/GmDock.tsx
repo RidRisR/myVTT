@@ -1,5 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react'
-import * as Y from 'yjs'
+import { memo, useEffect, useRef, useState } from 'react'
 import {
   FolderOpen,
   CircleUser,
@@ -12,8 +11,7 @@ import {
   EyeOff,
   ChevronDown,
 } from 'lucide-react'
-import type { Scene } from '../yjs/useScenes'
-import type { MapToken, Entity, Blueprint } from '../shared/entityTypes'
+import type { MapToken, Entity, Blueprint, Atmosphere } from '../shared/entityTypes'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { generateTokenId } from '../shared/idUtils'
 import { nextNpcName } from '../shared/characterUtils'
@@ -30,22 +28,25 @@ const MemoTokenDockTab = memo(TokenDockTab)
 const MemoHandoutDockTab = memo(HandoutDockTab)
 
 interface GmDockProps {
-  scenes: Scene[]
   activeSceneId: string | null
   isCombat: boolean
-  onAddScene: (scene: Scene) => void
-  onDeleteScene: (id: string) => void
-  onUpdateScene: (id: string, updates: Partial<Scene>) => void
+  onUpdateScene: (
+    id: string,
+    updates: { name?: string; sortOrder?: number; atmosphere?: Partial<Atmosphere> },
+  ) => void
   onToggleCombat: () => void
   onShowcaseImage?: (imageUrl: string) => void
-
-  blueprints: Y.Map<unknown>
 
   handoutAssets: HandoutAsset[]
   onAddHandoutAsset: (asset: HandoutAsset) => void
   onEditHandoutAsset: (asset: HandoutAsset) => void
   onDeleteHandoutAsset: (id: string) => void
   onShowcaseHandout: (asset: HandoutAsset) => void
+
+  blueprints: Blueprint[]
+  onAddBlueprint: (bp: Blueprint) => void
+  onUpdateBlueprint: (id: string, updates: Partial<Blueprint>) => void
+  onDeleteBlueprint: (id: string) => void
 
   entities: Entity[]
   onAddEntity: (entity: Entity) => void
@@ -60,15 +61,15 @@ interface GmDockProps {
 }
 
 export function GmDock({
-  scenes,
   activeSceneId,
   isCombat,
-  onAddScene,
-  onDeleteScene,
   onUpdateScene,
   onToggleCombat,
   onShowcaseImage,
-  blueprints: blueprintsYMap,
+  blueprints,
+  onAddBlueprint,
+  onUpdateBlueprint,
+  onDeleteBlueprint,
   handoutAssets,
   onAddHandoutAsset,
   onEditHandoutAsset,
@@ -87,47 +88,6 @@ export function GmDock({
   const [activeTab, setActiveTab] = useState<TabId | null>(null)
   const [collapsed, setCollapsed] = useState(false)
   const dockRef = useRef<HTMLDivElement>(null)
-
-  // Read blueprints from Y.Map into a plain array
-  const [blueprintList, setBlueprintList] = useState<Blueprint[]>([])
-  useEffect(() => {
-    const read = () => {
-      const result: Blueprint[] = []
-      blueprintsYMap.forEach((val) => {
-        const bp = val as Blueprint
-        if (bp && bp.id) result.push(bp)
-      })
-      setBlueprintList(result)
-    }
-    read()
-    blueprintsYMap.observe(read)
-    return () => blueprintsYMap.unobserve(read)
-  }, [blueprintsYMap])
-
-  // Blueprint CRUD
-  const handleAddBlueprint = useCallback(
-    (bp: Blueprint) => {
-      blueprintsYMap.set(bp.id, bp)
-    },
-    [blueprintsYMap],
-  )
-
-  const handleUpdateBlueprint = useCallback(
-    (id: string, updates: Partial<Blueprint>) => {
-      const existing = blueprintsYMap.get(id) as Blueprint | undefined
-      if (existing) {
-        blueprintsYMap.set(id, { ...existing, ...updates })
-      }
-    },
-    [blueprintsYMap],
-  )
-
-  const handleDeleteBlueprint = useCallback(
-    (id: string) => {
-      blueprintsYMap.delete(id)
-    },
-    [blueprintsYMap],
-  )
 
   // Click outside to collapse
   useEffect(() => {
@@ -231,13 +191,10 @@ export function GmDock({
         <div className="mb-1.5 bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.4)] min-w-[400px] max-h-[220px] overflow-y-auto p-3">
           {activeTab === 'gallery' && (
             <MemoMapDockTab
-              scenes={scenes}
               activeSceneId={activeSceneId}
               isCombat={isCombat}
-              onAddScene={onAddScene}
-              onDeleteScene={onDeleteScene}
               onSetAsBackground={(sceneId, imageUrl) =>
-                onUpdateScene(sceneId, { atmosphereImageUrl: imageUrl })
+                onUpdateScene(sceneId, { atmosphere: { imageUrl } })
               }
               onSetAsTacticalMap={onSetAsTacticalMap}
               onShowcaseImage={onShowcaseImage}
@@ -245,10 +202,10 @@ export function GmDock({
           )}
           {activeTab === 'tokens' && (
             <MemoTokenDockTab
-              blueprints={blueprintList}
-              onAddBlueprint={handleAddBlueprint}
-              onUpdateBlueprint={handleUpdateBlueprint}
-              onDeleteBlueprint={handleDeleteBlueprint}
+              blueprints={blueprints}
+              onAddBlueprint={onAddBlueprint}
+              onUpdateBlueprint={onUpdateBlueprint}
+              onDeleteBlueprint={onDeleteBlueprint}
               onSpawnToken={handleSpawnFromBlueprint}
               onAddToActive={handleAddToActive}
               isCombat={isCombat}

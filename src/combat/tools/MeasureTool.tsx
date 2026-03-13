@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Layer, Line, Rect, Text, Group } from 'react-konva'
 import type Konva from 'konva'
-import type { Scene } from '../../stores/worldStore'
+import type { CombatInfo } from '../../stores/worldStore'
 
 interface Point {
   x: number
@@ -16,7 +16,7 @@ interface Measurement {
 
 interface MeasureToolProps {
   active: boolean
-  scene: Scene
+  combatInfo: CombatInfo
   stageRef: React.RefObject<Konva.Stage | null>
 }
 
@@ -26,19 +26,19 @@ const LABEL_FONT_SIZE = 13
 const LABEL_PADDING = 4
 const LABEL_BG_COLOR = 'rgba(20, 15, 12, 0.88)'
 
-function calcDistance(start: Point, end: Point, scene: Scene): string {
+function calcDistance(start: Point, end: Point, combatInfo: CombatInfo): string {
   const dx = end.x - start.x
   const dy = end.y - start.y
   const pixelDist = Math.sqrt(dx * dx + dy * dy)
 
-  if (scene.gridSnap && scene.gridSize > 0) {
-    const cells = Math.round(pixelDist / scene.gridSize)
+  if (combatInfo.grid.snap && combatInfo.grid.size > 0) {
+    const cells = Math.round(pixelDist / combatInfo.grid.size)
     return `${cells} cell${cells !== 1 ? 's' : ''}`
   }
   return `${Math.round(pixelDist)} px`
 }
 
-export function MeasureTool({ active, scene, stageRef }: MeasureToolProps) {
+export function MeasureTool({ active, combatInfo, stageRef }: MeasureToolProps) {
   const [drawing, setDrawing] = useState<{ start: Point; end: Point } | null>(null)
   const [persisted, setPersisted] = useState<Measurement[]>([])
   const isDrawingRef = useRef(false)
@@ -120,7 +120,7 @@ export function MeasureTool({ active, scene, stageRef }: MeasureToolProps) {
         if (!prev) return null
         if (shiftRef.current) {
           // Persist the measurement
-          const distance = calcDistance(prev.start, prev.end, scene)
+          const distance = calcDistance(prev.start, prev.end, combatInfo)
           setPersisted((arr) => [...arr, { start: prev.start, end: prev.end, distance }])
         }
         return null
@@ -136,12 +136,12 @@ export function MeasureTool({ active, scene, stageRef }: MeasureToolProps) {
       stage.off('mousemove.measure')
       stage.off('mouseup.measure')
     }
-  }, [active, scene, stageRef])
+  }, [active, combatInfo, stageRef])
 
   // Nothing to render if tool is inactive and no persisted measurements
   if (!active && persisted.length === 0) return null
 
-  const currentDistance = drawing ? calcDistance(drawing.start, drawing.end, scene) : ''
+  const currentDistance = drawing ? calcDistance(drawing.start, drawing.end, combatInfo) : ''
 
   return (
     <Layer listening={false}>

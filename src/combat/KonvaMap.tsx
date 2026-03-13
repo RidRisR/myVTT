@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Stage, Layer, Image, Text, Rect } from 'react-konva'
 import type Konva from 'konva'
 import type { MapToken, Entity } from '../shared/entityTypes'
-import type { Scene } from '../stores/worldStore'
+import type { CombatInfo } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
 import { useUiStore } from '../stores/uiStore'
 import { useIdentityStore } from '../stores/identityStore'
@@ -45,7 +45,7 @@ interface ContextMenuState {
 }
 
 interface KonvaMapProps {
-  scene: Scene | null
+  combatInfo: CombatInfo | null
   tokens: MapToken[]
   getEntity: (id: string) => Entity | null
   mySeatId: string
@@ -64,7 +64,7 @@ const MAX_SCALE = 5
 const SCALE_BY = 1.05
 
 export function KonvaMap({
-  scene,
+  combatInfo,
   tokens,
   getEntity,
   mySeatId,
@@ -199,31 +199,31 @@ export function KonvaMap({
 
   // Fit map to window
   const handleFitToWindow = useCallback(() => {
-    if (!scene || containerSize.width === 0 || containerSize.height === 0) return
-    if (scene.width === 0 || scene.height === 0) return
+    if (!combatInfo || containerSize.width === 0 || containerSize.height === 0) return
+    if (combatInfo.mapWidth === 0 || combatInfo.mapHeight === 0) return
 
-    const scaleX = containerSize.width / scene.width
-    const scaleY = containerSize.height / scene.height
+    const scaleX = containerSize.width / combatInfo.mapWidth
+    const scaleY = containerSize.height / combatInfo.mapHeight
     const fitScale = Math.min(scaleX, scaleY) * 0.95 // 95% to add some padding
 
     const clampedScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, fitScale))
 
     setStageScale(clampedScale)
     setStagePos({
-      x: (containerSize.width - scene.width * clampedScale) / 2,
-      y: (containerSize.height - scene.height * clampedScale) / 2,
+      x: (containerSize.width - combatInfo.mapWidth * clampedScale) / 2,
+      y: (containerSize.height - combatInfo.mapHeight * clampedScale) / 2,
     })
-  }, [scene, containerSize])
+  }, [combatInfo, containerSize])
 
   // Reset to center at scale 1
   const handleResetCenter = useCallback(() => {
-    if (!scene) return
+    if (!combatInfo) return
     setStageScale(1)
     setStagePos({
-      x: (containerSize.width - scene.width) / 2,
-      y: (containerSize.height - scene.height) / 2,
+      x: (containerSize.width - combatInfo.mapWidth) / 2,
+      y: (containerSize.height - combatInfo.mapHeight) / 2,
     })
-  }, [scene, containerSize])
+  }, [combatInfo, containerSize])
 
   // Zoom in / out buttons
   const handleZoomIn = useCallback(() => {
@@ -335,11 +335,17 @@ export function KonvaMap({
   // Create token on empty space
   const handleCreateToken = useCallback(
     (mapX: number, mapY: number) => {
-      if (!scene) return
+      if (!combatInfo) return
       let x = mapX
       let y = mapY
-      if (scene.gridSnap) {
-        const snapped = snapToGrid(x, y, scene.gridSize, scene.gridOffsetX, scene.gridOffsetY)
+      if (combatInfo.grid.snap) {
+        const snapped = snapToGrid(
+          x,
+          y,
+          combatInfo.grid.size,
+          combatInfo.grid.offsetX,
+          combatInfo.grid.offsetY,
+        )
         x = snapped.x
         y = snapped.y
       }
@@ -353,14 +359,14 @@ export function KonvaMap({
       }
       onAddToken(newToken)
     },
-    [scene, onAddToken],
+    [combatInfo, onAddToken],
   )
 
   // Copy token (create duplicate at offset)
   const handleCopyToken = useCallback(
     (token: MapToken) => {
-      if (!scene) return
-      const gridSize = scene.gridSize
+      if (!combatInfo) return
+      const gridSize = combatInfo.grid.size
       const newToken: MapToken = {
         ...token,
         id: generateTokenId(),
@@ -369,7 +375,7 @@ export function KonvaMap({
       }
       onAddToken(newToken)
     },
-    [scene, onAddToken],
+    [combatInfo, onAddToken],
   )
 
   // Undo-able token deletion
@@ -401,8 +407,8 @@ export function KonvaMap({
     : null
   const tooltipEntity = tooltipToken?.entityId ? getEntity(tooltipToken.entityId) : null
 
-  // No scene state
-  if (!scene) {
+  // No combatInfo state
+  if (!combatInfo) {
     return (
       <div
         ref={containerRef}
@@ -455,13 +461,13 @@ export function KonvaMap({
         let mapY = (screenY - stagePos.y) / stageScale
 
         // Grid snap
-        if (scene?.gridSnap) {
+        if (combatInfo?.grid.snap) {
           const snapped = snapToGrid(
             mapX,
             mapY,
-            scene.gridSize,
-            scene.gridOffsetX,
-            scene.gridOffsetY,
+            combatInfo.grid.size,
+            combatInfo.grid.offsetX,
+            combatInfo.grid.offsetY,
           )
           mapX = snapped.x
           mapY = snapped.y
@@ -487,24 +493,24 @@ export function KonvaMap({
           onContextMenu={handleStageContextMenu}
         >
           {/* Background layer — non-interactive */}
-          <BackgroundLayer scene={scene} />
+          <BackgroundLayer combatInfo={combatInfo} />
 
           {/* Grid layer — non-interactive */}
           <KonvaGrid
-            width={scene.width}
-            height={scene.height}
-            gridSize={scene.gridSize}
-            gridVisible={scene.gridVisible}
-            gridColor={scene.gridColor}
-            gridOffsetX={scene.gridOffsetX}
-            gridOffsetY={scene.gridOffsetY}
+            width={combatInfo.mapWidth}
+            height={combatInfo.mapHeight}
+            gridSize={combatInfo.grid.size}
+            gridVisible={combatInfo.grid.visible}
+            gridColor={combatInfo.grid.color}
+            gridOffsetX={combatInfo.grid.offsetX}
+            gridOffsetY={combatInfo.grid.offsetY}
           />
 
           {/* Token layer — interactive */}
           <KonvaTokenLayer
             tokens={tokens}
             getEntity={getEntity}
-            scene={scene}
+            combatInfo={combatInfo}
             role={role}
             mySeatId={mySeatId}
             selectedTokenId={selectedTokenId}
@@ -522,10 +528,14 @@ export function KonvaMap({
           />
 
           {/* Measurement tool layer — above tokens */}
-          <MeasureTool active={activeTool === 'measure'} scene={scene} stageRef={stageRef} />
+          <MeasureTool
+            active={activeTool === 'measure'}
+            combatInfo={combatInfo}
+            stageRef={stageRef}
+          />
 
           {/* Range template layer — above tokens */}
-          <RangeTemplate activeTool={activeTool} scene={scene} stageRef={stageRef} />
+          <RangeTemplate activeTool={activeTool} combatInfo={combatInfo} stageRef={stageRef} />
         </Stage>
       )}
 
@@ -571,18 +581,25 @@ export function KonvaMap({
 
 // ── Background Layer ──
 
-function BackgroundLayer({ scene }: { scene: Scene }) {
-  const imageUrl = scene.tacticalMapImageUrl // no fallback to atmosphereImageUrl
+function BackgroundLayer({ combatInfo }: { combatInfo: CombatInfo }) {
+  const imageUrl = combatInfo.mapUrl
   if (!imageUrl) return null // transparent when no tactical map image
 
   const isVideo = isVideoUrl(imageUrl)
 
   if (isVideo) {
-    return <VideoBackground url={imageUrl} width={scene.width} height={scene.height} />
+    return (
+      <VideoBackground url={imageUrl} width={combatInfo.mapWidth} height={combatInfo.mapHeight} />
+    )
   }
 
   return (
-    <ImageBackground url={imageUrl} width={scene.width} height={scene.height} name={scene.name} />
+    <ImageBackground
+      url={imageUrl}
+      width={combatInfo.mapWidth}
+      height={combatInfo.mapHeight}
+      name="Combat"
+    />
   )
 }
 

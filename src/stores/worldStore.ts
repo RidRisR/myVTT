@@ -5,7 +5,14 @@
 
 import { create } from 'zustand'
 import * as Y from 'yjs'
-import type { Entity, EntityPermissions, MapToken, Blueprint } from '../shared/entityTypes'
+import type {
+  Entity,
+  EntityPermissions,
+  MapToken,
+  Blueprint,
+  Atmosphere,
+  EncounterData,
+} from '../shared/entityTypes'
 import { readTextField, writeTextField, updateTextField } from '../shared/yTextHelper'
 import type { ShowcaseItem } from '../showcase/showcaseTypes'
 
@@ -14,29 +21,32 @@ import type { ShowcaseItem } from '../showcase/showcaseTypes'
 export interface Scene {
   id: string
   name: string
-  atmosphereImageUrl: string
-  tacticalMapImageUrl: string
-  particlePreset: string
-  width: number
-  height: number
-  gridSize: number
-  gridSnap: boolean
-  gridVisible: boolean
-  gridColor: string
-  gridOffsetX: number
-  gridOffsetY: number
   sortOrder: number
-  ambientPreset: string
-  ambientAudioUrl: string
-  ambientAudioVolume: number
-  combatActive: boolean
-  battleMapUrl: string
-  initiativeOrder: string[]
-  initiativeIndex: number
+  atmosphere: Atmosphere
+  entityIds: string[]
+  encounters: Record<string, EncounterData>
 }
 
 export interface RoomState {
   activeSceneId: string | null
+  activeEncounterId: string | null
+}
+
+/** Combat grid/map/initiative data from top-level combat Y.Map (excludes tokens) */
+export interface CombatInfo {
+  mapUrl: string
+  mapWidth: number
+  mapHeight: number
+  grid: {
+    size: number
+    snap: boolean
+    visible: boolean
+    color: string
+    offsetX: number
+    offsetY: number
+  }
+  initiativeOrder: string[]
+  initiativeIndex: number
 }
 
 export interface HandoutAsset {
@@ -104,6 +114,44 @@ function readYMapEntity(yMap: Y.Map<unknown>): Entity {
   }
 }
 
+function readAtmosphere(sceneMap: Y.Map<unknown>): Atmosphere {
+  const atm = sceneMap.get('atmosphere')
+  if (atm && typeof atm === 'object' && !(atm instanceof Y.Map) && !(atm instanceof Y.Array)) {
+    return atm as Atmosphere
+  }
+  return {
+    imageUrl: '',
+    width: 0,
+    height: 0,
+    particlePreset: 'none',
+    ambientPreset: '',
+    ambientAudioUrl: '',
+    ambientAudioVolume: 0.5,
+  }
+}
+
+function readEntityIds(sceneMap: Y.Map<unknown>): string[] {
+  const entityIds = sceneMap.get('entityIds')
+  if (entityIds instanceof Y.Map) {
+    const ids: string[] = []
+    entityIds.forEach((_val, key) => ids.push(key))
+    return ids
+  }
+  return []
+}
+
+function readEncounters(sceneMap: Y.Map<unknown>): Record<string, EncounterData> {
+  const enc = sceneMap.get('encounters')
+  if (enc instanceof Y.Map) {
+    const result: Record<string, EncounterData> = {}
+    enc.forEach((val, key) => {
+      if (val && typeof val === 'object') result[key] = val as EncounterData
+    })
+    return result
+  }
+  return {}
+}
+
 function readScenes(yScenes: Y.Map<Y.Map<unknown>>): Scene[] {
   const scenes: Scene[] = []
   yScenes.forEach((sceneMap, id) => {
@@ -111,28 +159,10 @@ function readScenes(yScenes: Y.Map<Y.Map<unknown>>): Scene[] {
     scenes.push({
       id,
       name: (sceneMap.get('name') as string) ?? '',
-      atmosphereImageUrl:
-        (sceneMap.get('atmosphereImageUrl') as string) ??
-        (sceneMap.get('imageUrl') as string) ??
-        '',
-      tacticalMapImageUrl: (sceneMap.get('tacticalMapImageUrl') as string) ?? '',
-      particlePreset: (sceneMap.get('particlePreset') as string) ?? 'none',
-      width: (sceneMap.get('width') as number) ?? 0,
-      height: (sceneMap.get('height') as number) ?? 0,
-      gridSize: (sceneMap.get('gridSize') as number) ?? 50,
-      gridSnap: (sceneMap.get('gridSnap') as boolean) ?? true,
-      gridVisible: (sceneMap.get('gridVisible') as boolean) ?? true,
-      gridColor: (sceneMap.get('gridColor') as string) ?? 'rgba(255,255,255,0.15)',
-      gridOffsetX: (sceneMap.get('gridOffsetX') as number) ?? 0,
-      gridOffsetY: (sceneMap.get('gridOffsetY') as number) ?? 0,
       sortOrder: (sceneMap.get('sortOrder') as number) ?? 0,
-      ambientPreset: (sceneMap.get('ambientPreset') as string) ?? 'none',
-      ambientAudioUrl: (sceneMap.get('ambientAudioUrl') as string) ?? '',
-      ambientAudioVolume: (sceneMap.get('ambientAudioVolume') as number) ?? 0.5,
-      combatActive: (sceneMap.get('combatActive') as boolean) ?? false,
-      battleMapUrl: (sceneMap.get('battleMapUrl') as string) ?? '',
-      initiativeOrder: (sceneMap.get('initiativeOrder') as string[]) ?? [],
-      initiativeIndex: (sceneMap.get('initiativeIndex') as number) ?? 0,
+      atmosphere: readAtmosphere(sceneMap),
+      entityIds: readEntityIds(sceneMap),
+      encounters: readEncounters(sceneMap),
     })
   })
   scenes.sort((a, b) => a.sortOrder - b.sortOrder)
@@ -149,6 +179,15 @@ function readEntities(yEntities: Y.Map<Y.Map<unknown>>): Entity[] {
   return result
 }
 
+function readBlueprints(yBlueprints: Y.Map<unknown>): Blueprint[] {
+  const result: Blueprint[] = []
+  yBlueprints.forEach((val, key) => {
+    const bp = val as Blueprint
+    result.push({ ...bp, id: key })
+  })
+  return result
+}
+
 function readTokens(tokensMap: Y.Map<MapToken> | null): MapToken[] {
   if (!tokensMap) return []
   const result: MapToken[] = []
@@ -159,7 +198,34 @@ function readTokens(tokensMap: Y.Map<MapToken> | null): MapToken[] {
 function readRoom(yRoom: Y.Map<unknown>): RoomState {
   return {
     activeSceneId: (yRoom.get('activeSceneId') as string) ?? null,
+    activeEncounterId: (yRoom.get('activeEncounterId') as string) ?? null,
   }
+}
+
+function readCombatInfo(yCombat: Y.Map<unknown>): CombatInfo | null {
+  if (yCombat.size === 0) return null
+  const grid = (yCombat.get('grid') as CombatInfo['grid']) ?? {
+    size: 50,
+    snap: true,
+    visible: true,
+    color: 'rgba(255,255,255,0.15)',
+    offsetX: 0,
+    offsetY: 0,
+  }
+  return {
+    mapUrl: (yCombat.get('mapUrl') as string) ?? '',
+    mapWidth: (yCombat.get('mapWidth') as number) ?? 0,
+    mapHeight: (yCombat.get('mapHeight') as number) ?? 0,
+    grid,
+    initiativeOrder: (yCombat.get('initiativeOrder') as string[]) ?? [],
+    initiativeIndex: (yCombat.get('initiativeIndex') as number) ?? 0,
+  }
+}
+
+function getCombatTokensMap(yCombat: Y.Map<unknown>): Y.Map<MapToken> | null {
+  const tokens = yCombat.get('tokens')
+  if (tokens instanceof Y.Map) return tokens as Y.Map<MapToken>
+  return null
 }
 
 function readShowcaseItems(yShowcase: Y.Map<ShowcaseItem>): ShowcaseItem[] {
@@ -173,14 +239,6 @@ function readHandoutAssets(yHandouts: Y.Map<HandoutAsset>): HandoutAsset[] {
   const items: HandoutAsset[] = []
   yHandouts.forEach((item) => items.push(item))
   items.sort((a, b) => a.createdAt - b.createdAt)
-  return items
-}
-
-function readBlueprints(yBlueprints: Y.Map<unknown>): Blueprint[] {
-  const items: Blueprint[] = []
-  yBlueprints.forEach((item) => {
-    if (item && typeof item === 'object') items.push(item as Blueprint)
-  })
   return items
 }
 
@@ -259,18 +317,6 @@ function updateRuleDataInPlace(entityYMap: Y.Map<unknown>, ruleData: unknown) {
   }
 }
 
-function getTokensMap(
-  yScenes: Y.Map<Y.Map<unknown>>,
-  sceneId: string | null,
-): Y.Map<MapToken> | null {
-  if (!sceneId) return null
-  const sceneMap = yScenes.get(sceneId)
-  if (!(sceneMap instanceof Y.Map)) return null
-  const tokens = sceneMap.get('tokens')
-  if (tokens instanceof Y.Map) return tokens as Y.Map<MapToken>
-  return null
-}
-
 // ── Store interface ──
 
 interface WorldState {
@@ -278,23 +324,24 @@ interface WorldState {
   room: RoomState
   scenes: Scene[]
   entities: Entity[]
+  blueprints: Blueprint[]
+  combatInfo: CombatInfo | null
   tokens: MapToken[]
   showcaseItems: ShowcaseItem[]
   showcasePinnedItemId: string | null
   handoutAssets: HandoutAsset[]
-  blueprints: Blueprint[]
   teamTrackers: TeamTracker[]
 
   // Yjs refs (not serializable — set once during init, used by actions)
   _yDoc: Y.Doc | null
   _yScenes: Y.Map<Y.Map<unknown>> | null
   _yEntities: Y.Map<Y.Map<unknown>> | null
-  _yRoom: Y.Map<unknown> | null
   _yBlueprints: Y.Map<unknown> | null
+  _yRoom: Y.Map<unknown> | null
+  _yCombat: Y.Map<unknown> | null
   _yShowcase: Y.Map<ShowcaseItem> | null
   _yHandouts: Y.Map<HandoutAsset> | null
   _yMetrics: Y.Map<TeamTracker> | null
-  _activeTokenSceneId: string | null
 
   // Initialization — connects Yjs observers to store
   init: (yDoc: Y.Doc) => () => void
@@ -303,28 +350,48 @@ interface WorldState {
   setActiveScene: (sceneId: string) => void
 
   // Scene actions
-  addScene: (scene: Scene, persistentEntityIds?: string[]) => void
-  updateScene: (id: string, updates: Partial<Scene>) => void
+  addScene: (
+    id: string,
+    name: string,
+    atmosphere: Atmosphere,
+    persistentEntityIds?: string[],
+  ) => void
+  updateScene: (
+    id: string,
+    updates: { name?: string; sortOrder?: number; atmosphere?: Partial<Atmosphere> },
+  ) => void
   deleteScene: (id: string) => void
   getScene: (id: string | null) => Scene | null
   addEntityToScene: (sceneId: string, entityId: string) => void
   removeEntityFromScene: (sceneId: string, entityId: string) => void
   getSceneEntityIds: (sceneId: string) => string[]
-  setCombatActive: (sceneId: string, active: boolean) => void
   duplicateScene: (sourceId: string, newId: string) => void
-  setInitiativeOrder: (sceneId: string, order: string[]) => void
-  advanceInitiative: (sceneId: string) => void
+
+  // Combat actions
+  activateEncounter: (sceneId: string, encounterId?: string) => void
+  endCombat: () => void
+  saveEncounter: (sceneId: string, encounterId: string, name: string) => void
+  updateCombatGrid: (updates: Partial<CombatInfo['grid']>) => void
+  setCombatMapUrl: (mapUrl: string, width: number, height: number) => void
+
+  // Blueprint actions
+  addBlueprint: (bp: Blueprint) => void
+  updateBlueprint: (id: string, updates: Partial<Blueprint>) => void
+  deleteBlueprint: (id: string) => void
 
   // Entity actions
   addEntity: (entity: Entity) => void
   updateEntity: (id: string, updates: Partial<Entity>) => void
   deleteEntity: (id: string) => void
 
-  // Token actions
-  setActiveTokenScene: (sceneId: string | null) => void
+  // Token actions (write to combat Y.Map)
   addToken: (token: MapToken) => void
   updateToken: (id: string, updates: Partial<MapToken>) => void
   deleteToken: (id: string) => void
+
+  // Initiative actions (write to combat Y.Map)
+  setInitiativeOrder: (order: string[]) => void
+  advanceInitiative: () => void
 
   // Showcase actions
   addShowcaseItem: (item: ShowcaseItem) => void
@@ -339,8 +406,6 @@ interface WorldState {
   updateHandoutAsset: (id: string, updates: Partial<HandoutAsset>) => void
   deleteHandoutAsset: (id: string) => void
 
-  // Blueprint actions (read-only via observer, write via Yjs directly)
-
   // Team metrics actions
   addTeamTracker: (label: string) => void
   updateTeamTracker: (id: string, updates: Partial<TeamTracker>) => void
@@ -351,33 +416,35 @@ const DEFAULT_TRACKER_COLORS = ['#ef4444', '#22c55e', '#3b82f6', '#f59e0b', '#a8
 
 export const useWorldStore = create<WorldState>((set, get) => ({
   // Initial data
-  room: { activeSceneId: null },
+  room: { activeSceneId: null, activeEncounterId: null },
   scenes: [],
   entities: [],
+  blueprints: [],
+  combatInfo: null,
   tokens: [],
   showcaseItems: [],
   showcasePinnedItemId: null,
   handoutAssets: [],
-  blueprints: [],
   teamTrackers: [],
 
   // Yjs refs
   _yDoc: null,
   _yScenes: null,
   _yEntities: null,
-  _yRoom: null,
   _yBlueprints: null,
+  _yRoom: null,
+  _yCombat: null,
   _yShowcase: null,
   _yHandouts: null,
   _yMetrics: null,
-  _activeTokenSceneId: null,
 
   // ── Init: wire Yjs observers to store ──
   init: (yDoc: Y.Doc) => {
     const yScenes = yDoc.getMap('scenes') as Y.Map<Y.Map<unknown>>
     const yEntities = yDoc.getMap('entities') as Y.Map<Y.Map<unknown>>
-    const yRoom = yDoc.getMap('room')
     const yBlueprints = yDoc.getMap('blueprints')
+    const yRoom = yDoc.getMap('room')
+    const yCombat = yDoc.getMap('combat')
     const yShowcase = yDoc.getMap<ShowcaseItem>('showcase_items')
     const yHandouts = yDoc.getMap<HandoutAsset>('handout_assets')
     const yMetrics = yDoc.getMap<TeamTracker>('team_metrics')
@@ -387,8 +454,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       _yDoc: yDoc,
       _yScenes: yScenes,
       _yEntities: yEntities,
-      _yRoom: yRoom,
       _yBlueprints: yBlueprints,
+      _yRoom: yRoom,
+      _yCombat: yCombat,
       _yShowcase: yShowcase,
       _yHandouts: yHandouts,
       _yMetrics: yMetrics,
@@ -399,10 +467,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       room: readRoom(yRoom),
       scenes: readScenes(yScenes),
       entities: readEntities(yEntities),
+      blueprints: readBlueprints(yBlueprints),
+      combatInfo: readCombatInfo(yCombat),
       showcaseItems: readShowcaseItems(yShowcase),
       showcasePinnedItemId: (yRoom.get('pinnedShowcaseId') as string) ?? null,
       handoutAssets: readHandoutAssets(yHandouts),
-      blueprints: readBlueprints(yBlueprints),
       teamTrackers: readTeamTrackers(yMetrics),
     })
 
@@ -415,25 +484,17 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     }
     const scenesObserver = () => set({ scenes: readScenes(yScenes) })
     const entitiesObserver = () => set({ entities: readEntities(yEntities) })
+    const blueprintsObserver = () => set({ blueprints: readBlueprints(yBlueprints) })
     const showcaseObserver = () => set({ showcaseItems: readShowcaseItems(yShowcase) })
     const handoutsObserver = () => set({ handoutAssets: readHandoutAssets(yHandouts) })
-    const blueprintsObserver = () => set({ blueprints: readBlueprints(yBlueprints) })
     const metricsObserver = () => set({ teamTrackers: readTeamTrackers(yMetrics) })
 
-    yRoom.observe(roomObserver)
-    yScenes.observeDeep(scenesObserver)
-    yEntities.observeDeep(entitiesObserver)
-    yShowcase.observe(showcaseObserver)
-    yHandouts.observe(handoutsObserver)
-    yBlueprints.observe(blueprintsObserver)
-    yMetrics.observe(metricsObserver)
-
-    // Token observer management
+    // Combat observer: reads combatInfo + tokens from top-level combat Y.Map
     let tokenCleanup: (() => void) | null = null
-    const setupTokenObserver = (sceneId: string | null) => {
+    const setupTokenObserver = () => {
       tokenCleanup?.()
       tokenCleanup = null
-      const tokensMap = getTokensMap(yScenes, sceneId)
+      const tokensMap = getCombatTokensMap(yCombat)
       if (!tokensMap) {
         set({ tokens: [] })
         return
@@ -444,30 +505,34 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       tokenCleanup = () => tokensMap.unobserve(tokenObserver)
     }
 
-    // Store the setup function for dynamic scene changes
-    const origSetActiveTokenScene = get().setActiveTokenScene
-    set({
-      setActiveTokenScene: (sceneId: string | null) => {
-        set({ _activeTokenSceneId: sceneId })
-        setupTokenObserver(sceneId)
-      },
-    })
-    // If there's already an active token scene, set it up
-    const currentTokenScene = get()._activeTokenSceneId
-    if (currentTokenScene) setupTokenObserver(currentTokenScene)
+    const combatObserver = () => {
+      set({ combatInfo: readCombatInfo(yCombat) })
+      setupTokenObserver()
+    }
+
+    yRoom.observe(roomObserver)
+    yScenes.observeDeep(scenesObserver)
+    yEntities.observeDeep(entitiesObserver)
+    yBlueprints.observe(blueprintsObserver)
+    yShowcase.observe(showcaseObserver)
+    yHandouts.observe(handoutsObserver)
+    yMetrics.observe(metricsObserver)
+    yCombat.observeDeep(combatObserver)
+
+    // Initial token read from combat
+    setupTokenObserver()
 
     // Cleanup function
     return () => {
       yRoom.unobserve(roomObserver)
       yScenes.unobserveDeep(scenesObserver)
       yEntities.unobserveDeep(entitiesObserver)
+      yBlueprints.unobserve(blueprintsObserver)
       yShowcase.unobserve(showcaseObserver)
       yHandouts.unobserve(handoutsObserver)
-      yBlueprints.unobserve(blueprintsObserver)
       yMetrics.unobserve(metricsObserver)
+      yCombat.unobserveDeep(combatObserver)
       tokenCleanup?.()
-      // Restore no-op token scene setter
-      set({ setActiveTokenScene: origSetActiveTokenScene })
     }
   },
 
@@ -477,30 +542,15 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   // ── Scene actions ──
-  addScene: (scene: Scene, persistentEntityIds?: string[]) => {
+  addScene: (id: string, name: string, atmosphere: Atmosphere, persistentEntityIds?: string[]) => {
     const { _yScenes: yScenes, _yDoc: yDoc } = get()
     if (!yScenes || !yDoc) return
     yDoc.transact(() => {
       const sceneMap = new Y.Map<unknown>()
-      yScenes.set(scene.id, sceneMap)
-      sceneMap.set('name', scene.name)
-      sceneMap.set('atmosphereImageUrl', scene.atmosphereImageUrl)
-      sceneMap.set('tacticalMapImageUrl', scene.tacticalMapImageUrl)
-      sceneMap.set('particlePreset', scene.particlePreset)
-      sceneMap.set('width', scene.width)
-      sceneMap.set('height', scene.height)
-      sceneMap.set('gridSize', scene.gridSize)
-      sceneMap.set('gridSnap', scene.gridSnap)
-      sceneMap.set('gridVisible', scene.gridVisible)
-      sceneMap.set('gridColor', scene.gridColor)
-      sceneMap.set('gridOffsetX', scene.gridOffsetX)
-      sceneMap.set('gridOffsetY', scene.gridOffsetY)
-      sceneMap.set('sortOrder', scene.sortOrder)
-      sceneMap.set('ambientPreset', scene.ambientPreset ?? 'none')
-      sceneMap.set('ambientAudioUrl', scene.ambientAudioUrl ?? '')
-      sceneMap.set('ambientAudioVolume', scene.ambientAudioVolume ?? 0.5)
-      sceneMap.set('combatActive', false)
-      sceneMap.set('battleMapUrl', '')
+      yScenes.set(id, sceneMap)
+      sceneMap.set('name', name)
+      sceneMap.set('sortOrder', get().scenes.length)
+      sceneMap.set('atmosphere', { ...atmosphere })
       const entityIdsMap = new Y.Map<boolean>()
       sceneMap.set('entityIds', entityIdsMap)
       if (persistentEntityIds) {
@@ -508,19 +558,24 @@ export const useWorldStore = create<WorldState>((set, get) => ({
           entityIdsMap.set(eid, true)
         }
       }
-      sceneMap.set('tokens', new Y.Map())
+      sceneMap.set('encounters', new Y.Map())
     })
   },
 
-  updateScene: (id: string, updates: Partial<Scene>) => {
+  updateScene: (
+    id: string,
+    updates: { name?: string; sortOrder?: number; atmosphere?: Partial<Atmosphere> },
+  ) => {
     const { _yScenes: yScenes, _yDoc: yDoc } = get()
     if (!yScenes || !yDoc) return
     const sceneMap = yScenes.get(id)
     if (!(sceneMap instanceof Y.Map)) return
     yDoc.transact(() => {
-      for (const [key, value] of Object.entries(updates)) {
-        if (key === 'id') continue
-        sceneMap.set(key, value)
+      if (updates.name !== undefined) sceneMap.set('name', updates.name)
+      if (updates.sortOrder !== undefined) sceneMap.set('sortOrder', updates.sortOrder)
+      if (updates.atmosphere) {
+        const current = readAtmosphere(sceneMap)
+        sceneMap.set('atmosphere', { ...current, ...updates.atmosphere })
       }
     })
   },
@@ -568,50 +623,186 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     return ids
   },
 
-  setCombatActive: (sceneId: string, active: boolean) => {
-    const yScenes = get()._yScenes
-    if (!yScenes) return
-    const sceneMap = yScenes.get(sceneId)
-    if (!(sceneMap instanceof Y.Map)) return
-    sceneMap.set('combatActive', active)
-  },
-
   duplicateScene: (sourceId: string, newId: string) => {
     const { addScene, getScene, getSceneEntityIds } = get()
     const source = getScene(sourceId)
     if (!source) return
     const entityIds = getSceneEntityIds(sourceId)
-    addScene(
-      {
-        ...source,
-        id: newId,
-        name: `${source.name} (copy)`,
-        sortOrder: source.sortOrder + 1,
-        combatActive: false,
-        initiativeOrder: [],
-        initiativeIndex: 0,
-      },
-      entityIds,
-    )
+    addScene(newId, `${source.name} (copy)`, source.atmosphere, entityIds)
   },
 
-  setInitiativeOrder: (sceneId: string, order: string[]) => {
-    const yScenes = get()._yScenes
-    if (!yScenes) return
-    const sceneMap = yScenes.get(sceneId)
-    if (!(sceneMap instanceof Y.Map)) return
-    sceneMap.set('initiativeOrder', order)
+  // ── Combat actions ──
+  activateEncounter: (sceneId: string, encounterId?: string) => {
+    const { _yCombat: yCombat, _yRoom: yRoom, _yDoc: yDoc } = get()
+    if (!yCombat || !yRoom || !yDoc) return
+
+    const scene = get().getScene(sceneId)
+    if (!scene) return
+
+    // Load encounter data if encounterId provided, otherwise create fresh combat
+    let mapUrl = ''
+    let mapWidth = scene.atmosphere.width || 1920
+    let mapHeight = scene.atmosphere.height || 1080
+    let grid: CombatInfo['grid'] = {
+      size: 50,
+      snap: true,
+      visible: true,
+      color: 'rgba(255,255,255,0.15)',
+      offsetX: 0,
+      offsetY: 0,
+    }
+    let savedTokens: Record<string, EncounterData['tokens'][string]> = {}
+
+    if (encounterId && scene.encounters[encounterId]) {
+      const enc = scene.encounters[encounterId]
+      mapUrl = enc.mapUrl
+      mapWidth = enc.mapWidth
+      mapHeight = enc.mapHeight
+      grid = { ...enc.grid }
+      savedTokens = enc.tokens
+    }
+
+    const actualEncounterId =
+      encounterId ??
+      self.crypto?.randomUUID?.() ??
+      Math.random().toString(36).slice(2) + Date.now().toString(36)
+
+    yDoc.transact(() => {
+      // Clear previous combat state before writing new (same pattern as endCombat)
+      const oldKeys: string[] = []
+      yCombat.forEach((_v, k) => oldKeys.push(k))
+      oldKeys.forEach((k) => yCombat.delete(k))
+
+      // Write combat state
+      yCombat.set('mapUrl', mapUrl)
+      yCombat.set('mapWidth', mapWidth)
+      yCombat.set('mapHeight', mapHeight)
+      yCombat.set('grid', grid)
+      yCombat.set('initiativeOrder', [])
+      yCombat.set('initiativeIndex', 0)
+
+      // Create tokens Y.Map for CRDT token management
+      const tokensMap = new Y.Map<MapToken>()
+      yCombat.set('tokens', tokensMap)
+
+      // Restore saved tokens from encounter snapshot
+      for (const [tokenId, tokenData] of Object.entries(savedTokens)) {
+        const token: MapToken = {
+          id: tokenId,
+          x: tokenData.x,
+          y: tokenData.y,
+          size: tokenData.size,
+          color: tokenData.color,
+          imageUrl: tokenData.imageUrl,
+          label: tokenData.name,
+          entityId: tokenData.entityId,
+          permissions: { default: 'observer', seats: {} },
+        }
+        tokensMap.set(tokenId, token)
+      }
+
+      // Mark combat active in room
+      yRoom.set('activeEncounterId', actualEncounterId)
+    })
   },
 
-  advanceInitiative: (sceneId: string) => {
-    const yScenes = get()._yScenes
-    if (!yScenes) return
+  endCombat: () => {
+    const { _yCombat: yCombat, _yRoom: yRoom, _yDoc: yDoc } = get()
+    if (!yCombat || !yRoom || !yDoc) return
+    yDoc.transact(() => {
+      // Clear combat Y.Map
+      const keys: string[] = []
+      yCombat.forEach((_v, k) => keys.push(k))
+      keys.forEach((k) => yCombat.delete(k))
+      // Clear active encounter
+      yRoom.delete('activeEncounterId')
+    })
+  },
+
+  saveEncounter: (sceneId: string, encounterId: string, name: string) => {
+    const { _yScenes: yScenes, _yDoc: yDoc, combatInfo, tokens } = get()
+    if (!yScenes || !yDoc || !combatInfo) return
+
     const sceneMap = yScenes.get(sceneId)
     if (!(sceneMap instanceof Y.Map)) return
-    const order = (sceneMap.get('initiativeOrder') as string[]) ?? []
-    if (order.length === 0) return
-    const current = (sceneMap.get('initiativeIndex') as number) ?? 0
-    sceneMap.set('initiativeIndex', (current + 1) % order.length)
+
+    // Build encounter data from current combat state
+    const encounterTokens: Record<string, EncounterData['tokens'][string]> = {}
+    for (const t of tokens) {
+      encounterTokens[t.id] = {
+        name: t.label ?? '',
+        imageUrl: t.imageUrl ?? '',
+        color: t.color ?? '',
+        size: t.size,
+        x: t.x,
+        y: t.y,
+        entityId: t.entityId,
+      }
+    }
+
+    const encounterData: EncounterData = {
+      name,
+      mapUrl: combatInfo.mapUrl,
+      mapWidth: combatInfo.mapWidth,
+      mapHeight: combatInfo.mapHeight,
+      grid: { ...combatInfo.grid },
+      tokens: encounterTokens,
+    }
+
+    yDoc.transact(() => {
+      let encounters = sceneMap.get('encounters')
+      if (!(encounters instanceof Y.Map)) {
+        encounters = new Y.Map()
+        sceneMap.set('encounters', encounters)
+      }
+      ;(encounters as Y.Map<EncounterData>).set(encounterId, encounterData)
+    })
+  },
+
+  updateCombatGrid: (updates: Partial<CombatInfo['grid']>) => {
+    const { _yCombat: yCombat } = get()
+    if (!yCombat) return
+    const current = (yCombat.get('grid') as CombatInfo['grid']) ?? {
+      size: 50,
+      snap: true,
+      visible: true,
+      color: 'rgba(255,255,255,0.15)',
+      offsetX: 0,
+      offsetY: 0,
+    }
+    yCombat.set('grid', { ...current, ...updates })
+  },
+
+  setCombatMapUrl: (mapUrl: string, width: number, height: number) => {
+    const { _yCombat: yCombat, _yDoc: yDoc } = get()
+    if (!yCombat || !yDoc) return
+    yDoc.transact(() => {
+      yCombat.set('mapUrl', mapUrl)
+      yCombat.set('mapWidth', width)
+      yCombat.set('mapHeight', height)
+    })
+  },
+
+  // ── Blueprint actions ──
+  // Blueprints use plain objects (last-write-wins) intentionally:
+  // single GM writes, low contention — nested Y.Map not needed.
+  addBlueprint: (bp: Blueprint) => {
+    const yBlueprints = get()._yBlueprints
+    if (!yBlueprints) return
+    const { id, ...data } = bp
+    yBlueprints.set(id, data)
+  },
+
+  updateBlueprint: (id: string, updates: Partial<Blueprint>) => {
+    const yBlueprints = get()._yBlueprints
+    if (!yBlueprints) return
+    const existing = yBlueprints.get(id) as Blueprint | undefined
+    if (!existing) return
+    yBlueprints.set(id, { ...existing, ...updates })
+  },
+
+  deleteBlueprint: (id: string) => {
+    get()._yBlueprints?.delete(id)
   },
 
   // ── Entity actions ──
@@ -649,23 +840,18 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     get()._yEntities?.delete(id)
   },
 
-  // ── Token actions ──
-  setActiveTokenScene: (sceneId: string | null) => {
-    // No-op before init; init() replaces this with the real implementation
-    set({ _activeTokenSceneId: sceneId, tokens: [] })
-  },
-
+  // ── Token actions (write to combat Y.Map) ──
   addToken: (token: MapToken) => {
-    const yScenes = get()._yScenes
-    if (!yScenes) return
-    const tokensMap = getTokensMap(yScenes, get()._activeTokenSceneId)
+    const yCombat = get()._yCombat
+    if (!yCombat) return
+    const tokensMap = getCombatTokensMap(yCombat)
     tokensMap?.set(token.id, token)
   },
 
   updateToken: (id: string, updates: Partial<MapToken>) => {
-    const yScenes = get()._yScenes
-    if (!yScenes) return
-    const tokensMap = getTokensMap(yScenes, get()._activeTokenSceneId)
+    const yCombat = get()._yCombat
+    if (!yCombat) return
+    const tokensMap = getCombatTokensMap(yCombat)
     if (!tokensMap) return
     const existing = tokensMap.get(id)
     if (existing) {
@@ -674,10 +860,26 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   deleteToken: (id: string) => {
-    const yScenes = get()._yScenes
-    if (!yScenes) return
-    const tokensMap = getTokensMap(yScenes, get()._activeTokenSceneId)
+    const yCombat = get()._yCombat
+    if (!yCombat) return
+    const tokensMap = getCombatTokensMap(yCombat)
     tokensMap?.delete(id)
+  },
+
+  // ── Initiative actions (write to combat Y.Map) ──
+  setInitiativeOrder: (order: string[]) => {
+    const yCombat = get()._yCombat
+    if (!yCombat) return
+    yCombat.set('initiativeOrder', order)
+  },
+
+  advanceInitiative: () => {
+    const yCombat = get()._yCombat
+    if (!yCombat) return
+    const order = (yCombat.get('initiativeOrder') as string[]) ?? []
+    if (order.length === 0) return
+    const current = (yCombat.get('initiativeIndex') as number) ?? 0
+    yCombat.set('initiativeIndex', (current + 1) % order.length)
   },
 
   // ── Showcase actions ──

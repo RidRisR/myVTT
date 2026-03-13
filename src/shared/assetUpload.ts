@@ -1,6 +1,4 @@
-import { API_BASE } from './config'
-
-export { API_BASE }
+import { getCurrentRoomId } from './assetApi'
 
 const VIDEO_EXTS = /\.(mp4|webm|mov|ogv)$/i
 
@@ -27,10 +25,11 @@ export function getMediaDimensions(url: string): Promise<{ w: number; h: number 
 }
 
 export async function uploadAsset(file: File): Promise<string> {
+  const roomId = getCurrentRoomId()
   const formData = new FormData()
   formData.append('file', file)
 
-  const res = await fetch(`${API_BASE}/api/upload`, {
+  const res = await fetch(`/api/rooms/${roomId}/upload`, {
     method: 'POST',
     body: formData,
   })
@@ -40,5 +39,6 @@ export async function uploadAsset(file: File): Promise<string> {
   }
 
   const { url } = await res.json()
-  return `${API_BASE}${url}`
+  // Return relative path — Vite proxy (dev) or same-origin (prod) handles /api/*
+  return url
 }

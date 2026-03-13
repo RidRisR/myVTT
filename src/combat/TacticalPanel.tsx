@@ -1,11 +1,11 @@
 import type { MouseEvent } from 'react'
-import type { Scene } from '../stores/worldStore'
+import type { CombatInfo } from '../stores/worldStore'
 import type { MapToken, Entity } from '../shared/entityTypes'
 import { useUiStore } from '../stores/uiStore'
 import { KonvaMap } from './KonvaMap'
 
 interface TacticalPanelProps {
-  scene: Scene | null
+  combatInfo: CombatInfo | null
   tokens: MapToken[]
   getEntity: (id: string) => Entity | null
   mySeatId: string
@@ -21,7 +21,7 @@ interface TacticalPanelProps {
 }
 
 export function TacticalPanel({
-  scene,
+  combatInfo,
   tokens,
   getEntity,
   mySeatId,
@@ -54,7 +54,7 @@ export function TacticalPanel({
         }}
       />
       <KonvaMap
-        scene={scene}
+        combatInfo={combatInfo}
         tokens={tokens}
         getEntity={getEntity}
         mySeatId={mySeatId}

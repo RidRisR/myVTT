@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { X, Trash2, Upload } from 'lucide-react'
-import type { Scene } from '../yjs/useScenes'
+import type { Scene } from '../stores/worldStore'
 import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
 
 interface SceneLibraryProps {
@@ -42,25 +42,18 @@ export function SceneLibrary({
         const scene: Scene = {
           id: generateId(),
           name: file.name.replace(/\.[^.]+$/, ''),
-          atmosphereImageUrl: imageUrl,
-          tacticalMapImageUrl: '',
-          particlePreset: 'none',
-          width: dims.w,
-          height: dims.h,
-          gridSize: 70,
-          gridSnap: true,
-          gridVisible: false,
-          gridColor: 'rgba(255,255,255,0.2)',
-          gridOffsetX: 0,
-          gridOffsetY: 0,
           sortOrder: scenes.length,
-          ambientPreset: 'none',
-          ambientAudioUrl: '',
-          ambientAudioVolume: 0.5,
-          combatActive: false,
-          battleMapUrl: '',
-          initiativeOrder: [],
-          initiativeIndex: 0,
+          atmosphere: {
+            imageUrl: imageUrl,
+            width: dims.w,
+            height: dims.h,
+            particlePreset: 'none',
+            ambientPreset: '',
+            ambientAudioUrl: '',
+            ambientAudioVolume: 0.5,
+          },
+          entityIds: [],
+          encounters: {},
         }
         onAdd(scene)
       }
@@ -117,9 +110,9 @@ export function SceneLibrary({
                 className="rounded-lg overflow-hidden border border-border-glass cursor-pointer transition-shadow duration-fast hover:shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
                 onClick={() => onSelect(scene.id)}
               >
-                {isVideoUrl(scene.atmosphereImageUrl) ? (
+                {isVideoUrl(scene.atmosphere.imageUrl) ? (
                   <video
-                    src={scene.atmosphereImageUrl}
+                    src={scene.atmosphere.imageUrl}
                     muted
                     loop
                     autoPlay
@@ -129,7 +122,7 @@ export function SceneLibrary({
                   />
                 ) : (
                   <img
-                    src={scene.atmosphereImageUrl}
+                    src={scene.atmosphere.imageUrl}
                     alt={scene.name}
                     className="w-full object-cover block"
                     style={{ height: 90 }}
