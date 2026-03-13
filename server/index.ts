@@ -9,6 +9,17 @@ import { fileURLToPath } from 'url'
 import { setupSocketAuth } from './ws'
 import { setupAwareness } from './awareness'
 import { getGlobalDb } from './db'
+import { roomRoutes } from './routes/rooms'
+import { seatRoutes } from './routes/seats'
+import { sceneRoutes } from './routes/scenes'
+import { entityRoutes } from './routes/entities'
+import { encounterRoutes } from './routes/encounters'
+import { combatRoutes } from './routes/combat'
+import { chatRoutes } from './routes/chat'
+import { assetRoutes } from './routes/assets'
+import { trackerRoutes } from './routes/trackers'
+import { showcaseRoutes } from './routes/showcase'
+import { stateRoutes } from './routes/state'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -63,11 +74,18 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', mode: 'socketio-sqlite' })
 })
 
-// ── Route mounting (Phase 2 will add routes here) ──
-// import { roomRoutes } from './routes/rooms'
-// import { seatRoutes } from './routes/seats'
-// app.use(roomRoutes(DATA_DIR))
-// app.use(seatRoutes(DATA_DIR, io))
+// ── Route mounting ──
+app.use(roomRoutes(DATA_DIR))
+app.use(seatRoutes(DATA_DIR, io))
+app.use(sceneRoutes(DATA_DIR, io))
+app.use(entityRoutes(DATA_DIR, io))
+app.use(encounterRoutes(DATA_DIR, io))
+app.use(combatRoutes(DATA_DIR, io))
+app.use(chatRoutes(DATA_DIR, io))
+app.use(assetRoutes(DATA_DIR, io))
+app.use(trackerRoutes(DATA_DIR, io))
+app.use(showcaseRoutes(DATA_DIR, io))
+app.use(stateRoutes(DATA_DIR, io))
 
 // Serve built frontend in production
 const distPath = path.join(__dirname, '..', 'dist')

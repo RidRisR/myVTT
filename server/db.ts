@@ -69,21 +69,33 @@ export function toCamelAll<T>(rows: Record<string, unknown>[]): T[] {
   return rows.map((r) => toCamel<T>(r))
 }
 
-/** Parse JSON string fields in a camelCase row, returning the parsed object */
-export function parseJsonFields<T>(
-  row: T & Record<string, unknown>,
+/** Parse JSON string fields in a row, returning the parsed object */
+export function parseJsonFields(
+  row: Record<string, unknown>,
   ...fields: string[]
-): T {
+): Record<string, unknown> {
   const result = { ...row }
   for (const field of fields) {
     const val = result[field]
     if (typeof val === 'string') {
       try {
-        ;(result as Record<string, unknown>)[field] = JSON.parse(val)
+        result[field] = JSON.parse(val)
       } catch {
         // leave as-is
       }
     }
+  }
+  return result
+}
+
+/** Convert SQLite integer (0/1) fields to boolean */
+export function toBoolFields(
+  row: Record<string, unknown>,
+  ...fields: string[]
+): Record<string, unknown> {
+  const result = { ...row }
+  for (const field of fields) {
+    result[field] = !!result[field]
   }
   return result
 }

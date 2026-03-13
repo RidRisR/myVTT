@@ -21,7 +21,7 @@ declare global {
  */
 export function withRoom(dataDir: string) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const roomId = req.params.roomId
+    const roomId = req.params.roomId as string
     if (!roomId || !/^[a-zA-Z0-9_-]{1,64}$/.test(roomId)) {
       res.status(400).json({ error: 'Invalid room ID' })
       return
@@ -43,7 +43,8 @@ export function withRoom(dataDir: string) {
 export function withRole(req: Request, res: Response, next: NextFunction): void {
   // TODO: [S1] Replace with JWT-based role extraction (see doc 53)
   // For now, role can be passed via query or header
-  const role = (req.headers['x-myvtt-role'] as string) || (req.query.role as string)
+  const headerVal = req.headers['x-myvtt-role']
+  const role = (Array.isArray(headerVal) ? headerVal[0] : headerVal) || (req.query.role as string)
   if (role === 'GM' || role === 'PL') {
     req.role = role
   }
