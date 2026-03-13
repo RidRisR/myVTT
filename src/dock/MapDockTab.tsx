@@ -173,16 +173,14 @@ export function MapDockTab({
                   loop
                   autoPlay
                   playsInline
-                  className="w-full object-cover block"
-                  style={{ height: 70 }}
+                  className="w-full h-[70px] object-cover block"
                   draggable={false}
                 />
               ) : (
                 <img
                   src={asset.url}
                   alt={asset.name}
-                  className="w-full object-cover block"
-                  style={{ height: 70 }}
+                  className="w-full h-[70px] object-cover block"
                   draggable={false}
                 />
               )}
@@ -205,8 +203,7 @@ export function MapDockTab({
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="rounded-lg border-2 border-dashed border-border-glass cursor-pointer flex flex-col items-center justify-center gap-1 text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50 bg-transparent disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ height: 94 }}
+          className="rounded-lg border-2 border-dashed border-border-glass cursor-pointer flex flex-col items-center justify-center gap-1 text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50 bg-transparent disabled:cursor-not-allowed disabled:opacity-50 h-[94px]"
         >
           {uploading ? (
             <>

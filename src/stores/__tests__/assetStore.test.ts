@@ -114,22 +114,4 @@ describe('assetStore', () => {
       expect(useAssetStore.getState().assets[0].name).toBe('new.png')
     })
   })
-
-  describe('imageAssets / blueprintAssets / handoutAssets', () => {
-    it('filters assets by type', () => {
-      useAssetStore.setState({
-        assets: [
-          makeAsset({ id: 'img1', type: 'image' }),
-          makeAsset({ id: 'bp1', type: 'blueprint' }),
-          makeAsset({ id: 'h1', type: 'handout' }),
-          makeAsset({ id: 'img2', type: 'image' }),
-        ],
-      })
-
-      const state = useAssetStore.getState()
-      expect(state.imageAssets()).toHaveLength(2)
-      expect(state.blueprintAssets()).toHaveLength(1)
-      expect(state.handoutAssets()).toHaveLength(1)
-    })
-  })
 })

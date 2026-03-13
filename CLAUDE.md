@@ -55,6 +55,12 @@ myVTT is a lightweight Virtual Tabletop built with React + Yjs + y-websocket for
 - Nested Y.Map creation (`parent.set(key, new Y.Map())`) is ONLY allowed inside explicit user actions (e.g., addScene), where: (1) the operation happens after WebSocket sync is complete, (2) the key is a unique ID (UUID), not a fixed string, (3) only one client triggers the creation
 - Plain objects stored as Y.Map values have NO field-level CRDT — use nested Y.Map for fields that need concurrent editing
 
+**Yjs Mutation Rules:**
+
+- All Y.Doc mutations MUST happen inside a `transact()` block
+- When using delta persistence (`ydoc.on('update', ...)`), the listener MUST be registered BEFORE any mutations
+- When writing a complete state to a Y.Map (e.g., activateEncounter), clear all existing keys first before writing new ones — prevents stale data from previous operations
+
 **Entity System:**
 
 - Core type: `Entity` (id, name, imageUrl, color, size, notes, ruleData, permissions, persistent)
@@ -103,15 +109,15 @@ Still present in the codebase but no longer used for the main tactical map. If e
 
 **z-index Semantic Layers** (defined in `tailwind.config.ts`):
 
-| Layer | Value | Use case |
-|-------|-------|----------|
-| base | 0 | Default stacking |
-| combat | 100 | Combat map overlays |
-| ui | 1000 | General UI panels |
-| popover | 5000 | Dropdowns, tooltips |
-| overlay | 8000 | Modal backdrops |
-| modal | 9000 | Modals, dialogs |
-| toast | 10000 | Toast notifications |
+| Layer   | Value | Use case            |
+| ------- | ----- | ------------------- |
+| base    | 0     | Default stacking    |
+| combat  | 100   | Combat map overlays |
+| ui      | 1000  | General UI panels   |
+| popover | 5000  | Dropdowns, tooltips |
+| overlay | 8000  | Modal backdrops     |
+| modal   | 9000  | Modals, dialogs     |
+| toast   | 10000 | Toast notifications |
 
 ## State Management
 
@@ -119,37 +125,43 @@ Data flow: **Yjs → zustand store → React components** (via fine-grained sele
 
 - Yjs observers write into zustand stores; components subscribe via selectors — never read Y.Map directly in render
 - Do NOT use SyncedStore (abandoned, incompatible with React 19)
+- Do NOT add derived-data methods (`.filter()`, `.sort()`) to zustand stores — they return new references on every call and cause infinite re-renders when used as selectors. Use `useMemo` in components instead
 
 **Store files in `src/stores/`:**
 
-| File | Purpose |
-|------|---------|
-| `worldStore.ts` | Main bridge — Yjs observer writes scenes, entities, room, etc. into React-readable state |
-| `uiStore.ts` | Client-only UI state: selectedTokenId, activeTool, theme, panel open/closed |
-| `identityStore.ts` | Seat/identity state |
-| `selectors.ts` | Selector functions for efficient component subscriptions |
+| File               | Purpose                                                                                  |
+| ------------------ | ---------------------------------------------------------------------------------------- |
+| `worldStore.ts`    | Main bridge — Yjs observer writes scenes, entities, room, etc. into React-readable state |
+| `uiStore.ts`       | Client-only UI state: selectedTokenId, activeTool, theme, panel open/closed              |
+| `identityStore.ts` | Seat/identity state                                                                      |
+| `selectors.ts`     | Selector functions for efficient component subscriptions                                 |
 
 ## Styling Infrastructure
 
 All styling uses **Tailwind CSS v4**. Do NOT write inline styles.
 
+- Fixed pixel values MUST use Tailwind arbitrary values (e.g., `h-[70px]`), not `style={{}}`
+- `style={{}}` is ONLY acceptable for: (1) dynamic values computed at runtime, (2) CSS properties without Tailwind equivalents (e.g., `contentVisibility`, complex `gridTemplateColumns`)
+
 **Design tokens** are defined in `tailwind.config.ts` as semantic color names:
 
-| Token | Use |
-|-------|-----|
-| `bg-glass` | Panel/floating UI background |
-| `text-primary` | Main text |
-| `text-muted` | Secondary/disabled text |
-| `border-glass` | Panel borders |
-| `accent` | Highlight / interactive accent color |
-| `danger` | Destructive actions |
-| `success` | Positive feedback |
+| Token          | Use                                  |
+| -------------- | ------------------------------------ |
+| `bg-glass`     | Panel/floating UI background         |
+| `text-primary` | Main text                            |
+| `text-muted`   | Secondary/disabled text              |
+| `border-glass` | Panel borders                        |
+| `accent`       | Highlight / interactive accent color |
+| `danger`       | Destructive actions                  |
+| `success`      | Positive feedback                    |
 
 **Themes** (toggled via `data-theme` attribute on `<html>`):
+
 - **Warm** (default): warm brown-black + amber gold accent — "candlelit parchment" feel
 - **Cold**: cool blue-black + blue accent
 
 **Animation durations** (Tailwind classes or CSS variables):
+
 - 150ms — micro-interactions (hover states)
 - 250ms — standard transitions
 - 400ms — emphasis animations
@@ -157,10 +169,17 @@ All styling uses **Tailwind CSS v4**. Do NOT write inline styles.
 
 ## Server Architecture
 
-- File: `server/index.mjs`
+- Files: `server/app.mjs` (Express app + routes) + `server/index.mjs` (server startup + WebSocket)
 - Port: 4444 (y-websocket + y-leveldb)
-- Persistence: LevelDB database in `./db` directory
-- Assets: Uploaded files stored in `public/assets/`
+- Persistence: per-room LevelDB in `data/rooms/{roomId}/db/`
+- Assets: Uploaded files stored in `data/rooms/{roomId}/uploads/`
+- Tests: `server/__tests__/` (vitest + supertest, runs in node environment)
+
+**Server Security Rules:**
+
+- All route parameters used in filesystem paths MUST be validated against `/^[a-zA-Z0-9_-]+$/` — enforced by `app.param('roomId', ...)` middleware
+- multer uploads MUST have `fileFilter` restricting to allowed MIME types (image/video/audio)
+- Asset deletion MUST clean up both metadata (LevelDB) and the associated file on disk
 
 ## Development Workflow
 

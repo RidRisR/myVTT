@@ -115,22 +115,18 @@ function readYMapEntity(yMap: Y.Map<unknown>): Entity {
 }
 
 function readAtmosphere(sceneMap: Y.Map<unknown>): Atmosphere {
-  // New format: atmosphere stored as plain object
   const atm = sceneMap.get('atmosphere')
   if (atm && typeof atm === 'object' && !(atm instanceof Y.Map) && !(atm instanceof Y.Array)) {
     return atm as Atmosphere
   }
-  // Backward compatibility: read from flat fields
   return {
-    imageUrl:
-      (sceneMap.get('atmosphereImageUrl') as string) ?? (sceneMap.get('imageUrl') as string) ?? '',
-    width: (sceneMap.get('width') as number) ?? 0,
-    height: (sceneMap.get('height') as number) ?? 0,
-    particlePreset: ((sceneMap.get('particlePreset') as string) ??
-      'none') as Atmosphere['particlePreset'],
-    ambientPreset: (sceneMap.get('ambientPreset') as string) ?? '',
-    ambientAudioUrl: (sceneMap.get('ambientAudioUrl') as string) ?? '',
-    ambientAudioVolume: (sceneMap.get('ambientAudioVolume') as number) ?? 0.5,
+    imageUrl: '',
+    width: 0,
+    height: 0,
+    particlePreset: 'none',
+    ambientPreset: '',
+    ambientAudioUrl: '',
+    ambientAudioVolume: 0.5,
   }
 }
 
@@ -672,6 +668,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       Math.random().toString(36).slice(2) + Date.now().toString(36)
 
     yDoc.transact(() => {
+      // Clear previous combat state before writing new (same pattern as endCombat)
+      const oldKeys: string[] = []
+      yCombat.forEach((_v, k) => oldKeys.push(k))
+      oldKeys.forEach((k) => yCombat.delete(k))
+
       // Write combat state
       yCombat.set('mapUrl', mapUrl)
       yCombat.set('mapWidth', mapWidth)
@@ -783,6 +784,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   // ── Blueprint actions ──
+  // Blueprints use plain objects (last-write-wins) intentionally:
+  // single GM writes, low contention — nested Y.Map not needed.
   addBlueprint: (bp: Blueprint) => {
     const yBlueprints = get()._yBlueprints
     if (!yBlueprints) return

@@ -71,20 +71,16 @@ export function addSceneToDoc(scenes: Y.Map<Y.Map<unknown>>, yDoc: Y.Doc, sceneI
     const sceneMap = new Y.Map<unknown>()
     scenes.set(sceneId, sceneMap)
     sceneMap.set('name', 'Test Scene')
-    sceneMap.set('atmosphereImageUrl', '')
-    sceneMap.set('tacticalMapImageUrl', '')
-    sceneMap.set('particlePreset', 'none')
-    sceneMap.set('width', 1000)
-    sceneMap.set('height', 1000)
-    sceneMap.set('gridSize', 50)
-    sceneMap.set('gridSnap', true)
-    sceneMap.set('gridVisible', true)
-    sceneMap.set('gridColor', 'rgba(255,255,255,0.15)')
-    sceneMap.set('gridOffsetX', 0)
-    sceneMap.set('gridOffsetY', 0)
+    sceneMap.set('atmosphere', {
+      imageUrl: '',
+      width: 1000,
+      height: 1000,
+      particlePreset: 'none',
+      ambientPreset: '',
+      ambientAudioUrl: '',
+      ambientAudioVolume: 0.5,
+    })
     sceneMap.set('sortOrder', 0)
-    sceneMap.set('combatActive', false)
-    sceneMap.set('battleMapUrl', '')
     sceneMap.set('entityIds', new Y.Map())
     sceneMap.set('tokens', new Y.Map())
   })
