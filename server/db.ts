@@ -81,7 +81,7 @@ export function parseJsonFields(
       try {
         result[field] = JSON.parse(val)
       } catch {
-        // leave as-is
+        console.warn(`parseJsonFields: invalid JSON in field "${field}":`, val)
       }
     }
   }

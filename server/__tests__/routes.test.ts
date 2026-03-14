@@ -378,9 +378,76 @@ describe('Full room lifecycle', () => {
     expect(goneRes.status).toBe(404)
   })
 
+  // ── Scene ID passthrough (regression: C1) ──
+  it('creates scene with client-provided ID', async () => {
+    const clientId = 'client-scene-id-123'
+    const { status, data } = await api('POST', `/api/rooms/${roomId}/scenes`, {
+      id: clientId,
+      name: 'Client ID Scene',
+    })
+    expect(status).toBe(201)
+    expect(data.id).toBe(clientId)
+  })
+
+  it('creates scene with server-generated ID when no body.id', async () => {
+    const { status, data } = await api('POST', `/api/rooms/${roomId}/scenes`, {
+      name: 'Server ID Scene',
+    })
+    expect(status).toBe(201)
+    expect(data.id).toBeTruthy()
+    expect(data.id).not.toBe('')
+  })
+
+  // Full scene ID → activeSceneId round-trip (regression: C1 end-to-end)
+  it('scene with client ID can be set as activeSceneId', async () => {
+    const sid = 'roundtrip-scene-' + Date.now()
+    await api('POST', `/api/rooms/${roomId}/scenes`, { id: sid, name: 'RT Scene' })
+    await api('PATCH', `/api/rooms/${roomId}/state`, { activeSceneId: sid })
+
+    const { data } = await api('GET', `/api/rooms/${roomId}/state`)
+    expect(data.activeSceneId).toBe(sid)
+  })
+
+  // Persistent entity auto-linking atomicity (regression: M3)
+  it('new scene auto-links all persistent entities', async () => {
+    const ids = ['pers-a', 'pers-b', 'pers-c']
+    for (const id of ids) {
+      await api('POST', `/api/rooms/${roomId}/entities`, {
+        id,
+        name: `Persistent ${id}`,
+        persistent: true,
+      })
+    }
+    const newSceneId = 'auto-link-scene'
+    await api('POST', `/api/rooms/${roomId}/scenes`, { id: newSceneId, name: 'Auto Link' })
+    const { data: linkedIds } = await api(
+      'GET',
+      `/api/rooms/${roomId}/scenes/${newSceneId}/entities`,
+    )
+    for (const id of ids) {
+      expect(linkedIds).toContain(id)
+    }
+  })
+
   // ── Cleanup ──
   it('deletes the room', async () => {
     const { data } = await api('DELETE', `/api/rooms/${roomId}`)
     expect(data.ok).toBe(true)
+  })
+})
+
+// ── Room DELETE disk cleanup (regression: H1) ──
+describe('Room DELETE disk cleanup', () => {
+  it('deletes room directory from disk', async () => {
+    const { data: room } = await api('POST', '/api/rooms', { name: 'Disk Cleanup Room' })
+    const rid = room.id
+    const roomDir = path.join(dataDir, 'rooms', rid)
+
+    expect(fs.existsSync(roomDir)).toBe(true)
+
+    const { data } = await api('DELETE', `/api/rooms/${rid}`)
+    expect(data.ok).toBe(true)
+
+    expect(fs.existsSync(roomDir)).toBe(false)
   })
 })

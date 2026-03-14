@@ -13,11 +13,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     throw new Error(err.error || res.statusText)
   }
   // Handle empty responses (204, empty body).
-  // Note: callers using GET expect T to be defined; 204 only occurs for DELETE/POST.
-  if (res.status === 204 || res.headers.get('content-length') === '0') {
-    return undefined as T
+  // Mutation endpoints (POST/PATCH/DELETE) may return 204; GET always returns JSON.
+  const contentLength = res.headers.get('content-length')
+  if (res.status === 204 || contentLength === '0') {
+    return undefined as unknown as T
   }
-  return res.json()
+  return res.json() as Promise<T>
 }
 
 export const api = {

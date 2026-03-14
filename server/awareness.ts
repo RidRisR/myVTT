@@ -26,6 +26,22 @@ export function setupAwareness(io: SocketIOServer): void {
       },
     )
 
+    // Relay resource-drag awareness (editing/clear)
+    socket.on('awareness:editing', (data: unknown) => {
+      socket.to(roomId).emit('awareness:editing', data)
+    })
+    socket.on('awareness:clear', (data: unknown) => {
+      socket.to(roomId).emit('awareness:clear', data)
+    })
+
+    // Relay token drag awareness
+    socket.on('awareness:tokenDrag', (data: unknown) => {
+      socket.to(roomId).emit('awareness:tokenDrag', data)
+    })
+    socket.on('awareness:tokenDragEnd', (data: unknown) => {
+      socket.to(roomId).emit('awareness:tokenDragEnd', data)
+    })
+
     // Notify room when a client disconnects
     socket.on('disconnect', () => {
       if (socket.data.seatId) {

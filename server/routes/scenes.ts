@@ -24,30 +24,34 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
   })
 
   router.post('/api/rooms/:roomId/scenes', room, (req, res) => {
-    const id = crypto.randomUUID()
+    const id = req.body.id || crypto.randomUUID()
     const { name, sortOrder, atmosphere, gmOnly } = req.body
-    req.roomDb!
-      .prepare(
-        'INSERT INTO scenes (id, name, sort_order, atmosphere, gm_only) VALUES (?, ?, ?, ?, ?)',
-      )
-      .run(
-        id,
-        name || 'New Scene',
-        sortOrder ?? 0,
-        JSON.stringify(atmosphere || {}),
-        gmOnly ? 1 : 0,
-      )
 
-    // Auto-link persistent entities
-    const persistentEntities = req.roomDb!
-      .prepare('SELECT id FROM entities WHERE persistent = 1')
-      .all() as { id: string }[]
-    const linkStmt = req.roomDb!.prepare(
-      'INSERT OR IGNORE INTO scene_entities (scene_id, entity_id) VALUES (?, ?)',
-    )
-    for (const e of persistentEntities) {
-      linkStmt.run(id, e.id)
-    }
+    const createScene = req.roomDb!.transaction(() => {
+      req.roomDb!
+        .prepare(
+          'INSERT INTO scenes (id, name, sort_order, atmosphere, gm_only) VALUES (?, ?, ?, ?, ?)',
+        )
+        .run(
+          id,
+          name || 'New Scene',
+          sortOrder ?? 0,
+          JSON.stringify(atmosphere || {}),
+          gmOnly ? 1 : 0,
+        )
+
+      // Auto-link persistent entities
+      const persistentEntities = req.roomDb!
+        .prepare('SELECT id FROM entities WHERE persistent = 1')
+        .all() as { id: string }[]
+      const linkStmt = req.roomDb!.prepare(
+        'INSERT OR IGNORE INTO scene_entities (scene_id, entity_id) VALUES (?, ?)',
+      )
+      for (const e of persistentEntities) {
+        linkStmt.run(id, e.id)
+      }
+    })
+    createScene()
 
     const scene = toScene(
       req.roomDb!.prepare('SELECT * FROM scenes WHERE id = ?').get(id) as Record<string, unknown>,

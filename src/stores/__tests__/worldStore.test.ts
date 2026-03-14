@@ -570,4 +570,48 @@ describe('action methods', () => {
     expect(url).toContain(`/api/rooms/${ROOM_ID}/combat/end`)
     expect(method).toBe('POST')
   })
+
+  // ── Regression: C1 — addScene sends body.id ──
+  it('addScene sends client ID in request body', async () => {
+    await useWorldStore.getState().addScene('my-scene-id', 'Test', {
+      imageUrl: '',
+      width: 0,
+      height: 0,
+      particlePreset: 'none',
+      ambientPreset: '',
+      ambientAudioUrl: '',
+      ambientAudioVolume: 0.5,
+    })
+
+    const { body } = getLastFetchCall()
+    const parsed = JSON.parse(body as string)
+    expect(parsed.id).toBe('my-scene-id')
+    expect(parsed.name).toBe('Test')
+  })
+
+  // ── Regression: C2 — duplicateScene sends body.id ──
+  it('duplicateScene sends newId in request body', async () => {
+    // Populate a source scene in the store
+    socket._trigger('scene:created', {
+      id: 'src-scene',
+      name: 'Source',
+      sortOrder: 0,
+      gmOnly: false,
+      atmosphere: { imageUrl: '' },
+    })
+
+    await useWorldStore.getState().duplicateScene('src-scene', 'dup-scene-id')
+
+    const { body } = getLastFetchCall()
+    const parsed = JSON.parse(body as string)
+    expect(parsed.id).toBe('dup-scene-id')
+    expect(parsed.name).toBe('Source (copy)')
+  })
+
+  // ── Regression: C4 — updateShowcaseItem returns a Promise ──
+  it('updateShowcaseItem is async (returns a Promise)', async () => {
+    const result = useWorldStore.getState().updateShowcaseItem('item-1', { pinned: true })
+    expect(result).toBeInstanceOf(Promise)
+    await result
+  })
 })

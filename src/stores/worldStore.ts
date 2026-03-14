@@ -445,10 +445,10 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   // ── Scene actions ──
 
-  addScene: async (_id, name, atmosphere) => {
+  addScene: async (id, name, atmosphere) => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/scenes`, { name, atmosphere })
+    await api.post(`/api/rooms/${roomId}/scenes`, { id, name, atmosphere })
   },
 
   updateScene: async (id, updates) => {
@@ -484,13 +484,14 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     return get().sceneEntityMap[sceneId] ?? EMPTY_IDS
   },
 
-  duplicateScene: async (sourceId, _newId) => {
+  duplicateScene: async (sourceId, newId) => {
     // Create a copy via API
     const source = get().getScene(sourceId)
     if (!source) return
     const roomId = get()._roomId
     if (!roomId) return
     await api.post(`/api/rooms/${roomId}/scenes`, {
+      id: newId,
       name: `${source.name} (copy)`,
       atmosphere: source.atmosphere,
       sortOrder: source.sortOrder + 1,
@@ -617,10 +618,10 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     await api.post(`/api/rooms/${roomId}/showcase`, item)
   },
 
-  updateShowcaseItem: (id, updates) => {
+  updateShowcaseItem: async (id, updates) => {
     const roomId = get()._roomId
     if (!roomId) return
-    api.patch(`/api/rooms/${roomId}/showcase/${id}`, updates)
+    await api.patch(`/api/rooms/${roomId}/showcase/${id}`, updates)
   },
 
   deleteShowcaseItem: async (id) => {

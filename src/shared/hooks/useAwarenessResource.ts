@@ -1,8 +1,8 @@
 // src/shared/hooks/useAwarenessResource.ts
 // Broadcasts resource-drag state via Socket.io and listens for remote drags.
-// TODO: Implement real-time Socket.io broadcasting (currently a no-op stub)
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useWorldStore } from '../../stores/worldStore'
 
 export interface AwarenessResourceState {
   entityId: string
@@ -17,25 +17,70 @@ export interface AwarenessResourceState {
 export type RemoteEditMap = Map<string, AwarenessResourceState>
 
 /**
- * Hook that manages resource drag broadcasting and listening.
- * Currently a no-op stub — real-time broadcasting will be added via Socket.io events.
+ * Hook that manages resource drag broadcasting and listening via Socket.io.
  */
 export function useAwarenessResource(
-  _mySeatId: string | null,
-  _mySeatColor: string | null,
+  mySeatId: string | null,
+  mySeatColor: string | null,
 ) {
-  const [remoteEdits] = useState<RemoteEditMap>(() => new Map())
+  const [remoteEdits, setRemoteEdits] = useState<RemoteEditMap>(() => new Map())
+  const socket = useWorldStore((s) => s._socket)
+
+  // Listen for remote awareness events
+  useEffect(() => {
+    if (!socket) return
+
+    const onEditing = (data: AwarenessResourceState) => {
+      if (data.seatId === mySeatId) return // ignore own broadcasts
+      setRemoteEdits((prev) => {
+        const next = new Map(prev)
+        next.set(`${data.entityId}:${data.field}`, data)
+        return next
+      })
+    }
+
+    const onClear = ({ seatId }: { seatId: string }) => {
+      if (seatId === mySeatId) return
+      setRemoteEdits((prev) => {
+        const next = new Map(prev)
+        let changed = false
+        for (const [key, val] of next) {
+          if (val.seatId === seatId) {
+            next.delete(key)
+            changed = true
+          }
+        }
+        return changed ? next : prev
+      })
+    }
+
+    socket.on('awareness:editing', onEditing)
+    socket.on('awareness:clear', onClear)
+
+    return () => {
+      socket.off('awareness:editing', onEditing)
+      socket.off('awareness:clear', onClear)
+    }
+  }, [socket, mySeatId])
 
   const broadcastEditing = useCallback(
-    (_entityId: string, _field: string, _value: number) => {
-      // TODO: emit socket event for real-time drag broadcasting
+    (entityId: string, field: string, value: number) => {
+      if (!socket || !mySeatId) return
+      socket.emit('awareness:editing', {
+        entityId,
+        field,
+        value,
+        seatId: mySeatId,
+        color: mySeatColor ?? '#888',
+      })
     },
-    [],
+    [socket, mySeatId, mySeatColor],
   )
 
   const clearEditing = useCallback(() => {
-    // TODO: emit socket event to clear editing state
-  }, [])
+    if (!socket || !mySeatId) return
+    socket.emit('awareness:clear', { seatId: mySeatId })
+  }, [socket, mySeatId])
 
   return { broadcastEditing, clearEditing, remoteEdits }
 }

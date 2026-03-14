@@ -133,5 +133,10 @@ export function initRoomSchema(db: Database.Database): void {
       sort_order INTEGER DEFAULT 0,
       created_at INTEGER NOT NULL
     );
+
+    -- Indexes for common queries
+    CREATE INDEX IF NOT EXISTS idx_scene_entities_scene ON scene_entities(scene_id);
+    CREATE INDEX IF NOT EXISTS idx_chat_messages_ts ON chat_messages(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_entities_persistent ON entities(persistent);
   `)
 }

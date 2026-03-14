@@ -1,7 +1,9 @@
 // server/routes/rooms.ts — Room CRUD (global DB)
 import { Router } from 'express'
 import crypto from 'crypto'
-import { getGlobalDb, getRoomDb, toCamelAll } from '../db'
+import fs from 'fs'
+import path from 'path'
+import { getGlobalDb, getRoomDb, closeRoomDb, toCamelAll } from '../db'
 
 export function roomRoutes(dataDir: string): Router {
   const router = Router()
@@ -44,7 +46,10 @@ export function roomRoutes(dataDir: string): Router {
       return
     }
     db.prepare('DELETE FROM rooms WHERE id = ?').run(req.params.roomId)
-    // TODO: clean up room directory on disk
+    // Close cached DB handle before deleting directory
+    closeRoomDb(req.params.roomId)
+    const roomDir = path.join(dataDir, 'rooms', req.params.roomId)
+    fs.rmSync(roomDir, { recursive: true, force: true })
     res.json({ ok: true })
   })
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Stage, Layer, Image, Text, Rect } from 'react-konva'
 import type Konva from 'konva'
 import type { MapToken, Entity } from '../shared/entityTypes'
+import { useWorldStore } from '../stores/worldStore'
 import type { CombatInfo } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
 import { useUiStore } from '../stores/uiStore'
@@ -90,44 +91,57 @@ export function KonvaMap({
   const activeTool = useUiStore((s) => s.activeTool)
   const isSelectMode = activeTool === 'select'
 
-  // Awareness for real-time token drag broadcasting
-  // TODO: migrate to Socket.io awareness (getAwareness was Yjs-only)
-  const awareness = null as null
+  // Awareness for real-time token drag broadcasting via Socket.io
+  const socket = useWorldStore((s) => s._socket)
   const mySeat = useIdentityStore((s) => s.getMySeat())
+  const mySeatId = useIdentityStore((s) => s.mySeatId)
   const [remoteTokenDrags, setRemoteTokenDrags] = useState<
     Map<number, { tokenId: string; x: number; y: number; color: string }>
   >(() => new Map())
 
   useEffect(() => {
-    if (!awareness) return
-    const update = () => {
-      const next = new Map<number, { tokenId: string; x: number; y: number; color: string }>()
-      awareness.getStates().forEach((state, clientId) => {
-        if (clientId === awareness.clientID) return
-        const drag = state['tokenDrag'] as
-          | { tokenId: string; x: number; y: number; color: string }
-          | null
-          | undefined
-        if (drag?.tokenId) next.set(clientId, drag)
+    if (!socket) return
+    let counter = 0
+    const onDrag = (data: { tokenId: string; x: number; y: number; color: string; seatId: string }) => {
+      if (data.seatId === mySeatId) return
+      setRemoteTokenDrags((prev) => {
+        const next = new Map(prev)
+        // Use a stable numeric key per seatId
+        const key = data.seatId.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+        next.set(key, data)
+        return next
       })
-      setRemoteTokenDrags(next)
     }
-    update()
-    awareness.on('change', update)
-    return () => awareness.off('change', update)
-  }, [awareness])
+    const onDragEnd = ({ seatId }: { seatId: string }) => {
+      if (seatId === mySeatId) return
+      setRemoteTokenDrags((prev) => {
+        const key = seatId.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+        if (!prev.has(key)) return prev
+        const next = new Map(prev)
+        next.delete(key)
+        return next
+      })
+    }
+    socket.on('awareness:tokenDrag', onDrag)
+    socket.on('awareness:tokenDragEnd', onDragEnd)
+    return () => {
+      socket.off('awareness:tokenDrag', onDrag)
+      socket.off('awareness:tokenDragEnd', onDragEnd)
+    }
+  }, [socket, mySeatId])
 
   const handleTokenDragMove = useCallback(
     (tokenId: string, x: number, y: number) => {
-      if (!awareness || !mySeat) return
-      awareness.setLocalStateField('tokenDrag', { tokenId, x, y, color: mySeat.color })
+      if (!socket || !mySeat || !mySeatId) return
+      socket.emit('awareness:tokenDrag', { tokenId, x, y, color: mySeat.color, seatId: mySeatId })
     },
-    [awareness, mySeat],
+    [socket, mySeat, mySeatId],
   )
 
   const handleTokenDragEnd = useCallback(() => {
-    awareness?.setLocalStateField('tokenDrag', null)
-  }, [awareness])
+    if (!socket || !mySeatId) return
+    socket.emit('awareness:tokenDragEnd', { seatId: mySeatId })
+  }, [socket, mySeatId])
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)

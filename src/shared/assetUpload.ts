@@ -1,4 +1,5 @@
 import { getCurrentRoomId } from './assetApi'
+import { API_BASE } from './config'
 
 const VIDEO_EXTS = /\.(mp4|webm|mov|ogv)$/i
 
@@ -35,9 +36,10 @@ export async function uploadAsset(
   if (meta?.type) formData.append('type', meta.type)
   if (meta?.extra) formData.append('extra', JSON.stringify(meta.extra))
 
-  const res = await fetch(`/api/rooms/${roomId}/assets`, {
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/assets`, {
     method: 'POST',
     body: formData,
+    credentials: 'include',
   })
 
   if (!res.ok) {

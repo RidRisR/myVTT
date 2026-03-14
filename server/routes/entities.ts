@@ -45,34 +45,37 @@ export function entityRoutes(dataDir: string, io: Server): Router {
       blueprintId = null,
     } = req.body
 
-    req.roomDb!
-      .prepare(
-        `INSERT INTO entities (id, name, image_url, color, size, notes, rule_data, permissions, persistent, blueprint_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        id,
-        name,
-        imageUrl,
-        color,
-        size,
-        notes,
-        JSON.stringify(ruleData),
-        JSON.stringify(permissions),
-        persistent ? 1 : 0,
-        blueprintId,
-      )
+    const createEntity = req.roomDb!.transaction(() => {
+      req.roomDb!
+        .prepare(
+          `INSERT INTO entities (id, name, image_url, color, size, notes, rule_data, permissions, persistent, blueprint_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          name,
+          imageUrl,
+          color,
+          size,
+          notes,
+          JSON.stringify(ruleData),
+          JSON.stringify(permissions),
+          persistent ? 1 : 0,
+          blueprintId,
+        )
 
-    // Persistent entities auto-link to all existing scenes
-    if (persistent) {
-      const scenes = req.roomDb!.prepare('SELECT id FROM scenes').all() as { id: string }[]
-      const stmt = req.roomDb!.prepare(
-        'INSERT OR IGNORE INTO scene_entities (scene_id, entity_id) VALUES (?, ?)',
-      )
-      for (const s of scenes) {
-        stmt.run(s.id, id)
+      // Persistent entities auto-link to all existing scenes
+      if (persistent) {
+        const scenes = req.roomDb!.prepare('SELECT id FROM scenes').all() as { id: string }[]
+        const stmt = req.roomDb!.prepare(
+          'INSERT OR IGNORE INTO scene_entities (scene_id, entity_id) VALUES (?, ?)',
+        )
+        for (const s of scenes) {
+          stmt.run(s.id, id)
+        }
       }
-    }
+    })
+    createEntity()
 
     const entity = toEntity(
       req.roomDb!.prepare('SELECT * FROM entities WHERE id = ?').get(id) as Record<

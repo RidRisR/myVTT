@@ -40,6 +40,7 @@ const EMPTY_IDS: string[] = []
 function RoomSession({ roomId }: { roomId: string }) {
   const { socket, connectionStatus } = useSocket(roomId)
   const [isLoading, setIsLoading] = useState(true)
+  const [initError, setInitError] = useState<string | null>(null)
   const cancelledRef = useRef(false)
 
   // Initialize stores with Socket.io
@@ -55,6 +56,7 @@ function RoomSession({ roomId }: { roomId: string }) {
 
     ;(async () => {
       try {
+        setInitError(null)
         const [worldCleanup, identityCleanup] = await Promise.all([
           initWorld(roomId, socket),
           initIdentity(roomId, socket),
@@ -69,6 +71,7 @@ function RoomSession({ roomId }: { roomId: string }) {
         setIsLoading(false)
       } catch (err) {
         console.error('Failed to initialize room:', err)
+        setInitError(err instanceof Error ? err.message : 'Connection failed')
       }
     })()
 
@@ -83,7 +86,9 @@ function RoomSession({ roomId }: { roomId: string }) {
   // Reinit on reconnect
   useEffect(() => {
     if (connectionStatus === 'connected' && !isLoading) {
-      reinitWorld()
+      reinitWorld().catch((err) => {
+        console.error('Failed to reinitialize after reconnect:', err)
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectionStatus])
@@ -212,21 +217,43 @@ function RoomSession({ roomId }: { roomId: string }) {
     setActiveScene(id)
   }, [isLoading, isGMRole, scenes.length, room.activeSceneId, addScene, setActiveScene])
 
-  if (isLoading) {
+  if (isLoading || initError) {
     return (
       <div
         style={{
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           height: '100vh',
           fontFamily: 'sans-serif',
           fontSize: 18,
-          color: '#666',
+          color: initError ? '#f87171' : '#666',
           background: '#1a1a2e',
+          gap: 16,
         }}
       >
-        Connecting to server...
+        {initError ? (
+          <>
+            <div>Failed to connect: {initError}</div>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                padding: '8px 24px',
+                background: '#3b82f6',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 14,
+              }}
+            >
+              Retry
+            </button>
+          </>
+        ) : (
+          'Connecting to server...'
+        )}
       </div>
     )
   }

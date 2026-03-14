@@ -99,6 +99,25 @@ describe('schema alignment with design doc 43', () => {
     expect(after.c).toBe(0)
   })
 
+  // ── Index verification (regression: M4) ──
+  it('has index on scene_entities(scene_id)', () => {
+    const indexes = db.prepare("PRAGMA index_list('scene_entities')").all() as { name: string }[]
+    const indexNames = indexes.map((i) => i.name)
+    expect(indexNames.some((n) => n.includes('scene'))).toBe(true)
+  })
+
+  it('has index on chat_messages(timestamp)', () => {
+    const indexes = db.prepare("PRAGMA index_list('chat_messages')").all() as { name: string }[]
+    const indexNames = indexes.map((i) => i.name)
+    expect(indexNames.some((n) => n.includes('chat') || n.includes('ts'))).toBe(true)
+  })
+
+  it('has index on entities(persistent)', () => {
+    const indexes = db.prepare("PRAGMA index_list('entities')").all() as { name: string }[]
+    const indexNames = indexes.map((i) => i.name)
+    expect(indexNames.some((n) => n.includes('persistent'))).toBe(true)
+  })
+
   it('FK cascade: delete entity removes scene_entities rows', () => {
     db.prepare("INSERT INTO scenes (id, name) VALUES ('fk-s2', 'Dungeon')").run()
     db.prepare("INSERT INTO entities (id, name) VALUES ('fk-e2', 'Goblin')").run()
