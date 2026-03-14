@@ -19,7 +19,7 @@ export function assetRoutes(dataDir: string, io: Server): Router {
   }
 
   function toAsset(row: Record<string, unknown>) {
-    return parseJsonFields(toCamel<Record<string, unknown>>(row), 'extra')
+    return parseJsonFields(toCamel<Record<string, unknown>>(row), 'extra', 'tags')
   }
 
   router.get('/api/rooms/:roomId/assets', room, (req, res) => {

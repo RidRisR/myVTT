@@ -112,18 +112,26 @@ export function combatRoutes(dataDir: string, io: Server): Router {
     res.json({ ok: true })
   })
 
-  // End combat
+  // Start combat (ad-hoc, no pre-existing encounter required)
+  // Combat state (map, tokens, grid) is preserved across sessions —
+  // only cleared explicitly via PATCH /combat or when activating a saved encounter.
+  router.post('/api/rooms/:roomId/combat/start', room, (req, res) => {
+    const encounterId = `adhoc-${crypto.randomUUID()}`
+    req.roomDb!
+      .prepare('UPDATE room_state SET active_encounter_id = ? WHERE id = 1')
+      .run(encounterId)
+
+    const combatState = getCombatState(req.roomDb!)
+    io.to(req.roomId!).emit('combat:activated', combatState)
+    io.to(req.roomId!).emit('room:state:updated', { activeEncounterId: encounterId })
+    res.json(combatState)
+  })
+
+  // End combat — deactivates the session but preserves combat state (map, tokens, grid)
+  // so GM can resume where they left off.
   router.post('/api/rooms/:roomId/combat/end', room, (req, res) => {
     req.roomDb!
       .prepare('UPDATE room_state SET active_encounter_id = NULL WHERE id = 1')
-      .run()
-    req.roomDb!
-      .prepare(
-        `UPDATE combat_state SET
-          map_url = NULL, map_width = NULL, map_height = NULL,
-          grid = '{}', tokens = '{}', initiative_order = '[]', initiative_index = 0
-        WHERE id = 1`,
-      )
       .run()
     io.to(req.roomId!).emit('combat:ended', {})
     io.to(req.roomId!).emit('room:state:updated', { activeEncounterId: null })

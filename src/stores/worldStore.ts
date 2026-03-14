@@ -134,6 +134,7 @@ interface WorldState {
   duplicateScene: (sourceId: string, newId: string) => Promise<void>
 
   // Combat actions
+  startCombat: () => Promise<void>
   activateEncounter: (sceneId: string, encounterId?: string) => Promise<void>
   endCombat: () => Promise<void>
   saveEncounter: (sceneId: string, encounterId: string) => Promise<void>
@@ -186,6 +187,23 @@ interface WorldState {
 
 const EMPTY_IDS: string[] = []
 
+const DEFAULT_GRID: CombatInfo['grid'] = {
+  size: 50,
+  snap: true,
+  visible: true,
+  color: 'rgba(255,255,255,0.15)',
+  offsetX: 0,
+  offsetY: 0,
+}
+
+function normalizeCombatInfo(raw: CombatInfo): CombatInfo {
+  return {
+    ...raw,
+    grid: { ...DEFAULT_GRID, ...raw.grid },
+    tokens: raw.tokens ?? {},
+  }
+}
+
 // ── Helpers ──
 
 async function loadAll(roomId: string) {
@@ -205,14 +223,10 @@ async function loadAll(roomId: string) {
   const entities: Record<string, Entity> = {}
   for (const e of entitiesArr) entities[e.id] = e
 
-  // Parse combat tokens to Record if stored as object
+  // Only populate combatInfo when combat is actually active (encounter running).
+  // Combat state persists in DB across sessions but UI only shows it during active combat.
   const combatInfo: CombatInfo | null =
-    combatRaw && combatRaw.mapUrl
-      ? {
-          ...combatRaw,
-          tokens: combatRaw.tokens ?? {},
-        }
-      : null
+    state.activeEncounterId && combatRaw ? normalizeCombatInfo(combatRaw) : null
 
   // Build sceneEntityMap: for each scene, fetch its entity IDs
   const sceneEntityMap: Record<string, string[]> = {}
@@ -269,10 +283,10 @@ function registerSocketEvents(socket: Socket, set: (fn: (s: WorldState) => Parti
 
   // ── Combat events ──
   socket.on('combat:activated', (combatState: CombatInfo) => {
-    set(() => ({ combatInfo: combatState }))
+    set(() => ({ combatInfo: normalizeCombatInfo(combatState) }))
   })
   socket.on('combat:updated', (combatState: CombatInfo) => {
-    set(() => ({ combatInfo: combatState }))
+    set(() => ({ combatInfo: normalizeCombatInfo(combatState) }))
   })
   socket.on('combat:ended', () => {
     set(() => ({ combatInfo: null }))
@@ -499,6 +513,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   // ── Combat actions ──
+
+  startCombat: async () => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.post(`/api/rooms/${roomId}/combat/start`)
+  },
 
   activateEncounter: async (_sceneId, encounterId) => {
     const roomId = get()._roomId

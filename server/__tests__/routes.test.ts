@@ -254,14 +254,15 @@ describe('Full room lifecycle', () => {
     expect(data.tokens.t2.x).toBe(350)
   })
 
-  it('ends combat', async () => {
+  it('ends combat — deactivates session but preserves combat state', async () => {
     await api('POST', `/api/rooms/${roomId}/combat/end`)
     const state = await api('GET', `/api/rooms/${roomId}/state`)
     expect(state.data.activeEncounterId).toBeNull()
 
+    // Combat state (map, tokens) should be preserved for next session
     const combat = await api('GET', `/api/rooms/${roomId}/combat`)
-    expect(combat.data.mapUrl).toBeNull()
-    expect(Object.keys(combat.data.tokens)).toHaveLength(0)
+    expect(combat.data.mapUrl).toBe('tavern-map.jpg')
+    expect(Object.keys(combat.data.tokens)).toHaveLength(2)
   })
 
   // ── Chat ──

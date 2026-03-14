@@ -5,6 +5,7 @@ import { useWorldStore } from './stores/worldStore'
 import type { HandoutAsset } from './stores/worldStore'
 import { useIdentityStore } from './stores/identityStore'
 import { useUiStore } from './stores/uiStore'
+import { useAssetStore } from './stores/assetStore'
 import {
   selectActiveScene,
   selectIsCombat,
@@ -60,6 +61,7 @@ function RoomSession({ roomId }: { roomId: string }) {
         const [worldCleanup, identityCleanup] = await Promise.all([
           initWorld(roomId, socket),
           initIdentity(roomId, socket),
+          useAssetStore.getState().init(roomId),
         ])
         if (cancelledRef.current) {
           worldCleanup()
@@ -87,7 +89,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   // Reinit on reconnect
   useEffect(() => {
     if (connectionStatus === 'connected' && !isLoading) {
-      reinitWorld()
+      Promise.all([reinitWorld(), useAssetStore.getState().refresh()])
         .then(() => setInitError(null))
         .catch((err) => {
           console.error('Failed to reinitialize after reconnect:', err)
@@ -113,7 +115,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   const deleteSceneRaw = useWorldStore((s) => s.deleteScene)
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
   const removeEntityFromScene = useWorldStore((s) => s.removeEntityFromScene)
-  const activateEncounter = useWorldStore((s) => s.activateEncounter)
+  const startCombat = useWorldStore((s) => s.startCombat)
   const endCombat = useWorldStore((s) => s.endCombat)
   const setCombatMapUrl = useWorldStore((s) => s.setCombatMapUrl)
   const duplicateScene = useWorldStore((s) => s.duplicateScene)
@@ -445,8 +447,8 @@ function RoomSession({ roomId }: { roomId: string }) {
             onToggleCombat={() => {
               if (isCombat) {
                 endCombat()
-              } else if (room.activeSceneId) {
-                activateEncounter(room.activeSceneId)
+              } else {
+                startCombat()
               }
             }}
             onShowcaseImage={(imageUrl) => {
