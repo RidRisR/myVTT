@@ -54,12 +54,19 @@ export function useAwarenessResource(
       })
     }
 
+    // Clean up stale entries when a remote peer disconnects
+    const onRemove = ({ seatId }: { seatId: string }) => {
+      onClear({ seatId })
+    }
+
     socket.on('awareness:editing', onEditing)
     socket.on('awareness:clear', onClear)
+    socket.on('awareness:remove', onRemove)
 
     return () => {
       socket.off('awareness:editing', onEditing)
       socket.off('awareness:clear', onClear)
+      socket.off('awareness:remove', onRemove)
     }
   }, [socket, mySeatId])
 

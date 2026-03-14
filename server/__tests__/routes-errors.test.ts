@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import http from 'http'
 import express from 'express'
 import { Server as SocketIOServer } from 'socket.io'
-import { getGlobalDb, getRoomDb, closeAllDbs } from '../db'
+import { getGlobalDb, closeAllDbs } from '../db'
 import { roomRoutes } from '../routes/rooms'
 import { seatRoutes } from '../routes/seats'
 import { sceneRoutes } from '../routes/scenes'
@@ -88,7 +88,8 @@ async function api(
     },
     body: body ? JSON.stringify(body) : undefined,
   })
-  const data = await res.json()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data = (await res.json()) as any
   return { status: res.status, data }
 }
 
@@ -349,15 +350,14 @@ describe('Showcase error paths', () => {
   })
 })
 
-describe('Seat claim', () => {
+describe('Seat error paths', () => {
   let roomId: string
 
   beforeAll(async () => {
-    roomId = await createRoom('Seat Claim Room')
+    roomId = await createRoom('Seat Error Room')
   })
 
   it('POST /seats/:id/claim — claim a seat updates user_id', async () => {
-    // Create a seat
     const { data: seat } = await api('POST', `/api/rooms/${roomId}/seats`, {
       name: 'Player 1',
       color: '#00ff00',
@@ -365,7 +365,6 @@ describe('Seat claim', () => {
     })
     const seatId = seat.id
 
-    // Claim it
     const { data: claimed } = await api(
       'POST',
       `/api/rooms/${roomId}/seats/${seatId}/claim`,
@@ -373,9 +372,125 @@ describe('Seat claim', () => {
     )
     expect(claimed.userId).toBe('user-abc-123')
 
-    // Verify via GET
     const { data: seats } = await api('GET', `/api/rooms/${roomId}/seats`)
     const found = seats.find((s: { id: string }) => s.id === seatId)
     expect(found.userId).toBe('user-abc-123')
+  })
+
+  it('POST /seats with missing fields returns 400', async () => {
+    const { status, data } = await api('POST', `/api/rooms/${roomId}/seats`, {
+      name: 'Incomplete',
+    })
+    expect(status).toBe(400)
+    expect(data.error).toContain('required')
+  })
+
+  it('PATCH /seats/:id with non-existent id returns 404', async () => {
+    const { status, data } = await api(
+      'PATCH',
+      `/api/rooms/${roomId}/seats/nonexistent-seat`,
+      { name: 'Ghost' },
+    )
+    expect(status).toBe(404)
+    expect(data.error).toBe('Seat not found')
+  })
+})
+
+describe('Scene error paths', () => {
+  let roomId: string
+
+  beforeAll(async () => {
+    roomId = await createRoom('Scene Error Room')
+  })
+
+  it('PATCH /scenes/:id with non-existent id returns 404', async () => {
+    const { status, data } = await api(
+      'PATCH',
+      `/api/rooms/${roomId}/scenes/nonexistent-scene`,
+      { name: 'Ghost Scene' },
+    )
+    expect(status).toBe(404)
+    expect(data.error).toBe('Scene not found')
+  })
+})
+
+describe('Tracker error paths', () => {
+  let roomId: string
+
+  beforeAll(async () => {
+    roomId = await createRoom('Tracker Error Room')
+  })
+
+  it('PATCH /team-trackers/:id with non-existent id returns 404', async () => {
+    const { status, data } = await api(
+      'PATCH',
+      `/api/rooms/${roomId}/team-trackers/nonexistent-tracker`,
+      { current: 5 },
+    )
+    expect(status).toBe(404)
+    expect(data.error).toBe('Tracker not found')
+  })
+})
+
+describe('Combat token error paths', () => {
+  let roomId: string
+
+  beforeAll(async () => {
+    roomId = await createRoom('Combat Token Error Room')
+  })
+
+  it('PATCH /combat/tokens/:tokenId with non-existent token returns 404', async () => {
+    const { status, data } = await api(
+      'PATCH',
+      `/api/rooms/${roomId}/combat/tokens/nonexistent-token`,
+      { x: 999 },
+    )
+    expect(status).toBe(404)
+    expect(data.error).toBe('Token not found')
+  })
+})
+
+describe('Showcase PATCH error paths', () => {
+  let roomId: string
+
+  beforeAll(async () => {
+    roomId = await createRoom('Showcase Patch Error Room')
+  })
+
+  it('PATCH /showcase/:id with non-existent id returns 404', async () => {
+    const { status, data } = await api(
+      'PATCH',
+      `/api/rooms/${roomId}/showcase/nonexistent-item`,
+      { pinned: true },
+    )
+    expect(status).toBe(404)
+    expect(data.error).toBe('Showcase item not found')
+  })
+})
+
+describe('Encounter error paths', () => {
+  let roomId: string
+
+  beforeAll(async () => {
+    roomId = await createRoom('Encounter Error Room')
+  })
+
+  it('PATCH /encounters/:id with non-existent id returns 404', async () => {
+    const { status, data } = await api(
+      'PATCH',
+      `/api/rooms/${roomId}/encounters/nonexistent-enc`,
+      { name: 'Ghost Encounter' },
+    )
+    expect(status).toBe(404)
+    expect(data.error).toBe('Encounter not found')
+  })
+
+  it('POST /encounters/:id/activate with non-existent id returns 404', async () => {
+    const { status, data } = await api(
+      'POST',
+      `/api/rooms/${roomId}/encounters/nonexistent-enc/activate`,
+    )
+    expect(status).toBe(404)
+    expect(data.error).toBe('Encounter not found')
   })
 })

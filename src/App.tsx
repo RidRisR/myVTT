@@ -72,6 +72,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       } catch (err) {
         console.error('Failed to initialize room:', err)
         setInitError(err instanceof Error ? err.message : 'Connection failed')
+        setIsLoading(false)
       }
     })()
 
@@ -86,9 +87,11 @@ function RoomSession({ roomId }: { roomId: string }) {
   // Reinit on reconnect
   useEffect(() => {
     if (connectionStatus === 'connected' && !isLoading) {
-      reinitWorld().catch((err) => {
-        console.error('Failed to reinitialize after reconnect:', err)
-      })
+      reinitWorld()
+        .then(() => setInitError(null))
+        .catch((err) => {
+          console.error('Failed to reinitialize after reconnect:', err)
+        })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectionStatus])

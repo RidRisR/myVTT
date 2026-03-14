@@ -109,4 +109,62 @@ describe('api', () => {
       expect.objectContaining({ credentials: 'include' }),
     )
   })
+
+  it('404 response throws Error with error message from body', async () => {
+    const errorBody = { error: 'Not found' }
+    vi.mocked(fetch).mockResolvedValueOnce(mockResponse(errorBody, { status: 404 }))
+
+    await expect(api.get('/missing')).rejects.toThrow('Not found')
+  })
+
+  it('error response with no error field falls back to statusText', async () => {
+    const errorBody = { message: 'some other format' }
+    const res = mockResponse(errorBody, { status: 500 })
+    vi.mocked(fetch).mockResolvedValueOnce(res)
+
+    await expect(api.get('/fail')).rejects.toThrow('Internal Server Error')
+  })
+
+  it('error response with non-JSON body falls back to statusText', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      statusText: 'Bad Gateway',
+      headers: new Headers(),
+      json: vi.fn().mockRejectedValue(new SyntaxError('Unexpected token')),
+    } as unknown as Response)
+
+    await expect(api.get('/fail')).rejects.toThrow('Bad Gateway')
+  })
+
+  it('POST without body does not send Content-Type header', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(mockResponse({ ok: true }, { status: 200 }))
+
+    await api.post('/action')
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        method: 'POST',
+        headers: undefined,
+        body: undefined,
+      }),
+    )
+  })
+
+  it('content-length 0 returns undefined', async () => {
+    const res = {
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      headers: new Headers({ 'content-length': '0' }),
+      json: vi.fn(),
+    } as unknown as Response
+    vi.mocked(fetch).mockResolvedValueOnce(res)
+
+    const result = await api.get('/empty')
+
+    expect(result).toBeUndefined()
+    expect(res.json).not.toHaveBeenCalled()
+  })
 })

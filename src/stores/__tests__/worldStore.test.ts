@@ -463,6 +463,52 @@ describe('socket event handlers', () => {
     expect(useWorldStore.getState().assets).toHaveLength(0)
   })
 
+  // -- Combat edge cases --
+
+  it('combat:updated replaces combatInfo completely', () => {
+    socket._trigger('combat:activated', makeCombatInfo({ mapUrl: '/old.png' }))
+    const updatedCombat = makeCombatInfo({ mapUrl: '/new.png', initiativeIndex: 3 })
+    socket._trigger('combat:updated', updatedCombat)
+
+    expect(useWorldStore.getState().combatInfo?.mapUrl).toBe('/new.png')
+    expect(useWorldStore.getState().combatInfo?.initiativeIndex).toBe(3)
+  })
+
+  it('combat:token:updated is no-op when combatInfo is null', () => {
+    // combatInfo is null (no combat active)
+    socket._trigger('combat:token:updated', { tokenId: 'token-1', changes: { x: 999 } })
+
+    expect(useWorldStore.getState().combatInfo).toBeNull()
+  })
+
+  it('combat:token:updated is no-op when token does not exist', () => {
+    socket._trigger('combat:activated', makeCombatInfo({
+      tokens: { 'token-1': makeToken({ id: 'token-1', x: 100 }) },
+    }))
+
+    socket._trigger('combat:token:updated', { tokenId: 'nonexistent', changes: { x: 300 } })
+
+    // Existing token unchanged
+    expect(useWorldStore.getState().combatInfo?.tokens['token-1'].x).toBe(100)
+  })
+
+  it('combat:token:removed is no-op when combatInfo is null', () => {
+    socket._trigger('combat:token:removed', { tokenId: 'token-1' })
+
+    expect(useWorldStore.getState().combatInfo).toBeNull()
+  })
+
+  // -- Tracker edge cases --
+
+  it('tracker:updated updates matching tracker fields', () => {
+    const updated = makeTracker({ id: 'tracker-1', label: 'HP', current: 15, max: 20 })
+    socket._trigger('tracker:updated', updated)
+
+    const tracker = useWorldStore.getState().teamTrackers[0]
+    expect(tracker.current).toBe(15)
+    expect(tracker.label).toBe('HP')
+  })
+
   // -- Showcase events --
 
   it('showcase:created adds to showcaseItems', () => {
@@ -472,10 +518,51 @@ describe('socket event handlers', () => {
     expect(useWorldStore.getState().showcaseItems).toHaveLength(2)
   })
 
+  it('showcase:updated updates matching showcase item', () => {
+    const updated = makeShowcaseItem({ id: 'showcase-1', type: 'handout' })
+    socket._trigger('showcase:updated', updated)
+
+    expect(useWorldStore.getState().showcaseItems[0].type).toBe('handout')
+  })
+
+  it('showcase:deleted removes from showcaseItems', () => {
+    socket._trigger('showcase:deleted', { id: 'showcase-1' })
+
+    expect(useWorldStore.getState().showcaseItems).toHaveLength(0)
+  })
+
   it('showcase:cleared empties showcaseItems', () => {
     socket._trigger('showcase:cleared')
 
     expect(useWorldStore.getState().showcaseItems).toHaveLength(0)
+  })
+
+  // -- Scene edge cases --
+
+  it('scene:entity:linked creates entry for unknown sceneId', () => {
+    socket._trigger('scene:entity:linked', { sceneId: 'new-scene', entityId: 'entity-1' })
+
+    expect(useWorldStore.getState().sceneEntityMap['new-scene']).toEqual(['entity-1'])
+  })
+
+  it('scene:entity:unlinked on empty list does not crash', () => {
+    socket._trigger('scene:entity:unlinked', { sceneId: 'nonexistent', entityId: 'entity-1' })
+
+    expect(useWorldStore.getState().sceneEntityMap['nonexistent']).toEqual([])
+  })
+
+  // -- Room state --
+
+  it('room:state:updated preserves fields not in payload', () => {
+    // Set initial room state with both fields
+    useWorldStore.setState({ room: { activeSceneId: 'scene-1', activeEncounterId: 'enc-1' } })
+
+    // Update only one field
+    socket._trigger('room:state:updated', { activeSceneId: 'scene-2' })
+
+    const room = useWorldStore.getState().room
+    expect(room.activeSceneId).toBe('scene-2')
+    expect(room.activeEncounterId).toBe('enc-1')
   })
 })
 
@@ -613,5 +700,90 @@ describe('action methods', () => {
     const result = useWorldStore.getState().updateShowcaseItem('item-1', { pinned: true })
     expect(result).toBeInstanceOf(Promise)
     await result
+  })
+
+  // ── getScene / getSceneEntityIds ──
+
+  it('getScene returns scene by id', () => {
+    const scene = useWorldStore.getState().getScene('scene-1')
+    expect(scene).not.toBeNull()
+    expect(scene?.name).toBe('Test Scene')
+  })
+
+  it('getScene returns null for non-existent id', () => {
+    expect(useWorldStore.getState().getScene('no-such-scene')).toBeNull()
+  })
+
+  it('getScene returns null for null id', () => {
+    expect(useWorldStore.getState().getScene(null)).toBeNull()
+  })
+
+  it('getSceneEntityIds returns ids for known scene', () => {
+    const ids = useWorldStore.getState().getSceneEntityIds('scene-1')
+    expect(ids).toEqual(['entity-1'])
+  })
+
+  it('getSceneEntityIds returns stable empty array for unknown scene', () => {
+    const ids1 = useWorldStore.getState().getSceneEntityIds('no-scene')
+    const ids2 = useWorldStore.getState().getSceneEntityIds('no-scene')
+    expect(ids1).toEqual([])
+    expect(ids1).toBe(ids2) // same reference
+  })
+
+  // ── Blueprint local actions ──
+
+  it('addBlueprint adds to blueprints array', () => {
+    useWorldStore.getState().addBlueprint({
+      id: 'bp-1',
+      name: 'Goblin Template',
+      imageUrl: '',
+      color: '#00ff00',
+      size: 1,
+    } as never)
+
+    expect(useWorldStore.getState().blueprints).toHaveLength(1)
+  })
+
+  it('deleteBlueprint removes from blueprints array', () => {
+    useWorldStore.getState().addBlueprint({ id: 'bp-del', name: 'Temp' } as never)
+    useWorldStore.getState().deleteBlueprint('bp-del')
+
+    expect(useWorldStore.getState().blueprints.find((b) => b.id === 'bp-del')).toBeUndefined()
+  })
+
+  // ── Handout local actions ──
+
+  it('addHandoutAsset adds to handoutAssets', () => {
+    useWorldStore.getState().addHandoutAsset({
+      id: 'h1',
+      imageUrl: '/img.png',
+      createdAt: Date.now(),
+    })
+
+    expect(useWorldStore.getState().handoutAssets).toHaveLength(1)
+    expect(useWorldStore.getState().handoutAssets[0].id).toBe('h1')
+  })
+
+  it('updateHandoutAsset updates matching handout', () => {
+    useWorldStore.getState().addHandoutAsset({
+      id: 'h2',
+      imageUrl: '/old.png',
+      createdAt: Date.now(),
+    })
+    useWorldStore.getState().updateHandoutAsset('h2', { imageUrl: '/new.png' })
+
+    const handout = useWorldStore.getState().handoutAssets.find((h) => h.id === 'h2')
+    expect(handout?.imageUrl).toBe('/new.png')
+  })
+
+  it('deleteHandoutAsset removes from handoutAssets', () => {
+    useWorldStore.getState().addHandoutAsset({
+      id: 'h3',
+      imageUrl: '/del.png',
+      createdAt: Date.now(),
+    })
+    useWorldStore.getState().deleteHandoutAsset('h3')
+
+    expect(useWorldStore.getState().handoutAssets.find((h) => h.id === 'h3')).toBeUndefined()
   })
 })

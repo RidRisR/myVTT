@@ -96,37 +96,43 @@ export function KonvaMap({
   const mySeat = useIdentityStore((s) => s.getMySeat())
   const mySeatId = useIdentityStore((s) => s.mySeatId)
   const [remoteTokenDrags, setRemoteTokenDrags] = useState<
-    Map<number, { tokenId: string; x: number; y: number; color: string }>
+    Map<string, { tokenId: string; x: number; y: number; color: string }>
   >(() => new Map())
 
   useEffect(() => {
     if (!socket) return
-    let counter = 0
     const onDrag = (data: { tokenId: string; x: number; y: number; color: string; seatId: string }) => {
       if (data.seatId === mySeatId) return
       setRemoteTokenDrags((prev) => {
         const next = new Map(prev)
-        // Use a stable numeric key per seatId
-        const key = data.seatId.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-        next.set(key, data)
+        next.set(data.seatId, data)
         return next
       })
     }
     const onDragEnd = ({ seatId }: { seatId: string }) => {
       if (seatId === mySeatId) return
       setRemoteTokenDrags((prev) => {
-        const key = seatId.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-        if (!prev.has(key)) return prev
+        if (!prev.has(seatId)) return prev
         const next = new Map(prev)
-        next.delete(key)
+        next.delete(seatId)
+        return next
+      })
+    }
+    const onRemove = ({ seatId }: { seatId: string }) => {
+      setRemoteTokenDrags((prev) => {
+        if (!prev.has(seatId)) return prev
+        const next = new Map(prev)
+        next.delete(seatId)
         return next
       })
     }
     socket.on('awareness:tokenDrag', onDrag)
     socket.on('awareness:tokenDragEnd', onDragEnd)
+    socket.on('awareness:remove', onRemove)
     return () => {
       socket.off('awareness:tokenDrag', onDrag)
       socket.off('awareness:tokenDragEnd', onDragEnd)
+      socket.off('awareness:remove', onRemove)
     }
   }, [socket, mySeatId])
 

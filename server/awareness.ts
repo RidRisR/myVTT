@@ -27,19 +27,20 @@ export function setupAwareness(io: SocketIOServer): void {
     )
 
     // Relay resource-drag awareness (editing/clear)
-    socket.on('awareness:editing', (data: unknown) => {
-      socket.to(roomId).emit('awareness:editing', data)
+    // Server injects seatId to prevent client spoofing
+    socket.on('awareness:editing', (data: Record<string, unknown>) => {
+      socket.to(roomId).emit('awareness:editing', { ...data, seatId: socket.data.seatId })
     })
-    socket.on('awareness:clear', (data: unknown) => {
-      socket.to(roomId).emit('awareness:clear', data)
+    socket.on('awareness:clear', () => {
+      socket.to(roomId).emit('awareness:clear', { seatId: socket.data.seatId })
     })
 
-    // Relay token drag awareness
-    socket.on('awareness:tokenDrag', (data: unknown) => {
-      socket.to(roomId).emit('awareness:tokenDrag', data)
+    // Relay token drag awareness — server injects seatId
+    socket.on('awareness:tokenDrag', (data: Record<string, unknown>) => {
+      socket.to(roomId).emit('awareness:tokenDrag', { ...data, seatId: socket.data.seatId })
     })
-    socket.on('awareness:tokenDragEnd', (data: unknown) => {
-      socket.to(roomId).emit('awareness:tokenDragEnd', data)
+    socket.on('awareness:tokenDragEnd', () => {
+      socket.to(roomId).emit('awareness:tokenDragEnd', { seatId: socket.data.seatId })
     })
 
     // Notify room when a client disconnects

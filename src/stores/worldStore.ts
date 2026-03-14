@@ -136,7 +136,7 @@ interface WorldState {
   // Combat actions
   activateEncounter: (sceneId: string, encounterId?: string) => Promise<void>
   endCombat: () => Promise<void>
-  saveEncounter: (sceneId: string, encounterId: string, name: string) => Promise<void>
+  saveEncounter: (sceneId: string, encounterId: string) => Promise<void>
   updateCombatGrid: (updates: Partial<CombatInfo['grid']>) => Promise<void>
   setCombatMapUrl: (mapUrl: string, width: number, height: number) => Promise<void>
 

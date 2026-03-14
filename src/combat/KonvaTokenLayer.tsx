@@ -39,7 +39,7 @@ interface KonvaTokenLayerProps {
   gmViewAsPlayer?: boolean
   onTokenDragMove?: (tokenId: string, x: number, y: number) => void
   onTokenDragEnd?: () => void
-  remoteTokenDrags?: Map<number, { tokenId: string; x: number; y: number; color: string }>
+  remoteTokenDrags?: Map<string, { tokenId: string; x: number; y: number; color: string }>
 }
 
 const DRAG_THRESHOLD = 3

@@ -312,4 +312,42 @@ describe('action methods', () => {
   it('getMySeat returns null when no seat claimed', () => {
     expect(useIdentityStore.getState().getMySeat()).toBeNull()
   })
+
+  it('leaveSeat is safe when no mySeatId is set', () => {
+    useIdentityStore.setState({ mySeatId: null })
+    // Should not throw
+    useIdentityStore.getState().leaveSeat()
+    expect(useIdentityStore.getState().mySeatId).toBeNull()
+    // Should not emit anything
+    expect(socket._emitSpy).not.toHaveBeenCalledWith('seat:leave', expect.anything())
+  })
+
+  it('leaveSeat is safe when socket is null', () => {
+    useIdentityStore.setState({ _socket: null, mySeatId: 'seat-1' })
+    // Should not throw
+    useIdentityStore.getState().leaveSeat()
+    expect(useIdentityStore.getState().mySeatId).toBeNull()
+  })
+
+  it('createSeat returns empty string when roomId is null', async () => {
+    useIdentityStore.setState({ _roomId: null })
+    const result = await useIdentityStore.getState().createSeat('Test', 'PL')
+    expect(result).toBe('')
+  })
+
+  it('seat:updated does not affect other seats', () => {
+    socket._trigger('seat:created', makeSeat({ id: 'seat-2', name: 'Player Two' }))
+    socket._trigger('seat:updated', makeSeat({ id: 'seat-1', name: 'Renamed One' }))
+
+    const seats = useIdentityStore.getState().seats
+    expect(seats.find((s) => s.id === 'seat-1')?.name).toBe('Renamed One')
+    expect(seats.find((s) => s.id === 'seat-2')?.name).toBe('Player Two')
+  })
+
+  it('seat:online is idempotent', () => {
+    socket._trigger('seat:online', { seatId: 'seat-1' })
+    socket._trigger('seat:online', { seatId: 'seat-1' })
+
+    expect(useIdentityStore.getState().onlineSeatIds.size).toBe(1)
+  })
 })
