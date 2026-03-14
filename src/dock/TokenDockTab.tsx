@@ -3,6 +3,7 @@ import { X, Plus, CircleDot } from 'lucide-react'
 import type { Blueprint } from '../shared/entityTypes'
 import { useAssetStore } from '../stores/assetStore'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
+import { useToast } from '../shared/ui/useToast'
 
 interface TokenDockTabProps {
   onSpawnToken: (bp: Blueprint) => void
@@ -11,7 +12,12 @@ interface TokenDockTabProps {
 }
 
 /** Convert asset with type=blueprint into a Blueprint object */
-function assetToBlueprint(a: { id: string; url: string; name: string; blueprint?: { defaultSize: number; defaultColor: string; defaultRuleData?: unknown } }): Blueprint {
+function assetToBlueprint(a: {
+  id: string
+  url: string
+  name: string
+  blueprint?: { defaultSize: number; defaultColor: string; defaultRuleData?: unknown }
+}): Blueprint {
   return {
     id: a.id,
     name: a.name,
@@ -22,11 +28,7 @@ function assetToBlueprint(a: { id: string; url: string; name: string; blueprint?
   }
 }
 
-export function TokenDockTab({
-  onSpawnToken,
-  onAddToActive,
-  isCombat,
-}: TokenDockTabProps) {
+export function TokenDockTab({ onSpawnToken, onAddToActive, isCombat }: TokenDockTabProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -39,13 +41,23 @@ export function TokenDockTab({
   // Read from asset store — derive blueprints from assets with type === 'blueprint'
   const allAssets = useAssetStore((s) => s.assets)
   const upload = useAssetStore((s) => s.upload)
-  const remove = useAssetStore((s) => s.remove)
+  const softRemove = useAssetStore((s) => s.softRemove)
   const updateAssetMeta = useAssetStore((s) => s.update)
+
+  const { toast } = useToast()
 
   const blueprints = useMemo(
     () => allAssets.filter((a) => a.type === 'blueprint').map(assetToBlueprint),
     [allAssets],
   )
+
+  const handleDelete = (bp: Blueprint) => {
+    const undo = softRemove(bp.id)
+    toast('undo', `已删除蓝图"${bp.name}"`, {
+      duration: 5000,
+      action: { label: '撤销', onClick: undo },
+    })
+  }
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -89,7 +101,7 @@ export function TokenDockTab({
     items.push({ label: 'Add as featured NPC', onClick: () => onAddToActive(bp) })
     items.push({
       label: 'Delete blueprint',
-      onClick: () => remove(bp.id),
+      onClick: () => handleDelete(bp),
       color: '#f87171',
     })
     return items
@@ -115,7 +127,10 @@ export function TokenDockTab({
 
       <div
         className="grid gap-2.5"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', contentVisibility: 'auto' }}
+        style={{
+          gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
+          contentVisibility: 'auto',
+        }}
       >
         {blueprints.map((bp) => {
           const isHovered = hoveredId === bp.id
@@ -171,7 +186,7 @@ export function TokenDockTab({
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    remove(bp.id)
+                    handleDelete(bp)
                   }}
                   className="absolute -top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 border-none cursor-pointer text-danger flex items-center justify-center p-0"
                 >
