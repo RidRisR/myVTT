@@ -5,6 +5,15 @@ import type { Server } from 'socket.io'
 import { withRoom } from '../middleware'
 import { toCamel, parseJsonFields } from '../db'
 
+const DEFAULT_GRID = {
+  size: 50,
+  snap: true,
+  visible: true,
+  color: 'rgba(255,255,255,0.15)',
+  offsetX: 0,
+  offsetY: 0,
+}
+
 export function combatRoutes(dataDir: string, io: Server): Router {
   const router = Router()
   const room = withRoom(dataDir)
@@ -14,12 +23,15 @@ export function combatRoutes(dataDir: string, io: Server): Router {
       string,
       unknown
     >
-    return parseJsonFields(
+    const parsed = parseJsonFields(
       toCamel<Record<string, unknown>>(row),
       'grid',
       'tokens',
       'initiativeOrder',
     )
+    // Ensure grid always has complete defaults
+    parsed.grid = { ...DEFAULT_GRID, ...(parsed.grid as object) }
+    return parsed
   }
 
   router.get('/api/rooms/:roomId/combat', room, (req, res) => {
@@ -42,7 +54,17 @@ export function combatRoutes(dataDir: string, io: Server): Router {
         values.push(req.body[camel])
       }
     }
-    for (const key of ['grid', 'tokens', 'initiativeOrder'] as const) {
+    // Grid: deep merge with existing values
+    if (req.body.grid !== undefined) {
+      const existing = req.roomDb!
+        .prepare('SELECT grid FROM combat_state WHERE id = 1')
+        .get() as { grid: string }
+      const existingGrid = JSON.parse(existing.grid || '{}')
+      const merged = { ...existingGrid, ...req.body.grid }
+      sets.push('grid = ?')
+      values.push(JSON.stringify(merged))
+    }
+    for (const key of ['tokens', 'initiativeOrder'] as const) {
       const snakeKey =
         key === 'initiativeOrder' ? 'initiative_order' : key
       if (req.body[key] !== undefined) {
