@@ -31,5 +31,12 @@ export default defineConfig([
       'react-hooks/purity': 'off',
     },
   },
+  // Server route files use req.roomDb! extensively — middleware guarantees non-null
+  {
+    files: ['server/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
   prettier,
 ])
