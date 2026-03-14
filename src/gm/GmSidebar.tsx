@@ -2,6 +2,7 @@ import { Swords, ClipboardList, ChevronRight } from 'lucide-react'
 import { useUiStore } from '../stores/uiStore'
 import type { GmSidebarTab } from '../stores/uiStore'
 import { EncounterPanel } from './EncounterPanel'
+import { EntityPanel } from './EntityPanel'
 
 const TABS: { id: GmSidebarTab; icon: typeof Swords; label: string }[] = [
   { id: 'encounters', icon: Swords, label: '遭遇' },
@@ -38,12 +39,7 @@ export function GmSidebar() {
           {/* Tab content */}
           <div className="flex-1 overflow-hidden">
             {activeTab === 'encounters' && <EncounterPanel />}
-            {activeTab === 'entities' && (
-              <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs p-3">
-                <ClipboardList size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-                <span className="opacity-50">实体管理（待实现）</span>
-              </div>
-            )}
+            {activeTab === 'entities' && <EntityPanel />}
           </div>
         </div>
 
