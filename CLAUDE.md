@@ -23,10 +23,10 @@ myVTT is a lightweight Virtual Tabletop built with React + Socket.io + SQLite fo
 
 ### Entity System
 
-- Core type: `Entity` (id, name, imageUrl, color, size, notes, ruleData, permissions, persistent)
+- Core type: `Entity` (id, name, imageUrl, color, size, notes, ruleData, permissions, lifecycle)
 - `entities` = global unique store for ALL entities (PC + NPC), persisted in SQLite
-- Scene holds `entityIds` — a reference list (array) of entity IDs, NOT embedded entity data
-- `persistent: true` on an entity means it auto-joins all scenes and is protected from GC (PC default: true, NPC default: false)
+- Scene holds `sceneEntityEntries` — a reference list of `{ entityId, visible }` objects (NOT embedded entity data). `visible` controls on-stage vs backstage.
+- `lifecycle` enum: `'ephemeral'` (one-time NPC, deleted on removal), `'reusable'` (important NPC, kept in library), `'persistent'` (PC/companion, auto-joins new scenes)
 - Linked creation = add existing entity to scene; Unlinked creation = create new entity in global store
 - When an entity is deleted, tokens that referenced it degrade to anonymous tokens
 - Combat tokens: `MapToken` with optional `entityId` for linking to entities

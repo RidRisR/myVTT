@@ -109,7 +109,7 @@ export function EntityPanel() {
         </div>
         <div className="flex flex-col gap-0.5">
           {list.map((entity) => (
-            <div key={entity.id} className="relative flex items-center">
+            <div key={entity.id} className="group relative flex items-center">
               <EntityRow
                 entity={entity}
                 isPC={false}

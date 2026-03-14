@@ -206,7 +206,7 @@ export function PortraitBar({
   // For non-GM: only show entities with visible=true in scene entries
   const sceneIdSet = new Set(sceneEntityIds)
   const visibleEntities = entities.filter((e) => {
-    const inScene = e.lifecycle === 'persistent' || sceneIdSet.has(e.id)
+    const inScene = sceneIdSet.has(e.id)
     if (!inScene) return false
     const canSeeEntity = mySeatId ? canSee(e.permissions, mySeatId, role) : isGM
     if (!canSeeEntity) return false

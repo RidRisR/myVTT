@@ -31,7 +31,7 @@ describe('Combat Lifecycle Journey', () => {
 
     const { data: e1 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Fighter',
-      persistent: false,
+      lifecycle: 'ephemeral',
       color: '#ef4444',
       size: 1,
       permissions: { default: 'observer', seats: {} },
@@ -39,7 +39,7 @@ describe('Combat Lifecycle Journey', () => {
     entity1Id = (e1 as { id: string }).id
     const { data: e2 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Mage',
-      persistent: false,
+      lifecycle: 'ephemeral',
       color: '#3b82f6',
       size: 1,
       permissions: { default: 'observer', seats: {} },
