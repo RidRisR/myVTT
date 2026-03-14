@@ -129,7 +129,7 @@ export function EntityPanel() {
                   handleToggleVisibility(entity, isVisible)
                 }}
                 className="absolute right-7 opacity-0 group-hover:opacity-100 hover:!opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
-                title={isVisible ? '退到候场' : '上场'}
+                title={isVisible ? '离场' : '上场'}
               >
                 {isVisible ? (
                   <Eye size={12} strokeWidth={1.5} />
@@ -179,7 +179,7 @@ export function EntityPanel() {
         ) : (
           <>
             {renderGroup('在场', '\u25CF', onStage, true)}
-            {renderGroup('候场', '\u25D0', backstage, false)}
+            {renderGroup('离场', '\u25D0', backstage, false)}
           </>
         )}
       </div>

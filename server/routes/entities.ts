@@ -193,6 +193,12 @@ export function entityRoutes(dataDir: string, io: Server): Router {
 
     const deleteEntity = req.roomDb!.transaction(() => {
       degradeTokenReferences(req.roomDb!, req.params.id)
+      // Clear dangling seats.active_character_id references
+      req
+        .roomDb!.prepare(
+          'UPDATE seats SET active_character_id = NULL WHERE active_character_id = ?',
+        )
+        .run(req.params.id)
       req.roomDb!.prepare('DELETE FROM entities WHERE id = ?').run(req.params.id)
     })
     deleteEntity()

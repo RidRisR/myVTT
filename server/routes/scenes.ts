@@ -123,7 +123,16 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
         degradeTokenReferences(req.roomDb!, e.id)
         req.roomDb!.prepare('DELETE FROM entities WHERE id = ?').run(e.id)
       }
-      // Delete scene (CASCADE handles scene_entities)
+      // Clear dangling room_state references
+      req
+        .roomDb!.prepare(
+          `UPDATE room_state SET
+           active_scene_id = CASE WHEN active_scene_id = ? THEN NULL ELSE active_scene_id END,
+           active_encounter_id = CASE WHEN active_scene_id = ? THEN NULL ELSE active_encounter_id END
+           WHERE id = 1`,
+        )
+        .run(req.params.id, req.params.id)
+      // Delete scene (CASCADE handles scene_entities and encounters)
       req.roomDb!.prepare('DELETE FROM scenes WHERE id = ?').run(req.params.id)
     })
     deleteScene()

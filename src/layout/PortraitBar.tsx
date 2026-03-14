@@ -210,8 +210,8 @@ export function PortraitBar({
     if (!inScene) return false
     const canSeeEntity = mySeatId ? canSee(e.permissions, mySeatId, role) : isGM
     if (!canSeeEntity) return false
-    // Non-GM players only see entities with visible=true
-    if (!isGM && visibilityMap.has(e.id) && !visibilityMap.get(e.id)) return false
+    // Only show on-stage entities (visible=true) — backstage entities appear in the NPC panel instead
+    if (visibilityMap.has(e.id) && !visibilityMap.get(e.id)) return false
     return true
   })
 
@@ -300,7 +300,7 @@ export function PortraitBar({
       const isVisible = visibilityMap.get(entity.id) ?? true
       if (isVisible && activeSceneId && sceneIdSet.has(entity.id)) {
         items.push({
-          label: '退到候场',
+          label: '离场',
           onClick: () => {
             if (activeSceneId) toggleEntityVisibility(activeSceneId, entity.id, false)
           },

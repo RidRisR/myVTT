@@ -173,7 +173,7 @@ export function GmDock({
       onPointerDown={(e) => e.stopPropagation()}
     >
       {/* Expanded content area */}
-      {activeTab !== null && activeTab !== 'dice' && activeTab !== 'characters' && (
+      {activeTab !== null && activeTab !== 'dice' && (
         <div className="mb-1.5 bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.4)] min-w-[400px] max-h-[220px] overflow-y-auto p-3">
           {activeTab === 'gallery' && (
             <MemoMapDockTab
@@ -193,6 +193,7 @@ export function GmDock({
               isCombat={isCombat}
             />
           )}
+          {activeTab === 'characters' && <MemoCharacterLibraryTab />}
           {activeTab === 'handouts' && (
             <MemoHandoutDockTab
               assets={handoutAssets}
@@ -202,13 +203,6 @@ export function GmDock({
               onShowcase={onShowcaseHandout}
             />
           )}
-        </div>
-      )}
-
-      {/* Character library content */}
-      {activeTab === 'characters' && (
-        <div className="mb-1.5 bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.4)] min-w-[300px] h-[220px] overflow-hidden">
-          <MemoCharacterLibraryTab />
         </div>
       )}
 
