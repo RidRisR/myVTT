@@ -1,25 +1,28 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import { X, Plus, CircleDot } from 'lucide-react'
 import type { Blueprint } from '../shared/entityTypes'
-import { uploadAsset } from '../shared/assetUpload'
-import { generateTokenId } from '../shared/idUtils'
+import { useAssetStore } from '../stores/assetStore'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 
 interface TokenDockTabProps {
-  blueprints: Blueprint[]
-  onAddBlueprint: (bp: Blueprint) => void
-  onUpdateBlueprint: (id: string, updates: Partial<Blueprint>) => void
-  onDeleteBlueprint: (id: string) => void
   onSpawnToken: (bp: Blueprint) => void
   onAddToActive: (bp: Blueprint) => void
   isCombat: boolean
 }
 
+/** Convert asset with type=blueprint into a Blueprint object */
+function assetToBlueprint(a: { id: string; url: string; name: string; blueprint?: { defaultSize: number; defaultColor: string; defaultRuleData?: unknown } }): Blueprint {
+  return {
+    id: a.id,
+    name: a.name,
+    imageUrl: a.url,
+    defaultSize: a.blueprint?.defaultSize ?? 1,
+    defaultColor: a.blueprint?.defaultColor ?? '#3b82f6',
+    defaultRuleData: a.blueprint?.defaultRuleData,
+  }
+}
+
 export function TokenDockTab({
-  blueprints,
-  onAddBlueprint,
-  onUpdateBlueprint,
-  onDeleteBlueprint,
   onSpawnToken,
   onAddToActive,
   isCombat,
@@ -33,21 +36,28 @@ export function TokenDockTab({
     null,
   )
 
+  // Read from asset store — derive blueprints from assets with type === 'blueprint'
+  const allAssets = useAssetStore((s) => s.assets)
+  const upload = useAssetStore((s) => s.upload)
+  const remove = useAssetStore((s) => s.remove)
+  const updateAssetMeta = useAssetStore((s) => s.update)
+
+  const blueprints = useMemo(
+    () => allAssets.filter((a) => a.type === 'blueprint').map(assetToBlueprint),
+    [allAssets],
+  )
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     e.target.value = ''
     setUploading(true)
     try {
-      const imageUrl = await uploadAsset(file)
-      const bp: Blueprint = {
-        id: generateTokenId(),
+      await upload(file, {
         name: file.name.replace(/\.[^.]+$/, ''),
-        imageUrl,
-        defaultSize: 1,
-        defaultColor: '#3b82f6',
-      }
-      onAddBlueprint(bp)
+        type: 'blueprint',
+        blueprint: { defaultSize: 1, defaultColor: '#3b82f6' },
+      })
     } finally {
       setUploading(false)
     }
@@ -60,7 +70,7 @@ export function TokenDockTab({
 
   const commitEdit = () => {
     if (editingId && editName.trim()) {
-      onUpdateBlueprint(editingId, { name: editName.trim() })
+      updateAssetMeta(editingId, { name: editName.trim() })
     }
     setEditingId(null)
   }
@@ -79,7 +89,7 @@ export function TokenDockTab({
     items.push({ label: 'Add as featured NPC', onClick: () => onAddToActive(bp) })
     items.push({
       label: 'Delete blueprint',
-      onClick: () => onDeleteBlueprint(bp.id),
+      onClick: () => remove(bp.id),
       color: '#f87171',
     })
     return items
@@ -161,7 +171,7 @@ export function TokenDockTab({
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    onDeleteBlueprint(bp.id)
+                    remove(bp.id)
                   }}
                   className="absolute -top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 border-none cursor-pointer text-danger flex items-center justify-center p-0"
                 >

@@ -18,7 +18,7 @@ import { nextNpcName } from '../shared/characterUtils'
 import { MapDockTab } from '../dock/MapDockTab'
 import { TokenDockTab } from '../dock/TokenDockTab'
 import { HandoutDockTab } from '../dock/HandoutDockTab'
-import type { HandoutAsset } from '../dock/useHandoutAssets'
+import type { HandoutAsset } from '../stores/worldStore'
 
 type TabId = 'gallery' | 'tokens' | 'handouts' | 'dice'
 
@@ -43,11 +43,6 @@ interface GmDockProps {
   onDeleteHandoutAsset: (id: string) => void
   onShowcaseHandout: (asset: HandoutAsset) => void
 
-  blueprints: Blueprint[]
-  onAddBlueprint: (bp: Blueprint) => void
-  onUpdateBlueprint: (id: string, updates: Partial<Blueprint>) => void
-  onDeleteBlueprint: (id: string) => void
-
   entities: Entity[]
   onAddEntity: (entity: Entity) => void
   onAddEntityToScene: (entityId: string) => void
@@ -66,10 +61,6 @@ export function GmDock({
   onUpdateScene,
   onToggleCombat,
   onShowcaseImage,
-  blueprints,
-  onAddBlueprint,
-  onUpdateBlueprint,
-  onDeleteBlueprint,
   handoutAssets,
   onAddHandoutAsset,
   onEditHandoutAsset,
@@ -202,10 +193,6 @@ export function GmDock({
           )}
           {activeTab === 'tokens' && (
             <MemoTokenDockTab
-              blueprints={blueprints}
-              onAddBlueprint={onAddBlueprint}
-              onUpdateBlueprint={onUpdateBlueprint}
-              onDeleteBlueprint={onDeleteBlueprint}
               onSpawnToken={handleSpawnFromBlueprint}
               onAddToActive={handleAddToActive}
               isCombat={isCombat}

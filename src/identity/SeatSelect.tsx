@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
-import { SEAT_COLORS, type Seat } from './useIdentity'
+import { SEAT_COLORS, type Seat } from '../stores/identityStore'
 
 interface SeatSelectProps {
   seats: Seat[]

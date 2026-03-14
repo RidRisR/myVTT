@@ -38,7 +38,12 @@ export function KonvaToken({
   onMouseEnter,
   onMouseLeave,
 }: KonvaTokenProps) {
-  const color = entity?.color ?? token.color ?? '#888'
+  const rawColor = entity?.color ?? token.color ?? '#888888'
+  // Expand 3-char hex (#abc) to 6-char (#aabbcc) so appending alpha (e.g. 'aa') works
+  const color =
+    /^#[0-9a-fA-F]{3}$/.test(rawColor)
+      ? `#${rawColor[1]}${rawColor[1]}${rawColor[2]}${rawColor[2]}${rawColor[3]}${rawColor[3]}`
+      : rawColor
   const imageUrl = entity?.imageUrl ?? token.imageUrl ?? ''
   const name = entity?.name ?? token.label ?? ''
 

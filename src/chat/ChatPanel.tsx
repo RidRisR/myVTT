@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
-import * as Y from 'yjs'
 import type { ChatMessage } from './chatTypes'
 import type { Entity } from '../shared/entityTypes'
 import { getEntityResources, getEntityAttributes } from '../shared/entityAdapters'
+import { useWorldStore } from '../stores/worldStore'
 import { MessageScrollArea } from './MessageScrollArea'
 import { ToastStack, type ToastItem } from './ToastStack'
 import { ChatInput } from './ChatInput'
@@ -11,7 +11,7 @@ import { ChevronUp, ChevronDown } from 'lucide-react'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 
 interface ChatPanelProps {
-  yDoc: Y.Doc
+  roomId: string
   senderId: string
   senderName: string
   senderColor: string
@@ -63,7 +63,7 @@ function SpeakerPickerItem({
 }
 
 export function ChatPanel({
-  yDoc,
+  roomId,
   senderId,
   senderName,
   senderColor,
@@ -73,18 +73,23 @@ export function ChatPanel({
   speakerEntities,
 }: ChatPanelProps) {
   const [expanded, setExpanded] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set())
   const [toastQueue, setToastQueue] = useState<ToastItem[]>([])
   const initialLoadRef = useRef(true)
   const expandedRef = useRef(expanded)
   expandedRef.current = expanded
+  const prevMessageCountRef = useRef(0)
 
   // Speaker switching
   const [speakerCharId, setSpeakerCharId] = useState<string | null>(null)
   const [showSpeakerPicker, setShowSpeakerPicker] = useState(false)
   const speakerPickerRef = useRef<HTMLDivElement>(null)
   const speakerBtnRef = useRef<HTMLButtonElement>(null)
+
+  // Read messages from worldStore
+  const messages = useWorldStore((s) => s.chatMessages)
+  const sendMessage = useWorldStore((s) => s.sendMessage)
+  const sendRoll = useWorldStore((s) => s.sendRoll)
 
   // Build speaker identity: null = seat identity, string = character
   const seatIdentity: SpeakerIdentity = useMemo(
@@ -128,54 +133,40 @@ export function ChatPanel({
     ]
   }, [speakerEntity, seatProperties])
 
-  const yChat = yDoc.getArray<ChatMessage>('chat_log')
-
-  // Sync messages from Yjs
+  // Detect new messages (from worldStore updates via Socket.io)
   useEffect(() => {
-    setMessages(yChat.toArray())
-    requestAnimationFrame(() => {
-      initialLoadRef.current = false
-    })
-
-    const observer = (event: Y.YArrayEvent<ChatMessage>) => {
-      const newMsgs = yChat.toArray()
-      setMessages(newMsgs)
-
-      if (!initialLoadRef.current) {
-        const addedIds = new Set<string>()
-        for (const item of event.changes.added) {
-          const content = item.content as Y.ContentAny
-          if (content.arr) {
-            for (const msg of content.arr) {
-              if (msg && typeof msg === 'object' && 'id' in msg) {
-                const chatMsg = msg as ChatMessage
-                addedIds.add(chatMsg.id)
-
-                // Add to toast queue if collapsed
-                if (!expandedRef.current) {
-                  setToastQueue((prev) => [...prev, { message: chatMsg, timestamp: Date.now() }])
-                }
-              }
-            }
-          }
-        }
-
-        if (addedIds.size > 0) {
-          setNewMessageIds((prev) => new Set([...prev, ...addedIds]))
-          setTimeout(() => {
-            setNewMessageIds((prev) => {
-              const next = new Set(prev)
-              for (const id of addedIds) next.delete(id)
-              return next
-            })
-          }, 2500)
-        }
-      }
+    // Skip initial load
+    if (initialLoadRef.current) {
+      prevMessageCountRef.current = messages.length
+      requestAnimationFrame(() => {
+        initialLoadRef.current = false
+      })
+      return
     }
 
-    yChat.observe(observer)
-    return () => yChat.unobserve(observer)
-  }, [yChat])
+    // Detect newly added messages
+    if (messages.length > prevMessageCountRef.current) {
+      const newMsgs = messages.slice(prevMessageCountRef.current)
+      const addedIds = new Set(newMsgs.map((m) => m.id))
+
+      // Add to toast queue if collapsed
+      if (!expandedRef.current) {
+        for (const msg of newMsgs) {
+          setToastQueue((prev) => [...prev, { message: msg, timestamp: Date.now() }])
+        }
+      }
+
+      setNewMessageIds((prev) => new Set([...prev, ...addedIds]))
+      setTimeout(() => {
+        setNewMessageIds((prev) => {
+          const next = new Set(prev)
+          for (const id of addedIds) next.delete(id)
+          return next
+        })
+      }, 2500)
+    }
+    prevMessageCountRef.current = messages.length
+  }, [messages])
 
   // Limit to max 3 toasts
   useEffect(() => {
@@ -209,21 +200,41 @@ export function ChatPanel({
 
   const handleSend = useCallback(
     (message: ChatMessage) => {
-      yChat.push([message])
+      if (message.type === 'text') {
+        sendMessage({
+          senderId: message.senderId,
+          senderName: message.senderName,
+          senderColor: message.senderColor,
+          portraitUrl: message.portraitUrl,
+          content: message.content,
+        })
+      }
     },
-    [yChat],
+    [sendMessage],
+  )
+
+  const handleRoll = useCallback(
+    (formula: string, resolvedExpression?: string) => {
+      sendRoll({
+        formula,
+        resolvedExpression,
+        senderId: activeSpeaker.id,
+        senderName: activeSpeaker.name,
+        senderColor: activeSpeaker.color,
+        portraitUrl: activeSpeaker.portraitUrl,
+      })
+    },
+    [sendRoll, activeSpeaker],
   )
 
   // Tab to cycle speaker: seat → entity1 → entity2 → ... → seat
   const handleCycleSpeaker = useCallback(() => {
     if (speakerEntities.length === 0) return
     if (speakerCharId === null) {
-      // Currently seat → go to first entity
       setSpeakerCharId(speakerEntities[0].id)
     } else {
       const idx = speakerEntities.findIndex((e) => e.id === speakerCharId)
       if (idx < 0 || idx >= speakerEntities.length - 1) {
-        // Last entity or not found → back to seat
         setSpeakerCharId(null)
       } else {
         setSpeakerCharId(speakerEntities[idx + 1].id)
@@ -255,7 +266,6 @@ export function ChatPanel({
           <div className="text-[10px] text-text-muted/30 px-2.5 py-1 uppercase tracking-wider">
             Speak as
           </div>
-          {/* Seat identity (player) */}
           <SpeakerPickerItem
             identity={seatIdentity}
             isActive={speakerCharId === null}
@@ -264,7 +274,6 @@ export function ChatPanel({
               setShowSpeakerPicker(false)
             }}
           />
-          {/* Entities */}
           {speakerEntities.map((e) => (
             <SpeakerPickerItem
               key={e.id}
@@ -289,7 +298,6 @@ export function ChatPanel({
         className="fixed bottom-3 right-4 z-toast flex gap-1.5 items-stretch"
         style={{ width: RIGHT_PANEL_WIDTH }}
       >
-        {/* Expand/collapse toggle */}
         <button
           onClick={() => setExpanded((v) => !v)}
           className="w-9 rounded-[10px] bg-surface border border-border-glass cursor-pointer transition-all duration-fast text-text-muted text-sm flex items-center justify-center backdrop-blur-[8px] shrink-0 hover:bg-hover hover:text-text-primary"
@@ -302,7 +310,6 @@ export function ChatPanel({
           )}
         </button>
 
-        {/* Speaker avatar button */}
         <button
           ref={speakerBtnRef}
           onClick={() => setShowSpeakerPicker((v) => !v)}
@@ -327,6 +334,7 @@ export function ChatPanel({
             senderColor={activeSpeaker.color}
             portraitUrl={activeSpeaker.portraitUrl}
             onSend={handleSend}
+            onRoll={handleRoll}
             selectedTokenProps={selectedTokenProps}
             seatProperties={activeSpeakerProps}
             onCycleSpeaker={speakerEntities.length > 0 ? handleCycleSpeaker : undefined}

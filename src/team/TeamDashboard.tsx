@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import * as Y from 'yjs'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { useTeamMetrics } from './useTeamMetrics'
+import { useWorldStore } from '../stores/worldStore'
 import { TeamMetricsTab } from './TeamMetricsTab'
 import { useUiStore } from '../stores/uiStore'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 
 interface TeamDashboardProps {
-  yDoc: Y.Doc
+  roomId: string
   isGM: boolean
 }
 
@@ -15,8 +14,11 @@ type TabId = 'metrics'
 
 const TABS: { id: TabId; label: string }[] = [{ id: 'metrics', label: 'Metrics' }]
 
-export function TeamDashboard({ yDoc, isGM }: TeamDashboardProps) {
-  const { trackers, addTracker, updateTracker, deleteTracker } = useTeamMetrics(yDoc)
+export function TeamDashboard({ roomId, isGM }: TeamDashboardProps) {
+  const trackers = useWorldStore((s) => s.teamTrackers)
+  const addTracker = useWorldStore((s) => s.addTeamTracker)
+  const updateTracker = useWorldStore((s) => s.updateTeamTracker)
+  const deleteTracker = useWorldStore((s) => s.deleteTeamTracker)
   const [activeTab, setActiveTab] = useState<TabId>('metrics')
   const [expanded, setExpanded] = useState(false)
   const teamPanelVisible = useUiStore((s) => s.teamPanelVisible)

@@ -19,7 +19,7 @@ export function KonvaGrid({
   gridOffsetX,
   gridOffsetY,
 }: KonvaGridProps) {
-  if (!gridVisible || gridSize <= 0) return null
+  if (!gridVisible || gridSize <= 0 || !width || !height) return null
 
   const vLines: number[] = []
   const hLines: number[] = []

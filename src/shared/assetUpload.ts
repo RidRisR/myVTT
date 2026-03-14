@@ -1,4 +1,5 @@
 import { getCurrentRoomId } from './assetApi'
+import { API_BASE } from './config'
 
 const VIDEO_EXTS = /\.(mp4|webm|mov|ogv)$/i
 
@@ -24,21 +25,26 @@ export function getMediaDimensions(url: string): Promise<{ w: number; h: number 
   })
 }
 
-export async function uploadAsset(file: File): Promise<string> {
+export async function uploadAsset(
+  file: File,
+  meta?: { name?: string; type?: string; extra?: Record<string, unknown> },
+): Promise<{ id: string; url: string; name: string; type: string; createdAt: number; extra: Record<string, unknown> }> {
   const roomId = getCurrentRoomId()
   const formData = new FormData()
   formData.append('file', file)
+  if (meta?.name) formData.append('name', meta.name)
+  if (meta?.type) formData.append('type', meta.type)
+  if (meta?.extra) formData.append('extra', JSON.stringify(meta.extra))
 
-  const res = await fetch(`/api/rooms/${roomId}/upload`, {
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/assets`, {
     method: 'POST',
     body: formData,
+    credentials: 'include',
   })
 
   if (!res.ok) {
     throw new Error(`Upload failed: ${res.statusText}`)
   }
 
-  const { url } = await res.json()
-  // Return relative path — Vite proxy (dev) or same-origin (prod) handles /api/*
-  return url
+  return res.json()
 }

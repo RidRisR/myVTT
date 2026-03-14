@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useYjsConnection } from './yjs/useYjsConnection'
+import { useEffect, useState, useRef, useMemo } from 'react'
+import { useSocket } from './shared/hooks/useSocket'
 import { AdminPanel } from './admin/AdminPanel'
 import { useWorldStore } from './stores/worldStore'
 import type { HandoutAsset } from './stores/worldStore'
@@ -10,10 +10,10 @@ import {
   selectActiveScene,
   selectIsCombat,
   selectCombatInfo,
+  selectTokens,
   deriveSeatProperties,
   selectSpeakerEntities,
 } from './stores/selectors'
-import { useWorld } from './yjs/useWorld'
 import { roleStore } from './shared/roleState'
 import { SeatSelect } from './identity/SeatSelect'
 import { ChatPanel } from './chat/ChatPanel'
@@ -31,41 +31,78 @@ import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import type { ShowcaseItem } from './showcase/showcaseTypes'
 import type { Entity, MapToken, Atmosphere } from './shared/entityTypes'
 import { defaultNPCPermissions } from './shared/permissions'
-import {
-  gcOrphanedEntities,
-  addEntityToAllScenes,
-  getPersistentEntityIds,
-} from './entities/entityLifecycle'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './shared/ui/ToastProvider'
 
-function RoomSession({ roomId }: { roomId: string }) {
-  const { yDoc, isLoading, awareness } = useYjsConnection(roomId)
-  const world = useWorld(yDoc)
+const EMPTY_IDS: string[] = []
 
-  // Initialize stores with Yjs data
+function RoomSession({ roomId }: { roomId: string }) {
+  const { socket, connectionStatus } = useSocket(roomId)
+  const [isLoading, setIsLoading] = useState(true)
+  const [initError, setInitError] = useState<string | null>(null)
+  const cancelledRef = useRef(false)
+
+  // Initialize stores with Socket.io
   const initWorld = useWorldStore((s) => s.init)
+  const reinitWorld = useWorldStore((s) => s.reinit)
   const initIdentity = useIdentityStore((s) => s.init)
 
-  const initAssets = useAssetStore((s) => s.init)
-
   useEffect(() => {
-    const cleanupWorld = initWorld(yDoc)
-    const cleanupIdentity = initIdentity(world.seats, awareness)
-    initAssets(roomId)
+    if (!socket) return
+    cancelledRef.current = false
+    let cleanupWorld: (() => void) | undefined
+    let cleanupIdentity: (() => void) | undefined
+
+    ;(async () => {
+      try {
+        setInitError(null)
+        const [worldCleanup, identityCleanup] = await Promise.all([
+          initWorld(roomId, socket),
+          initIdentity(roomId, socket),
+          useAssetStore.getState().init(roomId),
+        ])
+        if (cancelledRef.current) {
+          worldCleanup()
+          identityCleanup()
+          return
+        }
+        cleanupWorld = worldCleanup
+        cleanupIdentity = identityCleanup
+        setIsLoading(false)
+      } catch (err) {
+        console.error('Failed to initialize room:', err)
+        setInitError(err instanceof Error ? err.message : 'Connection failed')
+        setIsLoading(false)
+      }
+    })()
+
     return () => {
-      cleanupWorld()
-      cleanupIdentity()
+      cancelledRef.current = true
+      cleanupWorld?.()
+      cleanupIdentity?.()
+      setIsLoading(true)
     }
-  }, [yDoc, awareness, world.seats, initWorld, initIdentity, initAssets, roomId])
+  }, [socket, roomId, initWorld, initIdentity])
+
+  // Reinit on reconnect
+  useEffect(() => {
+    if (connectionStatus === 'connected' && !isLoading) {
+      Promise.all([reinitWorld(), useAssetStore.getState().refresh()])
+        .then(() => setInitError(null))
+        .catch((err) => {
+          console.error('Failed to reinitialize after reconnect:', err)
+        })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectionStatus])
 
   // World store subscriptions
   const room = useWorldStore((s) => s.room)
   const scenes = useWorldStore((s) => s.scenes)
   const entities = useWorldStore((s) => s.entities)
-  const tokens = useWorldStore((s) => s.tokens)
+  const tokens = useWorldStore(selectTokens)
   const handoutAssets = useWorldStore((s) => s.handoutAssets)
   const activeScene = useWorldStore(selectActiveScene)
   const isCombat = useWorldStore(selectIsCombat)
@@ -78,8 +115,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   const deleteSceneRaw = useWorldStore((s) => s.deleteScene)
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
   const removeEntityFromScene = useWorldStore((s) => s.removeEntityFromScene)
-  const getSceneEntityIds = useWorldStore((s) => s.getSceneEntityIds)
-  const activateEncounter = useWorldStore((s) => s.activateEncounter)
+  const startCombat = useWorldStore((s) => s.startCombat)
   const endCombat = useWorldStore((s) => s.endCombat)
   const setCombatMapUrl = useWorldStore((s) => s.setCombatMapUrl)
   const duplicateScene = useWorldStore((s) => s.duplicateScene)
@@ -94,11 +130,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const addHandoutAsset = useWorldStore((s) => s.addHandoutAsset)
   const updateHandoutAsset = useWorldStore((s) => s.updateHandoutAsset)
   const deleteHandoutAsset = useWorldStore((s) => s.deleteHandoutAsset)
-  const blueprints = useWorldStore((s) => s.blueprints)
-  const addBlueprint = useWorldStore((s) => s.addBlueprint)
-  const updateBlueprint = useWorldStore((s) => s.updateBlueprint)
-  const deleteBlueprint = useWorldStore((s) => s.deleteBlueprint)
-
   // Identity store subscriptions
   const seats = useIdentityStore((s) => s.seats)
   const mySeatId = useIdentityStore((s) => s.mySeatId)
@@ -133,27 +164,41 @@ function RoomSession({ roomId }: { roomId: string }) {
   useEffect(() => {
     if (!mySeat || !mySeatId) return
     if (mySeat.activeCharacterId) return
-    const ownedEntity = entities.find((e) => e.permissions.seats[mySeatId] === 'owner')
+    const ownedEntity = Object.values(entities).find(
+      (e) => e.permissions.seats[mySeatId] === 'owner',
+    )
     if (ownedEntity) {
       updateSeat(mySeatId, { activeCharacterId: ownedEntity.id })
     }
   }, [mySeat, mySeatId, entities, updateSeat])
 
-  // Derive entity data (hooks must be before early returns)
+  // Entity lookup (O(1) from Record)
   const getEntity = (id: string | null): Entity | null => {
     if (!id) return null
-    return entities.find((e) => e.id === id) ?? null
+    return entities[id] ?? null
   }
 
   const activeEntity = getEntity(mySeat?.activeCharacterId ?? null)
-  const selectedToken = isCombat ? (tokens.find((t) => t.id === selectedTokenId) ?? null) : null
+  const selectedToken = isCombat ? (tokens[selectedTokenId ?? ''] ?? null) : null
   const selectedTokenEntity = selectedToken?.entityId ? getEntity(selectedToken.entityId) : null
 
   const seatProperties = deriveSeatProperties(activeEntity, selectedTokenEntity)
+  const isGMForSpeakers = mySeat?.role === 'GM'
+  const speakerEntities = useMemo(
+    () => selectSpeakerEntities(entities, mySeatId, isGMForSpeakers ?? false),
+    [entities, mySeatId, isGMForSpeakers],
+  )
 
-  const sceneEntityIds = room.activeSceneId ? getSceneEntityIds(room.activeSceneId) : []
+  const sceneEntityIds =
+    useWorldStore(
+      (s) => (room.activeSceneId ? s.sceneEntityMap[room.activeSceneId] : undefined),
+    ) ?? EMPTY_IDS
 
-  // Auto-create a default scene when GM enters a room with no scenes (after sync)
+  // Convert Record types to arrays for components that still expect arrays
+  const entitiesArray = useMemo(() => Object.values(entities), [entities])
+  const tokensArray = useMemo(() => Object.values(tokens), [tokens])
+
+  // Auto-create a default scene when GM enters a room with no scenes
   const isGMRole = mySeat?.role === 'GM'
   useEffect(() => {
     if (isLoading || !isGMRole) return
@@ -172,21 +217,43 @@ function RoomSession({ roomId }: { roomId: string }) {
     setActiveScene(id)
   }, [isLoading, isGMRole, scenes.length, room.activeSceneId, addScene, setActiveScene])
 
-  if (isLoading) {
+  if (isLoading || initError) {
     return (
       <div
         style={{
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           height: '100vh',
           fontFamily: 'sans-serif',
           fontSize: 18,
-          color: '#666',
+          color: initError ? '#f87171' : '#666',
           background: '#1a1a2e',
+          gap: 16,
         }}
       >
-        Connecting to server...
+        {initError ? (
+          <>
+            <div>Failed to connect: {initError}</div>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                padding: '8px 24px',
+                background: '#3b82f6',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 14,
+              }}
+            >
+              Retry
+            </button>
+          </>
+        ) : (
+          'Connecting to server...'
+        )}
       </div>
     )
   }
@@ -211,36 +278,23 @@ function RoomSession({ roomId }: { roomId: string }) {
   }
 
   const handleDeleteScene = (sceneId: string) => {
-    const entityIds = getSceneEntityIds(sceneId)
     deleteSceneRaw(sceneId)
-    yDoc.transact(() => {
-      const deleted = gcOrphanedEntities(entityIds, world.scenes, world.entities)
-      if (deleted.length > 0 && inspectedCharacterId && deleted.includes(inspectedCharacterId)) {
-        setInspectedCharacterId(null)
-      }
-    })
+    // Orphan GC is now handled server-side
   }
 
   const handleAddScene = (id: string, name: string, atmosphere: Atmosphere) => {
-    const persistentIds = getPersistentEntityIds(world.entities)
-    addScene(id, name, atmosphere, persistentIds)
+    // Server auto-links persistent entities on scene creation
+    addScene(id, name, atmosphere)
   }
 
   const handleAddEntity = (entity: Entity) => {
     addEntity(entity)
-    if (entity.persistent) {
-      addEntityToAllScenes(entity.id, world.scenes)
-    }
+    // Server handles adding persistent entities to all scenes
   }
 
   const handleUpdateEntity = (id: string, updates: Partial<Entity>) => {
-    if (updates.persistent === true) {
-      const existing = getEntity(id)
-      if (existing && !existing.persistent) {
-        addEntityToAllScenes(id, world.scenes)
-      }
-    }
     updateEntity(id, updates)
+    // Server handles persistent→all-scenes linking
   }
 
   const handleSetActiveCharacter = (entityId: string) => {
@@ -319,7 +373,7 @@ function RoomSession({ roomId }: { roomId: string }) {
         {activeScene && (
           <TacticalPanel
             combatInfo={combatInfo}
-            tokens={tokens}
+            tokens={tokensArray}
             getEntity={getEntity}
             mySeatId={mySeatId}
             role={mySeat.role}
@@ -339,7 +393,7 @@ function RoomSession({ roomId }: { roomId: string }) {
 
         {/* Top-center: Portrait bar */}
         <PortraitBar
-          entities={entities}
+          entities={entitiesArray}
           sceneEntityIds={sceneEntityIds}
           mySeatId={mySeatId}
           role={mySeat.role}
@@ -358,7 +412,7 @@ function RoomSession({ roomId }: { roomId: string }) {
         />
 
         {/* Top-right: Team dashboard */}
-        <TeamDashboard yDoc={yDoc} isGM={isGM} />
+        <TeamDashboard roomId={roomId} isGM={isGM} />
 
         {/* Left: My character card (self-managed open/close via tab) */}
         {activeEntity && (
@@ -366,17 +420,17 @@ function RoomSession({ roomId }: { roomId: string }) {
         )}
 
         {/* Center: Showcase spotlight overlay */}
-        <ShowcaseOverlay yDoc={yDoc} isGM={isGM} />
+        <ShowcaseOverlay roomId={roomId} isGM={isGM} />
 
         {/* Bottom-right: Chat overlay */}
         <ChatPanel
-          yDoc={yDoc}
+          roomId={roomId}
           senderId={mySeatId}
           senderName={mySeat.name}
           senderColor={mySeat.color}
           portraitUrl={mySeat.portraitUrl || activeEntity?.imageUrl}
           seatProperties={seatProperties}
-          speakerEntities={selectSpeakerEntities(entities, mySeatId, isGM)}
+          speakerEntities={speakerEntities}
         />
 
         {/* Bottom center: GM Dock (unified toolbar) */}
@@ -388,8 +442,8 @@ function RoomSession({ roomId }: { roomId: string }) {
             onToggleCombat={() => {
               if (isCombat) {
                 endCombat()
-              } else if (room.activeSceneId) {
-                activateEncounter(room.activeSceneId)
+              } else {
+                startCombat()
               }
             }}
             onShowcaseImage={(imageUrl) => {
@@ -404,11 +458,7 @@ function RoomSession({ roomId }: { roomId: string }) {
                 timestamp: Date.now(),
               })
             }}
-            blueprints={blueprints}
-            onAddBlueprint={addBlueprint}
-            onUpdateBlueprint={updateBlueprint}
-            onDeleteBlueprint={deleteBlueprint}
-            entities={entities}
+            entities={entitiesArray}
             onAddEntity={handleAddEntity}
             onAddEntityToScene={(entityId) => {
               if (room.activeSceneId) addEntityToScene(room.activeSceneId, entityId)

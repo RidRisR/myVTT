@@ -80,11 +80,9 @@ export function CharacterEditPanel({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Awareness for resource drag broadcasting
-  const awareness = useIdentityStore((s) => s.getAwareness())
   const mySeatId = useIdentityStore((s) => s.mySeatId)
   const mySeat = useIdentityStore((s) => s.getMySeat())
   const { broadcastEditing, clearEditing, remoteEdits } = useAwarenessResource(
-    awareness,
     mySeatId,
     mySeat?.color ?? null,
   )

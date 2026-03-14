@@ -12,8 +12,10 @@ import { getEntityResources, getEntityAttributes } from '../shared/entityAdapter
 export const selectRoom = (s: { room: RoomState }) => s.room
 export const selectActiveSceneId = (s: { room: RoomState }) => s.room.activeSceneId
 export const selectScenes = (s: { scenes: Scene[] }) => s.scenes
-export const selectEntities = (s: { entities: Entity[] }) => s.entities
-export const selectTokens = (s: { tokens: MapToken[] }) => s.tokens
+export const selectEntities = (s: { entities: Record<string, Entity> }) => s.entities
+const EMPTY_TOKENS: Record<string, MapToken> = {}
+export const selectTokens = (s: { combatInfo: CombatInfo | null }): Record<string, MapToken> =>
+  s.combatInfo?.tokens ?? EMPTY_TOKENS
 export const selectCombatInfo = (s: { combatInfo: CombatInfo | null }) => s.combatInfo
 
 export const selectActiveScene = (s: { room: RoomState; scenes: Scene[] }): Scene | null => {
@@ -29,16 +31,16 @@ export const selectIsCombat = (s: { room: RoomState }): boolean => {
 // ── Entity lookups ──
 
 export function selectEntityById(id: string | null) {
-  return (s: { entities: Entity[] }): Entity | null => {
+  return (s: { entities: Record<string, Entity> }): Entity | null => {
     if (!id) return null
-    return s.entities.find((e) => e.id === id) ?? null
+    return s.entities[id] ?? null
   }
 }
 
 export function selectTokenById(id: string | null) {
-  return (s: { tokens: MapToken[] }): MapToken | null => {
+  return (s: { combatInfo: CombatInfo | null }): MapToken | null => {
     if (!id) return null
-    return s.tokens.find((t) => t.id === id) ?? null
+    return s.combatInfo?.tokens[id] ?? null
   }
 }
 
@@ -68,13 +70,14 @@ export function deriveSeatProperties(
 // ── Speaker entities (for chat) ──
 
 export function selectSpeakerEntities(
-  entities: Entity[],
+  entities: Record<string, Entity>,
   mySeatId: string | null,
   isGM: boolean,
 ): Entity[] {
-  if (isGM) return entities
+  const arr = Object.values(entities)
+  if (isGM) return arr
   if (!mySeatId) return []
-  return entities.filter((e) => e.permissions.seats[mySeatId] === 'owner')
+  return arr.filter((e) => e.permissions.seats[mySeatId] === 'owner')
 }
 
 // ── Identity selectors ──

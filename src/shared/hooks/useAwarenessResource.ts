@@ -1,11 +1,8 @@
 // src/shared/hooks/useAwarenessResource.ts
-// Broadcasts resource-drag awareness state and listens for remote drags.
-// During drag: broadcasts { entityId, field, value, seatId, color } at ~20fps.
-// On pointerUp: clears awareness state.
-// Consumers read `remoteEdits` to show live drag values and soft-lock indicators.
+// Broadcasts resource-drag state via Socket.io and listens for remote drags.
 
-import { useEffect, useState, useCallback, useRef } from 'react'
-import type { Awareness } from 'y-protocols/awareness'
+import { useState, useCallback, useEffect } from 'react'
+import { useWorldStore } from '../../stores/worldStore'
 
 export interface AwarenessResourceState {
   entityId: string
@@ -19,110 +16,78 @@ export interface AwarenessResourceState {
 /** Keyed by `${entityId}:${field}` */
 export type RemoteEditMap = Map<string, AwarenessResourceState>
 
-const AWARENESS_FIELD = 'resourceDrag'
-const THROTTLE_MS = 16 // ~60fps
-
-function remoteEditKey(entityId: string, field: string): string {
-  return `${entityId}:${field}`
-}
-
 /**
- * Hook that manages awareness-based resource drag broadcasting and listening.
- *
- * - `broadcastEditing(entityId, field, value)`: call on every drag move (throttled internally to ~60fps)
- * - `clearEditing()`: call on pointerUp
- * - `remoteEdits`: Map of currently active remote resource drags
+ * Hook that manages resource drag broadcasting and listening via Socket.io.
  */
 export function useAwarenessResource(
-  awareness: Awareness | null,
   mySeatId: string | null,
   mySeatColor: string | null,
 ) {
   const [remoteEdits, setRemoteEdits] = useState<RemoteEditMap>(() => new Map())
-  const lastBroadcastRef = useRef(0)
-  const pendingBroadcastRef = useRef<{
-    entityId: string
-    field: string
-    value: number
-    timeoutId: number
-  } | null>(null)
+  const socket = useWorldStore((s) => s._socket)
 
-  // Broadcast that the local user is dragging a resource
+  // Listen for remote awareness events
+  useEffect(() => {
+    if (!socket) return
+
+    const onEditing = (data: AwarenessResourceState) => {
+      if (data.seatId === mySeatId) return // ignore own broadcasts
+      setRemoteEdits((prev) => {
+        const next = new Map(prev)
+        next.set(`${data.entityId}:${data.field}`, data)
+        return next
+      })
+    }
+
+    const onClear = ({ seatId }: { seatId: string }) => {
+      if (seatId === mySeatId) return
+      setRemoteEdits((prev) => {
+        const next = new Map(prev)
+        let changed = false
+        for (const [key, val] of next) {
+          if (val.seatId === seatId) {
+            next.delete(key)
+            changed = true
+          }
+        }
+        return changed ? next : prev
+      })
+    }
+
+    // Clean up stale entries when a remote peer disconnects
+    const onRemove = ({ seatId }: { seatId: string }) => {
+      onClear({ seatId })
+    }
+
+    socket.on('awareness:editing', onEditing)
+    socket.on('awareness:clear', onClear)
+    socket.on('awareness:remove', onRemove)
+
+    return () => {
+      socket.off('awareness:editing', onEditing)
+      socket.off('awareness:clear', onClear)
+      socket.off('awareness:remove', onRemove)
+    }
+  }, [socket, mySeatId])
+
   const broadcastEditing = useCallback(
     (entityId: string, field: string, value: number) => {
-      if (!awareness || !mySeatId) return
-
-      const now = Date.now()
-      const timeSinceLastBroadcast = now - lastBroadcastRef.current
-
-      const broadcast = () => {
-        lastBroadcastRef.current = Date.now()
-        awareness.setLocalStateField(AWARENESS_FIELD, {
-          entityId,
-          field,
-          value,
-          seatId: mySeatId,
-          color: mySeatColor ?? '#3b82f6',
-        } satisfies AwarenessResourceState)
-      }
-
-      // If enough time has passed, broadcast immediately
-      if (timeSinceLastBroadcast >= THROTTLE_MS) {
-        broadcast()
-        // Clear any pending broadcast since we just sent one
-        if (pendingBroadcastRef.current) {
-          clearTimeout(pendingBroadcastRef.current.timeoutId)
-          pendingBroadcastRef.current = null
-        }
-      } else {
-        // Schedule a deferred broadcast to ensure the last value is always sent
-        if (pendingBroadcastRef.current) {
-          clearTimeout(pendingBroadcastRef.current.timeoutId)
-        }
-        const timeoutId = window.setTimeout(() => {
-          broadcast()
-          pendingBroadcastRef.current = null
-        }, THROTTLE_MS - timeSinceLastBroadcast)
-        pendingBroadcastRef.current = { entityId, field, value, timeoutId }
-      }
+      if (!socket || !mySeatId) return
+      socket.emit('awareness:editing', {
+        entityId,
+        field,
+        value,
+        seatId: mySeatId,
+        color: mySeatColor ?? '#888',
+      })
     },
-    [awareness, mySeatId, mySeatColor],
+    [socket, mySeatId, mySeatColor],
   )
 
-  // Clear the local editing state (call on pointerUp)
   const clearEditing = useCallback(() => {
-    if (!awareness) return
-    // Clear any pending broadcast
-    if (pendingBroadcastRef.current) {
-      clearTimeout(pendingBroadcastRef.current.timeoutId)
-      pendingBroadcastRef.current = null
-    }
-    awareness.setLocalStateField(AWARENESS_FIELD, null)
-  }, [awareness])
-
-  // Listen for remote clients' editing states
-  useEffect(() => {
-    if (!awareness) return
-
-    const update = () => {
-      const next: RemoteEditMap = new Map()
-      awareness.getStates().forEach((state, clientId) => {
-        if (clientId === awareness.clientID) return
-        const drag = state[AWARENESS_FIELD] as AwarenessResourceState | null | undefined
-        if (drag && drag.entityId && drag.field != null) {
-          next.set(remoteEditKey(drag.entityId, drag.field), drag)
-        }
-      })
-      setRemoteEdits(next)
-    }
-
-    // Initial read
-    update()
-    awareness.on('change', update)
-    return () => {
-      awareness.off('change', update)
-    }
-  }, [awareness])
+    if (!socket || !mySeatId) return
+    socket.emit('awareness:clear', { seatId: mySeatId })
+  }, [socket, mySeatId])
 
   return { broadcastEditing, clearEditing, remoteEdits }
 }
@@ -136,5 +101,5 @@ export function getRemoteEdit(
   entityId: string,
   field: string,
 ): AwarenessResourceState | null {
-  return remoteEdits.get(remoteEditKey(entityId, field)) ?? null
+  return remoteEdits.get(`${entityId}:${field}`) ?? null
 }

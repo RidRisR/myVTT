@@ -1,13 +1,22 @@
 import { create } from 'zustand'
 import type { AssetMeta } from '../shared/assetTypes'
-import {
-  fetchAssets,
-  createAssetMeta,
-  updateAsset,
-  deleteAsset,
-  getCurrentRoomId,
-} from '../shared/assetApi'
+import { fetchAssets, updateAsset, deleteAsset } from '../shared/assetApi'
 import { uploadAsset } from '../shared/assetUpload'
+
+/** Normalize raw server response (extra.tags/blueprint/handout) into flat AssetMeta */
+function normalizeAsset(raw: Record<string, unknown>): AssetMeta {
+  const extra = (raw.extra as Record<string, unknown>) || {}
+  return {
+    id: raw.id as string,
+    url: raw.url as string,
+    name: raw.name as string,
+    type: (raw.type as AssetMeta['type']) || 'image',
+    tags: (extra.tags as string[]) || (raw.tags as string[]) || [],
+    createdAt: raw.createdAt as number,
+    ...(extra.blueprint ? { blueprint: extra.blueprint as AssetMeta['blueprint'] } : {}),
+    ...(extra.handout ? { handout: extra.handout as AssetMeta['handout'] } : {}),
+  }
+}
 
 interface AssetStore {
   assets: AssetMeta[]
@@ -18,7 +27,12 @@ interface AssetStore {
   refresh: () => Promise<void>
   upload: (
     file: File,
-    meta: { name?: string; type?: AssetMeta['type']; tags?: string[] },
+    meta: {
+      name?: string
+      type?: AssetMeta['type']
+      tags?: string[]
+      blueprint?: AssetMeta['blueprint']
+    },
   ) => Promise<AssetMeta>
   update: (assetId: string, updates: Partial<AssetMeta>) => Promise<void>
   remove: (assetId: string) => Promise<void>
@@ -26,6 +40,9 @@ interface AssetStore {
   // Derived data (filters, sorts) should NOT be store methods —
   // they return new references and cause infinite re-renders as selectors.
   // Use useMemo in components instead.
+
+  /** @internal Test-only */
+  _reset: () => void
 }
 
 export const useAssetStore = create<AssetStore>((set, get) => ({
@@ -36,7 +53,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   init: async (roomId) => {
     set({ roomId, loading: true })
     try {
-      const assets = await fetchAssets(roomId)
+      const raw = await fetchAssets(roomId)
+      const assets = (raw as unknown as Record<string, unknown>[]).map(normalizeAsset)
       set({ assets, loading: false })
     } catch {
       set({ loading: false })
@@ -46,22 +64,21 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   refresh: async () => {
     const { roomId } = get()
     if (!roomId) return
-    const assets = await fetchAssets(roomId)
+    const raw = await fetchAssets(roomId)
+    const assets = (raw as unknown as Record<string, unknown>[]).map(normalizeAsset)
     set({ assets })
   },
 
   upload: async (file, meta) => {
-    const roomId = get().roomId || getCurrentRoomId()
-    // Upload the file first
-    const url = await uploadAsset(file)
-    // Then create the metadata entry
-    const assetMeta: Omit<AssetMeta, 'id' | 'createdAt'> = {
-      url,
+    const extra: Record<string, unknown> = { tags: meta.tags || [] }
+    if (meta.blueprint) extra.blueprint = meta.blueprint
+
+    const result = await uploadAsset(file, {
       name: meta.name || file.name,
       type: meta.type || 'image',
-      tags: meta.tags || [],
-    }
-    const asset = await createAssetMeta(roomId, assetMeta)
+      extra,
+    })
+    const asset = normalizeAsset(result as unknown as Record<string, unknown>)
     set((s) => ({ assets: [...s.assets, asset] }))
     return asset
   },
@@ -70,7 +87,8 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     const { roomId } = get()
     if (!roomId) throw new Error('No room')
     const updated = await updateAsset(roomId, assetId, updates)
-    set((s) => ({ assets: s.assets.map((a) => (a.id === assetId ? updated : a)) }))
+    const normalized = normalizeAsset(updated as unknown as Record<string, unknown>)
+    set((s) => ({ assets: s.assets.map((a) => (a.id === assetId ? normalized : a)) }))
   },
 
   remove: async (assetId) => {
@@ -79,4 +97,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     await deleteAsset(roomId, assetId)
     set((s) => ({ assets: s.assets.filter((a) => a.id !== assetId) }))
   },
+
+  /** @internal Test-only: reset store to initial state */
+  _reset: () => set({ assets: [], loading: false, roomId: null }),
 }))

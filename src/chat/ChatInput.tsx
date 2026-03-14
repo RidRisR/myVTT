@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react'
 import { Send } from 'lucide-react'
-import { rollCompound, resolveFormula } from '../shared/diceUtils'
+import { resolveFormula } from '../shared/diceUtils'
 import type { ChatMessage } from './chatTypes'
 
 interface Suggestion {
@@ -17,6 +17,7 @@ interface ChatInputProps {
   portraitUrl?: string
   seatProperties: { key: string; value: string }[]
   onSend: (message: ChatMessage) => void
+  onRoll?: (formula: string, resolvedExpression?: string) => void
   onFocus?: () => void
   onCycleSpeaker?: () => void
 }
@@ -35,6 +36,7 @@ export function ChatInput({
   portraitUrl,
   seatProperties,
   onSend,
+  onRoll,
   onFocus,
   onCycleSpeaker,
 }: ChatInputProps) {
@@ -127,8 +129,7 @@ export function ChatInput({
     // Resolve @key references using provided token props
     const tokenProps = selectedTokenProps
 
-    let expression = formula
-    let resolvedExpression = formula
+    let resolvedExpression: string | undefined
 
     if (/@[\p{L}\p{N}_]+/u.test(formula)) {
       const resolved = resolveFormula(formula, tokenProps, seatProperties)
@@ -137,33 +138,13 @@ export function ChatInput({
         setError(resolved.error + hint)
         return
       }
-      expression = formula
       resolvedExpression = resolved.resolved
     }
 
-    const result = rollCompound(resolvedExpression)
-    if (!result) {
-      setError('Invalid format. Examples: .r 1d20+5, .r4d6kh3, .r 2d6+@STR')
-      return
+    // Server-side rolling via onRoll callback
+    if (onRoll) {
+      onRoll(formula, resolvedExpression)
     }
-    if ('error' in result) {
-      setError(result.error)
-      return
-    }
-
-    onSend({
-      type: 'roll',
-      id: generateId(),
-      senderId,
-      senderName,
-      senderColor,
-      portraitUrl,
-      expression,
-      resolvedExpression: expression !== resolvedExpression ? resolvedExpression : undefined,
-      terms: result.termResults,
-      total: result.total,
-      timestamp: Date.now(),
-    })
     setInput('')
     setError('')
   }
