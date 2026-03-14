@@ -4,11 +4,7 @@
 
 import { create } from 'zustand'
 import type { Socket } from 'socket.io-client'
-import type {
-  Entity,
-  MapToken,
-  Atmosphere,
-} from '../shared/entityTypes'
+import type { Entity, MapToken, Atmosphere } from '../shared/entityTypes'
 import type { ShowcaseItem } from '../showcase/showcaseTypes'
 import type { ChatMessage } from '../chat/chatTypes'
 import { api } from '../shared/api'
@@ -131,6 +127,14 @@ interface WorldState {
   getSceneEntityIds: (sceneId: string) => string[]
   duplicateScene: (sourceId: string, newId: string) => Promise<void>
 
+  // Encounter actions
+  encounters: EncounterRecord[]
+  fetchEncounters: (sceneId: string) => Promise<void>
+  createEncounter: (sceneId: string, name: string) => Promise<void>
+  deleteEncounter: (id: string) => Promise<void>
+  updateEncounter: (id: string, updates: Partial<EncounterRecord>) => Promise<void>
+  duplicateEncounter: (id: string) => Promise<void>
+
   // Combat actions
   startCombat: () => Promise<void>
   activateEncounter: (sceneId: string, encounterId?: string) => Promise<void>
@@ -172,8 +176,21 @@ interface WorldState {
   deleteTeamTracker: (id: string) => Promise<void>
 
   // Chat actions
-  sendMessage: (msg: { senderId: string; senderName: string; senderColor: string; portraitUrl?: string; content: string }) => Promise<void>
-  sendRoll: (data: { formula: string; resolvedExpression?: string; senderId: string; senderName: string; senderColor: string; portraitUrl?: string }) => Promise<void>
+  sendMessage: (msg: {
+    senderId: string
+    senderName: string
+    senderColor: string
+    portraitUrl?: string
+    content: string
+  }) => Promise<void>
+  sendRoll: (data: {
+    formula: string
+    resolvedExpression?: string
+    senderId: string
+    senderName: string
+    senderColor: string
+    portraitUrl?: string
+  }) => Promise<void>
 
   /** @internal Test-only */
   _reset: () => void
@@ -233,10 +250,23 @@ async function loadAll(roomId: string) {
     }),
   )
 
-  return { scenes, entities, chatMessages: chat, combatInfo, teamTrackers: trackers, room: state, assets, showcaseItems: showcase, sceneEntityMap }
+  return {
+    scenes,
+    entities,
+    chatMessages: chat,
+    combatInfo,
+    teamTrackers: trackers,
+    room: state,
+    assets,
+    showcaseItems: showcase,
+    sceneEntityMap,
+  }
 }
 
-function registerSocketEvents(socket: Socket, set: (fn: (s: WorldState) => Partial<WorldState>) => void) {
+function registerSocketEvents(
+  socket: Socket,
+  set: (fn: (s: WorldState) => Partial<WorldState>) => void,
+) {
   // ── Scene events ──
   socket.on('scene:created', (scene: Scene) => {
     set((s) => ({ scenes: [...s.scenes, scene] }))
@@ -249,19 +279,30 @@ function registerSocketEvents(socket: Socket, set: (fn: (s: WorldState) => Parti
   socket.on('scene:deleted', ({ id }: { id: string }) => {
     set((s) => ({ scenes: s.scenes.filter((sc) => sc.id !== id) }))
   })
-  socket.on('scene:entity:linked', ({ sceneId, entityId }: { sceneId: string; entityId: string }) => {
-    set((s) => {
-      const current = s.sceneEntityMap[sceneId] ?? []
-      if (current.includes(entityId)) return s
-      return { sceneEntityMap: { ...s.sceneEntityMap, [sceneId]: [...current, entityId] } }
-    })
-  })
-  socket.on('scene:entity:unlinked', ({ sceneId, entityId }: { sceneId: string; entityId: string }) => {
-    set((s) => {
-      const current = s.sceneEntityMap[sceneId] ?? []
-      return { sceneEntityMap: { ...s.sceneEntityMap, [sceneId]: current.filter((id) => id !== entityId) } }
-    })
-  })
+  socket.on(
+    'scene:entity:linked',
+    ({ sceneId, entityId }: { sceneId: string; entityId: string }) => {
+      set((s) => {
+        const current = s.sceneEntityMap[sceneId] ?? []
+        if (current.includes(entityId)) return s
+        return { sceneEntityMap: { ...s.sceneEntityMap, [sceneId]: [...current, entityId] } }
+      })
+    },
+  )
+  socket.on(
+    'scene:entity:unlinked',
+    ({ sceneId, entityId }: { sceneId: string; entityId: string }) => {
+      set((s) => {
+        const current = s.sceneEntityMap[sceneId] ?? []
+        return {
+          sceneEntityMap: {
+            ...s.sceneEntityMap,
+            [sceneId]: current.filter((id) => id !== entityId),
+          },
+        }
+      })
+    },
+  )
 
   // ── Entity events ──
   socket.on('entity:created', (entity: Entity) => {
@@ -272,8 +313,9 @@ function registerSocketEvents(socket: Socket, set: (fn: (s: WorldState) => Parti
   })
   socket.on('entity:deleted', ({ id }: { id: string }) => {
     set((s) => {
-      const { [id]: _, ...rest } = s.entities
-      return { entities: rest }
+      return {
+        entities: Object.fromEntries(Object.entries(s.entities).filter(([k]) => k !== id)),
+      }
     })
   })
 
@@ -298,25 +340,34 @@ function registerSocketEvents(socket: Socket, set: (fn: (s: WorldState) => Parti
       }
     })
   })
-  socket.on('combat:token:updated', ({ tokenId, changes }: { tokenId: string; changes: Partial<MapToken> }) => {
-    set((s) => {
-      if (!s.combatInfo || !s.combatInfo.tokens[tokenId]) return s
-      return {
-        combatInfo: {
-          ...s.combatInfo,
-          tokens: {
-            ...s.combatInfo.tokens,
-            [tokenId]: { ...s.combatInfo.tokens[tokenId], ...changes },
+  socket.on(
+    'combat:token:updated',
+    ({ tokenId, changes }: { tokenId: string; changes: Partial<MapToken> }) => {
+      set((s) => {
+        if (!s.combatInfo || !s.combatInfo.tokens[tokenId]) return s
+        return {
+          combatInfo: {
+            ...s.combatInfo,
+            tokens: {
+              ...s.combatInfo.tokens,
+              [tokenId]: { ...s.combatInfo.tokens[tokenId], ...changes },
+            },
           },
-        },
-      }
-    })
-  })
+        }
+      })
+    },
+  )
   socket.on('combat:token:removed', ({ tokenId }: { tokenId: string }) => {
     set((s) => {
       if (!s.combatInfo) return s
-      const { [tokenId]: _, ...rest } = s.combatInfo.tokens
-      return { combatInfo: { ...s.combatInfo, tokens: rest } }
+      return {
+        combatInfo: {
+          ...s.combatInfo,
+          tokens: Object.fromEntries(
+            Object.entries(s.combatInfo.tokens).filter(([k]) => k !== tokenId),
+          ),
+        },
+      }
     })
   })
 
@@ -378,25 +429,50 @@ function registerSocketEvents(socket: Socket, set: (fn: (s: WorldState) => Parti
   })
 
   // ── Encounter events ──
-  socket.on('encounter:created', () => {
-    // Encounters are stored per-scene; for now, refetch on demand
+  socket.on('encounter:created', (enc: EncounterRecord) => {
+    set((s) => ({ encounters: [...s.encounters, enc] }))
   })
-  socket.on('encounter:updated', () => {})
-  socket.on('encounter:deleted', () => {})
+  socket.on('encounter:updated', (enc: EncounterRecord) => {
+    set((s) => ({
+      encounters: s.encounters.map((e) => (e.id === enc.id ? enc : e)),
+    }))
+  })
+  socket.on('encounter:deleted', ({ id }: { id: string }) => {
+    set((s) => ({ encounters: s.encounters.filter((e) => e.id !== id) }))
+  })
 }
 
 const WS_EVENTS = [
-  'scene:created', 'scene:updated', 'scene:deleted',
-  'scene:entity:linked', 'scene:entity:unlinked',
-  'entity:created', 'entity:updated', 'entity:deleted',
-  'combat:activated', 'combat:updated', 'combat:ended',
-  'combat:token:added', 'combat:token:updated', 'combat:token:removed',
-  'chat:new', 'chat:retracted',
+  'scene:created',
+  'scene:updated',
+  'scene:deleted',
+  'scene:entity:linked',
+  'scene:entity:unlinked',
+  'entity:created',
+  'entity:updated',
+  'entity:deleted',
+  'combat:activated',
+  'combat:updated',
+  'combat:ended',
+  'combat:token:added',
+  'combat:token:updated',
+  'combat:token:removed',
+  'chat:new',
+  'chat:retracted',
   'room:state:updated',
-  'tracker:created', 'tracker:updated', 'tracker:deleted',
-  'showcase:created', 'showcase:updated', 'showcase:deleted', 'showcase:cleared',
-  'asset:created', 'asset:updated', 'asset:deleted',
-  'encounter:created', 'encounter:updated', 'encounter:deleted',
+  'tracker:created',
+  'tracker:updated',
+  'tracker:deleted',
+  'showcase:created',
+  'showcase:updated',
+  'showcase:deleted',
+  'showcase:cleared',
+  'asset:created',
+  'asset:updated',
+  'asset:deleted',
+  'encounter:created',
+  'encounter:updated',
+  'encounter:deleted',
 ]
 
 // ── Store creation ──
@@ -414,6 +490,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   handoutAssets: [],
   teamTrackers: [],
   assets: [],
+  encounters: [],
 
   // Internal refs
   _socket: null,
@@ -504,6 +581,52 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       name: `${source.name} (copy)`,
       atmosphere: source.atmosphere,
       sortOrder: source.sortOrder + 1,
+    })
+  },
+
+  // ── Encounter actions ──
+
+  fetchEncounters: async (sceneId) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    const data = await api.get(`/api/rooms/${roomId}/scenes/${sceneId}/encounters`)
+    set({ encounters: data as EncounterRecord[] })
+  },
+
+  createEncounter: async (sceneId, name) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.post(`/api/rooms/${roomId}/scenes/${sceneId}/encounters`, { name })
+  },
+
+  deleteEncounter: async (id) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.delete(`/api/rooms/${roomId}/encounters/${id}`)
+  },
+
+  updateEncounter: async (id, updates) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.patch(`/api/rooms/${roomId}/encounters/${id}`, updates)
+  },
+
+  duplicateEncounter: async (id) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    // Fetch the encounter, create a copy with "(副本)" suffix
+    const encounters = get().encounters
+    const source = encounters.find((e) => e.id === id)
+    if (!source) return
+    const activeSceneId = get().room.activeSceneId
+    if (!activeSceneId) return
+    await api.post(`/api/rooms/${roomId}/scenes/${activeSceneId}/encounters`, {
+      name: `${source.name}（副本）`,
+      mapUrl: source.mapUrl,
+      mapWidth: source.mapWidth,
+      mapHeight: source.mapHeight,
+      grid: source.grid,
+      tokens: source.tokens,
     })
   },
 
@@ -710,5 +833,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       handoutAssets: [],
       teamTrackers: [],
       assets: [],
+      encounters: [],
     }),
 }))

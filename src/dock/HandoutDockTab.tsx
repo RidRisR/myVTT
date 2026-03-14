@@ -29,8 +29,8 @@ export function HandoutDockTab({
     e.target.value = ''
     setUploading(true)
     try {
-      const imageUrl = await uploadAsset(file)
-      onAddAsset({ id: generateTokenId(), imageUrl, createdAt: Date.now() })
+      const result = await uploadAsset(file)
+      onAddAsset({ id: generateTokenId(), imageUrl: result.url, createdAt: Date.now() })
     } finally {
       setUploading(false)
     }

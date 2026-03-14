@@ -11,6 +11,7 @@ interface ContextMenuState {
 
 export type ActiveTool = 'select' | 'measure' | 'range-circle' | 'range-cone' | 'range-rect'
 export type ThemeId = 'warm' | 'cold'
+export type GmSidebarTab = 'encounters' | 'entities'
 
 function getStoredTheme(): ThemeId {
   try {
@@ -47,6 +48,10 @@ interface UiState {
   portraitBarVisible: boolean
   teamPanelVisible: boolean
 
+  // GM sidebar
+  gmSidebarTab: GmSidebarTab
+  gmSidebarCollapsed: boolean
+
   setInspectedCharacterId: (id: string | null) => void
   setSelectedTokenId: (id: string | null) => void
   setBgContextMenu: (menu: ContextMenuState | null) => void
@@ -56,6 +61,8 @@ interface UiState {
   setTheme: (theme: ThemeId) => void
   setPortraitBarVisible: (visible: boolean) => void
   setTeamPanelVisible: (visible: boolean) => void
+  setGmSidebarTab: (tab: GmSidebarTab) => void
+  setGmSidebarCollapsed: (collapsed: boolean) => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -68,6 +75,8 @@ export const useUiStore = create<UiState>((set) => ({
   theme: getStoredTheme(),
   portraitBarVisible: true,
   teamPanelVisible: true,
+  gmSidebarTab: 'encounters',
+  gmSidebarCollapsed: false,
 
   setInspectedCharacterId: (id) => set({ inspectedCharacterId: id }),
   setSelectedTokenId: (id) => set({ selectedTokenId: id }),
@@ -81,4 +90,6 @@ export const useUiStore = create<UiState>((set) => ({
   },
   setPortraitBarVisible: (visible) => set({ portraitBarVisible: visible }),
   setTeamPanelVisible: (visible) => set({ teamPanelVisible: visible }),
+  setGmSidebarTab: (tab) => set({ gmSidebarTab: tab }),
+  setGmSidebarCollapsed: (collapsed) => set({ gmSidebarCollapsed: collapsed }),
 }))

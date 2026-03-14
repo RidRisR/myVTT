@@ -37,6 +37,9 @@ interface AssetStore {
   update: (assetId: string, updates: Partial<AssetMeta>) => Promise<void>
   remove: (assetId: string) => Promise<void>
 
+  /** Remove from UI immediately, delete from server after delay. Returns undo function. */
+  softRemove: (assetId: string, delayMs?: number) => () => void
+
   // Derived data (filters, sorts) should NOT be store methods —
   // they return new references and cause infinite re-renders as selectors.
   // Use useMemo in components instead.
@@ -96,6 +99,26 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     if (!roomId) throw new Error('No room')
     await deleteAsset(roomId, assetId)
     set((s) => ({ assets: s.assets.filter((a) => a.id !== assetId) }))
+  },
+
+  softRemove: (assetId, delayMs = 5000) => {
+    const cached = get().assets.find((a) => a.id === assetId)
+    if (!cached) return () => {}
+
+    // Immediately remove from UI
+    set((s) => ({ assets: s.assets.filter((a) => a.id !== assetId) }))
+
+    // Schedule actual server delete
+    const timer = setTimeout(() => {
+      const { roomId } = get()
+      if (roomId) deleteAsset(roomId, assetId).catch(() => {})
+    }, delayMs)
+
+    // Return undo function: cancel timer + restore to UI
+    return () => {
+      clearTimeout(timer)
+      set((s) => ({ assets: [...s.assets, cached] }))
+    }
   },
 
   /** @internal Test-only: reset store to initial state */
