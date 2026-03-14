@@ -300,6 +300,15 @@ Examples of systemic prevention:
 - Express `send` module rejects dotfile paths → documented + test added for file serving round-trip
 - `app.param()` middleware → structural guard that auto-validates all routes, not just the ones we remember to check
 - classic-level v3 returns `undefined` instead of throwing → documented API difference
+- Duplicate data source (worldStore.blueprints vs assetStore type='blueprint') → Single Source of Truth rule (below)
+
+### Single Source of Truth Rule
+
+**Each category of business data MUST have exactly one Store as its source of truth.** If a new Store can cover the same data as an existing Store field, the old field MUST be removed in the same PR.
+
+Symptoms of violation: data exists in memory but disappears on refresh, data appears in wrong UI tab, inconsistent state between stores.
+
+Example: `worldStore.blueprints` (local-only array) vs `assetStore` assets with `type: 'blueprint'` (server-persisted). The local array was never saved to the server — blueprints vanished on page reload. Fix: delete `worldStore.blueprints`, use `assetStore` as the single source.
 
 
 ## Product Design Principles

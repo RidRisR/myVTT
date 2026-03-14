@@ -130,11 +130,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const addHandoutAsset = useWorldStore((s) => s.addHandoutAsset)
   const updateHandoutAsset = useWorldStore((s) => s.updateHandoutAsset)
   const deleteHandoutAsset = useWorldStore((s) => s.deleteHandoutAsset)
-  const blueprints = useWorldStore((s) => s.blueprints)
-  const addBlueprint = useWorldStore((s) => s.addBlueprint)
-  const updateBlueprint = useWorldStore((s) => s.updateBlueprint)
-  const deleteBlueprint = useWorldStore((s) => s.deleteBlueprint)
-
   // Identity store subscriptions
   const seats = useIdentityStore((s) => s.seats)
   const mySeatId = useIdentityStore((s) => s.mySeatId)
@@ -463,10 +458,6 @@ function RoomSession({ roomId }: { roomId: string }) {
                 timestamp: Date.now(),
               })
             }}
-            blueprints={blueprints}
-            onAddBlueprint={addBlueprint}
-            onUpdateBlueprint={updateBlueprint}
-            onDeleteBlueprint={deleteBlueprint}
             entities={entitiesArray}
             onAddEntity={handleAddEntity}
             onAddEntityToScene={(entityId) => {

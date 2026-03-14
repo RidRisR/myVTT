@@ -43,11 +43,6 @@ interface GmDockProps {
   onDeleteHandoutAsset: (id: string) => void
   onShowcaseHandout: (asset: HandoutAsset) => void
 
-  blueprints: Blueprint[]
-  onAddBlueprint: (bp: Blueprint) => void
-  onUpdateBlueprint: (id: string, updates: Partial<Blueprint>) => void
-  onDeleteBlueprint: (id: string) => void
-
   entities: Entity[]
   onAddEntity: (entity: Entity) => void
   onAddEntityToScene: (entityId: string) => void
@@ -66,10 +61,6 @@ export function GmDock({
   onUpdateScene,
   onToggleCombat,
   onShowcaseImage,
-  blueprints,
-  onAddBlueprint,
-  onUpdateBlueprint,
-  onDeleteBlueprint,
   handoutAssets,
   onAddHandoutAsset,
   onEditHandoutAsset,
@@ -202,10 +193,6 @@ export function GmDock({
           )}
           {activeTab === 'tokens' && (
             <MemoTokenDockTab
-              blueprints={blueprints}
-              onAddBlueprint={onAddBlueprint}
-              onUpdateBlueprint={onUpdateBlueprint}
-              onDeleteBlueprint={onDeleteBlueprint}
               onSpawnToken={handleSpawnFromBlueprint}
               onAddToActive={handleAddToActive}
               isCombat={isCombat}

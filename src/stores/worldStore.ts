@@ -7,7 +7,6 @@ import type { Socket } from 'socket.io-client'
 import type {
   Entity,
   MapToken,
-  Blueprint,
   Atmosphere,
 } from '../shared/entityTypes'
 import type { ShowcaseItem } from '../showcase/showcaseTypes'
@@ -97,7 +96,6 @@ interface WorldState {
   sceneEntityMap: Record<string, string[]>
   chatMessages: ChatMessage[]
   combatInfo: CombatInfo | null
-  blueprints: Blueprint[]
   showcaseItems: ShowcaseItem[]
   showcasePinnedItemId: string | null
   handoutAssets: HandoutAsset[]
@@ -140,11 +138,6 @@ interface WorldState {
   saveEncounter: (sceneId: string, encounterId: string) => Promise<void>
   updateCombatGrid: (updates: Partial<CombatInfo['grid']>) => Promise<void>
   setCombatMapUrl: (mapUrl: string, width: number, height: number) => Promise<void>
-
-  // Blueprint actions
-  addBlueprint: (bp: Blueprint) => void
-  updateBlueprint: (id: string, updates: Partial<Blueprint>) => void
-  deleteBlueprint: (id: string) => void
 
   // Entity actions
   addEntity: (entity: Entity) => Promise<void>
@@ -416,7 +409,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   sceneEntityMap: {},
   chatMessages: [],
   combatInfo: null,
-  blueprints: [],
   showcaseItems: [],
   showcasePinnedItemId: null,
   handoutAssets: [],
@@ -559,22 +551,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       mapWidth: width,
       mapHeight: height,
     })
-  },
-
-  // ── Blueprint actions (local for now, TODO: persist to server) ──
-
-  addBlueprint: (bp) => {
-    set((s) => ({ blueprints: [...s.blueprints, bp] }))
-  },
-
-  updateBlueprint: (id, updates) => {
-    set((s) => ({
-      blueprints: s.blueprints.map((bp) => (bp.id === id ? { ...bp, ...updates } : bp)),
-    }))
-  },
-
-  deleteBlueprint: (id) => {
-    set((s) => ({ blueprints: s.blueprints.filter((bp) => bp.id !== id) }))
   },
 
   // ── Entity actions ──
@@ -729,7 +705,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       sceneEntityMap: {},
       chatMessages: [],
       combatInfo: null,
-      blueprints: [],
       showcaseItems: [],
       showcasePinnedItemId: null,
       handoutAssets: [],

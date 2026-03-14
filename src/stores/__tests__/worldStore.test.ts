@@ -730,27 +730,6 @@ describe('action methods', () => {
     expect(ids1).toBe(ids2) // same reference
   })
 
-  // ── Blueprint local actions ──
-
-  it('addBlueprint adds to blueprints array', () => {
-    useWorldStore.getState().addBlueprint({
-      id: 'bp-1',
-      name: 'Goblin Template',
-      imageUrl: '',
-      color: '#00ff00',
-      size: 1,
-    } as never)
-
-    expect(useWorldStore.getState().blueprints).toHaveLength(1)
-  })
-
-  it('deleteBlueprint removes from blueprints array', () => {
-    useWorldStore.getState().addBlueprint({ id: 'bp-del', name: 'Temp' } as never)
-    useWorldStore.getState().deleteBlueprint('bp-del')
-
-    expect(useWorldStore.getState().blueprints.find((b) => b.id === 'bp-del')).toBeUndefined()
-  })
-
   // ── Handout local actions ──
 
   it('addHandoutAsset adds to handoutAssets', () => {

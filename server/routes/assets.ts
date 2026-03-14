@@ -111,6 +111,67 @@ export function assetRoutes(dataDir: string, io: Server): Router {
     })
   })
 
+  router.patch('/api/rooms/:roomId/assets/:id', room, (req, res) => {
+    const row = req.roomDb!
+      .prepare('SELECT * FROM assets WHERE id = ?')
+      .get(req.params.id) as Record<string, unknown> | undefined
+    if (!row) {
+      res.status(404).json({ error: 'Asset not found' })
+      return
+    }
+
+    const updates: string[] = []
+    const params: unknown[] = []
+
+    if (req.body.name !== undefined) {
+      updates.push('name = ?')
+      params.push(req.body.name)
+    }
+    if (req.body.type !== undefined) {
+      updates.push('type = ?')
+      params.push(req.body.type)
+    }
+
+    // Merge tags, blueprint, handout into extra JSON column
+    const currentExtra = JSON.parse((row.extra as string) || '{}')
+    let extraChanged = false
+    if (req.body.tags !== undefined) {
+      currentExtra.tags = req.body.tags
+      extraChanged = true
+    }
+    if (req.body.blueprint !== undefined) {
+      currentExtra.blueprint = req.body.blueprint
+      extraChanged = true
+    }
+    if (req.body.handout !== undefined) {
+      currentExtra.handout = req.body.handout
+      extraChanged = true
+    }
+    if (extraChanged) {
+      updates.push('extra = ?')
+      params.push(JSON.stringify(currentExtra))
+    }
+
+    if (updates.length === 0) {
+      res.json(toAsset(row))
+      return
+    }
+
+    params.push(req.params.id)
+    req.roomDb!
+      .prepare(`UPDATE assets SET ${updates.join(', ')} WHERE id = ?`)
+      .run(...params)
+
+    const updated = toAsset(
+      req.roomDb!.prepare('SELECT * FROM assets WHERE id = ?').get(req.params.id) as Record<
+        string,
+        unknown
+      >,
+    )
+    io.to(req.roomId!).emit('asset:updated', updated)
+    res.json(updated)
+  })
+
   router.delete('/api/rooms/:roomId/assets/:id', room, (req, res) => {
     const row = req.roomDb!
       .prepare('SELECT * FROM assets WHERE id = ?')
