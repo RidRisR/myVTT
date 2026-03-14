@@ -4,7 +4,6 @@ import { useAssetStore } from '../stores/assetStore'
 import type { AssetMeta } from '../shared/assetTypes'
 import { isVideoUrl } from '../shared/assetUpload'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
-import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
 import { useToast } from '../shared/ui/useToast'
 
 interface MapDockTabProps {
@@ -32,12 +31,11 @@ export function MapDockTab({
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextState | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<AssetMeta | null>(null)
 
   const allAssets = useAssetStore((s) => s.assets)
   const loading = useAssetStore((s) => s.loading)
   const upload = useAssetStore((s) => s.upload)
-  const remove = useAssetStore((s) => s.remove)
+  const softRemove = useAssetStore((s) => s.softRemove)
   const assets = useMemo(() => allAssets.filter((a) => a.type === 'image'), [allAssets])
 
   const { toast } = useToast()
@@ -57,12 +55,12 @@ export function MapDockTab({
     }
   }
 
-  const handleDelete = async (asset: AssetMeta) => {
-    try {
-      await remove(asset.id)
-    } catch (err) {
-      toast('error', `Delete failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
-    }
+  const handleDelete = (asset: AssetMeta) => {
+    const undo = softRemove(asset.id)
+    toast('undo', `已删除"${asset.name || 'Untitled'}"`, {
+      duration: 5000,
+      action: { label: '撤销', onClick: undo },
+    })
   }
 
   const handleContextMenu = (e: React.MouseEvent, asset: AssetMeta) => {
@@ -94,7 +92,7 @@ export function MapDockTab({
     }
     items.push({
       label: 'Delete',
-      onClick: () => setDeleteTarget(asset),
+      onClick: () => handleDelete(asset),
       color: 'var(--color-danger)',
     })
 
@@ -226,21 +224,6 @@ export function MapDockTab({
           y={contextMenu.y}
           items={buildContextMenuItems(contextMenu.asset)}
           onClose={() => setContextMenu(null)}
-        />
-      )}
-
-      {/* Delete confirmation dialog */}
-      {deleteTarget && (
-        <ConfirmDialog
-          title="Delete Asset"
-          message={`Are you sure you want to delete "${deleteTarget.name}"? This cannot be undone.`}
-          confirmLabel="Delete"
-          variant="danger"
-          onConfirm={() => {
-            handleDelete(deleteTarget)
-            setDeleteTarget(null)
-          }}
-          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </div>

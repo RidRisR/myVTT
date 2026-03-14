@@ -63,7 +63,6 @@ function SpeakerPickerItem({
 }
 
 export function ChatPanel({
-  roomId,
   senderId,
   senderName,
   senderColor,

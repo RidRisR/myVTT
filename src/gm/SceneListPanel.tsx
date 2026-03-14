@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { X, Pencil, Copy, Plus, Trash2 } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
-import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
+import { ConfirmPopover } from '../shared/ui/ConfirmPopover'
 
 interface SceneListPanelProps {
   scenes: Scene[]
@@ -32,6 +32,7 @@ export function SceneListPanel({
   const [renameValue, setRenameValue] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const renameInputRef = useRef<HTMLInputElement>(null)
+  const deleteButtonRef = useRef<HTMLButtonElement>(null)
 
   // Click-outside-to-close
   useEffect(() => {
@@ -165,6 +166,7 @@ export function SceneListPanel({
                       <Pencil size={12} strokeWidth={1.5} />
                     </button>
                     <button
+                      ref={deletingId === scene.id ? deleteButtonRef : undefined}
                       onClick={(e) => {
                         e.stopPropagation()
                         setDeletingId(scene.id)
@@ -191,12 +193,11 @@ export function SceneListPanel({
         </div>
       </div>
 
-      {/* Delete confirmation */}
+      {/* Delete confirmation popover */}
       {deletingScene && (
-        <ConfirmDialog
-          title="Delete Scene"
-          message={`Are you sure you want to delete "${deletingScene.name || 'Untitled'}"? This cannot be undone.`}
-          confirmLabel="Delete"
+        <ConfirmPopover
+          anchorRef={deleteButtonRef}
+          message={`Delete "${deletingScene.name || 'Untitled'}"?`}
           onConfirm={() => {
             onDeleteScene(deletingScene.id)
             setDeletingId(null)

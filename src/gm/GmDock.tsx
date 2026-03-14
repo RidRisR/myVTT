@@ -12,6 +12,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import type { MapToken, Entity, Blueprint, Atmosphere } from '../shared/entityTypes'
+import { useToast } from '../shared/ui/useToast'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { generateTokenId } from '../shared/idUtils'
 import { nextNpcName } from '../shared/characterUtils'
@@ -79,6 +80,7 @@ export function GmDock({
   const [activeTab, setActiveTab] = useState<TabId | null>(null)
   const [collapsed, setCollapsed] = useState(false)
   const dockRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
 
   // Click outside to collapse
   useEffect(() => {
@@ -136,8 +138,16 @@ export function GmDock({
 
   const handleDeleteSelected = () => {
     if (!selectedToken) return
+    const cached = structuredClone(selectedToken)
     onDeleteToken(selectedToken.id)
     onSelectToken(null)
+    toast('undo', '已删除Token', {
+      duration: 5000,
+      action: {
+        label: '撤销',
+        onClick: () => onAddToken(cached),
+      },
+    })
   }
 
   const handleToggleVisibility = () => {

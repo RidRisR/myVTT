@@ -21,6 +21,7 @@ import { SceneViewer } from './scene/SceneViewer'
 import { AmbientAudio } from './scene/AmbientAudio'
 import { TacticalPanel } from './combat/TacticalPanel'
 import { GmDock } from './gm/GmDock'
+import { GmSidebar } from './gm/GmSidebar'
 
 import { SceneButton } from './gm/SceneButton'
 import { HamburgerMenu } from './layout/HamburgerMenu'
@@ -54,7 +55,6 @@ function RoomSession({ roomId }: { roomId: string }) {
     cancelledRef.current = false
     let cleanupWorld: (() => void) | undefined
     let cleanupIdentity: (() => void) | undefined
-
     ;(async () => {
       try {
         setInitError(null)
@@ -190,9 +190,8 @@ function RoomSession({ roomId }: { roomId: string }) {
   )
 
   const sceneEntityIds =
-    useWorldStore(
-      (s) => (room.activeSceneId ? s.sceneEntityMap[room.activeSceneId] : undefined),
-    ) ?? EMPTY_IDS
+    useWorldStore((s) => (room.activeSceneId ? s.sceneEntityMap[room.activeSceneId] : undefined)) ??
+    EMPTY_IDS
 
   // Convert Record types to arrays for components that still expect arrays
   const entitiesArray = useMemo(() => Object.values(entities), [entities])
@@ -414,9 +413,13 @@ function RoomSession({ roomId }: { roomId: string }) {
         {/* Top-right: Team dashboard */}
         <TeamDashboard roomId={roomId} isGM={isGM} />
 
-        {/* Left: My character card (self-managed open/close via tab) */}
-        {activeEntity && (
-          <MyCharacterCard entity={activeEntity} onUpdateEntity={handleUpdateEntity} />
+        {/* Left: GM sidebar or player character card */}
+        {isGM ? (
+          <GmSidebar />
+        ) : (
+          activeEntity && (
+            <MyCharacterCard entity={activeEntity} onUpdateEntity={handleUpdateEntity} />
+          )
         )}
 
         {/* Center: Showcase spotlight overlay */}

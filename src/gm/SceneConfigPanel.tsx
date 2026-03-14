@@ -76,8 +76,8 @@ export function SceneConfigPanel({
     if (!file) return
     setAudioUploading(true)
     try {
-      const url = await uploadAsset(file)
-      setAmbientAudioUrl(url)
+      const result = await uploadAsset(file)
+      setAmbientAudioUrl(result.url)
     } catch (err) {
       console.error('Audio upload failed:', err)
     } finally {
@@ -150,7 +150,7 @@ export function SceneConfigPanel({
           <label className={labelClass}>Particle Effect</label>
           <select
             value={particlePreset}
-            onChange={(e) => setParticlePreset(e.target.value)}
+            onChange={(e) => setParticlePreset(e.target.value as typeof particlePreset)}
             className={inputClass}
           >
             {PARTICLE_PRESETS.map((preset) => (

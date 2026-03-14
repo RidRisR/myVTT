@@ -129,8 +129,8 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
     if (!file) return
     setUploading(true)
     try {
-      const url = await uploadAsset(file)
-      onUpdateEntity(entity.id, { imageUrl: url })
+      const result = await uploadAsset(file)
+      onUpdateEntity(entity.id, { imageUrl: result.url })
     } catch (err) {
       console.error('Portrait upload failed:', err)
     } finally {

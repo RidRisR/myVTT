@@ -14,7 +14,7 @@ type TabId = 'metrics'
 
 const TABS: { id: TabId; label: string }[] = [{ id: 'metrics', label: 'Metrics' }]
 
-export function TeamDashboard({ roomId, isGM }: TeamDashboardProps) {
+export function TeamDashboard({ isGM }: TeamDashboardProps) {
   const trackers = useWorldStore((s) => s.teamTrackers)
   const addTracker = useWorldStore((s) => s.addTeamTracker)
   const updateTracker = useWorldStore((s) => s.updateTeamTracker)

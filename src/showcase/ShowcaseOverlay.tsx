@@ -14,7 +14,7 @@ interface ShowcaseOverlayProps {
   isGM: boolean
 }
 
-export function ShowcaseOverlay({ roomId, isGM }: ShowcaseOverlayProps) {
+export function ShowcaseOverlay({ isGM }: ShowcaseOverlayProps) {
   const items = useWorldStore((s) => s.showcaseItems)
   const deleteItem = useWorldStore((s) => s.deleteShowcaseItem)
   const pinnedItemId = useWorldStore((s) => s.showcasePinnedItemId)
