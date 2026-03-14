@@ -138,6 +138,33 @@ Data flow: **Yjs → zustand store → React components** (via fine-grained sele
 | `uiStore.ts`       | Client-only UI state: selectedTokenId, activeTool, theme, panel open/closed              |
 | `identityStore.ts` | Seat/identity state                                                                      |
 | `selectors.ts`     | Selector functions for efficient component subscriptions                                 |
+| `assetStore.ts`    | Asset management — upload, list, update, delete                                          |
+
+### Store Action Convention (Testability)
+
+**Core rule: All user actions that affect shared state MUST be named Store methods. Component onClick handlers MUST be single-line calls.**
+
+| Action type | Where? | Example |
+|-------------|--------|---------|
+| Involves API calls | Store method | `worldStore.addScene(...)` |
+| Multi-step orchestration | Store method | `worldStore.spawnFromBlueprint(bp, sceneId)` |
+| Pure UI state | Component / uiStore | `uiStore.setSelectedTokenId(null)` |
+
+```
+✅ <button onClick={() => worldStore.spawnFromBlueprint(bp, sceneId)} />
+❌ <button onClick={() => { addEntity(); addToScene(); addToken(); }} />
+```
+
+**Why**: Store methods can be called directly in Node.js integration tests, enabling full-chain verification (Store → HTTP → SQLite → Socket → Store). Multi-step logic inside component closures cannot be tested without a browser.
+
+### Integration Testing
+
+- Integration test files: `server/__tests__/scenarios/*.test.ts` (Node environment, real server)
+- Test entry point is **Store methods** or **raw HTTP calls** (= simulating button clicks), verifying both Store state and server state
+- Use `setupTestRoom()` from `server/__tests__/helpers/test-server.ts` to create ephemeral room + test server; call `cleanup()` to tear down
+- Each test file = one complete user journey, executed in chronological order
+- **Dual verification**: after each operation, assert both Store state (`getState()`) and server state (`GET` request)
+- Tests run in pure Node.js (no browser, no mocks) — use `// @vitest-environment node` pragma
 
 ## Styling Infrastructure
 
