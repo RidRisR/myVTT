@@ -36,13 +36,15 @@ export function SceneLibrary({
     setUploading(true)
     try {
       for (const file of Array.from(files)) {
-        const imageUrl = await uploadAsset(file)
+        const result = await uploadAsset(file)
+        const imageUrl = result.url
         const dims = await getMediaDimensions(imageUrl)
 
         const scene: Scene = {
           id: generateId(),
           name: file.name.replace(/\.[^.]+$/, ''),
           sortOrder: scenes.length,
+          gmOnly: false,
           atmosphere: {
             imageUrl: imageUrl,
             width: dims.w,
@@ -52,8 +54,6 @@ export function SceneLibrary({
             ambientAudioUrl: '',
             ambientAudioVolume: 0.5,
           },
-          entityIds: [],
-          encounters: {},
         }
         onAdd(scene)
       }

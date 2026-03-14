@@ -43,8 +43,8 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
     if (!file) return
     setUploading(true)
     try {
-      const url = await uploadAsset(file)
-      onUpdateSeat(mySeat.id, { portraitUrl: url })
+      const result = await uploadAsset(file)
+      onUpdateSeat(mySeat.id, { portraitUrl: result.url })
     } catch (err) {
       console.error('Portrait upload failed:', err)
     } finally {

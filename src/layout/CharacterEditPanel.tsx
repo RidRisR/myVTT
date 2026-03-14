@@ -172,8 +172,8 @@ export function CharacterEditPanel({
     if (!file) return
     setUploading(true)
     try {
-      const url = await uploadAsset(file)
-      updateChar({ imageUrl: url })
+      const result = await uploadAsset(file)
+      updateChar({ imageUrl: result.url })
     } catch (err) {
       console.error('Portrait upload failed:', err)
     } finally {

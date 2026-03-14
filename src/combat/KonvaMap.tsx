@@ -100,7 +100,13 @@ export function KonvaMap({
 
   useEffect(() => {
     if (!socket) return
-    const onDrag = (data: { tokenId: string; x: number; y: number; color: string; seatId: string }) => {
+    const onDrag = (data: {
+      tokenId: string
+      x: number
+      y: number
+      color: string
+      seatId: string
+    }) => {
       if (data.seatId === mySeatId) return
       setRemoteTokenDrags((prev) => {
         const next = new Map(prev)
@@ -220,28 +226,32 @@ export function KonvaMap({
   // Fit map to window
   const handleFitToWindow = useCallback(() => {
     if (!combatInfo || containerSize.width === 0 || containerSize.height === 0) return
-    if (combatInfo.mapWidth === 0 || combatInfo.mapHeight === 0) return
+    const mw = combatInfo.mapWidth ?? 0
+    const mh = combatInfo.mapHeight ?? 0
+    if (mw === 0 || mh === 0) return
 
-    const scaleX = containerSize.width / combatInfo.mapWidth
-    const scaleY = containerSize.height / combatInfo.mapHeight
+    const scaleX = containerSize.width / mw
+    const scaleY = containerSize.height / mh
     const fitScale = Math.min(scaleX, scaleY) * 0.95 // 95% to add some padding
 
     const clampedScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, fitScale))
 
     setStageScale(clampedScale)
     setStagePos({
-      x: (containerSize.width - combatInfo.mapWidth * clampedScale) / 2,
-      y: (containerSize.height - combatInfo.mapHeight * clampedScale) / 2,
+      x: (containerSize.width - mw * clampedScale) / 2,
+      y: (containerSize.height - mh * clampedScale) / 2,
     })
   }, [combatInfo, containerSize])
 
   // Reset to center at scale 1
   const handleResetCenter = useCallback(() => {
     if (!combatInfo) return
+    const mw = combatInfo.mapWidth ?? 0
+    const mh = combatInfo.mapHeight ?? 0
     setStageScale(1)
     setStagePos({
-      x: (containerSize.width - combatInfo.mapWidth) / 2,
-      y: (containerSize.height - combatInfo.mapHeight) / 2,
+      x: (containerSize.width - mw) / 2,
+      y: (containerSize.height - mh) / 2,
     })
   }, [combatInfo, containerSize])
 
@@ -517,8 +527,8 @@ export function KonvaMap({
 
           {/* Grid layer — non-interactive */}
           <KonvaGrid
-            width={combatInfo.mapWidth}
-            height={combatInfo.mapHeight}
+            width={combatInfo.mapWidth ?? 0}
+            height={combatInfo.mapHeight ?? 0}
             gridSize={combatInfo.grid.size}
             gridVisible={combatInfo.grid.visible}
             gridColor={combatInfo.grid.color}
@@ -609,15 +619,19 @@ function BackgroundLayer({ combatInfo }: { combatInfo: CombatInfo }) {
 
   if (isVideo) {
     return (
-      <VideoBackground url={imageUrl} width={combatInfo.mapWidth} height={combatInfo.mapHeight} />
+      <VideoBackground
+        url={imageUrl}
+        width={combatInfo.mapWidth ?? 0}
+        height={combatInfo.mapHeight ?? 0}
+      />
     )
   }
 
   return (
     <ImageBackground
       url={imageUrl}
-      width={combatInfo.mapWidth}
-      height={combatInfo.mapHeight}
+      width={combatInfo.mapWidth ?? 0}
+      height={combatInfo.mapHeight ?? 0}
       name="Combat"
     />
   )

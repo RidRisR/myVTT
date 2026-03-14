@@ -34,7 +34,7 @@ export function EntityPanel() {
     const ids = new Set<string>()
     for (const entity of entitiesArray) {
       for (const [seatId, perm] of Object.entries(entity.permissions.seats)) {
-        if (perm === 'owner' && seats[seatId]) {
+        if (perm === 'owner' && seats.some((s) => s.id === seatId)) {
           ids.add(entity.id)
           break
         }
@@ -83,7 +83,7 @@ export function EntityPanel() {
   // Check online status per entity
   const getOnlineStatus = (entity: Entity): boolean => {
     for (const [seatId, perm] of Object.entries(entity.permissions.seats)) {
-      if (perm === 'owner' && onlineSeatIds.includes(seatId)) return true
+      if (perm === 'owner' && onlineSeatIds.has(seatId)) return true
     }
     return false
   }
