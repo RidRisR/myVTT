@@ -94,7 +94,6 @@ export function KonvaMap({
   // Awareness for real-time token drag broadcasting via Socket.io
   const socket = useWorldStore((s) => s._socket)
   const mySeat = useIdentityStore((s) => s.getMySeat())
-  const mySeatId = useIdentityStore((s) => s.mySeatId)
   const [remoteTokenDrags, setRemoteTokenDrags] = useState<
     Map<string, { tokenId: string; x: number; y: number; color: string }>
   >(() => new Map())

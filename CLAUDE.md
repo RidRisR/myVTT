@@ -243,7 +243,7 @@ All styling uses **Tailwind CSS v4**. Do NOT write inline styles.
 
 - **Prettier** (`.prettierrc`): no semicolons, single quotes, trailing commas, printWidth 100, tabWidth 2
 - **ESLint**: TypeScript-aware, react-hooks rules (`exhaustive-deps` as warn)
-- **lint-staged + husky**: runs `prettier --write` + `eslint --fix` automatically on every git commit
+- **lint-staged + husky**: runs `prettier --write` + `eslint --fix` automatically on every git commit, then `tsc --noEmit` for full type-checking
 - `react-hooks/set-state-in-effect` is OFF — Yjs observer pattern requires setting state in effects
 
 ### TypeScript
