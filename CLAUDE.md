@@ -313,7 +313,7 @@ Example: `worldStore.blueprints` (local-only array) vs `assetStore` assets with 
 
 ## Product Design Principles
 
-Three core principles (from `docs/design-discussion/00-产品愿景与设计理念.md`):
+Three core principles (from `docs/design/01-产品愿景与设计理念.md`):
 
 1. **轻备团优先 (Low Prep Overhead)** — GMs should be able to run sessions with minimal preparation. Avoid features that require significant upfront setup.
 2. **氛围感至上 (Atmosphere First)** — Scene immersion takes priority over mechanical precision. Visual and audio atmosphere are first-class features.
@@ -323,7 +323,7 @@ Target aesthetic: **Alchemy RPG** — dark warm tones, candlelit parchment feel,
 
 ## Planned: Security & Permissions System (Not Yet Implemented)
 
-A future security upgrade (designed in `docs/design-discussion/54-权限与数据隔离方案设计.md`, part of the security system in `docs/design-discussion/50-聊天防伪系统.md`):
+A future security upgrade (designed in `docs/design/07-权限与数据隔离方案设计.md`, part of the security system in `docs/design/03-聊天防伪系统.md`):
 
 - **Single Y.Doc architecture preserved** — no dual-doc split
 - **Preparation area**: Server-side JSON storage (`{PERSISTENCE_DIR}/prep/{roomId}/`) for GM's unrevealed content (encounters, NPC templates, plot notes). Players cannot access — REST API with JWT role check.
