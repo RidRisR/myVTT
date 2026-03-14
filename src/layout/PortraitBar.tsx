@@ -2,11 +2,13 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Users, ChevronRight, ChevronUp } from 'lucide-react'
 import { useUiStore } from '../stores/uiStore'
-import type { Entity } from '../shared/entityTypes'
+import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
 import type { CombatInfo } from '../stores/worldStore'
+import { useWorldStore } from '../stores/worldStore'
 import { canSee, canEdit } from '../shared/permissions'
 import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
+import { api } from '../shared/api'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
 import { CharacterDetailPanel } from './CharacterDetailPanel'
@@ -17,6 +19,8 @@ type PortraitTabId = 'characters' | 'initiative'
 interface PortraitBarProps {
   entities: Entity[]
   sceneEntityIds: string[]
+  sceneEntityEntries: SceneEntityEntry[]
+  activeSceneId: string | null
   mySeatId: string | null
   role: 'GM' | 'PL'
   isGM: boolean
@@ -87,6 +91,8 @@ function ResourceRingBg({ index, size }: { index: number; size: number }) {
 export function PortraitBar({
   entities,
   sceneEntityIds,
+  sceneEntityEntries,
+  activeSceneId,
   mySeatId,
   role,
   isGM,
@@ -104,6 +110,8 @@ export function PortraitBar({
 }: PortraitBarProps) {
   const portraitBarVisible = useUiStore((s) => s.portraitBarVisible)
   const setPortraitBarVisible = useUiStore((s) => s.setPortraitBarVisible)
+  const toggleEntityVisibility = useWorldStore((s) => s.toggleEntityVisibility)
+  const updateEntity = useWorldStore((s) => s.updateEntity)
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entityId: string } | null>(
     null,
@@ -188,13 +196,24 @@ export function PortraitBar({
     [inspectedCharacterId, onInspectCharacter],
   )
 
-  // Filter to entities in the current scene (or persistent) and visible to this seat
+  // Build a map of entityId → visible from scene entries
+  const visibilityMap = new Map<string, boolean>()
+  for (const entry of sceneEntityEntries) {
+    visibilityMap.set(entry.entityId, entry.visible)
+  }
+
+  // Filter to entities in the current scene (or persistent lifecycle) and visible to this seat
+  // For non-GM: only show entities with visible=true in scene entries
   const sceneIdSet = new Set(sceneEntityIds)
-  const visibleEntities = entities.filter(
-    (e) =>
-      (e.persistent || sceneIdSet.has(e.id)) &&
-      (mySeatId ? canSee(e.permissions, mySeatId, role) : isGM),
-  )
+  const visibleEntities = entities.filter((e) => {
+    const inScene = sceneIdSet.has(e.id)
+    if (!inScene) return false
+    const canSeeEntity = mySeatId ? canSee(e.permissions, mySeatId, role) : isGM
+    if (!canSeeEntity) return false
+    // Only show on-stage entities (visible=true) — backstage entities appear in the NPC panel instead
+    if (visibilityMap.has(e.id) && !visibilityMap.get(e.id)) return false
+    return true
+  })
 
   // Collapsed state: show small expand button
   if (!portraitBarVisible) {
@@ -237,6 +256,23 @@ export function PortraitBar({
     setContextMenu({ x: e.clientX, y: e.clientY, entityId })
   }
 
+  const handleSaveAsBlueprint = async (entity: Entity) => {
+    const roomId = useWorldStore.getState()._roomId
+    if (!roomId) return
+    await api.post(`/api/rooms/${roomId}/assets`, {
+      url: entity.imageUrl,
+      name: entity.name,
+      type: 'blueprint',
+      extra: {
+        blueprint: {
+          defaultSize: entity.size,
+          defaultColor: entity.color,
+          defaultRuleData: entity.ruleData,
+        },
+      },
+    })
+  }
+
   const getContextMenuItems = (entity: Entity): ContextMenuItem[] => {
     const items: ContextMenuItem[] = []
 
@@ -259,12 +295,40 @@ export function PortraitBar({
       },
     })
 
-    if (isGM && !entity.persistent) {
+    if (isGM) {
+      // Backstage toggle — only for entities currently visible and in scene
+      const isVisible = visibilityMap.get(entity.id) ?? true
+      if (isVisible && activeSceneId && sceneIdSet.has(entity.id)) {
+        items.push({
+          label: '离场',
+          onClick: () => {
+            if (activeSceneId) toggleEntityVisibility(activeSceneId, entity.id, false)
+          },
+        })
+      }
+
+      // Save as blueprint
       items.push({
-        label: 'Remove from scene',
-        onClick: () => onRemoveFromScene(entity.id),
-        color: '#f87171',
+        label: '保存为蓝图',
+        onClick: () => handleSaveAsBlueprint(entity),
       })
+
+      // Save as reusable character (only for ephemeral entities)
+      if (entity.lifecycle === 'ephemeral') {
+        items.push({
+          label: '保存为角色',
+          onClick: () => updateEntity(entity.id, { lifecycle: 'reusable' }),
+        })
+      }
+
+      // Remove from scene
+      if (entity.lifecycle !== 'persistent') {
+        items.push({
+          label: '移除',
+          onClick: () => onRemoveFromScene(entity.id),
+          color: '#f87171',
+        })
+      }
     }
 
     return items

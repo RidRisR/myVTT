@@ -77,22 +77,23 @@ describe('GM Session Journey', () => {
   it('1.6 creates persistent entity — auto-links to existing scene', async () => {
     const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Hero',
-      persistent: true,
+      lifecycle: 'persistent',
       color: '#3b82f6',
       size: 1,
       permissions: { default: 'observer', seats: {} },
     })
     expect(status).toBe(201)
-    const entity = data as { id: string; persistent: boolean }
+    const entity = data as { id: string; lifecycle: string }
     heroEntityId = entity.id
-    expect(entity.persistent).toBe(true) // Contract: boolean not 0/1
+    expect(entity.lifecycle).toBe('persistent')
 
     // Verify auto-linked to existing scene
-    const { data: entityIds } = await ctx.api(
+    const { data: sceneEntities } = await ctx.api(
       'GET',
       `/api/rooms/${ctx.roomId}/scenes/${sceneId}/entities`,
     )
-    expect(entityIds as string[]).toContain(heroEntityId)
+    const ids = (sceneEntities as { entityId: string; visible: boolean }[]).map((r) => r.entityId)
+    expect(ids).toContain(heroEntityId)
   })
 
   it('1.7 creates second scene — persistent entity auto-links', async () => {
@@ -103,11 +104,12 @@ describe('GM Session Journey', () => {
     dungeonId = (data as { id: string }).id
 
     // Verify persistent entity auto-linked to new scene
-    const { data: entityIds } = await ctx.api(
+    const { data: sceneEntities } = await ctx.api(
       'GET',
       `/api/rooms/${ctx.roomId}/scenes/${dungeonId}/entities`,
     )
-    expect(entityIds as string[]).toContain(heroEntityId)
+    const ids = (sceneEntities as { entityId: string; visible: boolean }[]).map((r) => r.entityId)
+    expect(ids).toContain(heroEntityId)
   })
 
   it('1.8 deletes scene without affecting active scene', async () => {
@@ -126,7 +128,8 @@ describe('GM Session Journey', () => {
     expect(list).toHaveLength(1)
     const entity = list[0]
     // Contract checks
-    expect(typeof entity.persistent).toBe('boolean')
+    expect(typeof entity.lifecycle).toBe('string')
+    expect(entity.lifecycle).toBe('persistent')
     expect(entity).toHaveProperty('permissions')
     expect(typeof entity.permissions).toBe('object')
     expect(entity).not.toHaveProperty('rule_data') // No snake_case leak

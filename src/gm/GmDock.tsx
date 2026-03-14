@@ -10,23 +10,26 @@ import {
   Eye,
   EyeOff,
   ChevronDown,
+  Users,
 } from 'lucide-react'
 import type { MapToken, Entity, Blueprint, Atmosphere } from '../shared/entityTypes'
 import { useToast } from '../shared/ui/useToast'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { generateTokenId } from '../shared/idUtils'
-import { nextNpcName } from '../shared/characterUtils'
+import { useWorldStore } from '../stores/worldStore'
 import { MapDockTab } from '../dock/MapDockTab'
-import { TokenDockTab } from '../dock/TokenDockTab'
+import { BlueprintDockTab } from '../dock/BlueprintDockTab'
 import { HandoutDockTab } from '../dock/HandoutDockTab'
+import { CharacterLibraryTab } from '../dock/CharacterLibraryTab'
 import type { HandoutAsset } from '../stores/worldStore'
 
-type TabId = 'gallery' | 'tokens' | 'handouts' | 'dice'
+type TabId = 'gallery' | 'tokens' | 'characters' | 'handouts' | 'dice'
 
 // Wrap tab content components with React.memo to avoid re-renders on tab switch
 const MemoMapDockTab = memo(MapDockTab)
-const MemoTokenDockTab = memo(TokenDockTab)
+const MemoBlueprintDockTab = memo(BlueprintDockTab)
 const MemoHandoutDockTab = memo(HandoutDockTab)
+const MemoCharacterLibraryTab = memo(CharacterLibraryTab)
 
 interface GmDockProps {
   activeSceneId: string | null
@@ -67,9 +70,6 @@ export function GmDock({
   onEditHandoutAsset,
   onDeleteHandoutAsset,
   onShowcaseHandout,
-  entities,
-  onAddEntity,
-  onAddEntityToScene,
   selectedToken,
   onAddToken,
   onDeleteToken,
@@ -98,42 +98,27 @@ export function GmDock({
     setActiveTab((prev) => (prev === tab ? null : tab))
   }
 
-  // Spawn entity from blueprint
-  const createEntityFromBlueprint = (bp: Blueprint): Entity => {
-    const name = nextNpcName(bp.name, entities, bp.id)
-    const entity: Entity = {
-      id: generateTokenId(),
-      name,
-      imageUrl: bp.imageUrl,
-      color: bp.defaultColor,
-      size: bp.defaultSize,
-      notes: '',
-      ruleData: bp.defaultRuleData ?? null,
-      permissions: defaultNPCPermissions(),
-      persistent: false,
-      blueprintId: bp.id,
+  const handleSpawnFromBlueprint = async (bp: Blueprint) => {
+    if (!activeSceneId) return
+    const entity = await useWorldStore.getState().spawnFromBlueprint(activeSceneId, bp.id)
+    if (!entity) return
+    if (isCombat) {
+      const token: MapToken = {
+        id: generateTokenId(),
+        entityId: entity.id,
+        x: 200,
+        y: 200,
+        size: bp.defaultSize,
+        permissions: defaultNPCPermissions(),
+      }
+      onAddToken(token)
+      onSelectToken(token.id)
     }
-    onAddEntity(entity)
-    onAddEntityToScene(entity.id)
-    return entity
   }
 
-  const handleSpawnFromBlueprint = (bp: Blueprint) => {
-    const entity = createEntityFromBlueprint(bp)
-    const token: MapToken = {
-      id: generateTokenId(),
-      entityId: entity.id,
-      x: 200,
-      y: 200,
-      size: bp.defaultSize,
-      permissions: defaultNPCPermissions(),
-    }
-    onAddToken(token)
-    onSelectToken(token.id)
-  }
-
-  const handleAddToActive = (bp: Blueprint) => {
-    createEntityFromBlueprint(bp)
+  const handleAddToActive = async (bp: Blueprint) => {
+    if (!activeSceneId) return
+    await useWorldStore.getState().spawnFromBlueprint(activeSceneId, bp.id)
   }
 
   const handleDeleteSelected = () => {
@@ -202,12 +187,13 @@ export function GmDock({
             />
           )}
           {activeTab === 'tokens' && (
-            <MemoTokenDockTab
+            <MemoBlueprintDockTab
               onSpawnToken={handleSpawnFromBlueprint}
               onAddToActive={handleAddToActive}
               isCombat={isCombat}
             />
           )}
+          {activeTab === 'characters' && <MemoCharacterLibraryTab />}
           {activeTab === 'handouts' && (
             <MemoHandoutDockTab
               assets={handoutAssets}
@@ -237,7 +223,12 @@ export function GmDock({
 
         <button onClick={() => toggleTab('tokens')} className={tabBtnClass('tokens')}>
           <CircleUser size={14} strokeWidth={1.5} />
-          Tokens
+          蓝图
+        </button>
+
+        <button onClick={() => toggleTab('characters')} className={tabBtnClass('characters')}>
+          <Users size={14} strokeWidth={1.5} />
+          Characters
         </button>
 
         <button onClick={() => toggleTab('handouts')} className={tabBtnClass('handouts')}>

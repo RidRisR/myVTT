@@ -4,7 +4,7 @@
 
 import { create } from 'zustand'
 import type { Socket } from 'socket.io-client'
-import type { Entity, MapToken, Atmosphere } from '../shared/entityTypes'
+import type { Entity, MapToken, Atmosphere, SceneEntityEntry } from '../shared/entityTypes'
 import type { ShowcaseItem } from '../showcase/showcaseTypes'
 import type { ChatMessage } from '../chat/chatTypes'
 import { api } from '../shared/api'
@@ -89,7 +89,7 @@ interface WorldState {
   room: RoomState
   scenes: Scene[]
   entities: Record<string, Entity>
-  sceneEntityMap: Record<string, string[]>
+  sceneEntityMap: Record<string, SceneEntityEntry[]>
   chatMessages: ChatMessage[]
   combatInfo: CombatInfo | null
   showcaseItems: ShowcaseItem[]
@@ -110,21 +110,18 @@ interface WorldState {
   setActiveScene: (sceneId: string) => Promise<void>
 
   // Scene actions
-  addScene: (
-    id: string,
-    name: string,
-    atmosphere: Atmosphere,
-    persistentEntityIds?: string[],
-  ) => Promise<void>
+  addScene: (id: string, name: string, atmosphere: Atmosphere) => Promise<void>
   updateScene: (
     id: string,
     updates: { name?: string; sortOrder?: number; atmosphere?: Partial<Atmosphere> },
   ) => Promise<void>
   deleteScene: (id: string) => Promise<void>
   getScene: (id: string | null) => Scene | null
-  addEntityToScene: (sceneId: string, entityId: string) => Promise<void>
+  addEntityToScene: (sceneId: string, entityId: string, visible?: boolean) => Promise<void>
   removeEntityFromScene: (sceneId: string, entityId: string) => Promise<void>
-  getSceneEntityIds: (sceneId: string) => string[]
+  getSceneEntityEntries: (sceneId: string) => SceneEntityEntry[]
+  toggleEntityVisibility: (sceneId: string, entityId: string, visible: boolean) => Promise<void>
+  spawnFromBlueprint: (sceneId: string, blueprintId: string) => Promise<Entity | null>
   duplicateScene: (sourceId: string, newId: string) => Promise<void>
 
   // Encounter actions
@@ -198,7 +195,7 @@ interface WorldState {
 
 // ── Constants (stable references to avoid infinite re-renders in selectors) ──
 
-const EMPTY_IDS: string[] = []
+const EMPTY_ENTRIES: SceneEntityEntry[] = []
 
 const DEFAULT_GRID: CombatInfo['grid'] = {
   size: 50,
@@ -241,12 +238,14 @@ async function loadAll(roomId: string) {
   const combatInfo: CombatInfo | null =
     state.activeEncounterId && combatRaw ? normalizeCombatInfo(combatRaw) : null
 
-  // Build sceneEntityMap: for each scene, fetch its entity IDs
-  const sceneEntityMap: Record<string, string[]> = {}
+  // Build sceneEntityMap: for each scene, fetch its entity entries
+  const sceneEntityMap: Record<string, SceneEntityEntry[]> = {}
   await Promise.all(
     scenes.map(async (scene) => {
-      const ids = await api.get<string[]>(`/api/rooms/${roomId}/scenes/${scene.id}/entities`)
-      sceneEntityMap[scene.id] = ids
+      const entries = await api.get<SceneEntityEntry[]>(
+        `/api/rooms/${roomId}/scenes/${scene.id}/entities`,
+      )
+      sceneEntityMap[scene.id] = entries
     }),
   )
 
@@ -281,11 +280,12 @@ function registerSocketEvents(
   })
   socket.on(
     'scene:entity:linked',
-    ({ sceneId, entityId }: { sceneId: string; entityId: string }) => {
+    ({ sceneId, entityId, visible }: { sceneId: string; entityId: string; visible?: boolean }) => {
       set((s) => {
         const current = s.sceneEntityMap[sceneId] ?? []
-        if (current.includes(entityId)) return s
-        return { sceneEntityMap: { ...s.sceneEntityMap, [sceneId]: [...current, entityId] } }
+        if (current.some((e) => e.entityId === entityId)) return s
+        const entry: SceneEntityEntry = { entityId, visible: visible ?? true }
+        return { sceneEntityMap: { ...s.sceneEntityMap, [sceneId]: [...current, entry] } }
       })
     },
   )
@@ -297,7 +297,21 @@ function registerSocketEvents(
         return {
           sceneEntityMap: {
             ...s.sceneEntityMap,
-            [sceneId]: current.filter((id) => id !== entityId),
+            [sceneId]: current.filter((e) => e.entityId !== entityId),
+          },
+        }
+      })
+    },
+  )
+  socket.on(
+    'scene:entity:updated',
+    ({ sceneId, entityId, visible }: { sceneId: string; entityId: string; visible: boolean }) => {
+      set((s) => {
+        const current = s.sceneEntityMap[sceneId] ?? []
+        return {
+          sceneEntityMap: {
+            ...s.sceneEntityMap,
+            [sceneId]: current.map((e) => (e.entityId === entityId ? { ...e, visible } : e)),
           },
         }
       })
@@ -448,6 +462,7 @@ const WS_EVENTS = [
   'scene:deleted',
   'scene:entity:linked',
   'scene:entity:unlinked',
+  'scene:entity:updated',
   'entity:created',
   'entity:updated',
   'entity:deleted',
@@ -554,10 +569,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     return get().scenes.find((s) => s.id === id) ?? null
   },
 
-  addEntityToScene: async (sceneId, entityId) => {
+  addEntityToScene: async (sceneId, entityId, visible) => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/scenes/${sceneId}/entities/${entityId}`)
+    const body = visible !== undefined ? { visible: visible ? 1 : 0 } : undefined
+    await api.post(`/api/rooms/${roomId}/scenes/${sceneId}/entities/${entityId}`, body)
   },
 
   removeEntityFromScene: async (sceneId, entityId) => {
@@ -566,8 +582,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     await api.delete(`/api/rooms/${roomId}/scenes/${sceneId}/entities/${entityId}`)
   },
 
-  getSceneEntityIds: (sceneId) => {
-    return get().sceneEntityMap[sceneId] ?? EMPTY_IDS
+  getSceneEntityEntries: (sceneId) => {
+    return get().sceneEntityMap[sceneId] ?? EMPTY_ENTRIES
   },
 
   duplicateScene: async (sourceId, newId) => {
@@ -694,6 +710,22 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const roomId = get()._roomId
     if (!roomId) return
     await api.delete(`/api/rooms/${roomId}/entities/${id}`)
+  },
+
+  toggleEntityVisibility: async (sceneId, entityId, visible) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.patch(`/api/rooms/${roomId}/scenes/${sceneId}/entities/${entityId}`, { visible })
+  },
+
+  spawnFromBlueprint: async (sceneId, blueprintId) => {
+    const roomId = get()._roomId
+    if (!roomId) return null
+    const result = await api.post<{ entity: Entity }>(
+      `/api/rooms/${roomId}/scenes/${sceneId}/spawn`,
+      { blueprintId },
+    )
+    return result.entity
   },
 
   // ── Token actions ──

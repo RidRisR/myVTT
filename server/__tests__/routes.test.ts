@@ -4,7 +4,7 @@ import http from 'http'
 import express from 'express'
 import { Server as SocketIOServer } from 'socket.io'
 import request from 'supertest'
-import { getGlobalDb, getRoomDb, closeAllDbs } from '../db'
+import { getGlobalDb, closeAllDbs } from '../db'
 import { roomRoutes } from '../routes/rooms'
 import { seatRoutes } from '../routes/seats'
 import { sceneRoutes } from '../routes/scenes'
@@ -168,18 +168,18 @@ describe('Full room lifecycle', () => {
       name: 'Hero',
       color: '#00ff00',
       ruleData: { hp: { current: 20, max: 20 }, str: 14 },
-      persistent: true,
+      lifecycle: 'persistent',
     })
     expect(status).toBe(201)
     expect(data.name).toBe('Hero')
-    expect(data.persistent).toBe(true)
+    expect(data.lifecycle).toBe('persistent')
     expect(data.ruleData.hp.current).toBe(20)
     entityId = data.id
   })
 
   it('persistent entity auto-linked to existing scene', async () => {
     const { data } = await api('GET', `/api/rooms/${roomId}/scenes/${sceneId}/entities`)
-    expect(data).toContain(entityId)
+    expect((data as { entityId: string }[]).map((r) => r.entityId)).toContain(entityId)
   })
 
   it('updates entity with deep merge on ruleData', async () => {
@@ -213,10 +213,7 @@ describe('Full room lifecycle', () => {
   })
 
   it('activates encounter → combat state populated', async () => {
-    const { data } = await api(
-      'POST',
-      `/api/rooms/${roomId}/encounters/${encounterId}/activate`,
-    )
+    const { data } = await api('POST', `/api/rooms/${roomId}/encounters/${encounterId}/activate`)
     expect(data.mapUrl).toBe('tavern-map.jpg')
     expect(data.tokens.t1.label).toBe('Goblin')
 
@@ -416,15 +413,16 @@ describe('Full room lifecycle', () => {
       await api('POST', `/api/rooms/${roomId}/entities`, {
         id,
         name: `Persistent ${id}`,
-        persistent: true,
+        lifecycle: 'persistent',
       })
     }
     const newSceneId = 'auto-link-scene'
     await api('POST', `/api/rooms/${roomId}/scenes`, { id: newSceneId, name: 'Auto Link' })
-    const { data: linkedIds } = await api(
+    const { data: linkedEntries } = await api(
       'GET',
       `/api/rooms/${roomId}/scenes/${newSceneId}/entities`,
     )
+    const linkedIds = (linkedEntries as { entityId: string }[]).map((r) => r.entityId)
     for (const id of ids) {
       expect(linkedIds).toContain(id)
     }

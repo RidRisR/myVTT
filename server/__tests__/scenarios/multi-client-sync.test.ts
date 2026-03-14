@@ -78,7 +78,7 @@ describe('Multi-Client Sync Journey', () => {
       name: 'Goblin',
       color: '#22c55e',
       size: 1,
-      persistent: false,
+      lifecycle: 'ephemeral',
     })
     expect(status).toBe(201)
     entityId = (data as { id: string }).id
@@ -164,10 +164,7 @@ describe('Multi-Client Sync Journey', () => {
   // ── Room state events ──
 
   it('5.10 room:state:updated broadcasts on PATCH /state', async () => {
-    const eventPromise = waitForSocketEvent<Record<string, unknown>>(
-      clientB,
-      'room:state:updated',
-    )
+    const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'room:state:updated')
     await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, {
       activeSceneId: sceneId,
     })

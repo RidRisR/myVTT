@@ -107,11 +107,9 @@ describe('Entity error paths', () => {
   })
 
   it('PATCH /entities/:id with non-existent id returns 404', async () => {
-    const { status, data } = await api(
-      'PATCH',
-      `/api/rooms/${roomId}/entities/nonexistent-id`,
-      { name: 'Ghost' },
-    )
+    const { status, data } = await api('PATCH', `/api/rooms/${roomId}/entities/nonexistent-id`, {
+      name: 'Ghost',
+    })
     expect(status).toBe(404)
     expect(data.error).toBe('Entity not found')
   })
@@ -130,17 +128,13 @@ describe('Entity error paths', () => {
     const entityId = entity.id
 
     // Patch a deeply nested field
-    const { data: updated } = await api(
-      'PATCH',
-      `/api/rooms/${roomId}/entities/${entityId}`,
-      {
-        ruleData: {
-          stats: {
-            mental: { wisdom: 16 },
-          },
+    const { data: updated } = await api('PATCH', `/api/rooms/${roomId}/entities/${entityId}`, {
+      ruleData: {
+        stats: {
+          mental: { wisdom: 16 },
         },
       },
-    )
+    })
 
     // 3rd-level field updated
     expect(updated.ruleData.stats.mental.wisdom).toBe(16)
@@ -163,15 +157,11 @@ describe('Entity error paths', () => {
     const entityId = entity.id
 
     // Patch with a new array — should overwrite, not concat
-    const { data: updated } = await api(
-      'PATCH',
-      `/api/rooms/${roomId}/entities/${entityId}`,
-      {
-        ruleData: {
-          attacks: ['greataxe'],
-        },
+    const { data: updated } = await api('PATCH', `/api/rooms/${roomId}/entities/${entityId}`, {
+      ruleData: {
+        attacks: ['greataxe'],
       },
-    )
+    })
 
     expect(updated.ruleData.attacks).toEqual(['greataxe'])
     // Object sibling preserved
@@ -197,7 +187,7 @@ describe('Scene delete cascade', () => {
     // Create non-persistent entity (so it doesn't auto-link)
     const { data: entity } = await api('POST', `/api/rooms/${roomId}/entities`, {
       name: 'Goblin',
-      persistent: false,
+      lifecycle: 'reusable',
     })
     const entityId = entity.id
 
@@ -205,31 +195,22 @@ describe('Scene delete cascade', () => {
     await api('POST', `/api/rooms/${roomId}/scenes/${sceneId}/entities/${entityId}`)
 
     // Verify link exists
-    const { data: linked } = await api(
-      'GET',
-      `/api/rooms/${roomId}/scenes/${sceneId}/entities`,
-    )
-    expect(linked).toContain(entityId)
+    const { data: linked } = await api('GET', `/api/rooms/${roomId}/scenes/${sceneId}/entities`)
+    expect((linked as { entityId: string }[]).map((r) => r.entityId)).toContain(entityId)
 
     // Delete scene
     await api('DELETE', `/api/rooms/${roomId}/scenes/${sceneId}`)
 
     // Entity still exists (only the link should be gone)
-    const { status: entityStatus } = await api(
-      'GET',
-      `/api/rooms/${roomId}/entities/${entityId}`,
-    )
+    const { status: entityStatus } = await api('GET', `/api/rooms/${roomId}/entities/${entityId}`)
     expect(entityStatus).toBe(200)
 
     // Create a new scene and verify no stale links for that entity
     const { data: scene2 } = await api('POST', `/api/rooms/${roomId}/scenes`, {
       name: 'Forest',
     })
-    const { data: linked2 } = await api(
-      'GET',
-      `/api/rooms/${roomId}/scenes/${scene2.id}/entities`,
-    )
-    expect(linked2).not.toContain(entityId)
+    const { data: linked2 } = await api('GET', `/api/rooms/${roomId}/scenes/${scene2.id}/entities`)
+    expect((linked2 as { entityId: string }[]).map((r) => r.entityId)).not.toContain(entityId)
   })
 })
 
@@ -300,10 +281,7 @@ describe('Chat error paths', () => {
   })
 
   it('POST /chat/retract/:id with non-existent id returns 404', async () => {
-    const { status, data } = await api(
-      'POST',
-      `/api/rooms/${roomId}/chat/retract/nonexistent-msg`,
-    )
+    const { status, data } = await api('POST', `/api/rooms/${roomId}/chat/retract/nonexistent-msg`)
     expect(status).toBe(404)
     expect(data.error).toBe('Message not found')
   })
@@ -319,10 +297,7 @@ describe('Chat error paths', () => {
     const msgId = msg.id
 
     // Retract it
-    const { status, data } = await api(
-      'POST',
-      `/api/rooms/${roomId}/chat/retract/${msgId}`,
-    )
+    const { status, data } = await api('POST', `/api/rooms/${roomId}/chat/retract/${msgId}`)
     expect(status).toBe(200)
     expect(data.ok).toBe(true)
 
@@ -341,10 +316,7 @@ describe('Showcase error paths', () => {
   })
 
   it('POST /showcase/:id/pin with non-existent id returns 404', async () => {
-    const { status, data } = await api(
-      'POST',
-      `/api/rooms/${roomId}/showcase/nonexistent-item/pin`,
-    )
+    const { status, data } = await api('POST', `/api/rooms/${roomId}/showcase/nonexistent-item/pin`)
     expect(status).toBe(404)
     expect(data.error).toBe('Showcase item not found')
   })
@@ -365,11 +337,9 @@ describe('Seat error paths', () => {
     })
     const seatId = seat.id
 
-    const { data: claimed } = await api(
-      'POST',
-      `/api/rooms/${roomId}/seats/${seatId}/claim`,
-      { userId: 'user-abc-123' },
-    )
+    const { data: claimed } = await api('POST', `/api/rooms/${roomId}/seats/${seatId}/claim`, {
+      userId: 'user-abc-123',
+    })
     expect(claimed.userId).toBe('user-abc-123')
 
     const { data: seats } = await api('GET', `/api/rooms/${roomId}/seats`)
@@ -386,11 +356,9 @@ describe('Seat error paths', () => {
   })
 
   it('PATCH /seats/:id with non-existent id returns 404', async () => {
-    const { status, data } = await api(
-      'PATCH',
-      `/api/rooms/${roomId}/seats/nonexistent-seat`,
-      { name: 'Ghost' },
-    )
+    const { status, data } = await api('PATCH', `/api/rooms/${roomId}/seats/nonexistent-seat`, {
+      name: 'Ghost',
+    })
     expect(status).toBe(404)
     expect(data.error).toBe('Seat not found')
   })
@@ -404,11 +372,9 @@ describe('Scene error paths', () => {
   })
 
   it('PATCH /scenes/:id with non-existent id returns 404', async () => {
-    const { status, data } = await api(
-      'PATCH',
-      `/api/rooms/${roomId}/scenes/nonexistent-scene`,
-      { name: 'Ghost Scene' },
-    )
+    const { status, data } = await api('PATCH', `/api/rooms/${roomId}/scenes/nonexistent-scene`, {
+      name: 'Ghost Scene',
+    })
     expect(status).toBe(404)
     expect(data.error).toBe('Scene not found')
   })
@@ -458,11 +424,9 @@ describe('Showcase PATCH error paths', () => {
   })
 
   it('PATCH /showcase/:id with non-existent id returns 404', async () => {
-    const { status, data } = await api(
-      'PATCH',
-      `/api/rooms/${roomId}/showcase/nonexistent-item`,
-      { pinned: true },
-    )
+    const { status, data } = await api('PATCH', `/api/rooms/${roomId}/showcase/nonexistent-item`, {
+      pinned: true,
+    })
     expect(status).toBe(404)
     expect(data.error).toBe('Showcase item not found')
   })
@@ -476,11 +440,9 @@ describe('Encounter error paths', () => {
   })
 
   it('PATCH /encounters/:id with non-existent id returns 404', async () => {
-    const { status, data } = await api(
-      'PATCH',
-      `/api/rooms/${roomId}/encounters/nonexistent-enc`,
-      { name: 'Ghost Encounter' },
-    )
+    const { status, data } = await api('PATCH', `/api/rooms/${roomId}/encounters/nonexistent-enc`, {
+      name: 'Ghost Encounter',
+    })
     expect(status).toBe(404)
     expect(data.error).toBe('Encounter not found')
   })

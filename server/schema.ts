@@ -53,7 +53,7 @@ export function initRoomSchema(db: Database.Database): void {
       notes TEXT DEFAULT '',
       rule_data TEXT DEFAULT '{}',
       permissions TEXT DEFAULT '{"default":"none","seats":{}}',
-      persistent INTEGER DEFAULT 0,
+      lifecycle TEXT DEFAULT 'ephemeral' CHECK(lifecycle IN ('ephemeral','reusable','persistent')),
       blueprint_id TEXT
     );
 
@@ -61,6 +61,7 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS scene_entities (
       scene_id TEXT NOT NULL REFERENCES scenes(id) ON DELETE CASCADE,
       entity_id TEXT NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+      visible INTEGER DEFAULT 1,
       PRIMARY KEY (scene_id, entity_id)
     );
 
@@ -137,6 +138,6 @@ export function initRoomSchema(db: Database.Database): void {
     -- Indexes for common queries
     CREATE INDEX IF NOT EXISTS idx_scene_entities_scene ON scene_entities(scene_id);
     CREATE INDEX IF NOT EXISTS idx_chat_messages_ts ON chat_messages(timestamp);
-    CREATE INDEX IF NOT EXISTS idx_entities_persistent ON entities(persistent);
+    CREATE INDEX IF NOT EXISTS idx_entities_lifecycle ON entities(lifecycle);
   `)
 }

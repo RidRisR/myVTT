@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Plus, Search, ClipboardList } from 'lucide-react'
-import type { Entity } from '../shared/entityTypes'
+import { Plus, Search, ClipboardList, Eye, EyeOff } from 'lucide-react'
+import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
@@ -9,7 +9,7 @@ import { useToast } from '../shared/ui/useToast'
 import { generateTokenId } from '../shared/idUtils'
 import { EntityRow } from './EntityRow'
 
-type FilterMode = 'all' | 'pc' | 'npc'
+const EMPTY_ENTRIES: SceneEntityEntry[] = []
 
 export function EntityPanel() {
   const entities = useWorldStore((s) => s.entities)
@@ -19,20 +19,18 @@ export function EntityPanel() {
   const deleteEntity = useWorldStore((s) => s.deleteEntity)
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
   const updateEntity = useWorldStore((s) => s.updateEntity)
+  const toggleEntityVisibility = useWorldStore((s) => s.toggleEntityVisibility)
   const seats = useIdentityStore((s) => s.seats)
   const onlineSeatIds = useIdentityStore((s) => s.onlineSeatIds)
   const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
   const { toast } = useToast()
 
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<FilterMode>('all')
-
-  const entitiesArray = useMemo(() => Object.values(entities), [entities])
 
   // Determine which entities are PCs (have an owner seat)
   const pcIds = useMemo(() => {
     const ids = new Set<string>()
-    for (const entity of entitiesArray) {
+    for (const entity of Object.values(entities)) {
       for (const [seatId, perm] of Object.entries(entity.permissions.seats)) {
         if (perm === 'owner' && seats.some((s) => s.id === seatId)) {
           ids.add(entity.id)
@@ -41,44 +39,27 @@ export function EntityPanel() {
       }
     }
     return ids
-  }, [entitiesArray, seats])
+  }, [entities, seats])
 
-  // Get scene entity IDs
-  const sceneEntityIds = useMemo(
-    () => (activeSceneId ? (sceneEntityMap[activeSceneId] ?? []) : []),
+  // Get scene entity entries
+  const sceneEntries: SceneEntityEntry[] = useMemo(
+    () => (activeSceneId ? (sceneEntityMap[activeSceneId] ?? EMPTY_ENTRIES) : EMPTY_ENTRIES),
     [activeSceneId, sceneEntityMap],
   )
 
-  // Filter and group entities
-  const filteredEntities = useMemo(() => {
-    let list = entitiesArray
-
-    // Text search
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      list = list.filter((e) => e.name.toLowerCase().includes(q))
+  // Split into on-stage / backstage (exclude PCs)
+  const { onStage, backstage } = useMemo(() => {
+    const on: Entity[] = []
+    const off: Entity[] = []
+    for (const entry of sceneEntries) {
+      const entity = entities[entry.entityId]
+      if (!entity || pcIds.has(entity.id)) continue
+      if (search && !entity.name.toLowerCase().includes(search.toLowerCase())) continue
+      if (entry.visible) on.push(entity)
+      else off.push(entity)
     }
-
-    // Type filter
-    if (filter === 'pc') list = list.filter((e) => pcIds.has(e.id))
-    if (filter === 'npc') list = list.filter((e) => !pcIds.has(e.id))
-
-    return list
-  }, [entitiesArray, search, filter, pcIds])
-
-  // Group: party members (persistent) vs scene NPCs
-  const partyMembers = useMemo(
-    () => filteredEntities.filter((e) => e.persistent),
-    [filteredEntities],
-  )
-  const sceneNpcs = useMemo(
-    () => filteredEntities.filter((e) => !e.persistent && sceneEntityIds.includes(e.id)),
-    [filteredEntities, sceneEntityIds],
-  )
-  const otherEntities = useMemo(
-    () => filteredEntities.filter((e) => !e.persistent && !sceneEntityIds.includes(e.id)),
-    [filteredEntities, sceneEntityIds],
-  )
+    return { onStage: on, backstage: off }
+  }, [sceneEntries, entities, pcIds, search])
 
   // Check online status per entity
   const getOnlineStatus = (entity: Entity): boolean => {
@@ -87,6 +68,8 @@ export function EntityPanel() {
     }
     return false
   }
+
+  const sceneEntityIds = useMemo(() => sceneEntries.map((e) => e.entityId), [sceneEntries])
 
   const handleCreateNpc = () => {
     const newEntity: Entity = {
@@ -98,10 +81,10 @@ export function EntityPanel() {
       notes: '',
       ruleData: null,
       permissions: defaultNPCPermissions(),
-      persistent: false,
+      lifecycle: 'ephemeral',
     }
     addEntity(newEntity)
-    if (activeSceneId) addEntityToScene(activeSceneId, newEntity.id)
+    if (activeSceneId) addEntityToScene(activeSceneId, newEntity.id, false)
     setInspectedCharacterId(newEntity.id)
   }
 
@@ -110,45 +93,63 @@ export function EntityPanel() {
     toast('undo', `已删除"${entity.name}"`, { duration: 5000 })
   }
 
-  const FILTERS: { id: FilterMode; label: string }[] = [
-    { id: 'all', label: '全部' },
-    { id: 'pc', label: 'PC' },
-    { id: 'npc', label: 'NPC' },
-  ]
+  const handleToggleVisibility = (entity: Entity, currentlyVisible: boolean) => {
+    if (!activeSceneId) return
+    toggleEntityVisibility(activeSceneId, entity.id, !currentlyVisible)
+  }
 
-  const renderGroup = (title: string, list: Entity[]) => {
+  const renderGroup = (title: string, icon: string, list: Entity[], isVisible: boolean) => {
     if (list.length === 0) return null
     return (
       <div className="mb-3">
-        <div className="text-[10px] text-text-muted/50 uppercase tracking-wider font-semibold mb-1 px-1">
-          {title}
+        <div className="text-[10px] text-text-muted/50 uppercase tracking-wider font-semibold mb-1 px-1 flex items-center gap-1">
+          <span>{icon}</span>
+          <span>{title}</span>
+          <span className="text-text-muted/30">({list.length})</span>
         </div>
         <div className="flex flex-col gap-0.5">
           {list.map((entity) => (
-            <EntityRow
-              key={entity.id}
-              entity={entity}
-              isPC={pcIds.has(entity.id)}
-              isOnline={getOnlineStatus(entity)}
-              isInScene={sceneEntityIds.includes(entity.id)}
-              onSelect={() => setInspectedCharacterId(entity.id)}
-              onDelete={() => handleDelete(entity)}
-              onAddToScene={() => {
-                if (activeSceneId) addEntityToScene(activeSceneId, entity.id)
-              }}
-              onUpdate={(updates) => updateEntity(entity.id, updates)}
-            />
+            <div key={entity.id} className="group relative flex items-center">
+              <EntityRow
+                entity={entity}
+                isPC={false}
+                isOnline={getOnlineStatus(entity)}
+                isInScene={sceneEntityIds.includes(entity.id)}
+                onSelect={() => setInspectedCharacterId(entity.id)}
+                onDelete={() => handleDelete(entity)}
+                onAddToScene={() => {
+                  if (activeSceneId) addEntityToScene(activeSceneId, entity.id)
+                }}
+                onUpdate={(updates) => updateEntity(entity.id, updates)}
+              />
+              {/* Visibility toggle button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleToggleVisibility(entity, isVisible)
+                }}
+                className="absolute right-7 opacity-0 group-hover:opacity-100 hover:!opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
+                title={isVisible ? '离场' : '上场'}
+              >
+                {isVisible ? (
+                  <Eye size={12} strokeWidth={1.5} />
+                ) : (
+                  <EyeOff size={12} strokeWidth={1.5} />
+                )}
+              </button>
+            </div>
           ))}
         </div>
       </div>
     )
   }
 
-  const isEmpty = entitiesArray.length === 0
+  const isEmpty = onStage.length === 0 && backstage.length === 0
+  const noResults = !isEmpty || search.trim().length > 0
 
   return (
     <div className="flex flex-col h-full">
-      {/* Search + filter */}
+      {/* Search */}
       <div className="px-2 pt-2 pb-1 shrink-0">
         <div className="relative mb-1.5">
           <Search
@@ -159,42 +160,26 @@ export function EntityPanel() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索实体..."
+            placeholder="搜索NPC..."
             className="w-full pl-6 pr-2 py-1 text-xs bg-surface/60 text-text-primary border border-border-glass rounded outline-none placeholder:text-text-muted/30"
           />
         </div>
-        <div className="flex gap-1">
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className={`text-[10px] px-2 py-0.5 rounded-full cursor-pointer transition-colors duration-fast ${
-                filter === f.id
-                  ? 'bg-accent/20 text-accent border border-accent/30'
-                  : 'text-text-muted/50 hover:text-text-muted border border-transparent'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* Entity list */}
+      {/* NPC list */}
       <div className="flex-1 overflow-y-auto px-2 py-1">
-        {isEmpty ? (
+        {isEmpty && !search.trim() ? (
           <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs">
             <ClipboardList size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-            <span className="opacity-50">暂无实体</span>
+            <span className="opacity-50">暂无NPC</span>
             <span className="opacity-30 text-[10px] mt-1">点击下方「+」创建</span>
           </div>
-        ) : filteredEntities.length === 0 ? (
+        ) : onStage.length === 0 && backstage.length === 0 && noResults ? (
           <div className="text-center text-text-muted/40 text-xs py-8">无匹配结果</div>
         ) : (
           <>
-            {renderGroup('队伍成员', partyMembers)}
-            {renderGroup('场景NPC', sceneNpcs)}
-            {renderGroup('其他', otherEntities)}
+            {renderGroup('在场', '\u25CF', onStage, true)}
+            {renderGroup('离场', '\u25D0', backstage, false)}
           </>
         )}
       </div>
