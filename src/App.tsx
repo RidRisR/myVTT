@@ -398,6 +398,8 @@ function RoomSession({ roomId }: { roomId: string }) {
         <PortraitBar
           entities={entitiesArray}
           sceneEntityIds={sceneEntityIds}
+          sceneEntityEntries={sceneEntityEntries}
+          activeSceneId={room.activeSceneId}
           mySeatId={mySeatId}
           role={mySeat.role}
           isGM={isGM}

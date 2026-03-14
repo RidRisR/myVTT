@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
   ChevronDown,
+  Users,
 } from 'lucide-react'
 import type { MapToken, Entity, Blueprint, Atmosphere } from '../shared/entityTypes'
 import { useToast } from '../shared/ui/useToast'
@@ -17,16 +18,18 @@ import { defaultNPCPermissions } from '../shared/permissions'
 import { generateTokenId } from '../shared/idUtils'
 import { nextNpcName } from '../shared/characterUtils'
 import { MapDockTab } from '../dock/MapDockTab'
-import { TokenDockTab } from '../dock/TokenDockTab'
+import { BlueprintDockTab } from '../dock/BlueprintDockTab'
 import { HandoutDockTab } from '../dock/HandoutDockTab'
+import { CharacterLibraryTab } from '../dock/CharacterLibraryTab'
 import type { HandoutAsset } from '../stores/worldStore'
 
-type TabId = 'gallery' | 'tokens' | 'handouts' | 'dice'
+type TabId = 'gallery' | 'tokens' | 'characters' | 'handouts' | 'dice'
 
 // Wrap tab content components with React.memo to avoid re-renders on tab switch
 const MemoMapDockTab = memo(MapDockTab)
-const MemoTokenDockTab = memo(TokenDockTab)
+const MemoBlueprintDockTab = memo(BlueprintDockTab)
 const MemoHandoutDockTab = memo(HandoutDockTab)
+const MemoCharacterLibraryTab = memo(CharacterLibraryTab)
 
 interface GmDockProps {
   activeSceneId: string | null
@@ -188,7 +191,7 @@ export function GmDock({
       onPointerDown={(e) => e.stopPropagation()}
     >
       {/* Expanded content area */}
-      {activeTab !== null && activeTab !== 'dice' && (
+      {activeTab !== null && activeTab !== 'dice' && activeTab !== 'characters' && (
         <div className="mb-1.5 bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.4)] min-w-[400px] max-h-[220px] overflow-y-auto p-3">
           {activeTab === 'gallery' && (
             <MemoMapDockTab
@@ -202,7 +205,7 @@ export function GmDock({
             />
           )}
           {activeTab === 'tokens' && (
-            <MemoTokenDockTab
+            <MemoBlueprintDockTab
               onSpawnToken={handleSpawnFromBlueprint}
               onAddToActive={handleAddToActive}
               isCombat={isCombat}
@@ -217,6 +220,13 @@ export function GmDock({
               onShowcase={onShowcaseHandout}
             />
           )}
+        </div>
+      )}
+
+      {/* Character library content */}
+      {activeTab === 'characters' && (
+        <div className="mb-1.5 bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.4)] min-w-[300px] h-[220px] overflow-hidden">
+          <MemoCharacterLibraryTab />
         </div>
       )}
 
@@ -238,6 +248,11 @@ export function GmDock({
         <button onClick={() => toggleTab('tokens')} className={tabBtnClass('tokens')}>
           <CircleUser size={14} strokeWidth={1.5} />
           Tokens
+        </button>
+
+        <button onClick={() => toggleTab('characters')} className={tabBtnClass('characters')}>
+          <Users size={14} strokeWidth={1.5} />
+          Characters
         </button>
 
         <button onClick={() => toggleTab('handouts')} className={tabBtnClass('handouts')}>

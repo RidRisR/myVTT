@@ -31,7 +31,7 @@ function assetToBlueprint(a: {
   }
 }
 
-export function TokenDockTab({ onSpawnToken, onAddToActive, isCombat }: TokenDockTabProps) {
+export function BlueprintDockTab({ onSpawnToken, onAddToActive, isCombat }: TokenDockTabProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
