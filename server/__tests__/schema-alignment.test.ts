@@ -72,10 +72,7 @@ describe('schema alignment with design doc 43', () => {
   })
 
   it('room_state singleton row (id=1) exists after schema init', () => {
-    const row = db.prepare('SELECT * FROM room_state WHERE id = 1').get() as Record<
-      string,
-      unknown
-    >
+    const row = db.prepare('SELECT * FROM room_state WHERE id = 1').get() as Record<string, unknown>
     expect(row).toBeTruthy()
     expect(row.id).toBe(1)
   })
@@ -112,10 +109,10 @@ describe('schema alignment with design doc 43', () => {
     expect(indexNames.some((n) => n.includes('chat') || n.includes('ts'))).toBe(true)
   })
 
-  it('has index on entities(persistent)', () => {
+  it('has index on entities(lifecycle)', () => {
     const indexes = db.prepare("PRAGMA index_list('entities')").all() as { name: string }[]
     const indexNames = indexes.map((i) => i.name)
-    expect(indexNames.some((n) => n.includes('persistent'))).toBe(true)
+    expect(indexNames.some((n) => n.includes('lifecycle'))).toBe(true)
   })
 
   it('FK cascade: delete entity removes scene_entities rows', () => {
