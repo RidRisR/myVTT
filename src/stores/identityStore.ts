@@ -57,6 +57,9 @@ interface IdentityState {
   leaveSeat: () => void
   deleteSeat: (seatId: string) => Promise<void>
   updateSeat: (seatId: string, updates: Partial<Omit<Seat, 'id'>>) => Promise<void>
+
+  /** @internal Test-only */
+  _reset: () => void
 }
 
 export const useIdentityStore = create<IdentityState>((set, get) => ({
@@ -181,4 +184,12 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
     await api.patch(`/api/rooms/${roomId}/seats/${seatId}`, updates)
     // Store update via WS event
   },
+
+  /** @internal Test-only: reset store to initial state (preserves socket/roomId) */
+  _reset: () =>
+    set({
+      seats: [],
+      mySeatId: null,
+      onlineSeatIds: new Set(),
+    }),
 }))

@@ -181,6 +181,9 @@ interface WorldState {
   // Chat actions
   sendMessage: (msg: { senderId: string; senderName: string; senderColor: string; portraitUrl?: string; content: string }) => Promise<void>
   sendRoll: (data: { formula: string; resolvedExpression?: string; senderId: string; senderName: string; senderColor: string; portraitUrl?: string }) => Promise<void>
+
+  /** @internal Test-only */
+  _reset: () => void
 }
 
 // ── Constants (stable references to avoid infinite re-renders in selectors) ──
@@ -716,4 +719,21 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     if (!roomId) return
     await api.post(`/api/rooms/${roomId}/roll`, data)
   },
+
+  /** @internal Test-only: reset store to initial state (preserves socket/roomId) */
+  _reset: () =>
+    set({
+      room: { activeSceneId: null, activeEncounterId: null },
+      scenes: [],
+      entities: {},
+      sceneEntityMap: {},
+      chatMessages: [],
+      combatInfo: null,
+      blueprints: [],
+      showcaseItems: [],
+      showcasePinnedItemId: null,
+      handoutAssets: [],
+      teamTrackers: [],
+      assets: [],
+    }),
 }))

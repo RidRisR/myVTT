@@ -20,6 +20,9 @@ interface AssetStore {
   // Derived data (filters, sorts) should NOT be store methods —
   // they return new references and cause infinite re-renders as selectors.
   // Use useMemo in components instead.
+
+  /** @internal Test-only */
+  _reset: () => void
 }
 
 export const useAssetStore = create<AssetStore>((set, get) => ({
@@ -76,4 +79,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     await deleteAsset(roomId, assetId)
     set((s) => ({ assets: s.assets.filter((a) => a.id !== assetId) }))
   },
+
+  /** @internal Test-only: reset store to initial state */
+  _reset: () => set({ assets: [], loading: false, roomId: null }),
 }))

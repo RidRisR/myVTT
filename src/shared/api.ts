@@ -1,8 +1,15 @@
 // src/shared/api.ts — HTTP fetch wrapper for REST API
 import { API_BASE } from './config'
 
+let apiBase = API_BASE
+
+/** @internal Test-only: override the API base URL */
+export function _setApiBase(base: string) {
+  apiBase = base
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${apiBase}${path}`, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
