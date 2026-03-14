@@ -158,7 +158,7 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
       }
     }
 
-    const visible = req.body.visible ?? 1
+    const visible = req.body?.visible ?? 1
     req
       .roomDb!.prepare(
         'INSERT OR IGNORE INTO scene_entities (scene_id, entity_id, visible) VALUES (?, ?, ?)',
