@@ -110,7 +110,7 @@ export function GmDock({
       notes: '',
       ruleData: bp.defaultRuleData ?? null,
       permissions: defaultNPCPermissions(),
-      persistent: false,
+      lifecycle: 'ephemeral',
       blueprintId: bp.id,
     }
     onAddEntity(entity)

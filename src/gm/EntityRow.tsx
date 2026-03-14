@@ -86,7 +86,7 @@ export function EntityRow({
         )}
         <div className="flex items-center gap-1 text-[10px] text-text-muted/40">
           {isPC && <span>PC</span>}
-          {entity.persistent && <span>常驻</span>}
+          {entity.lifecycle === 'persistent' && <span>常驻</span>}
           {isInScene && <span className="text-accent/50">在场景中</span>}
         </div>
       </div>

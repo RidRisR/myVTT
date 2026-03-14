@@ -30,14 +30,14 @@ import { MyCharacterCard } from './layout/MyCharacterCard'
 import { ContextMenu } from './shared/ContextMenu'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import type { ShowcaseItem } from './showcase/showcaseTypes'
-import type { Entity, MapToken, Atmosphere } from './shared/entityTypes'
+import type { Entity, MapToken, Atmosphere, SceneEntityEntry } from './shared/entityTypes'
 import { defaultNPCPermissions } from './shared/permissions'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './shared/ui/ToastProvider'
 
-const EMPTY_IDS: string[] = []
+const EMPTY_ENTRIES: SceneEntityEntry[] = []
 
 function RoomSession({ roomId }: { roomId: string }) {
   const { socket, connectionStatus } = useSocket(roomId)
@@ -189,9 +189,13 @@ function RoomSession({ roomId }: { roomId: string }) {
     [entities, mySeatId, isGMForSpeakers],
   )
 
-  const sceneEntityIds =
+  const sceneEntityEntries =
     useWorldStore((s) => (room.activeSceneId ? s.sceneEntityMap[room.activeSceneId] : undefined)) ??
-    EMPTY_IDS
+    EMPTY_ENTRIES
+  const sceneEntityIds = useMemo(
+    () => sceneEntityEntries.map((e) => e.entityId),
+    [sceneEntityEntries],
+  )
 
   // Convert Record types to arrays for components that still expect arrays
   const entitiesArray = useMemo(() => Object.values(entities), [entities])
@@ -334,7 +338,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       notes: '',
       ruleData: null,
       permissions: defaultNPCPermissions(),
-      persistent: false,
+      lifecycle: 'ephemeral',
     }
     handleAddEntity(newEntity)
     if (room.activeSceneId) addEntityToScene(room.activeSceneId, newEntity.id)

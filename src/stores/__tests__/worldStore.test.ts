@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { EventEmitter } from 'events'
 import { useWorldStore } from '../worldStore'
-import type { Scene, CombatInfo, RoomState, TeamTracker, AssetRecord } from '../worldStore'
+import type { Scene, CombatInfo, TeamTracker, AssetRecord } from '../worldStore'
 import type { Entity, MapToken } from '../../shared/entityTypes'
 import type { ShowcaseItem } from '../../showcase/showcaseTypes'
 import type { ChatTextMessage } from '../../chat/chatTypes'
 
 // ── Mock fetch globally (api.ts uses fetch internally) ──
 
-const mockResponses: Record<string, unknown> = {}
+let mockResponses: Record<string, unknown> = {}
 
 vi.stubGlobal(
   'fetch',
@@ -73,7 +73,7 @@ const makeEntity = (overrides: Partial<Entity> = {}): Entity => ({
   notes: '',
   ruleData: {},
   permissions: { default: 'none', seats: {} },
-  persistent: true,
+  lifecycle: 'persistent' as const,
   ...overrides,
 })
 
@@ -157,7 +157,6 @@ beforeEach(() => {
     sceneEntityMap: {},
     chatMessages: [],
     combatInfo: null,
-    blueprints: [],
     showcaseItems: [],
     showcasePinnedItemId: null,
     handoutAssets: [],
@@ -168,7 +167,7 @@ beforeEach(() => {
   })
   vi.mocked(fetch).mockClear()
   // Clear mock responses
-  Object.keys(mockResponses).forEach((k) => delete mockResponses[k])
+  mockResponses = {}
 })
 
 // ── Helper: set up mock responses for init() ──
@@ -184,7 +183,9 @@ function setupInitMockResponses(overrides: Record<string, unknown> = {}) {
     [`/api/rooms/${ROOM_ID}/state`]: { activeSceneId: scene.id, activeEncounterId: null },
     [`/api/rooms/${ROOM_ID}/assets`]: [makeAsset()],
     [`/api/rooms/${ROOM_ID}/showcase`]: [makeShowcaseItem()],
-    [`/api/rooms/${ROOM_ID}/scenes/${scene.id}/entities`]: ['entity-1'],
+    [`/api/rooms/${ROOM_ID}/scenes/${scene.id}/entities`]: [
+      { entityId: 'entity-1', visible: true },
+    ],
   }
   Object.assign(mockResponses, defaults, overrides)
 }
@@ -217,14 +218,14 @@ describe('init()', () => {
     expect(useWorldStore.getState().room.activeSceneId).toBe('scene-1')
   })
 
-  it('populates sceneEntityMap with per-scene entity IDs', async () => {
+  it('populates sceneEntityMap with per-scene entity entries', async () => {
     setupInitMockResponses()
     const socket = createMockSocket()
 
     await useWorldStore.getState().init(ROOM_ID, socket as never)
 
     const map = useWorldStore.getState().sceneEntityMap
-    expect(map['scene-1']).toEqual(['entity-1'])
+    expect(map['scene-1']).toEqual([{ entityId: 'entity-1', visible: true }])
   })
 
   it('registers socket event listeners for all WS_EVENTS', async () => {
@@ -301,23 +302,25 @@ describe('socket event handlers', () => {
     expect(useWorldStore.getState().scenes).toHaveLength(0)
   })
 
-  it('scene:entity:linked adds entity ID to sceneEntityMap', () => {
+  it('scene:entity:linked adds entity entry to sceneEntityMap', () => {
     socket._trigger('scene:entity:linked', { sceneId: 'scene-1', entityId: 'entity-2' })
 
-    expect(useWorldStore.getState().sceneEntityMap['scene-1']).toContain('entity-2')
+    const entries = useWorldStore.getState().sceneEntityMap['scene-1']
+    expect(entries.some((e) => e.entityId === 'entity-2')).toBe(true)
   })
 
-  it('scene:entity:linked does not duplicate existing entity ID', () => {
+  it('scene:entity:linked does not duplicate existing entity entry', () => {
     socket._trigger('scene:entity:linked', { sceneId: 'scene-1', entityId: 'entity-1' })
 
-    const ids = useWorldStore.getState().sceneEntityMap['scene-1']
-    expect(ids.filter((id) => id === 'entity-1')).toHaveLength(1)
+    const entries = useWorldStore.getState().sceneEntityMap['scene-1']
+    expect(entries.filter((e) => e.entityId === 'entity-1')).toHaveLength(1)
   })
 
-  it('scene:entity:unlinked removes entity ID from sceneEntityMap', () => {
+  it('scene:entity:unlinked removes entity entry from sceneEntityMap', () => {
     socket._trigger('scene:entity:unlinked', { sceneId: 'scene-1', entityId: 'entity-1' })
 
-    expect(useWorldStore.getState().sceneEntityMap['scene-1']).not.toContain('entity-1')
+    const entries = useWorldStore.getState().sceneEntityMap['scene-1']
+    expect(entries.some((e) => e.entityId === 'entity-1')).toBe(false)
   })
 
   // -- Entity events --
@@ -379,9 +382,12 @@ describe('socket event handlers', () => {
   })
 
   it('combat:token:updated updates token fields', () => {
-    socket._trigger('combat:activated', makeCombatInfo({
-      tokens: { 'token-1': makeToken({ id: 'token-1', x: 100 }) },
-    }))
+    socket._trigger(
+      'combat:activated',
+      makeCombatInfo({
+        tokens: { 'token-1': makeToken({ id: 'token-1', x: 100 }) },
+      }),
+    )
 
     socket._trigger('combat:token:updated', { tokenId: 'token-1', changes: { x: 300 } })
 
@@ -389,9 +395,12 @@ describe('socket event handlers', () => {
   })
 
   it('combat:token:removed removes from combatInfo.tokens', () => {
-    socket._trigger('combat:activated', makeCombatInfo({
-      tokens: { 'token-1': makeToken({ id: 'token-1' }) },
-    }))
+    socket._trigger(
+      'combat:activated',
+      makeCombatInfo({
+        tokens: { 'token-1': makeToken({ id: 'token-1' }) },
+      }),
+    )
 
     socket._trigger('combat:token:removed', { tokenId: 'token-1' })
 
@@ -482,9 +491,12 @@ describe('socket event handlers', () => {
   })
 
   it('combat:token:updated is no-op when token does not exist', () => {
-    socket._trigger('combat:activated', makeCombatInfo({
-      tokens: { 'token-1': makeToken({ id: 'token-1', x: 100 }) },
-    }))
+    socket._trigger(
+      'combat:activated',
+      makeCombatInfo({
+        tokens: { 'token-1': makeToken({ id: 'token-1', x: 100 }) },
+      }),
+    )
 
     socket._trigger('combat:token:updated', { tokenId: 'nonexistent', changes: { x: 300 } })
 
@@ -542,7 +554,9 @@ describe('socket event handlers', () => {
   it('scene:entity:linked creates entry for unknown sceneId', () => {
     socket._trigger('scene:entity:linked', { sceneId: 'new-scene', entityId: 'entity-1' })
 
-    expect(useWorldStore.getState().sceneEntityMap['new-scene']).toEqual(['entity-1'])
+    expect(useWorldStore.getState().sceneEntityMap['new-scene']).toEqual([
+      { entityId: 'entity-1', visible: true },
+    ])
   })
 
   it('scene:entity:unlinked on empty list does not crash', () => {
@@ -702,7 +716,7 @@ describe('action methods', () => {
     await result
   })
 
-  // ── getScene / getSceneEntityIds ──
+  // ── getScene / getSceneEntityEntries ──
 
   it('getScene returns scene by id', () => {
     const scene = useWorldStore.getState().getScene('scene-1')
@@ -718,16 +732,16 @@ describe('action methods', () => {
     expect(useWorldStore.getState().getScene(null)).toBeNull()
   })
 
-  it('getSceneEntityIds returns ids for known scene', () => {
-    const ids = useWorldStore.getState().getSceneEntityIds('scene-1')
-    expect(ids).toEqual(['entity-1'])
+  it('getSceneEntityEntries returns entries for known scene', () => {
+    const entries = useWorldStore.getState().getSceneEntityEntries('scene-1')
+    expect(entries).toEqual([{ entityId: 'entity-1', visible: true }])
   })
 
-  it('getSceneEntityIds returns stable empty array for unknown scene', () => {
-    const ids1 = useWorldStore.getState().getSceneEntityIds('no-scene')
-    const ids2 = useWorldStore.getState().getSceneEntityIds('no-scene')
-    expect(ids1).toEqual([])
-    expect(ids1).toBe(ids2) // same reference
+  it('getSceneEntityEntries returns stable empty array for unknown scene', () => {
+    const entries1 = useWorldStore.getState().getSceneEntityEntries('no-scene')
+    const entries2 = useWorldStore.getState().getSceneEntityEntries('no-scene')
+    expect(entries1).toEqual([])
+    expect(entries1).toBe(entries2) // same reference
   })
 
   // ── Handout local actions ──

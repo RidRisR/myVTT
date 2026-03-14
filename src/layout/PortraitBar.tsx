@@ -188,11 +188,11 @@ export function PortraitBar({
     [inspectedCharacterId, onInspectCharacter],
   )
 
-  // Filter to entities in the current scene (or persistent) and visible to this seat
+  // Filter to entities in the current scene (or persistent lifecycle) and visible to this seat
   const sceneIdSet = new Set(sceneEntityIds)
   const visibleEntities = entities.filter(
     (e) =>
-      (e.persistent || sceneIdSet.has(e.id)) &&
+      (e.lifecycle === 'persistent' || sceneIdSet.has(e.id)) &&
       (mySeatId ? canSee(e.permissions, mySeatId, role) : isGM),
   )
 
@@ -259,7 +259,7 @@ export function PortraitBar({
       },
     })
 
-    if (isGM && !entity.persistent) {
+    if (isGM && entity.lifecycle !== 'persistent') {
       items.push({
         label: 'Remove from scene',
         onClick: () => onRemoveFromScene(entity.id),

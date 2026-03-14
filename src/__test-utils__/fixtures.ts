@@ -10,7 +10,7 @@ export function makeEntity(overrides?: Partial<Entity>): Entity {
     notes: '',
     ruleData: null,
     permissions: { default: 'observer', seats: {} },
-    persistent: false,
+    lifecycle: 'ephemeral',
     ...overrides,
   }
 }

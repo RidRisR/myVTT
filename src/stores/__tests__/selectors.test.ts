@@ -26,7 +26,7 @@ const makeEntity = (id: string, overrides?: Partial<Entity>): Entity => ({
   color: '#fff',
   size: 1,
   notes: '',
-  persistent: false,
+  lifecycle: 'ephemeral' as const,
   ruleData: {},
   permissions: { default: 'none', seats: {} },
   ...overrides,

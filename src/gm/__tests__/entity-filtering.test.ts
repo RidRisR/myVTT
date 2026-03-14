@@ -39,9 +39,11 @@ function groupEntities(
   sceneEntityIds: string[],
 ): { party: Entity[]; sceneNpcs: Entity[]; other: Entity[] } {
   return {
-    party: entities.filter((e) => e.persistent),
-    sceneNpcs: entities.filter((e) => !e.persistent && sceneEntityIds.includes(e.id)),
-    other: entities.filter((e) => !e.persistent && !sceneEntityIds.includes(e.id)),
+    party: entities.filter((e) => e.lifecycle === 'persistent'),
+    sceneNpcs: entities.filter(
+      (e) => e.lifecycle !== 'persistent' && sceneEntityIds.includes(e.id),
+    ),
+    other: entities.filter((e) => e.lifecycle !== 'persistent' && !sceneEntityIds.includes(e.id)),
   }
 }
 
@@ -63,7 +65,7 @@ function makeEntity(overrides: Partial<Entity> & { id: string; name: string }): 
     notes: '',
     ruleData: null,
     permissions: { default: 'observer' as const, seats: {} },
-    persistent: false,
+    lifecycle: 'ephemeral' as const,
     ...overrides,
   }
 }
@@ -74,18 +76,18 @@ const SEAT_B = 'seat-b'
 const pc1 = makeEntity({
   id: 'pc1',
   name: 'Fighter',
-  persistent: true,
+  lifecycle: 'persistent' as const,
   permissions: { default: 'observer', seats: { [SEAT_A]: 'owner' } },
 })
 const pc2 = makeEntity({
   id: 'pc2',
   name: 'Wizard',
-  persistent: true,
+  lifecycle: 'persistent' as const,
   permissions: { default: 'observer', seats: { [SEAT_B]: 'owner' } },
 })
-const npc1 = makeEntity({ id: 'npc1', name: 'Goblin', persistent: false })
-const npc2 = makeEntity({ id: 'npc2', name: 'Dragon', persistent: false })
-const npc3 = makeEntity({ id: 'npc3', name: 'Goblin Chief', persistent: false })
+const npc1 = makeEntity({ id: 'npc1', name: 'Goblin', lifecycle: 'ephemeral' as const })
+const npc2 = makeEntity({ id: 'npc2', name: 'Dragon', lifecycle: 'ephemeral' as const })
+const npc3 = makeEntity({ id: 'npc3', name: 'Goblin Chief', lifecycle: 'ephemeral' as const })
 
 const allEntities = [pc1, pc2, npc1, npc2, npc3]
 
@@ -149,20 +151,20 @@ describe('filterEntities', () => {
 describe('groupEntities', () => {
   const sceneEntityIds = ['npc1', 'npc2'] // these NPCs are in the current scene
 
-  it('groups persistent entities as party', () => {
+  it('groups persistent lifecycle entities as party', () => {
     const { party } = groupEntities(allEntities, sceneEntityIds)
     expect(party).toHaveLength(2)
     expect(party.map((e) => e.id)).toEqual(['pc1', 'pc2'])
   })
 
-  it('groups non-persistent scene entities as sceneNpcs', () => {
+  it('groups non-persistent lifecycle scene entities as sceneNpcs', () => {
     const { sceneNpcs } = groupEntities(allEntities, sceneEntityIds)
     expect(sceneNpcs).toHaveLength(2)
     expect(sceneNpcs.map((e) => e.id)).toContain('npc1')
     expect(sceneNpcs.map((e) => e.id)).toContain('npc2')
   })
 
-  it('groups non-persistent non-scene entities as other', () => {
+  it('groups non-persistent lifecycle non-scene entities as other', () => {
     const { other } = groupEntities(allEntities, sceneEntityIds)
     expect(other).toHaveLength(1)
     expect(other[0].id).toBe('npc3')

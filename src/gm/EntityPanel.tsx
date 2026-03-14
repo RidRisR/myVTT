@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Plus, Search, ClipboardList } from 'lucide-react'
-import type { Entity } from '../shared/entityTypes'
+import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
@@ -43,10 +43,14 @@ export function EntityPanel() {
     return ids
   }, [entitiesArray, seats])
 
-  // Get scene entity IDs
-  const sceneEntityIds = useMemo(
+  // Get scene entity entries and derive ID set
+  const sceneEntityEntries: SceneEntityEntry[] = useMemo(
     () => (activeSceneId ? (sceneEntityMap[activeSceneId] ?? []) : []),
     [activeSceneId, sceneEntityMap],
+  )
+  const sceneEntityIds = useMemo(
+    () => sceneEntityEntries.map((e) => e.entityId),
+    [sceneEntityEntries],
   )
 
   // Filter and group entities
@@ -66,17 +70,21 @@ export function EntityPanel() {
     return list
   }, [entitiesArray, search, filter, pcIds])
 
-  // Group: party members (persistent) vs scene NPCs
+  // Group: party members (persistent lifecycle) vs scene NPCs
   const partyMembers = useMemo(
-    () => filteredEntities.filter((e) => e.persistent),
+    () => filteredEntities.filter((e) => e.lifecycle === 'persistent'),
     [filteredEntities],
   )
   const sceneNpcs = useMemo(
-    () => filteredEntities.filter((e) => !e.persistent && sceneEntityIds.includes(e.id)),
+    () =>
+      filteredEntities.filter((e) => e.lifecycle !== 'persistent' && sceneEntityIds.includes(e.id)),
     [filteredEntities, sceneEntityIds],
   )
   const otherEntities = useMemo(
-    () => filteredEntities.filter((e) => !e.persistent && !sceneEntityIds.includes(e.id)),
+    () =>
+      filteredEntities.filter(
+        (e) => e.lifecycle !== 'persistent' && !sceneEntityIds.includes(e.id),
+      ),
     [filteredEntities, sceneEntityIds],
   )
 
@@ -98,7 +106,7 @@ export function EntityPanel() {
       notes: '',
       ruleData: null,
       permissions: defaultNPCPermissions(),
-      persistent: false,
+      lifecycle: 'ephemeral',
     }
     addEntity(newEntity)
     if (activeSceneId) addEntityToScene(activeSceneId, newEntity.id)

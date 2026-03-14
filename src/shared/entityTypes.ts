@@ -2,6 +2,13 @@
 
 export type PermissionLevel = 'none' | 'observer' | 'owner'
 
+export type EntityLifecycle = 'ephemeral' | 'reusable' | 'persistent'
+
+export interface SceneEntityEntry {
+  entityId: string
+  visible: boolean
+}
+
 export interface EntityPermissions {
   default: PermissionLevel
   seats: Record<string, PermissionLevel>
@@ -17,7 +24,7 @@ export interface Entity {
   notes: string
   ruleData: unknown
   permissions: EntityPermissions
-  persistent: boolean
+  lifecycle: EntityLifecycle
 }
 
 export interface MapToken {
@@ -87,7 +94,7 @@ export interface SceneV2 {
   name: string
   sortOrder: number
   atmosphere: Atmosphere
-  entityIds: string[]
+  entityEntries: SceneEntityEntry[]
   encounters: Record<string, EncounterData>
 }
 
