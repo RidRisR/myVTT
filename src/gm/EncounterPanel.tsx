@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react'
 import { Plus, Play, Save, MoreVertical, Copy, Pencil, Trash2, Swords } from 'lucide-react'
 import { useWorldStore } from '../stores/worldStore'
 import type { EncounterRecord } from '../stores/worldStore'
-import { useToast } from '../shared/ui/ToastProvider'
+import { useToast } from '../shared/ui/useToast'
 import { ConfirmPopover } from '../shared/ui/ConfirmPopover'
 
 export function EncounterPanel() {
@@ -18,7 +18,7 @@ export function EncounterPanel() {
   const activateEncounter = useWorldStore((s) => s.activateEncounter)
   const saveEncounter = useWorldStore((s) => s.saveEncounter)
 
-  const toast = useToast()
+  const { toast } = useToast()
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)

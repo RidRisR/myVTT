@@ -5,7 +5,7 @@ import { defaultNPCPermissions } from '../shared/permissions'
 import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
 import { useUiStore } from '../stores/uiStore'
-import { useToast } from '../shared/ui/ToastProvider'
+import { useToast } from '../shared/ui/useToast'
 import { generateTokenId } from '../shared/idUtils'
 import { EntityRow } from './EntityRow'
 
@@ -22,7 +22,7 @@ export function EntityPanel() {
   const seats = useIdentityStore((s) => s.seats)
   const onlineSeatIds = useIdentityStore((s) => s.onlineSeatIds)
   const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
-  const toast = useToast()
+  const { toast } = useToast()
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterMode>('all')
