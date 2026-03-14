@@ -4,6 +4,9 @@ import type { Blueprint } from '../shared/entityTypes'
 import { useAssetStore } from '../stores/assetStore'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { useToast } from '../shared/ui/useToast'
+import { TagFilterBar } from '../shared/ui/TagFilterBar'
+
+const PRESET_TAGS = ['人形', '野兽', '魔法生物', '亡灵', '物件']
 
 interface TokenDockTabProps {
   onSpawnToken: (bp: Blueprint) => void
@@ -37,6 +40,7 @@ export function TokenDockTab({ onSpawnToken, onAddToActive, isCombat }: TokenDoc
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; bpId: string } | null>(
     null,
   )
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   // Read from asset store — derive blueprints from assets with type === 'blueprint'
   const allAssets = useAssetStore((s) => s.assets)
@@ -46,10 +50,33 @@ export function TokenDockTab({ onSpawnToken, onAddToActive, isCombat }: TokenDoc
 
   const { toast } = useToast()
 
-  const blueprints = useMemo(
-    () => allAssets.filter((a) => a.type === 'blueprint').map(assetToBlueprint),
+  const blueprintAssets = useMemo(
+    () => allAssets.filter((a) => a.type === 'blueprint'),
     [allAssets],
   )
+
+  // Collect all used tags + merge with presets
+  const availableTags = useMemo(() => {
+    const used = new Set<string>()
+    for (const a of blueprintAssets) {
+      for (const t of a.tags) used.add(t)
+    }
+    // Add presets that aren't already used
+    for (const t of PRESET_TAGS) used.add(t)
+    return Array.from(used)
+  }, [blueprintAssets])
+
+  // Filter by selected tags (AND logic)
+  const filteredAssets = useMemo(() => {
+    if (selectedTags.length === 0) return blueprintAssets
+    return blueprintAssets.filter((a) => selectedTags.every((t) => a.tags.includes(t)))
+  }, [blueprintAssets, selectedTags])
+
+  const blueprints = useMemo(() => filteredAssets.map(assetToBlueprint), [filteredAssets])
+
+  const handleToggleTag = (tag: string) => {
+    setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
+  }
 
   const handleDelete = (bp: Blueprint) => {
     const undo = softRemove(bp.id)
@@ -93,12 +120,44 @@ export function TokenDockTab({ onSpawnToken, onAddToActive, isCombat }: TokenDoc
     setContextMenu({ x: e.clientX, y: e.clientY, bpId })
   }
 
+  const [editingTagsId, setEditingTagsId] = useState<string | null>(null)
+  const [tagInput, setTagInput] = useState('')
+
+  const handleAddTag = (assetId: string) => {
+    const tag = tagInput.trim()
+    if (!tag) return
+    const asset = blueprintAssets.find((a) => a.id === assetId)
+    if (!asset) return
+    if (asset.tags.includes(tag)) {
+      setTagInput('')
+      return
+    }
+    updateAssetMeta(assetId, { tags: [...asset.tags, tag] } as Record<string, unknown>)
+    setTagInput('')
+  }
+
+  const handleRemoveTag = (assetId: string, tag: string) => {
+    const asset = blueprintAssets.find((a) => a.id === assetId)
+    if (!asset) return
+    updateAssetMeta(assetId, { tags: asset.tags.filter((t) => t !== tag) } as Record<
+      string,
+      unknown
+    >)
+  }
+
   const getContextMenuItems = (bp: Blueprint): ContextMenuItem[] => {
     const items: ContextMenuItem[] = []
     if (isCombat) {
       items.push({ label: 'Spawn on map', onClick: () => onSpawnToken(bp) })
     }
     items.push({ label: 'Add as featured NPC', onClick: () => onAddToActive(bp) })
+    items.push({
+      label: 'Edit tags',
+      onClick: () => {
+        setEditingTagsId(bp.id)
+        setTagInput('')
+      },
+    })
     items.push({
       label: 'Delete blueprint',
       onClick: () => handleDelete(bp),
@@ -117,12 +176,27 @@ export function TokenDockTab({ onSpawnToken, onAddToActive, isCombat }: TokenDoc
         onChange={handleUpload}
       />
 
-      {blueprints.length === 0 && (
+      {/* Tag filter bar */}
+      {blueprintAssets.length > 0 && (
+        <div className="mb-2.5">
+          <TagFilterBar
+            availableTags={availableTags}
+            selectedTags={selectedTags}
+            onToggleTag={handleToggleTag}
+          />
+        </div>
+      )}
+
+      {blueprints.length === 0 && blueprintAssets.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
           <CircleDot size={32} strokeWidth={1} className="text-text-muted/40" />
           <p className="text-text-muted text-sm">No token blueprints</p>
           <p className="text-text-muted/50 text-xs">Upload token images to build your collection</p>
         </div>
+      )}
+
+      {blueprints.length === 0 && blueprintAssets.length > 0 && (
+        <div className="text-center text-text-muted/40 text-xs py-6">无匹配蓝图</div>
       )}
 
       <div
@@ -221,6 +295,79 @@ export function TokenDockTab({ onSpawnToken, onAddToActive, isCombat }: TokenDoc
               items={getContextMenuItems(bp)}
               onClose={() => setContextMenu(null)}
             />
+          )
+        })()}
+
+      {/* Tag editor inline panel */}
+      {editingTagsId &&
+        (() => {
+          const asset = blueprintAssets.find((a) => a.id === editingTagsId)
+          if (!asset) return null
+          // Autocomplete: existing tags not yet on this asset
+          const suggestions = availableTags.filter(
+            (t) => !asset.tags.includes(t) && t.includes(tagInput),
+          )
+          return (
+            <div
+              className="mt-3 p-2.5 bg-surface border border-border-glass rounded-lg"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-text-primary font-semibold truncate">
+                  {asset.name} — 标签
+                </span>
+                <button
+                  onClick={() => setEditingTagsId(null)}
+                  className="text-text-muted/40 hover:text-text-primary cursor-pointer"
+                >
+                  <X size={12} strokeWidth={2} />
+                </button>
+              </div>
+              {/* Current tags */}
+              <div className="flex flex-wrap gap-1 mb-2">
+                {asset.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-0.5 text-[10px] bg-accent/15 text-accent px-1.5 py-0.5 rounded-full"
+                  >
+                    {tag}
+                    <button
+                      onClick={() => handleRemoveTag(asset.id, tag)}
+                      className="text-accent/50 hover:text-accent cursor-pointer"
+                    >
+                      <X size={8} strokeWidth={2.5} />
+                    </button>
+                  </span>
+                ))}
+                {asset.tags.length === 0 && (
+                  <span className="text-[10px] text-text-muted/30 italic">无标签</span>
+                )}
+              </div>
+              {/* Add tag input */}
+              <div className="flex gap-1">
+                <input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddTag(asset.id)
+                  }}
+                  placeholder="添加标签..."
+                  className="flex-1 text-[10px] bg-glass text-text-primary border border-border-glass rounded px-1.5 py-1 outline-none placeholder:text-text-muted/30"
+                  list={`tag-suggestions-${asset.id}`}
+                />
+                <datalist id={`tag-suggestions-${asset.id}`}>
+                  {suggestions.map((s) => (
+                    <option key={s} value={s} />
+                  ))}
+                </datalist>
+                <button
+                  onClick={() => handleAddTag(asset.id)}
+                  className="text-[10px] text-accent px-1.5 py-1 rounded bg-accent/10 hover:bg-accent/20 cursor-pointer transition-colors duration-fast"
+                >
+                  添加
+                </button>
+              </div>
+            </div>
           )
         })()}
     </div>
