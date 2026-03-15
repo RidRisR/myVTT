@@ -31,6 +31,26 @@ export default defineConfig([
       'react-hooks/purity': 'off',
     },
   },
+  // Store Action Convention: only store files may import the api module.
+  // Components must call store methods instead of making direct API calls.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/stores/**', 'src/shared/__tests__/**', 'src/shared/api.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/shared/api', '**/shared/api.ts'],
+              message:
+                'Store Action Convention: api must only be imported in src/stores/. Move API calls to a store method. See docs/conventions/store-actions.md',
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Server route files use req.roomDb! extensively — middleware guarantees non-null
   {
     files: ['server/**/*.ts'],
