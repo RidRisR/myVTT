@@ -33,7 +33,8 @@ export function chatRoutes(dataDir: string, io: Server): Router {
 
   // Send text message
   router.post('/api/rooms/:roomId/chat', room, (req, res) => {
-    const { senderId, senderName, senderColor, portraitUrl, content } = req.body
+    const body = req.body as Record<string, unknown>
+    const { senderId, senderName, senderColor, portraitUrl, content } = body
     if (!content) {
       res.status(400).json({ error: 'content is required' })
       return
@@ -75,21 +76,20 @@ export function chatRoutes(dataDir: string, io: Server): Router {
   // Server-side dice roll
   router.post('/api/rooms/:roomId/roll', room, async (req, res) => {
     try {
-      const {
-        formula,
-        resolvedExpression,
-        senderId,
-        senderName,
-        senderColor,
-        portraitUrl,
-        actionName,
-        modifiers,
-      } = req.body
+      const rollBody = req.body as Record<string, unknown>
+      const formula = rollBody.formula as string | undefined
+      const resolvedExpression = rollBody.resolvedExpression as string | undefined
+      const senderId = rollBody.senderId
+      const senderName = rollBody.senderName
+      const senderColor = rollBody.senderColor
+      const portraitUrl = rollBody.portraitUrl
+      const actionName = rollBody.actionName
+      const modifiers = rollBody.modifiers
 
       // Dynamic import of shared dice logic (tsx allows .ts imports)
       const { rollCompound } = await import('../../src/shared/diceUtils')
 
-      const expression = resolvedExpression || formula
+      const expression = resolvedExpression || formula || ''
       const result = rollCompound(expression)
       if (!result || 'error' in result) {
         const errMsg = result && 'error' in result ? result.error : 'Invalid expression'

@@ -1,9 +1,11 @@
 // server/ws.ts — Socket.io auth middleware
-import type { Server as SocketIOServer } from 'socket.io'
+import type { Server } from 'socket.io'
+import type { TypedServer } from './socketTypes'
 import { getGlobalDb, getRoomDb } from './db'
 
-export function setupSocketAuth(io: SocketIOServer, dataDir: string): void {
-  io.use((socket, next) => {
+export function setupSocketAuth(io: Server, dataDir: string): void {
+  const typedIo = io as TypedServer
+  typedIo.use((socket, next) => {
     // TODO: [S1] Implement JWT verification after identity system (doc 53)
     // Temporary: read from handshake query
     const roomId = socket.handshake.query.roomId as string
@@ -33,15 +35,15 @@ export function setupSocketAuth(io: SocketIOServer, dataDir: string): void {
 
     socket.data = {
       roomId,
-      seatId: null as string | null,
-      role: null as 'GM' | 'PL' | null,
+      seatId: null,
+      role: null,
     }
     void socket.join(roomId)
     next()
   })
 
   // Handle seat auth updates after initial connection
-  io.on('connection', (socket) => {
+  typedIo.on('connection', (socket) => {
     socket.on('auth:update', ({ seatId }: { seatId: string }) => {
       if (!seatId || !socket.data.roomId) return
       const roomDb = getRoomDb(dataDir, socket.data.roomId)

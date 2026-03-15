@@ -26,7 +26,8 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
   // POST /scenes/:sceneId/archives — create archive
   router.post('/api/rooms/:roomId/scenes/:sceneId/archives', room, (req, res) => {
     const id = crypto.randomUUID()
-    const { name, mapUrl, mapWidth, mapHeight, grid, gmOnly } = req.body
+    const body = req.body as Record<string, unknown>
+    const { name, mapUrl, mapWidth, mapHeight, grid, gmOnly } = body
     req
       .roomDb!.prepare(
         `INSERT INTO archives (id, scene_id, name, map_url, map_width, map_height, grid, gm_only)
@@ -59,6 +60,7 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
       return
     }
 
+    const body = req.body as Record<string, unknown>
     const sets: string[] = []
     const values: unknown[] = []
     const simpleFields: Record<string, string> = {
@@ -69,14 +71,14 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
       gmOnly: 'gm_only',
     }
     for (const [camel, snake] of Object.entries(simpleFields)) {
-      if (req.body[camel] !== undefined) {
+      if (body[camel] !== undefined) {
         sets.push(`${snake} = ?`)
-        values.push(camel === 'gmOnly' ? (req.body[camel] ? 1 : 0) : req.body[camel])
+        values.push(camel === 'gmOnly' ? (body[camel] ? 1 : 0) : body[camel])
       }
     }
-    if (req.body.grid !== undefined) {
+    if (body.grid !== undefined) {
       sets.push('grid = ?')
-      values.push(JSON.stringify(req.body.grid))
+      values.push(JSON.stringify(body.grid))
     }
     if (sets.length > 0) {
       values.push(req.params.archiveId)
@@ -306,7 +308,7 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
           // Create new entity from snapshot_data
           let snap: Record<string, unknown>
           try {
-            snap = JSON.parse(at.snapshot_data as string)
+            snap = JSON.parse(at.snapshot_data as string) as Record<string, unknown>
           } catch {
             continue // skip corrupted snapshot
           }

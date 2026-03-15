@@ -38,7 +38,7 @@ export function withRoom(dataDir: string) {
  * Middleware: requires role from socket auth data.
  * For now, reads from query params (TODO: JWT after doc 53 identity system).
  */
-export function withRole(req: Request, res: Response, next: NextFunction): void {
+export function withRole(req: Request, _res: Response, next: NextFunction): void {
   // TODO: [S1] Replace with JWT-based role extraction (see doc 53)
   // For now, role can be passed via query or header
   const headerVal = req.headers['x-myvtt-role']

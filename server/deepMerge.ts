@@ -2,7 +2,7 @@
 
 function isPlainObject(val: unknown): val is Record<string, unknown> {
   if (val === null || typeof val !== 'object' || Array.isArray(val)) return false
-  const proto = Object.getPrototypeOf(val)
+  const proto: unknown = Object.getPrototypeOf(val) as unknown
   return proto === Object.prototype || proto === null
 }
 

@@ -31,7 +31,7 @@ beforeAll(async () => {
   const app = express()
   app.use(express.json())
 
-  app.param('roomId', (req, res, next, val) => {
+  app.param('roomId', (_req, res, next, val) => {
     if (!/^[a-zA-Z0-9_-]{1,64}$/.test(val as string)) {
       res.status(400).json({ error: 'Invalid room ID' })
       return

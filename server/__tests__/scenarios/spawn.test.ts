@@ -41,8 +41,8 @@ describe('Spawn from Blueprint Journey', () => {
       body: formData,
     })
     expect(res.status).toBe(201)
-    const data = await res.json()
-    blueprintId = data.id
+    const data = (await res.json()) as Record<string, unknown>
+    blueprintId = data.id as string
   })
 
   it('spawns entity from blueprint', async () => {
