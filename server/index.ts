@@ -7,6 +7,7 @@ import { Server as SocketIOServer } from 'socket.io'
 import { fileURLToPath } from 'url'
 import { setupSocketAuth } from './ws'
 import { setupAwareness } from './awareness'
+import type { TypedServer } from './socketTypes'
 import { getGlobalDb, closeAllDbs } from './db'
 import { roomRoutes } from './routes/rooms'
 import { seatRoutes } from './routes/seats'
@@ -46,7 +47,7 @@ app.use((req, res, next) => {
 })
 
 // Room ID validation (structural guard)
-app.param('roomId', (req, res, next, val) => {
+app.param('roomId', (_req, res, next, val: string) => {
   if (!/^[a-zA-Z0-9_-]{1,64}$/.test(val)) {
     res.status(400).json({ error: 'Invalid room ID' })
     return
@@ -62,7 +63,7 @@ const io = new SocketIOServer(server, {
     origin: CORS_ORIGIN,
     credentials: true,
   },
-})
+}) as TypedServer
 
 // Socket.io auth + awareness
 setupSocketAuth(io, DATA_DIR)

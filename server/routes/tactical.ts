@@ -84,6 +84,7 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
       return
     }
 
+    const patchBody = req.body as Record<string, unknown>
     const doPatch = req.roomDb!.transaction(() => {
       const sets: string[] = []
       const values: unknown[] = []
@@ -96,19 +97,19 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
         currentTurnTokenId: 'current_turn_token_id',
       }
       for (const [camel, snake] of Object.entries(simpleFields)) {
-        if (req.body[camel] !== undefined) {
+        if (patchBody[camel] !== undefined) {
           sets.push(`${snake} = ?`)
-          values.push(req.body[camel])
+          values.push(patchBody[camel])
         }
       }
 
       // Grid: deep merge with existing values (inside transaction to avoid races)
-      if (req.body.grid !== undefined) {
+      if (patchBody.grid !== undefined) {
         const existing = req
           .roomDb!.prepare('SELECT grid FROM tactical_state WHERE scene_id = ?')
           .get(sceneId) as { grid: string }
-        const existingGrid = JSON.parse(existing.grid || '{}')
-        const merged = { ...existingGrid, ...req.body.grid }
+        const existingGrid = JSON.parse(existing.grid || '{}') as Record<string, unknown>
+        const merged = { ...existingGrid, ...(patchBody.grid as Record<string, unknown>) }
         sets.push('grid = ?')
         values.push(JSON.stringify(merged))
       }
@@ -154,7 +155,7 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
       height = 1,
       imageScaleX = 1,
       imageScaleY = 1,
-    } = req.body
+    } = req.body as Record<string, unknown>
 
     if (!entityId) {
       res.status(400).json({ error: 'entityId is required' })
@@ -208,7 +209,7 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
       width = 1,
       height = 1,
       imageUrl = '',
-    } = req.body
+    } = req.body as Record<string, unknown>
 
     const sceneId = getActiveSceneId(req.roomDb!)
     if (!sceneId) {
@@ -252,7 +253,7 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
 
   // POST /tactical/tokens/from-entity — place existing entity on map (1:1 check)
   router.post('/api/rooms/:roomId/tactical/tokens/from-entity', room, (req, res) => {
-    const { entityId, x = 0, y = 0, width, height } = req.body
+    const { entityId, x = 0, y = 0, width, height } = req.body as Record<string, unknown>
 
     if (!entityId) {
       res.status(400).json({ error: 'entityId is required' })
@@ -394,6 +395,7 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
       return
     }
 
+    const tokenPatchBody = req.body as Record<string, unknown>
     const sets: string[] = []
     const values: unknown[] = []
 
@@ -407,9 +409,9 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
       initiativePosition: 'initiative_position',
     }
     for (const [camel, snake] of Object.entries(fields)) {
-      if (req.body[camel] !== undefined) {
+      if (tokenPatchBody[camel] !== undefined) {
         sets.push(`${snake} = ?`)
-        values.push(req.body[camel])
+        values.push(tokenPatchBody[camel])
       }
     }
 
