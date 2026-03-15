@@ -49,10 +49,10 @@ describe('genericPlugin adapters', () => {
     })
     const resource = plugin.adapters.getMainResource(entity)
     expect(resource).not.toBeNull()
-    expect(resource!.current).toBe(15)
-    expect(resource!.max).toBe(20)
-    expect(resource!.color).toBe('#f00')
-    expect(resource!.label).toBe('hp')
+    expect(resource?.current).toBe(15)
+    expect(resource?.max).toBe(20)
+    expect(resource?.color).toBe('#f00')
+    expect(resource?.label).toBe('hp')
   })
 
   it('getStatuses returns status labels', () => {
@@ -106,11 +106,11 @@ describe('daggerheartPlugin registration', () => {
         armor: 1,
       },
     })
-    expect(plugin.adapters.getMainResource(entity)!.current).toBe(12)
+    expect(plugin.adapters.getMainResource(entity)?.current).toBe(12)
   })
   it('daggerheart diceSystem.evaluateRoll works', () => {
     const plugin = getRulePlugin('daggerheart')
-    const r = plugin.diceSystem!.evaluateRoll([[8, 5]], 15)
+    const r = plugin.diceSystem?.evaluateRoll([[8, 5]], 15)
     expect(r?.type).toBe('daggerheart')
   })
   it('daggerheart surfaces.rollCardRenderers has daggerheart:dd', () => {

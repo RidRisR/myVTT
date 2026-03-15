@@ -1,6 +1,5 @@
 // plugins/daggerheart/diceSystem.ts
 import type { Entity, DiceTermResult, JudgmentResult, JudgmentDisplay, DieStyle, RollAction, DaggerheartOutcome } from '@myvtt/sdk'
-import type { DHRuleData } from './types'
 
 const DH_DC = 12 // DaggerHeart standard action roll difficulty
 

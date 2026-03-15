@@ -499,29 +499,29 @@ describe('buildTermResult', () => {
 
 describe('buildCompoundResult', () => {
   it('single dice term', () => {
-    const terms = tokenizeExpression('2d6')!
+    const terms = tokenizeExpression('2d6') ?? []
     const { termResults, total } = buildCompoundResult(terms, [[3, 5]])
     expect(total).toBe(8)
     expect(termResults[0].allRolls).toEqual([3, 5])
   })
 
   it('dice + constant', () => {
-    const terms = tokenizeExpression('2d6+3')!
+    const terms = tokenizeExpression('2d6+3') ?? []
     const { termResults, total } = buildCompoundResult(terms, [[3, 5]])
     expect(total).toBe(11) // 3+5+3
     expect(termResults).toHaveLength(2)
   })
 
   it('multiple dice terms', () => {
-    const terms = tokenizeExpression('1d20+1d4')!
-    const { termResults, total } = buildCompoundResult(terms, [[15], [3]])
+    const terms = tokenizeExpression('1d20+1d4') ?? []
+    const { total } = buildCompoundResult(terms, [[15], [3]])
     expect(total).toBe(18)
   })
 })
 
 describe('toDiceSpecs', () => {
   it('extracts only dice terms', () => {
-    const terms = tokenizeExpression('2d6+3+1d4')!
+    const terms = tokenizeExpression('2d6+3+1d4') ?? []
     const specs = toDiceSpecs(terms)
     expect(specs).toHaveLength(2)
     expect(specs[0]).toEqual({ sides: 6, count: 2 })
@@ -529,7 +529,7 @@ describe('toDiceSpecs', () => {
   })
 
   it('returns empty for constants-only expression', () => {
-    const terms = tokenizeExpression('5')!
+    const terms = tokenizeExpression('5') ?? []
     expect(toDiceSpecs(terms)).toEqual([])
   })
 })

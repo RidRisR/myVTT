@@ -124,6 +124,7 @@ interface WorldState {
   removeEntityFromScene: (sceneId: string, entityId: string) => Promise<void>
   getSceneEntityEntries: (sceneId: string) => SceneEntityEntry[]
   toggleEntityVisibility: (sceneId: string, entityId: string, visible: boolean) => Promise<void>
+  saveEntityAsBlueprint: (entity: Entity) => Promise<void>
   spawnFromBlueprint: (sceneId: string, blueprintId: string) => Promise<Entity | null>
   duplicateScene: (sourceId: string, newId: string) => Promise<void>
 
@@ -719,6 +720,23 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const roomId = get()._roomId
     if (!roomId) return
     await api.patch(`/api/rooms/${roomId}/scenes/${sceneId}/entities/${entityId}`, { visible })
+  },
+
+  saveEntityAsBlueprint: async (entity) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.post(`/api/rooms/${roomId}/assets`, {
+      url: entity.imageUrl,
+      name: entity.name,
+      type: 'blueprint',
+      extra: {
+        blueprint: {
+          defaultSize: entity.width,
+          defaultColor: entity.color,
+          defaultRuleData: entity.ruleData,
+        },
+      },
+    })
   },
 
   spawnFromBlueprint: async (sceneId, blueprintId) => {

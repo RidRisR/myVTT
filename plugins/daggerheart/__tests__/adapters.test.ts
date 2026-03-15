@@ -30,10 +30,10 @@ describe('dhGetMainResource', () => {
   })
   it('returns HP with label and red color', () => {
     const r = dhGetMainResource(makeDHEntity({ hp: { current: 15, max: 20 } }))
-    expect(r!.label).toBe('HP')
-    expect(r!.current).toBe(15)
-    expect(r!.max).toBe(20)
-    expect(r!.color).toBe('#ef4444')
+    expect(r?.label).toBe('HP')
+    expect(r?.current).toBe(15)
+    expect(r?.max).toBe(20)
+    expect(r?.color).toBe('#ef4444')
   })
 })
 

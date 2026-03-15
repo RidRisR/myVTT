@@ -8,7 +8,6 @@ import { useWorldStore } from '../stores/worldStore'
 import { canSee, canEdit } from '../shared/permissions'
 import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
-import { api } from '../shared/api'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
 import { useRulePlugin } from '../rules/useRulePlugin'
@@ -106,6 +105,7 @@ export function PortraitBar({
   const portraitBarVisible = useUiStore((s) => s.portraitBarVisible)
   const setPortraitBarVisible = useUiStore((s) => s.setPortraitBarVisible)
   const toggleEntityVisibility = useWorldStore((s) => s.toggleEntityVisibility)
+  const saveEntityAsBlueprint = useWorldStore((s) => s.saveEntityAsBlueprint)
   const updateEntity = useWorldStore((s) => s.updateEntity)
   const plugin = useRulePlugin()
   const Card = plugin.characterUI.EntityCard
@@ -250,23 +250,6 @@ export function PortraitBar({
     setContextMenu({ x: e.clientX, y: e.clientY, entityId })
   }
 
-  const handleSaveAsBlueprint = async (entity: Entity) => {
-    const roomId = useWorldStore.getState()._roomId
-    if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/assets`, {
-      url: entity.imageUrl,
-      name: entity.name,
-      type: 'blueprint',
-      extra: {
-        blueprint: {
-          defaultSize: entity.width,
-          defaultColor: entity.color,
-          defaultRuleData: entity.ruleData,
-        },
-      },
-    })
-  }
-
   const getContextMenuItems = (entity: Entity): ContextMenuItem[] => {
     const items: ContextMenuItem[] = []
 
@@ -304,7 +287,7 @@ export function PortraitBar({
       // Save as blueprint
       items.push({
         label: '保存为蓝图',
-        onClick: () => handleSaveAsBlueprint(entity),
+        onClick: () => saveEntityAsBlueprint(entity),
       })
 
       // Save as reusable character (only for ephemeral entities)
