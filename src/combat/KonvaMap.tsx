@@ -15,7 +15,6 @@ import { TokenTooltip } from './TokenTooltip'
 import { MeasureTool } from './tools/MeasureTool'
 import { RangeTemplate } from './tools/RangeTemplate'
 import { useImage } from './useImage'
-import { generateTokenId } from '../shared/idUtils'
 import { snapToGrid } from './combatUtils'
 import { useToast } from '../shared/ui/useToast'
 
@@ -366,24 +365,13 @@ export function KonvaMap({
       void x
       void y
     },
-    [tacticalInfo, onAddToken],
+    [tacticalInfo],
   )
 
   // Copy token (create duplicate at offset)
-  const handleCopyToken = useCallback(
-    (token: MapToken) => {
-      if (!tacticalInfo) return
-      const gridSize = tacticalInfo.grid.size
-      const newToken: MapToken = {
-        ...token,
-        id: generateTokenId(),
-        x: token.x + gridSize,
-        y: token.y + gridSize,
-      }
-      onAddToken(newToken)
-    },
-    [tacticalInfo, onAddToken],
-  )
+  const handleCopyToken = useCallback((tokenId: string) => {
+    void useWorldStore.getState().duplicateToken(tokenId)
+  }, [])
 
   // Undo-able token deletion
   const handleDeleteToken = useCallback(
