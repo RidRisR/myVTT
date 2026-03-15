@@ -150,6 +150,7 @@ interface WorldState {
   // Composed actions — multi-step orchestration
   createEphemeralNpcInScene: () => Promise<Entity | null>
   spawnEphemeralTokenAtPosition: (x: number, y: number) => Promise<Entity | null>
+  saveEntityAsBlueprint: (entity: Entity) => Promise<void>
 
   // Token actions
   createToken: (x: number, y: number, opts?: { name?: string; color?: string }) => Promise<void>
@@ -780,6 +781,23 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       y,
     })
     return entity
+  },
+
+  saveEntityAsBlueprint: async (entity) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.post(`/api/rooms/${roomId}/assets`, {
+      url: entity.imageUrl,
+      name: entity.name,
+      type: 'blueprint',
+      extra: {
+        blueprint: {
+          defaultSize: entity.width,
+          defaultColor: entity.color,
+          defaultRuleData: entity.ruleData,
+        },
+      },
+    })
   },
 
   toggleEntityVisibility: async (sceneId, entityId, visible) => {
