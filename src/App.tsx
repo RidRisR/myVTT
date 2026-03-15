@@ -31,7 +31,6 @@ import { ContextMenu } from './shared/ContextMenu'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import type { ShowcaseItem } from './showcase/showcaseTypes'
 import type { Entity, Atmosphere, SceneEntityEntry } from './shared/entityTypes'
-import { defaultNPCPermissions } from './shared/permissions'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
@@ -178,9 +177,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   }
 
   const activeEntity = getEntity(mySeat?.activeCharacterId ?? null)
-  const selectedToken = isTactical
-    ? (tokens.find((t) => t.id === selectedTokenId) ?? null)
-    : null
+  const selectedToken = isTactical ? (tokens.find((t) => t.id === selectedTokenId) ?? null) : null
   const selectedTokenEntity = selectedToken?.entityId ? getEntity(selectedToken.entityId) : null
 
   const seatProperties = deriveSeatProperties(activeEntity, selectedTokenEntity)
@@ -329,22 +326,13 @@ function RoomSession({ roomId }: { roomId: string }) {
   }
 
   const handleAddNpc = () => {
-    const newEntity: Entity = {
-      id: generateTokenId(),
-      name: 'New NPC',
-      imageUrl: '',
-      color: '#3b82f6',
-      width: 1,
-      height: 1,
-      notes: '',
-      ruleData: null,
-      permissions: defaultNPCPermissions(),
-      lifecycle: 'ephemeral',
-    }
-    handleAddEntity(newEntity)
-    if (room.activeSceneId) addEntityToScene(room.activeSceneId, newEntity.id)
-    setInspectedCharacterId(newEntity.id)
     setBgContextMenu(null)
+    void useWorldStore
+      .getState()
+      .createEphemeralNpcInScene()
+      .then((entity) => {
+        if (entity) setInspectedCharacterId(entity.id)
+      })
   }
 
   const handleDropEntityOnMap = (entityId: string, mapX: number, mapY: number) => {
