@@ -62,15 +62,15 @@ The tactical map is rendered via **react-konva** (Canvas), not DOM+CSS:
 
 **z-index Semantic Layers** (defined in `tailwind.config.ts`):
 
-| Layer   | Value | Use case            |
-| ------- | ----- | ------------------- |
-| base    | 0     | Default stacking    |
-| combat  | 100   | Combat map overlays |
-| ui      | 1000  | General UI panels   |
-| popover | 5000  | Dropdowns, tooltips |
-| overlay | 8000  | Modal backdrops     |
-| modal   | 9000  | Modals, dialogs     |
-| toast   | 10000 | Toast notifications |
+| Layer    | Value | Use case              |
+| -------- | ----- | --------------------- |
+| base     | 0     | Default stacking      |
+| tactical | 100   | Tactical map overlays |
+| ui       | 1000  | General UI panels     |
+| popover  | 5000  | Dropdowns, tooltips   |
+| overlay  | 8000  | Modal backdrops       |
+| modal    | 9000  | Modals, dialogs       |
+| toast    | 10000 | Toast notifications   |
 
 ## State Management
 
