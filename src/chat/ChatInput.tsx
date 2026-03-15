@@ -3,6 +3,7 @@ import { Send } from 'lucide-react'
 import { resolveFormula, tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
 import type { DiceSpec } from '../shared/diceUtils'
 import type { ChatMessage } from './chatTypes'
+import { useRulePlugin } from '../rules/useRulePlugin'
 
 interface Suggestion {
   key: string
@@ -41,6 +42,7 @@ export function ChatInput({
   onFocus,
   onCycleSpeaker,
 }: ChatInputProps) {
+  const plugin = useRulePlugin()
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -100,36 +102,6 @@ export function ChatInput({
     })
   }
 
-  const handleSend = () => {
-    const trimmed = input.trim()
-    if (!trimmed) return
-
-    const ddMatch = trimmed.match(/^\.dd\s*(.*)$/i)
-    if (ddMatch) { handleDaggerheartRoll(ddMatch[1]); return }
-
-    // Check if it's a dice roll
-    const rollMatch = trimmed.match(/^\.r\s*(.+)$/i)
-    if (rollMatch) {
-      const formula = rollMatch[1].trim()
-      handleRoll(formula)
-      return
-    }
-
-    // Text message
-    onSend({
-      type: 'text',
-      id: generateId(),
-      senderId,
-      senderName,
-      senderColor,
-      portraitUrl,
-      content: trimmed,
-      timestamp: Date.now(),
-    })
-    setInput('')
-    setError('')
-  }
-
   const handleRoll = (formula: string) => {
     let resolvedFormula: string | undefined
     if (/@[\p{L}\p{N}_]+/u.test(formula)) {
@@ -149,9 +121,12 @@ export function ChatInput({
     setError('')
   }
 
-  const handleDaggerheartRoll = (modifierExpr: string) => {
-    const mod = modifierExpr.trim()
-    const formula = `2d12${mod ? (mod.startsWith('+') || mod.startsWith('-') ? mod : '+' + mod) : ''}`
+  const handlePluginRoll = (
+    modifierExpr: string,
+    rollType: string,
+    rollCommand: { resolveFormula(modifierExpr?: string): string },
+  ) => {
+    const formula = rollCommand.resolveFormula(modifierExpr.trim() || undefined)
     let resolvedFormula: string | undefined
     if (/@[\p{L}\p{N}_]+/u.test(formula)) {
       const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
@@ -161,7 +136,46 @@ export function ChatInput({
     const terms = tokenizeExpression(resolvedFormula ?? formula)
     if (!terms) { setError('Invalid formula'); return }
     const dice = toDiceSpecs(terms)
-    if (onRoll) onRoll(formula, resolvedFormula, dice, 'daggerheart:dd')
+    if (onRoll) onRoll(formula, resolvedFormula, dice, rollType)
+    setInput('')
+    setError('')
+  }
+
+  const handleSend = () => {
+    const trimmed = input.trim()
+    if (!trimmed) return
+
+    // Standard dice roll
+    const rollMatch = trimmed.match(/^\.r\s*(.+)$/i)
+    if (rollMatch) {
+      handleRoll(rollMatch[1].trim())
+      return
+    }
+
+    // Plugin-registered roll commands (e.g., .dd → daggerheart:dd)
+    const cmdMatch = trimmed.match(/^\.([a-zA-Z][a-zA-Z0-9]*)\s*(.*)$/i)
+    if (cmdMatch) {
+      const cmd = cmdMatch[1].toLowerCase()
+      const rollCmds = plugin.diceSystem?.rollCommands ?? {}
+      const entry = Object.entries(rollCmds).find(([key]) => key.split(':').at(-1) === cmd)
+      if (entry) {
+        const [rollType, rollCommand] = entry
+        handlePluginRoll(cmdMatch[2] ?? '', rollType, rollCommand)
+        return
+      }
+    }
+
+    // Text message
+    onSend({
+      type: 'text',
+      id: generateId(),
+      senderId,
+      senderName,
+      senderColor,
+      portraitUrl,
+      content: trimmed,
+      timestamp: Date.now(),
+    })
     setInput('')
     setError('')
   }

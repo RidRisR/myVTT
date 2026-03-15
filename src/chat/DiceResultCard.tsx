@@ -47,11 +47,11 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
       const value = (tr.term as { type: 'constant'; sign: 1 | -1; value: number }).value
       const sign = tr.term.sign === -1 ? '-' : '+'
       return (
-        <span key={ti} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        <span key={ti} className="inline-flex items-center gap-1">
           {ti > 0 && (
-            <span style={{ color: '#64748b', margin: '0 2px', fontSize: 13 }}>{sign}</span>
+            <span className="text-text-muted mx-0.5 text-[13px]">{sign}</span>
           )}
-          <span style={{ color: '#94a3b8', fontWeight: 600, fontSize: 15 }}>{value}</span>
+          <span className="text-text-muted font-semibold text-[15px]">{value}</span>
         </span>
       )
     }
@@ -76,12 +76,9 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
     })
 
     return (
-      <span
-        key={ti}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}
-      >
+      <span key={ti} className="inline-flex items-center gap-0.5 flex-wrap">
         {showSign && (
-          <span style={{ color: '#64748b', margin: '0 2px', fontSize: 13 }}>{sign}</span>
+          <span className="text-text-muted mx-0.5 text-[13px]">{sign}</span>
         )}
         {reels}
       </span>
@@ -89,47 +86,26 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
   })
 
   return (
-    <>
-      <style>{`
-        @keyframes diceLand {
-          0% { transform: scale(1) rotateZ(0deg); filter: blur(1.5px); }
-          50% { transform: scale(1.3) rotateZ(8deg); filter: blur(0); }
-          70% { transform: scale(0.95) rotateZ(-4deg); }
-          100% { transform: scale(1) rotateZ(0deg); filter: blur(0); }
+    <div className="flex items-center gap-1 flex-wrap">
+      {reelGroups}
+      <span className="text-text-muted mx-1 text-[14px]">=</span>
+      <span
+        className={`font-extrabold text-[22px] font-mono min-w-[30px] text-center inline-block ${
+          totalRevealed ? 'text-accent' : 'text-[#334155] opacity-50'
+        }`}
+        style={
+          totalRevealed
+            ? {
+                textShadow: '0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(251, 191, 36, 0.4)',
+                animation: shouldAnimate.current
+                  ? 'totalReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  : undefined,
+              }
+            : undefined
         }
-        @keyframes totalReveal {
-          0% { opacity: 0; transform: scale(0.5) translateY(8px); }
-          50% { transform: scale(1.2) translateY(-2px); }
-          70% { transform: scale(0.95) translateY(1px); }
-          100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
-      `}</style>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-        {reelGroups}
-        <span style={{ color: '#475569', margin: '0 4px', fontSize: 14 }}>=</span>
-        <span
-          style={{
-            fontWeight: 800,
-            fontSize: 22,
-            fontFamily: 'monospace',
-            minWidth: 30,
-            textAlign: 'center',
-            display: 'inline-block',
-            ...(totalRevealed
-              ? {
-                  color: '#fbbf24',
-                  textShadow: '0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(251, 191, 36, 0.4)',
-                  animation: shouldAnimate.current
-                    ? 'totalReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                    : 'none',
-                  opacity: 1,
-                }
-              : { color: '#334155', opacity: 0.5 }),
-          }}
-        >
-          {totalRevealed ? total : '?'}
-        </span>
-      </div>
-    </>
+      >
+        {totalRevealed ? total : '?'}
+      </span>
+    </div>
   )
 }

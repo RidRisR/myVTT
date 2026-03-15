@@ -253,13 +253,7 @@ export function ChatPanel({
       {showSpeakerPicker && (
         <div
           ref={speakerPickerRef}
-          className="fixed z-toast bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-y-auto p-1.5"
-          style={{
-            bottom: 62,
-            right: 440,
-            width: 200,
-            maxHeight: 280,
-          }}
+          className="fixed z-toast bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-y-auto p-1.5 bottom-[62px] right-[440px] w-[200px] max-h-[280px]"
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="text-[10px] text-text-muted/30 px-2.5 py-1 uppercase tracking-wider">

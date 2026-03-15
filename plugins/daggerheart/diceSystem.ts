@@ -65,8 +65,6 @@ export const rollCommands: Record<string, { resolveFormula(modifierExpr?: string
 // v1 stub — DH die styling is handled by DHRollCard directly (calls dhGetDieStyles(message.rolls));
 // generic consumers that call plugin.diceSystem.getDieStyles() get no styles for DH rolls.
 export function dhGetDieStylesFromTerms(_terms: DiceTermResult[]): DieStyle[] {
+  // intentionally empty — DHRollCard uses dhGetDieStyles(rolls: number[][]) directly
   return []
 }
-
-// Re-export DHRuleData for convenience (used by dhGetRollActions cast internally)
-export type { DHRuleData }
