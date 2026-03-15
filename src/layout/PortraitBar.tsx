@@ -6,7 +6,6 @@ import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
 import type { TacticalInfo } from '../stores/worldStore'
 import { useWorldStore } from '../stores/worldStore'
 import { canSee, canEdit } from '../shared/permissions'
-import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
@@ -317,9 +316,9 @@ export function PortraitBar({
     const isInspected = inspectedCharacterId === entity.id
     const isActive = activeCharacterId === entity.id
 
-    const resources = getEntityResources(entity).filter((r) => r.max > 0)
+    const resources = plugin.adapters.getPortraitResources(entity).filter((r) => r.max > 0)
     const displayResources = resources.slice(0, 2) // max 2 rings
-    const statuses = getEntityStatuses(entity)
+    const statuses = plugin.adapters.getStatuses(entity)
     const maxStatusDots = 3
 
     // Check if entity has an owner seat that is online

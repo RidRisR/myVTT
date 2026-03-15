@@ -1,7 +1,7 @@
 import { Group, Circle, Image, Rect, Text } from 'react-konva'
 import type Konva from 'konva'
 import type { MapToken as MapTokenType, Entity } from '../shared/entityTypes'
-import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
+import { useRulePlugin } from '../rules/useRulePlugin'
 import { statusColor } from '../shared/tokenUtils'
 import { useImage } from './useImage'
 
@@ -38,6 +38,7 @@ export function KonvaToken({
   onMouseEnter,
   onMouseLeave,
 }: KonvaTokenProps) {
+  const plugin = useRulePlugin()
   const rawColor = entity?.color ?? '#888888'
   // Expand 3-char hex (#abc) to 6-char (#aabbcc) so appending alpha (e.g. 'aa') works
   const color =
@@ -52,12 +53,11 @@ export function KonvaToken({
   const radius = pixelSize / 2
 
   // Overlay data
-  const resources = getEntityResources(entity)
-  const mainResource = resources[0]
-  const hasHp = mainResource !== undefined && mainResource.max > 0
+  const mainResource = entity ? plugin.adapters.getMainResource(entity) : null
+  const hasHp = mainResource !== null && mainResource.max > 0
   const hpPct = hasHp ? Math.min(mainResource.current / mainResource.max, 1) : 0
 
-  const statuses = getEntityStatuses(entity)
+  const statuses = entity ? plugin.adapters.getStatuses(entity) : []
 
   // Inverse scale factor so overlays stay the same screen size regardless of zoom
   const invScale = stageScale > 0 ? 1 / stageScale : 1

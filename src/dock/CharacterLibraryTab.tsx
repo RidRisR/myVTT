@@ -7,6 +7,7 @@ import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
 import { useUiStore } from '../stores/uiStore'
 import { useToast } from '../shared/ui/useToast'
+import { useRulePlugin } from '../rules/useRulePlugin'
 
 export function CharacterLibraryTab() {
   const entities = useWorldStore((s) => s.entities)
@@ -17,6 +18,7 @@ export function CharacterLibraryTab() {
   const seats = useIdentityStore((s) => s.seats)
   const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
   const { toast } = useToast()
+  const plugin = useRulePlugin()
   const [search, setSearch] = useState('')
   const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set())
   const deleteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
@@ -47,7 +49,7 @@ export function CharacterLibraryTab() {
       width: 1,
       height: 1,
       notes: '',
-      ruleData: null,
+      ruleData: plugin.dataTemplates?.createDefaultEntityData() ?? null,
       permissions: defaultNPCPermissions(),
       lifecycle: 'reusable',
     }
