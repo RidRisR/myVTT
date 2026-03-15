@@ -7,6 +7,9 @@ import {
   generateFavoriteName,
   parseDiceExpression,
   rollDice,
+  buildTermResult,
+  buildCompoundResult,
+  toDiceSpecs,
   type DiceTerm,
 } from '../diceUtils'
 
@@ -420,5 +423,113 @@ describe('rollDice', () => {
 
   it('returns null for invalid expression', () => {
     expect(rollDice('abc')).toBeNull()
+  })
+})
+
+describe('buildTermResult', () => {
+  it('constant term returns subtotal = sign * value', () => {
+    const term: DiceTerm = { type: 'constant', value: 5, sign: 1 }
+    const r = buildTermResult(term, [])
+    expect(r.subtotal).toBe(5)
+    expect(r.allRolls).toEqual([])
+    expect(r.keptIndices).toEqual([])
+  })
+
+  it('constant negative sign', () => {
+    const term: DiceTerm = { type: 'constant', value: 3, sign: -1 }
+    expect(buildTermResult(term, []).subtotal).toBe(-3)
+  })
+
+  it('no keep/drop — all rolls kept', () => {
+    const r = buildTermResult({ type: 'dice', sides: 6, count: 3, sign: 1 }, [2, 4, 6])
+    expect(r.keptIndices).toEqual([0, 1, 2])
+    expect(r.subtotal).toBe(12)
+  })
+
+  it('kh keep highest 1 of 3', () => {
+    const r = buildTermResult(
+      { type: 'dice', sides: 6, count: 3, sign: 1, keepDrop: { mode: 'kh', count: 1 } },
+      [2, 6, 4],
+    )
+    expect(r.keptIndices).toEqual([1]) // index of 6
+    expect(r.subtotal).toBe(6)
+  })
+
+  it('kl keep lowest 1 of 3', () => {
+    const r = buildTermResult(
+      { type: 'dice', sides: 6, count: 3, sign: 1, keepDrop: { mode: 'kl', count: 1 } },
+      [2, 6, 4],
+    )
+    expect(r.keptIndices).toEqual([0]) // index of 2
+    expect(r.subtotal).toBe(2)
+  })
+
+  it('dl drop lowest 1 of 3', () => {
+    const r = buildTermResult(
+      { type: 'dice', sides: 6, count: 3, sign: 1, keepDrop: { mode: 'dl', count: 1 } },
+      [2, 6, 4],
+    )
+    expect(r.keptIndices).toContain(1) // keeps 6
+    expect(r.keptIndices).toContain(2) // keeps 4
+    expect(r.keptIndices).not.toContain(0) // drops 2
+    expect(r.subtotal).toBe(10)
+  })
+
+  it('dh drop highest 1 of 3', () => {
+    const r = buildTermResult(
+      { type: 'dice', sides: 6, count: 3, sign: 1, keepDrop: { mode: 'dh', count: 1 } },
+      [2, 6, 4],
+    )
+    expect(r.keptIndices).not.toContain(1) // drops 6
+    expect(r.subtotal).toBe(6)
+  })
+
+  it('throws if fewer rolls than term.count', () => {
+    expect(() =>
+      buildTermResult({ type: 'dice', sides: 6, count: 3, sign: 1 }, [1, 2]),
+    ).toThrow()
+  })
+
+  it('throws if more rolls than term.count', () => {
+    expect(() =>
+      buildTermResult({ type: 'dice', sides: 6, count: 3, sign: 1 }, [1, 2, 3, 4]),
+    ).toThrow()
+  })
+})
+
+describe('buildCompoundResult', () => {
+  it('single dice term', () => {
+    const terms = tokenizeExpression('2d6') ?? []
+    const { termResults, total } = buildCompoundResult(terms, [[3, 5]])
+    expect(total).toBe(8)
+    expect(termResults[0].allRolls).toEqual([3, 5])
+  })
+
+  it('dice + constant', () => {
+    const terms = tokenizeExpression('2d6+3') ?? []
+    const { termResults, total } = buildCompoundResult(terms, [[3, 5]])
+    expect(total).toBe(11) // 3+5+3
+    expect(termResults).toHaveLength(2)
+  })
+
+  it('multiple dice terms', () => {
+    const terms = tokenizeExpression('1d20+1d4') ?? []
+    const { total } = buildCompoundResult(terms, [[15], [3]])
+    expect(total).toBe(18)
+  })
+})
+
+describe('toDiceSpecs', () => {
+  it('extracts only dice terms', () => {
+    const terms = tokenizeExpression('2d6+3+1d4') ?? []
+    const specs = toDiceSpecs(terms)
+    expect(specs).toHaveLength(2)
+    expect(specs[0]).toEqual({ sides: 6, count: 2 })
+    expect(specs[1]).toEqual({ sides: 4, count: 1 })
+  })
+
+  it('returns empty for constants-only expression', () => {
+    const terms = tokenizeExpression('5') ?? []
+    expect(toDiceSpecs(terms)).toEqual([])
   })
 })

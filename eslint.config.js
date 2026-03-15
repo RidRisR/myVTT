@@ -41,10 +41,11 @@ export default defineConfig([
     },
   },
   // Store Action Convention: only store files may import the api module.
-  // Components must call store methods instead of making direct API calls.
+  // Plugin boundary: only registry.ts may import from plugins/ — all other src/ code accesses
+  // plugin logic via useRulePlugin(). This enforces the plugin architectural boundary.
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/stores/**', 'src/shared/__tests__/**', 'src/shared/api.ts'],
+    ignores: ['src/stores/**', 'src/shared/__tests__/**', 'src/shared/api.ts', 'src/rules/registry.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -54,6 +55,11 @@ export default defineConfig([
               group: ['**/shared/api', '**/shared/api.ts'],
               message:
                 'Store Action Convention: api must only be imported in src/stores/. Move API calls to a store method. See docs/conventions/store-actions.md',
+            },
+            {
+              group: ['**/plugins/**'],
+              message:
+                'Plugin boundary: src/ base must not import directly from plugins/. Access plugin logic via useRulePlugin(). Only src/rules/registry.ts may import plugins.',
             },
           ],
         },

@@ -34,8 +34,9 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 ### zustand Selector Pitfalls
 
 - **No derived-data methods in stores** — `.filter()` / `.sort()` return new refs → infinite re-renders. Use `useMemo` in components
-- **Selector fallback MUST be module-level constants** — `?? []` inline creates new ref every call. Use `const EMPTY: X[] = []`
+- **Module-level constants for all fallback/default values** — `?? []` or `?? {}` inline creates a new reference on every call/render. This breaks both zustand `Object.is()` equality and `useMemo` deps stability. Use `const EMPTY: X[] = []` at module scope anywhere the value is used in selector return, `useMemo` dep array, or component-level equality comparison.
 - **All hooks before any early return** — React hook ordering rules apply
+- **Flags that describe data must live with the data** — If a flag (e.g. "is this item new?") controls render behavior on first mount, it MUST be in the same zustand `set()` call as the item itself. Tracking it in a component `useState` + `useEffect` creates a timing gap: the component mounts before the effect fires, so `useRef(flag)` freezes the wrong value. Example: `freshChatIds` is updated atomically with `chatMessages` inside the `chat:new` handler.
 
 ### Express / Server
 

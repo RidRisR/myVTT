@@ -7,6 +7,7 @@ import type { Socket } from 'socket.io-client'
 import type { Entity, MapToken, Atmosphere, SceneEntityEntry } from '../shared/entityTypes'
 import type { ShowcaseItem } from '../showcase/showcaseTypes'
 import type { ChatMessage } from '../chat/chatTypes'
+import type { DiceSpec } from '../shared/diceUtils'
 import { api } from '../shared/api'
 import { generateTokenId } from '../shared/idUtils'
 import { defaultNPCPermissions } from '../shared/permissions'
@@ -25,6 +26,7 @@ export interface RoomState {
   activeSceneId: string | null
   activeArchiveId: string | null
   tacticalMode: number
+  ruleSystemId: string
 }
 
 export interface TacticalInfo {
@@ -94,6 +96,7 @@ interface WorldState {
   entities: Record<string, Entity>
   sceneEntityMap: Record<string, SceneEntityEntry[]>
   chatMessages: ChatMessage[]
+  freshChatIds: Set<string>
   tacticalInfo: TacticalInfo | null
   showcaseItems: ShowcaseItem[]
   showcasePinnedItemId: string | null
@@ -111,6 +114,7 @@ interface WorldState {
 
   // Room actions
   setActiveScene: (sceneId: string) => Promise<void>
+  setRuleSystem: (id: string) => Promise<void>
 
   // Scene actions
   addScene: (id: string, name: string, atmosphere: Atmosphere) => Promise<void>
@@ -124,6 +128,7 @@ interface WorldState {
   removeEntityFromScene: (sceneId: string, entityId: string) => Promise<void>
   getSceneEntityEntries: (sceneId: string) => SceneEntityEntry[]
   toggleEntityVisibility: (sceneId: string, entityId: string, visible: boolean) => Promise<void>
+  saveEntityAsBlueprint: (entity: Entity) => Promise<void>
   spawnFromBlueprint: (sceneId: string, blueprintId: string) => Promise<Entity | null>
   duplicateScene: (sourceId: string, newId: string) => Promise<void>
 
@@ -187,12 +192,15 @@ interface WorldState {
     content: string
   }) => Promise<void>
   sendRoll: (data: {
+    dice: DiceSpec[]
     formula: string
-    resolvedExpression?: string
+    resolvedFormula?: string
+    rollType?: string
     senderId: string
     senderName: string
     senderColor: string
     portraitUrl?: string
+    actionName?: string
   }) => Promise<void>
 
   /** @internal Test-only */
@@ -389,7 +397,17 @@ function registerSocketEvents(
 
   // ── Chat events ──
   socket.on('chat:new', (message: ChatMessage) => {
-    set((s) => ({ chatMessages: [...s.chatMessages, message] }))
+    set((s) => ({
+      chatMessages: [...s.chatMessages, message],
+      freshChatIds: new Set([...s.freshChatIds, message.id]),
+    }))
+    setTimeout(() => {
+      set((s) => {
+        const next = new Set(s.freshChatIds)
+        next.delete(message.id)
+        return { freshChatIds: next }
+      })
+    }, 2500)
   })
   socket.on('chat:retracted', ({ id }: { id: string }) => {
     set((s) => ({
@@ -496,11 +514,12 @@ const WS_EVENTS = [
 
 export const useWorldStore = create<WorldState>((set, get) => ({
   // Initial data
-  room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0 },
+  room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0, ruleSystemId: 'generic' },
   scenes: [],
   entities: {},
   sceneEntityMap: {},
   chatMessages: [],
+  freshChatIds: new Set<string>(),
   tacticalInfo: null,
   showcaseItems: [],
   showcasePinnedItemId: null,
@@ -544,6 +563,13 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const roomId = get()._roomId
     if (!roomId) return
     await api.patch(`/api/rooms/${roomId}/state`, { activeSceneId: sceneId })
+  },
+
+  setRuleSystem: async (id) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.patch(`/api/rooms/${roomId}/state`, { ruleSystemId: id })
+    // No local update needed — 'room:state:updated' socket event handles it
   },
 
   // ── Scene actions ──
@@ -806,6 +832,23 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     await api.patch(`/api/rooms/${roomId}/scenes/${sceneId}/entities/${entityId}`, { visible })
   },
 
+  saveEntityAsBlueprint: async (entity) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.post(`/api/rooms/${roomId}/assets`, {
+      url: entity.imageUrl,
+      name: entity.name,
+      type: 'blueprint',
+      extra: {
+        blueprint: {
+          defaultSize: entity.width,
+          defaultColor: entity.color,
+          defaultRuleData: entity.ruleData,
+        },
+      },
+    })
+  },
+
   spawnFromBlueprint: async (sceneId, blueprintId) => {
     const roomId = get()._roomId
     if (!roomId) return null
@@ -956,7 +999,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   /** @internal Test-only: reset store to initial state (preserves socket/roomId) */
   _reset: () =>
     set({
-      room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0 },
+      room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0, ruleSystemId: 'generic' },
       scenes: [],
       entities: {},
       sceneEntityMap: {},

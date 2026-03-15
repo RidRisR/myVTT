@@ -1,17 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Users, ChevronUp } from 'lucide-react'
+import { Users, ChevronUp, Plus } from 'lucide-react'
 import { useUiStore } from '../stores/uiStore'
 import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
 import type { TacticalInfo } from '../stores/worldStore'
 import { useWorldStore } from '../stores/worldStore'
-import { canSee, canEdit } from '../shared/permissions'
-import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
+import { canSee, canEdit, defaultPCPermissions } from '../shared/permissions'
 import { statusColor } from '../shared/tokenUtils'
+import { generateTokenId } from '../shared/idUtils'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
-import { CharacterDetailPanel } from './CharacterDetailPanel'
-import { CharacterEditPanel } from './CharacterEditPanel'
+import { useRulePlugin } from '../rules/useRulePlugin'
 
 type PortraitTabId = 'characters' | 'initiative'
 
@@ -106,7 +105,13 @@ export function PortraitBar({
   const portraitBarVisible = useUiStore((s) => s.portraitBarVisible)
   const setPortraitBarVisible = useUiStore((s) => s.setPortraitBarVisible)
   const toggleEntityVisibility = useWorldStore((s) => s.toggleEntityVisibility)
+  const saveEntityAsBlueprint = useWorldStore((s) => s.saveEntityAsBlueprint)
   const updateEntity = useWorldStore((s) => s.updateEntity)
+  const addEntity = useWorldStore((s) => s.addEntity)
+  const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
+  const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
+  const plugin = useRulePlugin()
+  const Card = plugin.characterUI.EntityCard
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entityId: string } | null>(
     null,
@@ -188,6 +193,26 @@ export function PortraitBar({
     [inspectedCharacterId, onInspectCharacter],
   )
 
+  // Player: create their own persistent PC and add to current scene
+  const handleCreateMyCharacter = () => {
+    if (!mySeatId || !activeSceneId) return
+    const newEntity: Entity = {
+      id: generateTokenId(),
+      name: '我的角色',
+      imageUrl: '',
+      color: '#3b82f6',
+      width: 1,
+      height: 1,
+      notes: '',
+      ruleData: plugin.dataTemplates?.createDefaultEntityData() ?? null,
+      permissions: defaultPCPermissions(mySeatId),
+      lifecycle: 'persistent',
+    }
+    addEntity(newEntity)
+    addEntityToScene(activeSceneId, newEntity.id, true)
+    setInspectedCharacterId(newEntity.id)
+  }
+
   // Build a map of entityId → visible from scene entries
   const visibilityMap = new Map<string, boolean>()
   for (const entry of sceneEntityEntries) {
@@ -248,10 +273,6 @@ export function PortraitBar({
     setContextMenu({ x: e.clientX, y: e.clientY, entityId })
   }
 
-  const handleSaveAsBlueprint = (entity: Entity) => {
-    useWorldStore.getState().saveEntityAsBlueprint(entity)
-  }
-
   const getContextMenuItems = (entity: Entity): ContextMenuItem[] => {
     const items: ContextMenuItem[] = []
 
@@ -289,7 +310,7 @@ export function PortraitBar({
       // Save as blueprint
       items.push({
         label: '保存为蓝图',
-        onClick: () => handleSaveAsBlueprint(entity),
+        onClick: () => saveEntityAsBlueprint(entity),
       })
 
       // Save as reusable character (only for ephemeral entities)
@@ -318,9 +339,9 @@ export function PortraitBar({
     const isInspected = inspectedCharacterId === entity.id
     const isActive = activeCharacterId === entity.id
 
-    const resources = getEntityResources(entity).filter((r) => r.max > 0)
+    const resources = plugin.adapters.getPortraitResources(entity).filter((r) => r.max > 0)
     const displayResources = resources.slice(0, 2) // max 2 rings
-    const statuses = getEntityStatuses(entity)
+    const statuses = plugin.adapters.getStatuses(entity)
     const maxStatusDots = 3
 
     // Check if entity has an owner seat that is online
@@ -456,8 +477,14 @@ export function PortraitBar({
 
   // Determine which entity to show in popover
   const popoverCharId = inspectedCharacterId ?? hoveredCharId
-  const popoverEntity = popoverCharId ? visibleEntities.find((e) => e.id === popoverCharId) : null
   const isLocked = !!inspectedCharacterId
+  // Locked inspector searches all entities (including backstage / non-scene).
+  // Hover only searches visibleEntities (entity must be visible to have a portrait to hover).
+  const popoverEntity = popoverCharId
+    ? isLocked
+      ? entities.find((e) => e.id === popoverCharId) ?? visibleEntities.find((e) => e.id === popoverCharId)
+      : visibleEntities.find((e) => e.id === popoverCharId)
+    : null
 
   // Resolve rect: use lockedRect/hoveredRect, fallback to querying the portrait element
   let rect = isLocked ? lockedRect : hoveredRect
@@ -528,6 +555,17 @@ export function PortraitBar({
         <div className="flex gap-1.5 items-center bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           {partyEntities.map(renderPortrait)}
 
+          {/* Player "create my character" slot — shown when not GM and player has no owned entity */}
+          {!isGM && mySeatId && !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
+            <button
+              onClick={handleCreateMyCharacter}
+              title="创建我的角色"
+              className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
+            >
+              <Plus size={16} strokeWidth={1.5} />
+            </button>
+          )}
+
           {/* Separator between PCs and NPCs */}
           {hasSection && <div className="w-px h-8 bg-border-glass mx-0.5" />}
 
@@ -538,7 +576,9 @@ export function PortraitBar({
       {activeTab === 'initiative' && (
         <div className="flex items-center gap-2 bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           <span className="text-xs text-text-muted/40 font-sans px-3 py-1">
-            {tacticalInfo ? `Round ${tacticalInfo.roundNumber}` : 'No tactical session active'}
+            {tacticalInfo
+              ? `Round ${tacticalInfo.roundNumber}`
+              : 'No tactical session active'}
           </span>
         </div>
       )}
@@ -579,16 +619,19 @@ export function PortraitBar({
           >
             {isLocked ? (
               isEditable ? (
-                <CharacterEditPanel
-                  character={popoverEntity}
-                  onUpdateCharacter={onUpdateEntity}
-                  onClose={() => onInspectCharacter(null)}
+                // Plugin handles editing — DH uses DaggerHeartCard + openPanel('dh-full-sheet')
+                // Generic plugin uses CharacterEditPanel wrapped in GenericEntityCard
+                <Card
+                  entity={popoverEntity}
+                  onUpdate={(patch) => onUpdateEntity(popoverEntity.id, patch)}
+                  readonly={false}
                 />
               ) : (
-                <CharacterDetailPanel
-                  character={popoverEntity}
-                  isOnline={false}
-                  onClose={() => onInspectCharacter(null)}
+                // Read-only locked view: use plugin's EntityCard for display
+                <Card
+                  entity={popoverEntity}
+                  onUpdate={(patch) => onUpdateEntity(popoverEntity.id, patch)}
+                  readonly
                 />
               )
             ) : (

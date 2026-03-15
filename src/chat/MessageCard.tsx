@@ -1,15 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Star } from 'lucide-react'
-import type { ChatMessage } from './chatTypes'
+import type { ChatMessage, ChatRollMessage } from './chatTypes'
 import { Avatar } from './Avatar'
-import { DiceResultCard } from './DiceResultCard'
+import { DiceResultCard, DiceAnimContent } from './DiceResultCard'
+import { useRulePlugin } from '../rules/useRulePlugin'
+import type { DieConfig, RenderDiceOptions } from '../rules/types'
 
 interface MessageCardProps {
   message: ChatMessage
   isNew?: boolean
   animationStyle?: 'toast' | 'scroll'
   isFavorited?: boolean
-  onToggleFavorite?: (expression: string) => void
+  onToggleFavorite?: (formula: string) => void
 }
 
 function formatTime(timestamp: number): string {
@@ -25,6 +27,26 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   onToggleFavorite,
 }) => {
   const [cardHover, setCardHover] = useState(false)
+  const plugin = useRulePlugin()
+
+  const CustomCard =
+    message.type === 'roll' && message.rollType
+      ? plugin.surfaces?.rollCardRenderers?.[message.rollType]
+      : undefined
+
+  // Inject renderDice — plugin calls this to get the base animation with optional per-die config
+  const renderDice = useCallback(
+    (configs?: DieConfig[], options?: RenderDiceOptions) => (
+      <DiceAnimContent
+        message={message as ChatRollMessage}
+        isNew={isNew}
+        dieConfigs={configs}
+        footer={options?.footer}
+        totalColor={options?.totalColor}
+      />
+    ),
+    [message, isNew],
+  )
 
   const animation = isNew
     ? animationStyle === 'toast'
@@ -71,7 +93,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         <button
           onClick={(e) => {
             e.stopPropagation()
-            onToggleFavorite(message.expression)
+            onToggleFavorite(message.formula)
           }}
           className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/40 border-none cursor-pointer flex items-center justify-center transition-colors duration-fast z-[1]"
           style={{ color: isFavorited ? '#fbbf24' : 'rgba(255,255,255,0.6)' }}
@@ -92,15 +114,19 @@ export const MessageCard: React.FC<MessageCardProps> = ({
               {message.senderName}
             </span>
             <span className="text-xs text-text-muted/50 font-mono">
-              .r {message.expression}
-              {message.resolvedExpression && (
-                <span className="text-text-muted/30"> ({message.resolvedExpression})</span>
+              {message.rollType
+                ? `.${message.rollType.split(':').at(-1) ?? 'r'} ${message.formula}`
+                : `.r ${message.formula}`}
+              {message.resolvedFormula && (
+                <span className="text-text-muted/30"> ({message.resolvedFormula})</span>
               )}
             </span>
           </div>
           <span className="text-[11px] text-text-muted/40">{formatTime(message.timestamp)}</span>
         </div>
-        <DiceResultCard message={message} isNew={isNew} />
+        {CustomCard
+          ? <CustomCard message={message as ChatRollMessage} isNew={isNew} renderDice={renderDice} />
+          : <DiceResultCard message={message as ChatRollMessage} isNew={isNew} />}
       </div>
     </div>
   )

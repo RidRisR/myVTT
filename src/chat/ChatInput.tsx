@@ -1,7 +1,9 @@
 import { useState, useRef, useMemo } from 'react'
 import { Send } from 'lucide-react'
-import { resolveFormula } from '../shared/diceUtils'
+import { resolveFormula, tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
+import type { DiceSpec } from '../shared/diceUtils'
 import type { ChatMessage } from './chatTypes'
+import { useRulePlugin } from '../rules/useRulePlugin'
 
 interface Suggestion {
   key: string
@@ -17,7 +19,7 @@ interface ChatInputProps {
   portraitUrl?: string
   seatProperties: { key: string; value: string }[]
   onSend: (message: ChatMessage) => void
-  onRoll?: (formula: string, resolvedExpression?: string) => void
+  onRoll?: (formula: string, resolvedFormula?: string, dice?: DiceSpec[], rollType?: string) => void
   onFocus?: () => void
   onCycleSpeaker?: () => void
 }
@@ -40,6 +42,7 @@ export function ChatInput({
   onFocus,
   onCycleSpeaker,
 }: ChatInputProps) {
+  const plugin = useRulePlugin()
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -99,52 +102,80 @@ export function ChatInput({
     })
   }
 
+  const handleRoll = (formula: string) => {
+    let resolvedFormula: string | undefined
+    if (/@[\p{L}\p{N}_]+/u.test(formula)) {
+      const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
+      if ('error' in resolved) {
+        const hint = selectedTokenProps.length === 0 ? ' (try selecting a token)' : ''
+        setError(resolved.error + hint)
+        return
+      }
+      resolvedFormula = resolved.resolved
+    }
+    const terms = tokenizeExpression(resolvedFormula ?? formula)
+    if (!terms) { setError('Invalid dice formula'); return }
+    const dice = toDiceSpecs(terms)
+    if (onRoll) onRoll(formula, resolvedFormula, dice, undefined)
+    setInput('')
+    setError('')
+  }
+
+  const handlePluginRoll = (
+    modifierExpr: string,
+    rollType: string,
+    rollCommand: { resolveFormula(modifierExpr?: string): string },
+  ) => {
+    const formula = rollCommand.resolveFormula(modifierExpr.trim() || undefined)
+    let resolvedFormula: string | undefined
+    if (/@[\p{L}\p{N}_]+/u.test(formula)) {
+      const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
+      if ('error' in resolved) { setError(resolved.error); return }
+      resolvedFormula = resolved.resolved
+    }
+    const terms = tokenizeExpression(resolvedFormula ?? formula)
+    if (!terms) { setError('Invalid formula'); return }
+    const dice = toDiceSpecs(terms)
+    if (onRoll) onRoll(formula, resolvedFormula, dice, rollType)
+    setInput('')
+    setError('')
+  }
+
   const handleSend = () => {
     const trimmed = input.trim()
     if (!trimmed) return
 
-    // Check if it's a dice roll
+    // Standard dice roll
     const rollMatch = trimmed.match(/^\.r\s*(.+)$/i)
     if (rollMatch) {
-      const formula = rollMatch[1].trim()
-      handleRoll(formula)
-    } else {
-      // Text message
-      onSend({
-        type: 'text',
-        id: generateId(),
-        senderId,
-        senderName,
-        senderColor,
-        portraitUrl,
-        content: trimmed,
-        timestamp: Date.now(),
-      })
-      setInput('')
-      setError('')
+      handleRoll(rollMatch[1].trim())
+      return
     }
-  }
 
-  const handleRoll = (formula: string) => {
-    // Resolve @key references using provided token props
-    const tokenProps = selectedTokenProps
-
-    let resolvedExpression: string | undefined
-
-    if (/@[\p{L}\p{N}_]+/u.test(formula)) {
-      const resolved = resolveFormula(formula, tokenProps, seatProperties)
-      if ('error' in resolved) {
-        const hint = tokenProps.length === 0 ? ' (try selecting a token)' : ''
-        setError(resolved.error + hint)
+    // Plugin-registered roll commands (e.g., .dd → daggerheart:dd)
+    const cmdMatch = trimmed.match(/^\.([a-zA-Z][a-zA-Z0-9]*)\s*(.*)$/i)
+    if (cmdMatch) {
+      const cmd = cmdMatch[1].toLowerCase()
+      const rollCmds = plugin.diceSystem?.rollCommands ?? {}
+      const entry = Object.entries(rollCmds).find(([key]) => key.split(':').at(-1) === cmd)
+      if (entry) {
+        const [rollType, rollCommand] = entry
+        handlePluginRoll(cmdMatch[2] ?? '', rollType, rollCommand)
         return
       }
-      resolvedExpression = resolved.resolved
     }
 
-    // Server-side rolling via onRoll callback
-    if (onRoll) {
-      onRoll(formula, resolvedExpression)
-    }
+    // Text message
+    onSend({
+      type: 'text',
+      id: generateId(),
+      senderId,
+      senderName,
+      senderColor,
+      portraitUrl,
+      content: trimmed,
+      timestamp: Date.now(),
+    })
     setInput('')
     setError('')
   }

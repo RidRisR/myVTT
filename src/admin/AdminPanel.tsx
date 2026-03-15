@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Link, Trash2 } from 'lucide-react'
 import { API_BASE } from '../shared/config'
+import { getAvailablePlugins } from '../rules/registry'
 
 interface RoomMeta {
   id: string
@@ -8,9 +9,12 @@ interface RoomMeta {
   createdAt: number
 }
 
+const AVAILABLE_SYSTEMS = getAvailablePlugins()
+
 export function AdminPanel() {
   const [rooms, setRooms] = useState<RoomMeta[]>([])
   const [newName, setNewName] = useState('')
+  const [newSystemId, setNewSystemId] = useState('generic')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -40,7 +44,7 @@ export function AdminPanel() {
       const res = await fetch(`${API_BASE}/api/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, ruleSystemId: newSystemId }),
       })
       if (!res.ok) {
         const body = await res.json()
@@ -48,6 +52,7 @@ export function AdminPanel() {
         return
       }
       setNewName('')
+      setNewSystemId('generic')
       fetchRooms()
     } catch {
       setError('Network error')
@@ -97,11 +102,22 @@ export function AdminPanel() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Room name"
-              className="flex-[1_1_240px] min-w-[160px] px-3 py-2 border border-border-glass rounded-md text-[13px] bg-surface text-text-primary outline-none placeholder:text-text-muted/30"
+              className="flex-[1_1_200px] min-w-[140px] px-3 py-2 border border-border-glass rounded-md text-[13px] bg-surface text-text-primary outline-none placeholder:text-text-muted/30"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleCreate()
               }}
             />
+            <select
+              value={newSystemId}
+              onChange={(e) => setNewSystemId(e.target.value)}
+              className="px-3 py-2 border border-border-glass rounded-md text-[13px] bg-surface text-text-primary outline-none cursor-pointer"
+            >
+              {AVAILABLE_SYSTEMS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
             <button
               onClick={handleCreate}
               className="flex items-center gap-2 px-5 py-2 border-none rounded-md text-[13px] font-semibold cursor-pointer bg-accent text-deep transition-colors duration-fast hover:bg-accent-bold"

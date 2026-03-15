@@ -17,7 +17,7 @@ export function roomRoutes(dataDir: string): Router {
   })
 
   router.post('/api/rooms', (req, res) => {
-    const { name } = req.body
+    const { name, ruleSystemId = 'generic' } = req.body
     if (!name) {
       res.status(400).json({ error: 'name is required' })
       return
@@ -31,8 +31,9 @@ export function roomRoutes(dataDir: string): Router {
       'anonymous',
       now,
     )
-    // Initialize room database (triggers schema creation)
-    getRoomDb(dataDir, id)
+    // Initialize room database (triggers schema creation), then stamp rule system
+    const roomDb = getRoomDb(dataDir, id)
+    roomDb.prepare('UPDATE room_state SET rule_system_id = ? WHERE id = 1').run(ruleSystemId)
     res.status(201).json({ id, name, createdBy: 'anonymous', createdAt: now })
   })
 

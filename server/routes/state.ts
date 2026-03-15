@@ -23,6 +23,8 @@ export function stateRoutes(dataDir: string, io: Server): Router {
       activeSceneId: 'active_scene_id',
       activeArchiveId: 'active_archive_id',
       tacticalMode: 'tactical_mode',
+      ruleSystemId: 'rule_system_id',
+      // pluginConfig intentionally NOT added here — DB column exists but no RoomState field yet
     }
     for (const [camel, snake] of Object.entries(fieldMap)) {
       if (req.body[camel] !== undefined) {

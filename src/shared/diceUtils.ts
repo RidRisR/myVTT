@@ -294,3 +294,83 @@ export function rollDice(expression: string): DiceResult | null {
     total,
   }
 }
+
+/** Minimal dice specification sent to server (no keep/drop logic — that's handled client-side) */
+export interface DiceSpec {
+  sides: number
+  count: number
+}
+
+/** Extract dice specs from parsed terms (dice terms only, constants ignored) */
+export function toDiceSpecs(terms: DiceTerm[]): DiceSpec[] {
+  return terms
+    .filter((t): t is Extract<DiceTerm, { type: 'dice' }> => t.type === 'dice')
+    .map((t) => ({ sides: t.sides, count: t.count }))
+}
+
+/**
+ * Reconstruct a DiceTermResult from a pre-existing array of rolls (server-generated).
+ * Applies keep/drop logic identically to rollTerm, but uses provided rolls instead of generating new ones.
+ */
+export function buildTermResult(term: DiceTerm, allRolls: number[]): DiceTermResult {
+  if (term.type === 'constant') {
+    return { term, allRolls: [], keptIndices: [], subtotal: term.sign * term.value }
+  }
+
+  // Guard: server must generate exactly term.count rolls for this dice term
+  if (allRolls.length !== term.count) {
+    throw new Error(
+      `buildTermResult: expected ${term.count} rolls for ${term.count}d${term.sides}, got ${allRolls.length}`,
+    )
+  }
+
+  let keptIndices: number[]
+  if (!term.keepDrop) {
+    keptIndices = allRolls.map((_, i) => i)
+  } else {
+    const indexed = allRolls.map((v, i) => ({ i, v }))
+    indexed.sort((a, b) => a.v - b.v)
+    const { mode, count } = term.keepDrop
+    let keptSet: Set<number>
+    switch (mode) {
+      case 'kh':
+        keptSet = new Set(indexed.slice(-count).map((x) => x.i))
+        break
+      case 'kl':
+        keptSet = new Set(indexed.slice(0, count).map((x) => x.i))
+        break
+      case 'dh':
+        keptSet = new Set(indexed.slice(0, -count).map((x) => x.i))
+        break
+      case 'dl':
+        keptSet = new Set(indexed.slice(count).map((x) => x.i))
+        break
+      default: {
+        const _exhaust: never = mode
+        throw new Error(`Unknown keep/drop mode: ${_exhaust}`)
+      }
+    }
+    keptIndices = allRolls.map((_, i) => i).filter((i) => keptSet.has(i))
+  }
+
+  const subtotal = term.sign * keptIndices.reduce((sum, i) => sum + allRolls[i], 0)
+  return { term, allRolls, keptIndices, subtotal }
+}
+
+/**
+ * Reconstruct full compound result from server-generated rolls.
+ * terms = output of tokenizeExpression(formula)
+ * rolls = server-generated raw numbers, one array per dice term (in order)
+ */
+export function buildCompoundResult(
+  terms: DiceTerm[],
+  rolls: number[][],
+): { termResults: DiceTermResult[]; total: number } {
+  let rollIndex = 0
+  const termResults = terms.map((term) => {
+    if (term.type === 'constant') return buildTermResult(term, [])
+    return buildTermResult(term, rolls[rollIndex++] ?? [])
+  })
+  const total = termResults.reduce((sum, tr) => sum + tr.subtotal, 0)
+  return { termResults, total }
+}

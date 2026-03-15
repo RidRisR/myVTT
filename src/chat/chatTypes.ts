@@ -1,5 +1,4 @@
-import type { DiceTermResult } from '../shared/diceUtils'
-import type { JudgmentResult } from '../rules/types'
+import type { DiceSpec } from '../shared/diceUtils'
 
 export interface ChatTextMessage {
   type: 'text'
@@ -19,14 +18,16 @@ export interface ChatRollMessage {
   senderName: string
   senderColor: string
   portraitUrl?: string
-  expression: string
-  resolvedExpression?: string
-  terms: DiceTermResult[]
-  total: number
   timestamp: number
+
+  formula: string // 原始公式（含 @key），用于显示
+  resolvedFormula?: string // @key 解析后的实际公式，用于解析 dice
+
+  dice: DiceSpec[] // 客户端发送，服务端透传
+  rolls: number[][] // 服务端生成的原始随机数
+
+  rollType?: string // 'daggerheart:dd' 等，用于查 rollCardRenderers
   actionName?: string
-  judgment?: JudgmentResult
-  modifiersApplied?: string[]
 }
 
 export type ChatMessage = ChatTextMessage | ChatRollMessage

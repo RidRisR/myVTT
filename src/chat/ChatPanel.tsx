@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import type { ChatMessage } from './chatTypes'
+import type { DiceSpec } from '../shared/diceUtils'
 import type { Entity } from '../shared/entityTypes'
-import { getEntityResources, getEntityAttributes } from '../shared/entityAdapters'
 import { useWorldStore } from '../stores/worldStore'
+import { useRulePlugin } from '../rules/useRulePlugin'
 import { MessageScrollArea } from './MessageScrollArea'
 import { ToastStack, type ToastItem } from './ToastStack'
 import { ChatInput } from './ChatInput'
@@ -70,9 +71,8 @@ export function ChatPanel({
   seatProperties,
   selectedTokenProps = [],
   speakerEntities,
-}: ChatPanelProps) {
+}: Omit<ChatPanelProps, 'roomId'>) {
   const [expanded, setExpanded] = useState(false)
-  const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set())
   const [toastQueue, setToastQueue] = useState<ToastItem[]>([])
   const initialLoadRef = useRef(true)
   const expandedRef = useRef(expanded)
@@ -87,8 +87,10 @@ export function ChatPanel({
 
   // Read messages from worldStore
   const messages = useWorldStore((s) => s.chatMessages)
+  const freshChatIds = useWorldStore((s) => s.freshChatIds)
   const sendMessage = useWorldStore((s) => s.sendMessage)
   const sendRoll = useWorldStore((s) => s.sendRoll)
+  const plugin = useRulePlugin()
 
   // Build speaker identity: null = seat identity, string = character
   const seatIdentity: SpeakerIdentity = useMemo(
@@ -128,13 +130,9 @@ export function ChatPanel({
   // When speaking as an entity, use that entity's properties for @ resolution
   const activeSpeakerProps = useMemo(() => {
     if (!speakerEntity) return seatProperties
-    const resources = getEntityResources(speakerEntity)
-    const attributes = getEntityAttributes(speakerEntity)
-    return [
-      ...resources.filter((r) => r.key).map((r) => ({ key: r.key, value: String(r.current) })),
-      ...attributes.filter((a) => a.key).map((a) => ({ key: a.key, value: String(a.value) })),
-    ]
-  }, [speakerEntity, seatProperties])
+    const tokens = plugin.adapters.getFormulaTokens(speakerEntity)
+    return Object.entries(tokens).map(([key, value]) => ({ key, value: String(value) }))
+  }, [speakerEntity, seatProperties, plugin])
 
   // Detect new messages (from worldStore updates via Socket.io)
   useEffect(() => {
@@ -150,7 +148,6 @@ export function ChatPanel({
     // Detect newly added messages
     if (messages.length > prevMessageCountRef.current) {
       const newMsgs = messages.slice(prevMessageCountRef.current)
-      const addedIds = new Set(newMsgs.map((m) => m.id))
 
       // Add to toast queue if collapsed
       if (!expandedRef.current) {
@@ -159,14 +156,6 @@ export function ChatPanel({
         }
       }
 
-      setNewMessageIds((prev) => new Set([...prev, ...addedIds]))
-      setTimeout(() => {
-        setNewMessageIds((prev) => {
-          const next = new Set(prev)
-          for (const id of addedIds) next.delete(id)
-          return next
-        })
-      }, 2500)
     }
     prevMessageCountRef.current = messages.length
   }, [messages])
@@ -217,10 +206,12 @@ export function ChatPanel({
   )
 
   const handleRoll = useCallback(
-    (formula: string, resolvedExpression?: string) => {
+    (formula: string, resolvedFormula?: string, dice: DiceSpec[] = [], rollType?: string) => {
       sendRoll({
         formula,
-        resolvedExpression,
+        resolvedFormula,
+        dice,
+        rollType,
         senderId: activeSpeaker.id,
         senderName: activeSpeaker.name,
         senderColor: activeSpeaker.color,
@@ -248,7 +239,7 @@ export function ChatPanel({
   return (
     <>
       {expanded ? (
-        <MessageScrollArea messages={messages} newMessageIds={newMessageIds} />
+        <MessageScrollArea messages={messages} newMessageIds={freshChatIds} />
       ) : (
         <ToastStack toastQueue={toastQueue} onRemove={handleToastRemove} />
       )}
@@ -257,13 +248,7 @@ export function ChatPanel({
       {showSpeakerPicker && (
         <div
           ref={speakerPickerRef}
-          className="fixed z-toast bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-y-auto p-1.5"
-          style={{
-            bottom: 62,
-            right: 440,
-            width: 200,
-            maxHeight: 280,
-          }}
+          className="fixed z-toast bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-y-auto p-1.5 bottom-[62px] right-[440px] w-[200px] max-h-[280px]"
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div className="text-[10px] text-text-muted/30 px-2.5 py-1 uppercase tracking-wider">

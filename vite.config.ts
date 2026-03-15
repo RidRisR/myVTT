@@ -2,12 +2,18 @@ import { defineConfig } from 'vitest/config'
 import { loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { resolve } from 'path'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd())
   return {
     plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        '@myvtt/sdk': resolve(__dirname, 'src/rules/sdk.ts'),
+      },
+    },
     server: {
       port: parseInt(env.VITE_DEV_PORT || '5173'),
       proxy: {
@@ -20,7 +26,11 @@ export default defineConfig(({ mode }) => {
     test: {
       globals: true,
       environment: 'jsdom',
-      include: ['src/**/*.test.ts', 'server/**/*.test.{ts,mjs}'],
+      include: [
+        'src/**/*.test.{ts,tsx}',
+        'plugins/**/*.test.{ts,tsx}',
+        'server/**/*.test.{ts,mjs}',
+      ],
       environmentMatchGlobs: [['server/**', 'node']],
       setupFiles: ['./src/__test-utils__/setup.ts'],
     },

@@ -1,5 +1,7 @@
 // src/shared/entityAdapters.ts
-// Temporary adapters until RuleSystem is fully implemented.
+// Temporary adapters — will be deleted when all callers migrate to plugin.adapters.*
+// NOTE: ResourceView here uses 'key' (internal field). The plugin-facing ResourceView
+// in src/rules/types.ts uses 'label'. plugins/generic/index.ts maps between them.
 // These extract resources/attributes/statuses from entity.ruleData.
 import type { Entity } from './entityTypes'
 
