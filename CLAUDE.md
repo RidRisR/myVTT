@@ -11,14 +11,16 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 | Server   | Express 5.2, better-sqlite3 (per-room SQLite), Socket.io v4.8              |
 | Testing  | vitest v4 + @testing-library/react + jsdom                                 |
 
-## Conventions (enforced — see `docs/conventions/`)
+## ⚠️ MANDATORY — Required Reading Before You Code
 
-| Convention              | File                                                                  | Enforcement                    |
-| ----------------------- | --------------------------------------------------------------------- | ------------------------------ |
-| Store Action Convention | [store-actions.md](docs/conventions/store-actions.md)                 | ESLint `no-restricted-imports` |
-| Bug Fix Workflow        | [bug-fix-workflow.md](docs/conventions/bug-fix-workflow.md)           | PR review                      |
-| Server Infrastructure   | [server-infrastructure.md](docs/conventions/server-infrastructure.md) | Code review                    |
-| Git Workflow            | [git-workflow.md](docs/conventions/git-workflow.md)                   | Git hooks                      |
+**STOP. Before writing any code, check the table below. If your task matches a trigger, you MUST read the linked document first. Do NOT skip this step.**
+
+| When you are…                                        | Read first                                                            |
+| ---------------------------------------------------- | --------------------------------------------------------------------- |
+| Adding a click handler / user action that calls APIs | [store-actions.md](docs/conventions/store-actions.md)                 |
+| Fixing any bug                                       | [bug-fix-workflow.md](docs/conventions/bug-fix-workflow.md)           |
+| Adding or modifying server routes / middleware       | [server-infrastructure.md](docs/conventions/server-infrastructure.md) |
+| Creating branches, committing, or opening PRs        | [git-workflow.md](docs/conventions/git-workflow.md)                   |
 
 ## Architecture Gotchas (cannot be linted — read before touching these areas)
 
