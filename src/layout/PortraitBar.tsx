@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Users, ChevronUp } from 'lucide-react'
+import { Users, ChevronUp, Plus } from 'lucide-react'
 import { useUiStore } from '../stores/uiStore'
 import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
 import type { TacticalInfo } from '../stores/worldStore'
 import { useWorldStore } from '../stores/worldStore'
-import { canSee, canEdit } from '../shared/permissions'
-import { statusColor } from '../shared/tokenUtils'
+import { canSee, canEdit, defaultPCPermissions } from '../shared/permissions'
+import { statusColor, generateTokenId } from '../shared/tokenUtils'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
 import { useRulePlugin } from '../rules/useRulePlugin'
@@ -106,6 +106,9 @@ export function PortraitBar({
   const toggleEntityVisibility = useWorldStore((s) => s.toggleEntityVisibility)
   const saveEntityAsBlueprint = useWorldStore((s) => s.saveEntityAsBlueprint)
   const updateEntity = useWorldStore((s) => s.updateEntity)
+  const addEntity = useWorldStore((s) => s.addEntity)
+  const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
+  const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
   const plugin = useRulePlugin()
   const Card = plugin.characterUI.EntityCard
 
@@ -188,6 +191,26 @@ export function PortraitBar({
     },
     [inspectedCharacterId, onInspectCharacter],
   )
+
+  // Player: create their own persistent PC and add to current scene
+  const handleCreateMyCharacter = () => {
+    if (!mySeatId || !activeSceneId) return
+    const newEntity: Entity = {
+      id: generateTokenId(),
+      name: '我的角色',
+      imageUrl: '',
+      color: '#3b82f6',
+      width: 1,
+      height: 1,
+      notes: '',
+      ruleData: plugin.dataTemplates?.createDefaultEntityData() ?? null,
+      permissions: defaultPCPermissions(mySeatId),
+      lifecycle: 'persistent',
+    }
+    addEntity(newEntity)
+    addEntityToScene(activeSceneId, newEntity.id, true)
+    setInspectedCharacterId(newEntity.id)
+  }
 
   // Build a map of entityId → visible from scene entries
   const visibilityMap = new Map<string, boolean>()
@@ -530,6 +553,17 @@ export function PortraitBar({
       {activeTab === 'characters' && (
         <div className="flex gap-1.5 items-center bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           {partyEntities.map(renderPortrait)}
+
+          {/* Player "create my character" slot — shown when not GM and player has no owned entity */}
+          {!isGM && mySeatId && !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
+            <button
+              onClick={handleCreateMyCharacter}
+              title="创建我的角色"
+              className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
+            >
+              <Plus size={16} strokeWidth={1.5} />
+            </button>
+          )}
 
           {/* Separator between PCs and NPCs */}
           {hasSection && <div className="w-px h-8 bg-border-glass mx-0.5" />}
