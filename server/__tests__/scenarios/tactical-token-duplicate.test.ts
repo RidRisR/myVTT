@@ -51,7 +51,7 @@ afterAll(async () => {
 
 describe('Tactical Token Duplicate', () => {
   let duplicatedEntityId: string
-  let duplicatedTokenId: string
+  let _duplicatedTokenId: string
 
   it('happy path: POST duplicate returns 201 with { entity, token }', async () => {
     const { status, data } = await ctx.api(
@@ -72,7 +72,7 @@ describe('Tactical Token Duplicate', () => {
     expect(result.token.entityId).toBe(result.entity.id)
 
     duplicatedEntityId = result.entity.id
-    duplicatedTokenId = result.token.id
+    _duplicatedTokenId = result.token.id
   })
 
   it('copied entity has lifecycle = ephemeral (even if original was reusable)', async () => {
@@ -106,22 +106,15 @@ describe('Tactical Token Duplicate', () => {
   })
 
   it('entity count increases after duplicate', async () => {
-    const { data: beforeEntities } = await ctx.api(
-      'GET',
-      `/api/rooms/${ctx.roomId}/entities`,
-    )
+    const { data: beforeEntities } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/entities`)
     const countBefore = (beforeEntities as unknown[]).length
 
-    await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/tactical/tokens/${tokenId}/duplicate`,
-      { offsetX: 3, offsetY: 3 },
-    )
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens/${tokenId}/duplicate`, {
+      offsetX: 3,
+      offsetY: 3,
+    })
 
-    const { data: afterEntities } = await ctx.api(
-      'GET',
-      `/api/rooms/${ctx.roomId}/entities`,
-    )
+    const { data: afterEntities } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/entities`)
     const countAfter = (afterEntities as unknown[]).length
     expect(countAfter).toBe(countBefore + 1)
   })
@@ -154,10 +147,7 @@ describe('Tactical Token Duplicate', () => {
     )
     const result = data as { entity: { id: string }; token: { id: string } }
 
-    const [tokenEvent, entityEvent] = await Promise.all([
-      tokenAddedPromise,
-      entityCreatedPromise,
-    ])
+    const [tokenEvent, entityEvent] = await Promise.all([tokenAddedPromise, entityCreatedPromise])
 
     expect(tokenEvent.id).toBe(result.token.id)
     expect(entityEvent.id).toBe(result.entity.id)

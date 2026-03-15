@@ -35,11 +35,9 @@ describe('Archive broadcast tests', () => {
       'archive:created',
     )
 
-    const { data } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/scenes/${sceneId}/archives`,
-      { name: 'Broadcast Archive' },
-    )
+    const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneId}/archives`, {
+      name: 'Broadcast Archive',
+    })
     const archiveId = (data as { id: string }).id
 
     const payload = await eventPromise
@@ -180,7 +178,7 @@ describe('Archive broadcast tests', () => {
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${emptyArchiveId}/load`)
 
     // Now start fresh: quick-create token A (ephemeral entity)
-    const { data: quickA } = await ctx.api(
+    const { data: _quickA } = await ctx.api(
       'POST',
       `/api/rooms/${ctx.roomId}/tactical/tokens/quick`,
       { x: 1, y: 1, name: 'Survivor' },

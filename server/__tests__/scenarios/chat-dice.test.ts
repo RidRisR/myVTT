@@ -16,7 +16,7 @@ describe('Chat & Dice Roll Journey', () => {
   let seatId: string
   let textMsgId: string
   let rollMsgId: string
-  let firstMsgTimestamp: number
+  let _firstMsgTimestamp: number
 
   it('setup: create a GM seat for senderId', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/seats`, {
@@ -49,7 +49,7 @@ describe('Chat & Dice Roll Journey', () => {
     expect(typeof msg.timestamp).toBe('number')
 
     textMsgId = msg.id as string
-    firstMsgTimestamp = msg.timestamp as number
+    _firstMsgTimestamp = msg.timestamp as number
 
     // Verify via GET
     const { data: history } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/chat`)
@@ -134,14 +134,14 @@ describe('Chat & Dice Roll Journey', () => {
     })
     const ts1 = (msg1 as { timestamp: number }).timestamp
 
-    const { data: msg2 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
+    const { data: _msg2 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
       senderId: seatId,
       senderName: 'GM',
       senderColor: '#ff6600',
       content: 'Second',
     })
 
-    const { data: msg3 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
+    const { data: _msg3 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
       senderId: seatId,
       senderName: 'GM',
       senderColor: '#ff6600',
@@ -149,10 +149,7 @@ describe('Chat & Dice Roll Journey', () => {
     })
 
     // Fetch with after=ts1 should exclude first message
-    const { data: afterFirst } = await ctx.api(
-      'GET',
-      `/api/rooms/${ctx.roomId}/chat?after=${ts1}`,
-    )
+    const { data: afterFirst } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/chat?after=${ts1}`)
     const afterMessages = afterFirst as { content: string }[]
     // Messages with timestamp > ts1 (Second and Third)
     expect(afterMessages.length).toBeGreaterThanOrEqual(2)

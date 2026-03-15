@@ -6,7 +6,7 @@ import fs from 'fs'
 import multer from 'multer'
 import type { Server } from 'socket.io'
 import { withRoom } from '../middleware'
-import { toCamel, toCamelAll, parseJsonFields } from '../db'
+import { toCamel, parseJsonFields } from '../db'
 
 export function assetRoutes(dataDir: string, io: Server): Router {
   const router = Router()
@@ -87,8 +87,8 @@ export function assetRoutes(dataDir: string, io: Server): Router {
       const extra = req.body.extra ? JSON.parse(req.body.extra) : {}
 
       try {
-        req.roomDb!
-          .prepare(
+        req
+          .roomDb!.prepare(
             'INSERT INTO assets (id, url, name, type, created_at, extra) VALUES (?, ?, ?, ?, ?, ?)',
           )
           .run(id, url, name, assetType, Date.now(), JSON.stringify(extra))
@@ -101,10 +101,7 @@ export function assetRoutes(dataDir: string, io: Server): Router {
       }
 
       const asset = toAsset(
-        req.roomDb!.prepare('SELECT * FROM assets WHERE id = ?').get(id) as Record<
-          string,
-          unknown
-        >,
+        req.roomDb!.prepare('SELECT * FROM assets WHERE id = ?').get(id) as Record<string, unknown>,
       )
       io.to(req.roomId!).emit('asset:created', asset)
       res.status(201).json(asset)
@@ -112,9 +109,9 @@ export function assetRoutes(dataDir: string, io: Server): Router {
   })
 
   router.patch('/api/rooms/:roomId/assets/:id', room, (req, res) => {
-    const row = req.roomDb!
-      .prepare('SELECT * FROM assets WHERE id = ?')
-      .get(req.params.id) as Record<string, unknown> | undefined
+    const row = req.roomDb!.prepare('SELECT * FROM assets WHERE id = ?').get(req.params.id) as
+      | Record<string, unknown>
+      | undefined
     if (!row) {
       res.status(404).json({ error: 'Asset not found' })
       return
@@ -158,9 +155,7 @@ export function assetRoutes(dataDir: string, io: Server): Router {
     }
 
     params.push(req.params.id)
-    req.roomDb!
-      .prepare(`UPDATE assets SET ${updates.join(', ')} WHERE id = ?`)
-      .run(...params)
+    req.roomDb!.prepare(`UPDATE assets SET ${updates.join(', ')} WHERE id = ?`).run(...params)
 
     const updated = toAsset(
       req.roomDb!.prepare('SELECT * FROM assets WHERE id = ?').get(req.params.id) as Record<
@@ -173,9 +168,9 @@ export function assetRoutes(dataDir: string, io: Server): Router {
   })
 
   router.delete('/api/rooms/:roomId/assets/:id', room, (req, res) => {
-    const row = req.roomDb!
-      .prepare('SELECT * FROM assets WHERE id = ?')
-      .get(req.params.id) as Record<string, unknown> | undefined
+    const row = req.roomDb!.prepare('SELECT * FROM assets WHERE id = ?').get(req.params.id) as
+      | Record<string, unknown>
+      | undefined
     if (!row) {
       res.status(404).json({ error: 'Asset not found' })
       return

@@ -21,6 +21,16 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
+      // Allow underscore-prefixed params/caught errors (e.g. _err, _db)
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
       // React Compiler rules — not using Compiler in this project,
       // and the Yjs external-store sync pattern legitimately uses
       // setState-in-effect. Re-enable when adopting React Compiler.

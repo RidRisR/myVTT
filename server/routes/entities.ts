@@ -11,7 +11,7 @@ export function toEntity(row: Record<string, unknown>) {
   return parseJsonFields(toCamel<Record<string, unknown>>(row), 'ruleData', 'permissions')
 }
 
-export function degradeTokenReferences(_db: Database.Database, _entityId: string) {
+export function degradeTokenReferences(_db: Database.Database, _entityId: string): void {
   // With the new normalized schema, tactical_tokens have FK CASCADE on entity_id.
   // When an entity is deleted, its tactical_tokens are automatically deleted by SQLite.
   // Archive tokens use snapshot_data and don't hold live entity references.
