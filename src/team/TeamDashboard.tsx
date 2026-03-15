@@ -4,6 +4,7 @@ import { useWorldStore } from '../stores/worldStore'
 import { TeamMetricsTab } from './TeamMetricsTab'
 import { useUiStore } from '../stores/uiStore'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
+import { useRulePlugin } from '../rules/useRulePlugin'
 
 interface TeamDashboardProps {
   roomId: string
@@ -23,6 +24,8 @@ export function TeamDashboard({ isGM }: TeamDashboardProps) {
   const [expanded, setExpanded] = useState(false)
   const teamPanelVisible = useUiStore((s) => s.teamPanelVisible)
   const setTeamPanelVisible = useUiStore((s) => s.setTeamPanelVisible)
+  const plugin = useRulePlugin()
+  const PluginTeamPanel = plugin.surfaces?.teamPanel
 
   // Hide entire dashboard if no trackers and not GM
   if (trackers.length === 0 && !isGM) return null
@@ -106,16 +109,24 @@ export function TeamDashboard({ isGM }: TeamDashboardProps) {
             if (!expanded && isGM) setExpanded(true)
           }}
         >
-          {activeTab === 'metrics' && (
-            <TeamMetricsTab
-              trackers={trackers}
-              expanded={expanded}
-              isGM={isGM}
-              onUpdateTracker={updateTracker}
-              onAddTracker={addTracker}
-              onDeleteTracker={deleteTracker}
-            />
-          )}
+          {activeTab === 'metrics' &&
+            (PluginTeamPanel ? (
+              <PluginTeamPanel
+                trackers={trackers}
+                onUpdate={updateTracker}
+                onCreate={(data) => addTracker(data.label ?? 'Tracker')}
+                onDelete={deleteTracker}
+              />
+            ) : (
+              <TeamMetricsTab
+                trackers={trackers}
+                expanded={expanded}
+                isGM={isGM}
+                onUpdateTracker={updateTracker}
+                onAddTracker={addTracker}
+                onDeleteTracker={deleteTracker}
+              />
+            ))}
         </div>
       </div>
     </div>

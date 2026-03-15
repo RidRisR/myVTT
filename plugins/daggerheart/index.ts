@@ -17,6 +17,7 @@ import { createDefaultDHEntityData } from './templates'
 import { DaggerHeartCard } from './DaggerHeartCard'
 import { DHRollCard } from './ui/DHRollCard'
 import { FullCharacterSheet } from './ui/FullCharacterSheet'
+import { DHTeamPanel } from './ui/DHTeamPanel'
 
 export const daggerheartPlugin: RulePlugin = {
   id: 'daggerheart',
@@ -54,5 +55,6 @@ export const daggerheartPlugin: RulePlugin = {
     rollCardRenderers: {
       'daggerheart:dd': DHRollCard,
     },
+    teamPanel: DHTeamPanel,
   },
 }
