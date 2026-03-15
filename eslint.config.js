@@ -34,7 +34,7 @@ export default defineConfig([
       // and the Yjs external-store sync pattern legitimately uses
       // setState-in-effect. Re-enable when adopting React Compiler.
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/exhaustive-deps': 'error',
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/refs': 'off',
       'react-hooks/purity': 'off',

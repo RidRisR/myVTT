@@ -112,14 +112,18 @@ export function ChatPanel({
     }
   }, [speakerCharId, speakerEntity])
 
-  const activeSpeaker: SpeakerIdentity = speakerEntity
-    ? {
-        id: senderId,
-        name: speakerEntity.name,
-        color: speakerEntity.color,
-        portraitUrl: speakerEntity.imageUrl || undefined,
-      }
-    : seatIdentity
+  const activeSpeaker: SpeakerIdentity = useMemo(
+    () =>
+      speakerEntity
+        ? {
+            id: senderId,
+            name: speakerEntity.name,
+            color: speakerEntity.color,
+            portraitUrl: speakerEntity.imageUrl || undefined,
+          }
+        : seatIdentity,
+    [speakerEntity, senderId, seatIdentity],
+  )
 
   // When speaking as an entity, use that entity's properties for @ resolution
   const activeSpeakerProps = useMemo(() => {
