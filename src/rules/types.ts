@@ -133,6 +133,8 @@ export interface RenderDiceOptions {
     text: string
     color: string
   }
+  /** Override the revealed total color (default: accent gold). Accepts hex e.g. '#dc2626' */
+  totalColor?: string
 }
 
 export interface RollCardProps {

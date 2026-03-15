@@ -42,6 +42,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         isNew={isNew}
         dieConfigs={configs}
         footer={options?.footer}
+        totalColor={options?.totalColor}
       />
     ),
     [message, isNew],

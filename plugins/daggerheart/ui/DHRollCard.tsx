@@ -23,6 +23,8 @@ export function DHRollCard({ message, renderDice }: RollCardProps) {
       { color: '#fbbf24', label: '希望' },
       { color: '#dc2626', label: '恐惧' },
     ],
-    display ? { footer: { text: display.text, color: display.color } } : undefined,
+    display
+      ? { footer: { text: display.text, color: display.color }, totalColor: display.color }
+      : undefined,
   )
 }

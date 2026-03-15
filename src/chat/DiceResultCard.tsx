@@ -15,10 +15,18 @@ interface DiceAnimContentProps {
   isNew: boolean
   dieConfigs?: DieConfig[]
   footer?: { text: string; color: string }
+  totalColor?: string
+}
+
+function hexGlow(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `0 0 10px rgba(${r},${g},${b},0.8), 0 0 20px rgba(${r},${g},${b},0.4)`
 }
 
 /** Shared animation body — used by DiceResultCard (base) and injected as renderDice for plugins */
-export function DiceAnimContent({ message, isNew, dieConfigs, footer }: DiceAnimContentProps) {
+export function DiceAnimContent({ message, isNew, dieConfigs, footer, totalColor }: DiceAnimContentProps) {
   // Lock animation state at mount — immune to isNew prop changes
   const shouldAnimate = useRef(!!isNew)
 
@@ -96,35 +104,36 @@ export function DiceAnimContent({ message, isNew, dieConfigs, footer }: DiceAnim
   })
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-end gap-1 flex-wrap">
-        {reelGroups}
-        <span className="inline-flex items-center h-8 text-text-muted mx-1 text-[14px]">=</span>
-        <span
-          className={`inline-flex items-center justify-center h-8 font-extrabold text-[22px] font-mono min-w-[30px] ${
-            totalRevealed ? 'text-accent' : 'text-[#334155] opacity-50'
-          }`}
-          style={
-            totalRevealed
-              ? {
-                  textShadow: '0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(251, 191, 36, 0.4)',
-                  animation: shouldAnimate.current
-                    ? 'totalReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                    : undefined,
-                }
-              : undefined
-          }
-        >
-          {totalRevealed ? total : '?'}
-        </span>
-      </div>
+    <div className="flex items-end gap-1 flex-wrap">
+      {reelGroups}
+      <span className="inline-flex items-center h-8 text-text-muted mx-1 text-[14px]">=</span>
+      <span
+        className={`inline-flex items-center justify-center h-8 font-extrabold text-[22px] font-mono min-w-[30px] ${
+          totalRevealed ? (totalColor ? '' : 'text-accent') : 'text-[#334155] opacity-50'
+        }`}
+        style={
+          totalRevealed
+            ? {
+                color: totalColor,
+                textShadow: totalColor
+                  ? hexGlow(totalColor)
+                  : '0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(251, 191, 36, 0.4)',
+                animation: shouldAnimate.current
+                  ? 'totalReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  : undefined,
+              }
+            : undefined
+        }
+      >
+        {totalRevealed ? total : '?'}
+      </span>
       {totalRevealed && footer && (
-        <div
-          className="text-xs font-semibold px-2 py-1 rounded self-start"
+        <span
+          className="inline-flex items-center h-8 text-xs font-semibold px-2 py-1 rounded ml-1"
           style={{ color: footer.color, background: `${footer.color}22` }}
         >
           {footer.text}
-        </div>
+        </span>
       )}
     </div>
   )
