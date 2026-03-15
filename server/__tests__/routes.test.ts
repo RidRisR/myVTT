@@ -240,17 +240,17 @@ describe('Full room lifecycle', () => {
     expect(data.tacticalMode).toBe(0)
   })
 
-  it('archive load/save stubs return 501', async () => {
-    const { status: loadStatus } = await api(
-      'POST',
-      `/api/rooms/${roomId}/archives/${archiveId}/load`,
-    )
-    expect(loadStatus).toBe(501)
+  it('archive save and load work', async () => {
     const { status: saveStatus } = await api(
       'POST',
       `/api/rooms/${roomId}/archives/${archiveId}/save`,
     )
-    expect(saveStatus).toBe(501)
+    expect(saveStatus).toBe(200)
+    const { status: loadStatus } = await api(
+      'POST',
+      `/api/rooms/${roomId}/archives/${archiveId}/load`,
+    )
+    expect(loadStatus).toBe(200)
   })
 
   // ── Chat ──
