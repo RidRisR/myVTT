@@ -33,6 +33,15 @@ export default defineConfig(({ mode }) => {
       ],
       environmentMatchGlobs: [['server/**', 'node']],
       setupFiles: ['./src/__test-utils__/setup.ts'],
+      coverage: {
+        provider: 'v8',
+        thresholds: {
+          statements: 80,
+          branches: 65,
+          functions: 75,
+          lines: 80,
+        },
+      },
     },
   }
 })
