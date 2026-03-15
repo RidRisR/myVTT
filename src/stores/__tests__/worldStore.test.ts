@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { EventEmitter } from 'events'
 import { useWorldStore } from '../worldStore'
-import type { Scene, CombatInfo, TeamTracker, AssetRecord } from '../worldStore'
+import type { Scene, TacticalInfo, TeamTracker, AssetRecord } from '../worldStore'
 import type { Entity, MapToken } from '../../shared/entityTypes'
 import type { ShowcaseItem } from '../../showcase/showcaseTypes'
 import type { ChatTextMessage } from '../../chat/chatTypes'
@@ -12,13 +12,24 @@ let mockResponses: Record<string, unknown> = {}
 
 vi.stubGlobal(
   'fetch',
-  vi.fn(async (url: string) => {
+  vi.fn(async (url: string, opts?: RequestInit) => {
     const path = new URL(url).pathname
+    const method = opts?.method ?? 'GET'
+    const response = mockResponses[path]
+    // During init, GET /tactical returns 404 if not mocked (no active scene)
+    if (response === undefined && method === 'GET' && path.endsWith('/tactical')) {
+      return {
+        ok: false,
+        status: 404,
+        headers: new Headers({ 'content-length': '1' }),
+        json: async () => ({ error: 'Not found' }),
+      }
+    }
     return {
       ok: true,
       status: 200,
       headers: new Headers({ 'content-length': '1' }),
-      json: async () => mockResponses[path] ?? [],
+      json: async () => response ?? [],
     }
   }),
 )
@@ -69,7 +80,8 @@ const makeEntity = (overrides: Partial<Entity> = {}): Entity => ({
   name: 'Hero',
   imageUrl: '',
   color: '#ff0000',
-  size: 1,
+  width: 1,
+  height: 1,
   notes: '',
   ruleData: {},
   permissions: { default: 'none', seats: {} },
@@ -79,14 +91,18 @@ const makeEntity = (overrides: Partial<Entity> = {}): Entity => ({
 
 const makeToken = (overrides: Partial<MapToken> = {}): MapToken => ({
   id: 'token-1',
+  entityId: 'entity-1',
   x: 100,
   y: 200,
-  size: 1,
-  permissions: { default: 'none', seats: {} },
+  width: 1,
+  height: 1,
+  imageScaleX: 1,
+  imageScaleY: 1,
   ...overrides,
 })
 
-const makeCombatInfo = (overrides: Partial<CombatInfo> = {}): CombatInfo => ({
+const makeTacticalInfo = (overrides: Partial<TacticalInfo> = {}): TacticalInfo => ({
+  sceneId: 'scene-1',
   mapUrl: '/map.png',
   mapWidth: 1920,
   mapHeight: 1080,
@@ -98,9 +114,9 @@ const makeCombatInfo = (overrides: Partial<CombatInfo> = {}): CombatInfo => ({
     offsetX: 0,
     offsetY: 0,
   },
-  tokens: {},
-  initiativeOrder: [],
-  initiativeIndex: 0,
+  tokens: [],
+  roundNumber: 0,
+  currentTurnTokenId: null,
   ...overrides,
 })
 
@@ -151,12 +167,12 @@ const makeShowcaseItem = (overrides: Partial<ShowcaseItem> = {}): ShowcaseItem =
 
 beforeEach(() => {
   useWorldStore.setState({
-    room: { activeSceneId: null, activeEncounterId: null },
+    room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0 },
     scenes: [],
     entities: {},
     sceneEntityMap: {},
     chatMessages: [],
-    combatInfo: null,
+    tacticalInfo: null,
     showcaseItems: [],
     showcasePinnedItemId: null,
     handoutAssets: [],
@@ -178,9 +194,12 @@ function setupInitMockResponses(overrides: Record<string, unknown> = {}) {
     [`/api/rooms/${ROOM_ID}/scenes`]: [scene],
     [`/api/rooms/${ROOM_ID}/entities`]: [makeEntity()],
     [`/api/rooms/${ROOM_ID}/chat`]: [makeChatMessage()],
-    [`/api/rooms/${ROOM_ID}/combat`]: null,
     [`/api/rooms/${ROOM_ID}/team-trackers`]: [makeTracker()],
-    [`/api/rooms/${ROOM_ID}/state`]: { activeSceneId: scene.id, activeEncounterId: null },
+    [`/api/rooms/${ROOM_ID}/state`]: {
+      activeSceneId: scene.id,
+      activeArchiveId: null,
+      tacticalMode: 0,
+    },
     [`/api/rooms/${ROOM_ID}/assets`]: [makeAsset()],
     [`/api/rooms/${ROOM_ID}/showcase`]: [makeShowcaseItem()],
     [`/api/rooms/${ROOM_ID}/scenes/${scene.id}/entities`]: [
@@ -238,13 +257,13 @@ describe('init()', () => {
     const registeredEvents = socket._onSpy.mock.calls.map((c) => c[0])
     expect(registeredEvents).toContain('scene:created')
     expect(registeredEvents).toContain('entity:created')
-    expect(registeredEvents).toContain('combat:activated')
+    expect(registeredEvents).toContain('tactical:activated')
     expect(registeredEvents).toContain('chat:new')
     expect(registeredEvents).toContain('room:state:updated')
     expect(registeredEvents).toContain('tracker:created')
     expect(registeredEvents).toContain('asset:created')
     expect(registeredEvents).toContain('showcase:created')
-    expect(registeredEvents).toContain('encounter:created')
+    expect(registeredEvents).toContain('archive:created')
   })
 
   it('cleanup function removes all listeners', async () => {
@@ -259,13 +278,13 @@ describe('init()', () => {
     expect(removedEvents).toContain('scene:updated')
     expect(removedEvents).toContain('scene:deleted')
     expect(removedEvents).toContain('entity:created')
-    expect(removedEvents).toContain('combat:activated')
+    expect(removedEvents).toContain('tactical:activated')
     expect(removedEvents).toContain('chat:new')
     expect(removedEvents).toContain('room:state:updated')
     expect(removedEvents).toContain('tracker:created')
     expect(removedEvents).toContain('asset:created')
     expect(removedEvents).toContain('showcase:cleared')
-    expect(removedEvents).toContain('encounter:created')
+    expect(removedEvents).toContain('archive:created')
   })
 })
 
@@ -345,66 +364,70 @@ describe('socket event handlers', () => {
     expect(useWorldStore.getState().entities['entity-1']).toBeUndefined()
   })
 
-  // -- Combat events --
+  // -- Tactical events --
 
-  it('combat:activated sets combatInfo', () => {
-    const combat = makeCombatInfo()
-    socket._trigger('combat:activated', combat)
+  it('tactical:activated sets tacticalInfo', () => {
+    const tactical = makeTacticalInfo()
+    socket._trigger('tactical:activated', tactical)
 
-    expect(useWorldStore.getState().combatInfo).not.toBeNull()
-    expect(useWorldStore.getState().combatInfo?.mapUrl).toBe('/map.png')
+    expect(useWorldStore.getState().tacticalInfo).not.toBeNull()
+    expect(useWorldStore.getState().tacticalInfo?.mapUrl).toBe('/map.png')
   })
 
-  it('combat:ended clears combatInfo', () => {
-    // First activate combat
-    socket._trigger('combat:activated', makeCombatInfo())
-    expect(useWorldStore.getState().combatInfo).not.toBeNull()
+  it('tactical:ended clears tacticalInfo', () => {
+    // First activate tactical
+    socket._trigger('tactical:activated', makeTacticalInfo())
+    expect(useWorldStore.getState().tacticalInfo).not.toBeNull()
 
-    socket._trigger('combat:ended')
+    socket._trigger('tactical:ended')
 
-    expect(useWorldStore.getState().combatInfo).toBeNull()
+    expect(useWorldStore.getState().tacticalInfo).toBeNull()
   })
 
-  it('combat:token:added adds to combatInfo.tokens', () => {
-    socket._trigger('combat:activated', makeCombatInfo())
+  it('tactical:token:added adds to tacticalInfo.tokens', () => {
+    socket._trigger('tactical:activated', makeTacticalInfo())
 
     const token = makeToken({ id: 'token-1' })
-    socket._trigger('combat:token:added', token)
+    socket._trigger('tactical:token:added', token)
 
-    expect(useWorldStore.getState().combatInfo?.tokens['token-1']).toBeDefined()
+    const tokens = useWorldStore.getState().tacticalInfo?.tokens ?? []
+    expect(tokens.find((t) => t.id === 'token-1')).toBeDefined()
   })
 
-  it('combat:token:added is no-op when combatInfo is null', () => {
-    // combatInfo is null (no combat active)
-    socket._trigger('combat:token:added', makeToken())
+  it('tactical:token:added is no-op when tacticalInfo is null', () => {
+    // tacticalInfo is null (no tactical active)
+    socket._trigger('tactical:token:added', makeToken())
 
-    expect(useWorldStore.getState().combatInfo).toBeNull()
+    expect(useWorldStore.getState().tacticalInfo).toBeNull()
   })
 
-  it('combat:token:updated updates token fields', () => {
+  it('tactical:token:updated updates token fields', () => {
     socket._trigger(
-      'combat:activated',
-      makeCombatInfo({
-        tokens: { 'token-1': makeToken({ id: 'token-1', x: 100 }) },
+      'tactical:activated',
+      makeTacticalInfo({
+        tokens: [makeToken({ id: 'token-1', x: 100 })],
       }),
     )
 
-    socket._trigger('combat:token:updated', { tokenId: 'token-1', changes: { x: 300 } })
+    socket._trigger('tactical:token:updated', makeToken({ id: 'token-1', x: 300 }))
 
-    expect(useWorldStore.getState().combatInfo?.tokens['token-1'].x).toBe(300)
+    const tokens = useWorldStore.getState().tacticalInfo?.tokens ?? []
+    const token = tokens.find((t) => t.id === 'token-1')
+    expect(token?.x).toBe(300)
   })
 
-  it('combat:token:removed removes from combatInfo.tokens', () => {
+  it('tactical:token:removed removes from tacticalInfo.tokens', () => {
     socket._trigger(
-      'combat:activated',
-      makeCombatInfo({
-        tokens: { 'token-1': makeToken({ id: 'token-1' }) },
+      'tactical:activated',
+      makeTacticalInfo({
+        tokens: [makeToken({ id: 'token-1' })],
       }),
     )
 
-    socket._trigger('combat:token:removed', { tokenId: 'token-1' })
+    socket._trigger('tactical:token:removed', { id: 'token-1' })
 
-    expect(useWorldStore.getState().combatInfo?.tokens['token-1']).toBeUndefined()
+    const tokens = useWorldStore.getState().tacticalInfo?.tokens ?? []
+    expect(tokens.find((t) => t.id === 'token-1')).toBeUndefined()
   })
 
   // -- Chat events --
@@ -431,7 +454,7 @@ describe('socket event handlers', () => {
 
     const room = useWorldStore.getState().room
     expect(room.activeSceneId).toBe('scene-99')
-    expect(room.activeEncounterId).toBeNull()
+    expect(room.activeArchiveId).toBeNull()
   })
 
   // -- Tracker events --
@@ -472,42 +495,44 @@ describe('socket event handlers', () => {
     expect(useWorldStore.getState().assets).toHaveLength(0)
   })
 
-  // -- Combat edge cases --
+  // -- Tactical edge cases --
 
-  it('combat:updated replaces combatInfo completely', () => {
-    socket._trigger('combat:activated', makeCombatInfo({ mapUrl: '/old.png' }))
-    const updatedCombat = makeCombatInfo({ mapUrl: '/new.png', initiativeIndex: 3 })
-    socket._trigger('combat:updated', updatedCombat)
+  it('tactical:updated replaces tacticalInfo completely', () => {
+    socket._trigger('tactical:activated', makeTacticalInfo({ mapUrl: '/old.png' }))
+    const updatedTactical = makeTacticalInfo({ mapUrl: '/new.png', roundNumber: 3 })
+    socket._trigger('tactical:updated', updatedTactical)
 
-    expect(useWorldStore.getState().combatInfo?.mapUrl).toBe('/new.png')
-    expect(useWorldStore.getState().combatInfo?.initiativeIndex).toBe(3)
+    expect(useWorldStore.getState().tacticalInfo?.mapUrl).toBe('/new.png')
+    expect(useWorldStore.getState().tacticalInfo?.roundNumber).toBe(3)
   })
 
-  it('combat:token:updated is no-op when combatInfo is null', () => {
-    // combatInfo is null (no combat active)
-    socket._trigger('combat:token:updated', { tokenId: 'token-1', changes: { x: 999 } })
+  it('tactical:token:updated is no-op when tacticalInfo is null', () => {
+    // tacticalInfo is null (no tactical active)
+    socket._trigger('tactical:token:updated', makeToken({ id: 'token-1', x: 999 }))
 
-    expect(useWorldStore.getState().combatInfo).toBeNull()
+    expect(useWorldStore.getState().tacticalInfo).toBeNull()
   })
 
-  it('combat:token:updated is no-op when token does not exist', () => {
+  it('tactical:token:updated is no-op when token does not exist', () => {
     socket._trigger(
-      'combat:activated',
-      makeCombatInfo({
-        tokens: { 'token-1': makeToken({ id: 'token-1', x: 100 }) },
+      'tactical:activated',
+      makeTacticalInfo({
+        tokens: [makeToken({ id: 'token-1', x: 100 })],
       }),
     )
 
-    socket._trigger('combat:token:updated', { tokenId: 'nonexistent', changes: { x: 300 } })
+    socket._trigger('tactical:token:updated', makeToken({ id: 'nonexistent', x: 300 }))
 
     // Existing token unchanged
-    expect(useWorldStore.getState().combatInfo?.tokens['token-1'].x).toBe(100)
+    const tokens = useWorldStore.getState().tacticalInfo?.tokens ?? []
+    const token = tokens.find((t) => t.id === 'token-1')
+    expect(token?.x).toBe(100)
   })
 
-  it('combat:token:removed is no-op when combatInfo is null', () => {
-    socket._trigger('combat:token:removed', { tokenId: 'token-1' })
+  it('tactical:token:removed is no-op when tacticalInfo is null', () => {
+    socket._trigger('tactical:token:removed', { id: 'token-1' })
 
-    expect(useWorldStore.getState().combatInfo).toBeNull()
+    expect(useWorldStore.getState().tacticalInfo).toBeNull()
   })
 
   // -- Tracker edge cases --
@@ -569,14 +594,16 @@ describe('socket event handlers', () => {
 
   it('room:state:updated preserves fields not in payload', () => {
     // Set initial room state with both fields
-    useWorldStore.setState({ room: { activeSceneId: 'scene-1', activeEncounterId: 'enc-1' } })
+    useWorldStore.setState({
+      room: { activeSceneId: 'scene-1', activeArchiveId: 'arc-1', tacticalMode: 1 },
+    })
 
     // Update only one field
     socket._trigger('room:state:updated', { activeSceneId: 'scene-2' })
 
     const room = useWorldStore.getState().room
     expect(room.activeSceneId).toBe('scene-2')
-    expect(room.activeEncounterId).toBe('enc-1')
+    expect(room.activeArchiveId).toBe('arc-1')
   })
 })
 
@@ -648,27 +675,19 @@ describe('action methods', () => {
     expect(method).toBe('PATCH')
   })
 
-  it('addToken calls POST /api/rooms/{roomId}/combat/tokens', async () => {
-    await useWorldStore.getState().addToken(makeToken())
-
-    const { url, method } = getLastFetchCall()
-    expect(url).toContain(`/api/rooms/${ROOM_ID}/combat/tokens`)
-    expect(method).toBe('POST')
-  })
-
-  it('updateToken calls PATCH /api/rooms/{roomId}/combat/tokens/{id}', async () => {
+  it('updateToken calls PATCH /api/rooms/{roomId}/tactical/tokens/{id}', async () => {
     await useWorldStore.getState().updateToken('token-1', { x: 500 })
 
     const { url, method } = getLastFetchCall()
-    expect(url).toContain(`/api/rooms/${ROOM_ID}/combat/tokens/token-1`)
+    expect(url).toContain(`/api/rooms/${ROOM_ID}/tactical/tokens/token-1`)
     expect(method).toBe('PATCH')
   })
 
-  it('endCombat calls POST /api/rooms/{roomId}/combat/end', async () => {
-    await useWorldStore.getState().endCombat()
+  it('exitTactical calls POST /api/rooms/{roomId}/tactical/exit', async () => {
+    await useWorldStore.getState().exitTactical()
 
     const { url, method } = getLastFetchCall()
-    expect(url).toContain(`/api/rooms/${ROOM_ID}/combat/end`)
+    expect(url).toContain(`/api/rooms/${ROOM_ID}/tactical/exit`)
     expect(method).toBe('POST')
   })
 

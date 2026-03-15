@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Users, ChevronRight, ChevronUp } from 'lucide-react'
+import { Users, ChevronUp } from 'lucide-react'
 import { useUiStore } from '../stores/uiStore'
 import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
-import type { CombatInfo } from '../stores/worldStore'
+import type { TacticalInfo } from '../stores/worldStore'
 import { useWorldStore } from '../stores/worldStore'
 import { canSee, canEdit } from '../shared/permissions'
 import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
@@ -31,10 +31,8 @@ interface PortraitBarProps {
   onSetActiveCharacter: (charId: string) => void
   onRemoveFromScene: (entityId: string) => void
   onUpdateEntity: (id: string, updates: Partial<Entity>) => void
-  isCombat: boolean
-  combatInfo: CombatInfo | null
-  onSetInitiativeOrder: (order: string[]) => void
-  onAdvanceInitiative: () => void
+  isTactical: boolean
+  tacticalInfo: TacticalInfo | null
 }
 
 const PORTRAIT_SIZE = 52
@@ -103,10 +101,8 @@ export function PortraitBar({
   onSetActiveCharacter,
   onRemoveFromScene,
   onUpdateEntity,
-  isCombat,
-  combatInfo,
-  onSetInitiativeOrder,
-  onAdvanceInitiative,
+  isTactical,
+  tacticalInfo,
 }: PortraitBarProps) {
   const portraitBarVisible = useUiStore((s) => s.portraitBarVisible)
   const setPortraitBarVisible = useUiStore((s) => s.setPortraitBarVisible)
@@ -120,12 +116,9 @@ export function PortraitBar({
 
   // Auto-switch to initiative tab when combat starts
   useEffect(() => {
-    if (isCombat) setActiveTab('initiative')
+    if (isTactical) setActiveTab('initiative')
     else setActiveTab('characters')
-  }, [isCombat])
-
-  // Drag state for initiative reorder
-  const [draggedEntityId, setDraggedEntityId] = useState<string | null>(null)
+  }, [isTactical])
 
   // Hover state
   const [hoveredCharId, setHoveredCharId] = useState<string | null>(null)
@@ -556,105 +549,15 @@ export function PortraitBar({
         </div>
       )}
 
-      {activeTab === 'initiative' &&
-        (() => {
-          const initiativeOrder = combatInfo?.initiativeOrder ?? []
-          const initiativeIndex = combatInfo?.initiativeIndex ?? 0
-
-          // If no initiative order set, show setup button (GM) or empty state
-          if (initiativeOrder.length === 0) {
-            const handleInitSetup = () => {
-              const ids = visibleEntities.map((e) => e.id)
-              if (ids.length > 0) onSetInitiativeOrder(ids)
-            }
-            return (
-              <div className="flex items-center gap-2 bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
-                {isGM ? (
-                  <button
-                    onClick={handleInitSetup}
-                    className="px-3 py-1 text-[11px] font-semibold font-sans text-accent bg-transparent border border-accent/30 rounded-full cursor-pointer transition-colors duration-fast hover:bg-accent/10"
-                  >
-                    Set Initiative Order
-                  </button>
-                ) : (
-                  <span className="text-xs text-text-muted/40 font-sans px-3 py-1">
-                    No initiative order
-                  </span>
-                )}
-              </div>
-            )
-          }
-
-          // Resolve entities in initiative order
-          const orderedEntities = initiativeOrder
-            .map((id) => visibleEntities.find((e) => e.id === id))
-            .filter((e): e is Entity => !!e)
-
-          if (orderedEntities.length === 0) return null
-
-          const currentTurnId = initiativeOrder[initiativeIndex % initiativeOrder.length]
-
-          return (
-            <div className="flex gap-1.5 items-center bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
-              {orderedEntities.map((entity) => {
-                const isCurrent = entity.id === currentTurnId
-                return (
-                  <div
-                    key={entity.id}
-                    draggable={isGM}
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('text/plain', entity.id)
-                      setDraggedEntityId(entity.id)
-                    }}
-                    onDragEnd={() => setDraggedEntityId(null)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault()
-                      const fromId = e.dataTransfer.getData('text/plain')
-                      if (!fromId || fromId === entity.id) return
-                      const newOrder = [...initiativeOrder]
-                      const fromIdx = newOrder.indexOf(fromId)
-                      const toIdx = newOrder.indexOf(entity.id)
-                      if (fromIdx === -1 || toIdx === -1) return
-                      newOrder.splice(fromIdx, 1)
-                      newOrder.splice(toIdx, 0, fromId)
-                      onSetInitiativeOrder(newOrder)
-                      setDraggedEntityId(null)
-                    }}
-                    style={{
-                      opacity: draggedEntityId === entity.id ? 0.4 : 1,
-                      border: isCurrent ? '2px solid #D4A055' : '2px solid transparent',
-                      boxShadow: isCurrent ? '0 0 10px rgba(212,160,85,0.4)' : 'none',
-                      borderRadius: '50%',
-                      cursor: isGM ? 'grab' : 'pointer',
-                      transition: 'opacity 0.15s, border-color 0.2s, box-shadow 0.2s',
-                    }}
-                    onClick={(e) => handlePortraitClick(entity.id, e.currentTarget as HTMLElement)}
-                    onContextMenu={(e) => handleContextMenu(e, entity.id)}
-                    onMouseEnter={(e) =>
-                      handlePortraitMouseEnter(entity.id, e.currentTarget as HTMLElement)
-                    }
-                    onMouseLeave={() => handlePortraitMouseLeave()}
-                  >
-                    {renderPortrait(entity)}
-                  </div>
-                )
-              })}
-
-              {/* Next Turn button (GM only) */}
-              {isGM && (
-                <button
-                  onClick={onAdvanceInitiative}
-                  className="flex items-center justify-center rounded-full bg-accent text-deep cursor-pointer border-none transition-transform duration-fast hover:scale-110"
-                  style={{ width: 28, height: 28, flexShrink: 0 }}
-                  title="Next Turn"
-                >
-                  <ChevronRight size={16} strokeWidth={2.5} />
-                </button>
-              )}
-            </div>
-          )
-        })()}
+      {activeTab === 'initiative' && (
+        <div className="flex items-center gap-2 bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
+          <span className="text-xs text-text-muted/40 font-sans px-3 py-1">
+            {tacticalInfo
+              ? `Round ${tacticalInfo.roundNumber}`
+              : 'No tactical session active'}
+          </span>
+        </div>
+      )}
 
       {/* Context menu — rendered via portal to avoid transform offset */}
       {contextMenu &&

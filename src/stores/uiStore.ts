@@ -11,7 +11,7 @@ interface ContextMenuState {
 
 export type ActiveTool = 'select' | 'measure' | 'range-circle' | 'range-cone' | 'range-rect'
 export type ThemeId = 'warm' | 'cold'
-export type GmSidebarTab = 'encounters' | 'entities'
+export type GmSidebarTab = 'archives' | 'entities'
 
 function getStoredTheme(): ThemeId {
   try {
@@ -75,7 +75,7 @@ export const useUiStore = create<UiState>((set) => ({
   theme: getStoredTheme(),
   portraitBarVisible: true,
   teamPanelVisible: true,
-  gmSidebarTab: 'encounters',
+  gmSidebarTab: 'archives',
   gmSidebarCollapsed: false,
 
   setInspectedCharacterId: (id) => set({ inspectedCharacterId: id }),

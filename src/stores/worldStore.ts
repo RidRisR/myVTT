@@ -21,10 +21,12 @@ export interface Scene {
 
 export interface RoomState {
   activeSceneId: string | null
-  activeEncounterId: string | null
+  activeArchiveId: string | null
+  tacticalMode: number
 }
 
-export interface CombatInfo {
+export interface TacticalInfo {
+  sceneId: string
   mapUrl: string | null
   mapWidth: number | null
   mapHeight: number | null
@@ -36,9 +38,9 @@ export interface CombatInfo {
     offsetX: number
     offsetY: number
   }
-  tokens: Record<string, MapToken>
-  initiativeOrder: string[]
-  initiativeIndex: number
+  tokens: MapToken[]
+  roundNumber: number
+  currentTurnTokenId: string | null
 }
 
 export interface HandoutAsset {
@@ -70,15 +72,14 @@ export interface AssetRecord {
   extra: Record<string, unknown>
 }
 
-export interface EncounterRecord {
+export interface ArchiveRecord {
   id: string
   sceneId: string
   name: string
   mapUrl: string | null
   mapWidth: number | null
   mapHeight: number | null
-  grid: CombatInfo['grid']
-  tokens: Record<string, MapToken>
+  grid: TacticalInfo['grid']
   gmOnly: boolean
 }
 
@@ -91,7 +92,7 @@ interface WorldState {
   entities: Record<string, Entity>
   sceneEntityMap: Record<string, SceneEntityEntry[]>
   chatMessages: ChatMessage[]
-  combatInfo: CombatInfo | null
+  tacticalInfo: TacticalInfo | null
   showcaseItems: ShowcaseItem[]
   showcasePinnedItemId: string | null
   handoutAssets: HandoutAsset[]
@@ -124,21 +125,21 @@ interface WorldState {
   spawnFromBlueprint: (sceneId: string, blueprintId: string) => Promise<Entity | null>
   duplicateScene: (sourceId: string, newId: string) => Promise<void>
 
-  // Encounter actions
-  encounters: EncounterRecord[]
-  fetchEncounters: (sceneId: string) => Promise<void>
-  createEncounter: (sceneId: string, name: string) => Promise<void>
-  deleteEncounter: (id: string) => Promise<void>
-  updateEncounter: (id: string, updates: Partial<EncounterRecord>) => Promise<void>
-  duplicateEncounter: (id: string) => Promise<void>
+  // Archive actions
+  archives: ArchiveRecord[]
+  fetchArchives: (sceneId: string) => Promise<void>
+  createArchive: (sceneId: string, name: string) => Promise<void>
+  deleteArchive: (id: string) => Promise<void>
+  updateArchive: (id: string, updates: Partial<ArchiveRecord>) => Promise<void>
+  duplicateArchive: (id: string) => Promise<void>
 
-  // Combat actions
-  startCombat: () => Promise<void>
-  activateEncounter: (sceneId: string, encounterId?: string) => Promise<void>
-  endCombat: () => Promise<void>
-  saveEncounter: (sceneId: string, encounterId: string) => Promise<void>
-  updateCombatGrid: (updates: Partial<CombatInfo['grid']>) => Promise<void>
-  setCombatMapUrl: (mapUrl: string, width: number, height: number) => Promise<void>
+  // Tactical actions
+  enterTactical: () => Promise<void>
+  loadArchive: (archiveId: string) => Promise<void>
+  exitTactical: () => Promise<void>
+  saveArchive: (archiveId: string) => Promise<void>
+  updateTacticalGrid: (updates: Partial<TacticalInfo['grid']>) => Promise<void>
+  setTacticalMapUrl: (mapUrl: string, width: number, height: number) => Promise<void>
 
   // Entity actions
   addEntity: (entity: Entity) => Promise<void>
@@ -146,13 +147,16 @@ interface WorldState {
   deleteEntity: (id: string) => Promise<void>
 
   // Token actions
+  createToken: (
+    x: number,
+    y: number,
+    opts?: { name?: string; color?: string },
+  ) => Promise<void>
+  placeEntityOnMap: (entityId: string, x: number, y: number) => Promise<void>
+  duplicateToken: (tokenId: string, offsetX?: number, offsetY?: number) => Promise<void>
   addToken: (token: MapToken) => Promise<void>
   updateToken: (id: string, updates: Partial<MapToken>) => Promise<void>
   deleteToken: (id: string) => Promise<void>
-
-  // Initiative actions
-  setInitiativeOrder: (order: string[]) => Promise<void>
-  advanceInitiative: () => Promise<void>
 
   // Showcase actions
   addShowcaseItem: (item: ShowcaseItem) => Promise<void>
@@ -197,7 +201,7 @@ interface WorldState {
 
 const EMPTY_ENTRIES: SceneEntityEntry[] = []
 
-const DEFAULT_GRID: CombatInfo['grid'] = {
+const DEFAULT_GRID: TacticalInfo['grid'] = {
   size: 50,
   snap: true,
   visible: true,
@@ -206,37 +210,41 @@ const DEFAULT_GRID: CombatInfo['grid'] = {
   offsetY: 0,
 }
 
-function normalizeCombatInfo(raw: CombatInfo): CombatInfo {
+function normalizeTacticalInfo(raw: TacticalInfo): TacticalInfo {
   return {
     ...raw,
     grid: { ...DEFAULT_GRID, ...raw.grid },
-    tokens: raw.tokens ?? {},
+    tokens: raw.tokens ?? [],
   }
 }
 
 // ── Helpers ──
 
 async function loadAll(roomId: string) {
-  const [scenes, entitiesArr, chat, combatRaw, trackers, state, assets, showcase] =
-    await Promise.all([
-      api.get<Scene[]>(`/api/rooms/${roomId}/scenes`),
-      api.get<Entity[]>(`/api/rooms/${roomId}/entities`),
-      api.get<ChatMessage[]>(`/api/rooms/${roomId}/chat?limit=200`),
-      api.get<CombatInfo>(`/api/rooms/${roomId}/combat`),
-      api.get<TeamTracker[]>(`/api/rooms/${roomId}/team-trackers`),
-      api.get<RoomState>(`/api/rooms/${roomId}/state`),
-      api.get<AssetRecord[]>(`/api/rooms/${roomId}/assets`),
-      api.get<ShowcaseItem[]>(`/api/rooms/${roomId}/showcase`),
-    ])
+  const [scenes, entitiesArr, chat, trackers, state, assets, showcase] = await Promise.all([
+    api.get<Scene[]>(`/api/rooms/${roomId}/scenes`),
+    api.get<Entity[]>(`/api/rooms/${roomId}/entities`),
+    api.get<ChatMessage[]>(`/api/rooms/${roomId}/chat?limit=200`),
+    api.get<TeamTracker[]>(`/api/rooms/${roomId}/team-trackers`),
+    api.get<RoomState>(`/api/rooms/${roomId}/state`),
+    api.get<AssetRecord[]>(`/api/rooms/${roomId}/assets`),
+    api.get<ShowcaseItem[]>(`/api/rooms/${roomId}/showcase`),
+  ])
 
   // Convert entity array to Record
   const entities: Record<string, Entity> = {}
   for (const e of entitiesArr) entities[e.id] = e
 
-  // Only populate combatInfo when combat is actually active (encounter running).
-  // Combat state persists in DB across sessions but UI only shows it during active combat.
-  const combatInfo: CombatInfo | null =
-    state.activeEncounterId && combatRaw ? normalizeCombatInfo(combatRaw) : null
+  // Fetch tactical state — may 404 if no active scene
+  let tacticalInfo: TacticalInfo | null = null
+  try {
+    const tacticalRaw = await api.get<TacticalInfo>(`/api/rooms/${roomId}/tactical`)
+    if (tacticalRaw) {
+      tacticalInfo = normalizeTacticalInfo(tacticalRaw)
+    }
+  } catch {
+    // 404 means no active scene or no tactical state — leave as null
+  }
 
   // Build sceneEntityMap: for each scene, fetch its entity entries
   const sceneEntityMap: Record<string, SceneEntityEntry[]> = {}
@@ -253,7 +261,7 @@ async function loadAll(roomId: string) {
     scenes,
     entities,
     chatMessages: chat,
-    combatInfo,
+    tacticalInfo,
     teamTrackers: trackers,
     room: state,
     assets,
@@ -333,53 +341,45 @@ function registerSocketEvents(
     })
   })
 
-  // ── Combat events ──
-  socket.on('combat:activated', (combatState: CombatInfo) => {
-    set(() => ({ combatInfo: normalizeCombatInfo(combatState) }))
+  // ── Tactical events ──
+  socket.on('tactical:activated', (tacticalState: TacticalInfo) => {
+    set(() => ({ tacticalInfo: normalizeTacticalInfo(tacticalState) }))
   })
-  socket.on('combat:updated', (combatState: CombatInfo) => {
-    set(() => ({ combatInfo: normalizeCombatInfo(combatState) }))
+  socket.on('tactical:updated', (tacticalState: TacticalInfo) => {
+    set(() => ({ tacticalInfo: normalizeTacticalInfo(tacticalState) }))
   })
-  socket.on('combat:ended', () => {
-    set(() => ({ combatInfo: null }))
+  socket.on('tactical:ended', () => {
+    set(() => ({ tacticalInfo: null }))
   })
-  socket.on('combat:token:added', (token: MapToken) => {
+  socket.on('tactical:token:added', (token: MapToken) => {
     set((s) => {
-      if (!s.combatInfo) return s
+      if (!s.tacticalInfo) return s
       return {
-        combatInfo: {
-          ...s.combatInfo,
-          tokens: { ...s.combatInfo.tokens, [token.id]: token },
+        tacticalInfo: {
+          ...s.tacticalInfo,
+          tokens: [...s.tacticalInfo.tokens, token],
         },
       }
     })
   })
-  socket.on(
-    'combat:token:updated',
-    ({ tokenId, changes }: { tokenId: string; changes: Partial<MapToken> }) => {
-      set((s) => {
-        if (!s.combatInfo || !s.combatInfo.tokens[tokenId]) return s
-        return {
-          combatInfo: {
-            ...s.combatInfo,
-            tokens: {
-              ...s.combatInfo.tokens,
-              [tokenId]: { ...s.combatInfo.tokens[tokenId], ...changes },
-            },
-          },
-        }
-      })
-    },
-  )
-  socket.on('combat:token:removed', ({ tokenId }: { tokenId: string }) => {
+  socket.on('tactical:token:updated', (token: MapToken) => {
     set((s) => {
-      if (!s.combatInfo) return s
+      if (!s.tacticalInfo) return s
       return {
-        combatInfo: {
-          ...s.combatInfo,
-          tokens: Object.fromEntries(
-            Object.entries(s.combatInfo.tokens).filter(([k]) => k !== tokenId),
-          ),
+        tacticalInfo: {
+          ...s.tacticalInfo,
+          tokens: s.tacticalInfo.tokens.map((t) => (t.id === token.id ? token : t)),
+        },
+      }
+    })
+  })
+  socket.on('tactical:token:removed', ({ id }: { id: string }) => {
+    set((s) => {
+      if (!s.tacticalInfo) return s
+      return {
+        tacticalInfo: {
+          ...s.tacticalInfo,
+          tokens: s.tacticalInfo.tokens.filter((t) => t.id !== id),
         },
       }
     })
@@ -442,17 +442,17 @@ function registerSocketEvents(
     set((s) => ({ assets: s.assets.filter((a) => a.id !== id) }))
   })
 
-  // ── Encounter events ──
-  socket.on('encounter:created', (enc: EncounterRecord) => {
-    set((s) => ({ encounters: [...s.encounters, enc] }))
+  // ── Archive events ──
+  socket.on('archive:created', (arc: ArchiveRecord) => {
+    set((s) => ({ archives: [...s.archives, arc] }))
   })
-  socket.on('encounter:updated', (enc: EncounterRecord) => {
+  socket.on('archive:updated', (arc: ArchiveRecord) => {
     set((s) => ({
-      encounters: s.encounters.map((e) => (e.id === enc.id ? enc : e)),
+      archives: s.archives.map((a) => (a.id === arc.id ? arc : a)),
     }))
   })
-  socket.on('encounter:deleted', ({ id }: { id: string }) => {
-    set((s) => ({ encounters: s.encounters.filter((e) => e.id !== id) }))
+  socket.on('archive:deleted', ({ id }: { id: string }) => {
+    set((s) => ({ archives: s.archives.filter((a) => a.id !== id) }))
   })
 }
 
@@ -466,12 +466,12 @@ const WS_EVENTS = [
   'entity:created',
   'entity:updated',
   'entity:deleted',
-  'combat:activated',
-  'combat:updated',
-  'combat:ended',
-  'combat:token:added',
-  'combat:token:updated',
-  'combat:token:removed',
+  'tactical:activated',
+  'tactical:updated',
+  'tactical:ended',
+  'tactical:token:added',
+  'tactical:token:updated',
+  'tactical:token:removed',
   'chat:new',
   'chat:retracted',
   'room:state:updated',
@@ -485,27 +485,27 @@ const WS_EVENTS = [
   'asset:created',
   'asset:updated',
   'asset:deleted',
-  'encounter:created',
-  'encounter:updated',
-  'encounter:deleted',
+  'archive:created',
+  'archive:updated',
+  'archive:deleted',
 ]
 
 // ── Store creation ──
 
 export const useWorldStore = create<WorldState>((set, get) => ({
   // Initial data
-  room: { activeSceneId: null, activeEncounterId: null },
+  room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0 },
   scenes: [],
   entities: {},
   sceneEntityMap: {},
   chatMessages: [],
-  combatInfo: null,
+  tacticalInfo: null,
   showcaseItems: [],
   showcasePinnedItemId: null,
   handoutAssets: [],
   teamTrackers: [],
   assets: [],
-  encounters: [],
+  archives: [],
 
   // Internal refs
   _socket: null,
@@ -600,92 +600,90 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     })
   },
 
-  // ── Encounter actions ──
+  // ── Archive actions ──
 
-  fetchEncounters: async (sceneId) => {
+  fetchArchives: async (sceneId) => {
     const roomId = get()._roomId
     if (!roomId) return
-    const data = await api.get(`/api/rooms/${roomId}/scenes/${sceneId}/encounters`)
-    set({ encounters: data as EncounterRecord[] })
+    const data = await api.get(`/api/rooms/${roomId}/scenes/${sceneId}/archives`)
+    set({ archives: data as ArchiveRecord[] })
   },
 
-  createEncounter: async (sceneId, name) => {
+  createArchive: async (sceneId, name) => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/scenes/${sceneId}/encounters`, { name })
+    await api.post(`/api/rooms/${roomId}/scenes/${sceneId}/archives`, { name })
   },
 
-  deleteEncounter: async (id) => {
+  deleteArchive: async (id) => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.delete(`/api/rooms/${roomId}/encounters/${id}`)
+    await api.delete(`/api/rooms/${roomId}/archives/${id}`)
   },
 
-  updateEncounter: async (id, updates) => {
+  updateArchive: async (id, updates) => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.patch(`/api/rooms/${roomId}/encounters/${id}`, updates)
+    await api.patch(`/api/rooms/${roomId}/archives/${id}`, updates)
   },
 
-  duplicateEncounter: async (id) => {
+  duplicateArchive: async (id) => {
     const roomId = get()._roomId
     if (!roomId) return
-    // Fetch the encounter, create a copy with "(副本)" suffix
-    const encounters = get().encounters
-    const source = encounters.find((e) => e.id === id)
+    const archives = get().archives
+    const source = archives.find((a) => a.id === id)
     if (!source) return
     const activeSceneId = get().room.activeSceneId
     if (!activeSceneId) return
-    await api.post(`/api/rooms/${roomId}/scenes/${activeSceneId}/encounters`, {
-      name: `${source.name}（副本）`,
+    await api.post(`/api/rooms/${roomId}/scenes/${activeSceneId}/archives`, {
+      name: `${source.name} (copy)`,
       mapUrl: source.mapUrl,
       mapWidth: source.mapWidth,
       mapHeight: source.mapHeight,
       grid: source.grid,
-      tokens: source.tokens,
     })
   },
 
-  // ── Combat actions ──
+  // ── Tactical actions ──
 
-  startCombat: async () => {
+  enterTactical: async () => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/combat/start`)
+    await api.post(`/api/rooms/${roomId}/tactical/enter`)
   },
 
-  activateEncounter: async (_sceneId, encounterId) => {
-    const roomId = get()._roomId
-    if (!roomId || !encounterId) return
-    await api.post(`/api/rooms/${roomId}/encounters/${encounterId}/activate`)
-  },
-
-  endCombat: async () => {
+  loadArchive: async (archiveId) => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/combat/end`)
+    await api.post(`/api/rooms/${roomId}/archives/${archiveId}/load`)
   },
 
-  saveEncounter: async (_sceneId, encounterId) => {
+  exitTactical: async () => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/encounters/${encounterId}/save-snapshot`)
+    await api.post(`/api/rooms/${roomId}/tactical/exit`)
   },
 
-  updateCombatGrid: async (updates) => {
+  saveArchive: async (archiveId) => {
     const roomId = get()._roomId
     if (!roomId) return
-    const current = get().combatInfo?.grid
+    await api.post(`/api/rooms/${roomId}/archives/${archiveId}/save`)
+  },
+
+  updateTacticalGrid: async (updates) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    const current = get().tacticalInfo?.grid
     if (!current) return
-    await api.patch(`/api/rooms/${roomId}/combat`, {
+    await api.patch(`/api/rooms/${roomId}/tactical`, {
       grid: { ...current, ...updates },
     })
   },
 
-  setCombatMapUrl: async (mapUrl, width, height) => {
+  setTacticalMapUrl: async (mapUrl, width, height) => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.patch(`/api/rooms/${roomId}/combat`, {
+    await api.patch(`/api/rooms/${roomId}/tactical`, {
       mapUrl,
       mapWidth: width,
       mapHeight: height,
@@ -730,38 +728,52 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   // ── Token actions ──
 
+  createToken: async (x, y, opts = {}) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.post(`/api/rooms/${roomId}/tactical/tokens/quick`, {
+      x,
+      y,
+      name: opts.name,
+      color: opts.color,
+    })
+    // Socket event 'tactical:token:added' updates state
+  },
+
+  placeEntityOnMap: async (entityId, x, y) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.post(`/api/rooms/${roomId}/tactical/tokens/from-entity`, { entityId, x, y })
+    // Socket event 'tactical:token:added' updates state
+  },
+
+  duplicateToken: async (tokenId, offsetX = 1, offsetY = 1) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.post(`/api/rooms/${roomId}/tactical/tokens/${tokenId}/duplicate`, {
+      offsetX,
+      offsetY,
+    })
+    // Socket event 'tactical:token:added' updates state
+  },
+
   addToken: async (token) => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/combat/tokens`, token)
+    await api.post(`/api/rooms/${roomId}/tactical/tokens`, token)
+    // Socket event 'tactical:token:added' updates state
   },
 
   updateToken: async (id, updates) => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.patch(`/api/rooms/${roomId}/combat/tokens/${id}`, updates)
+    await api.patch(`/api/rooms/${roomId}/tactical/tokens/${id}`, updates)
   },
 
   deleteToken: async (id) => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.delete(`/api/rooms/${roomId}/combat/tokens/${id}`)
-  },
-
-  // ── Initiative actions ──
-
-  setInitiativeOrder: async (order) => {
-    const roomId = get()._roomId
-    if (!roomId) return
-    await api.patch(`/api/rooms/${roomId}/combat`, { initiativeOrder: order })
-  },
-
-  advanceInitiative: async () => {
-    const roomId = get()._roomId
-    const combat = get().combatInfo
-    if (!roomId || !combat) return
-    const next = (combat.initiativeIndex + 1) % Math.max(combat.initiativeOrder.length, 1)
-    await api.patch(`/api/rooms/${roomId}/combat`, { initiativeIndex: next })
+    await api.delete(`/api/rooms/${roomId}/tactical/tokens/${id}`)
   },
 
   // ── Showcase actions ──
@@ -854,17 +866,17 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   /** @internal Test-only: reset store to initial state (preserves socket/roomId) */
   _reset: () =>
     set({
-      room: { activeSceneId: null, activeEncounterId: null },
+      room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0 },
       scenes: [],
       entities: {},
       sceneEntityMap: {},
       chatMessages: [],
-      combatInfo: null,
+      tacticalInfo: null,
       showcaseItems: [],
       showcasePinnedItemId: null,
       handoutAssets: [],
       teamTrackers: [],
       assets: [],
-      encounters: [],
+      archives: [],
     }),
 }))

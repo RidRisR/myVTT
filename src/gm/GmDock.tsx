@@ -33,7 +33,7 @@ const MemoCharacterLibraryTab = memo(CharacterLibraryTab)
 
 interface GmDockProps {
   activeSceneId: string | null
-  isCombat: boolean
+  isTactical: boolean
   onUpdateScene: (
     id: string,
     updates: { name?: string; sortOrder?: number; atmosphere?: Partial<Atmosphere> },
@@ -61,7 +61,7 @@ interface GmDockProps {
 
 export function GmDock({
   activeSceneId,
-  isCombat,
+  isTactical,
   onUpdateScene,
   onToggleCombat,
   onShowcaseImage,
@@ -102,7 +102,7 @@ export function GmDock({
     if (!activeSceneId) return
     const entity = await useWorldStore.getState().spawnFromBlueprint(activeSceneId, bp.id)
     if (!entity) return
-    if (isCombat) {
+    if (isTactical) {
       const token: MapToken = {
         id: generateTokenId(),
         entityId: entity.id,
@@ -182,7 +182,7 @@ export function GmDock({
           {activeTab === 'gallery' && (
             <MemoMapDockTab
               activeSceneId={activeSceneId}
-              isCombat={isCombat}
+              isTactical={isTactical}
               onSetAsBackground={(sceneId, imageUrl) =>
                 onUpdateScene(sceneId, { atmosphere: { imageUrl } })
               }
@@ -194,7 +194,7 @@ export function GmDock({
             <MemoBlueprintDockTab
               onSpawnToken={handleSpawnFromBlueprint}
               onAddToActive={handleAddToActive}
-              isCombat={isCombat}
+              isTactical={isTactical}
             />
           )}
           {activeTab === 'characters' && <MemoCharacterLibraryTab />}
@@ -252,13 +252,13 @@ export function GmDock({
         <button
           onClick={onToggleCombat}
           className={`flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg backdrop-blur-[8px] border border-border-glass text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-all duration-fast ${
-            isCombat
+            isTactical
               ? 'bg-danger text-white hover:bg-danger/80'
               : 'bg-glass text-text-muted hover:bg-hover hover:text-text-primary'
           }`}
         >
-          {isCombat ? <X size={14} strokeWidth={1.5} /> : <Swords size={14} strokeWidth={1.5} />}
-          {isCombat ? 'Exit' : 'Combat'}
+          {isTactical ? <X size={14} strokeWidth={1.5} /> : <Swords size={14} strokeWidth={1.5} />}
+          {isTactical ? 'Exit' : 'Combat'}
         </button>
 
         {/* Token actions (contextual) */}

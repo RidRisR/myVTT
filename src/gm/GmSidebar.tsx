@@ -5,7 +5,7 @@ import { EncounterPanel } from './EncounterPanel'
 import { EntityPanel } from './EntityPanel'
 
 const TABS: { id: GmSidebarTab; icon: typeof Swords; label: string }[] = [
-  { id: 'encounters', icon: Swords, label: '遭遇' },
+  { id: 'archives', icon: Swords, label: '遭遇' },
   { id: 'entities', icon: ClipboardList, label: '实体' },
 ]
 
@@ -38,7 +38,7 @@ export function GmSidebar() {
 
           {/* Tab content */}
           <div className="flex-1 overflow-hidden">
-            {activeTab === 'encounters' && <EncounterPanel />}
+            {activeTab === 'archives' && <EncounterPanel />}
             {activeTab === 'entities' && <EntityPanel />}
           </div>
         </div>

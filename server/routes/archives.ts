@@ -115,14 +115,316 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
     res.json({ ok: true })
   })
 
-  // POST /archives/:archiveId/load — STUB: return 501 for now
-  router.post('/api/rooms/:roomId/archives/:archiveId/load', room, (_req, res) => {
-    res.status(501).json({ error: 'Not implemented — will be added in PR B' })
+  // POST /archives/:archiveId/save — snapshot current tactical state into archive
+  router.post('/api/rooms/:roomId/archives/:archiveId/save', room, (req, res) => {
+    const db = req.roomDb!
+    const archiveId = req.params.archiveId
+
+    // 1. Get active scene
+    const roomState = db.prepare('SELECT active_scene_id FROM room_state WHERE id = 1').get() as {
+      active_scene_id: string | null
+    }
+    const sceneId = roomState?.active_scene_id
+    if (!sceneId) {
+      res.status(404).json({ error: 'No active scene' })
+      return
+    }
+
+    // 2. Check archive exists
+    const archive = db.prepare('SELECT id FROM archives WHERE id = ?').get(archiveId)
+    if (!archive) {
+      res.status(404).json({ error: 'Archive not found' })
+      return
+    }
+
+    // 3. Get current tactical state (map settings)
+    const tacticalState = db
+      .prepare('SELECT map_url, map_width, map_height, grid FROM tactical_state WHERE scene_id = ?')
+      .get(sceneId) as {
+      map_url: string | null
+      map_width: number | null
+      map_height: number | null
+      grid: string
+    } | undefined
+
+    // 4. Get tokens joined with entities
+    const tokenRows = db
+      .prepare(
+        `SELECT t.id, t.x, t.y, t.width, t.height, t.image_scale_x, t.image_scale_y,
+                e.id as entity_id, e.name, e.image_url, e.color, e.width as entity_width,
+                e.height as entity_height, e.notes, e.rule_data, e.permissions, e.lifecycle
+         FROM tactical_tokens t
+         JOIN entities e ON t.entity_id = e.id
+         WHERE t.scene_id = ?`,
+      )
+      .all(sceneId) as Record<string, unknown>[]
+
+    // 5. Transaction: delete old archive_tokens, insert new ones, update archive map settings
+    const doSave = db.transaction(() => {
+      // Delete existing archive tokens
+      db.prepare('DELETE FROM archive_tokens WHERE archive_id = ?').run(archiveId)
+
+      // Insert archive tokens
+      const insertStmt = db.prepare(
+        `INSERT INTO archive_tokens (id, archive_id, x, y, width, height, image_scale_x, image_scale_y, snapshot_lifecycle, original_entity_id, snapshot_data)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+
+      for (const row of tokenRows) {
+        const tokenId = crypto.randomUUID()
+        const lifecycle = row.lifecycle as string
+
+        if (lifecycle === 'ephemeral') {
+          // Snapshot: store entity data, no reference
+          const snapshotData = JSON.stringify({
+            name: row.name,
+            imageUrl: row.image_url,
+            color: row.color,
+            width: row.entity_width,
+            height: row.entity_height,
+            notes: row.notes,
+            ruleData: row.rule_data,
+            permissions: row.permissions,
+          })
+          insertStmt.run(
+            tokenId,
+            archiveId,
+            row.x,
+            row.y,
+            row.width,
+            row.height,
+            row.image_scale_x,
+            row.image_scale_y,
+            'ephemeral',
+            null,
+            snapshotData,
+          )
+        } else {
+          // Reusable/persistent: store reference
+          insertStmt.run(
+            tokenId,
+            archiveId,
+            row.x,
+            row.y,
+            row.width,
+            row.height,
+            row.image_scale_x,
+            row.image_scale_y,
+            lifecycle,
+            row.entity_id,
+            null,
+          )
+        }
+      }
+
+      // Update archive map settings from tactical_state
+      if (tacticalState) {
+        db.prepare(
+          'UPDATE archives SET map_url = ?, map_width = ?, map_height = ?, grid = ? WHERE id = ?',
+        ).run(
+          tacticalState.map_url,
+          tacticalState.map_width,
+          tacticalState.map_height,
+          tacticalState.grid,
+          archiveId,
+        )
+      }
+    })
+    doSave()
+
+    // Return updated archive
+    const updated = toArchive(
+      db.prepare('SELECT * FROM archives WHERE id = ?').get(archiveId) as Record<string, unknown>,
+    )
+    io.to(req.roomId!).emit('archive:updated', updated)
+    res.json(updated)
   })
 
-  // POST /archives/:archiveId/save — STUB: return 501 for now
-  router.post('/api/rooms/:roomId/archives/:archiveId/save', room, (_req, res) => {
-    res.status(501).json({ error: 'Not implemented — will be added in PR B' })
+  // POST /archives/:archiveId/load — restore tactical state from archive
+  router.post('/api/rooms/:roomId/archives/:archiveId/load', room, (req, res) => {
+    const db = req.roomDb!
+    const archiveId = req.params.archiveId
+
+    // 1. Get active scene
+    const roomState = db.prepare('SELECT active_scene_id FROM room_state WHERE id = 1').get() as {
+      active_scene_id: string | null
+    }
+    const sceneId = roomState?.active_scene_id
+    if (!sceneId) {
+      res.status(404).json({ error: 'No active scene' })
+      return
+    }
+
+    // 2. Check archive exists
+    const archiveRow = db.prepare('SELECT * FROM archives WHERE id = ?').get(archiveId) as
+      | Record<string, unknown>
+      | undefined
+    if (!archiveRow) {
+      res.status(404).json({ error: 'Archive not found' })
+      return
+    }
+
+    // 3. Get archive tokens
+    const archiveTokens = db
+      .prepare('SELECT * FROM archive_tokens WHERE archive_id = ?')
+      .all(archiveId) as Record<string, unknown>[]
+
+    // 4. Collect orphan IDs before transaction (for post-transaction entity:deleted events)
+    const orphanEphemerals = db
+      .prepare(
+        `SELECT e.id FROM entities e
+         JOIN tactical_tokens t ON t.entity_id = e.id
+         WHERE t.scene_id = ? AND e.lifecycle = 'ephemeral'
+           AND NOT EXISTS (SELECT 1 FROM scene_entities se WHERE se.entity_id = e.id)`,
+      )
+      .all(sceneId) as { id: string }[]
+    const orphanIds = orphanEphemerals.map((o) => o.id)
+
+    const newEntityIds: string[] = []
+
+    // 5. Transaction: clear current tokens, restore from archive
+    const doLoad = db.transaction(() => {
+      // a. Delete all tactical_tokens for current scene
+      db.prepare('DELETE FROM tactical_tokens WHERE scene_id = ?').run(sceneId)
+
+      // b. Delete orphan ephemeral entities
+      const deleteEntityStmt = db.prepare('DELETE FROM entities WHERE id = ?')
+      for (const id of orphanIds) {
+        deleteEntityStmt.run(id)
+      }
+
+      // c. For each archive_token, recreate entity (if ephemeral) and token
+      const insertTokenStmt = db.prepare(
+        `INSERT INTO tactical_tokens (id, scene_id, entity_id, x, y, width, height, image_scale_x, image_scale_y)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      const insertEntityStmt = db.prepare(
+        `INSERT INTO entities (id, name, image_url, color, width, height, notes, rule_data, permissions, lifecycle)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ephemeral')`,
+      )
+
+      for (const at of archiveTokens) {
+        const lifecycle = at.snapshot_lifecycle as string
+        const tokenId = crypto.randomUUID()
+
+        if (lifecycle === 'ephemeral') {
+          // Create new entity from snapshot_data
+          let snap: Record<string, unknown>
+          try {
+            snap = JSON.parse(at.snapshot_data as string)
+          } catch {
+            continue // skip corrupted snapshot
+          }
+          const entityId = 'e-' + crypto.randomUUID().slice(0, 8)
+          newEntityIds.push(entityId)
+          insertEntityStmt.run(
+            entityId,
+            snap.name || '',
+            snap.imageUrl || '',
+            snap.color || '#888888',
+            snap.width ?? 1,
+            snap.height ?? 1,
+            snap.notes || '',
+            typeof snap.ruleData === 'string' ? snap.ruleData : JSON.stringify(snap.ruleData || {}),
+            typeof snap.permissions === 'string'
+              ? snap.permissions
+              : JSON.stringify(snap.permissions || {}),
+          )
+          insertTokenStmt.run(
+            tokenId,
+            sceneId,
+            entityId,
+            at.x,
+            at.y,
+            at.width,
+            at.height,
+            at.image_scale_x,
+            at.image_scale_y,
+          )
+        } else {
+          // Reusable/persistent: check original entity still exists
+          const originalEntity = db
+            .prepare('SELECT id FROM entities WHERE id = ?')
+            .get(at.original_entity_id)
+          if (originalEntity) {
+            insertTokenStmt.run(
+              tokenId,
+              sceneId,
+              at.original_entity_id,
+              at.x,
+              at.y,
+              at.width,
+              at.height,
+              at.image_scale_x,
+              at.image_scale_y,
+            )
+          }
+          // If entity was deleted, skip this token
+        }
+      }
+
+      // d. Update tactical_state from archive map settings
+      db.prepare(
+        'UPDATE tactical_state SET map_url = ?, map_width = ?, map_height = ?, grid = ? WHERE scene_id = ?',
+      ).run(
+        archiveRow.map_url,
+        archiveRow.map_width,
+        archiveRow.map_height,
+        archiveRow.grid,
+        sceneId,
+      )
+
+      // e. Update room_state active_archive_id
+      db.prepare('UPDATE room_state SET active_archive_id = ? WHERE id = 1').run(archiveId)
+    })
+    doLoad()
+
+    // 6. Emit entity sync events for other clients
+    for (const id of orphanIds) {
+      io.to(req.roomId!).emit('entity:deleted', { id })
+    }
+    for (const id of newEntityIds) {
+      const entityRow = db.prepare('SELECT * FROM entities WHERE id = ?').get(id) as Record<
+        string,
+        unknown
+      >
+      const entity = parseJsonFields(toCamel<Record<string, unknown>>(entityRow), 'ruleData', 'permissions')
+      io.to(req.roomId!).emit('entity:created', entity)
+    }
+
+    // 7. Emit room:state:updated so clients see activeArchiveId change
+    const roomStateRow = db.prepare('SELECT * FROM room_state WHERE id = 1').get() as Record<
+      string,
+      unknown
+    >
+    io.to(req.roomId!).emit('room:state:updated', toCamel(roomStateRow))
+
+    // Build and return the current tactical state
+    const stateRow = db
+      .prepare('SELECT * FROM tactical_state WHERE scene_id = ?')
+      .get(sceneId) as Record<string, unknown>
+    const state = parseJsonFields(toCamel<Record<string, unknown>>(stateRow), 'grid')
+    const tokenRows = db
+      .prepare('SELECT * FROM tactical_tokens WHERE scene_id = ?')
+      .all(sceneId) as Record<string, unknown>[]
+    const result = {
+      ...state,
+      tokens: tokenRows.map((r) => ({
+        id: r.id,
+        entityId: r.entity_id,
+        sceneId: r.scene_id,
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: r.height,
+        imageScaleX: r.image_scale_x ?? 1,
+        imageScaleY: r.image_scale_y ?? 1,
+        initiativePosition: r.initiative_position ?? null,
+      })),
+    }
+
+    io.to(req.roomId!).emit('tactical:activated', result)
+    res.json(result)
   })
 
   return router

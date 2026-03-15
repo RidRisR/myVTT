@@ -7,24 +7,25 @@ import { describe, it, expect } from 'vitest'
 import {
   selectTokens,
   selectActiveScene,
-  selectIsCombat,
+  selectIsTactical,
   selectEntityById,
   selectTokenById,
   selectRoom,
   selectScenes,
   selectEntities,
-  selectCombatInfo,
+  selectTacticalInfo,
   selectActiveSceneId,
   selectSpeakerEntities,
 } from '../selectors'
-import type { Entity } from '../../shared/entityTypes'
+import type { Entity, MapToken } from '../../shared/entityTypes'
 
 const makeEntity = (id: string, overrides?: Partial<Entity>): Entity => ({
   id,
   name: `Entity ${id}`,
   imageUrl: '',
   color: '#fff',
-  size: 1,
+  width: 1,
+  height: 1,
   notes: '',
   lifecycle: 'ephemeral' as const,
   ruleData: {},
@@ -33,33 +34,48 @@ const makeEntity = (id: string, overrides?: Partial<Entity>): Entity => ({
 })
 
 describe('selector referential stability', () => {
-  it('selectTokens returns same reference across calls when combatInfo is null', () => {
-    const state = { combatInfo: null }
+  it('selectTokens returns same reference across calls when tacticalInfo is null', () => {
+    const state = { tacticalInfo: null }
     const a = selectTokens(state)
     const b = selectTokens(state)
     expect(a).toBe(b) // Object.is, not deep equal
   })
 
-  it('selectTokens returns same reference across calls when combatInfo exists', () => {
-    const tokens = { t1: { id: 't1', x: 0, y: 0, size: 1, color: '#fff' } }
+  it('selectTokens returns same reference across calls when tacticalInfo exists', () => {
+    const tokens: MapToken[] = [
+      {
+        id: 't1',
+        entityId: 'e1',
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+        imageScaleX: 1,
+        imageScaleY: 1,
+      },
+    ]
     const state = {
-      combatInfo: {
+      tacticalInfo: {
+        sceneId: 'scene-1',
         mapUrl: null,
         mapWidth: null,
         mapHeight: null,
         grid: { size: 50, snap: true, visible: true, color: '#fff', offsetX: 0, offsetY: 0 },
         tokens,
-        initiativeOrder: [],
-        initiativeIndex: 0,
+        roundNumber: 0,
+        currentTurnTokenId: null,
       },
     }
     const a = selectTokens(state)
     const b = selectTokens(state)
-    expect(a).toBe(b) // same tokens object reference
+    expect(a).toBe(b) // same tokens array reference
   })
 
   it('selectActiveScene returns null stably when no active scene', () => {
-    const state = { room: { activeSceneId: null, activeEncounterId: null }, scenes: [] }
+    const state = {
+      room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0 },
+      scenes: [],
+    }
     const a = selectActiveScene(state)
     const b = selectActiveScene(state)
     expect(a).toBe(null)
@@ -83,7 +99,7 @@ describe('selector referential stability', () => {
       },
     }
     const state = {
-      room: { activeSceneId: 's1', activeEncounterId: null },
+      room: { activeSceneId: 's1', activeArchiveId: null, tacticalMode: 0 },
       scenes: [scene],
     }
     const a = selectActiveScene(state)
@@ -91,10 +107,14 @@ describe('selector referential stability', () => {
     expect(a).toBe(b) // same scene object
   })
 
-  it('selectIsCombat returns primitive (always stable)', () => {
-    const state = { room: { activeSceneId: null, activeEncounterId: null } }
-    expect(selectIsCombat(state)).toBe(false)
-    expect(selectIsCombat({ room: { activeSceneId: null, activeEncounterId: 'e1' } })).toBe(true)
+  it('selectIsTactical returns primitive (always stable)', () => {
+    const state = { room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0 } }
+    expect(selectIsTactical(state)).toBe(false)
+    expect(
+      selectIsTactical({
+        room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 1 },
+      }),
+    ).toBe(true)
   })
 
   it('selectEntityById(null) returns null stably', () => {
@@ -106,7 +126,7 @@ describe('selector referential stability', () => {
 
   it('selectTokenById(null) returns null stably', () => {
     const selector = selectTokenById(null)
-    const state = { combatInfo: null }
+    const state = { tacticalInfo: null }
     expect(selector(state)).toBe(null)
     expect(selector(state)).toBe(null)
   })
@@ -114,7 +134,7 @@ describe('selector referential stability', () => {
   // ── Additional stability tests (Bug #1 regression coverage) ──
 
   it('selectRoom returns same reference when state is unchanged', () => {
-    const room = { activeSceneId: 's1', activeEncounterId: null }
+    const room = { activeSceneId: 's1', activeArchiveId: null, tacticalMode: 0 }
     const state = { room }
     expect(selectRoom(state)).toBe(selectRoom(state))
   })
@@ -131,14 +151,16 @@ describe('selector referential stability', () => {
     expect(selectEntities(state)).toBe(selectEntities(state))
   })
 
-  it('selectCombatInfo returns null stably', () => {
-    const state = { combatInfo: null }
-    expect(selectCombatInfo(state)).toBe(null)
-    expect(selectCombatInfo(state)).toBe(selectCombatInfo(state))
+  it('selectTacticalInfo returns null stably', () => {
+    const state = { tacticalInfo: null }
+    expect(selectTacticalInfo(state)).toBe(null)
+    expect(selectTacticalInfo(state)).toBe(selectTacticalInfo(state))
   })
 
   it('selectActiveSceneId returns same primitive across calls', () => {
-    const state = { room: { activeSceneId: 'abc', activeEncounterId: null } }
+    const state = {
+      room: { activeSceneId: 'abc', activeArchiveId: null, tacticalMode: 0 },
+    }
     expect(selectActiveSceneId(state)).toBe('abc')
     expect(selectActiveSceneId(state)).toBe(selectActiveSceneId(state))
   })
@@ -159,16 +181,26 @@ describe('selector referential stability', () => {
   })
 
   it('selectTokenById returns same token across calls when found', () => {
-    const token = { id: 't1', x: 10, y: 20, size: 1, color: '#f00' }
+    const token: MapToken = {
+      id: 't1',
+      entityId: 'e1',
+      x: 10,
+      y: 20,
+      width: 1,
+      height: 1,
+      imageScaleX: 1,
+      imageScaleY: 1,
+    }
     const state = {
-      combatInfo: {
+      tacticalInfo: {
+        sceneId: 'scene-1',
         mapUrl: null,
         mapWidth: null,
         mapHeight: null,
         grid: { size: 50, snap: true, visible: true, color: '#fff', offsetX: 0, offsetY: 0 },
-        tokens: { t1: token },
-        initiativeOrder: [],
-        initiativeIndex: 0,
+        tokens: [token],
+        roundNumber: 0,
+        currentTurnTokenId: null,
       },
     }
     const selector = selectTokenById('t1')
