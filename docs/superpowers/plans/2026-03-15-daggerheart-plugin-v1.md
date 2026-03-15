@@ -1308,9 +1308,9 @@ export function DaggerHeartCard({ entity }: EntityCardProps) {
       {d && (
         <>
           <div className="flex gap-4 text-sm">
-            <span style={{ color: '#ef4444' }}>HP {d.hp.current}/{d.hp.max}</span>
-            <span style={{ color: '#f97316' }}>压力 {d.stress.current}/{d.stress.max}</span>
-            <span style={{ color: '#fbbf24' }}>希望 {d.hope}</span>
+            <span className="text-red-500">HP {d.hp.current}/{d.hp.max}</span>
+            <span className="text-orange-400">压力 {d.stress.current}/{d.stress.max}</span>
+            <span className="text-accent">希望 {d.hope}</span>
           </div>
           <div className="grid grid-cols-3 gap-1 text-xs">
             {ATTRS.map((k) => (
