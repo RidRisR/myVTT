@@ -75,24 +75,32 @@ export function MapDockTab({
     if (onSetAsBackground && activeSceneId && asset.url) {
       items.push({
         label: 'Set as Scene Background',
-        onClick: () => onSetAsBackground(activeSceneId, asset.url),
+        onClick: () => {
+          onSetAsBackground(activeSceneId, asset.url)
+        },
       })
     }
     if (onSetAsTacticalMap && asset.url) {
       items.push({
         label: 'Set as Tactical Map',
-        onClick: () => onSetAsTacticalMap(asset.url),
+        onClick: () => {
+          onSetAsTacticalMap(asset.url)
+        },
       })
     }
     if (onShowcaseImage && asset.url) {
       items.push({
         label: 'Showcase to Players',
-        onClick: () => onShowcaseImage(asset.url),
+        onClick: () => {
+          onShowcaseImage(asset.url)
+        },
       })
     }
     items.push({
       label: 'Delete',
-      onClick: () => handleDelete(asset),
+      onClick: () => {
+        handleDelete(asset)
+      },
       color: 'var(--color-danger)',
     })
 
@@ -116,7 +124,9 @@ export function MapDockTab({
         type="file"
         accept="image/*,video/mp4,video/webm,video/quicktime"
         className="hidden"
-        onChange={handleUpload}
+        onChange={(e) => {
+          void handleUpload(e)
+        }}
       />
 
       {assets.length === 0 && (
@@ -160,9 +170,15 @@ export function MapDockTab({
                   }
                 }
               }}
-              onContextMenu={(e) => handleContextMenu(e, asset)}
-              onMouseEnter={() => setHoveredId(asset.id)}
-              onMouseLeave={() => setHoveredId(null)}
+              onContextMenu={(e) => {
+                handleContextMenu(e, asset)
+              }}
+              onMouseEnter={() => {
+                setHoveredId(asset.id)
+              }}
+              onMouseLeave={() => {
+                setHoveredId(null)
+              }}
             >
               {isVideoUrl(asset.url) ? (
                 <video
@@ -223,7 +239,9 @@ export function MapDockTab({
           x={contextMenu.x}
           y={contextMenu.y}
           items={buildContextMenuItems(contextMenu.asset)}
-          onClose={() => setContextMenu(null)}
+          onClose={() => {
+            setContextMenu(null)
+          }}
         />
       )}
     </div>

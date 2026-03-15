@@ -35,7 +35,9 @@ export function ConfirmDialog({
       }
     }
     document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [onCancel])
 
   // Focus trap: keep focus within dialog
@@ -68,7 +70,9 @@ export function ConfirmDialog({
     }
 
     document.addEventListener('keydown', handleFocusTrap)
-    return () => document.removeEventListener('keydown', handleFocusTrap)
+    return () => {
+      document.removeEventListener('keydown', handleFocusTrap)
+    }
   }, [])
 
   const confirmColorClass =
@@ -90,7 +94,9 @@ export function ConfirmDialog({
       <div
         ref={dialogRef}
         className="mx-4 max-w-sm w-full rounded-lg border border-border-glass bg-glass p-6 shadow-xl shadow-black/40 backdrop-blur-[12px]"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation()
+        }}
       >
         {/* Title */}
         <h2 id="confirm-dialog-title" className="text-lg font-semibold text-text-primary mb-2">

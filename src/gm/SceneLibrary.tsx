@@ -13,9 +13,7 @@ interface SceneLibraryProps {
 }
 
 function generateId(): string {
-  return (
-    self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
-  )
+  return self.crypto.randomUUID()
 }
 
 export function SceneLibrary({
@@ -84,8 +82,12 @@ export function SceneLibrary({
       <div
         className="bg-glass backdrop-blur-[16px] rounded-[14px] border border-border-glass shadow-[0_12px_40px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden"
         style={{ width: 520, maxHeight: '80vh' }}
-        onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation()
+        }}
+        onPointerDown={(e) => {
+          e.stopPropagation()
+        }}
       >
         {/* Header */}
         <div className="px-5 py-4 border-b border-border-glass flex items-center justify-between">
@@ -108,7 +110,9 @@ export function SceneLibrary({
               <div
                 key={scene.id}
                 className="rounded-lg overflow-hidden border border-border-glass cursor-pointer transition-shadow duration-fast hover:shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
-                onClick={() => onSelect(scene.id)}
+                onClick={() => {
+                  onSelect(scene.id)
+                }}
               >
                 {isVideoUrl(scene.atmosphere.imageUrl) ? (
                   <video
@@ -133,13 +137,17 @@ export function SceneLibrary({
                     <input
                       autoFocus
                       value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
+                      onChange={(e) => {
+                        setEditName(e.target.value)
+                      }}
                       onBlur={commitRename}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') commitRename()
                         if (e.key === 'Escape') setEditingId(null)
                       }}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                      }}
                       className="flex-1 text-[11px] border border-border-glass rounded-[3px] px-1 py-0.5 bg-surface text-text-primary outline-none"
                     />
                   ) : (
@@ -183,7 +191,9 @@ export function SceneLibrary({
             accept="image/*,video/mp4,video/webm,video/quicktime"
             multiple
             className="hidden"
-            onChange={(e) => handleUpload(e.target.files)}
+            onChange={(e) => {
+              void handleUpload(e.target.files)
+            }}
           />
           <button
             onClick={() => fileRef.current?.click()}

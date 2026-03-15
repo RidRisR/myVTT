@@ -43,8 +43,10 @@ export function getEntityAttributes(entity: Entity | null): AttributeView[] {
   return Object.entries(rd.attributes as Record<string, unknown>).map(([key, val]) => ({
     key,
     value:
-      typeof val === 'number' ? val : (((val as Record<string, unknown>)?.value ?? 0) as number),
-    category: (val as Record<string, unknown>)?.category as string | undefined,
+      typeof val === 'number'
+        ? val
+        : (((val as Record<string, unknown> | null)?.value ?? 0) as number),
+    category: (val as Record<string, unknown> | null)?.category as string | undefined,
   }))
 }
 

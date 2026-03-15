@@ -22,7 +22,7 @@ function toToken(row: Record<string, unknown>) {
 }
 
 function toEntity(row: Record<string, unknown>) {
-  return parseJsonFields(toCamel<Record<string, unknown>>(row), 'ruleData', 'permissions')
+  return parseJsonFields(toCamel(row), 'ruleData', 'permissions')
 }
 
 function getTacticalState(db: Database.Database, sceneId: string) {
@@ -31,7 +31,7 @@ function getTacticalState(db: Database.Database, sceneId: string) {
     | undefined
   if (!stateRow) return null
 
-  const state = parseJsonFields(toCamel<Record<string, unknown>>(stateRow), 'grid')
+  const state = parseJsonFields(toCamel(stateRow), 'grid')
 
   const tokenRows = db
     .prepare('SELECT * FROM tactical_tokens WHERE scene_id = ?')
@@ -47,7 +47,7 @@ function getActiveSceneId(db: Database.Database): string | null {
   const roomState = db.prepare('SELECT active_scene_id FROM room_state WHERE id = 1').get() as {
     active_scene_id: string | null
   }
-  return roomState?.active_scene_id ?? null
+  return roomState.active_scene_id
 }
 
 function getRoomState(db: Database.Database) {
@@ -104,8 +104,8 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
 
       // Grid: deep merge with existing values (inside transaction to avoid races)
       if (req.body.grid !== undefined) {
-        const existing = req.roomDb!
-          .prepare('SELECT grid FROM tactical_state WHERE scene_id = ?')
+        const existing = req
+          .roomDb!.prepare('SELECT grid FROM tactical_state WHERE scene_id = ?')
           .get(sceneId) as { grid: string }
         const existingGrid = JSON.parse(existing.grid || '{}')
         const merged = { ...existingGrid, ...req.body.grid }
@@ -115,9 +115,9 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
 
       if (sets.length > 0) {
         values.push(sceneId)
-        req.roomDb!.prepare(`UPDATE tactical_state SET ${sets.join(', ')} WHERE scene_id = ?`).run(
-          ...values,
-        )
+        req
+          .roomDb!.prepare(`UPDATE tactical_state SET ${sets.join(', ')} WHERE scene_id = ?`)
+          .run(...values)
       }
 
       return getTacticalState(req.roomDb!, sceneId)
@@ -146,8 +146,15 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
 
   // POST /tactical/tokens — create token for existing entity
   router.post('/api/rooms/:roomId/tactical/tokens', room, (req, res) => {
-    const { entityId, x = 0, y = 0, width = 1, height = 1, imageScaleX = 1, imageScaleY = 1 } =
-      req.body
+    const {
+      entityId,
+      x = 0,
+      y = 0,
+      width = 1,
+      height = 1,
+      imageScaleX = 1,
+      imageScaleY = 1,
+    } = req.body
 
     if (!entityId) {
       res.status(400).json({ error: 'entityId is required' })
@@ -229,8 +236,9 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
     })
     createQuick()
 
-    const entityRow = req.roomDb!.prepare('SELECT * FROM entities WHERE id = ?').get(entityId) as
-      Record<string, unknown>
+    const entityRow = req
+      .roomDb!.prepare('SELECT * FROM entities WHERE id = ?')
+      .get(entityId) as Record<string, unknown>
     const tokenRow = req
       .roomDb!.prepare('SELECT * FROM tactical_tokens WHERE id = ?')
       .get(tokenId) as Record<string, unknown>
@@ -267,9 +275,7 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
 
     // 1:1 check: entity must not already have a token in this scene
     const existing = req
-      .roomDb!.prepare(
-        'SELECT id FROM tactical_tokens WHERE scene_id = ? AND entity_id = ?',
-      )
+      .roomDb!.prepare('SELECT id FROM tactical_tokens WHERE scene_id = ? AND entity_id = ?')
       .get(sceneId, entityId)
     if (existing) {
       res.status(409).json({ error: 'Entity already has a token in this scene' })
@@ -306,7 +312,7 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
 
   // POST /tactical/tokens/:tokenId/duplicate — copy entity + token
   router.post('/api/rooms/:roomId/tactical/tokens/:tokenId/duplicate', room, (req, res) => {
-    const { offsetX = 1, offsetY = 1 } = req.body
+    const { offsetX = 1, offsetY = 1 } = req.body as { offsetX?: number; offsetY?: number }
 
     const tokenRow = req
       .roomDb!.prepare('SELECT * FROM tactical_tokens WHERE id = ?')

@@ -42,7 +42,9 @@ export function SceneListPanel({
       }
     }
     document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
   }, [onClose])
 
   // Auto-focus rename input
@@ -64,7 +66,9 @@ export function SceneListPanel({
       ref={panelRef}
       className="fixed z-toast bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] flex flex-col"
       style={{ bottom: 56, left: 16, width: 280, maxHeight: 420 }}
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border-glass">
@@ -90,7 +94,9 @@ export function SceneListPanel({
                     ? 'border-2 border-accent/40 opacity-100'
                     : 'border border-border-glass opacity-70 hover:opacity-100'
                 }`}
-                onClick={() => onSelectScene(scene.id)}
+                onClick={() => {
+                  onSelectScene(scene.id)
+                }}
               >
                 {/* Background image */}
                 <div className="w-full h-16 bg-deep">
@@ -120,13 +126,17 @@ export function SceneListPanel({
                     <input
                       ref={renameInputRef}
                       value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
+                      onChange={(e) => {
+                        setRenameValue(e.target.value)
+                      }}
                       onBlur={commitRename}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') commitRename()
                         if (e.key === 'Escape') setRenamingId(null)
                       }}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                      }}
                       className="text-xs bg-black/40 text-white border border-white/30 rounded px-1.5 py-0.5 outline-none w-full mr-1"
                     />
                   ) : (
@@ -202,7 +212,9 @@ export function SceneListPanel({
             onDeleteScene(deletingScene.id)
             setDeletingId(null)
           }}
-          onCancel={() => setDeletingId(null)}
+          onCancel={() => {
+            setDeletingId(null)
+          }}
         />
       )}
     </div>

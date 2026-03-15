@@ -36,7 +36,9 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                 return (
                   <button
                     key={seat.id}
-                    onClick={() => !isOnline && onClaim(seat.id)}
+                    onClick={() => {
+                      if (!isOnline) onClaim(seat.id)
+                    }}
                     disabled={isOnline}
                     className={`flex items-center gap-3 px-4 py-2.5 border border-border-glass rounded-lg text-sm text-left transition-colors duration-fast ${
                       isOnline
@@ -84,7 +86,9 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
         {/* Create new seat button */}
         {mode === 'choose' && (
           <button
-            onClick={() => setMode('create')}
+            onClick={() => {
+              setMode('create')
+            }}
             className="w-full px-4 py-2.5 bg-accent text-deep border-none rounded-lg cursor-pointer text-sm font-semibold transition-colors duration-fast hover:bg-accent-bold"
           >
             Create New Seat
@@ -99,10 +103,12 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
               <input
                 autoFocus
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === 'Enter' && name.trim() && onCreate(name.trim(), role, color)
-                }
+                onChange={(e) => {
+                  setName(e.target.value)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && name.trim()) onCreate(name.trim(), role, color)
+                }}
                 placeholder="Your character name"
                 className="w-full px-3 py-2 border border-border-glass rounded-md text-sm bg-surface text-text-primary outline-none box-border placeholder:text-text-muted/40"
               />
@@ -114,7 +120,9 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                 {(['PL', 'GM'] as const).map((r) => (
                   <button
                     key={r}
-                    onClick={() => setRole(r)}
+                    onClick={() => {
+                      setRole(r)
+                    }}
                     className={`flex-1 px-3 py-2 border-2 rounded-md cursor-pointer text-sm font-semibold transition-colors duration-fast ${
                       role === r
                         ? r === 'GM'
@@ -137,7 +145,9 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                   return (
                     <div
                       key={c}
-                      onClick={() => !taken && setColor(c)}
+                      onClick={() => {
+                        if (!taken) setColor(c)
+                      }}
                       className="w-7 h-7 rounded-full transition-colors duration-fast"
                       style={{
                         background: c,
@@ -153,13 +163,17 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
 
             <div className="flex gap-2">
               <button
-                onClick={() => setMode('choose')}
+                onClick={() => {
+                  setMode('choose')
+                }}
                 className="flex-1 py-2.5 border border-border-glass rounded-lg bg-surface cursor-pointer text-sm text-text-muted transition-colors duration-fast hover:bg-hover hover:text-text-primary"
               >
                 Back
               </button>
               <button
-                onClick={() => name.trim() && onCreate(name.trim(), role, color)}
+                onClick={() => {
+                  if (name.trim()) onCreate(name.trim(), role, color)
+                }}
                 disabled={!name.trim()}
                 className={`flex-1 py-2.5 border-none rounded-lg text-sm font-semibold transition-colors duration-fast ${
                   name.trim()

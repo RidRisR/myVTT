@@ -91,7 +91,10 @@ const distPath = path.join(__dirname, '..', 'dist')
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath))
   app.use((req, res, next) => {
-    if (req.method !== 'GET' || req.path.startsWith('/api/')) return next()
+    if (req.method !== 'GET' || req.path.startsWith('/api/')) {
+      next()
+      return
+    }
     res.sendFile(path.join(distPath, 'index.html'))
   })
 }
@@ -110,7 +113,7 @@ server.listen(PORT, HOST, () => {
 // Graceful shutdown
 function shutdown() {
   console.log('Shutting down...')
-  io.close()
+  void io.close()
   server.close(() => {
     closeAllDbs()
     process.exit(0)

@@ -4,14 +4,13 @@ import crypto from 'crypto'
 import type { Server } from 'socket.io'
 import { withRoom } from '../middleware'
 import { toCamel, parseJsonFields } from '../db'
-import type { CompoundDiceResult } from '../../src/shared/diceUtils'
 
 export function chatRoutes(dataDir: string, io: Server): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
   function toMessage(row: Record<string, unknown>) {
-    const msg = parseJsonFields(toCamel<Record<string, unknown>>(row), 'rollData')
+    const msg = parseJsonFields(toCamel(row), 'rollData')
     // Flatten rollData into top-level fields for client ChatRollMessage compatibility
     if (msg.rollData && typeof msg.rollData === 'object') {
       const { rollData, ...rest } = msg
@@ -103,8 +102,8 @@ export function chatRoutes(dataDir: string, io: Server): Router {
       const rollData = {
         expression: formula,
         resolvedExpression: expression !== formula ? expression : undefined,
-        terms: (result as CompoundDiceResult).termResults,
-        total: (result as CompoundDiceResult).total,
+        terms: result.termResults,
+        total: result.total,
         actionName,
         modifiersApplied: modifiers,
       }

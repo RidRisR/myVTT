@@ -12,25 +12,25 @@ let mockResponses: Record<string, unknown> = {}
 
 vi.stubGlobal(
   'fetch',
-  vi.fn(async (url: string, opts?: RequestInit) => {
+  vi.fn((url: string, opts?: RequestInit) => {
     const path = new URL(url).pathname
     const method = opts?.method ?? 'GET'
     const response = mockResponses[path]
     // During init, GET /tactical returns 404 if not mocked (no active scene)
     if (response === undefined && method === 'GET' && path.endsWith('/tactical')) {
-      return {
+      return Promise.resolve({
         ok: false,
         status: 404,
         headers: new Headers({ 'content-length': '1' }),
-        json: async () => ({ error: 'Not found' }),
-      }
+        json: () => Promise.resolve({ error: 'Not found' }),
+      })
     }
-    return {
+    return Promise.resolve({
       ok: true,
       status: 200,
       headers: new Headers({ 'content-length': '1' }),
-      json: async () => response ?? [],
-    }
+      json: () => Promise.resolve(response ?? []),
+    })
   }),
 )
 
@@ -622,8 +622,8 @@ describe('action methods', () => {
   function getLastFetchCall() {
     const calls = vi.mocked(fetch).mock.calls
     const lastCall = calls[calls.length - 1]
-    const url = lastCall[0] as string
-    const options = lastCall[1] as RequestInit | undefined
+    const url = lastCall[0]
+    const options = lastCall[1]
     return { url, method: options?.method ?? 'GET', body: options?.body }
   }
 
@@ -730,7 +730,7 @@ describe('action methods', () => {
 
   // ── Regression: C4 — updateShowcaseItem returns a Promise ──
   it('updateShowcaseItem is async (returns a Promise)', async () => {
-    const result = useWorldStore.getState().updateShowcaseItem('item-1', { pinned: true })
+    const result = useWorldStore.getState().updateShowcaseItem('item-1', { title: 'updated' })
     expect(result).toBeInstanceOf(Promise)
     await result
   })

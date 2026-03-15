@@ -2,7 +2,7 @@
 // Full-screen canvas overlay that renders atmospheric particle effects.
 
 import { useEffect, useRef } from 'react'
-import { createParticleEngine, PRESETS } from './particles'
+import { createParticleEngine } from './particles'
 import type { ParticleEngine } from './particles'
 
 interface ParticleLayerProps {
@@ -28,16 +28,13 @@ export function ParticleLayer({ preset }: ParticleLayerProps) {
     const engine = createParticleEngine(canvas, preset)
     engineRef.current = engine
 
-    if (PRESETS[preset]) {
-      engine.start()
-    }
+    engine.start()
 
     return () => {
       engine.stop()
       engineRef.current = null
     }
     // Only re-run when preset changes (remounts engine with new config)
-     
   }, [preset])
 
   // Handle resize via ResizeObserver on the parent container
@@ -60,7 +57,9 @@ export function ParticleLayer({ preset }: ParticleLayerProps) {
     })
 
     observer.observe(parent)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+    }
   }, [])
 
   return (

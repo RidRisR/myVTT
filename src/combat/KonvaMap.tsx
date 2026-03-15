@@ -113,13 +113,11 @@ export function KonvaMap({
 
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0]
-      if (entry) {
-        setContainerSize({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        })
-        updateOffset()
-      }
+      setContainerSize({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      })
+      updateOffset()
     })
     observer.observe(container)
 
@@ -130,7 +128,9 @@ export function KonvaMap({
     })
     updateOffset()
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+    }
   }, [])
 
   // Click on empty space to deselect
@@ -243,7 +243,9 @@ export function KonvaMap({
         duration: 5000,
         action: {
           label: 'Undo',
-          onClick: () => onAddToken(token),
+          onClick: () => {
+            onAddToken(token)
+          },
         },
       })
     },

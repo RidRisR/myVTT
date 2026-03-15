@@ -10,13 +10,13 @@ export function showcaseRoutes(dataDir: string, io: Server): Router {
   const room = withRoom(dataDir)
 
   function toShowcase(row: Record<string, unknown>) {
-    const r = parseJsonFields(toCamel<Record<string, unknown>>(row), 'data')
+    const r = parseJsonFields(toCamel(row), 'data')
     return toBoolFields(r, 'pinned')
   }
 
   router.get('/api/rooms/:roomId/showcase', room, (req, res) => {
-    const rows = req.roomDb!
-      .prepare('SELECT * FROM showcase_items ORDER BY sort_order')
+    const rows = req
+      .roomDb!.prepare('SELECT * FROM showcase_items ORDER BY sort_order')
       .all() as Record<string, unknown>[]
     res.json(rows.map(toShowcase))
   })
@@ -27,8 +27,8 @@ export function showcaseRoutes(dataDir: string, io: Server): Router {
     const count = (
       req.roomDb!.prepare('SELECT COUNT(*) as c FROM showcase_items').get() as { c: number }
     ).c
-    req.roomDb!
-      .prepare(
+    req
+      .roomDb!.prepare(
         'INSERT INTO showcase_items (id, type, data, pinned, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?)',
       )
       .run(id, type, JSON.stringify(data), pinned ? 1 : 0, sortOrder ?? count, Date.now())
@@ -44,8 +44,8 @@ export function showcaseRoutes(dataDir: string, io: Server): Router {
   })
 
   router.patch('/api/rooms/:roomId/showcase/:id', room, (req, res) => {
-    const existing = req.roomDb!
-      .prepare('SELECT * FROM showcase_items WHERE id = ?')
+    const existing = req
+      .roomDb!.prepare('SELECT * FROM showcase_items WHERE id = ?')
       .get(req.params.id) as Record<string, unknown> | undefined
     if (!existing) {
       res.status(404).json({ error: 'Showcase item not found' })
@@ -73,15 +73,16 @@ export function showcaseRoutes(dataDir: string, io: Server): Router {
     }
     if (sets.length > 0) {
       values.push(req.params.id)
-      req.roomDb!
-        .prepare(`UPDATE showcase_items SET ${sets.join(', ')} WHERE id = ?`)
+      req
+        .roomDb!.prepare(`UPDATE showcase_items SET ${sets.join(', ')} WHERE id = ?`)
         .run(...values)
     }
 
     const updated = toShowcase(
-      req.roomDb!
-        .prepare('SELECT * FROM showcase_items WHERE id = ?')
-        .get(req.params.id) as Record<string, unknown>,
+      req.roomDb!.prepare('SELECT * FROM showcase_items WHERE id = ?').get(req.params.id) as Record<
+        string,
+        unknown
+      >,
     )
     io.to(req.roomId!).emit('showcase:updated', updated)
     res.json(updated)
@@ -95,8 +96,8 @@ export function showcaseRoutes(dataDir: string, io: Server): Router {
 
   // Pin a showcase item
   router.post('/api/rooms/:roomId/showcase/:id/pin', room, (req, res) => {
-    const existing = req.roomDb!
-      .prepare('SELECT id FROM showcase_items WHERE id = ?')
+    const existing = req
+      .roomDb!.prepare('SELECT id FROM showcase_items WHERE id = ?')
       .get(req.params.id)
     if (!existing) {
       res.status(404).json({ error: 'Showcase item not found' })

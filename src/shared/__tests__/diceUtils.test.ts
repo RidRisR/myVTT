@@ -5,7 +5,6 @@ import {
   rollCompound,
   resolveFormula,
   generateFavoriteName,
-  parseDiceExpression,
   rollDice,
   type DiceTerm,
 } from '../diceUtils'
@@ -375,33 +374,7 @@ describe('generateFavoriteName', () => {
   })
 })
 
-// ── parseDiceExpression (deprecated) + rollDice ─────────────────
-
-describe('parseDiceExpression', () => {
-  it('parses "2d6+5"', () => {
-    expect(parseDiceExpression('2d6+5')).toEqual({ count: 2, sides: 6, modifier: 5 })
-  })
-
-  it('parses "d20"', () => {
-    expect(parseDiceExpression('d20')).toEqual({ count: 1, sides: 20, modifier: 0 })
-  })
-
-  it('parses "3d8-2"', () => {
-    expect(parseDiceExpression('3d8-2')).toEqual({ count: 3, sides: 8, modifier: -2 })
-  })
-
-  it('returns null for count > 100', () => {
-    expect(parseDiceExpression('101d6')).toBeNull()
-  })
-
-  it('returns null for sides > 1000', () => {
-    expect(parseDiceExpression('1d1001')).toBeNull()
-  })
-
-  it('returns null for invalid string', () => {
-    expect(parseDiceExpression('abc')).toBeNull()
-  })
-})
+// ── rollDice ─────────────────
 
 describe('rollDice', () => {
   it('rolls and returns correct structure', () => {

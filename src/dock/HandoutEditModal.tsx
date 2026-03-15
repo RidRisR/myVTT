@@ -20,7 +20,9 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
       }
     }
     document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
   }, [onClose])
 
   // Escape to close
@@ -29,7 +31,9 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
+    return () => {
+      document.removeEventListener('keydown', handler)
+    }
   }, [onClose])
 
   const handleSave = () => {
@@ -43,7 +47,9 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
   return (
     <div
       className="fixed inset-0 z-modal bg-black/70 flex items-center justify-center"
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       <div ref={panelRef} className="flex flex-col items-center gap-3 max-w-[70vw]">
         {/* Image — matches FocusedCard layout */}
@@ -57,7 +63,9 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
         <div className="text-center max-w-[55vw] w-full">
           <input
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value)
+            }}
             placeholder="Add title..."
             autoFocus
             className="w-full bg-transparent border-none outline-none text-text-primary font-sans text-center text-base font-semibold"
@@ -65,7 +73,9 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
           />
           <textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => {
+              setDescription(e.target.value)
+            }}
             placeholder="Add description..."
             rows={2}
             className="w-full bg-transparent border-none outline-none text-text-primary/70 font-sans text-center text-[13px] leading-normal mt-1 resize-none"

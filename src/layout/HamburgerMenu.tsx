@@ -35,7 +35,9 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
       }
     }
     window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
+    return () => {
+      window.removeEventListener('keydown', handleKey)
+    }
   }, [open, editing, mySeat.name])
 
   const handlePortraitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,10 +66,14 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
   return (
     <div
       className="fixed top-3 left-4 z-toast font-sans"
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          setOpen(!open)
+        }}
         className={`p-2 rounded-lg backdrop-blur-[16px] border border-border-glass cursor-pointer shadow-[0_2px_12px_rgba(0,0,0,0.25)] flex items-center transition-colors duration-fast ${
           open ? 'bg-surface' : 'bg-glass hover:bg-surface'
         }`}
@@ -94,7 +100,9 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={handlePortraitUpload}
+                  onChange={(e) => {
+                    void handlePortraitUpload(e)
+                  }}
                 />
                 <div
                   onClick={() => fileInputRef.current?.click()}
@@ -139,7 +147,9 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                     <input
                       autoFocus
                       value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
+                      onChange={(e) => {
+                        setEditName(e.target.value)
+                      }}
                       onBlur={handleSaveName}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSaveName()
@@ -152,7 +162,9 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                     />
                   ) : (
                     <div
-                      onClick={() => setEditing(true)}
+                      onClick={() => {
+                        setEditing(true)
+                      }}
                       className="font-semibold text-[13px] text-text-primary overflow-hidden text-ellipsis whitespace-nowrap cursor-text"
                       title="Click to rename"
                     >
@@ -175,7 +187,9 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                 {SEAT_COLORS.map((c) => (
                   <div
                     key={c}
-                    onClick={() => onUpdateSeat(mySeat.id, { color: c })}
+                    onClick={() => {
+                      onUpdateSeat(mySeat.id, { color: c })
+                    }}
                     className="w-[18px] h-[18px] rounded-full cursor-pointer transition-[border-color] duration-fast"
                     style={{
                       background: c,
@@ -216,7 +230,9 @@ function ThemeToggle() {
 
   return (
     <button
-      onClick={() => setTheme(isWarm ? 'cold' : 'warm')}
+      onClick={() => {
+        setTheme(isWarm ? 'cold' : 'warm')
+      }}
       className="w-full px-3 py-2 bg-transparent border-none rounded-lg cursor-pointer text-xs text-text-muted font-medium text-left flex items-center gap-2 transition-colors duration-fast hover:bg-hover hover:text-text-primary"
     >
       {isWarm ? <Moon size={14} strokeWidth={1.5} /> : <Sun size={14} strokeWidth={1.5} />}

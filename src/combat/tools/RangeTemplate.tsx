@@ -143,7 +143,7 @@ export function RangeTemplate({ activeTool, tacticalInfo, stageRef }: RangeTempl
       isDrawingRef.current = false
 
       setDrawing((prev) => {
-        if (!prev || !mode) return null
+        if (!prev) return null
         if (shiftRef.current) {
           const label = calcLabel(mode, prev.origin, prev.end, tacticalInfo)
           setPersisted((arr) => [...arr, { mode, origin: prev.origin, end: prev.end, label }])
@@ -255,30 +255,27 @@ function RangeShapeRenderer({ shape }: { shape: RangeShape }) {
     )
   }
 
-  if (mode === 'rect') {
-    const x = Math.min(origin.x, end.x)
-    const y = Math.min(origin.y, end.y)
-    const w = Math.abs(end.x - origin.x)
-    const h = Math.abs(end.y - origin.y)
+  // mode is 'rect' at this point (circle and cone handled above)
+  const x = Math.min(origin.x, end.x)
+  const y = Math.min(origin.y, end.y)
+  const w = Math.abs(end.x - origin.x)
+  const h = Math.abs(end.y - origin.y)
 
-    return (
-      <>
-        <Rect
-          x={x}
-          y={y}
-          width={w}
-          height={h}
-          fill={RANGE_FILL}
-          stroke={RANGE_STROKE}
-          strokeWidth={1.5}
-          dash={RANGE_DASH}
-        />
-        <ShapeLabel x={x + w / 2} y={y - 20} text={label} />
-      </>
-    )
-  }
-
-  return null
+  return (
+    <>
+      <Rect
+        x={x}
+        y={y}
+        width={w}
+        height={h}
+        fill={RANGE_FILL}
+        stroke={RANGE_STROKE}
+        strokeWidth={1.5}
+        dash={RANGE_DASH}
+      />
+      <ShapeLabel x={x + w / 2} y={y - 20} text={label} />
+    </>
+  )
 }
 
 // ── Shape Label ──

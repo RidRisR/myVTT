@@ -56,7 +56,9 @@ export function SceneConfigPanel({
       }
     }
     document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
   }, [onClose])
 
   const handleSave = () => {
@@ -110,7 +112,9 @@ export function SceneConfigPanel({
       ref={panelRef}
       className="fixed z-toast bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] flex flex-col"
       style={{ bottom: 56, left: 286, width: 300, maxHeight: 580 }}
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border-glass">
@@ -131,7 +135,9 @@ export function SceneConfigPanel({
           <input
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value)
+            }}
             className={inputClass}
             placeholder="Scene name"
           />
@@ -150,7 +156,9 @@ export function SceneConfigPanel({
           <label className={labelClass}>Particle Effect</label>
           <select
             value={particlePreset}
-            onChange={(e) => setParticlePreset(e.target.value as typeof particlePreset)}
+            onChange={(e) => {
+              setParticlePreset(e.target.value as typeof particlePreset)
+            }}
             className={inputClass}
           >
             {PARTICLE_PRESETS.map((preset) => (
@@ -175,7 +183,9 @@ export function SceneConfigPanel({
               type="file"
               accept="audio/*"
               className="hidden"
-              onChange={handleAudioUpload}
+              onChange={(e) => {
+                void handleAudioUpload(e)
+              }}
             />
 
             {ambientAudioUrl ? (
@@ -184,7 +194,9 @@ export function SceneConfigPanel({
                   {audioFileName}
                 </div>
                 <button
-                  onClick={() => setAmbientAudioUrl('')}
+                  onClick={() => {
+                    setAmbientAudioUrl('')
+                  }}
                   className="text-text-muted hover:text-danger transition-colors duration-fast p-1 cursor-pointer shrink-0"
                   title="Remove audio"
                 >
@@ -213,7 +225,9 @@ export function SceneConfigPanel({
                 max={1}
                 step={0.05}
                 value={ambientAudioVolume}
-                onChange={(e) => setAmbientAudioVolume(parseFloat(e.target.value))}
+                onChange={(e) => {
+                  setAmbientAudioVolume(parseFloat(e.target.value))
+                }}
                 className="flex-1 accent-accent h-1"
               />
               <span className="text-text-muted text-[10px] w-8 text-right">
@@ -251,7 +265,9 @@ export function SceneConfigPanel({
           confirmLabel="Delete"
           variant="danger"
           onConfirm={handleConfirmDelete}
-          onCancel={() => setShowDeleteConfirm(false)}
+          onCancel={() => {
+            setShowDeleteConfirm(false)
+          }}
         />
       )}
     </div>

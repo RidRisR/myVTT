@@ -47,7 +47,7 @@ export const Avatar: React.FC<AvatarProps> = ({
         fontWeight: 600,
       }}
     >
-      {senderName[0]?.toUpperCase() || '?'}
+      {senderName.charAt(0).toUpperCase() || '?'}
     </div>
   )
 }
