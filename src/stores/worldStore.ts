@@ -94,6 +94,7 @@ interface WorldState {
   entities: Record<string, Entity>
   sceneEntityMap: Record<string, SceneEntityEntry[]>
   chatMessages: ChatMessage[]
+  freshChatIds: Set<string>
   tacticalInfo: TacticalInfo | null
   showcaseItems: ShowcaseItem[]
   showcasePinnedItemId: string | null
@@ -394,7 +395,17 @@ function registerSocketEvents(
 
   // ── Chat events ──
   socket.on('chat:new', (message: ChatMessage) => {
-    set((s) => ({ chatMessages: [...s.chatMessages, message] }))
+    set((s) => ({
+      chatMessages: [...s.chatMessages, message],
+      freshChatIds: new Set([...s.freshChatIds, message.id]),
+    }))
+    setTimeout(() => {
+      set((s) => {
+        const next = new Set(s.freshChatIds)
+        next.delete(message.id)
+        return { freshChatIds: next }
+      })
+    }, 2500)
   })
   socket.on('chat:retracted', ({ id }: { id: string }) => {
     set((s) => ({
@@ -506,6 +517,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   entities: {},
   sceneEntityMap: {},
   chatMessages: [],
+  freshChatIds: new Set<string>(),
   tacticalInfo: null,
   showcaseItems: [],
   showcasePinnedItemId: null,

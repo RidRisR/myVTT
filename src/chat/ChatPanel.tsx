@@ -73,7 +73,6 @@ export function ChatPanel({
   speakerEntities,
 }: Omit<ChatPanelProps, 'roomId'>) {
   const [expanded, setExpanded] = useState(false)
-  const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set())
   const [toastQueue, setToastQueue] = useState<ToastItem[]>([])
   const initialLoadRef = useRef(true)
   const expandedRef = useRef(expanded)
@@ -88,6 +87,7 @@ export function ChatPanel({
 
   // Read messages from worldStore
   const messages = useWorldStore((s) => s.chatMessages)
+  const freshChatIds = useWorldStore((s) => s.freshChatIds)
   const sendMessage = useWorldStore((s) => s.sendMessage)
   const sendRoll = useWorldStore((s) => s.sendRoll)
   const plugin = useRulePlugin()
@@ -148,7 +148,6 @@ export function ChatPanel({
     // Detect newly added messages
     if (messages.length > prevMessageCountRef.current) {
       const newMsgs = messages.slice(prevMessageCountRef.current)
-      const addedIds = new Set(newMsgs.map((m) => m.id))
 
       // Add to toast queue if collapsed
       if (!expandedRef.current) {
@@ -157,14 +156,6 @@ export function ChatPanel({
         }
       }
 
-      setNewMessageIds((prev) => new Set([...prev, ...addedIds]))
-      setTimeout(() => {
-        setNewMessageIds((prev) => {
-          const next = new Set(prev)
-          for (const id of addedIds) next.delete(id)
-          return next
-        })
-      }, 2500)
     }
     prevMessageCountRef.current = messages.length
   }, [messages])
@@ -248,7 +239,7 @@ export function ChatPanel({
   return (
     <>
       {expanded ? (
-        <MessageScrollArea messages={messages} newMessageIds={newMessageIds} />
+        <MessageScrollArea messages={messages} newMessageIds={freshChatIds} />
       ) : (
         <ToastStack toastQueue={toastQueue} onRemove={handleToastRemove} />
       )}

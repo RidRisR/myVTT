@@ -97,13 +97,16 @@ export function DiceReel({
   const glowLandOuter = color ? hexAlpha(color, 0.8) : 'rgba(59, 130, 246, 0.8)'
   const glowLandInner = color ? hexAlpha(color, 0.3) : 'rgba(96, 165, 250, 0.3)'
 
+  // Fixed width prevents layout reflow as spinning values cycle between digit counts
+  const dieWidth = sides < 10 ? 32 : sides < 100 ? 40 : 52
+
   const baseStyle: React.CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 32,
+    width: dieWidth,
     height: 32,
-    padding: '0 8px',
+    padding: '0 4px',
     borderRadius: 6,
     background: 'rgba(30, 41, 59, 0.6)',
     border: `1px solid ${borderColor}`,

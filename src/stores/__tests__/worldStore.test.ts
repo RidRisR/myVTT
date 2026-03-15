@@ -441,6 +441,31 @@ describe('socket event handlers', () => {
     expect(msgs[1].id).toBe('msg-2')
   })
 
+  it('chat:new adds id to freshChatIds atomically with chatMessages', () => {
+    // This test guards against the timing bug where freshChatIds was updated in a
+    // useEffect (after render), causing MessageCard to mount with isNew=false.
+    // Both must update in the same zustand set() call.
+    const msg = makeChatMessage({ id: 'msg-fresh', content: 'Fresh' })
+    socket._trigger('chat:new', msg)
+
+    const state = useWorldStore.getState()
+    expect(state.chatMessages.find((m) => m.id === 'msg-fresh')).toBeDefined()
+    expect(state.freshChatIds.has('msg-fresh')).toBe(true)
+  })
+
+  it('chat:new clears freshChatIds after 2500ms', () => {
+    vi.useFakeTimers()
+    const msg = makeChatMessage({ id: 'msg-expire', content: 'Expire' })
+    socket._trigger('chat:new', msg)
+
+    expect(useWorldStore.getState().freshChatIds.has('msg-expire')).toBe(true)
+
+    vi.advanceTimersByTime(2500)
+
+    expect(useWorldStore.getState().freshChatIds.has('msg-expire')).toBe(false)
+    vi.useRealTimers()
+  })
+
   it('chat:retracted filters out message', () => {
     socket._trigger('chat:retracted', { id: 'msg-1' })
 

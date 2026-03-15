@@ -104,7 +104,7 @@ export function DiceAnimContent({ message, isNew, dieConfigs, footer, totalColor
   })
 
   return (
-    <div className="flex items-end gap-1 flex-wrap">
+    <div className="flex items-end gap-1 flex-wrap justify-center">
       {reelGroups}
       <span className="inline-flex items-center h-8 text-text-muted mx-1 text-[14px]">=</span>
       <span
@@ -127,10 +127,15 @@ export function DiceAnimContent({ message, isNew, dieConfigs, footer, totalColor
       >
         {totalRevealed ? total : '?'}
       </span>
-      {totalRevealed && footer && (
+      {footer && (
         <span
           className="inline-flex items-center h-8 text-xs font-semibold px-2 py-1 rounded ml-1"
-          style={{ color: footer.color, background: `${footer.color}22` }}
+          style={{
+            color: footer.color,
+            background: `${footer.color}22`,
+            opacity: totalRevealed ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+          }}
         >
           {footer.text}
         </span>
