@@ -4,14 +4,12 @@ import type Database from 'better-sqlite3'
 import { getRoomDb } from './db'
 
 // Extend Express Request
-declare global {
-  namespace Express {
-    interface Request {
-      roomDb?: Database.Database
-      roomId?: string
-      userId?: string
-      role?: 'GM' | 'PL'
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    roomDb?: Database.Database
+    roomId?: string
+    userId?: string
+    role?: 'GM' | 'PL'
   }
 }
 
@@ -30,7 +28,7 @@ export function withRoom(dataDir: string) {
       req.roomDb = getRoomDb(dataDir, roomId)
       req.roomId = roomId
       next()
-    } catch (err) {
+    } catch (_err) {
       res.status(500).json({ error: 'Failed to open room database' })
     }
   }

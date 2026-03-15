@@ -1,5 +1,4 @@
-// server/index.ts — New server entry point: Express + Socket.io + SQLite
-// Coexists with index.mjs (old Yjs server). Only one should run at a time.
+// server/index.ts — Server entry point: Express + Socket.io + SQLite
 import http from 'http'
 import path from 'path'
 import fs from 'fs'

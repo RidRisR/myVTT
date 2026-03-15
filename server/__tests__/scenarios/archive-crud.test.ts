@@ -88,10 +88,7 @@ describe('Archive CRUD', () => {
   })
 
   it('DELETE removes archive', async () => {
-    const { status } = await ctx.api(
-      'DELETE',
-      `/api/rooms/${ctx.roomId}/archives/${archive2Id}`,
-    )
+    const { status } = await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/archives/${archive2Id}`)
     expect(status).toBe(200)
 
     // Verify it is gone
@@ -121,7 +118,7 @@ describe('Archive CRUD', () => {
 
   it('archives deleted when scene is deleted', async () => {
     // Create a temp scene with an archive
-    const { data: tempScene } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
       id: 'tmp-arc-scene',
       name: 'Temp',
       atmosphere: {},
@@ -134,10 +131,7 @@ describe('Archive CRUD', () => {
     await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/scenes/tmp-arc-scene`)
 
     // Archives for deleted scene should be empty
-    const { data } = await ctx.api(
-      'GET',
-      `/api/rooms/${ctx.roomId}/scenes/tmp-arc-scene/archives`,
-    )
+    const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/scenes/tmp-arc-scene/archives`)
     expect(data).toEqual([])
   })
 })

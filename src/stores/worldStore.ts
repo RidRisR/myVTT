@@ -9,6 +9,8 @@ import type { ShowcaseItem } from '../showcase/showcaseTypes'
 import type { ChatMessage } from '../chat/chatTypes'
 import type { DiceSpec } from '../shared/diceUtils'
 import { api } from '../shared/api'
+import { generateTokenId } from '../shared/idUtils'
+import { defaultNPCPermissions } from '../shared/permissions'
 
 // ── Types ──
 
@@ -150,13 +152,13 @@ interface WorldState {
   addEntity: (entity: Entity) => Promise<void>
   updateEntity: (id: string, updates: Partial<Entity>) => Promise<void>
   deleteEntity: (id: string) => Promise<void>
+  // Composed actions — multi-step orchestration
+  createEphemeralNpcInScene: () => Promise<Entity | null>
+  spawnEphemeralTokenAtPosition: (x: number, y: number) => Promise<Entity | null>
+  saveEntityAsBlueprint: (entity: Entity) => Promise<void>
 
   // Token actions
-  createToken: (
-    x: number,
-    y: number,
-    opts?: { name?: string; color?: string },
-  ) => Promise<void>
+  createToken: (x: number, y: number, opts?: { name?: string; color?: string }) => Promise<void>
   placeEntityOnMap: (entityId: string, x: number, y: number) => Promise<void>
   duplicateToken: (tokenId: string, offsetX?: number, offsetY?: number) => Promise<void>
   addToken: (token: MapToken) => Promise<void>
@@ -734,6 +736,94 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const roomId = get()._roomId
     if (!roomId) return
     await api.delete(`/api/rooms/${roomId}/entities/${id}`)
+  },
+
+  createEphemeralNpcInScene: async () => {
+    const roomId = get()._roomId
+    if (!roomId) return null
+    const sceneId = get().room.activeSceneId
+    const entity: Entity = {
+      id: generateTokenId(),
+      name: 'New NPC',
+      imageUrl: '',
+      color: '#3b82f6',
+      width: 1,
+      height: 1,
+      notes: '',
+      ruleData: null,
+      permissions: defaultNPCPermissions(),
+      lifecycle: 'ephemeral',
+    }
+    // Optimistic update so character card can open immediately
+    set((s) => ({
+      entities: { ...s.entities, [entity.id]: entity },
+      ...(sceneId
+        ? {
+            sceneEntityMap: {
+              ...s.sceneEntityMap,
+              [sceneId]: [
+                ...(s.sceneEntityMap[sceneId] ?? []),
+                { entityId: entity.id, visible: true },
+              ],
+            },
+          }
+        : {}),
+    }))
+    await api.post(`/api/rooms/${roomId}/entities`, entity)
+    if (sceneId) await api.post(`/api/rooms/${roomId}/scenes/${sceneId}/entities/${entity.id}`)
+    return entity
+  },
+
+  spawnEphemeralTokenAtPosition: async (x, y) => {
+    const roomId = get()._roomId
+    if (!roomId) return null
+    const sceneId = get().room.activeSceneId
+    if (!sceneId) return null
+    const entity: Entity = {
+      id: generateTokenId(),
+      name: 'New NPC',
+      imageUrl: '',
+      color: '#3b82f6',
+      width: 1,
+      height: 1,
+      notes: '',
+      ruleData: null,
+      permissions: defaultNPCPermissions(),
+      lifecycle: 'ephemeral',
+    }
+    // Optimistic update
+    set((s) => ({
+      entities: { ...s.entities, [entity.id]: entity },
+      sceneEntityMap: {
+        ...s.sceneEntityMap,
+        [sceneId]: [...(s.sceneEntityMap[sceneId] ?? []), { entityId: entity.id, visible: true }],
+      },
+    }))
+    await api.post(`/api/rooms/${roomId}/entities`, entity)
+    await api.post(`/api/rooms/${roomId}/scenes/${sceneId}/entities/${entity.id}`)
+    await api.post(`/api/rooms/${roomId}/tactical/tokens/from-entity`, {
+      entityId: entity.id,
+      x,
+      y,
+    })
+    return entity
+  },
+
+  saveEntityAsBlueprint: async (entity) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.post(`/api/rooms/${roomId}/assets`, {
+      url: entity.imageUrl,
+      name: entity.name,
+      type: 'blueprint',
+      extra: {
+        blueprint: {
+          defaultSize: entity.width,
+          defaultColor: entity.color,
+          defaultRuleData: entity.ruleData,
+        },
+      },
+    })
   },
 
   toggleEntityVisibility: async (sceneId, entityId, visible) => {

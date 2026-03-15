@@ -33,21 +33,20 @@ afterAll(async () => {
 describe('Archive save', () => {
   it('POST /archives/:archiveId/save returns 200', async () => {
     // Put some tokens on the map first
-    const { data: quickResult } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/tactical/tokens/quick`,
-      { x: 1, y: 2, name: 'Goblin Scout', color: '#22c55e' },
-    )
-    const ephemeralEntityId = (
-      quickResult as { entity: { id: string }; token: { id: string } }
-    ).entity.id
+    // Place an ephemeral token on the map
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens/quick`, {
+      x: 1,
+      y: 2,
+      name: 'Goblin Scout',
+      color: '#22c55e',
+    })
 
     // Create a reusable entity and place it
-    const { data: reusableEntity } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/entities`,
-      { name: 'Dragon', lifecycle: 'reusable', color: '#ef4444' },
-    )
+    const { data: reusableEntity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
+      name: 'Dragon',
+      lifecycle: 'reusable',
+      color: '#ef4444',
+    })
     const reusableEntityId = (reusableEntity as { id: string }).id
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens/from-entity`, {
       entityId: reusableEntityId,

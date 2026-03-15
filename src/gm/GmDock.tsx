@@ -54,7 +54,6 @@ interface GmDockProps {
   selectedToken: MapToken | null
   onAddToken: (token: MapToken) => void
   onDeleteToken: (id: string) => void
-  onUpdateToken: (id: string, updates: Partial<MapToken>) => void
   onSelectToken: (id: string | null) => void
   onSetAsTacticalMap?: (imageUrl: string) => void
 }
@@ -73,7 +72,6 @@ export function GmDock({
   selectedToken,
   onAddToken,
   onDeleteToken,
-  onUpdateToken: _onUpdateToken,
   onSelectToken,
   onSetAsTacticalMap,
 }: GmDockProps) {

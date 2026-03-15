@@ -21,7 +21,7 @@ export default {
       },
       zIndex: {
         base: '0',
-        combat: '100',
+        tactical: '100',
         ui: '1000',
         popover: '5000',
         overlay: '8000',
