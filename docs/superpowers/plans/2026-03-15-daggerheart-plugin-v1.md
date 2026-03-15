@@ -1517,5 +1517,5 @@ npx tsc --noEmit  # TypeScript 无报错
 | 服务端纯随机数 | `dice-pure-rng.test.ts`：响应含 `rolls`，无 `terms`/`total` |
 | 客户端重建 | `DiceResultCard` 正常渲染（`buildCompoundResult` 从 `rolls` 重建） |
 | 插件注册 | `registry.test.ts` 新增 4 个测试通过 |
-| 骰子判定 | `diceSystem.test.ts` 16 个测试全通过 |
+| 骰子判定 | `diceSystem.test.ts` 19 个测试全通过 |
 | 自定义卡片分发 | `rollCardRenderers['daggerheart:dd']` 已注册且可调用 |
