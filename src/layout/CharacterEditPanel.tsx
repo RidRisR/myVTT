@@ -18,7 +18,7 @@ import { useAwarenessResource, getRemoteEdit } from '../shared/hooks/useAwarenes
 interface CharacterEditPanelProps {
   character: Entity
   onUpdateCharacter: (id: string, updates: Partial<Entity>) => void
-  onClose: () => void
+  onClose?: () => void
 }
 
 type TabId = 'info' | 'resources' | 'attributes' | 'statuses' | 'notes'
@@ -598,12 +598,14 @@ export function CharacterEditPanel({
         <span className="text-[11px] font-bold text-text-muted/50 uppercase tracking-wider">
           Character
         </span>
-        <button
-          onClick={onClose}
-          className="bg-transparent border-none cursor-pointer text-text-muted/30 p-0.5 leading-none transition-colors duration-fast hover:text-text-muted/70"
-        >
-          <X size={16} strokeWidth={1.5} />
-        </button>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="bg-transparent border-none cursor-pointer text-text-muted/30 p-0.5 leading-none transition-colors duration-fast hover:text-text-muted/70"
+          >
+            <X size={16} strokeWidth={1.5} />
+          </button>
+        )}
       </div>
 
       {/* Tab bar */}
