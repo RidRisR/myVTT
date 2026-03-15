@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import type { ChatMessage } from './chatTypes'
 import type { DiceSpec } from '../shared/diceUtils'
 import type { Entity } from '../shared/entityTypes'
-import { getEntityResources, getEntityAttributes } from '../shared/entityAdapters'
 import { useWorldStore } from '../stores/worldStore'
+import { useRulePlugin } from '../rules/useRulePlugin'
 import { MessageScrollArea } from './MessageScrollArea'
 import { ToastStack, type ToastItem } from './ToastStack'
 import { ChatInput } from './ChatInput'
@@ -90,6 +90,7 @@ export function ChatPanel({
   const messages = useWorldStore((s) => s.chatMessages)
   const sendMessage = useWorldStore((s) => s.sendMessage)
   const sendRoll = useWorldStore((s) => s.sendRoll)
+  const plugin = useRulePlugin()
 
   // Build speaker identity: null = seat identity, string = character
   const seatIdentity: SpeakerIdentity = useMemo(
@@ -125,13 +126,9 @@ export function ChatPanel({
   // When speaking as an entity, use that entity's properties for @ resolution
   const activeSpeakerProps = useMemo(() => {
     if (!speakerEntity) return seatProperties
-    const resources = getEntityResources(speakerEntity)
-    const attributes = getEntityAttributes(speakerEntity)
-    return [
-      ...resources.filter((r) => r.key).map((r) => ({ key: r.key, value: String(r.current) })),
-      ...attributes.filter((a) => a.key).map((a) => ({ key: a.key, value: String(a.value) })),
-    ]
-  }, [speakerEntity, seatProperties])
+    const tokens = plugin.adapters.getFormulaTokens(speakerEntity)
+    return Object.entries(tokens).map(([key, value]) => ({ key, value: String(value) }))
+  }, [speakerEntity, seatProperties, plugin])
 
   // Detect new messages (from worldStore updates via Socket.io)
   useEffect(() => {

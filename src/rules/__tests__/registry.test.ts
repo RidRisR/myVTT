@@ -80,3 +80,41 @@ describe('genericPlugin adapters', () => {
     expect(resources[0].label).toBe('hp')
   })
 })
+
+describe('daggerheartPlugin registration', () => {
+  it('getRulePlugin returns daggerheart after registration', () => {
+    const plugin = getRulePlugin('daggerheart')
+    expect(plugin.id).toBe('daggerheart')
+  })
+  it('daggerheart adapters.getMainResource returns HP', () => {
+    const plugin = getRulePlugin('daggerheart')
+    const entity = makeEntity({
+      ruleData: {
+        agility: 2,
+        strength: 1,
+        finesse: 3,
+        instinct: 0,
+        presence: 1,
+        knowledge: 2,
+        tier: 1,
+        proficiency: 1,
+        className: 'R',
+        ancestry: 'E',
+        hp: { current: 12, max: 20 },
+        stress: { current: 0, max: 6 },
+        hope: 2,
+        armor: 1,
+      },
+    })
+    expect(plugin.adapters.getMainResource(entity)!.current).toBe(12)
+  })
+  it('daggerheart diceSystem.evaluateRoll works', () => {
+    const plugin = getRulePlugin('daggerheart')
+    const r = plugin.diceSystem!.evaluateRoll([[8, 5]], 15)
+    expect(r?.type).toBe('daggerheart')
+  })
+  it('daggerheart surfaces.rollCardRenderers has daggerheart:dd', () => {
+    const plugin = getRulePlugin('daggerheart')
+    expect(plugin.surfaces?.rollCardRenderers?.['daggerheart:dd']).toBeDefined()
+  })
+})

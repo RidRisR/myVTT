@@ -1,7 +1,7 @@
 // plugins/generic/index.ts
 import type { RulePlugin, ResourceView, StatusView, Entity } from '@myvtt/sdk'
 import { GenericEntityCard } from './GenericEntityCard'
-import { getEntityResources, getEntityStatuses } from '../../src/shared/entityAdapters'
+import { getEntityResources, getEntityStatuses, getEntityAttributes } from '../../src/shared/entityAdapters'
 
 // Generic plugin: delegates adapters to entityAdapters.ts.
 // This is the legacy fallback for rooms without a specific rule system.
@@ -33,8 +33,12 @@ export const genericPlugin: RulePlugin = {
       return getEntityStatuses(entity)
     },
 
-    getFormulaTokens(_entity: Entity): Record<string, number> {
-      return {}
+    getFormulaTokens(entity: Entity): Record<string, number> {
+      const result: Record<string, number> = {}
+      for (const attr of getEntityAttributes(entity)) {
+        result[attr.key] = attr.value
+      }
+      return result
     },
   },
 
