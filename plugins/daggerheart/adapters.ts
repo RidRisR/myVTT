@@ -7,19 +7,19 @@ function getDH(entity: Entity): DHRuleData | null {
 
 export function dhGetMainResource(entity: Entity): ResourceView | null {
   const d = getDH(entity)
-  if (!d) return null
+  if (!d?.hp) return null
   return { label: 'HP', current: d.hp.current, max: d.hp.max, color: '#ef4444' }
 }
 
 export function dhGetPortraitResources(entity: Entity): ResourceView[] {
   const d = getDH(entity)
-  if (!d) return []
+  if (!d?.hp) return []
   return [
     { label: 'HP', current: d.hp.current, max: d.hp.max, color: '#ef4444' },
     {
       label: 'Stress',
-      current: d.stress.current,
-      max: d.stress.max,
+      current: d.stress?.current ?? 0,
+      max: d.stress?.max ?? 0,
       color: '#f97316',
     },
   ]
