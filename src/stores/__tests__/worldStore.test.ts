@@ -755,7 +755,7 @@ describe('action methods', () => {
 
   // ── Regression: C4 — updateShowcaseItem returns a Promise ──
   it('updateShowcaseItem is async (returns a Promise)', async () => {
-    const result = useWorldStore.getState().updateShowcaseItem('item-1', { pinned: true })
+    const result = useWorldStore.getState().updateShowcaseItem('item-1', { title: 'updated' })
     expect(result).toBeInstanceOf(Promise)
     await result
   })
