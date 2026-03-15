@@ -17,7 +17,7 @@ import {
   selectActiveSceneId,
   selectSpeakerEntities,
 } from '../selectors'
-import type { Entity, MapToken } from '../../shared/entityTypes'
+import type { Atmosphere, Entity, MapToken } from '../../shared/entityTypes'
 
 const makeEntity = (id: string, overrides?: Partial<Entity>): Entity => ({
   id,
@@ -140,7 +140,9 @@ describe('selector referential stability', () => {
   })
 
   it('selectScenes returns same reference when state is unchanged', () => {
-    const scenes = [{ id: 's1', name: 'Test', sortOrder: 0, gmOnly: false, atmosphere: {} }]
+    const scenes = [
+      { id: 's1', name: 'Test', sortOrder: 0, gmOnly: false, atmosphere: {} as Atmosphere },
+    ]
     const state = { scenes }
     expect(selectScenes(state)).toBe(selectScenes(state))
   })
