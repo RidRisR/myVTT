@@ -61,7 +61,8 @@ function makeEntity(overrides: Partial<Entity> & { id: string; name: string }): 
   return {
     imageUrl: '',
     color: '#000',
-    size: 1,
+    width: 1,
+    height: 1,
     notes: '',
     ruleData: null,
     permissions: { default: 'observer' as const, seats: {} },
