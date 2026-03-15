@@ -5,7 +5,7 @@ import { ArchivePanel } from './ArchivePanel'
 import { EntityPanel } from './EntityPanel'
 
 const TABS: { id: GmSidebarTab; icon: typeof Swords; label: string }[] = [
-  { id: 'archives', icon: Swords, label: '遭遇' },
+  { id: 'archives', icon: Swords, label: '存档' },
   { id: 'entities', icon: ClipboardList, label: '实体' },
 ]
 
