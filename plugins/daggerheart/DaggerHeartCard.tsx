@@ -1,11 +1,13 @@
 // plugins/daggerheart/DaggerHeartCard.tsx
 import type { EntityCardProps } from '@myvtt/sdk'
+import { usePluginPanels } from '@myvtt/sdk'
 import type { DHRuleData } from './types'
 
 const ATTRS = ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowledge'] as const
 
-export function DaggerHeartCard({ entity }: EntityCardProps) {
+export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
   const d = entity.ruleData as DHRuleData | null
+  const { openPanel } = usePluginPanels()
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -32,6 +34,14 @@ export function DaggerHeartCard({ entity }: EntityCardProps) {
             ))}
           </div>
         </>
+      )}
+      {!readonly && (
+        <button
+          onClick={() => openPanel('dh-full-sheet', entity.id)}
+          className="mt-2 w-full py-1.5 text-[11px] text-text-muted/50 bg-black/20 hover:bg-black/40 rounded-md transition-colors duration-fast"
+        >
+          完整角色卡 →
+        </button>
       )}
     </div>
   )

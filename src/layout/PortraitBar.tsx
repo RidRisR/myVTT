@@ -9,7 +9,6 @@ import { canSee, canEdit } from '../shared/permissions'
 import { statusColor } from '../shared/tokenUtils'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
-import { CharacterEditPanel } from './CharacterEditPanel'
 import { useRulePlugin } from '../rules/useRulePlugin'
 
 type PortraitTabId = 'characters' | 'initiative'
@@ -585,12 +584,12 @@ export function PortraitBar({
           >
             {isLocked ? (
               isEditable ? (
-                // Editable locked view: use CharacterEditPanel (full form).
-                // Plugin's FullCharacterSheet will replace this when surfaces/panels land.
-                <CharacterEditPanel
-                  character={popoverEntity}
-                  onUpdateCharacter={onUpdateEntity}
-                  onClose={() => onInspectCharacter(null)}
+                // Plugin handles editing — DH uses DaggerHeartCard + openPanel('dh-full-sheet')
+                // Generic plugin uses CharacterEditPanel wrapped in GenericEntityCard
+                <Card
+                  entity={popoverEntity}
+                  onUpdate={(patch) => onUpdateEntity(popoverEntity.id, patch)}
+                  readonly={false}
                 />
               ) : (
                 // Read-only locked view: use plugin's EntityCard for display

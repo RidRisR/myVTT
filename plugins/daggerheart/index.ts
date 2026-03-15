@@ -16,6 +16,7 @@ import {
 import { createDefaultDHEntityData } from './templates'
 import { DaggerHeartCard } from './DaggerHeartCard'
 import { DHRollCard } from './ui/DHRollCard'
+import { FullCharacterSheet } from './ui/FullCharacterSheet'
 
 export const daggerheartPlugin: RulePlugin = {
   id: 'daggerheart',
@@ -43,6 +44,13 @@ export const daggerheartPlugin: RulePlugin = {
   dataTemplates: { createDefaultEntityData: createDefaultDHEntityData },
 
   surfaces: {
+    panels: [
+      {
+        id: 'dh-full-sheet',
+        component: FullCharacterSheet,
+        placement: 'fullscreen-overlay' as const,
+      },
+    ],
     rollCardRenderers: {
       'daggerheart:dd': DHRollCard,
     },
