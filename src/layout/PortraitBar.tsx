@@ -11,8 +11,7 @@ import { statusColor } from '../shared/tokenUtils'
 import { api } from '../shared/api'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
-import { CharacterDetailPanel } from './CharacterDetailPanel'
-import { CharacterEditPanel } from './CharacterEditPanel'
+import { useRulePlugin } from '../rules/useRulePlugin'
 
 type PortraitTabId = 'characters' | 'initiative'
 
@@ -108,6 +107,7 @@ export function PortraitBar({
   const setPortraitBarVisible = useUiStore((s) => s.setPortraitBarVisible)
   const toggleEntityVisibility = useWorldStore((s) => s.toggleEntityVisibility)
   const updateEntity = useWorldStore((s) => s.updateEntity)
+  const plugin = useRulePlugin()
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entityId: string } | null>(
     null,
@@ -594,19 +594,16 @@ export function PortraitBar({
             onMouseLeave={handlePopoverMouseLeave}
           >
             {isLocked ? (
-              isEditable ? (
-                <CharacterEditPanel
-                  character={popoverEntity}
-                  onUpdateCharacter={onUpdateEntity}
-                  onClose={() => onInspectCharacter(null)}
-                />
-              ) : (
-                <CharacterDetailPanel
-                  character={popoverEntity}
-                  isOnline={false}
-                  onClose={() => onInspectCharacter(null)}
-                />
-              )
+              (() => {
+                const Card = plugin.characterUI.EntityCard
+                return (
+                  <Card
+                    entity={popoverEntity}
+                    onUpdate={(patch) => onUpdateEntity(popoverEntity.id, patch)}
+                    readonly={!isEditable}
+                  />
+                )
+              })()
             ) : (
               <CharacterHoverPreview
                 character={popoverEntity}
