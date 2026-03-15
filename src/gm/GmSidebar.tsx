@@ -1,7 +1,7 @@
 import { Swords, ClipboardList, ChevronRight } from 'lucide-react'
 import { useUiStore } from '../stores/uiStore'
 import type { GmSidebarTab } from '../stores/uiStore'
-import { EncounterPanel } from './EncounterPanel'
+import { ArchivePanel } from './ArchivePanel'
 import { EntityPanel } from './EntityPanel'
 
 const TABS: { id: GmSidebarTab; icon: typeof Swords; label: string }[] = [
@@ -38,7 +38,7 @@ export function GmSidebar() {
 
           {/* Tab content */}
           <div className="flex-1 overflow-hidden">
-            {activeTab === 'archives' && <EncounterPanel />}
+            {activeTab === 'archives' && <ArchivePanel />}
             {activeTab === 'entities' && <EntityPanel />}
           </div>
         </div>
