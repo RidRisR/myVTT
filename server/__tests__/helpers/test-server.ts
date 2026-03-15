@@ -4,7 +4,7 @@ import http from 'http'
 import express from 'express'
 import { Server as SocketIOServer } from 'socket.io'
 import { io as ioClient, type Socket as ClientSocket } from 'socket.io-client'
-import { getGlobalDb, getRoomDb, closeAllDbs } from '../../db'
+import { getGlobalDb, closeAllDbs } from '../../db'
 import { roomRoutes } from '../../routes/rooms'
 import { seatRoutes } from '../../routes/seats'
 import { sceneRoutes } from '../../routes/scenes'
@@ -154,10 +154,7 @@ export function waitForSocketEvent<T = unknown>(
  * Create a second Socket.io client connected to the same room.
  * Useful for multi-client broadcast tests.
  */
-export async function connectSecondClient(
-  apiBase: string,
-  roomId: string,
-): Promise<ClientSocket> {
+export async function connectSecondClient(apiBase: string, roomId: string): Promise<ClientSocket> {
   const socket = ioClient(apiBase, {
     transports: ['websocket'],
     forceNew: true,

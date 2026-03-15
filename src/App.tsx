@@ -448,7 +448,6 @@ function RoomSession({ roomId }: { roomId: string }) {
             selectedToken={selectedToken}
             onAddToken={addToken}
             onDeleteToken={deleteToken}
-            onUpdateToken={updateToken}
             onSelectToken={setSelectedTokenId}
             handoutAssets={handoutAssets}
             onAddHandoutAsset={addHandoutAsset}

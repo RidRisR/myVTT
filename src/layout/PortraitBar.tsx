@@ -8,7 +8,6 @@ import { useWorldStore } from '../stores/worldStore'
 import { canSee, canEdit } from '../shared/permissions'
 import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
-import { api } from '../shared/api'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
 import { CharacterDetailPanel } from './CharacterDetailPanel'
@@ -249,21 +248,8 @@ export function PortraitBar({
     setContextMenu({ x: e.clientX, y: e.clientY, entityId })
   }
 
-  const handleSaveAsBlueprint = async (entity: Entity) => {
-    const roomId = useWorldStore.getState()._roomId
-    if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/assets`, {
-      url: entity.imageUrl,
-      name: entity.name,
-      type: 'blueprint',
-      extra: {
-        blueprint: {
-          defaultSize: entity.width,
-          defaultColor: entity.color,
-          defaultRuleData: entity.ruleData,
-        },
-      },
-    })
+  const handleSaveAsBlueprint = (entity: Entity) => {
+    useWorldStore.getState().saveEntityAsBlueprint(entity)
   }
 
   const getContextMenuItems = (entity: Entity): ContextMenuItem[] => {
@@ -552,9 +538,7 @@ export function PortraitBar({
       {activeTab === 'initiative' && (
         <div className="flex items-center gap-2 bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           <span className="text-xs text-text-muted/40 font-sans px-3 py-1">
-            {tacticalInfo
-              ? `Round ${tacticalInfo.roundNumber}`
-              : 'No tactical session active'}
+            {tacticalInfo ? `Round ${tacticalInfo.roundNumber}` : 'No tactical session active'}
           </span>
         </div>
       )}

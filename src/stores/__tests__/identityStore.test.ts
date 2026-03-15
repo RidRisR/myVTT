@@ -12,7 +12,7 @@ vi.stubGlobal('sessionStorage', {
     storage[key] = val
   },
   removeItem: (key: string) => {
-    delete storage[key]
+    Reflect.deleteProperty(storage, key)
   },
 })
 
@@ -22,7 +22,7 @@ const mockResponses: Record<string, unknown> = {}
 
 vi.stubGlobal(
   'fetch',
-  vi.fn(async (url: string, options?: RequestInit) => {
+  vi.fn(async (url: string, _options?: RequestInit) => {
     const path = new URL(url).pathname
     return {
       ok: true,
@@ -43,7 +43,7 @@ function createMockSocket() {
   const offSpy = vi.fn((event: string) => {
     emitter.removeAllListeners(event)
   })
-  const emitSpy = vi.fn((event: string, ...args: unknown[]) => {
+  const emitSpy = vi.fn((_event: string, ..._args: unknown[]) => {
     // Don't propagate emits to the EventEmitter — these go to server
   })
   return {
@@ -80,8 +80,8 @@ beforeEach(() => {
     _roomId: null,
   })
   vi.mocked(fetch).mockClear()
-  Object.keys(mockResponses).forEach((k) => delete mockResponses[k])
-  Object.keys(storage).forEach((k) => delete storage[k])
+  Object.keys(mockResponses).forEach((k) => Reflect.deleteProperty(mockResponses, k))
+  Object.keys(storage).forEach((k) => Reflect.deleteProperty(storage, k))
 })
 
 // ── 1. init() tests ──

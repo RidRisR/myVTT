@@ -9,7 +9,7 @@ interface TokenTooltipProps {
   screenY: number
 }
 
-export function TokenTooltip({ token: _token, entity, screenX, screenY }: TokenTooltipProps) {
+export function TokenTooltip({ entity, screenX, screenY }: TokenTooltipProps) {
   const name = entity?.name ?? ''
   const resources = getEntityResources(entity)
   const mainResource = resources[0]

@@ -1,2 +1,7 @@
 npx lint-staged
 npx tsc --noEmit
+
+# Validate design doc structure (required sections check)
+for file in $(git diff --cached --name-only -- 'docs/design/*.md'); do
+  scripts/check-doc-structure.sh "$file" || exit 1
+done

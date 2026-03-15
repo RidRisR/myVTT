@@ -31,7 +31,7 @@ afterAll(async () => {
 
 describe('Tactical Tokens CRUD', () => {
   let quickTokenId: string
-  let quickEntityId: string
+
   let tokenId: string
   let fromEntityTokenId: string
 
@@ -57,21 +57,16 @@ describe('Tactical Tokens CRUD', () => {
     expect(result.token.x).toBe(5)
     expect(result.token.y).toBe(10)
     quickTokenId = result.token.id
-    quickEntityId = result.entity.id
   })
 
   it('POST /tactical/tokens creates token for existing entity', async () => {
-    const { status, data } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/tactical/tokens`,
-      {
-        entityId,
-        x: 100,
-        y: 200,
-        width: 2,
-        height: 2,
-      },
-    )
+    const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens`, {
+      entityId,
+      x: 100,
+      y: 200,
+      width: 2,
+      height: 2,
+    })
     expect(status).toBe(201)
     const token = data as { id: string; entityId: string; width: number; height: number }
     expect(token.entityId).toBe(entityId)
