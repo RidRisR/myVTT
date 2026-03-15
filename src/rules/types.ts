@@ -16,7 +16,7 @@ export interface StatusView {
   label: string
 }
 
-// ── Dice types (unchanged from RuleSystem) ─────────────────────────────────
+// ── Dice types ──────────────────────────────────────────────────────────────
 
 export interface RollAction {
   id: string
