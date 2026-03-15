@@ -51,7 +51,6 @@ afterAll(async () => {
 
 describe('Tactical Token Duplicate', () => {
   let duplicatedEntityId: string
-  let _duplicatedTokenId: string
 
   it('happy path: POST duplicate returns 201 with { entity, token }', async () => {
     const { status, data } = await ctx.api(
@@ -72,7 +71,6 @@ describe('Tactical Token Duplicate', () => {
     expect(result.token.entityId).toBe(result.entity.id)
 
     duplicatedEntityId = result.entity.id
-    _duplicatedTokenId = result.token.id
   })
 
   it('copied entity has lifecycle = ephemeral (even if original was reusable)', async () => {

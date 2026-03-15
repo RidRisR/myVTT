@@ -22,13 +22,12 @@ export default defineConfig([
     },
     rules: {
       // Allow underscore-prefixed params/caught errors (e.g. _err, _db)
+      // varsIgnorePattern is intentionally NOT set — unused variables must be removed, not silenced
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
           argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
           caughtErrorsIgnorePattern: '^_',
-          destructuredArrayIgnorePattern: '^_',
         },
       ],
       // React Compiler rules — not using Compiler in this project,

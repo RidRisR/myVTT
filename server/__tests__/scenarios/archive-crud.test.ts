@@ -118,7 +118,7 @@ describe('Archive CRUD', () => {
 
   it('archives deleted when scene is deleted', async () => {
     // Create a temp scene with an archive
-    const { data: _tempScene } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
       id: 'tmp-arc-scene',
       name: 'Temp',
       atmosphere: {},

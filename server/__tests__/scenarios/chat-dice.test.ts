@@ -16,7 +16,6 @@ describe('Chat & Dice Roll Journey', () => {
   let seatId: string
   let textMsgId: string
   let rollMsgId: string
-  let _firstMsgTimestamp: number
 
   it('setup: create a GM seat for senderId', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/seats`, {
@@ -49,8 +48,6 @@ describe('Chat & Dice Roll Journey', () => {
     expect(typeof msg.timestamp).toBe('number')
 
     textMsgId = msg.id as string
-    _firstMsgTimestamp = msg.timestamp as number
-
     // Verify via GET
     const { data: history } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/chat`)
     const messages = history as Record<string, unknown>[]
@@ -134,14 +131,14 @@ describe('Chat & Dice Roll Journey', () => {
     })
     const ts1 = (msg1 as { timestamp: number }).timestamp
 
-    const { data: _msg2 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
       senderId: seatId,
       senderName: 'GM',
       senderColor: '#ff6600',
       content: 'Second',
     })
 
-    const { data: _msg3 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
       senderId: seatId,
       senderName: 'GM',
       senderColor: '#ff6600',

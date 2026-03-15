@@ -106,17 +106,13 @@ describe('Multi-Client Sync Journey', () => {
       clientB,
       'tactical:token:added',
     )
-    const { status, data: _data } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/tactical/tokens`,
-      {
-        entityId,
-        x: 100,
-        y: 200,
-        width: 1,
-        height: 1,
-      },
-    )
+    const { status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens`, {
+      entityId,
+      x: 100,
+      y: 200,
+      width: 1,
+      height: 1,
+    })
     expect(status).toBe(201)
 
     const payload = await eventPromise

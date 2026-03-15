@@ -178,11 +178,11 @@ describe('Archive broadcast tests', () => {
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${emptyArchiveId}/load`)
 
     // Now start fresh: quick-create token A (ephemeral entity)
-    const { data: _quickA } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/tactical/tokens/quick`,
-      { x: 1, y: 1, name: 'Survivor' },
-    )
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens/quick`, {
+      x: 1,
+      y: 1,
+      name: 'Survivor',
+    })
 
     // Save archive (snapshots Survivor only)
     const { data: archive } = await ctx.api(
