@@ -61,12 +61,13 @@ describe('Chat & Dice Roll Journey', () => {
 
   // ── 6.2 Send dice roll ──
 
-  it('6.2 send dice roll → returned with rollData fields', async () => {
+  it('6.2 send dice roll → returned with raw rolls', async () => {
     const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/roll`, {
       senderId: seatId,
       senderName: 'GM',
       senderColor: '#ff6600',
       formula: '2d6+3',
+      dice: [{ sides: 6, count: 2 }],
     })
     expect(status).toBe(201)
 
@@ -74,9 +75,9 @@ describe('Chat & Dice Roll Journey', () => {
     expect(msg.id).toBeTruthy()
     expect(msg.type).toBe('roll')
     // rollData fields are flattened to top level by toMessage()
-    expect(msg.expression).toBe('2d6+3')
-    expect(typeof msg.total).toBe('number')
-    expect(msg.terms).toBeDefined()
+    expect(msg.formula).toBe('2d6+3')
+    expect(Array.isArray(msg.rolls)).toBe(true)
+    expect((msg.rolls as number[][])[0]).toHaveLength(2)
 
     rollMsgId = msg.id as string
 
@@ -86,8 +87,8 @@ describe('Chat & Dice Roll Journey', () => {
     expect(messages).toHaveLength(2)
     const rollMsg = messages.find((m) => m.type === 'roll')
     expect(rollMsg).toBeTruthy()
-    expect(rollMsg!.expression).toBe('2d6+3')
-    expect(typeof rollMsg!.total).toBe('number')
+    expect(rollMsg!.formula).toBe('2d6+3')
+    expect(Array.isArray(rollMsg!.rolls)).toBe(true)
   })
 
   // ── 6.3 Retract text message ──

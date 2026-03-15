@@ -72,68 +72,61 @@ export function chatRoutes(dataDir: string, io: Server): Router {
     res.json({ ok: true })
   })
 
-  // Server-side dice roll
-  router.post('/api/rooms/:roomId/roll', room, async (req, res) => {
-    try {
-      const {
-        formula,
-        resolvedExpression,
-        senderId,
-        senderName,
-        senderColor,
-        portraitUrl,
-        actionName,
-        modifiers,
-      } = req.body
+  // Server-side dice roll — pure RNG only, no formula evaluation
+  router.post('/api/rooms/:roomId/roll', room, (req, res) => {
+    const {
+      dice,
+      formula,
+      resolvedFormula,
+      rollType,
+      senderId,
+      senderName,
+      senderColor,
+      portraitUrl,
+      actionName,
+    } = req.body
 
-      // Dynamic import of shared dice logic (tsx allows .ts imports)
-      const { rollCompound } = await import('../../src/shared/diceUtils')
+    if (!Array.isArray(dice) || dice.length === 0) {
+      res.status(400).json({ error: 'dice is required' })
+      return
+    }
 
-      const expression = resolvedExpression || formula
-      const result = rollCompound(expression)
-      if (!result || 'error' in result) {
-        const errMsg = result && 'error' in result ? result.error : 'Invalid expression'
-        res.status(400).json({ error: errMsg })
+    // Validate bounds
+    for (const spec of dice as { sides: number; count: number }[]) {
+      if (!spec.sides || spec.sides < 1 || spec.sides > 1000) {
+        res.status(400).json({ error: `Invalid sides: ${spec.sides}` })
         return
       }
-
-      const id = crypto.randomUUID()
-      const timestamp = Date.now()
-      const rollData = {
-        expression: formula,
-        resolvedExpression: expression !== formula ? expression : undefined,
-        terms: (result as any).termResults,
-        total: (result as any).total,
-        actionName,
-        modifiersApplied: modifiers,
+      if (!spec.count || spec.count < 1 || spec.count > 100) {
+        res.status(400).json({ error: `Invalid count: ${spec.count}` })
+        return
       }
-
-      req.roomDb!
-        .prepare(
-          `INSERT INTO chat_messages (id, type, sender_id, sender_name, sender_color, portrait_url, roll_data, timestamp)
-           VALUES (?, 'roll', ?, ?, ?, ?, ?, ?)`,
-        )
-        .run(
-          id,
-          senderId,
-          senderName,
-          senderColor,
-          portraitUrl || null,
-          JSON.stringify(rollData),
-          timestamp,
-        )
-
-      const message = toMessage(
-        req.roomDb!.prepare('SELECT * FROM chat_messages WHERE id = ?').get(id) as Record<
-          string,
-          unknown
-        >,
-      )
-      io.to(req.roomId!).emit('chat:new', message)
-      res.status(201).json(message)
-    } catch (err) {
-      res.status(500).json({ error: 'Dice roll failed' })
     }
+
+    // Generate raw random numbers — the ONLY thing the server does
+    const rolls: number[][] = (dice as { sides: number; count: number }[]).map(({ sides, count }) =>
+      Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1),
+    )
+
+    const id = crypto.randomUUID()
+    const timestamp = Date.now()
+    const rollData = { formula, resolvedFormula, dice, rolls, rollType, actionName }
+
+    req.roomDb!
+      .prepare(
+        `INSERT INTO chat_messages (id, type, sender_id, sender_name, sender_color, portrait_url, roll_data, timestamp)
+         VALUES (?, 'roll', ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(id, senderId, senderName, senderColor, portraitUrl || null, JSON.stringify(rollData), timestamp)
+
+    const message = toMessage(
+      req.roomDb!.prepare('SELECT * FROM chat_messages WHERE id = ?').get(id) as Record<
+        string,
+        unknown
+      >,
+    )
+    io.to(req.roomId!).emit('chat:new', message)
+    res.status(201).json(message)
   })
 
   return router
