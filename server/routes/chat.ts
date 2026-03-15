@@ -2,6 +2,7 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import type { Server } from 'socket.io'
+import type { DiceSpec } from '../../src/shared/diceUtils'
 import { withRoom } from '../middleware'
 import { toCamel, toCamelAll, parseJsonFields } from '../db'
 
@@ -92,7 +93,7 @@ export function chatRoutes(dataDir: string, io: Server): Router {
     }
 
     // Validate bounds
-    for (const spec of dice as { sides: number; count: number }[]) {
+    for (const spec of dice as DiceSpec[]) {
       if (!spec.sides || spec.sides < 1 || spec.sides > 1000) {
         res.status(400).json({ error: `Invalid sides: ${spec.sides}` })
         return
@@ -104,7 +105,7 @@ export function chatRoutes(dataDir: string, io: Server): Router {
     }
 
     // Generate raw random numbers — the ONLY thing the server does
-    const rolls: number[][] = (dice as { sides: number; count: number }[]).map(({ sides, count }) =>
+    const rolls: number[][] = (dice as DiceSpec[]).map(({ sides, count }) =>
       Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1),
     )
 

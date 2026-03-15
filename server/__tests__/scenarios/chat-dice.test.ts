@@ -1,3 +1,4 @@
+// @vitest-environment node
 // server/__tests__/scenarios/chat-dice.test.ts
 // Integration test: chat messaging and dice roll system
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
