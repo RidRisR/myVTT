@@ -162,6 +162,9 @@ export function KonvaMap({
       // Only handle right-click on empty space (stage/layer), not on tokens
       if (!isStage && !isLayer) return
 
+      // Stop DOM propagation so the App-level context menu doesn't also open
+      e.evt.stopPropagation()
+
       const pointer = stage?.getRelativePointerPosition()
       if (!pointer) return
 
@@ -203,7 +206,7 @@ export function KonvaMap({
     setContextMenu(null)
   }, [])
 
-  // Create token on empty space
+  // Create token on empty space — spawns an ephemeral entity + tactical token
   const handleCreateToken = useCallback(
     (mapX: number, mapY: number) => {
       if (!tacticalInfo) return
@@ -220,10 +223,7 @@ export function KonvaMap({
         x = snapped.x
         y = snapped.y
       }
-      // Token creation from empty space is no longer supported —
-      // all tokens must be linked to an entity. Drag an entity from the portrait bar instead.
-      void x
-      void y
+      void useWorldStore.getState().spawnEphemeralTokenAtPosition(x, y)
     },
     [tacticalInfo],
   )
