@@ -1,9 +1,12 @@
 // src/layout/PluginPanelContainer.tsx
 import { createPortal } from 'react-dom'
 import type { Entity } from '../shared/entityTypes'
+import type { PluginPanelDef } from '../rules/types'
 import { useUiStore } from '../stores/uiStore'
 import { useRulePlugin } from '../rules/useRulePlugin'
 import { useWorldStore } from '../stores/worldStore'
+
+const EMPTY_PANELS: PluginPanelDef[] = []
 
 export function PluginPanelContainer() {
   const activePanels = useUiStore((s) => s.activePluginPanels)
@@ -12,11 +15,7 @@ export function PluginPanelContainer() {
   const entities = useWorldStore((s) => s.entities)
   const updateEntity = useWorldStore((s) => s.updateEntity)
 
-  const panelDefs = plugin.surfaces?.panels ?? []
-
-  const handleUpdateEntity = (id: string, patch: Partial<Entity>) => {
-    updateEntity(id, patch)
-  }
+  const panelDefs = plugin.surfaces?.panels ?? EMPTY_PANELS
 
   // onCreateEntity is used by preset-import features (e.g. DHLibraryTab) — not yet implemented.
   // Portal layer does not own entity construction logic; stub satisfies the PluginPanelProps contract.
@@ -47,7 +46,7 @@ export function PluginPanelContainer() {
                 <Component
                   entity={entity}
                   onClose={onClose}
-                  onUpdateEntity={handleUpdateEntity}
+                  onUpdateEntity={updateEntity}
                   onCreateEntity={handleCreateEntity}
                 />
               </div>
@@ -65,7 +64,7 @@ export function PluginPanelContainer() {
               <Component
                 entity={entity}
                 onClose={onClose}
-                onUpdateEntity={handleUpdateEntity}
+                onUpdateEntity={updateEntity}
                 onCreateEntity={handleCreateEntity}
               />
             </div>
