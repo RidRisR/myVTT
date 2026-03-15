@@ -1,35 +1,35 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import type { CombatInfo } from '../../stores/worldStore'
+import type { TacticalInfo } from '../../stores/worldStore'
 
 /** Bottom offset so GridConfigPanel clears the dual-row GmToolbar (~68px) + 4px gap */
 const GM_TOOLBAR_HEIGHT = 72
 
 interface GridConfigPanelProps {
-  combatInfo: CombatInfo
-  onUpdateGrid: (updates: Partial<CombatInfo['grid']>) => void
+  tacticalInfo: TacticalInfo
+  onUpdateGrid: (updates: Partial<TacticalInfo['grid']>) => void
   onClose: () => void
 }
 
-export function GridConfigPanel({ combatInfo, onUpdateGrid, onClose }: GridConfigPanelProps) {
+export function GridConfigPanel({ tacticalInfo, onUpdateGrid, onClose }: GridConfigPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Local state synced from combatInfo props
-  const [gridSize, setGridSize] = useState(combatInfo.grid.size)
-  const [gridOffsetX, setGridOffsetX] = useState(combatInfo.grid.offsetX)
-  const [gridOffsetY, setGridOffsetY] = useState(combatInfo.grid.offsetY)
-  const [gridColor, setGridColor] = useState(combatInfo.grid.color)
+  // Local state synced from tacticalInfo props
+  const [gridSize, setGridSize] = useState(tacticalInfo.grid.size)
+  const [gridOffsetX, setGridOffsetX] = useState(tacticalInfo.grid.offsetX)
+  const [gridOffsetY, setGridOffsetY] = useState(tacticalInfo.grid.offsetY)
+  const [gridColor, setGridColor] = useState(tacticalInfo.grid.color)
 
-  // Re-sync local state when combatInfo changes externally
+  // Re-sync local state when tacticalInfo changes externally
   useEffect(() => {
-    setGridSize(combatInfo.grid.size)
-    setGridOffsetX(combatInfo.grid.offsetX)
-    setGridOffsetY(combatInfo.grid.offsetY)
-    setGridColor(combatInfo.grid.color)
+    setGridSize(tacticalInfo.grid.size)
+    setGridOffsetX(tacticalInfo.grid.offsetX)
+    setGridOffsetY(tacticalInfo.grid.offsetY)
+    setGridColor(tacticalInfo.grid.color)
   }, [
-    combatInfo.grid.size,
-    combatInfo.grid.offsetX,
-    combatInfo.grid.offsetY,
-    combatInfo.grid.color,
+    tacticalInfo.grid.size,
+    tacticalInfo.grid.offsetX,
+    tacticalInfo.grid.offsetY,
+    tacticalInfo.grid.color,
   ])
 
   // Click outside to close
@@ -44,7 +44,7 @@ export function GridConfigPanel({ combatInfo, onUpdateGrid, onClose }: GridConfi
   }, [onClose])
 
   const commitChange = useCallback(
-    (updates: Partial<CombatInfo['grid']>) => {
+    (updates: Partial<TacticalInfo['grid']>) => {
       onUpdateGrid(updates)
     },
     [onUpdateGrid],

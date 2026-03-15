@@ -8,8 +8,8 @@ import { useUiStore } from './stores/uiStore'
 import { useAssetStore } from './stores/assetStore'
 import {
   selectActiveScene,
-  selectIsCombat,
-  selectCombatInfo,
+  selectIsTactical,
+  selectTacticalInfo,
   selectTokens,
   deriveSeatProperties,
   selectSpeakerEntities,
@@ -30,7 +30,7 @@ import { MyCharacterCard } from './layout/MyCharacterCard'
 import { ContextMenu } from './shared/ContextMenu'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import type { ShowcaseItem } from './showcase/showcaseTypes'
-import type { Entity, MapToken, Atmosphere, SceneEntityEntry } from './shared/entityTypes'
+import type { Entity, Atmosphere, SceneEntityEntry } from './shared/entityTypes'
 import { defaultNPCPermissions } from './shared/permissions'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
@@ -105,8 +105,8 @@ function RoomSession({ roomId }: { roomId: string }) {
   const tokens = useWorldStore(selectTokens)
   const handoutAssets = useWorldStore((s) => s.handoutAssets)
   const activeScene = useWorldStore(selectActiveScene)
-  const isCombat = useWorldStore(selectIsCombat)
-  const combatInfo = useWorldStore(selectCombatInfo)
+  const isTactical = useWorldStore(selectIsTactical)
+  const tacticalInfo = useWorldStore(selectTacticalInfo)
 
   // World store actions
   const setActiveScene = useWorldStore((s) => s.setActiveScene)
@@ -115,14 +115,13 @@ function RoomSession({ roomId }: { roomId: string }) {
   const deleteSceneRaw = useWorldStore((s) => s.deleteScene)
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
   const removeEntityFromScene = useWorldStore((s) => s.removeEntityFromScene)
-  const startCombat = useWorldStore((s) => s.startCombat)
-  const endCombat = useWorldStore((s) => s.endCombat)
-  const setCombatMapUrl = useWorldStore((s) => s.setCombatMapUrl)
+  const enterTactical = useWorldStore((s) => s.enterTactical)
+  const exitTactical = useWorldStore((s) => s.exitTactical)
+  const setTacticalMapUrl = useWorldStore((s) => s.setTacticalMapUrl)
   const duplicateScene = useWorldStore((s) => s.duplicateScene)
-  const setInitiativeOrder = useWorldStore((s) => s.setInitiativeOrder)
-  const advanceInitiative = useWorldStore((s) => s.advanceInitiative)
   const addEntity = useWorldStore((s) => s.addEntity)
   const updateEntity = useWorldStore((s) => s.updateEntity)
+  const placeEntityOnMap = useWorldStore((s) => s.placeEntityOnMap)
   const addToken = useWorldStore((s) => s.addToken)
   const updateToken = useWorldStore((s) => s.updateToken)
   const deleteToken = useWorldStore((s) => s.deleteToken)
@@ -179,7 +178,9 @@ function RoomSession({ roomId }: { roomId: string }) {
   }
 
   const activeEntity = getEntity(mySeat?.activeCharacterId ?? null)
-  const selectedToken = isCombat ? (tokens[selectedTokenId ?? ''] ?? null) : null
+  const selectedToken = isTactical
+    ? (tokens.find((t) => t.id === selectedTokenId) ?? null)
+    : null
   const selectedTokenEntity = selectedToken?.entityId ? getEntity(selectedToken.entityId) : null
 
   const seatProperties = deriveSeatProperties(activeEntity, selectedTokenEntity)
@@ -199,7 +200,6 @@ function RoomSession({ roomId }: { roomId: string }) {
 
   // Convert Record types to arrays for components that still expect arrays
   const entitiesArray = useMemo(() => Object.values(entities), [entities])
-  const tokensArray = useMemo(() => Object.values(tokens), [tokens])
 
   // Auto-create a default scene when GM enters a room with no scenes
   const isGMRole = mySeat?.role === 'GM'
@@ -348,26 +348,13 @@ function RoomSession({ roomId }: { roomId: string }) {
   }
 
   const handleDropEntityOnMap = (entityId: string, mapX: number, mapY: number) => {
-    const entity = getEntity(entityId)
-    if (!entity) return
-    const newToken: MapToken = {
-      id: generateTokenId(),
-      entityId: entity.id,
-      x: mapX,
-      y: mapY,
-      width: entity.width || 1,
-      height: entity.height || 1,
-      imageScaleX: 1,
-      imageScaleY: 1,
-    }
-    addToken(newToken)
-    setSelectedTokenId(newToken.id)
+    placeEntityOnMap(entityId, mapX, mapY)
   }
 
   return (
     <ToastProvider>
       <div>
-        <SceneViewer scene={activeScene} blurred={isCombat} onContextMenu={handleBgContextMenu} />
+        <SceneViewer scene={activeScene} blurred={isTactical} onContextMenu={handleBgContextMenu} />
         <AmbientAudio
           audioUrl={activeScene?.atmosphere.ambientAudioUrl}
           volume={activeScene?.atmosphere.ambientAudioVolume ?? 0.5}
@@ -375,8 +362,8 @@ function RoomSession({ roomId }: { roomId: string }) {
 
         {activeScene && (
           <TacticalPanel
-            combatInfo={combatInfo}
-            tokens={tokensArray}
+            tacticalInfo={tacticalInfo}
+            tokens={tokens}
             getEntity={getEntity}
             mySeatId={mySeatId}
             role={mySeat.role}
@@ -387,7 +374,7 @@ function RoomSession({ roomId }: { roomId: string }) {
             onAddToken={addToken}
             onDropEntityOnMap={handleDropEntityOnMap}
             onContextMenu={handleBgContextMenu}
-            visible={isCombat}
+            visible={isTactical}
           />
         )}
 
@@ -410,10 +397,8 @@ function RoomSession({ roomId }: { roomId: string }) {
           onSetActiveCharacter={handleSetActiveCharacter}
           onRemoveFromScene={handleRemoveFromScene}
           onUpdateEntity={handleUpdateEntity}
-          isCombat={isCombat}
-          combatInfo={combatInfo}
-          onSetInitiativeOrder={setInitiativeOrder}
-          onAdvanceInitiative={advanceInitiative}
+          isTactical={isTactical}
+          tacticalInfo={tacticalInfo}
         />
 
         {/* Top-right: Team dashboard */}
@@ -446,13 +431,13 @@ function RoomSession({ roomId }: { roomId: string }) {
         {isGM && (
           <GmDock
             activeSceneId={room.activeSceneId}
-            isCombat={isCombat}
+            isTactical={isTactical}
             onUpdateScene={updateScene}
             onToggleCombat={() => {
-              if (isCombat) {
-                endCombat()
+              if (isTactical) {
+                exitTactical()
               } else {
-                startCombat()
+                enterTactical()
               }
             }}
             onShowcaseImage={(imageUrl) => {
@@ -484,8 +469,8 @@ function RoomSession({ roomId }: { roomId: string }) {
             onShowcaseHandout={handleShowcaseHandout}
             onSetAsTacticalMap={(imageUrl: string) => {
               const img = new Image()
-              img.onload = () => setCombatMapUrl(imageUrl, img.naturalWidth, img.naturalHeight)
-              img.onerror = () => setCombatMapUrl(imageUrl, 1920, 1080)
+              img.onload = () => setTacticalMapUrl(imageUrl, img.naturalWidth, img.naturalHeight)
+              img.onerror = () => setTacticalMapUrl(imageUrl, 1920, 1080)
               img.src = imageUrl
             }}
           />

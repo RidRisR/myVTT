@@ -2,7 +2,7 @@ import { useRef, useCallback, useState } from 'react'
 import { Layer } from 'react-konva'
 import type Konva from 'konva'
 import type { MapToken as MapTokenType, Entity } from '../shared/entityTypes'
-import type { CombatInfo } from '../stores/worldStore'
+import type { TacticalInfo } from '../stores/worldStore'
 import { getEffectivePermissions, canSee } from '../shared/permissions'
 import { canDragToken, snapToGrid } from './combatUtils'
 import { KonvaToken } from './KonvaToken'
@@ -25,7 +25,7 @@ export interface TokenHoverEvent {
 interface KonvaTokenLayerProps {
   tokens: MapTokenType[]
   getEntity: (id: string) => Entity | null
-  combatInfo: CombatInfo
+  tacticalInfo: TacticalInfo
   role: 'GM' | 'PL'
   mySeatId: string
   selectedTokenId: string | null
@@ -47,7 +47,7 @@ const DRAG_THRESHOLD = 3
 export function KonvaTokenLayer({
   tokens,
   getEntity,
-  combatInfo,
+  tacticalInfo,
   role,
   mySeatId,
   selectedTokenId,
@@ -131,13 +131,13 @@ export function KonvaTokenLayer({
       }
 
       // Show ghost token at snap position (only when gridSnap is enabled)
-      if (combatInfo.grid.snap && didDragRef.current) {
+      if (tacticalInfo.grid.snap && didDragRef.current) {
         const snapped = snapToGrid(
           node.x(),
           node.y(),
-          combatInfo.grid.size,
-          combatInfo.grid.offsetX,
-          combatInfo.grid.offsetY,
+          tacticalInfo.grid.size,
+          tacticalInfo.grid.offsetX,
+          tacticalInfo.grid.offsetY,
         )
         const draggedToken = draggingTokenIdRef.current
           ? tokens.find((t) => t.id === draggingTokenIdRef.current)
@@ -149,16 +149,16 @@ export function KonvaTokenLayer({
         setGhostState({
           x: snapped.x,
           y: snapped.y,
-          pixelSize: tokenSize * combatInfo.grid.size,
+          pixelSize: tokenSize * tacticalInfo.grid.size,
           color: tokenColor,
         })
       }
     },
     [
-      combatInfo.grid.snap,
-      combatInfo.grid.size,
-      combatInfo.grid.offsetX,
-      combatInfo.grid.offsetY,
+      tacticalInfo.grid.snap,
+      tacticalInfo.grid.size,
+      tacticalInfo.grid.offsetX,
+      tacticalInfo.grid.offsetY,
       tokens,
       getEntity,
       onTokenDragMove,
@@ -175,13 +175,13 @@ export function KonvaTokenLayer({
       if (didDragRef.current) {
         let finalX = node.x()
         let finalY = node.y()
-        if (combatInfo.grid.snap) {
+        if (tacticalInfo.grid.snap) {
           const snapped = snapToGrid(
             finalX,
             finalY,
-            combatInfo.grid.size,
-            combatInfo.grid.offsetX,
-            combatInfo.grid.offsetY,
+            tacticalInfo.grid.size,
+            tacticalInfo.grid.offsetX,
+            tacticalInfo.grid.offsetY,
           )
           finalX = snapped.x
           finalY = snapped.y
@@ -202,10 +202,10 @@ export function KonvaTokenLayer({
       onTokenDragEnd?.()
     },
     [
-      combatInfo.grid.snap,
-      combatInfo.grid.size,
-      combatInfo.grid.offsetX,
-      combatInfo.grid.offsetY,
+      tacticalInfo.grid.snap,
+      tacticalInfo.grid.size,
+      tacticalInfo.grid.offsetX,
+      tacticalInfo.grid.offsetY,
       onUpdateToken,
       onTokenDragEnd,
     ],
@@ -226,7 +226,7 @@ export function KonvaTokenLayer({
       const token = tokens.find((t) => t.id === tokenId)
       if (!token) return
 
-      const pixelSize = token.width * combatInfo.grid.size
+      const pixelSize = token.width * tacticalInfo.grid.size
       const screenX = (token.x + pixelSize / 2) * stageScale + stagePos.x + containerOffset.x
       const screenY = token.y * stageScale + stagePos.y + containerOffset.y
 
@@ -238,7 +238,7 @@ export function KonvaTokenLayer({
         mapY: screenY,
       })
     },
-    [onTokenContextMenu, tokens, combatInfo.grid.size, stageScale, stagePos, containerOffset],
+    [onTokenContextMenu, tokens, tacticalInfo.grid.size, stageScale, stagePos, containerOffset],
   )
 
   const handleMouseEnter = useCallback(
@@ -251,7 +251,7 @@ export function KonvaTokenLayer({
         const token = tokens.find((t) => t.id === tokenId)
         if (!token) return
 
-        const pixelSize = token.width * combatInfo.grid.size
+        const pixelSize = token.width * tacticalInfo.grid.size
         const screenX = (token.x + pixelSize / 2) * stageScale + stagePos.x + containerOffset.x
         const screenY = (token.y + pixelSize) * stageScale + stagePos.y + containerOffset.y
 
@@ -260,7 +260,7 @@ export function KonvaTokenLayer({
     },
     [
       tokens,
-      combatInfo.grid.size,
+      tacticalInfo.grid.size,
       stageScale,
       stagePos,
       containerOffset,
@@ -303,7 +303,7 @@ export function KonvaTokenLayer({
             key={token.id}
             token={displayToken}
             entity={entity}
-            pixelSize={token.width * combatInfo.grid.size}
+            pixelSize={token.width * tacticalInfo.grid.size}
             selected={token.id === selectedTokenId}
             isHidden={isHidden}
             canDrag={canDrag}

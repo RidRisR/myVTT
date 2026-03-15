@@ -1,22 +1,22 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { Plus, Play, Save, MoreVertical, Copy, Pencil, Trash2, Swords } from 'lucide-react'
 import { useWorldStore } from '../stores/worldStore'
-import type { EncounterRecord } from '../stores/worldStore'
+import type { ArchiveRecord } from '../stores/worldStore'
 import { useToast } from '../shared/ui/useToast'
 import { ConfirmPopover } from '../shared/ui/ConfirmPopover'
 
 export function EncounterPanel() {
   const activeSceneId = useWorldStore((s) => s.room.activeSceneId)
-  const activeEncounterId = useWorldStore((s) => s.room.activeEncounterId)
-  const encounters = useWorldStore((s) => s.encounters)
-  const isCombat = useWorldStore((s) => s.combatInfo !== null)
-  const fetchEncounters = useWorldStore((s) => s.fetchEncounters)
-  const createEncounter = useWorldStore((s) => s.createEncounter)
-  const deleteEncounter = useWorldStore((s) => s.deleteEncounter)
-  const updateEncounter = useWorldStore((s) => s.updateEncounter)
-  const duplicateEncounter = useWorldStore((s) => s.duplicateEncounter)
-  const activateEncounter = useWorldStore((s) => s.activateEncounter)
-  const saveEncounter = useWorldStore((s) => s.saveEncounter)
+  const activeArchiveId = useWorldStore((s) => s.room.activeArchiveId)
+  const archives = useWorldStore((s) => s.archives)
+  const isTactical = useWorldStore((s) => s.tacticalInfo !== null)
+  const fetchArchives = useWorldStore((s) => s.fetchArchives)
+  const createArchive = useWorldStore((s) => s.createArchive)
+  const deleteArchive = useWorldStore((s) => s.deleteArchive)
+  const updateArchive = useWorldStore((s) => s.updateArchive)
+  const duplicateArchive = useWorldStore((s) => s.duplicateArchive)
+  const loadArchive = useWorldStore((s) => s.loadArchive)
+  const saveArchive = useWorldStore((s) => s.saveArchive)
 
   const { toast } = useToast()
 
@@ -30,12 +30,12 @@ export function EncounterPanel() {
   const menuRef = useRef<HTMLDivElement>(null)
   const deleteButtonRef = useRef<HTMLButtonElement>(null)
 
-  // Fetch encounters when scene changes
+  // Fetch archives when scene changes
   useEffect(() => {
     if (activeSceneId) {
-      fetchEncounters(activeSceneId)
+      fetchArchives(activeSceneId)
     }
-  }, [activeSceneId, fetchEncounters])
+  }, [activeSceneId, fetchArchives])
 
   // Auto-focus rename input
   useEffect(() => {
@@ -54,46 +54,46 @@ export function EncounterPanel() {
     return () => document.removeEventListener('pointerdown', handler)
   }, [menuId])
 
-  const sortedEncounters = useMemo(
-    () => [...encounters].sort((a, b) => a.name.localeCompare(b.name)),
-    [encounters],
+  const sortedArchives = useMemo(
+    () => [...archives].sort((a, b) => a.name.localeCompare(b.name)),
+    [archives],
   )
 
   const commitRename = () => {
     if (renamingId && renameValue.trim()) {
-      updateEncounter(renamingId, { name: renameValue.trim() })
+      updateArchive(renamingId, { name: renameValue.trim() })
     }
     setRenamingId(null)
   }
 
   const handleCreate = () => {
     if (!activeSceneId) return
-    createEncounter(activeSceneId, `遭遇 ${encounters.length + 1}`)
+    createArchive(activeSceneId, `遭遇 ${archives.length + 1}`)
   }
 
-  const handleDelete = (enc: EncounterRecord) => {
+  const handleDelete = (enc: ArchiveRecord) => {
     setDeletingId(null)
     setMenuId(null)
     // Optimistic removal from local state, delete on server
-    deleteEncounter(enc.id)
+    deleteArchive(enc.id)
     toast('undo', `已删除"${enc.name}"`, {
       duration: 5000,
     })
   }
 
   const handleActivate = () => {
-    if (!selectedId || !activeSceneId) return
-    activateEncounter(activeSceneId, selectedId)
+    if (!selectedId) return
+    loadArchive(selectedId)
   }
 
   const handleSave = () => {
-    if (!activeEncounterId || !activeSceneId) return
-    saveEncounter(activeSceneId, activeEncounterId)
+    if (!activeArchiveId || !activeSceneId) return
+    saveArchive(activeArchiveId)
     toast('success', '已保存遭遇快照')
   }
 
-  const selectedEnc = selectedId ? encounters.find((e) => e.id === selectedId) : null
-  const deletingEnc = deletingId ? encounters.find((e) => e.id === deletingId) : null
+  const selectedEnc = selectedId ? archives.find((e) => e.id === selectedId) : null
+  const deletingEnc = deletingId ? archives.find((e) => e.id === deletingId) : null
 
   if (!activeSceneId) {
     return (
@@ -108,7 +108,7 @@ export function EncounterPanel() {
     <div className="flex flex-col h-full">
       {/* Encounter list */}
       <div className="flex-1 overflow-y-auto">
-        {sortedEncounters.length === 0 ? (
+        {sortedArchives.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs py-8">
             <Swords size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
             <span className="opacity-50">暂无遭遇预设</span>
@@ -116,11 +116,9 @@ export function EncounterPanel() {
           </div>
         ) : (
           <div className="flex flex-col gap-1">
-            {sortedEncounters.map((enc) => {
+            {sortedArchives.map((enc) => {
               const isSelected = enc.id === selectedId
-              const isActive = enc.id === activeEncounterId
-              const tokenCount = Object.keys(enc.tokens || {}).length
-
+              const isActive = enc.id === activeArchiveId
               return (
                 <div
                   key={enc.id}
@@ -156,10 +154,9 @@ export function EncounterPanel() {
                     )}
 
                     {/* Meta info */}
-                    <span className="text-[10px] text-text-muted/50 shrink-0">
-                      {tokenCount > 0 && `${tokenCount}T`}
-                      {enc.mapUrl && (tokenCount > 0 ? ' · 🗺' : '🗺')}
-                    </span>
+                    {enc.mapUrl && (
+                      <span className="text-[10px] text-text-muted/50 shrink-0">🗺</span>
+                    )}
 
                     {/* Context menu button */}
                     <button
@@ -196,7 +193,7 @@ export function EncounterPanel() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          duplicateEncounter(enc.id)
+                          duplicateArchive(enc.id)
                           setMenuId(null)
                         }}
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
@@ -240,7 +237,7 @@ export function EncounterPanel() {
         <div className="flex-1" />
 
         {/* Save snapshot (only when combat active with a named encounter) */}
-        {isCombat && activeEncounterId && !activeEncounterId.startsWith('adhoc-') && (
+        {isTactical && activeArchiveId && !activeArchiveId.startsWith('adhoc-') && (
           <button
             onClick={handleSave}
             className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-bold px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
@@ -252,7 +249,7 @@ export function EncounterPanel() {
         )}
 
         {/* Activate (only when an encounter is selected and not already active) */}
-        {selectedEnc && selectedId !== activeEncounterId && (
+        {selectedEnc && selectedId !== activeArchiveId && (
           <button
             onClick={handleActivate}
             className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"

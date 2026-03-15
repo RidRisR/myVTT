@@ -154,6 +154,7 @@ interface WorldState {
   ) => Promise<void>
   placeEntityOnMap: (entityId: string, x: number, y: number) => Promise<void>
   duplicateToken: (tokenId: string, offsetX?: number, offsetY?: number) => Promise<void>
+  addToken: (token: MapToken) => Promise<void>
   updateToken: (id: string, updates: Partial<MapToken>) => Promise<void>
   deleteToken: (id: string) => Promise<void>
 
@@ -753,6 +754,13 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       offsetX,
       offsetY,
     })
+    // Socket event 'tactical:token:added' updates state
+  },
+
+  addToken: async (token) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.post(`/api/rooms/${roomId}/tactical/tokens`, token)
     // Socket event 'tactical:token:added' updates state
   },
 
