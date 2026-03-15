@@ -51,21 +51,29 @@ export function Toast({ toast, onDismiss }: ToastProps) {
 
   useEffect(() => {
     // Trigger enter animation on next frame
-    const frame = requestAnimationFrame(() => setVisible(true))
-    return () => cancelAnimationFrame(frame)
+    const frame = requestAnimationFrame(() => {
+      setVisible(true)
+    })
+    return () => {
+      cancelAnimationFrame(frame)
+    }
   }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => {
       handleDismiss()
     }, toast.duration)
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast.duration, toast.id])
 
   const handleDismiss = () => {
     setExiting(true)
-    setTimeout(() => onDismiss(toast.id), 250)
+    setTimeout(() => {
+      onDismiss(toast.id)
+    }, 250)
   }
 
   const colorClasses = typeColorClasses[toast.type]

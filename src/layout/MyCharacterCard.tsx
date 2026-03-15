@@ -104,7 +104,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
       }
     }
     document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
   }, [colorPickerOpen])
 
   const handleSaveName = () => {
@@ -212,7 +214,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
               <input
                 value={res.key}
-                onChange={(e) => updateResource(i, { key: e.target.value })}
+                onChange={(e) => {
+                  updateResource(i, { key: e.target.value })
+                }}
                 placeholder="Name"
                 style={{
                   ...inputStyle,
@@ -265,7 +269,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
                 }}
               />
               <div
-                onClick={() => setColorPickerOpen(colorPickerOpen === i ? null : i)}
+                onClick={() => {
+                  setColorPickerOpen(colorPickerOpen === i ? null : i)
+                }}
                 className="w-3 h-3 rounded-full cursor-pointer shrink-0 transition-[border-color] duration-fast hover:border-white/50"
                 style={{
                   background: res.color,
@@ -274,7 +280,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
                 title="Change color"
               />
               <button
-                onClick={() => removeResource(i)}
+                onClick={() => {
+                  removeResource(i)
+                }}
                 style={removeBtnStyle}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = '#ef4444'
@@ -294,10 +302,18 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
               valueDisplay="inline"
               draggable
               showButtons
-              onChange={(val: number) => updateResource(i, { current: val })}
-              onDragStart={() => broadcastEditing(entity.id, String(i), res.current)}
-              onDragMove={(val: number) => broadcastEditing(entity.id, String(i), val)}
-              onDragEnd={() => clearEditing()}
+              onChange={(val: number) => {
+                updateResource(i, { current: val })
+              }}
+              onDragStart={() => {
+                broadcastEditing(entity.id, String(i), res.current)
+              }}
+              onDragMove={(val: number) => {
+                broadcastEditing(entity.id, String(i), val)
+              }}
+              onDragEnd={() => {
+                clearEditing()
+              }}
               remoteDragValue={remoteEdit?.value ?? null}
               softLockColor={remoteEdit?.color ?? null}
             />
@@ -355,13 +371,17 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
           <input
             value={attr.key}
-            onChange={(e) => updateAttribute(i, { key: e.target.value })}
+            onChange={(e) => {
+              updateAttribute(i, { key: e.target.value })
+            }}
             placeholder="Name"
             style={{ ...inputStyle, flex: 1, fontSize: 12, padding: '5px 8px', fontWeight: 600 }}
           />
           <MiniHoldButton
             label="-"
-            onTick={() => updateAttribute(i, { value: Math.max(0, attr.value - 1) })}
+            onTick={() => {
+              updateAttribute(i, { value: Math.max(0, attr.value - 1) })
+            }}
             color="#ef4444"
           />
           <input
@@ -382,11 +402,15 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
           />
           <MiniHoldButton
             label="+"
-            onTick={() => updateAttribute(i, { value: attr.value + 1 })}
+            onTick={() => {
+              updateAttribute(i, { value: attr.value + 1 })
+            }}
             color="#22c55e"
           />
           <button
-            onClick={() => removeAttribute(i)}
+            onClick={() => {
+              removeAttribute(i)
+            }}
             style={removeBtnStyle}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = '#ef4444'
@@ -433,7 +457,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
             >
               {s.label}
               <button
-                onClick={() => removeStatus(i)}
+                onClick={() => {
+                  removeStatus(i)
+                }}
                 className="bg-transparent border-none cursor-pointer text-sm p-0 leading-none opacity-60 transition-opacity duration-fast hover:opacity-100"
                 style={{ color: sc }}
               >
@@ -449,7 +475,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
       <div className="flex gap-1">
         <input
           value={statusInput}
-          onChange={(e) => setStatusInput(e.target.value)}
+          onChange={(e) => {
+            setStatusInput(e.target.value)
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') addStatus()
           }}
@@ -470,7 +498,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
     <div>
       <textarea
         value={notes}
-        onChange={(e) => onUpdateEntity(entity.id, { notes: e.target.value })}
+        onChange={(e) => {
+          onUpdateEntity(entity.id, { notes: e.target.value })
+        }}
         placeholder="Free-form notes..."
         rows={8}
         style={{
@@ -496,7 +526,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
   return (
     <div
       className="fixed top-1/2 left-0 -translate-y-1/2 z-toast flex pointer-events-none"
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       <div
         className="flex items-center pointer-events-auto"
@@ -558,7 +590,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handlePortraitUpload}
+                onChange={(e) => {
+                  void handlePortraitUpload(e)
+                }}
                 className="hidden"
               />
             </div>
@@ -569,7 +603,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
                 <input
                   autoFocus
                   value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
+                  onChange={(e) => {
+                    setEditName(e.target.value)
+                  }}
                   onBlur={handleSaveName}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveName()
@@ -582,7 +618,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
                 />
               ) : (
                 <div
-                  onClick={() => setEditingName(true)}
+                  onClick={() => {
+                    setEditingName(true)
+                  }}
                   className="font-bold text-base text-white tracking-wide cursor-text"
                   title="Click to rename"
                 >
@@ -597,7 +635,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
             {TABS.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id)
+                }}
                 className={`flex-1 py-2 bg-transparent border-none cursor-pointer text-[9px] font-bold tracking-wider uppercase transition-colors duration-fast font-sans ${
                   activeTab === tab.id
                     ? 'bg-surface/60 text-white'
@@ -621,7 +661,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
 
         {/* Tab handle -- always visible */}
         <div
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            setOpen(!open)
+          }}
           className="w-9 py-3 bg-glass backdrop-blur-[12px] rounded-r-[10px] cursor-pointer flex flex-col items-center gap-1.5 border border-border-glass border-l-0 shadow-[4px_0_16px_rgba(0,0,0,0.2)] transition-colors duration-fast -ml-px hover:bg-surface"
         >
           {entity.imageUrl ? (

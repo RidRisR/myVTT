@@ -12,13 +12,17 @@ export default defineConfig([
     files: ['**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,
-      tseslint.configs.strict,
+      tseslint.configs.strictTypeChecked,
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     rules: {
       // Allow underscore-prefixed params/caught errors (e.g. _err, _db)
@@ -38,6 +42,9 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/refs': 'off',
       'react-hooks/purity': 'off',
+      // Numbers in template literals are safe: `${count} items` is fine.
+      // This rule targets objects/undefined/null, not numbers.
+      '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
     },
   },
   // Store Action Convention: only store files may import the api module.
@@ -60,11 +67,31 @@ export default defineConfig([
       ],
     },
   },
-  // Server route files use req.roomDb! extensively — middleware guarantees non-null
+  // Test files: vi.fn()/vi.mock() produce `any`-typed mocks, making no-unsafe-*
+  // rules inherently noisy. Disable for test code; keep strict for production code.
+  {
+    files: ['**/__tests__/**/*.ts', '**/__test-utils__/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+    },
+  },
+  // Server: req.roomDb! is guaranteed by withRoom middleware; no-unsafe-* rules
+  // are disabled because server/tsconfig.json has noImplicitAny:false — fix that
+  // first (add type annotations to all server code), then re-enable these rules.
   {
     files: ['server/**/*.ts'],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
     },
   },
   prettier,

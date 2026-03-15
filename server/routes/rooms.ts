@@ -10,7 +10,7 @@ export function roomRoutes(dataDir: string): Router {
 
   router.get('/api/rooms', (_req, res) => {
     const db = getGlobalDb(dataDir)
-    const rooms = toCamelAll<{ id: string; name: string; createdBy: string; createdAt: number }>(
+    const rooms = toCamelAll(
       db.prepare('SELECT * FROM rooms ORDER BY created_at DESC').all() as Record<string, unknown>[],
     )
     res.json(rooms)
@@ -38,9 +38,9 @@ export function roomRoutes(dataDir: string): Router {
 
   router.delete('/api/rooms/:roomId', (req, res) => {
     const db = getGlobalDb(dataDir)
-    const room = db
-      .prepare('SELECT id FROM rooms WHERE id = ?')
-      .get(req.params.roomId) as { id: string } | undefined
+    const room = db.prepare('SELECT id FROM rooms WHERE id = ?').get(req.params.roomId) as
+      | { id: string }
+      | undefined
     if (!room) {
       res.status(404).json({ error: 'Room not found' })
       return

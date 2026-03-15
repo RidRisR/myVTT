@@ -53,7 +53,7 @@ export function EntityPanel() {
     const off: Entity[] = []
     for (const entry of sceneEntries) {
       const entity = entities[entry.entityId]
-      if (!entity || pcIds.has(entity.id)) continue
+      if (pcIds.has(entity.id)) continue
       if (search && !entity.name.toLowerCase().includes(search.toLowerCase())) continue
       if (entry.visible) on.push(entity)
       else off.push(entity)
@@ -84,19 +84,19 @@ export function EntityPanel() {
       permissions: defaultNPCPermissions(),
       lifecycle: 'ephemeral',
     }
-    addEntity(newEntity)
-    if (activeSceneId) addEntityToScene(activeSceneId, newEntity.id, false)
+    void addEntity(newEntity)
+    if (activeSceneId) void addEntityToScene(activeSceneId, newEntity.id, false)
     setInspectedCharacterId(newEntity.id)
   }
 
   const handleDelete = (entity: Entity) => {
-    deleteEntity(entity.id)
+    void deleteEntity(entity.id)
     toast('undo', `已删除"${entity.name}"`, { duration: 5000 })
   }
 
   const handleToggleVisibility = (entity: Entity, currentlyVisible: boolean) => {
     if (!activeSceneId) return
-    toggleEntityVisibility(activeSceneId, entity.id, !currentlyVisible)
+    void toggleEntityVisibility(activeSceneId, entity.id, !currentlyVisible)
   }
 
   const renderGroup = (title: string, icon: string, list: Entity[], isVisible: boolean) => {
@@ -116,12 +116,18 @@ export function EntityPanel() {
                 isPC={false}
                 isOnline={getOnlineStatus(entity)}
                 isInScene={sceneEntityIds.includes(entity.id)}
-                onSelect={() => setInspectedCharacterId(entity.id)}
-                onDelete={() => handleDelete(entity)}
-                onAddToScene={() => {
-                  if (activeSceneId) addEntityToScene(activeSceneId, entity.id)
+                onSelect={() => {
+                  setInspectedCharacterId(entity.id)
                 }}
-                onUpdate={(updates) => updateEntity(entity.id, updates)}
+                onDelete={() => {
+                  handleDelete(entity)
+                }}
+                onAddToScene={() => {
+                  if (activeSceneId) void addEntityToScene(activeSceneId, entity.id)
+                }}
+                onUpdate={(updates) => {
+                  void updateEntity(entity.id, updates)
+                }}
               />
               {/* Visibility toggle button */}
               <button
@@ -160,7 +166,9 @@ export function EntityPanel() {
           />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value)
+            }}
             placeholder="搜索NPC..."
             className="w-full pl-6 pr-2 py-1 text-xs bg-surface/60 text-text-primary border border-border-glass rounded outline-none placeholder:text-text-muted/30"
           />

@@ -96,10 +96,14 @@ export function CharacterEditPanel({
       }
     }
     document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
   }, [colorPickerOpen])
 
-  const updateChar = (updates: Partial<Entity>) => onUpdateCharacter(character.id, updates)
+  const updateChar = (updates: Partial<Entity>) => {
+    onUpdateCharacter(character.id, updates)
+  }
 
   /** Wrap a ruleData sub-key update into a Partial<Entity> */
   function updateRuleData(key: string, value: unknown): Partial<Entity> {
@@ -192,7 +196,9 @@ export function CharacterEditPanel({
           type="file"
           accept="image/*"
           className="hidden"
-          onChange={handlePortraitUpload}
+          onChange={(e) => {
+            void handlePortraitUpload(e)
+          }}
         />
         <div
           onClick={() => fileInputRef.current?.click()}
@@ -238,7 +244,9 @@ export function CharacterEditPanel({
           <label className="text-[9px] text-text-muted/40 uppercase tracking-wider">Name</label>
           <input
             value={character.name}
-            onChange={(e) => updateChar({ name: e.target.value })}
+            onChange={(e) => {
+              updateChar({ name: e.target.value })
+            }}
             style={{ ...inputStyle, fontSize: 14, fontWeight: 600 }}
           />
         </div>
@@ -249,7 +257,9 @@ export function CharacterEditPanel({
         <div className="flex items-center gap-2">
           <label className="text-[9px] text-text-muted/40 uppercase tracking-wider">Color</label>
           <div
-            onClick={() => setColorPickerOpen(colorPickerOpen === 'character' ? null : 'character')}
+            onClick={() => {
+              setColorPickerOpen(colorPickerOpen === 'character' ? null : 'character')
+            }}
             className="w-[18px] h-[18px] rounded-full cursor-pointer transition-[border-color] duration-fast hover:border-white/50"
             style={{
               background: character.color,
@@ -299,7 +309,9 @@ export function CharacterEditPanel({
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
               <input
                 value={res.key}
-                onChange={(e) => updateResource(i, { key: e.target.value })}
+                onChange={(e) => {
+                  updateResource(i, { key: e.target.value })
+                }}
                 placeholder="Name"
                 style={{
                   ...inputStyle,
@@ -352,7 +364,9 @@ export function CharacterEditPanel({
                 }}
               />
               <div
-                onClick={() => setColorPickerOpen(colorPickerOpen === i ? null : i)}
+                onClick={() => {
+                  setColorPickerOpen(colorPickerOpen === i ? null : i)
+                }}
                 className="w-3 h-3 rounded-full cursor-pointer shrink-0 transition-[border-color] duration-fast hover:border-white/50"
                 style={{
                   background: res.color,
@@ -361,7 +375,9 @@ export function CharacterEditPanel({
                 title="Change color"
               />
               <button
-                onClick={() => removeResource(i)}
+                onClick={() => {
+                  removeResource(i)
+                }}
                 style={removeBtnStyle}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = '#ef4444'
@@ -382,10 +398,18 @@ export function CharacterEditPanel({
               valueDisplay="inline"
               draggable
               showButtons
-              onChange={(val: number) => updateResource(i, { current: val })}
-              onDragStart={() => broadcastEditing(character.id, String(i), res.current)}
-              onDragMove={(val: number) => broadcastEditing(character.id, String(i), val)}
-              onDragEnd={() => clearEditing()}
+              onChange={(val: number) => {
+                updateResource(i, { current: val })
+              }}
+              onDragStart={() => {
+                broadcastEditing(character.id, String(i), res.current)
+              }}
+              onDragMove={(val: number) => {
+                broadcastEditing(character.id, String(i), val)
+              }}
+              onDragEnd={() => {
+                clearEditing()
+              }}
               remoteDragValue={remoteEdit?.value ?? null}
               softLockColor={remoteEdit?.color ?? null}
             />
@@ -443,13 +467,17 @@ export function CharacterEditPanel({
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
           <input
             value={attr.key}
-            onChange={(e) => updateAttribute(i, { key: e.target.value })}
+            onChange={(e) => {
+              updateAttribute(i, { key: e.target.value })
+            }}
             placeholder="Name"
             style={{ ...inputStyle, flex: 1, fontSize: 12, padding: '5px 8px', fontWeight: 600 }}
           />
           <MiniHoldButton
             label="-"
-            onTick={() => updateAttribute(i, { value: Math.max(0, attr.value - 1) })}
+            onTick={() => {
+              updateAttribute(i, { value: Math.max(0, attr.value - 1) })
+            }}
             color="#ef4444"
           />
           <input
@@ -470,11 +498,15 @@ export function CharacterEditPanel({
           />
           <MiniHoldButton
             label="+"
-            onTick={() => updateAttribute(i, { value: attr.value + 1 })}
+            onTick={() => {
+              updateAttribute(i, { value: attr.value + 1 })
+            }}
             color="#22c55e"
           />
           <button
-            onClick={() => removeAttribute(i)}
+            onClick={() => {
+              removeAttribute(i)
+            }}
             style={removeBtnStyle}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = '#ef4444'
@@ -521,7 +553,9 @@ export function CharacterEditPanel({
             >
               {s.label}
               <button
-                onClick={() => removeStatus(i)}
+                onClick={() => {
+                  removeStatus(i)
+                }}
                 className="bg-transparent border-none cursor-pointer text-sm p-0 leading-none opacity-60 transition-opacity duration-fast hover:opacity-100"
                 style={{ color: sc }}
               >
@@ -537,7 +571,9 @@ export function CharacterEditPanel({
       <div className="flex gap-1">
         <input
           value={statusInput}
-          onChange={(e) => setStatusInput(e.target.value)}
+          onChange={(e) => {
+            setStatusInput(e.target.value)
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') addStatus()
           }}
@@ -558,7 +594,9 @@ export function CharacterEditPanel({
     <div>
       <textarea
         value={character.notes}
-        onChange={(e) => updateChar({ notes: e.target.value })}
+        onChange={(e) => {
+          updateChar({ notes: e.target.value })
+        }}
         placeholder="Free-form notes..."
         rows={8}
         style={{
@@ -590,8 +628,12 @@ export function CharacterEditPanel({
         maxHeight: 'inherit',
         boxSizing: 'border-box',
       }}
-      onPointerDown={(e) => e.stopPropagation()}
-      onWheel={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
+      onWheel={(e) => {
+        e.stopPropagation()
+      }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3.5 pt-3 pb-2 shrink-0">
@@ -611,7 +653,9 @@ export function CharacterEditPanel({
         {TABS.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              setActiveTab(tab.id)
+            }}
             className={`flex-1 py-[7px] bg-transparent border-none cursor-pointer text-[8px] font-bold tracking-wider uppercase transition-colors duration-fast font-sans ${
               activeTab === tab.id
                 ? 'bg-surface/60 text-white'

@@ -16,7 +16,9 @@ export function TagFilterBar({ availableTags, selectedTags, onToggleTag }: TagFi
         return (
           <button
             key={tag}
-            onClick={() => onToggleTag(tag)}
+            onClick={() => {
+              onToggleTag(tag)
+            }}
             className={`text-[10px] px-2 py-0.5 rounded-full cursor-pointer transition-colors duration-fast ${
               isSelected
                 ? 'bg-accent/20 text-accent border border-accent/30'

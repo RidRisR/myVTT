@@ -40,7 +40,9 @@ export function GridConfigPanel({ tacticalInfo, onUpdateGrid, onClose }: GridCon
       }
     }
     document.addEventListener('pointerdown', handlePointerDown)
-    return () => document.removeEventListener('pointerdown', handlePointerDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+    }
   }, [onClose])
 
   const commitChange = useCallback(

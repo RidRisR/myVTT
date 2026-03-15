@@ -37,7 +37,9 @@ export function SceneButton({
       {/* Scene button */}
       <div
         className="fixed bottom-3 left-4 z-toast font-sans"
-        onPointerDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => {
+          e.stopPropagation()
+        }}
       >
         <button
           onClick={() => {
@@ -62,10 +64,14 @@ export function SceneButton({
             onDeleteScene(id)
             setEditingSceneId(null)
           }}
-          onRenameScene={(id, name) => onUpdateScene(id, { name })}
+          onRenameScene={(id, name) => {
+            onUpdateScene(id, { name })
+          }}
           onDuplicateScene={onDuplicateScene}
           onCreateScene={onCreateScene}
-          onClose={() => setShowSceneList(false)}
+          onClose={() => {
+            setShowSceneList(false)
+          }}
         />
       )}
 
@@ -78,7 +84,9 @@ export function SceneButton({
             onDeleteScene(id)
             setEditingSceneId(null)
           }}
-          onClose={() => setEditingSceneId(null)}
+          onClose={() => {
+            setEditingSceneId(null)
+          }}
         />
       )}
     </>

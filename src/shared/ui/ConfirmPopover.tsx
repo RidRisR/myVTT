@@ -45,7 +45,9 @@ export function ConfirmPopover({
       }
     }
     document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
   }, [onCancel])
 
   // Close on Escape
@@ -54,7 +56,9 @@ export function ConfirmPopover({
       if (e.key === 'Escape') onCancel()
     }
     document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
+    return () => {
+      document.removeEventListener('keydown', handler)
+    }
   }, [onCancel])
 
   if (!pos) return null
@@ -68,7 +72,9 @@ export function ConfirmPopover({
         left: pos.left,
         transform: 'translate(-50%, -100%)',
       }}
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       {/* Bubble */}
       <div className="bg-surface border border-border-glass rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)] px-3 py-2.5 min-w-[140px]">

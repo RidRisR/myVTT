@@ -194,7 +194,9 @@ export function ChatPanel({
       setShowSpeakerPicker(false)
     }
     document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
   }, [showSpeakerPicker])
 
   const handleToastRemove = useCallback((id: string) => {
@@ -204,7 +206,7 @@ export function ChatPanel({
   const handleSend = useCallback(
     (message: ChatMessage) => {
       if (message.type === 'text') {
-        sendMessage({
+        void sendMessage({
           senderId: message.senderId,
           senderName: message.senderName,
           senderColor: message.senderColor,
@@ -218,7 +220,7 @@ export function ChatPanel({
 
   const handleRoll = useCallback(
     (formula: string, resolvedExpression?: string) => {
-      sendRoll({
+      void sendRoll({
         formula,
         resolvedExpression,
         senderId: activeSpeaker.id,
@@ -264,7 +266,9 @@ export function ChatPanel({
             width: 200,
             maxHeight: 280,
           }}
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+          }}
         >
           <div className="text-[10px] text-text-muted/30 px-2.5 py-1 uppercase tracking-wider">
             Speak as
@@ -302,7 +306,9 @@ export function ChatPanel({
         style={{ width: RIGHT_PANEL_WIDTH }}
       >
         <button
-          onClick={() => setExpanded((v) => !v)}
+          onClick={() => {
+            setExpanded((v) => !v)
+          }}
           className="w-9 rounded-[10px] bg-surface border border-border-glass cursor-pointer transition-all duration-fast text-text-muted text-sm flex items-center justify-center backdrop-blur-[8px] shrink-0 hover:bg-hover hover:text-text-primary"
           aria-label={expanded ? 'Collapse chat history' : 'Expand chat history'}
         >
@@ -315,7 +321,9 @@ export function ChatPanel({
 
         <button
           ref={speakerBtnRef}
-          onClick={() => setShowSpeakerPicker((v) => !v)}
+          onClick={() => {
+            setShowSpeakerPicker((v) => !v)
+          }}
           className="w-9 h-9 rounded-[10px] bg-transparent cursor-pointer p-0 flex items-center justify-center shrink-0 transition-[border-color] duration-fast"
           style={{
             border: showSpeakerPicker ? '2px solid rgba(212,160,85,0.6)' : '2px solid transparent',

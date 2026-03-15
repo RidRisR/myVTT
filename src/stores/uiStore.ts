@@ -78,18 +78,38 @@ export const useUiStore = create<UiState>((set) => ({
   gmSidebarTab: 'archives',
   gmSidebarCollapsed: false,
 
-  setInspectedCharacterId: (id) => set({ inspectedCharacterId: id }),
-  setSelectedTokenId: (id) => set({ selectedTokenId: id }),
-  setBgContextMenu: (menu) => set({ bgContextMenu: menu }),
-  setEditingHandout: (asset) => set({ editingHandout: asset }),
-  setActiveTool: (tool) => set({ activeTool: tool }),
-  setGmViewAsPlayer: (val) => set({ gmViewAsPlayer: val }),
+  setInspectedCharacterId: (id) => {
+    set({ inspectedCharacterId: id })
+  },
+  setSelectedTokenId: (id) => {
+    set({ selectedTokenId: id })
+  },
+  setBgContextMenu: (menu) => {
+    set({ bgContextMenu: menu })
+  },
+  setEditingHandout: (asset) => {
+    set({ editingHandout: asset })
+  },
+  setActiveTool: (tool) => {
+    set({ activeTool: tool })
+  },
+  setGmViewAsPlayer: (val) => {
+    set({ gmViewAsPlayer: val })
+  },
   setTheme: (theme) => {
     applyTheme(theme)
     set({ theme })
   },
-  setPortraitBarVisible: (visible) => set({ portraitBarVisible: visible }),
-  setTeamPanelVisible: (visible) => set({ teamPanelVisible: visible }),
-  setGmSidebarTab: (tab) => set({ gmSidebarTab: tab }),
-  setGmSidebarCollapsed: (collapsed) => set({ gmSidebarCollapsed: collapsed }),
+  setPortraitBarVisible: (visible) => {
+    set({ portraitBarVisible: visible })
+  },
+  setTeamPanelVisible: (visible) => {
+    set({ teamPanelVisible: visible })
+  },
+  setGmSidebarTab: (tab) => {
+    set({ gmSidebarTab: tab })
+  },
+  setGmSidebarCollapsed: (collapsed) => {
+    set({ gmSidebarCollapsed: collapsed })
+  },
 }))

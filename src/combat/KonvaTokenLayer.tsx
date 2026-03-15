@@ -131,7 +131,7 @@ export function KonvaTokenLayer({
       }
 
       // Show ghost token at snap position (only when gridSnap is enabled)
-      if (tacticalInfo.grid.snap && didDragRef.current) {
+      if (tacticalInfo.grid.snap) {
         const snapped = snapToGrid(
           node.x(),
           node.y(),

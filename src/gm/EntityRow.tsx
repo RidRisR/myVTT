@@ -72,13 +72,17 @@ export function EntityRow({
           <input
             autoFocus
             value={renameValue}
-            onChange={(e) => setRenameValue(e.target.value)}
+            onChange={(e) => {
+              setRenameValue(e.target.value)
+            }}
             onBlur={commitRename}
             onKeyDown={(e) => {
               if (e.key === 'Enter') commitRename()
               if (e.key === 'Escape') setRenaming(false)
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
             className="w-full text-xs bg-surface text-text-primary border border-border-glass rounded px-1.5 py-0.5 outline-none"
           />
         ) : (
@@ -108,7 +112,9 @@ export function EntityRow({
         <div
           ref={menuRef}
           className="absolute right-1 top-full mt-0.5 z-popover bg-surface border border-border-glass rounded-md shadow-lg py-1 min-w-[120px]"
-          onPointerDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+          }}
         >
           <button
             onClick={(e) => {
@@ -159,7 +165,9 @@ export function EntityRow({
             setDeletingThis(false)
             onDelete()
           }}
-          onCancel={() => setDeletingThis(false)}
+          onCancel={() => {
+            setDeletingThis(false)
+          }}
         />
       )}
     </div>

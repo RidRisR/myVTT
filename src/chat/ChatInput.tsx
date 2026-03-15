@@ -23,9 +23,7 @@ interface ChatInputProps {
 }
 
 function generateId(): string {
-  return (
-    self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
-  )
+  return self.crypto.randomUUID()
 }
 
 export function ChatInput({
@@ -150,7 +148,12 @@ export function ChatInput({
   }
 
   return (
-    <div className="relative" onPointerDown={(e) => e.stopPropagation()}>
+    <div
+      className="relative"
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
+    >
       {error && (
         <div className="text-white text-[11px] mb-1 px-2.5 py-1 bg-danger/90 rounded-md">
           {error}
@@ -208,7 +211,11 @@ export function ChatInput({
             }
           }}
           onFocus={onFocus}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+          onBlur={() =>
+            setTimeout(() => {
+              setShowSuggestions(false)
+            }, 150)
+          }
           placeholder="Type a message or .r 1d20+@STR"
           className="flex-1 min-w-0 px-3.5 py-2.5 border-none rounded-l-[10px] text-[13px] outline-none bg-surface backdrop-blur-[8px] text-text-primary placeholder:text-text-muted shadow-[0_2px_12px_rgba(0,0,0,0.2)]"
         />

@@ -8,7 +8,7 @@ import { toCamel, parseJsonFields } from '../db'
 import { deepMerge } from '../deepMerge'
 
 export function toEntity(row: Record<string, unknown>) {
-  return parseJsonFields(toCamel<Record<string, unknown>>(row), 'ruleData', 'permissions')
+  return parseJsonFields(toCamel(row), 'ruleData', 'permissions')
 }
 
 export function degradeTokenReferences(_db: Database.Database, _entityId: string): void {

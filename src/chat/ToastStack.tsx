@@ -26,8 +26,12 @@ export function ToastStack({ toastQueue, onRemove }: ToastStackProps) {
   // Tick every 100ms to update time-based opacity smoothly
   useEffect(() => {
     if (toastQueue.length === 0) return
-    tickRef.current = setInterval(() => forceUpdate((n) => n + 1), 100)
-    return () => clearInterval(tickRef.current)
+    tickRef.current = setInterval(() => {
+      forceUpdate((n) => n + 1)
+    }, 100)
+    return () => {
+      clearInterval(tickRef.current)
+    }
   }, [toastQueue.length])
 
   // Auto-remove expired toasts

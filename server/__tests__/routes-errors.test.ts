@@ -67,8 +67,8 @@ beforeAll(async () => {
   })
 })
 
-afterAll(async () => {
-  io.close()
+afterAll(() => {
+  void io.close()
   server.close()
   closeAllDbs()
   fs.rmSync(dataDir, { recursive: true, force: true })
@@ -240,23 +240,17 @@ describe('Archive gm_only filter', () => {
     })
 
     // PL should not see gm_only archive
-    const plList = await api(
-      'GET',
-      `/api/rooms/${roomId}/scenes/${sceneId}/archives`,
-      undefined,
-      { 'X-MyVTT-Role': 'PL' },
-    )
+    const plList = await api('GET', `/api/rooms/${roomId}/scenes/${sceneId}/archives`, undefined, {
+      'X-MyVTT-Role': 'PL',
+    })
     const plNames = plList.data.map((e: { name: string }) => e.name)
     expect(plNames).toContain('Public Fight')
     expect(plNames).not.toContain('Secret Ambush')
 
     // GM should see all archives
-    const gmList = await api(
-      'GET',
-      `/api/rooms/${roomId}/scenes/${sceneId}/archives`,
-      undefined,
-      { 'X-MyVTT-Role': 'GM' },
-    )
+    const gmList = await api('GET', `/api/rooms/${roomId}/scenes/${sceneId}/archives`, undefined, {
+      'X-MyVTT-Role': 'GM',
+    })
     const gmNames = gmList.data.map((e: { name: string }) => e.name)
     expect(gmNames).toContain('Public Fight')
     expect(gmNames).toContain('Secret Ambush')

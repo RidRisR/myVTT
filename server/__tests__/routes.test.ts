@@ -75,8 +75,8 @@ beforeAll(async () => {
   })
 })
 
-afterAll(async () => {
-  io.close()
+afterAll(() => {
+  void io.close()
   server.close()
   closeAllDbs()
   // Cleanup temp dir
@@ -194,17 +194,13 @@ describe('Full room lifecycle', () => {
   // ── Archives + Tactical ──
   let archiveId: string
   it('creates an archive', async () => {
-    const { status, data } = await api(
-      'POST',
-      `/api/rooms/${roomId}/scenes/${sceneId}/archives`,
-      {
-        name: 'Bar Fight',
-        mapUrl: 'tavern-map.jpg',
-        mapWidth: 1000,
-        mapHeight: 800,
-        grid: { size: 50, snap: true, visible: true },
-      },
-    )
+    const { status, data } = await api('POST', `/api/rooms/${roomId}/scenes/${sceneId}/archives`, {
+      name: 'Bar Fight',
+      mapUrl: 'tavern-map.jpg',
+      mapWidth: 1000,
+      mapHeight: 800,
+      grid: { size: 50, snap: true, visible: true },
+    })
     expect(status).toBe(201)
     expect(data.name).toBe('Bar Fight')
     expect(data.grid.size).toBe(50)
@@ -389,7 +385,7 @@ describe('Full room lifecycle', () => {
 
   // Full scene ID → activeSceneId round-trip (regression: C1 end-to-end)
   it('scene with client ID can be set as activeSceneId', async () => {
-    const sid = 'roundtrip-scene-' + Date.now()
+    const sid = `roundtrip-scene-${Date.now()}`
     await api('POST', `/api/rooms/${roomId}/scenes`, { id: sid, name: 'RT Scene' })
     await api('PATCH', `/api/rooms/${roomId}/state`, { activeSceneId: sid })
 

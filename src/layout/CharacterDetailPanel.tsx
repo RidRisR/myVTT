@@ -43,8 +43,12 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
         boxSizing: 'border-box',
         overflowY: 'auto',
       }}
-      onPointerDown={(e) => e.stopPropagation()}
-      onWheel={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
+      onWheel={(e) => {
+        e.stopPropagation()
+      }}
     >
       {/* Close button */}
       <button
