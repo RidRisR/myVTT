@@ -39,7 +39,7 @@ export function TacticalPanel({
 
   return (
     <div
-      className={`fixed inset-0 z-combat motion-reduce:duration-0 ${
+      className={`fixed inset-0 z-tactical motion-reduce:duration-0 ${
         visible
           ? 'opacity-100 transition-opacity duration-slow ease-out pointer-events-auto'
           : 'opacity-0 transition-opacity duration-normal ease-in pointer-events-none'

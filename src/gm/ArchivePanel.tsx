@@ -5,7 +5,7 @@ import type { ArchiveRecord } from '../stores/worldStore'
 import { useToast } from '../shared/ui/useToast'
 import { ConfirmPopover } from '../shared/ui/ConfirmPopover'
 
-export function EncounterPanel() {
+export function ArchivePanel() {
   const activeSceneId = useWorldStore((s) => s.room.activeSceneId)
   const activeArchiveId = useWorldStore((s) => s.room.activeArchiveId)
   const archives = useWorldStore((s) => s.archives)
@@ -68,15 +68,15 @@ export function EncounterPanel() {
 
   const handleCreate = () => {
     if (!activeSceneId) return
-    createArchive(activeSceneId, `遭遇 ${archives.length + 1}`)
+    createArchive(activeSceneId, `存档 ${archives.length + 1}`)
   }
 
-  const handleDelete = (enc: ArchiveRecord) => {
+  const handleDelete = (archive: ArchiveRecord) => {
     setDeletingId(null)
     setMenuId(null)
     // Optimistic removal from local state, delete on server
-    deleteArchive(enc.id)
-    toast('undo', `已删除"${enc.name}"`, {
+    deleteArchive(archive.id)
+    toast('undo', `已删除"${archive.name}"`, {
       duration: 5000,
     })
   }
@@ -89,11 +89,11 @@ export function EncounterPanel() {
   const handleSave = () => {
     if (!activeArchiveId || !activeSceneId) return
     saveArchive(activeArchiveId)
-    toast('success', '已保存遭遇快照')
+    toast('success', '已保存存档快照')
   }
 
-  const selectedEnc = selectedId ? archives.find((e) => e.id === selectedId) : null
-  const deletingEnc = deletingId ? archives.find((e) => e.id === deletingId) : null
+  const selectedArchive = selectedId ? archives.find((e) => e.id === selectedId) : null
+  const deletingArchive = deletingId ? archives.find((e) => e.id === deletingId) : null
 
   if (!activeSceneId) {
     return (
@@ -106,23 +106,23 @@ export function EncounterPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Encounter list */}
+      {/* Archive list */}
       <div className="flex-1 overflow-y-auto">
         {sortedArchives.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs py-8">
             <Swords size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-            <span className="opacity-50">暂无遭遇预设</span>
+            <span className="opacity-50">暂无战场存档</span>
             <span className="opacity-30 text-[10px] mt-1">点击下方「+」创建</span>
           </div>
         ) : (
           <div className="flex flex-col gap-1">
-            {sortedArchives.map((enc) => {
-              const isSelected = enc.id === selectedId
-              const isActive = enc.id === activeArchiveId
+            {sortedArchives.map((archive) => {
+              const isSelected = archive.id === selectedId
+              const isActive = archive.id === activeArchiveId
               return (
                 <div
-                  key={enc.id}
-                  onClick={() => setSelectedId(isSelected ? null : enc.id)}
+                  key={archive.id}
+                  onClick={() => setSelectedId(isSelected ? null : archive.id)}
                   className={`relative rounded-md px-2.5 py-2 cursor-pointer transition-colors duration-fast group ${
                     isSelected
                       ? 'bg-accent/15 border border-accent/30'
@@ -136,7 +136,7 @@ export function EncounterPanel() {
                     )}
 
                     {/* Name or rename input */}
-                    {renamingId === enc.id ? (
+                    {renamingId === archive.id ? (
                       <input
                         ref={renameInputRef}
                         value={renameValue}
@@ -150,20 +150,22 @@ export function EncounterPanel() {
                         className="flex-1 text-xs bg-surface text-text-primary border border-border-glass rounded px-1.5 py-0.5 outline-none min-w-0"
                       />
                     ) : (
-                      <span className="flex-1 text-xs text-text-primary truncate">{enc.name}</span>
+                      <span className="flex-1 text-xs text-text-primary truncate">
+                        {archive.name}
+                      </span>
                     )}
 
                     {/* Meta info */}
-                    {enc.mapUrl && (
+                    {archive.mapUrl && (
                       <span className="text-[10px] text-text-muted/50 shrink-0">🗺</span>
                     )}
 
                     {/* Context menu button */}
                     <button
-                      ref={deletingId === enc.id ? deleteButtonRef : undefined}
+                      ref={deletingId === archive.id ? deleteButtonRef : undefined}
                       onClick={(e) => {
                         e.stopPropagation()
-                        setMenuId(menuId === enc.id ? null : enc.id)
+                        setMenuId(menuId === archive.id ? null : archive.id)
                       }}
                       className="opacity-0 group-hover:opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
                     >
@@ -172,7 +174,7 @@ export function EncounterPanel() {
                   </div>
 
                   {/* Context menu dropdown */}
-                  {menuId === enc.id && (
+                  {menuId === archive.id && (
                     <div
                       ref={menuRef}
                       className="absolute right-1 top-full mt-0.5 z-popover bg-surface border border-border-glass rounded-md shadow-lg py-1 min-w-[120px]"
@@ -181,8 +183,8 @@ export function EncounterPanel() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          setRenamingId(enc.id)
-                          setRenameValue(enc.name)
+                          setRenamingId(archive.id)
+                          setRenameValue(archive.name)
                           setMenuId(null)
                         }}
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
@@ -193,7 +195,7 @@ export function EncounterPanel() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          duplicateArchive(enc.id)
+                          duplicateArchive(archive.id)
                           setMenuId(null)
                         }}
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
@@ -205,7 +207,7 @@ export function EncounterPanel() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          setDeletingId(enc.id)
+                          setDeletingId(archive.id)
                           setMenuId(null)
                         }}
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-danger hover:bg-hover cursor-pointer transition-colors duration-fast"
@@ -228,7 +230,7 @@ export function EncounterPanel() {
         <button
           onClick={handleCreate}
           className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-          title="新建遭遇"
+          title="新建存档"
         >
           <Plus size={12} strokeWidth={1.5} />
           新建
@@ -236,24 +238,24 @@ export function EncounterPanel() {
 
         <div className="flex-1" />
 
-        {/* Save snapshot (only when combat active with a named encounter) */}
+        {/* Save snapshot (only when combat active with a named archive) */}
         {isTactical && activeArchiveId && !activeArchiveId.startsWith('adhoc-') && (
           <button
             onClick={handleSave}
             className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-bold px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-            title="保存当前战斗状态到遭遇"
+            title="保存当前战斗状态到存档"
           >
             <Save size={12} strokeWidth={1.5} />
             保存
           </button>
         )}
 
-        {/* Activate (only when an encounter is selected and not already active) */}
-        {selectedEnc && selectedId !== activeArchiveId && (
+        {/* Activate (only when an archive is selected and not already active) */}
+        {selectedArchive && selectedId !== activeArchiveId && (
           <button
             onClick={handleActivate}
             className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"
-            title="激活遭遇"
+            title="激活存档"
           >
             <Play size={10} strokeWidth={2} />
             激活
@@ -262,11 +264,11 @@ export function EncounterPanel() {
       </div>
 
       {/* Delete confirmation popover */}
-      {deletingEnc && (
+      {deletingArchive && (
         <ConfirmPopover
           anchorRef={deleteButtonRef}
-          message={`删除"${deletingEnc.name}"？`}
-          onConfirm={() => handleDelete(deletingEnc)}
+          message={`删除"${deletingArchive.name}"？`}
+          onConfirm={() => handleDelete(deletingArchive)}
           onCancel={() => setDeletingId(null)}
         />
       )}

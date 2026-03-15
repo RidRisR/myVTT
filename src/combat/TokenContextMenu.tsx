@@ -13,7 +13,7 @@ interface TokenContextMenuProps {
   onUpdateToken: (id: string, updates: Partial<MapToken>) => void
   onUpdateEntity?: (id: string, updates: Partial<Entity>) => void
   onCreateToken: (x: number, y: number) => void
-  onCopyToken: (token: MapToken) => void
+  onCopyToken: (tokenId: string) => void
   mapX: number
   mapY: number
 }
@@ -88,7 +88,7 @@ export function TokenContextMenu({
           <MenuItem
             label="Copy Token"
             onClick={() => {
-              if (token) onCopyToken(token)
+              if (token) onCopyToken(token.id)
               onClose()
             }}
           />
