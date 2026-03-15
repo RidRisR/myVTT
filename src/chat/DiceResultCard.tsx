@@ -33,6 +33,9 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
     (sum, tr) => sum + (tr.term.type === 'dice' ? tr.allRolls.length : 0),
     0,
   )
+  // stopOrder is intentionally frozen at mount — each message in the chat list
+  // gets its own component instance, so the ref is always consistent with the
+  // initial termResults. Animation order is per-message, not per-render.
   const stopOrder = useRef(
     Array.from({ length: totalDice }, (_, i) => i).sort(() => Math.random() - 0.5),
   )

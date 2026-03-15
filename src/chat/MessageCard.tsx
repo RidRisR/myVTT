@@ -100,7 +100,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
             </span>
             <span className="text-xs text-text-muted/50 font-mono">
               {message.rollType
-                ? `.${message.rollType.split(':')[1] ?? 'r'} ${message.formula}`
+                ? `.${message.rollType.split(':').at(-1) ?? 'r'} ${message.formula}`
                 : `.r ${message.formula}`}
               {message.resolvedFormula && (
                 <span className="text-text-muted/30"> ({message.resolvedFormula})</span>

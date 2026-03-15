@@ -71,7 +71,7 @@ export function ChatPanel({
   seatProperties,
   selectedTokenProps = [],
   speakerEntities,
-}: ChatPanelProps) {
+}: Omit<ChatPanelProps, 'roomId'>) {
   const [expanded, setExpanded] = useState(false)
   const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set())
   const [toastQueue, setToastQueue] = useState<ToastItem[]>([])
