@@ -13,6 +13,11 @@ export type ActiveTool = 'select' | 'measure' | 'range-circle' | 'range-cone' | 
 export type ThemeId = 'warm' | 'cold'
 export type GmSidebarTab = 'archives' | 'entities'
 
+export interface ActivePluginPanel {
+  panelId: string
+  entityId?: string
+}
+
 function getStoredTheme(): ThemeId {
   try {
     const v = localStorage.getItem('vtt-theme')
@@ -52,6 +57,11 @@ interface UiState {
   gmSidebarTab: GmSidebarTab
   gmSidebarCollapsed: boolean
 
+  // Plugin panel portal
+  activePluginPanels: ActivePluginPanel[]
+  openPluginPanel: (panelId: string, entityId?: string) => void
+  closePluginPanel: (panelId: string) => void
+
   setInspectedCharacterId: (id: string | null) => void
   setSelectedTokenId: (id: string | null) => void
   setBgContextMenu: (menu: ContextMenuState | null) => void
@@ -77,6 +87,19 @@ export const useUiStore = create<UiState>((set) => ({
   teamPanelVisible: true,
   gmSidebarTab: 'archives',
   gmSidebarCollapsed: false,
+
+  activePluginPanels: [],
+  openPluginPanel: (panelId, entityId) =>
+    set((s) => ({
+      activePluginPanels: [
+        ...s.activePluginPanels.filter((p) => p.panelId !== panelId),
+        { panelId, entityId },
+      ],
+    })),
+  closePluginPanel: (panelId) =>
+    set((s) => ({
+      activePluginPanels: s.activePluginPanels.filter((p) => p.panelId !== panelId),
+    })),
 
   setInspectedCharacterId: (id) => set({ inspectedCharacterId: id }),
   setSelectedTokenId: (id) => set({ selectedTokenId: id }),

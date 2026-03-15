@@ -36,6 +36,7 @@ import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './shared/ui/ToastProvider'
+import { PluginPanelContainer } from './layout/PluginPanelContainer'
 
 const EMPTY_ENTRIES: SceneEntityEntry[] = []
 
@@ -519,6 +520,9 @@ function RoomSession({ roomId }: { roomId: string }) {
           />
         )}
       </div>
+
+      {/* Plugin panel portal — renders active plugin panels at high z-index */}
+      <PluginPanelContainer />
     </ToastProvider>
   )
 }
