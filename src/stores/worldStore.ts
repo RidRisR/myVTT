@@ -111,6 +111,7 @@ interface WorldState {
 
   // Room actions
   setActiveScene: (sceneId: string) => Promise<void>
+  setRuleSystem: (id: string) => Promise<void>
 
   // Scene actions
   addScene: (id: string, name: string, atmosphere: Atmosphere) => Promise<void>
@@ -548,6 +549,13 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const roomId = get()._roomId
     if (!roomId) return
     await api.patch(`/api/rooms/${roomId}/state`, { activeSceneId: sceneId })
+  },
+
+  setRuleSystem: async (id) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.patch(`/api/rooms/${roomId}/state`, { ruleSystemId: id })
+    // No local update needed — 'room:state:updated' socket event handles it
   },
 
   // ── Scene actions ──

@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Menu, LogOut, Sun, Moon } from 'lucide-react'
 import { SEAT_COLORS, type Seat } from '../stores/identityStore'
 import { uploadAsset } from '../shared/assetUpload'
 import { useUiStore } from '../stores/uiStore'
+import { useWorldStore } from '../stores/worldStore'
+import { getAvailablePlugins } from '../rules/registry'
 
 interface HamburgerMenuProps {
   mySeat: Seat
@@ -13,6 +15,10 @@ interface HamburgerMenuProps {
 export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMenuProps) {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(false)
+  const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
+  const setRuleSystem = useWorldStore((s) => s.setRuleSystem)
+  const availablePlugins = useMemo(() => getAvailablePlugins(), [])
+  const isGM = mySeat.role === 'GM'
   const [editName, setEditName] = useState(mySeat.name)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -189,6 +195,38 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
             <div className="h-px bg-border-glass mx-2 my-0.5" />
 
             <ThemeToggle />
+
+            {isGM && (
+              <>
+                <div className="h-px bg-border-glass mx-2 my-0.5" />
+                <div className="px-3 py-2">
+                  <div className="text-[10px] text-text-muted/40 uppercase tracking-wider mb-1.5">
+                    游戏系统
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    {availablePlugins.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          setRuleSystem(p.id)
+                          setOpen(false)
+                        }}
+                        className={`w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors duration-fast ${
+                          ruleSystemId === p.id
+                            ? 'bg-accent/20 text-accent font-semibold'
+                            : 'text-text-muted hover:bg-hover hover:text-text-primary'
+                        }`}
+                      >
+                        {p.name}
+                        {ruleSystemId === p.id && (
+                          <span className="ml-1 text-[10px] opacity-60">（当前）</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="h-px bg-border-glass mx-2 my-0.5" />
 

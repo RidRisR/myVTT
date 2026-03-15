@@ -16,3 +16,7 @@ export function registerPlugin(plugin: RulePlugin): void {
 export function getRulePlugin(id: string): RulePlugin {
   return registry.get(id) ?? genericPlugin
 }
+
+export function getAvailablePlugins(): Array<{ id: string; name: string }> {
+  return Array.from(registry.entries()).map(([id, p]) => ({ id, name: p.name }))
+}
