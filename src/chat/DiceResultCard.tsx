@@ -99,9 +99,9 @@ export function DiceAnimContent({ message, isNew, dieConfigs, footer }: DiceAnim
     <div className="flex flex-col gap-2">
       <div className="flex items-end gap-1 flex-wrap">
         {reelGroups}
-        <span className="text-text-muted mx-1 text-[14px]">=</span>
+        <span className="inline-flex items-center h-8 text-text-muted mx-1 text-[14px]">=</span>
         <span
-          className={`font-extrabold text-[22px] font-mono min-w-[30px] text-center inline-block ${
+          className={`inline-flex items-center justify-center h-8 font-extrabold text-[22px] font-mono min-w-[30px] ${
             totalRevealed ? 'text-accent' : 'text-[#334155] opacity-50'
           }`}
           style={
