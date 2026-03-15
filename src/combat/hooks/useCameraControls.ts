@@ -14,7 +14,6 @@ interface UseCameraControlsParams {
 interface UseCameraControlsReturn {
   stageScale: number
   stagePos: { x: number; y: number }
-  setStagePos: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>
   handleWheel: (e: Konva.KonvaEventObject<WheelEvent>) => void
   handleFitToWindow: () => void
   handleResetCenter: () => void
@@ -130,7 +129,6 @@ export function useCameraControls({
   return {
     stageScale,
     stagePos,
-    setStagePos,
     handleWheel,
     handleFitToWindow,
     handleResetCenter,

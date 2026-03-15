@@ -12,7 +12,7 @@ export function ZoomControls({
   onResetCenter,
 }: ZoomControlsProps) {
   return (
-    <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
+    <div className="absolute top-2 right-2 flex flex-col gap-1 z-tactical">
       <ZoomButton label="+" onClick={onZoomIn} title="Zoom in" />
       <ZoomButton label={'\u2212'} onClick={onZoomOut} title="Zoom out" />
       <ZoomButton label={'\u2922'} onClick={onFitToWindow} title="Fit to window" />
