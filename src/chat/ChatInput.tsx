@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from 'react'
 import { Send } from 'lucide-react'
-import { resolveFormula } from '../shared/diceUtils'
+import { resolveFormula, tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
+import type { DiceSpec } from '../shared/diceUtils'
 import type { ChatMessage } from './chatTypes'
 
 interface Suggestion {
@@ -17,7 +18,7 @@ interface ChatInputProps {
   portraitUrl?: string
   seatProperties: { key: string; value: string }[]
   onSend: (message: ChatMessage) => void
-  onRoll?: (formula: string, resolvedExpression?: string) => void
+  onRoll?: (formula: string, resolvedFormula?: string, dice?: DiceSpec[], rollType?: string) => void
   onFocus?: () => void
   onCycleSpeaker?: () => void
 }
@@ -103,48 +104,64 @@ export function ChatInput({
     const trimmed = input.trim()
     if (!trimmed) return
 
+    const ddMatch = trimmed.match(/^\.dd\s*(.*)$/i)
+    if (ddMatch) { handleDaggerheartRoll(ddMatch[1]); return }
+
     // Check if it's a dice roll
     const rollMatch = trimmed.match(/^\.r\s*(.+)$/i)
     if (rollMatch) {
       const formula = rollMatch[1].trim()
       handleRoll(formula)
-    } else {
-      // Text message
-      onSend({
-        type: 'text',
-        id: generateId(),
-        senderId,
-        senderName,
-        senderColor,
-        portraitUrl,
-        content: trimmed,
-        timestamp: Date.now(),
-      })
-      setInput('')
-      setError('')
+      return
     }
+
+    // Text message
+    onSend({
+      type: 'text',
+      id: generateId(),
+      senderId,
+      senderName,
+      senderColor,
+      portraitUrl,
+      content: trimmed,
+      timestamp: Date.now(),
+    })
+    setInput('')
+    setError('')
   }
 
   const handleRoll = (formula: string) => {
-    // Resolve @key references using provided token props
-    const tokenProps = selectedTokenProps
-
-    let resolvedExpression: string | undefined
-
+    let resolvedFormula: string | undefined
     if (/@[\p{L}\p{N}_]+/u.test(formula)) {
-      const resolved = resolveFormula(formula, tokenProps, seatProperties)
+      const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
       if ('error' in resolved) {
-        const hint = tokenProps.length === 0 ? ' (try selecting a token)' : ''
+        const hint = selectedTokenProps.length === 0 ? ' (try selecting a token)' : ''
         setError(resolved.error + hint)
         return
       }
-      resolvedExpression = resolved.resolved
+      resolvedFormula = resolved.resolved
     }
+    const terms = tokenizeExpression(resolvedFormula ?? formula)
+    if (!terms) { setError('Invalid dice formula'); return }
+    const dice = toDiceSpecs(terms)
+    if (onRoll) onRoll(formula, resolvedFormula, dice, undefined)
+    setInput('')
+    setError('')
+  }
 
-    // Server-side rolling via onRoll callback
-    if (onRoll) {
-      onRoll(formula, resolvedExpression)
+  const handleDaggerheartRoll = (modifierExpr: string) => {
+    const mod = modifierExpr.trim()
+    const formula = `2d12${mod ? (mod.startsWith('+') || mod.startsWith('-') ? mod : '+' + mod) : ''}`
+    let resolvedFormula: string | undefined
+    if (/@[\p{L}\p{N}_]+/u.test(formula)) {
+      const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
+      if ('error' in resolved) { setError(resolved.error); return }
+      resolvedFormula = resolved.resolved
     }
+    const terms = tokenizeExpression(resolvedFormula ?? formula)
+    if (!terms) { setError('Invalid formula'); return }
+    const dice = toDiceSpecs(terms)
+    if (onRoll) onRoll(formula, resolvedFormula, dice, 'daggerheart:dd')
     setInput('')
     setError('')
   }

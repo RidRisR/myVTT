@@ -7,6 +7,7 @@ import type { Socket } from 'socket.io-client'
 import type { Entity, MapToken, Atmosphere, SceneEntityEntry } from '../shared/entityTypes'
 import type { ShowcaseItem } from '../showcase/showcaseTypes'
 import type { ChatMessage } from '../chat/chatTypes'
+import type { DiceSpec } from '../shared/diceUtils'
 import { api } from '../shared/api'
 
 // ── Types ──
@@ -186,12 +187,15 @@ interface WorldState {
     content: string
   }) => Promise<void>
   sendRoll: (data: {
+    dice: DiceSpec[]
     formula: string
-    resolvedExpression?: string
+    resolvedFormula?: string
+    rollType?: string
     senderId: string
     senderName: string
     senderColor: string
     portraitUrl?: string
+    actionName?: string
   }) => Promise<void>
 
   /** @internal Test-only */

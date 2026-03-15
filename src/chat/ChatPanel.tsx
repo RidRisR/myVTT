@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import type { ChatMessage } from './chatTypes'
+import type { DiceSpec } from '../shared/diceUtils'
 import type { Entity } from '../shared/entityTypes'
 import { getEntityResources, getEntityAttributes } from '../shared/entityAdapters'
 import { useWorldStore } from '../stores/worldStore'
@@ -213,10 +214,12 @@ export function ChatPanel({
   )
 
   const handleRoll = useCallback(
-    (formula: string, resolvedExpression?: string) => {
+    (formula: string, resolvedFormula?: string, dice: DiceSpec[] = [], rollType?: string) => {
       sendRoll({
         formula,
-        resolvedExpression,
+        resolvedFormula,
+        dice,
+        rollType,
         senderId: activeSpeaker.id,
         senderName: activeSpeaker.name,
         senderColor: activeSpeaker.color,
