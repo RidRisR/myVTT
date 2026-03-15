@@ -96,6 +96,10 @@ export function buildTermResult(term: DiceTerm, allRolls: number[]): DiceTermRes
       case 'dl':
         keptSet = new Set(indexed.slice(count).map((x) => x.i))
         break
+      default: {
+        const _exhaust: never = mode
+        throw new Error(`Unknown keep/drop mode: ${_exhaust}`)
+      }
     }
     keptIndices = allRolls.map((_, i) => i).filter((i) => keptSet.has(i))
   }
@@ -125,11 +129,21 @@ export function buildCompoundResult(
 
 - [ ] **Step 2: 更新 chatTypes.ts**
 
-将 `src/chat/chatTypes.ts` 中的 `ChatRollMessage` 替换为：
+**完整替换 `src/chat/chatTypes.ts` 的全部内容**（保留 `ChatTextMessage` 和 `ChatMessage` union，仅更新 `ChatRollMessage`，移除旧的 `DiceTermResult` / `JudgmentResult` 导入）：
 
 ```typescript
 import type { DiceSpec } from '../shared/diceUtils'
-import type { JudgmentResult } from '../rules/types'
+
+export interface ChatTextMessage {
+  type: 'text'
+  id: string
+  senderId: string
+  senderName: string
+  senderColor: string
+  portraitUrl?: string
+  content: string
+  timestamp: number
+}
 
 export interface ChatRollMessage {
   type: 'roll'
@@ -150,9 +164,10 @@ export interface ChatRollMessage {
   actionName?: string
 }
 
-// JudgmentResult 不再存储在消息中，由客户端渲染时计算
-export { JudgmentResult }
+export type ChatMessage = ChatTextMessage | ChatRollMessage
 ```
+
+注意：判定结果（`JudgmentResult`）不再存储在消息中，改为渲染时由插件 `evaluateRoll` 计算。`terms` / `total` / `judgment` / `modifiersApplied` 字段全部移除。
 
 - [ ] **Step 3: 更新 types.ts 中的 RulePlugin 接口**
 
@@ -190,24 +205,17 @@ surfaces?: {
 }
 ```
 
-注意：需要在文件顶部补充 `import type { ChatRollMessage } from '../chat/chatTypes'` 和 `import type { RollCardProps } from './types'`（self-reference 不行，直接把 RollCardProps 定义在 types.ts 同文件）。
+注意：`ChatRollMessage` 定义在 `'../chat/chatTypes'`，需在 `types.ts` 顶部添加 `import type { ChatRollMessage } from '../chat/chatTypes'`。`RollCardProps` 直接定义在 `types.ts` 同文件中，不需额外 import。
 
 - [ ] **Step 4: 更新 sdk.ts，导出新类型和函数**
 
-在 `src/rules/sdk.ts` 中补充导出：
+在 `src/rules/sdk.ts` 末尾追加（已有导出保持不变）：
 
 ```typescript
-// 类型
-export type { ChatRollMessage, RollCardProps } from './types'  // RollCardProps 从 types 导出
 export type { DiceSpec } from '../shared/diceUtils'
-
-// 工具函数（供插件在 RollCard 中使用）
 export { tokenizeExpression, buildCompoundResult } from '../shared/diceUtils'
-```
-
-注意：`ChatRollMessage` 实际在 `../chat/chatTypes`，需要在 `sdk.ts` re-export：
-```typescript
 export type { ChatRollMessage } from '../chat/chatTypes'
+export type { RollCardProps } from './types'
 ```
 
 - [ ] **Step 5: 确认 TypeScript 通过**
@@ -305,6 +313,8 @@ router.post('/api/rooms/:roomId/roll', room, (req, res) => {
 const { rollCompound } = await import('../../src/shared/diceUtils')
 ```
 
+注意：新 handler 是**同步**的（没有 `async` 关键字），移除原来包裹整个 `/roll` handler 的 `try/catch` 块（新代码无异步操作，不需要）。
+
 - [ ] **Step 2: 编写集成测试**
 
 在 `server/__tests__/scenarios/` 中创建 `dice-pure-rng.test.ts`：
@@ -395,17 +405,25 @@ git commit -m "refactor: server POST /roll becomes pure RNG — removes rollComp
 
 - [ ] **Step 1: 更新 DiceResultCard.tsx**
 
-用 `useMemo` 在渲染时重建 termResults：
+**完整替换 `src/chat/DiceResultCard.tsx` 的全部内容**（新增 `useMemo` + `buildCompoundResult`，所有 `message.terms` → `termResults`，`message.total` → `total`，`useEffect` 也更新）：
 
 ```typescript
-// 在文件顶部添加导入
+import { useState, useEffect, useRef, useMemo } from 'react'
+import type { ChatRollMessage } from './chatTypes'
+import { DiceReel } from './DiceReel'
+import { calcTotalAnimDuration, SPIN_DURATION, STOP_INTERVAL } from './diceAnimUtils'
 import { tokenizeExpression, buildCompoundResult } from '../shared/diceUtils'
 
-// DiceResultCard 函数体开头，替换原来读 message.terms/message.total 的部分：
+interface DiceResultCardProps {
+  message: ChatRollMessage
+  isNew?: boolean
+}
+
 export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
+  // Lock animation state at mount — immune to isNew prop changes
   const shouldAnimate = useRef(!!isNew)
 
-  // 从 rolls 重建 termResults + total（客户端计算）
+  // Reconstruct termResults + total from server-generated rolls (client-side computation)
   const { termResults, total } = useMemo(() => {
     const formula = message.resolvedFormula ?? message.formula
     const terms = tokenizeExpression(formula) ?? []
@@ -414,56 +432,166 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
 
   const [totalRevealed, setTotalRevealed] = useState(!shouldAnimate.current)
 
-  // 以下动画逻辑用 termResults 替换原来的 message.terms：
+  useEffect(() => {
+    if (!shouldAnimate.current) return
+    const duration = calcTotalAnimDuration(termResults) * 1000
+    const timer = setTimeout(() => setTotalRevealed(true), duration)
+    return () => clearTimeout(timer)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const totalDice = termResults.reduce(
     (sum, tr) => sum + (tr.term.type === 'dice' ? tr.allRolls.length : 0),
     0,
   )
-  // ... 其余渲染逻辑将 message.terms → termResults，message.total → total
+  const stopOrder = useRef(
+    Array.from({ length: totalDice }, (_, i) => i).sort(() => Math.random() - 0.5),
+  )
+  const allLandedTime = totalDice > 0 ? SPIN_DURATION + (totalDice - 1) * STOP_INTERVAL + 0.3 : 0
+
+  let diceIndex = 0
+  const reelGroups = termResults.map((tr, ti) => {
+    if (tr.term.type === 'constant') {
+      const value = (tr.term as { type: 'constant'; sign: 1 | -1; value: number }).value
+      const sign = tr.term.sign === -1 ? '-' : '+'
+      return (
+        <span key={ti} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          {ti > 0 && (
+            <span style={{ color: '#64748b', margin: '0 2px', fontSize: 13 }}>{sign}</span>
+          )}
+          <span style={{ color: '#94a3b8', fontWeight: 600, fontSize: 15 }}>{value}</span>
+        </span>
+      )
+    }
+
+    const sign = tr.term.sign === -1 ? '-' : '+'
+    const showSign = ti > 0 || tr.term.sign === -1
+    const reels = tr.allRolls.map((roll, ri) => {
+      const order = stopOrder.current[diceIndex] ?? diceIndex
+      const stopDelay = SPIN_DURATION + order * STOP_INTERVAL
+      diceIndex++
+      const isDropped = !tr.keptIndices.includes(ri)
+      return (
+        <DiceReel
+          key={`${ti}-${ri}`}
+          sides={(tr.term as { type: 'dice'; sides: number }).sides}
+          result={roll}
+          stopDelay={shouldAnimate.current ? stopDelay : 0}
+          dropped={isDropped}
+          dropRevealDelay={shouldAnimate.current ? allLandedTime : undefined}
+        />
+      )
+    })
+
+    return (
+      <span
+        key={ti}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}
+      >
+        {showSign && (
+          <span style={{ color: '#64748b', margin: '0 2px', fontSize: 13 }}>{sign}</span>
+        )}
+        {reels}
+      </span>
+    )
+  })
+
+  return (
+    <>
+      <style>{`
+        @keyframes diceLand {
+          0% { transform: scale(1) rotateZ(0deg); filter: blur(1.5px); }
+          50% { transform: scale(1.3) rotateZ(8deg); filter: blur(0); }
+          70% { transform: scale(0.95) rotateZ(-4deg); }
+          100% { transform: scale(1) rotateZ(0deg); filter: blur(0); }
+        }
+        @keyframes totalReveal {
+          0% { opacity: 0; transform: scale(0.5) translateY(8px); }
+          50% { transform: scale(1.2) translateY(-2px); }
+          70% { transform: scale(0.95) translateY(1px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+        {reelGroups}
+        <span style={{ color: '#475569', margin: '0 4px', fontSize: 14 }}>=</span>
+        <span
+          style={{
+            fontWeight: 800,
+            fontSize: 22,
+            fontFamily: 'monospace',
+            minWidth: 30,
+            textAlign: 'center',
+            display: 'inline-block',
+            ...(totalRevealed
+              ? {
+                  color: '#fbbf24',
+                  textShadow: '0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(251, 191, 36, 0.4)',
+                  animation: shouldAnimate.current
+                    ? 'totalReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    : 'none',
+                  opacity: 1,
+                }
+              : { color: '#334155', opacity: 0.5 }),
+          }}
+        >
+          {totalRevealed ? total : '?'}
+        </span>
+      </div>
+    </>
+  )
+}
 ```
 
 - [ ] **Step 2: 更新 MessageCard.tsx**
 
-添加 rollCardRenderers 分发逻辑和公式显示更新：
+以下是对 `src/chat/MessageCard.tsx` 的**完整变更清单**（字段全部从旧 API 迁移到新 API）：
 
+1. 顶部添加导入：
 ```typescript
-// 顶部添加导入
 import { useRulePlugin } from '../rules/useRulePlugin'
-
-// MessageCard 函数体内，roll message 分支处：
-export const MessageCard: React.FC<MessageCardProps> = ({ message, isNew, ... }) => {
-  const plugin = useRulePlugin()
-
-  // ...（text message 分支不变）
-
-  // Dice message：检查插件是否注册了自定义 rollCard
-  const CustomCard =
-    message.type === 'roll' && message.rollType
-      ? plugin.surfaces?.rollCardRenderers?.[message.rollType]
-      : undefined
-
-  return (
-    <div ...>
-      {/* ... avatar, sender, 时间戳 */}
-      <div className="...">
-        {/* 公式显示：区分 .r 和插件命令 */}
-        <span className="text-xs text-text-muted/50 font-mono">
-          {message.rollType
-            ? `.${message.rollType.split(':')[1] ?? 'r'} ${message.formula}`
-            : `.r ${message.formula}`}
-          {message.resolvedFormula && (
-            <span className="text-text-muted/30"> ({message.resolvedFormula})</span>
-          )}
-        </span>
-        {/* 内容区：插件自定义卡片 or 通用骰子卡片 */}
-        {CustomCard
-          ? <CustomCard message={message} isNew={isNew} />
-          : <DiceResultCard message={message} isNew={isNew} />}
-      </div>
-    </div>
-  )
-}
 ```
+
+2. 在组件函数体内（所有现有 `useState` 之后，early return 之前）添加 hook：
+```typescript
+const plugin = useRulePlugin()
+```
+
+3. 将 roll message 分支中所有字段引用迁移：
+
+| 旧代码 | 新代码 |
+|---|---|
+| `message.expression` | `message.formula` |
+| `message.resolvedExpression` | `message.resolvedFormula` |
+| `.r {message.expression}` | 见下方 |
+
+4. 替换公式显示行（原来的 `.r {message.expression}` 固定前缀）：
+```typescript
+<span className="text-xs text-text-muted/50 font-mono">
+  {message.rollType
+    ? `.${message.rollType.split(':')[1] ?? 'r'} ${message.formula}`
+    : `.r ${message.formula}`}
+  {message.resolvedFormula && (
+    <span className="text-text-muted/30"> ({message.resolvedFormula})</span>
+  )}
+</span>
+```
+
+5. 在 `useRulePlugin()` 下方添加：
+```typescript
+const CustomCard =
+  message.type === 'roll' && message.rollType
+    ? plugin.surfaces?.rollCardRenderers?.[message.rollType]
+    : undefined
+```
+
+6. 替换 roll 分支的内容渲染行（原来的单行 `<DiceResultCard />`）：
+```typescript
+{CustomCard
+  ? <CustomCard message={message} isNew={isNew} />
+  : <DiceResultCard message={message} isNew={isNew} />}
+```
+
+注意：`onToggleFavorite` 的 prop 类型签名 `(expression: string) => void` 以及内部调用处（`onToggleFavorite(message.expression)`）同步改为 `(formula: string) => void` + `onToggleFavorite(message.formula)`。
 
 - [ ] **Step 3: 更新 worldStore.sendRoll**
 
@@ -560,6 +688,12 @@ const handleSend = () => {
 
 更新 `ChatPanel.tsx` 中的 `handleRoll` 回调以接收新参数：
 
+在 `ChatPanel.tsx` 顶部补充导入：
+```typescript
+import { tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
+import type { DiceSpec } from '../shared/diceUtils'
+```
+
 ```typescript
 const handleRoll = useCallback(
   (formula: string, resolvedFormula?: string, dice?: DiceSpec[], rollType?: string) => {
@@ -607,6 +741,14 @@ git commit -m "refactor: client-side dice computation — buildCompoundResult in
 ---
 
 ## Chunk 2: DaggerHeart 插件
+
+> **前提：Chunk 1 必须已完成。** 执行本 Chunk 前，先验证：
+> ```bash
+> cd .worktrees/feat/daggerheart-plugin && npx tsc --noEmit 2>&1 | head -10
+> ```
+> 期望：无报错。还需确认 `@myvtt/sdk`（即 `src/rules/sdk.ts`）已导出 `DiceSpec`、`ChatRollMessage`、`RollCardProps`、`tokenizeExpression`、`buildCompoundResult`（Chunk 1 Task 1 Step 4 的成果）。
+>
+> **`@myvtt/sdk` 路径别名**：已在 `tsconfig.app.json` 的 `paths` 和 `vite.config.ts` 的 `resolve.alias` 中配置，且 `plugins/` 目录已包含在 `tsconfig.app.json` 的 `include` 中。插件直接 `import from '@myvtt/sdk'` 即可正常使用，无需手动配置。
 
 ### Task 4: DHRuleData 类型定义
 
@@ -964,7 +1106,7 @@ npx vitest run plugins/daggerheart/__tests__/diceSystem.test.ts 2>&1 | tail -10
 
 ```typescript
 // plugins/daggerheart/diceSystem.ts
-import type { Entity, DiceTermResult, JudgmentResult, JudgmentDisplay, DieStyle, RollAction } from '@myvtt/sdk'
+import type { Entity, DiceTermResult, JudgmentResult, JudgmentDisplay, DieStyle, RollAction, DaggerheartOutcome } from '@myvtt/sdk'
 import type { DHRuleData } from './types'
 
 const DH_DC = 12 // DaggerHeart standard action roll difficulty
@@ -974,7 +1116,7 @@ export function dhEvaluateRoll(rolls: number[][], total: number): JudgmentResult
   const [hopeDie, fearDie] = rolls[0]
   const succeeded = total >= DH_DC
 
-  let outcome: import('@myvtt/sdk').DaggerheartOutcome
+  let outcome: DaggerheartOutcome
   if (hopeDie === fearDie) {
     outcome = 'critical_success'
   } else if (succeeded) {
@@ -1027,9 +1169,9 @@ export const rollCommands: Record<string, { resolveFormula(modifierExpr?: string
 }
 
 // getDieStyles wrapper for RulePlugin interface (takes termResults for API consistency)
+// v1 stub — DH die styling is handled by DHRollCard directly (calls dhGetDieStyles(message.rolls));
+// generic consumers that call plugin.diceSystem.getDieStyles() get no styles for DH rolls.
 export function dhGetDieStylesFromTerms(_terms: DiceTermResult[]): DieStyle[] {
-  // For the RulePlugin interface, we keep DiceTermResult[] signature
-  // DHRollCard calls dhGetDieStyles(message.rolls) directly
   return []
 }
 ```
@@ -1055,6 +1197,7 @@ git commit -m "feat: add daggerheart dice system — evaluateRoll, rollCommands,
 
 **Files:**
 - Create: `plugins/daggerheart/ui/DHRollCard.tsx`
+- Create: `plugins/daggerheart/DaggerHeartCard.tsx`
 - Create: `plugins/daggerheart/index.ts`
 - Modify: `src/rules/registry.ts`
 - Modify: `plugins/generic/index.ts`
@@ -1128,7 +1271,51 @@ export function DHRollCard({ message }: RollCardProps) {
 }
 ```
 
-- [ ] **Step 2: 创建 plugins/daggerheart/index.ts**
+- [ ] **Step 2: 创建 plugins/daggerheart/DaggerHeartCard.tsx**
+
+最小化 EntityCard，显示 HP/Stress/Hope 资源条 + 六维属性：
+
+```typescript
+// plugins/daggerheart/DaggerHeartCard.tsx
+import type { EntityCardProps } from '@myvtt/sdk'
+import type { DHRuleData } from './types'
+
+const ATTRS = ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowledge'] as const
+
+export function DaggerHeartCard({ entity }: EntityCardProps) {
+  const d = entity.ruleData as DHRuleData | null
+
+  return (
+    <div className="flex flex-col gap-3 p-4">
+      <div className="flex items-center gap-2">
+        <span className="text-text-primary font-semibold">{entity.name}</span>
+        {d?.className && <span className="text-xs text-text-muted">{d.className}</span>}
+      </div>
+      {d && (
+        <>
+          <div className="flex gap-4 text-sm">
+            <span style={{ color: '#ef4444' }}>HP {d.hp.current}/{d.hp.max}</span>
+            <span style={{ color: '#f97316' }}>压力 {d.stress.current}/{d.stress.max}</span>
+            <span style={{ color: '#fbbf24' }}>希望 {d.hope}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-1 text-xs">
+            {ATTRS.map((k) => (
+              <div key={k} className="flex flex-col items-center bg-black/20 rounded p-1">
+                <span className="text-text-muted capitalize">{k}</span>
+                <span className="text-text-primary font-bold">
+                  {d[k] >= 0 ? '+' : ''}{d[k]}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+```
+
+- [ ] **Step 3: 创建 plugins/daggerheart/index.ts**
 
 ```typescript
 // plugins/daggerheart/index.ts
@@ -1172,9 +1359,7 @@ export const daggerheartPlugin: RulePlugin = {
 }
 ```
 
-注意：`DaggerHeartCard` 是最小化 EntityCard，内容与旧计划 Task 5 相同（HP/Stress/Hope + 6 属性显示），此处直接实现即可，无需单独任务。创建 `plugins/daggerheart/DaggerHeartCard.tsx` 参见旧计划 Task 5 内容。
-
-- [ ] **Step 3: 注册到 registry.ts**
+- [ ] **Step 4: 注册到 registry.ts**
 
 ```typescript
 // src/rules/registry.ts
@@ -1196,7 +1381,7 @@ export function getRulePlugin(id: string): RulePlugin {
 }
 ```
 
-- [ ] **Step 4: 编写并运行注册测试**
+- [ ] **Step 5: 编写并运行注册测试**
 
 在 `src/rules/__tests__/registry.test.ts` 末尾追加：
 
@@ -1230,7 +1415,7 @@ npx vitest run src/rules/__tests__/registry.test.ts 2>&1 | tail -15
 
 期望：全部 PASS。
 
-- [ ] **Step 5: 更新 generic plugin + 接线 ChatPanel**
+- [ ] **Step 6: 更新 generic plugin + 接线 ChatPanel**
 
 修改 `plugins/generic/index.ts`，将 `getEntityAttributes` 加入导入行并更新 `getFormulaTokens`：
 
@@ -1265,7 +1450,7 @@ const activeSpeakerProps = useMemo(() => {
 }, [speakerEntity, seatProperties, plugin])
 ```
 
-- [ ] **Step 6: 运行全套测试，确认通过**
+- [ ] **Step 7: 运行全套测试，确认通过**
 
 ```bash
 cd .worktrees/feat/daggerheart-plugin && npm test 2>&1 | tail -20
@@ -1273,17 +1458,17 @@ cd .worktrees/feat/daggerheart-plugin && npm test 2>&1 | tail -20
 
 期望：所有测试 PASS。
 
-- [ ] **Step 7: 确认 TypeScript 无报错**
+- [ ] **Step 8: 确认 TypeScript 无报错**
 
 ```bash
 cd .worktrees/feat/daggerheart-plugin && npx tsc --noEmit 2>&1 | head -20
 ```
 
-- [ ] **Step 8: 提交**
+- [ ] **Step 9: 提交**
 
 ```bash
 cd .worktrees/feat/daggerheart-plugin
-git add plugins/daggerheart/ui/DHRollCard.tsx plugins/daggerheart/index.ts plugins/daggerheart/DaggerHeartCard.tsx
+git add plugins/daggerheart/ui/DHRollCard.tsx plugins/daggerheart/DaggerHeartCard.tsx plugins/daggerheart/index.ts
 git add src/rules/registry.ts src/rules/__tests__/registry.test.ts
 git add plugins/generic/index.ts src/chat/ChatPanel.tsx
 git commit -m "feat: assemble daggerheart plugin — DHRollCard, rollCardRenderers, registry, ChatPanel wiring"
