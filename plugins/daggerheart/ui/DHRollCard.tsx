@@ -4,8 +4,10 @@ import type { RollCardProps } from '@myvtt/sdk'
 import { tokenizeExpression, buildCompoundResult } from '@myvtt/sdk'
 import { dhEvaluateRoll, dhGetDieStyles, dhGetJudgmentDisplay } from '../diceSystem'
 
+const EMPTY_ROLLS: number[][] = []
+
 export function DHRollCard({ message }: RollCardProps) {
-  const rolls = message.rolls ?? []
+  const rolls = message.rolls ?? EMPTY_ROLLS
 
   const total = useMemo(() => {
     const formula = message.resolvedFormula ?? message.formula
