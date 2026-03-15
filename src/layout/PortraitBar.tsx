@@ -108,6 +108,7 @@ export function PortraitBar({
   const toggleEntityVisibility = useWorldStore((s) => s.toggleEntityVisibility)
   const updateEntity = useWorldStore((s) => s.updateEntity)
   const plugin = useRulePlugin()
+  const Card = plugin.characterUI.EntityCard
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entityId: string } | null>(
     null,
@@ -594,16 +595,11 @@ export function PortraitBar({
             onMouseLeave={handlePopoverMouseLeave}
           >
             {isLocked ? (
-              (() => {
-                const Card = plugin.characterUI.EntityCard
-                return (
-                  <Card
-                    entity={popoverEntity}
-                    onUpdate={(patch) => onUpdateEntity(popoverEntity.id, patch)}
-                    readonly={!isEditable}
-                  />
-                )
-              })()
+              <Card
+                entity={popoverEntity}
+                onUpdate={(patch) => onUpdateEntity(popoverEntity.id, patch)}
+                readonly={!isEditable}
+              />
             ) : (
               <CharacterHoverPreview
                 character={popoverEntity}

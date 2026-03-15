@@ -52,6 +52,7 @@ describe('genericPlugin adapters', () => {
     expect(resource!.current).toBe(15)
     expect(resource!.max).toBe(20)
     expect(resource!.color).toBe('#f00')
+    expect(resource!.label).toBe('hp')
   })
 
   it('getStatuses returns status labels', () => {
@@ -76,5 +77,6 @@ describe('genericPlugin adapters', () => {
     })
     const resources = plugin.adapters.getPortraitResources(entity)
     expect(resources).toHaveLength(2)
+    expect(resources[0].label).toBe('hp')
   })
 })
