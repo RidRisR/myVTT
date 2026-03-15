@@ -52,6 +52,9 @@ export function CharacterLibraryTab() {
       lifecycle: 'reusable',
     }
     addEntity(newEntity)
+    // Add to current scene so the inspector can locate the entity in PortraitBar.
+    // visible=true so the portrait appears on stage for the GM to click/edit.
+    if (activeSceneId) addEntityToScene(activeSceneId, newEntity.id, true)
     setInspectedCharacterId(newEntity.id)
   }
 

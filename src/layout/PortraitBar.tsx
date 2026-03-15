@@ -10,6 +10,7 @@ import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
+import { CharacterEditPanel } from './CharacterEditPanel'
 import { useRulePlugin } from '../rules/useRulePlugin'
 
 type PortraitTabId = 'characters' | 'initiative'
@@ -454,8 +455,14 @@ export function PortraitBar({
 
   // Determine which entity to show in popover
   const popoverCharId = inspectedCharacterId ?? hoveredCharId
-  const popoverEntity = popoverCharId ? visibleEntities.find((e) => e.id === popoverCharId) : null
   const isLocked = !!inspectedCharacterId
+  // Locked inspector searches all entities (including backstage / non-scene).
+  // Hover only searches visibleEntities (entity must be visible to have a portrait to hover).
+  const popoverEntity = popoverCharId
+    ? isLocked
+      ? entities.find((e) => e.id === popoverCharId) ?? visibleEntities.find((e) => e.id === popoverCharId)
+      : visibleEntities.find((e) => e.id === popoverCharId)
+    : null
 
   // Resolve rect: use lockedRect/hoveredRect, fallback to querying the portrait element
   let rect = isLocked ? lockedRect : hoveredRect
@@ -578,11 +585,22 @@ export function PortraitBar({
             onMouseLeave={handlePopoverMouseLeave}
           >
             {isLocked ? (
-              <Card
-                entity={popoverEntity}
-                onUpdate={(patch) => onUpdateEntity(popoverEntity.id, patch)}
-                readonly={!isEditable}
-              />
+              isEditable ? (
+                // Editable locked view: use CharacterEditPanel (full form).
+                // Plugin's FullCharacterSheet will replace this when surfaces/panels land.
+                <CharacterEditPanel
+                  character={popoverEntity}
+                  onUpdateCharacter={onUpdateEntity}
+                  onClose={() => onInspectCharacter(null)}
+                />
+              ) : (
+                // Read-only locked view: use plugin's EntityCard for display
+                <Card
+                  entity={popoverEntity}
+                  onUpdate={(patch) => onUpdateEntity(popoverEntity.id, patch)}
+                  readonly
+                />
+              )
             ) : (
               <CharacterHoverPreview
                 character={popoverEntity}
