@@ -41,6 +41,9 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
           gmOnly ? 1 : 0,
         )
 
+      // Auto-create tactical_state for this scene
+      req.roomDb!.prepare('INSERT INTO tactical_state (scene_id) VALUES (?)').run(id)
+
       // Auto-link persistent entities
       const persistentEntities = req
         .roomDb!.prepare("SELECT id FROM entities WHERE lifecycle = 'persistent'")
@@ -128,11 +131,11 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
         .roomDb!.prepare(
           `UPDATE room_state SET
            active_scene_id = CASE WHEN active_scene_id = ? THEN NULL ELSE active_scene_id END,
-           active_encounter_id = CASE WHEN active_scene_id = ? THEN NULL ELSE active_encounter_id END
+           active_archive_id = CASE WHEN active_scene_id = ? THEN NULL ELSE active_archive_id END
            WHERE id = 1`,
         )
         .run(req.params.id, req.params.id)
-      // Delete scene (CASCADE handles scene_entities and encounters)
+      // Delete scene (CASCADE handles scene_entities, archives, tactical_state)
       req.roomDb!.prepare('DELETE FROM scenes WHERE id = ?').run(req.params.id)
     })
     deleteScene()
@@ -271,14 +274,15 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
     const spawnEntity = req.roomDb!.transaction(() => {
       req
         .roomDb!.prepare(
-          `INSERT INTO entities (id, name, image_url, color, size, notes, rule_data, permissions, lifecycle, blueprint_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ephemeral', ?)`,
+          `INSERT INTO entities (id, name, image_url, color, width, height, notes, rule_data, permissions, lifecycle, blueprint_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ephemeral', ?)`,
         )
         .run(
           entityId,
           name,
           asset.url || '',
           bp.defaultColor || '#888888',
+          bp.defaultSize || 1,
           bp.defaultSize || 1,
           '',
           JSON.stringify(bp.defaultRuleData || {}),

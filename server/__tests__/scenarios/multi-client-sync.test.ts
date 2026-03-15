@@ -25,7 +25,6 @@ afterAll(async () => {
 describe('Multi-Client Sync Journey', () => {
   let sceneId: string
   let entityId: string
-  let tokenId: string
   let showcaseId: string
 
   // ── Scene events ──
@@ -77,7 +76,8 @@ describe('Multi-Client Sync Journey', () => {
     const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Goblin',
       color: '#22c55e',
-      size: 1,
+      width: 1,
+      height: 1,
       lifecycle: 'ephemeral',
     })
     expect(status).toBe(201)
@@ -88,64 +88,56 @@ describe('Multi-Client Sync Journey', () => {
     expect(payload.id).toBe(entityId)
   })
 
-  // ── Combat events ──
+  // ── Tactical events ──
 
-  it('5.5 combat:activated broadcasts on POST /combat/start', async () => {
-    const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'combat:activated')
-    await ctx.api('POST', `/api/rooms/${ctx.roomId}/combat/start`)
+  it('5.5 room:state:updated broadcasts on POST /tactical/enter', async () => {
+    // Set active scene first
+    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: sceneId })
+
+    const eventPromise = waitForSocketEvent<Record<string, unknown>>(
+      clientB,
+      'room:state:updated',
+    )
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/enter`)
 
     const payload = await eventPromise
-    // combat:activated sends the full combat state
-    expect(payload).toHaveProperty('tokens')
-    expect(payload).toHaveProperty('grid')
+    expect(payload.tacticalMode).toBe(1)
   })
 
-  it('5.6 combat:token:added broadcasts on POST /combat/tokens', async () => {
-    const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'combat:token:added')
-    const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/combat/tokens`, {
+  it('5.6 tactical:token:added broadcasts on POST /tactical/tokens', async () => {
+    const eventPromise = waitForSocketEvent<Record<string, unknown>>(
+      clientB,
+      'tactical:token:added',
+    )
+    const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens`, {
+      entityId,
       x: 100,
       y: 200,
-      size: 1,
-      label: 'Goblin',
-      entityId,
+      width: 1,
+      height: 1,
     })
     expect(status).toBe(201)
-    tokenId = (data as { id: string }).id
 
     const payload = await eventPromise
-    expect(payload.id).toBe(tokenId)
+    expect(payload.entityId).toBe(entityId)
     expect(payload.x).toBe(100)
     expect(payload.y).toBe(200)
-    expect(payload.label).toBe('Goblin')
   })
 
-  it('5.7 combat:token:updated broadcasts on PATCH /combat/tokens/:id', async () => {
-    const eventPromise = waitForSocketEvent<{ tokenId: string; changes: Record<string, unknown> }>(
+  it('5.7 room:state:updated broadcasts on POST /tactical/exit', async () => {
+    const eventPromise = waitForSocketEvent<Record<string, unknown>>(
       clientB,
-      'combat:token:updated',
+      'room:state:updated',
     )
-    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/combat/tokens/${tokenId}`, {
-      x: 150,
-      y: 250,
-    })
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/exit`)
 
     const payload = await eventPromise
-    expect(payload.tokenId).toBe(tokenId)
-    expect(payload.changes.x).toBe(150)
-    expect(payload.changes.y).toBe(250)
-  })
-
-  it('5.8 combat:ended broadcasts on POST /combat/end', async () => {
-    const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'combat:ended')
-    await ctx.api('POST', `/api/rooms/${ctx.roomId}/combat/end`)
-
-    const payload = await eventPromise
-    expect(payload).toBeDefined()
+    expect(payload.tacticalMode).toBe(0)
   })
 
   // ── Chat events ──
 
-  it('5.9 chat:new broadcasts on POST /chat', async () => {
+  it('5.8 chat:new broadcasts on POST /chat', async () => {
     const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'chat:new')
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
       senderId: 'gm-1',
@@ -163,7 +155,7 @@ describe('Multi-Client Sync Journey', () => {
 
   // ── Room state events ──
 
-  it('5.10 room:state:updated broadcasts on PATCH /state', async () => {
+  it('5.9 room:state:updated broadcasts on PATCH /state', async () => {
     const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'room:state:updated')
     await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, {
       activeSceneId: sceneId,
@@ -175,7 +167,7 @@ describe('Multi-Client Sync Journey', () => {
 
   // ── Showcase events ──
 
-  it('5.11 showcase:created broadcasts on POST /showcase', async () => {
+  it('5.10 showcase:created broadcasts on POST /showcase', async () => {
     const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'showcase:created')
     const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/showcase`, {
       type: 'image',
@@ -189,7 +181,7 @@ describe('Multi-Client Sync Journey', () => {
     expect(payload.type).toBe('image')
   })
 
-  it('5.12 showcase:cleared broadcasts on DELETE /showcase', async () => {
+  it('5.11 showcase:cleared broadcasts on DELETE /showcase', async () => {
     const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'showcase:cleared')
     await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/showcase`)
 
@@ -199,7 +191,7 @@ describe('Multi-Client Sync Journey', () => {
 
   // ── Verify both clients receive the same event (no echo suppression) ──
 
-  it('5.13 client A (ctx.socket) also receives broadcasts', async () => {
+  it('5.12 client A (ctx.socket) also receives broadcasts', async () => {
     const eventPromise = waitForSocketEvent<Record<string, unknown>>(ctx.socket, 'scene:created')
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
       name: 'Echo Test',

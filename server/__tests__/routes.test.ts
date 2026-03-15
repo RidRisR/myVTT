@@ -9,8 +9,8 @@ import { roomRoutes } from '../routes/rooms'
 import { seatRoutes } from '../routes/seats'
 import { sceneRoutes } from '../routes/scenes'
 import { entityRoutes } from '../routes/entities'
-import { encounterRoutes } from '../routes/encounters'
-import { combatRoutes } from '../routes/combat'
+import { archiveRoutes } from '../routes/archives'
+import { tacticalRoutes } from '../routes/tactical'
 import { chatRoutes } from '../routes/chat'
 import { trackerRoutes } from '../routes/trackers'
 import { showcaseRoutes } from '../routes/showcase'
@@ -55,8 +55,8 @@ beforeAll(async () => {
   app.use(seatRoutes(dataDir, io))
   app.use(sceneRoutes(dataDir, io))
   app.use(entityRoutes(dataDir, io))
-  app.use(encounterRoutes(dataDir, io))
-  app.use(combatRoutes(dataDir, io))
+  app.use(archiveRoutes(dataDir, io))
+  app.use(tacticalRoutes(dataDir, io))
   app.use(chatRoutes(dataDir, io))
   app.use(trackerRoutes(dataDir, io))
   app.use(showcaseRoutes(dataDir, io))
@@ -191,75 +191,66 @@ describe('Full room lifecycle', () => {
     expect(data.ruleData.str).toBe(14) // preserved
   })
 
-  // ── Encounters + Combat ──
-  let encounterId: string
-  it('creates an encounter', async () => {
+  // ── Archives + Tactical ──
+  let archiveId: string
+  it('creates an archive', async () => {
     const { status, data } = await api(
       'POST',
-      `/api/rooms/${roomId}/scenes/${sceneId}/encounters`,
+      `/api/rooms/${roomId}/scenes/${sceneId}/archives`,
       {
         name: 'Bar Fight',
         mapUrl: 'tavern-map.jpg',
         mapWidth: 1000,
         mapHeight: 800,
         grid: { size: 50, snap: true, visible: true },
-        tokens: { t1: { id: 't1', x: 100, y: 200, size: 1, label: 'Goblin' } },
       },
     )
     expect(status).toBe(201)
     expect(data.name).toBe('Bar Fight')
     expect(data.grid.size).toBe(50)
-    encounterId = data.id
+    archiveId = data.id
   })
 
-  it('activates encounter → combat state populated', async () => {
-    const { data } = await api('POST', `/api/rooms/${roomId}/encounters/${encounterId}/activate`)
-    expect(data.mapUrl).toBe('tavern-map.jpg')
-    expect(data.tokens.t1.label).toBe('Goblin')
-
-    // Room state updated
-    const state = await api('GET', `/api/rooms/${roomId}/state`)
-    expect(state.data.activeEncounterId).toBe(encounterId)
+  it('sets active scene and enters tactical mode', async () => {
+    await api('PATCH', `/api/rooms/${roomId}/state`, { activeSceneId: sceneId })
+    const { data } = await api('POST', `/api/rooms/${roomId}/tactical/enter`)
+    expect(data.tacticalMode).toBe(1)
   })
 
-  it('adds a combat token', async () => {
-    const { status, data } = await api('POST', `/api/rooms/${roomId}/combat/tokens`, {
-      id: 't2',
+  it('adds a tactical token', async () => {
+    const { status, data } = await api('POST', `/api/rooms/${roomId}/tactical/tokens`, {
+      entityId: entityId,
       x: 300,
       y: 400,
-      size: 2,
-      entityId: entityId,
+      width: 2,
+      height: 2,
     })
     expect(status).toBe(201)
-    expect(data.id).toBe('t2')
     expect(data.entityId).toBe(entityId)
   })
 
-  it('updates a combat token', async () => {
-    const { data } = await api('PATCH', `/api/rooms/${roomId}/combat/tokens/t2`, {
-      x: 350,
-      y: 450,
-    })
-    expect(data.x).toBe(350)
-    expect(data.entityId).toBe(entityId)
+  it('gets tactical state with tokens', async () => {
+    const { data } = await api('GET', `/api/rooms/${roomId}/tactical`)
+    expect(data.tokens.length).toBeGreaterThanOrEqual(1)
+    expect(data.tokens[0].entityId).toBe(entityId)
   })
 
-  it('gets full combat state', async () => {
-    const { data } = await api('GET', `/api/rooms/${roomId}/combat`)
-    expect(data.tokens.t1).toBeTruthy()
-    expect(data.tokens.t2).toBeTruthy()
-    expect(data.tokens.t2.x).toBe(350)
+  it('exits tactical mode', async () => {
+    const { data } = await api('POST', `/api/rooms/${roomId}/tactical/exit`)
+    expect(data.tacticalMode).toBe(0)
   })
 
-  it('ends combat — deactivates session but preserves combat state', async () => {
-    await api('POST', `/api/rooms/${roomId}/combat/end`)
-    const state = await api('GET', `/api/rooms/${roomId}/state`)
-    expect(state.data.activeEncounterId).toBeNull()
-
-    // Combat state (map, tokens) should be preserved for next session
-    const combat = await api('GET', `/api/rooms/${roomId}/combat`)
-    expect(combat.data.mapUrl).toBe('tavern-map.jpg')
-    expect(Object.keys(combat.data.tokens)).toHaveLength(2)
+  it('archive load/save stubs return 501', async () => {
+    const { status: loadStatus } = await api(
+      'POST',
+      `/api/rooms/${roomId}/archives/${archiveId}/load`,
+    )
+    expect(loadStatus).toBe(501)
+    const { status: saveStatus } = await api(
+      'POST',
+      `/api/rooms/${roomId}/archives/${archiveId}/save`,
+    )
+    expect(saveStatus).toBe(501)
   })
 
   // ── Chat ──

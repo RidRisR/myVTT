@@ -79,7 +79,8 @@ describe('GM Session Journey', () => {
       name: 'Hero',
       lifecycle: 'persistent',
       color: '#3b82f6',
-      size: 1,
+      width: 1,
+      height: 1,
       permissions: { default: 'observer', seats: {} },
     })
     expect(status).toBe(201)
