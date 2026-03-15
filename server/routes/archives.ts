@@ -269,29 +269,31 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
       .prepare('SELECT * FROM archive_tokens WHERE archive_id = ?')
       .all(archiveId) as Record<string, unknown>[]
 
-    // 4. Transaction: clear current tokens, restore from archive
-    const doLoad = db.transaction(() => {
-      // a. Find orphan ephemeral entities: have tactical_token in this scene,
-      //    NOT in scene_entity_entries, lifecycle='ephemeral'
-      const orphanEphemerals = db
-        .prepare(
-          `SELECT e.id FROM entities e
-           JOIN tactical_tokens t ON t.entity_id = e.id
-           WHERE t.scene_id = ? AND e.lifecycle = 'ephemeral'
-             AND NOT EXISTS (SELECT 1 FROM scene_entities se WHERE se.entity_id = e.id)`,
-        )
-        .all(sceneId) as { id: string }[]
+    // 4. Collect orphan IDs before transaction (for post-transaction entity:deleted events)
+    const orphanEphemerals = db
+      .prepare(
+        `SELECT e.id FROM entities e
+         JOIN tactical_tokens t ON t.entity_id = e.id
+         WHERE t.scene_id = ? AND e.lifecycle = 'ephemeral'
+           AND NOT EXISTS (SELECT 1 FROM scene_entities se WHERE se.entity_id = e.id)`,
+      )
+      .all(sceneId) as { id: string }[]
+    const orphanIds = orphanEphemerals.map((o) => o.id)
 
-      // b. Delete all tactical_tokens for current scene
+    const newEntityIds: string[] = []
+
+    // 5. Transaction: clear current tokens, restore from archive
+    const doLoad = db.transaction(() => {
+      // a. Delete all tactical_tokens for current scene
       db.prepare('DELETE FROM tactical_tokens WHERE scene_id = ?').run(sceneId)
 
-      // c. Delete orphan ephemeral entities
+      // b. Delete orphan ephemeral entities
       const deleteEntityStmt = db.prepare('DELETE FROM entities WHERE id = ?')
-      for (const orphan of orphanEphemerals) {
-        deleteEntityStmt.run(orphan.id)
+      for (const id of orphanIds) {
+        deleteEntityStmt.run(id)
       }
 
-      // d. For each archive_token, recreate entity (if ephemeral) and token
+      // c. For each archive_token, recreate entity (if ephemeral) and token
       const insertTokenStmt = db.prepare(
         `INSERT INTO tactical_tokens (id, scene_id, entity_id, x, y, width, height, image_scale_x, image_scale_y)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -307,8 +309,14 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
 
         if (lifecycle === 'ephemeral') {
           // Create new entity from snapshot_data
-          const snap = JSON.parse(at.snapshot_data as string)
+          let snap: Record<string, unknown>
+          try {
+            snap = JSON.parse(at.snapshot_data as string)
+          } catch {
+            continue // skip corrupted snapshot
+          }
           const entityId = 'e-' + crypto.randomUUID().slice(0, 8)
+          newEntityIds.push(entityId)
           insertEntityStmt.run(
             entityId,
             snap.name || '',
@@ -355,7 +363,7 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
         }
       }
 
-      // e. Update tactical_state from archive map settings
+      // d. Update tactical_state from archive map settings
       db.prepare(
         'UPDATE tactical_state SET map_url = ?, map_width = ?, map_height = ?, grid = ? WHERE scene_id = ?',
       ).run(
@@ -366,10 +374,30 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
         sceneId,
       )
 
-      // f. Update room_state active_archive_id
+      // e. Update room_state active_archive_id
       db.prepare('UPDATE room_state SET active_archive_id = ? WHERE id = 1').run(archiveId)
     })
     doLoad()
+
+    // 6. Emit entity sync events for other clients
+    for (const id of orphanIds) {
+      io.to(req.roomId!).emit('entity:deleted', { id })
+    }
+    for (const id of newEntityIds) {
+      const entityRow = db.prepare('SELECT * FROM entities WHERE id = ?').get(id) as Record<
+        string,
+        unknown
+      >
+      const entity = parseJsonFields(toCamel<Record<string, unknown>>(entityRow), 'ruleData', 'permissions')
+      io.to(req.roomId!).emit('entity:created', entity)
+    }
+
+    // 7. Emit room:state:updated so clients see activeArchiveId change
+    const roomStateRow = db.prepare('SELECT * FROM room_state WHERE id = 1').get() as Record<
+      string,
+      unknown
+    >
+    io.to(req.roomId!).emit('room:state:updated', toCamel(roomStateRow))
 
     // Build and return the current tactical state
     const stateRow = db

@@ -25,7 +25,7 @@ export const selectActiveScene = (s: { room: RoomState; scenes: Scene[] }): Scen
 }
 
 export const selectIsTactical = (s: { room: RoomState }): boolean => {
-  return s.room.activeArchiveId != null
+  return s.room.tacticalMode === 1
 }
 
 // ── Entity lookups ──

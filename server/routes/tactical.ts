@@ -238,7 +238,7 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
     const token = toToken(tokenRow)
 
     io.to(req.roomId!).emit('tactical:token:added', token)
-    io.to(req.roomId!).emit('entity:added', entity)
+    io.to(req.roomId!).emit('entity:created', entity)
     res.status(201).json({ entity, token })
   })
 
@@ -374,7 +374,7 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
     const token = toToken(newTokenRow)
 
     io.to(req.roomId!).emit('tactical:token:added', token)
-    io.to(req.roomId!).emit('entity:added', entity)
+    io.to(req.roomId!).emit('entity:created', entity)
     res.status(201).json({ entity, token })
   })
 

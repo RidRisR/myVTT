@@ -112,7 +112,7 @@ describe('selector referential stability', () => {
     expect(selectIsTactical(state)).toBe(false)
     expect(
       selectIsTactical({
-        room: { activeSceneId: null, activeArchiveId: 'a1', tacticalMode: 0 },
+        room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 1 },
       }),
     ).toBe(true)
   })
