@@ -8,8 +8,8 @@ import { roomRoutes } from '../routes/rooms'
 import { seatRoutes } from '../routes/seats'
 import { sceneRoutes } from '../routes/scenes'
 import { entityRoutes } from '../routes/entities'
-import { encounterRoutes } from '../routes/encounters'
-import { combatRoutes } from '../routes/combat'
+import { archiveRoutes } from '../routes/archives'
+import { tacticalRoutes } from '../routes/tactical'
 import { chatRoutes } from '../routes/chat'
 import { trackerRoutes } from '../routes/trackers'
 import { showcaseRoutes } from '../routes/showcase'
@@ -49,8 +49,8 @@ beforeAll(async () => {
   app.use(seatRoutes(dataDir, io))
   app.use(sceneRoutes(dataDir, io))
   app.use(entityRoutes(dataDir, io))
-  app.use(encounterRoutes(dataDir, io))
-  app.use(combatRoutes(dataDir, io))
+  app.use(archiveRoutes(dataDir, io))
+  app.use(tacticalRoutes(dataDir, io))
   app.use(chatRoutes(dataDir, io))
   app.use(trackerRoutes(dataDir, io))
   app.use(showcaseRoutes(dataDir, io))
@@ -214,7 +214,7 @@ describe('Scene delete cascade', () => {
   })
 })
 
-describe('Encounter gm_only filter', () => {
+describe('Archive gm_only filter', () => {
   let roomId: string
   let sceneId: string
 
@@ -226,23 +226,23 @@ describe('Encounter gm_only filter', () => {
     sceneId = scene.id
   })
 
-  it('GET encounters filters gm_only for PL role', async () => {
-    // Create a public encounter
-    await api('POST', `/api/rooms/${roomId}/scenes/${sceneId}/encounters`, {
+  it('GET archives filters gm_only for PL role', async () => {
+    // Create a public archive
+    await api('POST', `/api/rooms/${roomId}/scenes/${sceneId}/archives`, {
       name: 'Public Fight',
       gmOnly: false,
     })
 
-    // Create a gm_only encounter
-    await api('POST', `/api/rooms/${roomId}/scenes/${sceneId}/encounters`, {
+    // Create a gm_only archive
+    await api('POST', `/api/rooms/${roomId}/scenes/${sceneId}/archives`, {
       name: 'Secret Ambush',
       gmOnly: true,
     })
 
-    // PL should not see gm_only encounter
+    // PL should not see gm_only archive
     const plList = await api(
       'GET',
-      `/api/rooms/${roomId}/scenes/${sceneId}/encounters`,
+      `/api/rooms/${roomId}/scenes/${sceneId}/archives`,
       undefined,
       { 'X-MyVTT-Role': 'PL' },
     )
@@ -250,10 +250,10 @@ describe('Encounter gm_only filter', () => {
     expect(plNames).toContain('Public Fight')
     expect(plNames).not.toContain('Secret Ambush')
 
-    // GM should see all encounters
+    // GM should see all archives
     const gmList = await api(
       'GET',
-      `/api/rooms/${roomId}/scenes/${sceneId}/encounters`,
+      `/api/rooms/${roomId}/scenes/${sceneId}/archives`,
       undefined,
       { 'X-MyVTT-Role': 'GM' },
     )
@@ -398,17 +398,23 @@ describe('Tracker error paths', () => {
   })
 })
 
-describe('Combat token error paths', () => {
+describe('Tactical token error paths', () => {
   let roomId: string
 
   beforeAll(async () => {
-    roomId = await createRoom('Combat Token Error Room')
+    roomId = await createRoom('Tactical Token Error Room')
   })
 
-  it('PATCH /combat/tokens/:tokenId with non-existent token returns 404', async () => {
+  it('PATCH /tactical/tokens/:tokenId with non-existent token returns 404', async () => {
+    // Need an active scene first
+    const { data: scene } = await api('POST', `/api/rooms/${roomId}/scenes`, {
+      name: 'Error Scene',
+    })
+    await api('PATCH', `/api/rooms/${roomId}/state`, { activeSceneId: scene.id })
+
     const { status, data } = await api(
       'PATCH',
-      `/api/rooms/${roomId}/combat/tokens/nonexistent-token`,
+      `/api/rooms/${roomId}/tactical/tokens/nonexistent-token`,
       { x: 999 },
     )
     expect(status).toBe(404)
@@ -432,27 +438,18 @@ describe('Showcase PATCH error paths', () => {
   })
 })
 
-describe('Encounter error paths', () => {
+describe('Archive error paths', () => {
   let roomId: string
 
   beforeAll(async () => {
-    roomId = await createRoom('Encounter Error Room')
+    roomId = await createRoom('Archive Error Room')
   })
 
-  it('PATCH /encounters/:id with non-existent id returns 404', async () => {
-    const { status, data } = await api('PATCH', `/api/rooms/${roomId}/encounters/nonexistent-enc`, {
-      name: 'Ghost Encounter',
+  it('PATCH /archives/:id with non-existent id returns 404', async () => {
+    const { status, data } = await api('PATCH', `/api/rooms/${roomId}/archives/nonexistent-arc`, {
+      name: 'Ghost Archive',
     })
     expect(status).toBe(404)
-    expect(data.error).toBe('Encounter not found')
-  })
-
-  it('POST /encounters/:id/activate with non-existent id returns 404', async () => {
-    const { status, data } = await api(
-      'POST',
-      `/api/rooms/${roomId}/encounters/nonexistent-enc/activate`,
-    )
-    expect(status).toBe(404)
-    expect(data.error).toBe('Encounter not found')
+    expect(data.error).toBe('Archive not found')
   })
 })

@@ -19,24 +19,6 @@ import { generateTokenId } from '../shared/idUtils'
 import { snapToGrid } from './combatUtils'
 import { useToast } from '../shared/ui/useToast'
 
-// Random pastel-ish colors for new tokens
-const TOKEN_COLORS = [
-  '#e74c3c',
-  '#3498db',
-  '#2ecc71',
-  '#9b59b6',
-  '#f39c12',
-  '#1abc9c',
-  '#e67e22',
-  '#e91e63',
-  '#00bcd4',
-  '#8bc34a',
-]
-
-function randomColor(): string {
-  return TOKEN_COLORS[Math.floor(Math.random() * TOKEN_COLORS.length)]
-}
-
 interface ContextMenuState {
   screenX: number
   screenY: number
@@ -379,15 +361,10 @@ export function KonvaMap({
         x = snapped.x
         y = snapped.y
       }
-      const newToken: MapToken = {
-        id: generateTokenId(),
-        x,
-        y,
-        size: 1,
-        color: randomColor(),
-        permissions: { default: 'observer', seats: {} },
-      }
-      onAddToken(newToken)
+      // Token creation from empty space is no longer supported —
+      // all tokens must be linked to an entity. Drag an entity from the portrait bar instead.
+      void x
+      void y
     },
     [combatInfo, onAddToken],
   )

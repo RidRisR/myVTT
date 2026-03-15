@@ -19,7 +19,8 @@ export interface Entity {
   name: string
   imageUrl: string
   color: string
-  size: number
+  width: number
+  height: number
   blueprintId?: string
   notes: string
   ruleData: unknown
@@ -29,14 +30,13 @@ export interface Entity {
 
 export interface MapToken {
   id: string
-  entityId?: string
+  entityId: string
   x: number
   y: number
-  size: number
-  permissions: EntityPermissions
-  label?: string
-  imageUrl?: string
-  color?: string
+  width: number
+  height: number
+  imageScaleX: number
+  imageScaleY: number
 }
 
 export interface Blueprint {
@@ -60,7 +60,7 @@ export interface Atmosphere {
   ambientAudioVolume: number
 }
 
-export interface EncounterData {
+export interface ArchiveData {
   name: string
   mapUrl: string
   mapWidth: number
@@ -73,20 +73,7 @@ export interface EncounterData {
     offsetX: number
     offsetY: number
   }
-  tokens: Record<
-    string,
-    {
-      name: string
-      imageUrl: string
-      color: string
-      size: number
-      x: number
-      y: number
-      entityId?: string
-      ruleData?: unknown
-      blueprintId?: string
-    }
-  >
+  gmOnly: boolean
 }
 
 export interface SceneV2 {
@@ -95,10 +82,11 @@ export interface SceneV2 {
   sortOrder: number
   atmosphere: Atmosphere
   entityEntries: SceneEntityEntry[]
-  encounters: Record<string, EncounterData>
+  archives: Record<string, ArchiveData>
 }
 
-export interface CombatState {
+export interface TacticalState {
+  sceneId: string
   mapUrl: string
   mapWidth: number
   mapHeight: number
@@ -110,7 +98,7 @@ export interface CombatState {
     offsetX: number
     offsetY: number
   }
+  roundNumber: number
+  currentTurnTokenId: string | null
   tokens: MapToken[]
-  initiativeOrder: string[]
-  initiativeIndex: number
 }

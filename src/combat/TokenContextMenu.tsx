@@ -11,6 +11,7 @@ interface TokenContextMenuProps {
   onClose: () => void
   onDeleteToken: (id: string) => void
   onUpdateToken: (id: string, updates: Partial<MapToken>) => void
+  onUpdateEntity?: (id: string, updates: Partial<Entity>) => void
   onCreateToken: (x: number, y: number) => void
   onCopyToken: (token: MapToken) => void
   mapX: number
@@ -29,6 +30,7 @@ export function TokenContextMenu({
   onClose,
   onDeleteToken,
   onUpdateToken,
+  onUpdateEntity,
   onCreateToken,
   onCopyToken,
   mapX,
@@ -60,11 +62,9 @@ export function TokenContextMenu({
   if (role !== 'GM') return null
 
   const isTokenMenu = tokenId !== null && token !== null
-  const isHidden = token
-    ? (entity?.permissions.default ?? token.permissions.default) === 'none'
-    : false
-  const currentSize = token?.size ?? 1
-  const tokenName = entity?.name ?? token?.label ?? 'Token'
+  const isHidden = token ? (entity?.permissions.default ?? 'observer') === 'none' : false
+  const currentSize = token?.width ?? 1
+  const tokenName = entity?.name ?? 'Token'
 
   return (
     <div
@@ -105,7 +105,7 @@ export function TokenContextMenu({
               <button
                 key={s}
                 onClick={() => {
-                  onUpdateToken(tokenId, { size: s })
+                  onUpdateToken(tokenId, { width: s, height: s })
                   onClose()
                 }}
                 className="border-none cursor-pointer rounded text-xs font-bold transition-colors duration-100"
@@ -126,17 +126,16 @@ export function TokenContextMenu({
           {/* Separator */}
           <div className="border-t border-border-glass my-1" />
 
-          {/* Visibility toggle */}
+          {/* Visibility toggle — updates entity permissions since visibility lives on Entity */}
           <MenuItem
             label={isHidden ? 'Show Token' : 'Hide Token'}
             onClick={() => {
-              const newDefault = isHidden ? 'observer' : 'none'
-              onUpdateToken(tokenId, {
-                permissions: {
-                  ...token.permissions,
-                  default: newDefault,
-                },
-              })
+              if (entity && onUpdateEntity) {
+                const newDefault = isHidden ? 'observer' : 'none'
+                onUpdateEntity(entity.id, {
+                  permissions: { ...entity.permissions, default: newDefault },
+                })
+              }
               onClose()
             }}
           />

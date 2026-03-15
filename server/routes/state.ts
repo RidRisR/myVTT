@@ -21,7 +21,8 @@ export function stateRoutes(dataDir: string, io: Server): Router {
 
     const fieldMap: Record<string, string> = {
       activeSceneId: 'active_scene_id',
-      activeEncounterId: 'active_encounter_id',
+      activeArchiveId: 'active_archive_id',
+      tacticalMode: 'tactical_mode',
     }
     for (const [camel, snake] of Object.entries(fieldMap)) {
       if (req.body[camel] !== undefined) {

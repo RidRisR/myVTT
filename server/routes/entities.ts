@@ -11,46 +11,11 @@ export function toEntity(row: Record<string, unknown>) {
   return parseJsonFields(toCamel<Record<string, unknown>>(row), 'ruleData', 'permissions')
 }
 
-export function degradeTokenReferences(db: Database.Database, entityId: string) {
-  // combat_state JSON
-  const combatRow = db.prepare('SELECT tokens FROM combat_state WHERE id = 1').get() as
-    | { tokens: string }
-    | undefined
-  if (combatRow) {
-    const tokens = JSON.parse(combatRow.tokens || '{}')
-    let changed = false
-    for (const [, t] of Object.entries(tokens)) {
-      if ((t as Record<string, unknown>).entityId === entityId) {
-        ;(t as Record<string, unknown>).entityId = null
-        changed = true
-      }
-    }
-    if (changed) {
-      db.prepare('UPDATE combat_state SET tokens = ? WHERE id = 1').run(JSON.stringify(tokens))
-    }
-  }
-
-  // encounters JSON
-  const encounterRows = db.prepare('SELECT id, tokens FROM encounters').all() as {
-    id: string
-    tokens: string
-  }[]
-  for (const enc of encounterRows) {
-    const tokens = JSON.parse(enc.tokens || '{}')
-    let changed = false
-    for (const [, t] of Object.entries(tokens)) {
-      if ((t as Record<string, unknown>).entityId === entityId) {
-        ;(t as Record<string, unknown>).entityId = null
-        changed = true
-      }
-    }
-    if (changed) {
-      db.prepare('UPDATE encounters SET tokens = ? WHERE id = ?').run(
-        JSON.stringify(tokens),
-        enc.id,
-      )
-    }
-  }
+export function degradeTokenReferences(_db: Database.Database, _entityId: string) {
+  // With the new normalized schema, tactical_tokens have FK CASCADE on entity_id.
+  // When an entity is deleted, its tactical_tokens are automatically deleted by SQLite.
+  // Archive tokens use snapshot_data and don't hold live entity references.
+  // This function is kept for API compatibility but is now a no-op.
 }
 
 export function entityRoutes(dataDir: string, io: Server): Router {
@@ -79,7 +44,8 @@ export function entityRoutes(dataDir: string, io: Server): Router {
       name = '',
       imageUrl = '',
       color = '#888888',
-      size = 1,
+      width = 1,
+      height = 1,
       notes = '',
       ruleData = {},
       permissions = { default: 'observer', seats: {} },
@@ -90,15 +56,16 @@ export function entityRoutes(dataDir: string, io: Server): Router {
     const createEntity = req.roomDb!.transaction(() => {
       req
         .roomDb!.prepare(
-          `INSERT INTO entities (id, name, image_url, color, size, notes, rule_data, permissions, lifecycle, blueprint_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO entities (id, name, image_url, color, width, height, notes, rule_data, permissions, lifecycle, blueprint_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
           name,
           imageUrl,
           color,
-          size,
+          width,
+          height,
           notes,
           JSON.stringify(ruleData),
           JSON.stringify(permissions),
@@ -143,7 +110,8 @@ export function entityRoutes(dataDir: string, io: Server): Router {
       name: 'name',
       imageUrl: 'image_url',
       color: 'color',
-      size: 'size',
+      width: 'width',
+      height: 'height',
       notes: 'notes',
       blueprintId: 'blueprint_id',
       lifecycle: 'lifecycle',

@@ -265,7 +265,7 @@ export function PortraitBar({
       type: 'blueprint',
       extra: {
         blueprint: {
-          defaultSize: entity.size,
+          defaultSize: entity.width,
           defaultColor: entity.color,
           defaultRuleData: entity.ruleData,
         },

@@ -13,8 +13,8 @@ import { roomRoutes } from './routes/rooms'
 import { seatRoutes } from './routes/seats'
 import { sceneRoutes } from './routes/scenes'
 import { entityRoutes } from './routes/entities'
-import { encounterRoutes } from './routes/encounters'
-import { combatRoutes } from './routes/combat'
+import { archiveRoutes } from './routes/archives'
+import { tacticalRoutes } from './routes/tactical'
 import { chatRoutes } from './routes/chat'
 import { assetRoutes } from './routes/assets'
 import { trackerRoutes } from './routes/trackers'
@@ -79,8 +79,8 @@ app.use(roomRoutes(DATA_DIR))
 app.use(seatRoutes(DATA_DIR, io))
 app.use(sceneRoutes(DATA_DIR, io))
 app.use(entityRoutes(DATA_DIR, io))
-app.use(encounterRoutes(DATA_DIR, io))
-app.use(combatRoutes(DATA_DIR, io))
+app.use(archiveRoutes(DATA_DIR, io))
+app.use(tacticalRoutes(DATA_DIR, io))
 app.use(chatRoutes(DATA_DIR, io))
 app.use(assetRoutes(DATA_DIR, io))
 app.use(trackerRoutes(DATA_DIR, io))

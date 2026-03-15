@@ -8,8 +8,8 @@ import { roomRoutes } from '../routes/rooms'
 import { seatRoutes } from '../routes/seats'
 import { sceneRoutes } from '../routes/scenes'
 import { entityRoutes } from '../routes/entities'
-import { encounterRoutes } from '../routes/encounters'
-import { combatRoutes } from '../routes/combat'
+import { archiveRoutes } from '../routes/archives'
+import { tacticalRoutes } from '../routes/tactical'
 import { chatRoutes } from '../routes/chat'
 import { trackerRoutes } from '../routes/trackers'
 import { showcaseRoutes } from '../routes/showcase'
@@ -49,8 +49,8 @@ beforeAll(async () => {
   app.use(seatRoutes(dataDir, io))
   app.use(sceneRoutes(dataDir, io))
   app.use(entityRoutes(dataDir, io))
-  app.use(encounterRoutes(dataDir, io))
-  app.use(combatRoutes(dataDir, io))
+  app.use(archiveRoutes(dataDir, io))
+  app.use(tacticalRoutes(dataDir, io))
   app.use(chatRoutes(dataDir, io))
   app.use(trackerRoutes(dataDir, io))
   app.use(showcaseRoutes(dataDir, io))

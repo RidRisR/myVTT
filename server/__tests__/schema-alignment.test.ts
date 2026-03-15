@@ -62,19 +62,12 @@ describe('schema alignment with design doc 43', () => {
     expect(Number.isInteger(row.max)).toBe(true)
   })
 
-  it('combat_state singleton row (id=1) exists after schema init', () => {
-    const row = db.prepare('SELECT * FROM combat_state WHERE id = 1').get() as Record<
-      string,
-      unknown
-    >
-    expect(row).toBeTruthy()
-    expect(row.id).toBe(1)
-  })
-
   it('room_state singleton row (id=1) exists after schema init', () => {
     const row = db.prepare('SELECT * FROM room_state WHERE id = 1').get() as Record<string, unknown>
     expect(row).toBeTruthy()
     expect(row.id).toBe(1)
+    expect(row.tactical_mode).toBe(0)
+    expect(row.active_archive_id).toBeNull()
   })
 
   it('FK cascade: delete scene removes scene_entities rows', () => {

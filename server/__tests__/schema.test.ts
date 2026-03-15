@@ -53,8 +53,10 @@ describe('initRoomSchema', () => {
     expect(names).toContain('scenes')
     expect(names).toContain('entities')
     expect(names).toContain('scene_entities')
-    expect(names).toContain('encounters')
-    expect(names).toContain('combat_state')
+    expect(names).toContain('archives')
+    expect(names).toContain('archive_tokens')
+    expect(names).toContain('tactical_state')
+    expect(names).toContain('tactical_tokens')
     expect(names).toContain('chat_messages')
     expect(names).toContain('assets')
     expect(names).toContain('team_trackers')
@@ -69,12 +71,7 @@ describe('initRoomSchema', () => {
     >
     expect(roomState).toBeTruthy()
     expect(roomState.active_scene_id).toBeNull()
-
-    const combatState = db.prepare('SELECT * FROM combat_state WHERE id = 1').get() as Record<
-      string,
-      unknown
-    >
-    expect(combatState).toBeTruthy()
+    expect(roomState.tactical_mode).toBe(0)
   })
 
   it('enforces scene_entities foreign key cascade', () => {
