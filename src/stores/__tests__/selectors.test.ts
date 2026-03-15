@@ -18,6 +18,7 @@ import {
   selectSpeakerEntities,
 } from '../selectors'
 import type { Atmosphere, Entity, MapToken } from '../../shared/entityTypes'
+import type { Scene } from '../worldStore'
 
 const makeEntity = (id: string, overrides?: Partial<Entity>): Entity => ({
   id,
@@ -83,7 +84,7 @@ describe('selector referential stability', () => {
   })
 
   it('selectActiveScene returns same scene object when found', () => {
-    const scene = {
+    const scene: Scene = {
       id: 's1',
       name: 'Test',
       sortOrder: 0,

@@ -28,7 +28,7 @@ type MockSocket = ReturnType<typeof makeMockSocket>
 let mockSocket: MockSocket | null = null
 
 vi.mock('../../stores/worldStore', () => ({
-  useWorldStore: vi.fn((selector: (s: { _socket: MockSocket | null }) => unknown) =>
+  useWorldStore: vi.fn((selector: (s: Record<string, unknown>) => unknown) =>
     selector({ _socket: mockSocket }),
   ),
 }))
@@ -60,10 +60,9 @@ function getSocket(): MockSocket {
 describe('useTokenAwareness', () => {
   beforeEach(() => {
     mockSocket = makeMockSocket()
-    vi.mocked(useWorldStore).mockImplementation(
-      (selector: (s: { _socket: MockSocket | null }) => unknown) =>
-        selector({ _socket: mockSocket }),
-    )
+    vi.mocked(useWorldStore).mockImplementation(((
+      selector: (s: Record<string, unknown>) => unknown,
+    ) => selector({ _socket: mockSocket })) as typeof useWorldStore)
   })
 
   afterEach(() => {
@@ -218,9 +217,9 @@ describe('useTokenAwareness', () => {
 
   it('does not crash when socket is null and handleTokenDragMove is called', () => {
     mockSocket = null
-    vi.mocked(useWorldStore).mockImplementation((selector: (s: { _socket: null }) => unknown) =>
-      selector({ _socket: null }),
-    )
+    vi.mocked(useWorldStore).mockImplementation(((
+      selector: (s: Record<string, unknown>) => unknown,
+    ) => selector({ _socket: null })) as typeof useWorldStore)
 
     const { result } = renderAwareness()
 

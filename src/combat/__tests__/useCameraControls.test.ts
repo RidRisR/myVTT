@@ -20,6 +20,8 @@ function makeTacticalInfo(overrides?: Partial<TacticalInfo>): TacticalInfo {
       offsetY: 0,
     },
     tokens: [],
+    roundNumber: 0,
+    currentTurnTokenId: null,
     ...overrides,
   }
 }
