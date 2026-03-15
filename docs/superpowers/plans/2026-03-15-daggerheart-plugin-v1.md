@@ -381,11 +381,11 @@ git commit -m "feat: add daggerheart data templates layer with tests"
 标准骰子公式格式：`2d12+@agility`（通过 `getRollActions` 生成）。服务端 `rollCompound` 处理表达式，返回 `termResults`；`termResults[0].allRolls` 包含两个 d12 骰子值。
 
 **判定逻辑：**
-- `hopeDie === fearDie` 且 `total >= dc` → `critical_success`（临界）
+- `hopeDie === fearDie` → `critical_success`（临界，两骰相等无论 DC 如何一律大成功）
 - `hopeDie > fearDie` 且 `total >= dc` → `success_hope`（乘希望而为）
-- `fearDie >= hopeDie` 且 `total >= dc` → `success_fear`（带着恐惧成功）
+- `fearDie > hopeDie` 且 `total >= dc` → `success_fear`（带着恐惧成功）
 - `hopeDie > fearDie` 且 `total < dc` → `failure_hope`（失败但有希望）
-- `fearDie >= hopeDie` 且 `total < dc` → `failure_fear`（带着恐惧失败）
+- `fearDie > hopeDie` 且 `total < dc` → `failure_fear`（带着恐惧失败）
 - 无 DC（`ctx.dc === undefined`）：按希望方向视为"成功"（`success_hope` / `success_fear` / `critical_success`）
 
 - [ ] **Step 1: 编写失败测试**
@@ -487,12 +487,11 @@ describe('dhEvaluateRoll', () => {
     expect(result?.type === 'daggerheart' && result.outcome).toBe('critical_success')
   })
 
-  it('failure_fear: tied dice but total < dc (tie is not >, so fear direction)', () => {
-    // When hopeDie === fearDie and total < dc, outcome falls to failure_fear
-    // (hopeDie > fearDie is false for a tie, so the fear branch is taken)
+  it('critical_success: tied dice even when total < dc (tie overrides DC)', () => {
+    // Tied dice always yield critical_success regardless of total vs DC
     const terms = makeTwoD12(5, 5)
     const result = dhEvaluateRoll(terms, 10, dc12Ctx)
-    expect(result?.type === 'daggerheart' && result.outcome).toBe('failure_fear')
+    expect(result?.type === 'daggerheart' && result.outcome).toBe('critical_success')
   })
 })
 
@@ -630,7 +629,8 @@ export function dhEvaluateRoll(
   const succeeded = ctx.dc !== undefined ? effectiveTotal >= ctx.dc : true
 
   let outcome: DaggerheartOutcome
-  if (hopeDie === fearDie && succeeded) {
+  if (hopeDie === fearDie) {
+    // Tied dice always yield critical_success, regardless of DC
     outcome = 'critical_success'
   } else if (succeeded) {
     outcome = hopeDie > fearDie ? 'success_hope' : 'success_fear'
