@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Users, ChevronRight, ChevronUp } from 'lucide-react'
+import { Users, ChevronUp } from 'lucide-react'
 import { useUiStore } from '../stores/uiStore'
 import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
 import type { TacticalInfo } from '../stores/worldStore'

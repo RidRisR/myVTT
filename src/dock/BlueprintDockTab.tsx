@@ -11,7 +11,7 @@ const PRESET_TAGS = ['人形', '野兽', '魔法生物', '亡灵', '物件']
 interface TokenDockTabProps {
   onSpawnToken: (bp: Blueprint) => void
   onAddToActive: (bp: Blueprint) => void
-  isCombat: boolean
+  isTactical: boolean
 }
 
 /** Convert asset with type=blueprint into a Blueprint object */
@@ -31,7 +31,7 @@ function assetToBlueprint(a: {
   }
 }
 
-export function BlueprintDockTab({ onSpawnToken, onAddToActive, isCombat }: TokenDockTabProps) {
+export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: TokenDockTabProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -147,7 +147,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isCombat }: Toke
 
   const getContextMenuItems = (bp: Blueprint): ContextMenuItem[] => {
     const items: ContextMenuItem[] = []
-    if (isCombat) {
+    if (isTactical) {
       items.push({ label: 'Spawn on map', onClick: () => onSpawnToken(bp) })
     }
     items.push({ label: 'Add as featured NPC', onClick: () => onAddToActive(bp) })
@@ -218,7 +218,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isCombat }: Toke
             >
               {/* Circular token image */}
               <div
-                onClick={() => (isCombat ? onSpawnToken(bp) : onAddToActive(bp))}
+                onClick={() => (isTactical ? onSpawnToken(bp) : onAddToActive(bp))}
                 className="w-14 h-14 rounded-full overflow-hidden cursor-pointer shrink-0 transition-shadow duration-fast"
                 style={{
                   border: `3px solid ${bp.defaultColor}`,

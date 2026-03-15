@@ -8,7 +8,7 @@ import { useToast } from '../shared/ui/useToast'
 
 interface MapDockTabProps {
   activeSceneId: string | null
-  isCombat: boolean
+  isTactical: boolean
   onSetAsBackground?: (sceneId: string, imageUrl: string) => void
   onSetAsTacticalMap?: (imageUrl: string) => void
   onShowcaseImage?: (imageUrl: string) => void
@@ -22,7 +22,7 @@ interface ContextState {
 
 export function MapDockTab({
   activeSceneId,
-  isCombat,
+  isTactical,
   onSetAsBackground,
   onSetAsTacticalMap,
   onShowcaseImage,
@@ -144,7 +144,7 @@ export function MapDockTab({
               className="relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-fast border-border-glass"
               onClick={() => {
                 if (!activeSceneId || !asset.url) return
-                if (isCombat) {
+                if (isTactical) {
                   onSetAsTacticalMap?.(asset.url)
                 } else {
                   onSetAsBackground?.(activeSceneId, asset.url)
@@ -153,7 +153,7 @@ export function MapDockTab({
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   if (!activeSceneId || !asset.url) return
-                  if (isCombat) {
+                  if (isTactical) {
                     onSetAsTacticalMap?.(asset.url)
                   } else {
                     onSetAsBackground?.(activeSceneId, asset.url)
