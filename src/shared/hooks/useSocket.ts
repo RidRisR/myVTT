@@ -16,8 +16,12 @@ export function useSocket(roomId: string) {
     })
 
     // 'connect' fires on initial connection AND every reconnect
-    s.on('connect', () => setConnectionStatus('connected'))
-    s.on('disconnect', () => setConnectionStatus('disconnected'))
+    s.on('connect', () => {
+      setConnectionStatus('connected')
+    })
+    s.on('disconnect', () => {
+      setConnectionStatus('disconnected')
+    })
 
     socketRef.current = s
     setSocket(s)

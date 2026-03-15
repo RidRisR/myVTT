@@ -6,7 +6,7 @@ import { withRoom, withRole } from '../middleware'
 import { toCamel, parseJsonFields, toBoolFields } from '../db'
 
 function toArchive(row: Record<string, unknown>) {
-  const r = parseJsonFields(toCamel<Record<string, unknown>>(row), 'grid')
+  const r = parseJsonFields(toCamel(row), 'grid')
   return toBoolFields(r, 'gmOnly')
 }
 
@@ -16,8 +16,7 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
 
   // GET /scenes/:sceneId/archives — list archives for scene
   router.get('/api/rooms/:roomId/scenes/:sceneId/archives', room, withRole, (req, res) => {
-    const where =
-      req.role === 'GM' ? 'WHERE scene_id = ?' : 'WHERE scene_id = ? AND gm_only = 0'
+    const where = req.role === 'GM' ? 'WHERE scene_id = ?' : 'WHERE scene_id = ? AND gm_only = 0'
     const rows = req
       .roomDb!.prepare(`SELECT * FROM archives ${where}`)
       .all(req.params.sceneId) as Record<string, unknown>[]
@@ -44,10 +43,7 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
         gmOnly ? 1 : 0,
       )
     const archive = toArchive(
-      req.roomDb!.prepare('SELECT * FROM archives WHERE id = ?').get(id) as Record<
-        string,
-        unknown
-      >,
+      req.roomDb!.prepare('SELECT * FROM archives WHERE id = ?').get(id) as Record<string, unknown>,
     )
     io.to(req.roomId!).emit('archive:created', archive)
     res.status(201).json(archive)
@@ -84,16 +80,13 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
     }
     if (sets.length > 0) {
       values.push(req.params.archiveId)
-      req
-        .roomDb!.prepare(`UPDATE archives SET ${sets.join(', ')} WHERE id = ?`)
-        .run(...values)
+      req.roomDb!.prepare(`UPDATE archives SET ${sets.join(', ')} WHERE id = ?`).run(...values)
     }
 
     const updated = toArchive(
-      req.roomDb!.prepare('SELECT * FROM archives WHERE id = ?').get(req.params.archiveId) as Record<
-        string,
-        unknown
-      >,
+      req
+        .roomDb!.prepare('SELECT * FROM archives WHERE id = ?')
+        .get(req.params.archiveId) as Record<string, unknown>,
     )
     io.to(req.roomId!).emit('archive:updated', updated)
     res.json(updated)
@@ -124,7 +117,7 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
     const roomState = db.prepare('SELECT active_scene_id FROM room_state WHERE id = 1').get() as {
       active_scene_id: string | null
     }
-    const sceneId = roomState?.active_scene_id
+    const sceneId = roomState.active_scene_id
     if (!sceneId) {
       res.status(404).json({ error: 'No active scene' })
       return
@@ -140,12 +133,14 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
     // 3. Get current tactical state (map settings)
     const tacticalState = db
       .prepare('SELECT map_url, map_width, map_height, grid FROM tactical_state WHERE scene_id = ?')
-      .get(sceneId) as {
-      map_url: string | null
-      map_width: number | null
-      map_height: number | null
-      grid: string
-    } | undefined
+      .get(sceneId) as
+      | {
+          map_url: string | null
+          map_width: number | null
+          map_height: number | null
+          grid: string
+        }
+      | undefined
 
     // 4. Get tokens joined with entities
     const tokenRows = db
@@ -249,7 +244,7 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
     const roomState = db.prepare('SELECT active_scene_id FROM room_state WHERE id = 1').get() as {
       active_scene_id: string | null
     }
-    const sceneId = roomState?.active_scene_id
+    const sceneId = roomState.active_scene_id
     if (!sceneId) {
       res.status(404).json({ error: 'No active scene' })
       return
@@ -388,7 +383,7 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
         string,
         unknown
       >
-      const entity = parseJsonFields(toCamel<Record<string, unknown>>(entityRow), 'ruleData', 'permissions')
+      const entity = parseJsonFields(toCamel(entityRow), 'ruleData', 'permissions')
       io.to(req.roomId!).emit('entity:created', entity)
     }
 
@@ -403,7 +398,7 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
     const stateRow = db
       .prepare('SELECT * FROM tactical_state WHERE scene_id = ?')
       .get(sceneId) as Record<string, unknown>
-    const state = parseJsonFields(toCamel<Record<string, unknown>>(stateRow), 'grid')
+    const state = parseJsonFields(toCamel(stateRow), 'grid')
     const tokenRows = db
       .prepare('SELECT * FROM tactical_tokens WHERE scene_id = ?')
       .all(sceneId) as Record<string, unknown>[]

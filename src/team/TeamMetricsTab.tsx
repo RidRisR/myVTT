@@ -48,7 +48,9 @@ export function TeamMetricsTab({
       }
     }
     document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
   }, [colorPickerOpen])
 
   const commitNewTracker = (label: string) => {
@@ -80,7 +82,9 @@ export function TeamMetricsTab({
             height={8}
             valueDisplay="outside"
             draggable={isGM}
-            onChange={(val: number) => onUpdateTracker(t.id, { current: val })}
+            onChange={(val: number) => {
+              onUpdateTracker(t.id, { current: val })
+            }}
           />
         ))}
       </div>
@@ -97,7 +101,9 @@ export function TeamMetricsTab({
             <div className="flex items-center gap-1 mb-1">
               <input
                 value={t.label}
-                onChange={(e) => onUpdateTracker(t.id, { label: e.target.value })}
+                onChange={(e) => {
+                  onUpdateTracker(t.id, { label: e.target.value })
+                }}
                 placeholder="Name"
                 className={`${inputCls} flex-1 text-[11px] px-1.5 py-1 font-semibold`}
               />
@@ -130,13 +136,17 @@ export function TeamMetricsTab({
                 className={`${inputCls} w-8 text-center text-[11px] px-0.5 py-1 font-bold`}
               />
               <div
-                onClick={() => setColorPickerOpen(colorPickerOpen === t.id ? null : t.id)}
+                onClick={() => {
+                  setColorPickerOpen(colorPickerOpen === t.id ? null : t.id)
+                }}
                 className="w-3.5 h-3.5 rounded-full border-2 border-text-muted/25 cursor-pointer shrink-0 transition-colors duration-fast hover:border-text-muted/50"
                 style={{ background: t.color }}
                 title="Change color"
               />
               <button
-                onClick={() => onDeleteTracker(t.id)}
+                onClick={() => {
+                  onDeleteTracker(t.id)
+                }}
                 className="bg-transparent border-none cursor-pointer text-text-muted/20 p-0.5 leading-none shrink-0 transition-colors duration-fast hover:text-danger"
               >
                 <X size={14} strokeWidth={1.5} />
@@ -152,7 +162,9 @@ export function TeamMetricsTab({
               valueDisplay="inline"
               draggable
               showButtons
-              onChange={(val: number) => onUpdateTracker(t.id, { current: val })}
+              onChange={(val: number) => {
+                onUpdateTracker(t.id, { current: val })
+              }}
             />
 
             {/* Color picker — collapsed by default */}
@@ -182,7 +194,9 @@ export function TeamMetricsTab({
       {isGM &&
         (!addingNew ? (
           <button
-            onClick={() => setAddingNew(true)}
+            onClick={() => {
+              setAddingNew(true)
+            }}
             className="mt-1.5 w-full py-[7px] bg-surface border border-border-glass rounded-lg cursor-pointer text-text-muted/40 text-[11px] font-semibold transition-colors duration-fast hover:bg-hover hover:text-text-muted/70"
           >
             + Add Metric
@@ -191,8 +205,12 @@ export function TeamMetricsTab({
           <input
             autoFocus
             value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            onBlur={() => commitNewTracker(newLabel)}
+            onChange={(e) => {
+              setNewLabel(e.target.value)
+            }}
+            onBlur={() => {
+              commitNewTracker(newLabel)
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') commitNewTracker(newLabel)
               if (e.key === 'Escape') {

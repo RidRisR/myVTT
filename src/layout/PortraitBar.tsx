@@ -145,7 +145,9 @@ export function PortraitBar({
       }
     }
     document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
   }, [inspectedCharacterId, onInspectCharacter])
 
   // Clear hover when a portrait is locked
@@ -168,7 +170,9 @@ export function PortraitBar({
 
   const handlePortraitMouseLeave = useCallback(() => {
     if (inspectedCharacterId) return
-    hoverTimeoutRef.current = setTimeout(() => setHoveredCharId(null), 200)
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredCharId(null)
+    }, 200)
   }, [inspectedCharacterId])
 
   const handlePopoverMouseEnter = useCallback(() => {
@@ -177,7 +181,9 @@ export function PortraitBar({
 
   const handlePopoverMouseLeave = useCallback(() => {
     if (!inspectedCharacterId) {
-      hoverTimeoutRef.current = setTimeout(() => setHoveredCharId(null), 200)
+      hoverTimeoutRef.current = setTimeout(() => {
+        setHoveredCharId(null)
+      }, 200)
     }
   }, [inspectedCharacterId])
 
@@ -237,7 +243,9 @@ export function PortraitBar({
     return (
       <div className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center">
         <button
-          onClick={() => setPortraitBarVisible(true)}
+          onClick={() => {
+            setPortraitBarVisible(true)
+          }}
           className="pointer-events-auto flex items-center gap-1 bg-glass backdrop-blur-[12px] rounded-full px-3 py-1.5 border border-border-glass text-text-muted text-[10px] cursor-pointer hover:bg-hover transition-colors duration-fast shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
         >
           <ChevronUp size={12} strokeWidth={1.5} className="rotate-180" />
@@ -279,7 +287,9 @@ export function PortraitBar({
     if (mySeatId && canEdit(entity.permissions, mySeatId, role)) {
       items.push({
         label: 'Set as active',
-        onClick: () => onSetActiveCharacter(entity.id),
+        onClick: () => {
+          onSetActiveCharacter(entity.id)
+        },
         disabled: activeCharacterId === entity.id,
       })
     }
@@ -302,7 +312,7 @@ export function PortraitBar({
         items.push({
           label: '离场',
           onClick: () => {
-            if (activeSceneId) toggleEntityVisibility(activeSceneId, entity.id, false)
+            if (activeSceneId) void toggleEntityVisibility(activeSceneId, entity.id, false)
           },
         })
       }
@@ -310,14 +320,18 @@ export function PortraitBar({
       // Save as blueprint
       items.push({
         label: '保存为蓝图',
-        onClick: () => saveEntityAsBlueprint(entity),
+        onClick: () => {
+          void saveEntityAsBlueprint(entity)
+        },
       })
 
       // Save as reusable character (only for ephemeral entities)
       if (entity.lifecycle === 'ephemeral') {
         items.push({
           label: '保存为角色',
-          onClick: () => updateEntity(entity.id, { lifecycle: 'reusable' }),
+          onClick: () => {
+            void updateEntity(entity.id, { lifecycle: 'reusable' })
+          },
         })
       }
 
@@ -325,7 +339,9 @@ export function PortraitBar({
       if (entity.lifecycle !== 'persistent') {
         items.push({
           label: '移除',
-          onClick: () => onRemoveFromScene(entity.id),
+          onClick: () => {
+            onRemoveFromScene(entity.id)
+          },
           color: '#f87171',
         })
       }
@@ -363,7 +379,9 @@ export function PortraitBar({
         onClick={(e) => {
           handlePortraitClick(entity.id, e.currentTarget as HTMLElement)
         }}
-        onContextMenu={(e) => handleContextMenu(e, entity.id)}
+        onContextMenu={(e) => {
+          handleContextMenu(e, entity.id)
+        }}
         onMouseEnter={(e) => {
           if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'
           handlePortraitMouseEnter(entity.id, e.currentTarget as HTMLElement)
@@ -489,9 +507,7 @@ export function PortraitBar({
   // Resolve rect: use lockedRect/hoveredRect, fallback to querying the portrait element
   let rect = isLocked ? lockedRect : hoveredRect
   if (!rect && isLocked && popoverCharId && portraitBarRef.current) {
-    const el = portraitBarRef.current.querySelector(
-      `[data-char-id="${popoverCharId}"]`,
-    ) as HTMLElement | null
+    const el = portraitBarRef.current.querySelector(`[data-char-id="${popoverCharId}"]`)
     if (el) rect = el.getBoundingClientRect()
   }
 
@@ -517,12 +533,16 @@ export function PortraitBar({
     <div
       ref={portraitBarRef}
       className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center gap-[3px]"
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       {/* Tab buttons + collapse */}
       <div className="flex gap-0.5 items-center pointer-events-auto">
         <button
-          onClick={() => setActiveTab('characters')}
+          onClick={() => {
+            setActiveTab('characters')
+          }}
           className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
             activeTab === 'characters'
               ? 'text-text-primary border-b-2 border-accent'
@@ -532,7 +552,9 @@ export function PortraitBar({
           Characters
         </button>
         <button
-          onClick={() => setActiveTab('initiative')}
+          onClick={() => {
+            setActiveTab('initiative')
+          }}
           className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
             activeTab === 'initiative'
               ? 'text-text-primary border-b-2 border-accent'
@@ -542,7 +564,9 @@ export function PortraitBar({
           Initiative
         </button>
         <button
-          onClick={() => setPortraitBarVisible(false)}
+          onClick={() => {
+            setPortraitBarVisible(false)
+          }}
           className="ml-1 p-0.5 text-text-muted/30 hover:text-text-muted/60 bg-transparent border-none cursor-pointer transition-colors duration-fast"
           title="Hide portraits"
         >
@@ -593,7 +617,9 @@ export function PortraitBar({
               x={contextMenu.x}
               y={contextMenu.y}
               items={getContextMenuItems(entity)}
-              onClose={() => setContextMenu(null)}
+              onClose={() => {
+                setContextMenu(null)
+              }}
             />,
             document.body,
           )
@@ -612,8 +638,12 @@ export function PortraitBar({
               zIndex: 10001,
               maxHeight: popoverMaxHeight,
             }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onWheel={(e) => e.stopPropagation()}
+            onPointerDown={(e) => {
+              e.stopPropagation()
+            }}
+            onWheel={(e) => {
+              e.stopPropagation()
+            }}
             onMouseEnter={handlePopoverMouseEnter}
             onMouseLeave={handlePopoverMouseLeave}
           >

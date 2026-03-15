@@ -16,7 +16,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
   return (
     <div
       className="fixed top-1/2 left-0 -translate-y-1/2 z-toast flex pointer-events-none"
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       <div
         className="flex items-center pointer-events-auto"
@@ -36,7 +38,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
 
         {/* Tab handle — always visible */}
         <div
-          onClick={() => setOpen(!open)}
+          onClick={() => {
+            setOpen(!open)
+          }}
           className="w-9 py-3 bg-glass backdrop-blur-[12px] rounded-r-[10px] cursor-pointer flex flex-col items-center gap-1.5 border border-border-glass border-l-0 shadow-[4px_0_16px_rgba(0,0,0,0.2)] transition-colors duration-fast -ml-px hover:bg-surface"
         >
           {entity.imageUrl ? (

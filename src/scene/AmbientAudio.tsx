@@ -39,17 +39,15 @@ export function AmbientAudio({ audioUrl, volume }: AmbientAudioProps) {
     next.volume = 0
     audioRef.current = next
 
-    const playPromise = next.play()
-    if (playPromise) {
-      playPromise
-        .then(() => {
-          setBlocked(false)
-          htmlFadeIn(next, muted ? 0 : volume, FADE_MS)
-        })
-        .catch(() => {
-          setBlocked(true)
-        })
-    }
+    next
+      .play()
+      .then(() => {
+        setBlocked(false)
+        htmlFadeIn(next, muted ? 0 : volume, FADE_MS)
+      })
+      .catch(() => {
+        setBlocked(true)
+      })
 
     return () => {
       cancelAnimationFrame(fadeRef.current)
@@ -113,7 +111,9 @@ export function AmbientAudio({ audioUrl, volume }: AmbientAudioProps) {
   return (
     <div
       className="fixed bottom-3 right-4 z-toast flex items-center gap-1.5 font-sans"
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       {blocked && (
         <button
@@ -124,7 +124,9 @@ export function AmbientAudio({ audioUrl, volume }: AmbientAudioProps) {
         </button>
       )}
       <button
-        onClick={() => setMuted((m) => !m)}
+        onClick={() => {
+          setMuted((m) => !m)
+        }}
         className="p-2 rounded-lg bg-glass backdrop-blur-[12px] border border-border-glass shadow-[0_2px_12px_rgba(0,0,0,0.3)] cursor-pointer hover:bg-hover transition-colors duration-fast"
         title={muted ? 'Unmute' : 'Mute'}
       >

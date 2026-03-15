@@ -9,20 +9,23 @@ export function setupSocketAuth(io: SocketIOServer, dataDir: string): void {
     const roomId = socket.handshake.query.roomId as string
 
     if (!roomId) {
-      return next(new Error('roomId required'))
+      next(new Error('roomId required'))
+      return
     }
 
     if (!/^[a-zA-Z0-9_-]{1,64}$/.test(roomId)) {
-      return next(new Error('Invalid roomId'))
+      next(new Error('Invalid roomId'))
+      return
     }
 
     // Verify room exists in global DB
     const globalDb = getGlobalDb(dataDir)
-    const room = globalDb
-      .prepare('SELECT id FROM rooms WHERE id = ?')
-      .get(roomId) as { id: string } | undefined
+    const room = globalDb.prepare('SELECT id FROM rooms WHERE id = ?').get(roomId) as
+      | { id: string }
+      | undefined
     if (!room) {
-      return next(new Error('Room not found'))
+      next(new Error('Room not found'))
+      return
     }
 
     // Ensure room DB is initialized
@@ -33,7 +36,7 @@ export function setupSocketAuth(io: SocketIOServer, dataDir: string): void {
       seatId: null as string | null,
       role: null as 'GM' | 'PL' | null,
     }
-    socket.join(roomId)
+    void socket.join(roomId)
     next()
   })
 

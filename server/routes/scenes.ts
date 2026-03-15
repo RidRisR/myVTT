@@ -12,7 +12,7 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
   const room = withRoom(dataDir)
 
   function toScene(row: Record<string, unknown>) {
-    const r = parseJsonFields(toCamel<Record<string, unknown>>(row), 'atmosphere')
+    const r = parseJsonFields(toCamel(row), 'atmosphere')
     return toBoolFields(r, 'gmOnly')
   }
 
@@ -267,7 +267,7 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
     const count = req
       .roomDb!.prepare('SELECT COUNT(*) as c FROM entities WHERE blueprint_id = ?')
       .get(blueprintId) as { c: number }
-    const name = `${asset.name || 'NPC'} ${count.c + 1}`
+    const name = `${(asset.name as string) || 'NPC'} ${count.c + 1}`
 
     const entityId = 'e-' + crypto.randomUUID().slice(0, 8)
 

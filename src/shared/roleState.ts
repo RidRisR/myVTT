@@ -9,7 +9,9 @@ export const roleStore = {
   get: () => _role,
   set: (role: Role) => {
     _role = role
-    roleListeners.forEach((l) => l())
+    roleListeners.forEach((l) => {
+      l()
+    })
   },
   subscribe: (listener: () => void) => {
     roleListeners.add(listener)
@@ -30,7 +32,9 @@ export const popoverStore = {
   get: () => _popoverOpen,
   set: (open: boolean) => {
     _popoverOpen = open
-    popoverListeners.forEach((l) => l())
+    popoverListeners.forEach((l) => {
+      l()
+    })
   },
   subscribe: (listener: () => void) => {
     popoverListeners.add(listener)

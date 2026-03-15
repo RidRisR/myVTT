@@ -46,7 +46,9 @@ export function TokenContextMenu({
       }
     }
     document.addEventListener('pointerdown', handlePointerDown)
-    return () => document.removeEventListener('pointerdown', handlePointerDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+    }
   }, [onClose])
 
   // Escape key to close
@@ -55,7 +57,9 @@ export function TokenContextMenu({
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [onClose])
 
   // PL: don't show context menu
@@ -71,8 +75,12 @@ export function TokenContextMenu({
       ref={ref}
       className="fixed z-popover bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans"
       style={{ left: x, top: y }}
-      onPointerDown={(e) => e.stopPropagation()}
-      onContextMenu={(e) => e.preventDefault()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault()
+      }}
     >
       {isTokenMenu ? (
         <>
@@ -88,7 +96,7 @@ export function TokenContextMenu({
           <MenuItem
             label="Copy Token"
             onClick={() => {
-              if (token) onCopyToken(token.id)
+              onCopyToken(token.id)
               onClose()
             }}
           />

@@ -45,7 +45,7 @@ export function CharacterHoverPreview({
   const [newStatusLabel, setNewStatusLabel] = useState('')
 
   const canEdit = !!(editable && onUpdateCharacter)
-  const hasStats = resources.length > 0 || statuses.length > 0 || !!canEdit
+  const hasStats = resources.length > 0 || statuses.length > 0 || canEdit
   const hasAttr = attributes.length > 0
   const showTabs = hasStats && hasAttr
 
@@ -173,7 +173,9 @@ export function CharacterHoverPreview({
           ).map(([key, label]) => (
             <button
               key={key}
-              onClick={() => setActiveTab(key)}
+              onClick={() => {
+                setActiveTab(key)
+              }}
               style={{
                 flex: 1,
                 padding: '3px 0',
@@ -210,18 +212,30 @@ export function CharacterHoverPreview({
                 valueDisplay={canEdit ? 'inline' : 'outside'}
                 draggable={canEdit}
                 showButtons={canEdit}
-                onChange={(val: number) => updateResource(i, { current: val })}
+                onChange={(val: number) => {
+                  updateResource(i, { current: val })
+                }}
                 onDragStart={
                   canEdit
-                    ? () => broadcastEditing(character.id, String(allIdx), res.current)
+                    ? () => {
+                        broadcastEditing(character.id, String(allIdx), res.current)
+                      }
                     : undefined
                 }
                 onDragMove={
                   canEdit
-                    ? (val: number) => broadcastEditing(character.id, String(allIdx), val)
+                    ? (val: number) => {
+                        broadcastEditing(character.id, String(allIdx), val)
+                      }
                     : undefined
                 }
-                onDragEnd={canEdit ? () => clearEditing() : undefined}
+                onDragEnd={
+                  canEdit
+                    ? () => {
+                        clearEditing()
+                      }
+                    : undefined
+                }
                 remoteDragValue={remoteEdit?.value ?? null}
                 softLockColor={remoteEdit?.color ?? null}
                 style={{ marginBottom: i < resources.length - 1 ? 5 : 0 }}
@@ -248,8 +262,12 @@ export function CharacterHoverPreview({
                       key={i}
                       autoFocus
                       value={editingStatusLabel}
-                      onChange={(e) => setEditingStatusLabel(e.target.value)}
-                      onBlur={() => commitStatusEdit(i, editingStatusLabel)}
+                      onChange={(e) => {
+                        setEditingStatusLabel(e.target.value)
+                      }}
+                      onBlur={() => {
+                        commitStatusEdit(i, editingStatusLabel)
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') commitStatusEdit(i, editingStatusLabel)
                         if (e.key === 'Escape') setEditingStatusIdx(null)
@@ -293,16 +311,16 @@ export function CharacterHoverPreview({
                     }
                     onMouseEnter={
                       canEdit
-                        ? (e) => {
-                            const x = e.currentTarget.querySelector('.status-x') as HTMLElement
+                        ? (e: React.MouseEvent<HTMLDivElement>) => {
+                            const x = e.currentTarget.querySelector<HTMLElement>('.status-x')
                             if (x) x.style.opacity = '1'
                           }
                         : undefined
                     }
                     onMouseLeave={
                       canEdit
-                        ? (e) => {
-                            const x = e.currentTarget.querySelector('.status-x') as HTMLElement
+                        ? (e: React.MouseEvent<HTMLDivElement>) => {
+                            const x = e.currentTarget.querySelector<HTMLElement>('.status-x')
                             if (x) x.style.opacity = '0'
                           }
                         : undefined
@@ -345,7 +363,9 @@ export function CharacterHoverPreview({
               })}
               {canEdit && !addingStatus && (
                 <span
-                  onClick={() => setAddingStatus(true)}
+                  onClick={() => {
+                    setAddingStatus(true)
+                  }}
                   style={{
                     width: 18,
                     height: 18,
@@ -378,8 +398,12 @@ export function CharacterHoverPreview({
                 <input
                   autoFocus
                   value={newStatusLabel}
-                  onChange={(e) => setNewStatusLabel(e.target.value)}
-                  onBlur={() => commitNewStatus(newStatusLabel)}
+                  onChange={(e) => {
+                    setNewStatusLabel(e.target.value)
+                  }}
+                  onBlur={() => {
+                    commitNewStatus(newStatusLabel)
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') commitNewStatus(newStatusLabel)
                     if (e.key === 'Escape') {

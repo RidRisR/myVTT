@@ -111,16 +111,24 @@ export async function setupTestRoom(roomName = 'test-room'): Promise<TestContext
     query: { roomId },
   })
   await new Promise<void>((resolve, reject) => {
-    socket.on('connect', () => resolve())
+    socket.on('connect', () => {
+      resolve()
+    })
     socket.on('connect_error', reject)
-    setTimeout(() => reject(new Error('Socket connect timeout')), 5000)
+    setTimeout(() => {
+      reject(new Error('Socket connect timeout'))
+    }, 5000)
   })
 
   // 7. Cleanup function
   const cleanup = async () => {
     socket.disconnect()
-    io.close()
-    await new Promise<void>((resolve) => server.close(() => resolve()))
+    void io.close()
+    await new Promise<void>((resolve) =>
+      server.close(() => {
+        resolve()
+      }),
+    )
     closeAllDbs()
     fs.rmSync(dataDir, { recursive: true, force: true })
   }
@@ -161,9 +169,13 @@ export async function connectSecondClient(apiBase: string, roomId: string): Prom
     query: { roomId },
   })
   await new Promise<void>((resolve, reject) => {
-    socket.on('connect', () => resolve())
+    socket.on('connect', () => {
+      resolve()
+    })
     socket.on('connect_error', reject)
-    setTimeout(() => reject(new Error('Socket connect timeout')), 5000)
+    setTimeout(() => {
+      reject(new Error('Socket connect timeout'))
+    }, 5000)
   })
   return socket
 }

@@ -11,7 +11,7 @@ export function chatRoutes(dataDir: string, io: Server): Router {
   const room = withRoom(dataDir)
 
   function toMessage(row: Record<string, unknown>) {
-    const msg = parseJsonFields(toCamel<Record<string, unknown>>(row), 'rollData')
+    const msg = parseJsonFields(toCamel(row), 'rollData')
     // Flatten rollData into top-level fields for client ChatRollMessage compatibility
     if (msg.rollData && typeof msg.rollData === 'object') {
       const { rollData, ...rest } = msg

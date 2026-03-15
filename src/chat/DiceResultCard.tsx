@@ -42,8 +42,12 @@ export function DiceAnimContent({ message, isNew, dieConfigs, footer, totalColor
   useEffect(() => {
     if (!shouldAnimate.current) return
     const duration = calcTotalAnimDuration(termResults) * 1000
-    const timer = setTimeout(() => setTotalRevealed(true), duration)
-    return () => clearTimeout(timer)
+    const timer = setTimeout(() => {
+      setTotalRevealed(true)
+    }, duration)
+    return () => {
+      clearTimeout(timer)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalDice = termResults.reduce(

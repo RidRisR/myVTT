@@ -83,8 +83,12 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   // Dice message
   return (
     <div
-      onMouseEnter={() => setCardHover(true)}
-      onMouseLeave={() => setCardHover(false)}
+      onMouseEnter={() => {
+        setCardHover(true)
+      }}
+      onMouseLeave={() => {
+        setCardHover(false)
+      }}
       className="relative flex gap-2.5 px-4 py-3 bg-glass backdrop-blur-[20px] border border-accent/40 shadow-[0_4px_16px_rgba(212,160,85,0.15),inset_0_1px_0_rgba(232,184,106,0.1)] rounded-xl"
       style={{ animation }}
     >

@@ -167,7 +167,7 @@ interface WorldState {
 
   // Showcase actions
   addShowcaseItem: (item: ShowcaseItem) => Promise<void>
-  updateShowcaseItem: (id: string, updates: Partial<ShowcaseItem>) => void
+  updateShowcaseItem: (id: string, updates: Partial<ShowcaseItem>) => Promise<void>
   deleteShowcaseItem: (id: string) => Promise<void>
   clearShowcase: () => Promise<void>
   pinShowcaseItem: (id: string) => Promise<void>
@@ -220,7 +220,9 @@ const DEFAULT_GRID: TacticalInfo['grid'] = {
   offsetY: 0,
 }
 
-function normalizeTacticalInfo(raw: TacticalInfo): TacticalInfo {
+function normalizeTacticalInfo(
+  raw: Omit<TacticalInfo, 'tokens'> & { tokens?: MapToken[] },
+): TacticalInfo {
   return {
     ...raw,
     grid: { ...DEFAULT_GRID, ...raw.grid },
@@ -249,9 +251,7 @@ async function loadAll(roomId: string) {
   let tacticalInfo: TacticalInfo | null = null
   try {
     const tacticalRaw = await api.get<TacticalInfo>(`/api/rooms/${roomId}/tactical`)
-    if (tacticalRaw) {
-      tacticalInfo = normalizeTacticalInfo(tacticalRaw)
-    }
+    tacticalInfo = normalizeTacticalInfo(tacticalRaw)
   } catch {
     // 404 means no active scene or no tactical state — leave as null
   }
@@ -997,7 +997,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   /** @internal Test-only: reset store to initial state (preserves socket/roomId) */
-  _reset: () =>
+  _reset: () => {
     set({
       room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0, ruleSystemId: 'generic' },
       scenes: [],
@@ -1011,5 +1011,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       teamTrackers: [],
       assets: [],
       archives: [],
-    }),
+    })
+  },
 }))

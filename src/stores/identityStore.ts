@@ -186,10 +186,11 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
   },
 
   /** @internal Test-only: reset store to initial state (preserves socket/roomId) */
-  _reset: () =>
+  _reset: () => {
     set({
       seats: [],
       mySeatId: null,
       onlineSeatIds: new Set(),
-    }),
+    })
+  },
 }))
