@@ -2,6 +2,7 @@ import type React from 'react'
 import type { Entity } from '../shared/entityTypes'
 import type { DiceTermResult } from '../shared/diceUtils'
 import type { TeamTracker } from '../stores/worldStore'
+import type { ChatRollMessage } from '../chat/chatTypes'
 
 // ── Adapter view types (shared with entityAdapters.ts) ─────────────────────
 
@@ -122,6 +123,11 @@ export type HideableElement =
   | 'gm-panel'
   | 'scene-controls'
 
+export interface RollCardProps {
+  message: ChatRollMessage
+  isNew?: boolean
+}
+
 // ── RulePlugin — the main interface ────────────────────────────────────────
 
 export interface RulePlugin {
@@ -145,14 +151,12 @@ export interface RulePlugin {
   // Layer 3: Dice system (optional)
   diceSystem?: {
     getRollActions(entity: Entity): RollAction[]
-    evaluateRoll(
-      terms: DiceTermResult[],
-      total: number,
-      ctx: RollContext,
-    ): JudgmentResult | null
+    evaluateRoll(rolls: number[][], total: number): JudgmentResult | null // 改：纯 rolls 输入
     getDieStyles(terms: DiceTermResult[]): DieStyle[]
     getJudgmentDisplay(result: JudgmentResult): JudgmentDisplay
     getModifierOptions(): ModifierOption[]
+    // NEW: 插件注册的自定义投骰命令
+    rollCommands?: Record<string, { resolveFormula(modifierExpr?: string): string }>
   }
 
   // Layer 4: Data templates (optional)
@@ -167,6 +171,7 @@ export interface RulePlugin {
     dockTabs?: DockTabDef[]
     gmTabs?: GMTabDef[]
     teamPanel?: React.ComponentType<TeamPanelProps>
+    rollCardRenderers?: Record<string, React.ComponentType<RollCardProps>> // NEW
   }
 
   // Layer 6: Declarative element hiding (optional)

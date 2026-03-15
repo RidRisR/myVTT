@@ -23,9 +23,13 @@ export type {
   RollContext,
   DaggerheartOutcome,
 } from './types'
-export type { DiceTermResult } from '../shared/diceUtils'
+export type { DiceTermResult, DiceSpec } from '../shared/diceUtils'
 
 // ── Utility hook exports ─────────────────────────────────────────────────────
 export { useHoldRepeat } from '../shared/useHoldRepeat'
 export { useAwarenessResource } from '../shared/hooks/useAwarenessResource'
 // usePluginPanels will be added when surfaces/panels system is implemented
+
+export { tokenizeExpression, buildCompoundResult } from '../shared/diceUtils'
+export type { ChatRollMessage } from '../chat/chatTypes'
+export type { RollCardProps } from './types'
