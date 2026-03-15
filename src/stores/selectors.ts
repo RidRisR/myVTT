@@ -3,7 +3,7 @@
 // Components use these with useWorldStore(selector) for fine-grained subscriptions.
 
 import type { Entity, MapToken } from '../shared/entityTypes'
-import type { Scene, RoomState, CombatInfo } from './worldStore'
+import type { Scene, RoomState, TacticalInfo } from './worldStore'
 import type { Seat } from './identityStore'
 import { getEntityResources, getEntityAttributes } from '../shared/entityAdapters'
 
@@ -13,10 +13,10 @@ export const selectRoom = (s: { room: RoomState }) => s.room
 export const selectActiveSceneId = (s: { room: RoomState }) => s.room.activeSceneId
 export const selectScenes = (s: { scenes: Scene[] }) => s.scenes
 export const selectEntities = (s: { entities: Record<string, Entity> }) => s.entities
-const EMPTY_TOKENS: Record<string, MapToken> = {}
-export const selectTokens = (s: { combatInfo: CombatInfo | null }): Record<string, MapToken> =>
-  s.combatInfo?.tokens ?? EMPTY_TOKENS
-export const selectCombatInfo = (s: { combatInfo: CombatInfo | null }) => s.combatInfo
+const EMPTY_TOKENS: MapToken[] = []
+export const selectTokens = (s: { tacticalInfo: TacticalInfo | null }): MapToken[] =>
+  s.tacticalInfo?.tokens ?? EMPTY_TOKENS
+export const selectTacticalInfo = (s: { tacticalInfo: TacticalInfo | null }) => s.tacticalInfo
 
 export const selectActiveScene = (s: { room: RoomState; scenes: Scene[] }): Scene | null => {
   const id = s.room.activeSceneId
@@ -24,8 +24,8 @@ export const selectActiveScene = (s: { room: RoomState; scenes: Scene[] }): Scen
   return s.scenes.find((sc) => sc.id === id) ?? null
 }
 
-export const selectIsCombat = (s: { room: RoomState }): boolean => {
-  return s.room.activeEncounterId != null
+export const selectIsTactical = (s: { room: RoomState }): boolean => {
+  return s.room.activeArchiveId != null
 }
 
 // ── Entity lookups ──
@@ -38,9 +38,9 @@ export function selectEntityById(id: string | null) {
 }
 
 export function selectTokenById(id: string | null) {
-  return (s: { combatInfo: CombatInfo | null }): MapToken | null => {
+  return (s: { tacticalInfo: TacticalInfo | null }): MapToken | null => {
     if (!id) return null
-    return s.combatInfo?.tokens[id] ?? null
+    return s.tacticalInfo?.tokens.find((t) => t.id === id) ?? null
   }
 }
 
