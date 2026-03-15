@@ -143,8 +143,8 @@ export function KonvaTokenLayer({
           ? tokens.find((t) => t.id === draggingTokenIdRef.current)
           : null
         const entity = draggedToken?.entityId ? getEntity(draggedToken.entityId) : null
-        const tokenSize = draggedToken?.size ?? 1
-        const tokenColor = entity?.color ?? draggedToken?.color ?? '#888'
+        const tokenSize = draggedToken?.width ?? 1
+        const tokenColor = entity?.color ?? '#888'
 
         setGhostState({
           x: snapped.x,
@@ -226,7 +226,7 @@ export function KonvaTokenLayer({
       const token = tokens.find((t) => t.id === tokenId)
       if (!token) return
 
-      const pixelSize = token.size * combatInfo.grid.size
+      const pixelSize = token.width * combatInfo.grid.size
       const screenX = (token.x + pixelSize / 2) * stageScale + stagePos.x + containerOffset.x
       const screenY = token.y * stageScale + stagePos.y + containerOffset.y
 
@@ -251,7 +251,7 @@ export function KonvaTokenLayer({
         const token = tokens.find((t) => t.id === tokenId)
         if (!token) return
 
-        const pixelSize = token.size * combatInfo.grid.size
+        const pixelSize = token.width * combatInfo.grid.size
         const screenX = (token.x + pixelSize / 2) * stageScale + stagePos.x + containerOffset.x
         const screenY = (token.y + pixelSize) * stageScale + stagePos.y + containerOffset.y
 
@@ -303,7 +303,7 @@ export function KonvaTokenLayer({
             key={token.id}
             token={displayToken}
             entity={entity}
-            pixelSize={token.size * combatInfo.grid.size}
+            pixelSize={token.width * combatInfo.grid.size}
             selected={token.id === selectedTokenId}
             isHidden={isHidden}
             canDrag={canDrag}

@@ -73,7 +73,7 @@ export function GmDock({
   selectedToken,
   onAddToken,
   onDeleteToken,
-  onUpdateToken,
+  onUpdateToken: _onUpdateToken,
   onSelectToken,
   onSetAsTacticalMap,
 }: GmDockProps) {
@@ -108,8 +108,10 @@ export function GmDock({
         entityId: entity.id,
         x: 200,
         y: 200,
-        size: bp.defaultSize,
-        permissions: defaultNPCPermissions(),
+        width: bp.defaultSize,
+        height: bp.defaultSize,
+        imageScaleX: 1,
+        imageScaleY: 1,
       }
       onAddToken(token)
       onSelectToken(token.id)
@@ -137,9 +139,11 @@ export function GmDock({
 
   const handleToggleVisibility = () => {
     if (!selectedToken) return
-    const isHidden = selectedToken.permissions.default === 'none'
+    const entity = useWorldStore.getState().entities[selectedToken.entityId]
+    if (!entity) return
+    const isHidden = entity.permissions.default === 'none'
     const newPerms = isHidden ? defaultNPCPermissions() : { default: 'none' as const, seats: {} }
-    onUpdateToken(selectedToken.id, { permissions: newPerms })
+    useWorldStore.getState().updateEntity(entity.id, { permissions: newPerms })
   }
 
   if (collapsed) {
@@ -268,7 +272,8 @@ export function GmDock({
               Delete
             </button>
             {(() => {
-              const isHidden = selectedToken.permissions.default === 'none'
+              const selectedEntity = useWorldStore.getState().entities[selectedToken.entityId]
+              const isHidden = selectedEntity?.permissions.default === 'none'
               return (
                 <button
                   onClick={handleToggleVisibility}

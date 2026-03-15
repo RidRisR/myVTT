@@ -6,7 +6,8 @@ export function makeEntity(overrides?: Partial<Entity>): Entity {
     name: 'Test Character',
     imageUrl: '',
     color: '#3b82f6',
-    size: 1,
+    width: 1,
+    height: 1,
     notes: '',
     ruleData: null,
     permissions: { default: 'observer', seats: {} },
@@ -18,10 +19,13 @@ export function makeEntity(overrides?: Partial<Entity>): Entity {
 export function makeToken(overrides?: Partial<MapToken>): MapToken {
   return {
     id: 'token-1',
+    entityId: 'entity-1',
     x: 100,
     y: 200,
-    size: 1,
-    permissions: { default: 'observer', seats: {} },
+    width: 1,
+    height: 1,
+    imageScaleX: 1,
+    imageScaleY: 1,
     ...overrides,
   }
 }

@@ -1,6 +1,8 @@
 // src/shared/permissions.ts
 import type { Entity, EntityPermissions, MapToken, PermissionLevel } from './entityTypes'
 
+const DEFAULT_PERMISSIONS: EntityPermissions = { default: 'observer', seats: {} }
+
 export function getPermission(permissions: EntityPermissions, seatId: string): PermissionLevel {
   return permissions.seats[seatId] ?? permissions.default
 }
@@ -23,11 +25,9 @@ export function getEffectivePermissions(
   token: MapToken,
   getEntity: (id: string) => Entity | null,
 ): EntityPermissions {
-  if (token.entityId) {
-    const entity = getEntity(token.entityId)
-    if (entity) return entity.permissions
-  }
-  return token.permissions
+  const entity = getEntity(token.entityId)
+  if (entity) return entity.permissions
+  return DEFAULT_PERMISSIONS
 }
 
 export function defaultPCPermissions(ownerSeatId: string): Entity['permissions'] {

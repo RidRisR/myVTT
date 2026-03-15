@@ -334,7 +334,8 @@ function RoomSession({ roomId }: { roomId: string }) {
       name: 'New NPC',
       imageUrl: '',
       color: '#3b82f6',
-      size: 1,
+      width: 1,
+      height: 1,
       notes: '',
       ruleData: null,
       permissions: defaultNPCPermissions(),
@@ -354,11 +355,10 @@ function RoomSession({ roomId }: { roomId: string }) {
       entityId: entity.id,
       x: mapX,
       y: mapY,
-      size: entity.size || 1,
-      color: entity.color,
-      imageUrl: entity.imageUrl,
-      label: entity.name,
-      permissions: { default: entity.permissions.default, seats: { ...entity.permissions.seats } },
+      width: entity.width || 1,
+      height: entity.height || 1,
+      imageScaleX: 1,
+      imageScaleY: 1,
     }
     addToken(newToken)
     setSelectedTokenId(newToken.id)

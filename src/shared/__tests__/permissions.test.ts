@@ -95,24 +95,17 @@ describe('permission factories', () => {
 // ── getEffectivePermissions ─────────────────────────────────
 
 describe('getEffectivePermissions', () => {
-  it('returns token permissions when token has no entityId', () => {
-    const token = makeToken({ permissions: hiddenPerms })
-    const getEntity = () => null
-    expect(getEffectivePermissions(token, getEntity)).toBe(hiddenPerms)
-  })
-
   it('returns entity permissions when token has entityId and entity exists', () => {
     const entityPerms: EntityPermissions = { default: 'observer', seats: { 'seat-1': 'owner' } }
-    const token = makeToken({ entityId: 'e1', permissions: hiddenPerms })
+    const token = makeToken({ entityId: 'e1' })
     const getEntity = (id: string) =>
       id === 'e1' ? makeEntity({ id: 'e1', permissions: entityPerms }) : null
     expect(getEffectivePermissions(token, getEntity)).toEqual(entityPerms)
   })
 
-  it('falls back to token permissions when entityId set but entity not found', () => {
-    const tokenPerms: EntityPermissions = { default: 'observer', seats: {} }
-    const token = makeToken({ entityId: 'missing', permissions: tokenPerms })
+  it('falls back to default observer permissions when entity not found', () => {
+    const token = makeToken({ entityId: 'missing' })
     const getEntity = () => null
-    expect(getEffectivePermissions(token, getEntity)).toBe(tokenPerms)
+    expect(getEffectivePermissions(token, getEntity)).toEqual({ default: 'observer', seats: {} })
   })
 })
