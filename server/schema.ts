@@ -19,7 +19,9 @@ export function initRoomSchema(db: Database.Database): void {
       id INTEGER PRIMARY KEY CHECK (id = 1),
       active_scene_id TEXT,
       active_archive_id TEXT,
-      tactical_mode INTEGER NOT NULL DEFAULT 0
+      tactical_mode INTEGER NOT NULL DEFAULT 0,
+      rule_system_id TEXT NOT NULL DEFAULT 'generic',
+      plugin_config TEXT NOT NULL DEFAULT '{}'
     );
     INSERT OR IGNORE INTO room_state (id) VALUES (1);
 
@@ -172,4 +174,12 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_tactical_tokens_entity ON tactical_tokens(entity_id);
     CREATE INDEX IF NOT EXISTS idx_archive_tokens_archive ON archive_tokens(archive_id);
   `)
+
+  // Migrations for existing DBs (SQLite doesn't support IF NOT EXISTS in ALTER TABLE)
+  try {
+    db.exec(`ALTER TABLE room_state ADD COLUMN rule_system_id TEXT NOT NULL DEFAULT 'generic'`)
+  } catch { /* column already exists */ }
+  try {
+    db.exec(`ALTER TABLE room_state ADD COLUMN plugin_config TEXT NOT NULL DEFAULT '{}'`)
+  } catch { /* column already exists */ }
 }
