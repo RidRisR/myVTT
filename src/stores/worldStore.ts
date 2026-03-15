@@ -23,6 +23,7 @@ export interface RoomState {
   activeSceneId: string | null
   activeArchiveId: string | null
   tacticalMode: number
+  ruleSystemId: string
 }
 
 export interface TacticalInfo {
@@ -494,7 +495,7 @@ const WS_EVENTS = [
 
 export const useWorldStore = create<WorldState>((set, get) => ({
   // Initial data
-  room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0 },
+  room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0, ruleSystemId: 'generic' },
   scenes: [],
   entities: {},
   sceneEntityMap: {},
@@ -866,7 +867,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   /** @internal Test-only: reset store to initial state (preserves socket/roomId) */
   _reset: () =>
     set({
-      room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0 },
+      room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0, ruleSystemId: 'generic' },
       scenes: [],
       entities: {},
       sceneEntityMap: {},
