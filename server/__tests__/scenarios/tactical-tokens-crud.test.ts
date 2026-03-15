@@ -148,4 +148,84 @@ describe('Tactical Tokens CRUD', () => {
     expect(ids).toContain(fromEntityTokenId)
     expect(ids).not.toContain(quickTokenId)
   })
+
+  it('DELETE /tactical/tokens/:id returns 404 for non-existent token', async () => {
+    const { status } = await ctx.api(
+      'DELETE',
+      `/api/rooms/${ctx.roomId}/tactical/tokens/does-not-exist`,
+    )
+    expect(status).toBe(404)
+  })
+
+  it('POST /tactical/tokens returns 409 if entity already has a token in scene', async () => {
+    // entityId already has tokenId from the earlier test
+    const { status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens`, {
+      entityId,
+      x: 999,
+      y: 999,
+    })
+    expect(status).toBe(409)
+  })
+
+  it('deleting a token does NOT auto-delete the ephemeral entity', async () => {
+    // quick-create gives us an entity + token
+    const { data: created } = await ctx.api(
+      'POST',
+      `/api/rooms/${ctx.roomId}/tactical/tokens/quick`,
+      { x: 0, y: 0, name: 'Orphan' },
+    )
+    const { entity, token } = created as { entity: { id: string }; token: { id: string } }
+
+    // delete the token
+    const { status: delStatus } = await ctx.api(
+      'DELETE',
+      `/api/rooms/${ctx.roomId}/tactical/tokens/${token.id}`,
+    )
+    expect(delStatus).toBe(200)
+
+    // entity should still exist
+    const { status: entityStatus } = await ctx.api(
+      'GET',
+      `/api/rooms/${ctx.roomId}/entities/${entity.id}`,
+    )
+    expect(entityStatus).toBe(200)
+  })
+})
+
+describe('PATCH /tactical state-level update', () => {
+  let patchSceneId: string
+
+  it('setup: create a fresh scene and set it active', async () => {
+    const { data: scene } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
+      name: 'Patch Test Scene',
+      atmosphere: {},
+    })
+    patchSceneId = (scene as { id: string }).id
+    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: patchSceneId })
+  })
+
+  it('PATCH /tactical sets mapUrl, roundNumber, and grid.size', async () => {
+    const { status, data } = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/tactical`, {
+      mapUrl: '/map.jpg',
+      roundNumber: 3,
+      grid: { size: 70 },
+    })
+    expect(status).toBe(200)
+    const state = data as { mapUrl: string; roundNumber: number; grid: { size: number } }
+    expect(state.mapUrl).toBe('/map.jpg')
+    expect(state.roundNumber).toBe(3)
+    expect(state.grid.size).toBe(70)
+  })
+
+  it('second PATCH with only grid.snap preserves grid.size (deep merge)', async () => {
+    const { status, data } = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/tactical`, {
+      grid: { snap: false },
+    })
+    expect(status).toBe(200)
+    const state = data as { grid: { size: number; snap: boolean } }
+    // size from first patch must survive
+    expect(state.grid.size).toBe(70)
+    // new field was written
+    expect(state.grid.snap).toBe(false)
+  })
 })

@@ -14,8 +14,6 @@ export function initGlobalSchema(db: Database.Database): void {
 
 export function initRoomSchema(db: Database.Database): void {
   db.exec(`
-    PRAGMA foreign_keys = ON;
-
     -- Room-level state (singleton row)
     CREATE TABLE IF NOT EXISTS room_state (
       id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -118,7 +116,8 @@ export function initRoomSchema(db: Database.Database): void {
       height REAL NOT NULL DEFAULT 1,
       image_scale_x REAL NOT NULL DEFAULT 1,
       image_scale_y REAL NOT NULL DEFAULT 1,
-      initiative_position INTEGER
+      initiative_position INTEGER,
+      UNIQUE(scene_id, entity_id)
     );
 
     -- Chat messages

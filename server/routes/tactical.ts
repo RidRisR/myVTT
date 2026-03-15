@@ -84,42 +84,46 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
       return
     }
 
-    const sets: string[] = []
-    const values: unknown[] = []
+    const doPatch = req.roomDb!.transaction(() => {
+      const sets: string[] = []
+      const values: unknown[] = []
 
-    const simpleFields: Record<string, string> = {
-      mapUrl: 'map_url',
-      mapWidth: 'map_width',
-      mapHeight: 'map_height',
-      roundNumber: 'round_number',
-      currentTurnTokenId: 'current_turn_token_id',
-    }
-    for (const [camel, snake] of Object.entries(simpleFields)) {
-      if (req.body[camel] !== undefined) {
-        sets.push(`${snake} = ?`)
-        values.push(req.body[camel])
+      const simpleFields: Record<string, string> = {
+        mapUrl: 'map_url',
+        mapWidth: 'map_width',
+        mapHeight: 'map_height',
+        roundNumber: 'round_number',
+        currentTurnTokenId: 'current_turn_token_id',
       }
-    }
+      for (const [camel, snake] of Object.entries(simpleFields)) {
+        if (req.body[camel] !== undefined) {
+          sets.push(`${snake} = ?`)
+          values.push(req.body[camel])
+        }
+      }
 
-    // Grid: deep merge with existing values
-    if (req.body.grid !== undefined) {
-      const existing = req.roomDb!
-        .prepare('SELECT grid FROM tactical_state WHERE scene_id = ?')
-        .get(sceneId) as { grid: string }
-      const existingGrid = JSON.parse(existing.grid || '{}')
-      const merged = { ...existingGrid, ...req.body.grid }
-      sets.push('grid = ?')
-      values.push(JSON.stringify(merged))
-    }
+      // Grid: deep merge with existing values (inside transaction to avoid races)
+      if (req.body.grid !== undefined) {
+        const existing = req.roomDb!
+          .prepare('SELECT grid FROM tactical_state WHERE scene_id = ?')
+          .get(sceneId) as { grid: string }
+        const existingGrid = JSON.parse(existing.grid || '{}')
+        const merged = { ...existingGrid, ...req.body.grid }
+        sets.push('grid = ?')
+        values.push(JSON.stringify(merged))
+      }
 
-    if (sets.length > 0) {
-      values.push(sceneId)
-      req
-        .roomDb!.prepare(`UPDATE tactical_state SET ${sets.join(', ')} WHERE scene_id = ?`)
-        .run(...values)
-    }
+      if (sets.length > 0) {
+        values.push(sceneId)
+        req.roomDb!.prepare(`UPDATE tactical_state SET ${sets.join(', ')} WHERE scene_id = ?`).run(
+          ...values,
+        )
+      }
 
-    const updated = getTacticalState(req.roomDb!, sceneId)
+      return getTacticalState(req.roomDb!, sceneId)
+    })
+
+    const updated = doPatch()
     io.to(req.roomId!).emit('tactical:updated', updated)
     res.json(updated)
   })
@@ -163,12 +167,20 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
     }
 
     const id = crypto.randomUUID()
-    req
-      .roomDb!.prepare(
-        `INSERT INTO tactical_tokens (id, scene_id, entity_id, x, y, width, height, image_scale_x, image_scale_y)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(id, sceneId, entityId, x, y, width, height, imageScaleX, imageScaleY)
+    try {
+      req
+        .roomDb!.prepare(
+          `INSERT INTO tactical_tokens (id, scene_id, entity_id, x, y, width, height, image_scale_x, image_scale_y)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(id, sceneId, entityId, x, y, width, height, imageScaleX, imageScaleY)
+    } catch (err: unknown) {
+      if ((err as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        res.status(409).json({ error: 'Entity already has a token in this scene' })
+        return
+      }
+      throw err
+    }
 
     const row = req.roomDb!.prepare('SELECT * FROM tactical_tokens WHERE id = ?').get(id) as Record<
       string,
@@ -268,12 +280,20 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
     const tokenWidth = width ?? entity.width
     const tokenHeight = height ?? entity.height
 
-    req
-      .roomDb!.prepare(
-        `INSERT INTO tactical_tokens (id, scene_id, entity_id, x, y, width, height)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(id, sceneId, entityId, x, y, tokenWidth, tokenHeight)
+    try {
+      req
+        .roomDb!.prepare(
+          `INSERT INTO tactical_tokens (id, scene_id, entity_id, x, y, width, height)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(id, sceneId, entityId, x, y, tokenWidth, tokenHeight)
+    } catch (err: unknown) {
+      if ((err as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        res.status(409).json({ error: 'Entity already has a token in this scene' })
+        return
+      }
+      throw err
+    }
 
     const row = req.roomDb!.prepare('SELECT * FROM tactical_tokens WHERE id = ?').get(id) as Record<
       string,
@@ -404,6 +424,13 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
 
   // DELETE /tactical/tokens/:tokenId — delete single token row
   router.delete('/api/rooms/:roomId/tactical/tokens/:tokenId', room, (req, res) => {
+    const existing = req
+      .roomDb!.prepare('SELECT id FROM tactical_tokens WHERE id = ?')
+      .get(req.params.tokenId)
+    if (!existing) {
+      res.status(404).json({ error: 'Token not found' })
+      return
+    }
     req.roomDb!.prepare('DELETE FROM tactical_tokens WHERE id = ?').run(req.params.tokenId)
     io.to(req.roomId!).emit('tactical:token:removed', { id: req.params.tokenId })
     res.json({ id: req.params.tokenId })
