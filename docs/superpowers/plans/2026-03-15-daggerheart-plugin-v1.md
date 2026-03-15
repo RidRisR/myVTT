@@ -209,11 +209,20 @@ surfaces?: {
 
 - [ ] **Step 4: 更新 sdk.ts，导出新类型和函数**
 
-在 `src/rules/sdk.ts` 末尾追加（已有导出保持不变）：
+在 `src/rules/sdk.ts` 中：
 
+1. 找到现有的 `export type { DiceTermResult } from '../shared/diceUtils'` 一行，**扩展**为（合并 DiceSpec，避免重复来源）：
 ```typescript
-export type { DiceSpec } from '../shared/diceUtils'
+export type { DiceTermResult, DiceSpec } from '../shared/diceUtils'
+```
+
+2. 在现有的工具函数导出区（如 `export { useHoldRepeat }` 旁边）追加：
+```typescript
 export { tokenizeExpression, buildCompoundResult } from '../shared/diceUtils'
+```
+
+3. 追加两个新类型导出：
+```typescript
 export type { ChatRollMessage } from '../chat/chatTypes'
 export type { RollCardProps } from './types'
 ```
@@ -597,12 +606,14 @@ const CustomCard =
 
 更新 `src/stores/worldStore.ts` 中的类型定义和实现：
 
+在文件顶部添加 `import type { DiceSpec } from '../shared/diceUtils'`。
+
+在 `State` 接口中，**找到旧的 `sendRoll` 类型定义（含 `resolvedExpression` 字段），整行替换**为：
 ```typescript
-// 类型定义（State 接口中）：
 sendRoll: (data: {
   dice: DiceSpec[]
   formula: string
-  resolvedFormula?: string
+  resolvedFormula?: string   // 注意：旧字段名 resolvedExpression 已删除
   rollType?: string
   senderId: string
   senderName: string
@@ -610,8 +621,10 @@ sendRoll: (data: {
   portraitUrl?: string
   actionName?: string
 }) => Promise<void>
+```
 
-// 实现不变（仍是 POST，新字段自动传递）
+实现不变（仍是 POST，新字段自动传递）：
+```typescript
 sendRoll: async (data) => {
   const roomId = get()._roomId
   if (!roomId) return
@@ -619,7 +632,7 @@ sendRoll: async (data) => {
 },
 ```
 
-需要在文件顶部添加 `import type { DiceSpec } from '../shared/diceUtils'`。
+注意：同时检查 `worldStore.ts` 中所有引用 `resolvedExpression` 的地方，全部改为 `resolvedFormula`。
 
 - [ ] **Step 4: 更新 ChatInput.tsx**
 
@@ -657,11 +670,13 @@ const handleRoll = (formula: string) => {
 }
 
 // 新增 handleDaggerheartRoll（.dd 命令用）
+// 支持 .dd +2（数字修饰符）和 .dd +@agility（@key 修饰符，会被解析为实际数值）
 const handleDaggerheartRoll = (modifierExpr: string) => {
   const mod = modifierExpr.trim()
   const formula = `2d12${mod ? (mod.startsWith('+') || mod.startsWith('-') ? mod : '+' + mod) : ''}`
   let resolvedFormula: string | undefined
   if (/@[\p{L}\p{N}_]+/u.test(formula)) {
+    // @key 修饰符场景（如 .dd +@agility）：解析为实际数值
     const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
     if ('error' in resolved) { setError(resolved.error); return }
     resolvedFormula = resolved.resolved
@@ -690,19 +705,18 @@ const handleSend = () => {
 
 在 `ChatPanel.tsx` 顶部补充导入：
 ```typescript
-import { tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
 import type { DiceSpec } from '../shared/diceUtils'
 ```
 
+注意：**不需要**导入 `tokenizeExpression` 或 `toDiceSpecs` — `ChatInput` 在发送前已经提取好 `dice`，`ChatPanel` 直接透传即可。
+
 ```typescript
 const handleRoll = useCallback(
-  (formula: string, resolvedFormula?: string, dice?: DiceSpec[], rollType?: string) => {
-    const terms = dice ? null : (tokenizeExpression(resolvedFormula ?? formula) ?? [])
-    const resolvedDice = dice ?? toDiceSpecs(terms ?? [])
+  (formula: string, resolvedFormula?: string, dice: DiceSpec[] = [], rollType?: string) => {
     sendRoll({
       formula,
       resolvedFormula,
-      dice: resolvedDice,
+      dice,
       rollType,
       senderId: activeSpeaker.id,
       senderName: activeSpeaker.name,
@@ -1182,7 +1196,7 @@ export function dhGetDieStylesFromTerms(_terms: DiceTermResult[]): DieStyle[] {
 npx vitest run plugins/daggerheart/__tests__/diceSystem.test.ts 2>&1 | tail -15
 ```
 
-期望：全部 PASS（16 个测试）。
+期望：全部 PASS（19 个测试：dhEvaluateRoll×7 + dhGetDieStyles×2 + dhGetJudgmentDisplay×5 + dhGetRollActions×2 + rollCommands×3）。
 
 - [ ] **Step 5: 提交**
 
