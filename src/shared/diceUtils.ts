@@ -317,6 +317,13 @@ export function buildTermResult(term: DiceTerm, allRolls: number[]): DiceTermRes
     return { term, allRolls: [], keptIndices: [], subtotal: term.sign * term.value }
   }
 
+  // Guard: server must generate exactly term.count rolls for this dice term
+  if (allRolls.length < term.count) {
+    throw new Error(
+      `buildTermResult: expected ${term.count} rolls for ${term.count}d${term.sides}, got ${allRolls.length}`,
+    )
+  }
+
   let keptIndices: number[]
   if (!term.keepDrop) {
     keptIndices = allRolls.map((_, i) => i)
