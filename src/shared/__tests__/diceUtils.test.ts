@@ -489,6 +489,12 @@ describe('buildTermResult', () => {
       buildTermResult({ type: 'dice', sides: 6, count: 3, sign: 1 }, [1, 2]),
     ).toThrow()
   })
+
+  it('throws if more rolls than term.count', () => {
+    expect(() =>
+      buildTermResult({ type: 'dice', sides: 6, count: 3, sign: 1 }, [1, 2, 3, 4]),
+    ).toThrow()
+  })
 })
 
 describe('buildCompoundResult', () => {

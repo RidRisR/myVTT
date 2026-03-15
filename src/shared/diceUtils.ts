@@ -318,7 +318,7 @@ export function buildTermResult(term: DiceTerm, allRolls: number[]): DiceTermRes
   }
 
   // Guard: server must generate exactly term.count rolls for this dice term
-  if (allRolls.length < term.count) {
+  if (allRolls.length !== term.count) {
     throw new Error(
       `buildTermResult: expected ${term.count} rolls for ${term.count}d${term.sides}, got ${allRolls.length}`,
     )
