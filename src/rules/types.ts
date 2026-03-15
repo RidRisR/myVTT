@@ -123,9 +123,22 @@ export type HideableElement =
   | 'gm-panel'
   | 'scene-controls'
 
+export interface DieConfig {
+  color?: string // hex color, e.g. '#fbbf24'
+  label?: string // label shown above die, e.g. '希望'
+}
+
+export interface RenderDiceOptions {
+  footer?: {
+    text: string
+    color: string
+  }
+}
+
 export interface RollCardProps {
   message: ChatRollMessage
   isNew?: boolean
+  renderDice: (configs?: DieConfig[], options?: RenderDiceOptions) => React.ReactNode
 }
 
 // ── RulePlugin — the main interface ────────────────────────────────────────

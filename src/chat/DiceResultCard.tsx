@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import type { ChatRollMessage } from './chatTypes'
+import type { DieConfig } from '../rules/types'
 import { DiceReel } from './DiceReel'
 import { calcTotalAnimDuration, SPIN_DURATION, STOP_INTERVAL } from './diceAnimUtils'
 import { tokenizeExpression, buildCompoundResult } from '../shared/diceUtils'
@@ -9,7 +10,15 @@ interface DiceResultCardProps {
   isNew?: boolean
 }
 
-export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
+interface DiceAnimContentProps {
+  message: ChatRollMessage
+  isNew: boolean
+  dieConfigs?: DieConfig[]
+  footer?: { text: string; color: string }
+}
+
+/** Shared animation body — used by DiceResultCard (base) and injected as renderDice for plugins */
+export function DiceAnimContent({ message, isNew, dieConfigs, footer }: DiceAnimContentProps) {
   // Lock animation state at mount — immune to isNew prop changes
   const shouldAnimate = useRef(!!isNew)
 
@@ -33,9 +42,7 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
     (sum, tr) => sum + (tr.term.type === 'dice' ? tr.allRolls.length : 0),
     0,
   )
-  // stopOrder is intentionally frozen at mount — each message in the chat list
-  // gets its own component instance, so the ref is always consistent with the
-  // initial termResults. Animation order is per-message, not per-render.
+  // stopOrder is frozen at mount — each message gets its own instance
   const stopOrder = useRef(
     Array.from({ length: totalDice }, (_, i) => i).sort(() => Math.random() - 0.5),
   )
@@ -61,6 +68,7 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
     const reels = tr.allRolls.map((roll, ri) => {
       const order = stopOrder.current[diceIndex] ?? diceIndex
       const stopDelay = SPIN_DURATION + order * STOP_INTERVAL
+      const cfg = dieConfigs?.[diceIndex]
       diceIndex++
       const isDropped = !tr.keptIndices.includes(ri)
       return (
@@ -71,6 +79,8 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
           stopDelay={shouldAnimate.current ? stopDelay : 0}
           dropped={isDropped}
           dropRevealDelay={shouldAnimate.current ? allLandedTime : undefined}
+          color={cfg?.color}
+          label={cfg?.label}
         />
       )
     })
@@ -86,26 +96,40 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
   })
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
-      {reelGroups}
-      <span className="text-text-muted mx-1 text-[14px]">=</span>
-      <span
-        className={`font-extrabold text-[22px] font-mono min-w-[30px] text-center inline-block ${
-          totalRevealed ? 'text-accent' : 'text-[#334155] opacity-50'
-        }`}
-        style={
-          totalRevealed
-            ? {
-                textShadow: '0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(251, 191, 36, 0.4)',
-                animation: shouldAnimate.current
-                  ? 'totalReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                  : undefined,
-              }
-            : undefined
-        }
-      >
-        {totalRevealed ? total : '?'}
-      </span>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-1 flex-wrap">
+        {reelGroups}
+        <span className="text-text-muted mx-1 text-[14px]">=</span>
+        <span
+          className={`font-extrabold text-[22px] font-mono min-w-[30px] text-center inline-block ${
+            totalRevealed ? 'text-accent' : 'text-[#334155] opacity-50'
+          }`}
+          style={
+            totalRevealed
+              ? {
+                  textShadow: '0 0 10px rgba(251, 191, 36, 0.8), 0 0 20px rgba(251, 191, 36, 0.4)',
+                  animation: shouldAnimate.current
+                    ? 'totalReveal 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    : undefined,
+                }
+              : undefined
+          }
+        >
+          {totalRevealed ? total : '?'}
+        </span>
+      </div>
+      {totalRevealed && footer && (
+        <div
+          className="text-xs font-semibold px-2 py-1 rounded self-start"
+          style={{ color: footer.color, background: `${footer.color}22` }}
+        >
+          {footer.text}
+        </div>
+      )}
     </div>
   )
+}
+
+export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
+  return <DiceAnimContent message={message} isNew={!!isNew} />
 }

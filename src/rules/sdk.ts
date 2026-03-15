@@ -22,6 +22,8 @@ export type {
   DieStyle,
   RollContext,
   DaggerheartOutcome,
+  DieConfig,
+  RenderDiceOptions,
 } from './types'
 export type { DiceTermResult, DiceSpec } from '../shared/diceUtils'
 
