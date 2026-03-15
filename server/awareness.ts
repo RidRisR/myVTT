@@ -1,30 +1,29 @@
 // server/awareness.ts — Ephemeral awareness state relay via Socket.io
-import type { Server as SocketIOServer } from 'socket.io'
+import type { Server } from 'socket.io'
+import type { TypedServer } from './socketTypes'
 
 /**
  * Sets up awareness relay: clients emit awareness:update, server broadcasts to room.
  * Awareness state is ephemeral — not persisted to DB.
  * Handles: cursor positions, resource drag state, online presence.
  */
-export function setupAwareness(io: SocketIOServer): void {
-  io.on('connection', (socket) => {
-    const roomId = socket.data?.roomId
+export function setupAwareness(io: Server): void {
+  const typedIo = io as TypedServer
+  typedIo.on('connection', (socket) => {
+    const roomId: string = socket.data.roomId
     if (!roomId) {
       console.warn('awareness: socket.data.roomId missing, skipping')
       return
     }
 
     // Relay awareness updates to other clients in the room
-    socket.on(
-      'awareness:update',
-      (data: { field: string; state: unknown }) => {
-        socket.to(roomId).emit('awareness:update', {
-          ...data,
-          seatId: socket.data.seatId,
-          clientId: socket.id,
-        })
-      },
-    )
+    socket.on('awareness:update', (data: { field: string; state: unknown }) => {
+      socket.to(roomId).emit('awareness:update', {
+        ...data,
+        seatId: socket.data.seatId,
+        clientId: socket.id,
+      })
+    })
 
     // Relay resource-drag awareness (editing/clear)
     // Server injects seatId to prevent client spoofing

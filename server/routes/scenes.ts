@@ -25,8 +25,9 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
   })
 
   router.post('/api/rooms/:roomId/scenes', room, (req, res) => {
-    const id = req.body.id || crypto.randomUUID()
-    const { name, sortOrder, atmosphere, gmOnly } = req.body
+    const body = req.body as Record<string, unknown>
+    const id = (body.id as string | undefined) || crypto.randomUUID()
+    const { name, sortOrder, atmosphere, gmOnly } = body
 
     const createScene = req.roomDb!.transaction(() => {
       req
@@ -73,24 +74,28 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
       return
     }
 
+    const body = req.body as Record<string, unknown>
     const sets: string[] = []
     const values: unknown[] = []
 
-    if (req.body.name !== undefined) {
+    if (body.name !== undefined) {
       sets.push('name = ?')
-      values.push(req.body.name)
+      values.push(body.name)
     }
-    if (req.body.sortOrder !== undefined) {
+    if (body.sortOrder !== undefined) {
       sets.push('sort_order = ?')
-      values.push(req.body.sortOrder)
+      values.push(body.sortOrder)
     }
-    if (req.body.gmOnly !== undefined) {
+    if (body.gmOnly !== undefined) {
       sets.push('gm_only = ?')
-      values.push(req.body.gmOnly ? 1 : 0)
+      values.push(body.gmOnly ? 1 : 0)
     }
-    if (req.body.atmosphere !== undefined) {
-      const existingAtmo = JSON.parse((existing.atmosphere as string) || '{}')
-      const merged = deepMerge(existingAtmo, req.body.atmosphere)
+    if (body.atmosphere !== undefined) {
+      const existingAtmo = JSON.parse((existing.atmosphere as string) || '{}') as Record<
+        string,
+        unknown
+      >
+      const merged = deepMerge(existingAtmo, body.atmosphere as Record<string, unknown>)
       sets.push('atmosphere = ?')
       values.push(JSON.stringify(merged))
     }
@@ -170,16 +175,18 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
       }
     }
 
-    const visible = req.body?.visible ?? 1
+    const linkBody = (req.body ?? {}) as Record<string, unknown>
+    const visibleRaw = linkBody.visible
+    const visibleFlag = visibleRaw === undefined || visibleRaw === null ? true : Boolean(visibleRaw)
     req
       .roomDb!.prepare(
         'INSERT OR IGNORE INTO scene_entities (scene_id, entity_id, visible) VALUES (?, ?, ?)',
       )
-      .run(req.params.sceneId, req.params.entityId, visible ? 1 : 0)
+      .run(req.params.sceneId, req.params.entityId, visibleFlag ? 1 : 0)
     const payload = {
       sceneId: req.params.sceneId,
       entityId: req.params.entityId,
-      visible: visible === 1 || visible === true,
+      visible: visibleFlag,
     }
     io.to(req.roomId!).emit('scene:entity:linked', payload)
     res.json({ ok: true })
@@ -199,7 +206,7 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
 
       // If ephemeral, also delete the entity
       if (isEphemeral) {
-        degradeTokenReferences(req.roomDb!, req.params.entityId)
+        degradeTokenReferences(req.roomDb!, req.params.entityId as string)
         req.roomDb!.prepare('DELETE FROM entities WHERE id = ?').run(req.params.entityId)
       }
     })
@@ -225,7 +232,7 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
 
   // Update scene-entity link (toggle visible)
   router.patch('/api/rooms/:roomId/scenes/:sceneId/entities/:entityId', room, (req, res) => {
-    const { visible } = req.body
+    const { visible } = req.body as Record<string, unknown>
     if (visible === undefined) {
       res.status(400).json({ error: 'visible is required' })
       return
@@ -248,7 +255,7 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
 
   // Spawn entity from blueprint
   router.post('/api/rooms/:roomId/scenes/:sceneId/spawn', room, (req, res) => {
-    const { blueprintId } = req.body
+    const { blueprintId } = req.body as Record<string, unknown>
     if (!blueprintId) {
       res.status(400).json({ error: 'blueprintId is required' })
       return
@@ -261,8 +268,8 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
       res.status(404).json({ error: 'Blueprint not found' })
       return
     }
-    const extra = JSON.parse((asset.extra as string) || '{}')
-    const bp = extra.blueprint || {}
+    const extra = JSON.parse((asset.extra as string) || '{}') as Record<string, unknown>
+    const bp = (extra.blueprint || {}) as Record<string, unknown>
 
     const count = req
       .roomDb!.prepare('SELECT COUNT(*) as c FROM entities WHERE blueprint_id = ?')

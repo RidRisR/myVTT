@@ -39,7 +39,8 @@ export function entityRoutes(dataDir: string, io: Server): Router {
   })
 
   router.post('/api/rooms/:roomId/entities', room, (req, res) => {
-    const id = req.body.id || 'e-' + crypto.randomUUID().slice(0, 8)
+    const body = req.body as Record<string, unknown>
+    const id = (body.id as string | undefined) || 'e-' + crypto.randomUUID().slice(0, 8)
     const {
       name = '',
       imageUrl = '',
@@ -51,7 +52,7 @@ export function entityRoutes(dataDir: string, io: Server): Router {
       permissions = { default: 'observer', seats: {} },
       lifecycle = 'ephemeral',
       blueprintId = null,
-    } = req.body
+    } = body
 
     const createEntity = req.roomDb!.transaction(() => {
       req
@@ -102,6 +103,7 @@ export function entityRoutes(dataDir: string, io: Server): Router {
       return
     }
 
+    const body = req.body as Record<string, unknown>
     const sets: string[] = []
     const values: unknown[] = []
 
@@ -117,22 +119,28 @@ export function entityRoutes(dataDir: string, io: Server): Router {
       lifecycle: 'lifecycle',
     }
     for (const [camel, snake] of Object.entries(simpleFields)) {
-      if (req.body[camel] !== undefined) {
+      if (body[camel] !== undefined) {
         sets.push(`${snake} = ?`)
-        values.push(req.body[camel])
+        values.push(body[camel])
       }
     }
 
     // JSON fields — deep merge
-    if (req.body.ruleData !== undefined) {
-      const existingData = JSON.parse((existing.rule_data as string) || '{}')
-      const merged = deepMerge(existingData, req.body.ruleData)
+    if (body.ruleData !== undefined) {
+      const existingData = JSON.parse((existing.rule_data as string) || '{}') as Record<
+        string,
+        unknown
+      >
+      const merged = deepMerge(existingData, body.ruleData as Record<string, unknown>)
       sets.push('rule_data = ?')
       values.push(JSON.stringify(merged))
     }
-    if (req.body.permissions !== undefined) {
-      const existingPerms = JSON.parse((existing.permissions as string) || '{}')
-      const merged = deepMerge(existingPerms, req.body.permissions)
+    if (body.permissions !== undefined) {
+      const existingPerms = JSON.parse((existing.permissions as string) || '{}') as Record<
+        string,
+        unknown
+      >
+      const merged = deepMerge(existingPerms, body.permissions as Record<string, unknown>)
       sets.push('permissions = ?')
       values.push(JSON.stringify(merged))
     }
@@ -160,7 +168,7 @@ export function entityRoutes(dataDir: string, io: Server): Router {
     }
 
     const deleteEntity = req.roomDb!.transaction(() => {
-      degradeTokenReferences(req.roomDb!, req.params.id)
+      degradeTokenReferences(req.roomDb!, req.params.id as string)
       // Clear dangling seats.active_character_id references
       req
         .roomDb!.prepare(

@@ -26,9 +26,9 @@ describe('Asset Roundtrip Journey', () => {
       body: formData,
     })
     expect(res.status).toBe(201)
-    const data = await res.json()
-    assetId = data.id
-    assetUrl = data.url
+    const data = (await res.json()) as Record<string, unknown>
+    assetId = data.id as string
+    assetUrl = data.url as string
     expect(data.type).toBe('image')
     expect(Array.isArray(data.tags)).toBe(true) // NOT a string
   })
@@ -72,23 +72,28 @@ describe('Asset Roundtrip Journey', () => {
     formData.append('file', blob, 'goblin-token.png')
     formData.append('name', 'Goblin')
     formData.append('type', 'blueprint')
-    formData.append('extra', JSON.stringify({
-      tags: [],
-      blueprint: { defaultSize: 1, defaultColor: '#00ff00' },
-    }))
+    formData.append(
+      'extra',
+      JSON.stringify({
+        tags: [],
+        blueprint: { defaultSize: 1, defaultColor: '#00ff00' },
+      }),
+    )
 
     const res = await fetch(`${ctx.apiBase}/api/rooms/${ctx.roomId}/assets`, {
       method: 'POST',
       body: formData,
     })
     expect(res.status).toBe(201)
-    const data = await res.json()
-    blueprintId = data.id
-    blueprintUrl = data.url
+    const data = (await res.json()) as Record<string, unknown>
+    blueprintId = data.id as string
+    blueprintUrl = data.url as string
     expect(data.type).toBe('blueprint')
     expect(data.name).toBe('Goblin')
-    expect(data.extra.blueprint.defaultSize).toBe(1)
-    expect(data.extra.blueprint.defaultColor).toBe('#00ff00')
+    const extra = data.extra as Record<string, unknown>
+    const blueprint = extra.blueprint as Record<string, unknown>
+    expect(blueprint.defaultSize).toBe(1)
+    expect(blueprint.defaultColor).toBe('#00ff00')
   })
 
   it('3.6 blueprint does NOT appear when filtering by type=image', async () => {
@@ -132,11 +137,9 @@ describe('Asset Roundtrip Journey', () => {
   })
 
   it('3.10 PATCH returns 404 for non-existent asset', async () => {
-    const { status } = await ctx.api(
-      'PATCH',
-      `/api/rooms/${ctx.roomId}/assets/non-existent-id`,
-      { name: 'nope' },
-    )
+    const { status } = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/assets/non-existent-id`, {
+      name: 'nope',
+    })
     expect(status).toBe(404)
   })
 

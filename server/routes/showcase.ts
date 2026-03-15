@@ -22,8 +22,9 @@ export function showcaseRoutes(dataDir: string, io: Server): Router {
   })
 
   router.post('/api/rooms/:roomId/showcase', room, (req, res) => {
-    const id = req.body.id || crypto.randomUUID()
-    const { type = 'image', data = {}, pinned = false, sortOrder } = req.body
+    const body = req.body as Record<string, unknown>
+    const id = (body.id as string | undefined) || crypto.randomUUID()
+    const { type = 'image', data = {}, pinned = false, sortOrder } = body
     const count = (
       req.roomDb!.prepare('SELECT COUNT(*) as c FROM showcase_items').get() as { c: number }
     ).c
@@ -52,24 +53,25 @@ export function showcaseRoutes(dataDir: string, io: Server): Router {
       return
     }
 
+    const body = req.body as Record<string, unknown>
     const sets: string[] = []
     const values: unknown[] = []
 
-    if (req.body.type !== undefined) {
+    if (body.type !== undefined) {
       sets.push('type = ?')
-      values.push(req.body.type)
+      values.push(body.type)
     }
-    if (req.body.data !== undefined) {
+    if (body.data !== undefined) {
       sets.push('data = ?')
-      values.push(JSON.stringify(req.body.data))
+      values.push(JSON.stringify(body.data))
     }
-    if (req.body.sortOrder !== undefined) {
+    if (body.sortOrder !== undefined) {
       sets.push('sort_order = ?')
-      values.push(req.body.sortOrder)
+      values.push(body.sortOrder)
     }
-    if (req.body.pinned !== undefined) {
+    if (body.pinned !== undefined) {
       sets.push('pinned = ?')
-      values.push(req.body.pinned ? 1 : 0)
+      values.push(body.pinned ? 1 : 0)
     }
     if (sets.length > 0) {
       values.push(req.params.id)

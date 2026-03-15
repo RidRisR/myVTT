@@ -31,7 +31,7 @@ beforeAll(async () => {
   const app = express()
   app.use(express.json())
 
-  app.param('roomId', (req, res, next, val) => {
+  app.param('roomId', (_req, res, next, val) => {
     if (!/^[a-zA-Z0-9_-]{1,64}$/.test(val as string)) {
       res.status(400).json({ error: 'Invalid room ID' })
       return
@@ -74,13 +74,18 @@ afterAll(() => {
   fs.rmSync(dataDir, { recursive: true, force: true })
 })
 
-async function api(method: string, urlPath: string, body?: unknown) {
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+async function api<T = Record<string, unknown>>(
+  method: string,
+  urlPath: string,
+  body?: unknown,
+): Promise<{ status: number; data: T }> {
   const res = await fetch(`${baseUrl}${urlPath}`, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   })
-  const data = await res.json()
+  const data = (await res.json()) as T
   return { status: res.status, data }
 }
 
@@ -109,17 +114,20 @@ describe('POST /seats/:id/claim', () => {
     // Claim it
     const { status: claimStatus, data: claimed } = await api(
       'POST',
-      `/api/rooms/${roomId}/seats/${seat.id}/claim`,
+      `/api/rooms/${roomId}/seats/${String(seat.id)}/claim`,
       { userId: 'player-42' },
     )
     expect(claimStatus).toBe(200)
     expect(claimed.userId).toBe('player-42')
 
     // Verify via list
-    const { data: seats } = await api('GET', `/api/rooms/${roomId}/seats`)
-    const found = seats.find((s: { id: string }) => s.id === seat.id)
+    const { data: seats } = await api<Array<{ id: string; userId: string | null }>>(
+      'GET',
+      `/api/rooms/${roomId}/seats`,
+    )
+    const found = seats.find((s) => s.id === (seat.id as string))
     expect(found).toBeDefined()
-    expect(found.userId).toBe('player-42')
+    expect(found!.userId).toBe('player-42')
   })
 
   it('returns 404 for non-existent seat', async () => {
@@ -149,20 +157,20 @@ describe('POST /chat/retract/:id', () => {
     expect(msg.id).toBeTruthy()
 
     // Verify it appears in history
-    const { data: before } = await api('GET', `/api/rooms/${roomId}/chat`)
-    expect(before.some((m: { id: string }) => m.id === msg.id)).toBe(true)
+    const { data: before } = await api<Array<{ id: string }>>('GET', `/api/rooms/${roomId}/chat`)
+    expect(before.some((m) => m.id === (msg.id as string))).toBe(true)
 
     // Retract
     const { status: retractStatus, data: retractData } = await api(
       'POST',
-      `/api/rooms/${roomId}/chat/retract/${msg.id}`,
+      `/api/rooms/${roomId}/chat/retract/${msg.id as string}`,
     )
     expect(retractStatus).toBe(200)
     expect(retractData.ok).toBe(true)
 
     // Verify gone
-    const { data: after } = await api('GET', `/api/rooms/${roomId}/chat`)
-    expect(after.some((m: { id: string }) => m.id === msg.id)).toBe(false)
+    const { data: after } = await api<Array<{ id: string }>>('GET', `/api/rooms/${roomId}/chat`)
+    expect(after.some((m) => m.id === (msg.id as string))).toBe(false)
   })
 
   it('returns 404 for non-existent message', async () => {
@@ -191,16 +199,19 @@ describe('POST /showcase/:id/pin + POST /showcase/unpin', () => {
     // Pin it
     const { status: pinStatus, data: pinData } = await api(
       'POST',
-      `/api/rooms/${roomId}/showcase/${item.id}/pin`,
+      `/api/rooms/${roomId}/showcase/${item.id as string}/pin`,
     )
     expect(pinStatus).toBe(200)
     expect(pinData.ok).toBe(true)
 
     // Verify pinned=true via GET
-    const { data: items } = await api('GET', `/api/rooms/${roomId}/showcase`)
-    const found = items.find((i: { id: string }) => i.id === item.id)
+    const { data: items } = await api<Array<{ id: string; pinned: boolean }>>(
+      'GET',
+      `/api/rooms/${roomId}/showcase`,
+    )
+    const found = items.find((i) => i.id === (item.id as string))
     expect(found).toBeDefined()
-    expect(found.pinned).toBe(true)
+    expect(found!.pinned).toBe(true)
   })
 
   it('returns 404 when pinning non-existent item', async () => {
@@ -214,12 +225,15 @@ describe('POST /showcase/:id/pin + POST /showcase/unpin', () => {
       type: 'image',
       data: { imageUrl: 'handout.jpg', title: 'Letter' },
     })
-    await api('POST', `/api/rooms/${roomId}/showcase/${item.id}/pin`)
+    await api('POST', `/api/rooms/${roomId}/showcase/${item.id as string}/pin`)
 
     // Verify pinned
-    const { data: beforeUnpin } = await api('GET', `/api/rooms/${roomId}/showcase`)
-    const pinnedItem = beforeUnpin.find((i: { id: string }) => i.id === item.id)
-    expect(pinnedItem.pinned).toBe(true)
+    const { data: beforeUnpin } = await api<Array<{ id: string; pinned: boolean }>>(
+      'GET',
+      `/api/rooms/${roomId}/showcase`,
+    )
+    const pinnedItem = beforeUnpin.find((i) => i.id === (item.id as string))
+    expect(pinnedItem!.pinned).toBe(true)
 
     // Unpin all
     const { status: unpinStatus, data: unpinData } = await api(
@@ -230,9 +244,12 @@ describe('POST /showcase/:id/pin + POST /showcase/unpin', () => {
     expect(unpinData.ok).toBe(true)
 
     // Verify all unpinned
-    const { data: afterUnpin } = await api('GET', `/api/rooms/${roomId}/showcase`)
+    const { data: afterUnpin } = await api<Array<{ pinned: boolean }>>(
+      'GET',
+      `/api/rooms/${roomId}/showcase`,
+    )
     for (const i of afterUnpin) {
-      expect((i as { pinned: boolean }).pinned).toBe(false)
+      expect(i.pinned).toBe(false)
     }
   })
 })

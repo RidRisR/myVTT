@@ -68,9 +68,9 @@ export function assetRoutes(dataDir: string, io: Server): Router {
       },
     })
 
-    upload.single('file')(req, res, (err) => {
+    upload.single('file')(req, res, (err: unknown) => {
       if (err) {
-        res.status(400).json({ error: err.message })
+        res.status(400).json({ error: (err as Error).message })
         return
       }
       if (!req.file) {
@@ -80,9 +80,12 @@ export function assetRoutes(dataDir: string, io: Server): Router {
 
       const id = crypto.randomUUID()
       const url = `/api/rooms/${req.roomId}/uploads/${req.file.filename}`
-      const assetType = (req.body.type as string) || 'image'
-      const name = req.body.name || req.file.originalname
-      const extra = req.body.extra ? JSON.parse(req.body.extra) : {}
+      const uploadBody = req.body as Record<string, unknown>
+      const assetType = (uploadBody.type as string) || 'image'
+      const name = (uploadBody.name as string) || req.file.originalname
+      const extra = uploadBody.extra
+        ? (JSON.parse(uploadBody.extra as string) as Record<string, unknown>)
+        : {}
 
       try {
         req
@@ -115,31 +118,32 @@ export function assetRoutes(dataDir: string, io: Server): Router {
       return
     }
 
+    const body = req.body as Record<string, unknown>
     const updates: string[] = []
     const params: unknown[] = []
 
-    if (req.body.name !== undefined) {
+    if (body.name !== undefined) {
       updates.push('name = ?')
-      params.push(req.body.name)
+      params.push(body.name)
     }
-    if (req.body.type !== undefined) {
+    if (body.type !== undefined) {
       updates.push('type = ?')
-      params.push(req.body.type)
+      params.push(body.type)
     }
 
     // Merge tags, blueprint, handout into extra JSON column
-    const currentExtra = JSON.parse((row.extra as string) || '{}')
+    const currentExtra = JSON.parse((row.extra as string) || '{}') as Record<string, unknown>
     let extraChanged = false
-    if (req.body.tags !== undefined) {
-      currentExtra.tags = req.body.tags
+    if (body.tags !== undefined) {
+      currentExtra.tags = body.tags
       extraChanged = true
     }
-    if (req.body.blueprint !== undefined) {
-      currentExtra.blueprint = req.body.blueprint
+    if (body.blueprint !== undefined) {
+      currentExtra.blueprint = body.blueprint
       extraChanged = true
     }
-    if (req.body.handout !== undefined) {
-      currentExtra.handout = req.body.handout
+    if (body.handout !== undefined) {
+      currentExtra.handout = body.handout
       extraChanged = true
     }
     if (extraChanged) {
