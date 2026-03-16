@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest'
 import { useAssetStore } from '../assetStore'
 import type { AssetMeta } from '../../shared/assetTypes'
 
@@ -190,6 +190,76 @@ describe('assetStore', () => {
       expect(asset).toBeDefined()
       expect(asset?.tags).toEqual([])
       expect(asset?.blueprint).toBeUndefined()
+    })
+  })
+
+  describe('softRemove', () => {
+    it('immediately removes asset from UI', () => {
+      useAssetStore.setState({
+        roomId: 'room-1',
+        assets: [makeAsset({ id: 'a1' }), makeAsset({ id: 'a2' })],
+      })
+
+      useAssetStore.getState().softRemove('a1')
+
+      expect(useAssetStore.getState().assets).toHaveLength(1)
+      expect(useAssetStore.getState().assets[0]?.id).toBe('a2')
+    })
+
+    it('undo restores asset to list and cancels server delete', () => {
+      vi.useFakeTimers()
+      useAssetStore.setState({
+        roomId: 'room-1',
+        assets: [makeAsset({ id: 'a1' })],
+      })
+
+      const undo = useAssetStore.getState().softRemove('a1', 1000)
+      expect(useAssetStore.getState().assets).toHaveLength(0)
+
+      undo()
+      expect(useAssetStore.getState().assets).toHaveLength(1)
+      expect(useAssetStore.getState().assets[0]?.id).toBe('a1')
+
+      // Advance past the delay — deleteAsset should NOT be called
+      mockFetch.mockClear()
+      vi.advanceTimersByTime(2000)
+      expect(mockFetch).not.toHaveBeenCalled()
+
+      vi.useRealTimers()
+    })
+
+    it('calls deleteAsset after delay when undo is not called', () => {
+      vi.useFakeTimers()
+      useAssetStore.setState({
+        roomId: 'room-1',
+        assets: [makeAsset({ id: 'a1' })],
+      })
+      mockFetch.mockResolvedValue({ ok: true })
+
+      useAssetStore.getState().softRemove('a1', 500)
+
+      // Not yet called
+      expect(mockFetch).not.toHaveBeenCalled()
+
+      vi.advanceTimersByTime(500)
+
+      // Now deleteAsset should have been called
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+      const url = mockFetch.mock.calls[0]?.[0] as string
+      expect(url).toContain('/assets/a1')
+
+      vi.useRealTimers()
+    })
+
+    it('returns noop when asset does not exist', () => {
+      useAssetStore.setState({ roomId: 'room-1', assets: [] })
+
+      const undo = useAssetStore.getState().softRemove('nonexistent')
+
+      // Should be a function that does nothing
+      expect(typeof undo).toBe('function')
+      undo() // should not throw
+      expect(useAssetStore.getState().assets).toHaveLength(0)
     })
   })
 
