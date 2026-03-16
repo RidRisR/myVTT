@@ -60,7 +60,8 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 
 - **Prettier**: no semicolons, single quotes, trailing commas, printWidth 100
 - **ESLint**: TypeScript strict, react-hooks, `no-restricted-imports` for api module
-- **Husky**: pre-commit runs lint-staged + tsc + doc structure check
+- **Husky**: pre-commit runs worktree isolation guard + lint-staged + tsc + doc structure check
+- **Worktree isolation**: pre-commit hook blocks commits outside worktrees (compares `--git-dir` vs `--git-common-dir`). Agent must always use worktrees for feature work and audit `git diff --cached --stat` before every commit. Agent must NEVER use `--no-verify` to bypass this guard
 - **TypeScript**: strict mode, noUnusedLocals, noUnusedParameters, noUncheckedIndexedAccess
 - **Tests**: Three-tier test pyramid:
   - **Unit tests** (client): `src/**/__tests__/` — vitest + jsdom, store selectors, utils

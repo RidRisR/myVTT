@@ -7,6 +7,7 @@
 3. **PR 创建和 merge 是两个独立步骤** — merge 需要用户明确指示
 4. **Commit message 使用英文** — 遵循 conventional commits 格式
 5. **不添加 Co-Authored-By 或 AI 声明**
+6. **提交前必须审计 staged 内容** — 运行 `git diff --cached --stat` 确认 staged 文件只包含当前任务的改动。如果分支上有其他人的未提交改动，不要混入
 
 ## 分支命名
 
