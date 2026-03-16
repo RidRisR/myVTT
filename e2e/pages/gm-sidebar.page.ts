@@ -1,13 +1,16 @@
 import type { Page, Locator } from '@playwright/test'
 import { expect } from '@playwright/test'
+import { EntityPanelPage } from './entity-panel.page'
 
 export class GmSidebarPage {
   readonly page: Page
+  readonly entityPanel: EntityPanelPage
   readonly archivesTab: Locator
   readonly entitiesTab: Locator
 
   constructor(page: Page) {
     this.page = page
+    this.entityPanel = new EntityPanelPage(page)
     this.archivesTab = page.getByRole('button', { name: '存档' })
     this.entitiesTab = page.getByRole('button', { name: '实体' })
   }

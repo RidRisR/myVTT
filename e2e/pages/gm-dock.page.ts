@@ -2,11 +2,13 @@ import type { Page, Locator } from '@playwright/test'
 import { expect } from '@playwright/test'
 import { GalleryPage } from './gallery.page'
 import { BlueprintPage } from './blueprint.page'
+import { CharacterLibraryPage } from './character-library.page'
 
 export class GmDockPage {
   readonly page: Page
   readonly gallery: GalleryPage
   readonly blueprint: BlueprintPage
+  readonly characterLibrary: CharacterLibraryPage
   readonly galleryTab: Locator
   readonly tokensTab: Locator
   readonly charactersTab: Locator
@@ -18,6 +20,7 @@ export class GmDockPage {
     this.page = page
     this.gallery = new GalleryPage(page)
     this.blueprint = new BlueprintPage(page)
+    this.characterLibrary = new CharacterLibraryPage(page)
     this.galleryTab = page.getByRole('button', { name: 'Gallery' })
     this.tokensTab = page.getByRole('button', { name: '蓝图' })
     this.charactersTab = page.getByRole('button', { name: 'Characters' })
