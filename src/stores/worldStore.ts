@@ -347,9 +347,17 @@ function registerSocketEvents(
   })
   socket.on('entity:deleted', ({ id }: { id: string }) => {
     set((s) => {
-      return {
+      const newState: Record<string, unknown> = {
         entities: Object.fromEntries(Object.entries(s.entities).filter(([k]) => k !== id)),
       }
+      // DB FK CASCADE deletes tokens for this entity; mirror that on the client
+      if (s.tacticalInfo) {
+        newState.tacticalInfo = {
+          ...s.tacticalInfo,
+          tokens: s.tacticalInfo.tokens.filter((t) => t.entityId !== id),
+        }
+      }
+      return newState
     })
   })
 

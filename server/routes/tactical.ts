@@ -125,7 +125,7 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
     res.json(updated)
   })
 
-  // POST /tactical/enter — set tactical_mode = 1
+  // POST /tactical/enter — set tactical_mode = 1 and broadcast current tactical state
   router.post('/api/rooms/:roomId/tactical/enter', room, (req, res) => {
     const sceneId = getActiveSceneId(req.roomDb!)
     if (!sceneId) {
@@ -137,6 +137,11 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
       .run(sceneId)
     const state = getTacticalState(req.roomDb!, sceneId)
     io.to(req.roomId!).emit('tactical:updated', state)
+    // Also broadcast tactical:activated so clients populate tacticalInfo from the store.
+    // tactical:updated alone doesn't trigger the client to enter tactical view.
+    if (state) {
+      io.to(req.roomId!).emit('tactical:activated', state)
+    }
     res.json(state)
   })
 

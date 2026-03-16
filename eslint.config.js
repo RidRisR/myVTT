@@ -86,6 +86,20 @@ export default defineConfig([
       '@typescript-eslint/unbound-method': 'off',
     },
   },
+  // E2E spec files: waitForFunction/evaluate callbacks are serialized and run in the browser
+  // context — TypeScript does not type-check their bodies at compile time. The `any` casts
+  // for window.__MYVTT_STORES__ are intentional and unavoidable in this context.
+  {
+    files: ['e2e/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
   // Server: req.roomDb! and req.roomId! are guaranteed by withRoom middleware.
   {
     files: ['server/**/*.ts'],
