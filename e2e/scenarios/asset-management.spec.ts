@@ -81,4 +81,80 @@ test.describe('Asset Management', () => {
     await playerPage.close()
     await playerCtx.close()
   })
+
+  test('Blueprint: upload → spawn on map → Player sees token → delete', async ({ browser }) => {
+    // --- GM Setup ---
+    const gmPage = await browser.newPage()
+    const admin = new AdminPage(gmPage)
+    await admin.goto()
+    const roomName = `blueprint-test-${Date.now()}`
+    await admin.createRoom(roomName)
+    await admin.enterRoom(roomName)
+    const gmSeat = new SeatSelectPage(gmPage)
+    await gmSeat.createAndJoin('GM', 'GM')
+    const gmRoom = new RoomPage(gmPage)
+    await gmRoom.expectInRoom()
+
+    // Step 1: Enter tactical mode
+    await gmRoom.gmDock.enterCombat()
+    await gmRoom.tactical.expectVisible()
+
+    // Step 2: Open Blueprint tab (蓝图)
+    await gmRoom.gmDock.openTab('tokens')
+
+    // Step 3: Upload test-token.png (pass expected name for upload-complete wait)
+    await gmRoom.gmDock.blueprint.uploadToken(testAssets.tokenPath, 'test-token')
+
+    // Step 4: Assert token visible (name without extension — already verified by uploadToken)
+    await gmRoom.gmDock.blueprint.expectTokenVisible('test-token')
+
+    // Step 5: Spawn on map
+    await gmRoom.gmDock.blueprint.spawnOnMap('test-token')
+
+    // Step 6: Verify token exists on map via store bridge
+    await gmPage.waitForFunction(
+      () => {
+        const store = (window as any).__MYVTT_STORES__?.world()
+        return (store?.tacticalInfo?.tokens?.length ?? 0) > 0
+      },
+      null,
+      { timeout: 10_000 },
+    )
+
+    // --- Player Setup ---
+    const playerCtx = await browser.newContext()
+    const playerPage = await playerCtx.newPage()
+    await playerPage.goto(gmPage.url())
+    const playerSeat = new SeatSelectPage(playerPage)
+    await playerSeat.createAndJoin('Mage', 'PL')
+    const playerRoom = new RoomPage(playerPage)
+    await playerRoom.expectInRoom()
+
+    // Step 7: Player sees tactical canvas
+    await playerRoom.tactical.expectVisible()
+
+    // Step 8: Player verifies token exists
+    await playerPage.waitForFunction(
+      () => {
+        const store = (window as any).__MYVTT_STORES__?.world()
+        return (store?.tacticalInfo?.tokens?.length ?? 0) > 0
+      },
+      null,
+      { timeout: 10_000 },
+    )
+
+    // Step 9: Re-open Blueprint tab (dock may have collapsed)
+    await gmRoom.gmDock.openTab('tokens')
+
+    // Step 10: Delete the blueprint via hover X button
+    await gmRoom.gmDock.blueprint.deleteToken('test-token')
+
+    // Step 11: Assert blueprint gone from list
+    await gmRoom.gmDock.blueprint.expectTokenNotVisible('test-token')
+
+    // Cleanup
+    await gmPage.close()
+    await playerPage.close()
+    await playerCtx.close()
+  })
 })
