@@ -57,10 +57,15 @@ export function CharacterHoverPreview({
 
   const updateResource = (index: number, updates: Partial<ResourceView>) => {
     if (!onUpdateCharacter) return
-    const visibleIndex = allResources.indexOf(resources[index])
+    // index is guaranteed valid — called from .map() over resources
+    const resource = resources[index]
+    if (!resource) return
+    const visibleIndex = allResources.indexOf(resource)
     if (visibleIndex < 0) return
+    const existing = allResources[visibleIndex]
+    if (!existing) return
     const next = [...allResources]
-    next[visibleIndex] = { ...next[visibleIndex], ...updates }
+    next[visibleIndex] = { ...existing, ...updates }
     onUpdateCharacter(character.id, updateRuleData('resources', next))
   }
 
@@ -73,7 +78,7 @@ export function CharacterHoverPreview({
   const commitStatusEdit = (index: number, label: string) => {
     if (!onUpdateCharacter) return
     const trimmed = label.trim()
-    if (trimmed && trimmed !== statuses[index].label) {
+    if (trimmed && trimmed !== statuses[index]?.label) {
       const next = [...statuses]
       next[index] = { label: trimmed }
       onUpdateCharacter(character.id, updateRuleData('statuses', next))

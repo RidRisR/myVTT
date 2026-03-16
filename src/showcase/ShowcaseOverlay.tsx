@@ -98,7 +98,7 @@ export function ShowcaseOverlay({ isGM }: ShowcaseOverlayProps) {
 
     const focusedIndex = Math.round(scrollY)
     const focusedItem = items[focusedIndex]
-    if (!focusedItem.ephemeral) return
+    if (!focusedItem?.ephemeral) return
 
     ephemeralTimerRef.current = setTimeout(() => {
       setIsSnapped(true)

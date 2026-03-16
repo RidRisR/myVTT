@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest'
-import { getRulePlugin, registerPlugin } from '../registry'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { render, cleanup } from '@testing-library/react'
+import { getRulePlugin, getAvailablePlugins, registerPlugin } from '../registry'
 import { makeEntity } from '../../__test-utils__/fixtures'
 
 describe('getRulePlugin', () => {
@@ -62,7 +63,7 @@ describe('genericPlugin adapters', () => {
     })
     const statuses = plugin.adapters.getStatuses(entity)
     expect(statuses).toHaveLength(2)
-    expect(statuses[0].label).toBe('Poisoned')
+    expect(statuses[0]?.label).toBe('Poisoned')
   })
 
   it('getPortraitResources returns all resources', () => {
@@ -77,8 +78,62 @@ describe('genericPlugin adapters', () => {
     })
     const resources = plugin.adapters.getPortraitResources(entity)
     expect(resources).toHaveLength(2)
-    expect(resources[0].label).toBe('hp')
+    expect(resources[0]?.label).toBe('hp')
   })
+})
+
+// ── Base-level contract: all plugins must handle edge-case ruleData without crashing ──
+
+const allPluginIds = getAvailablePlugins().map((p) => p.id)
+
+describe.each(allPluginIds)('%s plugin — adapter safety contract', (pluginId) => {
+  const plugin = getRulePlugin(pluginId)
+
+  const edgeCases = [
+    { label: 'null ruleData', ruleData: null },
+    { label: 'empty object ruleData', ruleData: {} },
+    { label: 'partial ruleData', ruleData: { hp: { current: 5, max: 10 } } },
+    { label: 'unrelated ruleData', ruleData: { foo: 'bar' } },
+  ]
+
+  for (const { label, ruleData } of edgeCases) {
+    it(`getMainResource does not crash with ${label}`, () => {
+      expect(() => plugin.adapters.getMainResource(makeEntity({ ruleData }))).not.toThrow()
+    })
+    it(`getPortraitResources does not crash with ${label}`, () => {
+      expect(() => plugin.adapters.getPortraitResources(makeEntity({ ruleData }))).not.toThrow()
+    })
+    it(`getStatuses does not crash with ${label}`, () => {
+      expect(() => plugin.adapters.getStatuses(makeEntity({ ruleData }))).not.toThrow()
+    })
+    it(`getFormulaTokens does not crash with ${label}`, () => {
+      expect(() => plugin.adapters.getFormulaTokens(makeEntity({ ruleData }))).not.toThrow()
+    })
+  }
+})
+
+// ── Base-level contract: EntityCard must not crash with edge-case ruleData ──
+
+describe.each(allPluginIds)('%s plugin — EntityCard render safety', (pluginId) => {
+  const plugin = getRulePlugin(pluginId)
+  const { EntityCard } = plugin.characterUI
+
+  afterEach(cleanup)
+
+  const edgeCases = [
+    { label: 'null ruleData', ruleData: null },
+    { label: 'empty object ruleData', ruleData: {} },
+    { label: 'partial ruleData', ruleData: { hp: { current: 5, max: 10 } } },
+    { label: 'unrelated ruleData', ruleData: { foo: 'bar' } },
+  ]
+
+  for (const { label, ruleData } of edgeCases) {
+    it(`does not crash with ${label}`, () => {
+      expect(() =>
+        render(<EntityCard entity={makeEntity({ ruleData })} onUpdate={vi.fn()} readonly />),
+      ).not.toThrow()
+    })
+  }
 })
 
 describe('daggerheartPlugin registration', () => {

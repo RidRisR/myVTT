@@ -91,7 +91,8 @@ function rand(min: number, max: number): number {
 }
 
 function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
+  // Callers always pass non-empty arrays
+  return arr[Math.floor(Math.random() * arr.length)] as T
 }
 
 function createParticle(config: ParticlePresetConfig, w: number, h: number): Particle {

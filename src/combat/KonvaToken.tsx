@@ -201,7 +201,7 @@ export function KonvaToken({
               const startX = -totalWidth / 2
               let offsetX = startX
               for (let j = 0; j < i; j++) {
-                offsetX += Math.min(statuses[j].label.length * 5 + 8, 40) + 2
+                offsetX += Math.min((statuses[j]?.label.length ?? 0) * 5 + 8, 40) + 2
               }
               return (
                 <Group key={i} x={offsetX} y={0}>

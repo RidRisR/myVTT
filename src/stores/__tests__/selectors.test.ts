@@ -259,7 +259,7 @@ describe('selectSpeakerEntities', () => {
   it('PL sees only owned entities', () => {
     const result = selectSpeakerEntities(entities, 'seat1', false)
     expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('e1')
+    expect(result[0]?.id).toBe('e1')
   })
 
   it('PL with no seat sees nothing', () => {

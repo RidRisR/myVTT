@@ -6,8 +6,8 @@
 export function adjustNumericValue(value: string, delta: number): string {
   const hpMatch = value.match(/^(\d+)\/(\d+)$/)
   if (hpMatch) {
-    const cur = parseInt(hpMatch[1])
-    const max = parseInt(hpMatch[2])
+    const cur = parseInt(hpMatch[1] ?? '0')
+    const max = parseInt(hpMatch[2] ?? '0')
     return `${Math.max(0, Math.min(cur + delta, max))}/${max}`
   }
   return `${Math.max(0, parseInt(value) + delta)}`

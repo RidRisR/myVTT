@@ -26,10 +26,10 @@ describe('POST /api/rooms/:roomId/roll — pure RNG', () => {
     const msg = data as Record<string, unknown>
     expect(msg.type).toBe('roll')
     expect(Array.isArray(msg.rolls)).toBe(true)
-    expect((msg.rolls as number[][])).toHaveLength(1)
+    expect(msg.rolls as number[][]).toHaveLength(1)
     expect((msg.rolls as number[][])[0]).toHaveLength(2)
-    expect((msg.rolls as number[][])[0][0]).toBeGreaterThanOrEqual(1)
-    expect((msg.rolls as number[][])[0][0]).toBeLessThanOrEqual(12)
+    expect((msg.rolls as number[][])[0]![0]).toBeGreaterThanOrEqual(1)
+    expect((msg.rolls as number[][])[0]![0]).toBeLessThanOrEqual(12)
     expect(msg.rollType).toBe('daggerheart:dd')
     expect(msg.formula).toBe('2d12')
     // 服务端不再提供 terms 或 total
@@ -82,7 +82,7 @@ describe('POST /api/rooms/:roomId/roll — pure RNG', () => {
     })
     expect(status).toBe(201)
     const msg = data as Record<string, unknown>
-    expect((msg.rolls as number[][])).toHaveLength(2)
+    expect(msg.rolls as number[][]).toHaveLength(2)
     expect((msg.rolls as number[][])[0]).toHaveLength(2)
     expect((msg.rolls as number[][])[1]).toHaveLength(1)
   })

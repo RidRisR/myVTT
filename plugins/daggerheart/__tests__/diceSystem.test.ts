@@ -52,12 +52,12 @@ describe('dhGetDieStyles', () => {
   it('marks index 0 as Hope (gold) and index 1 as Fear (red)', () => {
     const styles = dhGetDieStyles([[8, 5]])
     expect(styles).toHaveLength(2)
-    expect(styles[0].dieIndex).toBe(0)
-    expect(styles[0].label).toBe('希望')
-    expect(styles[0].color).toBe('#fbbf24')
-    expect(styles[1].dieIndex).toBe(1)
-    expect(styles[1].label).toBe('恐惧')
-    expect(styles[1].color).toBe('#dc2626')
+    expect(styles[0]?.dieIndex).toBe(0)
+    expect(styles[0]?.label).toBe('希望')
+    expect(styles[0]?.color).toBe('#fbbf24')
+    expect(styles[1]?.dieIndex).toBe(1)
+    expect(styles[1]?.label).toBe('恐惧')
+    expect(styles[1]?.color).toBe('#dc2626')
   })
 })
 
@@ -129,13 +129,13 @@ describe('dhGetRollActions', () => {
 
 describe('rollCommands', () => {
   it('daggerheart:dd resolveFormula with no modifier gives 2d12', () => {
-    expect(rollCommands['daggerheart:dd'].resolveFormula()).toBe('2d12')
-    expect(rollCommands['daggerheart:dd'].resolveFormula('')).toBe('2d12')
+    expect(rollCommands['daggerheart:dd']?.resolveFormula()).toBe('2d12')
+    expect(rollCommands['daggerheart:dd']?.resolveFormula('')).toBe('2d12')
   })
   it('daggerheart:dd resolveFormula with +2 gives 2d12+2', () => {
-    expect(rollCommands['daggerheart:dd'].resolveFormula('+2')).toBe('2d12+2')
+    expect(rollCommands['daggerheart:dd']?.resolveFormula('+2')).toBe('2d12+2')
   })
   it('daggerheart:dd resolveFormula with @agility stays as-is', () => {
-    expect(rollCommands['daggerheart:dd'].resolveFormula('+@agility')).toBe('2d12+@agility')
+    expect(rollCommands['daggerheart:dd']?.resolveFormula('+@agility')).toBe('2d12+@agility')
   })
 })

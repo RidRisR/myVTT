@@ -220,7 +220,7 @@ describe('init()', () => {
 
     const state = useWorldStore.getState()
     expect(state.scenes).toHaveLength(1)
-    expect(state.scenes[0].name).toBe('Test Scene')
+    expect(state.scenes[0]?.name).toBe('Test Scene')
     expect(state.entities['entity-1']).toBeDefined()
     expect(state.chatMessages).toHaveLength(1)
     expect(state.teamTrackers).toHaveLength(1)
@@ -306,13 +306,13 @@ describe('socket event handlers', () => {
     socket._trigger('scene:created', newScene)
 
     expect(useWorldStore.getState().scenes).toHaveLength(2)
-    expect(useWorldStore.getState().scenes[1].id).toBe('scene-2')
+    expect(useWorldStore.getState().scenes[1]?.id).toBe('scene-2')
   })
 
   it('scene:updated updates matching scene', () => {
     socket._trigger('scene:updated', makeScene({ id: 'scene-1', name: 'Updated Name' }))
 
-    expect(useWorldStore.getState().scenes[0].name).toBe('Updated Name')
+    expect(useWorldStore.getState().scenes[0]?.name).toBe('Updated Name')
   })
 
   it('scene:deleted removes from scenes', () => {
@@ -324,21 +324,21 @@ describe('socket event handlers', () => {
   it('scene:entity:linked adds entity entry to sceneEntityMap', () => {
     socket._trigger('scene:entity:linked', { sceneId: 'scene-1', entityId: 'entity-2' })
 
-    const entries = useWorldStore.getState().sceneEntityMap['scene-1']
+    const entries = useWorldStore.getState().sceneEntityMap['scene-1'] ?? []
     expect(entries.some((e) => e.entityId === 'entity-2')).toBe(true)
   })
 
   it('scene:entity:linked does not duplicate existing entity entry', () => {
     socket._trigger('scene:entity:linked', { sceneId: 'scene-1', entityId: 'entity-1' })
 
-    const entries = useWorldStore.getState().sceneEntityMap['scene-1']
+    const entries = useWorldStore.getState().sceneEntityMap['scene-1'] ?? []
     expect(entries.filter((e) => e.entityId === 'entity-1')).toHaveLength(1)
   })
 
   it('scene:entity:unlinked removes entity entry from sceneEntityMap', () => {
     socket._trigger('scene:entity:unlinked', { sceneId: 'scene-1', entityId: 'entity-1' })
 
-    const entries = useWorldStore.getState().sceneEntityMap['scene-1']
+    const entries = useWorldStore.getState().sceneEntityMap['scene-1'] ?? []
     expect(entries.some((e) => e.entityId === 'entity-1')).toBe(false)
   })
 
@@ -349,13 +349,13 @@ describe('socket event handlers', () => {
     socket._trigger('entity:created', newEntity)
 
     expect(useWorldStore.getState().entities['entity-2']).toBeDefined()
-    expect(useWorldStore.getState().entities['entity-2'].name).toBe('Villain')
+    expect(useWorldStore.getState().entities['entity-2']?.name).toBe('Villain')
   })
 
   it('entity:updated updates matching entity', () => {
     socket._trigger('entity:updated', makeEntity({ id: 'entity-1', name: 'Renamed Hero' }))
 
-    expect(useWorldStore.getState().entities['entity-1'].name).toBe('Renamed Hero')
+    expect(useWorldStore.getState().entities['entity-1']?.name).toBe('Renamed Hero')
   })
 
   it('entity:deleted removes from entities', () => {
@@ -438,7 +438,7 @@ describe('socket event handlers', () => {
 
     const msgs = useWorldStore.getState().chatMessages
     expect(msgs).toHaveLength(2)
-    expect(msgs[1].id).toBe('msg-2')
+    expect(msgs[1]?.id).toBe('msg-2')
   })
 
   it('chat:new adds id to freshChatIds atomically with chatMessages', () => {
@@ -505,13 +505,13 @@ describe('socket event handlers', () => {
 
     expect(useWorldStore.getState().assets).toHaveLength(2)
     // asset:created prepends
-    expect(useWorldStore.getState().assets[0].id).toBe('asset-2')
+    expect(useWorldStore.getState().assets[0]?.id).toBe('asset-2')
   })
 
   it('asset:updated updates matching asset', () => {
     socket._trigger('asset:updated', makeAsset({ id: 'asset-1', name: 'renamed.png' }))
 
-    expect(useWorldStore.getState().assets[0].name).toBe('renamed.png')
+    expect(useWorldStore.getState().assets[0]?.name).toBe('renamed.png')
   })
 
   it('asset:deleted removes from assets', () => {
@@ -567,8 +567,9 @@ describe('socket event handlers', () => {
     socket._trigger('tracker:updated', updated)
 
     const tracker = useWorldStore.getState().teamTrackers[0]
-    expect(tracker.current).toBe(15)
-    expect(tracker.label).toBe('HP')
+    expect(tracker).toBeDefined()
+    expect(tracker?.current).toBe(15)
+    expect(tracker?.label).toBe('HP')
   })
 
   // -- Showcase events --
@@ -584,7 +585,7 @@ describe('socket event handlers', () => {
     const updated = makeShowcaseItem({ id: 'showcase-1', type: 'handout' })
     socket._trigger('showcase:updated', updated)
 
-    expect(useWorldStore.getState().showcaseItems[0].type).toBe('handout')
+    expect(useWorldStore.getState().showcaseItems[0]?.type).toBe('handout')
   })
 
   it('showcase:deleted removes from showcaseItems', () => {
@@ -651,7 +652,7 @@ describe('action methods', () => {
 
   function getLastFetchCall() {
     const calls = vi.mocked(fetch).mock.calls
-    const lastCall = calls[calls.length - 1]
+    const lastCall = calls[calls.length - 1] as [string, RequestInit | undefined]
     const url = lastCall[0]
     const options = lastCall[1]
     return { url, method: options?.method ?? 'GET', body: options?.body }
@@ -803,7 +804,7 @@ describe('action methods', () => {
     })
 
     expect(useWorldStore.getState().handoutAssets).toHaveLength(1)
-    expect(useWorldStore.getState().handoutAssets[0].id).toBe('h1')
+    expect(useWorldStore.getState().handoutAssets[0]?.id).toBe('h1')
   })
 
   it('updateHandoutAsset updates matching handout', () => {

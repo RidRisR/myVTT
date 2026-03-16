@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { PluginPanelProps } from '@myvtt/sdk'
 import type { DHRuleData } from '../types'
+import { createDefaultDHEntityData } from '../templates'
 
 const ATTRS = [
   { key: 'agility', label: '敏捷' },
@@ -25,11 +26,11 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
     )
   }
 
-  const d = (entity.ruleData ?? {}) as Partial<DHRuleData>
+  // Edit view: merge with defaults so all fields are editable even on new entities
+  const d = { ...createDefaultDHEntityData(), ...(entity.ruleData as Record<string, unknown>) }
 
   const updateDH = (patch: Partial<DHRuleData>) => {
-    const current = (entity.ruleData ?? {}) as DHRuleData
-    onUpdateEntity(entity.id, { ruleData: { ...current, ...patch } })
+    onUpdateEntity(entity.id, { ruleData: { ...d, ...patch } })
   }
 
   const updateHP = (patch: Partial<DHRuleData['hp']>) => {
@@ -120,14 +121,14 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
             <div className="grid grid-cols-2 gap-2">
               <IdentityField
                 label="职业"
-                value={d.className ?? ''}
+                value={d.className}
                 onChange={(v) => {
                   updateDH({ className: v })
                 }}
               />
               <IdentityField
                 label="血统"
-                value={d.ancestry ?? ''}
+                value={d.ancestry}
                 onChange={(v) => {
                   updateDH({ ancestry: v })
                 }}
@@ -151,7 +152,7 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
                         updateDH({ tier: t })
                       }}
                       className={`flex-1 py-1 rounded text-xs font-bold transition-colors duration-fast ${
-                        (d.tier ?? 1) === t
+                        d.tier === t
                           ? 'bg-accent text-white'
                           : 'bg-black/20 text-text-muted/50 hover:bg-black/40'
                       }`}
@@ -163,7 +164,7 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
               </div>
               <NumberField
                 label="熟练值"
-                value={d.proficiency ?? 1}
+                value={d.proficiency}
                 min={1}
                 max={6}
                 onChange={(v) => {
@@ -183,7 +184,7 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
                 <AttrField
                   key={key}
                   label={label}
-                  value={d[key] ?? 0}
+                  value={d[key]}
                   onChange={(v) => {
                     updateDH({ [key]: v } as Partial<DHRuleData>)
                   }}

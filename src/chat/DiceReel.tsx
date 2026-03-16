@@ -59,11 +59,12 @@ export function DiceReel({
         // Fisher-Yates shuffle
         for (let i = faces.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1))
-          ;[faces[i], faces[j]] = [faces[j], faces[i]]
+          // Fisher-Yates: i and j are guaranteed within bounds
+          ;[faces[i], faces[j]] = [faces[j] as number, faces[i] as number]
         }
         cursor = 0
       }
-      setDisplayValue(faces[cursor++])
+      setDisplayValue(faces[cursor++] ?? 1)
     }
     shuffle()
     const spinInterval = setInterval(shuffle, 50)

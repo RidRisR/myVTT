@@ -155,7 +155,6 @@ export function ChatPanel({
           setToastQueue((prev) => [...prev, { message: msg, timestamp: Date.now() }])
         }
       }
-
     }
     prevMessageCountRef.current = messages.length
   }, [messages])
@@ -227,13 +226,13 @@ export function ChatPanel({
   const handleCycleSpeaker = useCallback(() => {
     if (speakerEntities.length === 0) return
     if (speakerCharId === null) {
-      setSpeakerCharId(speakerEntities[0].id)
+      setSpeakerCharId(speakerEntities[0]?.id ?? null)
     } else {
       const idx = speakerEntities.findIndex((e) => e.id === speakerCharId)
       if (idx < 0 || idx >= speakerEntities.length - 1) {
         setSpeakerCharId(null)
       } else {
-        setSpeakerCharId(speakerEntities[idx + 1].id)
+        setSpeakerCharId(speakerEntities[idx + 1]?.id ?? null)
       }
     }
   }, [speakerCharId, speakerEntities])

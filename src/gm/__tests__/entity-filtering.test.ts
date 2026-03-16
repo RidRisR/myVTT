@@ -168,7 +168,7 @@ describe('groupEntities', () => {
   it('groups non-persistent lifecycle non-scene entities as other', () => {
     const { other } = groupEntities(allEntities, sceneEntityIds)
     expect(other).toHaveLength(1)
-    expect(other[0].id).toBe('npc3')
+    expect(other[0]?.id).toBe('npc3')
   })
 
   it('handles empty scene entity list', () => {
@@ -199,7 +199,7 @@ describe('filterByTags (AND logic)', () => {
   it('AND logic — all selected tags must match', () => {
     const result = filterByTags(items, ['人形', '亡灵'])
     expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('a')
+    expect(result[0]?.id).toBe('a')
   })
 
   it('returns empty when no items match all tags', () => {
@@ -210,6 +210,6 @@ describe('filterByTags (AND logic)', () => {
   it('excludes items with no tags when filtering', () => {
     const result = filterByTags(items, ['野兽'])
     expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('b')
+    expect(result[0]?.id).toBe('b')
   })
 })

@@ -57,12 +57,12 @@ export function ConfirmDialog({
       const last = focusable[focusable.length - 1]
 
       if (e.shiftKey) {
-        if (document.activeElement === first) {
+        if (document.activeElement === first && last) {
           e.preventDefault()
           last.focus()
         }
       } else {
-        if (document.activeElement === last) {
+        if (document.activeElement === last && first) {
           e.preventDefault()
           first.focus()
         }

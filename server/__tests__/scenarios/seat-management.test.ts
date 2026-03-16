@@ -54,14 +54,10 @@ describe('Seat Management Journey', () => {
   // ── 7.3 Update seat name and portrait ──
 
   it('7.3 update seat name and portrait → changes reflected in GET', async () => {
-    const { status, data } = await ctx.api(
-      'PATCH',
-      `/api/rooms/${ctx.roomId}/seats/${plSeatId}`,
-      {
-        name: 'Alice the Brave',
-        portraitUrl: '/portraits/alice.png',
-      },
-    )
+    const { status, data } = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/seats/${plSeatId}`, {
+      name: 'Alice the Brave',
+      portraitUrl: '/portraits/alice.png',
+    })
     expect(status).toBe(200)
 
     const updated = data as Record<string, unknown>
@@ -107,17 +103,14 @@ describe('Seat Management Journey', () => {
     expect(before as unknown[]).toHaveLength(2)
 
     // Delete the PL seat
-    const { status, data } = await ctx.api(
-      'DELETE',
-      `/api/rooms/${ctx.roomId}/seats/${plSeatId}`,
-    )
+    const { status, data } = await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/seats/${plSeatId}`)
     expect(status).toBe(200)
     expect((data as { ok: boolean }).ok).toBe(true)
 
     // After deletion: 1 seat
     const { data: after } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/seats`)
     expect(after as unknown[]).toHaveLength(1)
-    expect((after as { id: string }[])[0].id).toBe(gmSeatId)
+    expect((after as { id: string }[])[0]!.id).toBe(gmSeatId)
   })
 
   // ── 7.6 Contract: seat fields are camelCase ──
@@ -158,25 +151,17 @@ describe('Seat Management Journey', () => {
   })
 
   it('7.9 claim non-existent seat → 404', async () => {
-    const { status } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/seats/non-existent/claim`,
-      {
-        userId: 'user-ghost',
-      },
-    )
+    const { status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/seats/non-existent/claim`, {
+      userId: 'user-ghost',
+    })
     expect(status).toBe(404)
   })
 
   it('7.10 update seat color and role', async () => {
-    const { data } = await ctx.api(
-      'PATCH',
-      `/api/rooms/${ctx.roomId}/seats/${gmSeatId}`,
-      {
-        color: '#00ff00',
-        role: 'PL',
-      },
-    )
+    const { data } = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/seats/${gmSeatId}`, {
+      color: '#00ff00',
+      role: 'PL',
+    })
     const seat = data as Record<string, unknown>
     expect(seat.color).toBe('#00ff00')
     expect(seat.role).toBe('PL')

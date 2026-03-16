@@ -82,7 +82,7 @@ export function resolveFormula(
 
     // HP format "15/20" → extract current value
     const hpMatch = prop.value.match(/^(\d+)\/\d+$/)
-    const value = hpMatch ? hpMatch[1] : prop.value
+    const value = hpMatch ? (hpMatch[1] ?? prop.value) : prop.value
 
     if (!/^-?\d+$/.test(value)) {
       error = `@${key} value "${prop.value}" is not numeric`
@@ -127,12 +127,12 @@ export function tokenizeExpression(expr: string): DiceTerm[] | null {
 
   for (const match of matches) {
     const sign: 1 | -1 = match[1] === '-' ? -1 : 1
-    const body = match[2]
+    const body = match[2] ?? ''
 
     const diceMatch = body.match(/^(\d*)d(\d+)(?:(kh|kl|dh|dl)(\d*))?$/i)
     if (diceMatch) {
       const count = diceMatch[1] ? parseInt(diceMatch[1], 10) : 1
-      const sides = parseInt(diceMatch[2], 10)
+      const sides = parseInt(diceMatch[2] ?? '0', 10)
       const term: DiceTerm = { type: 'dice', sign, count, sides }
       if (diceMatch[3]) {
         term.keepDrop = {
@@ -222,7 +222,7 @@ export function rollTerm(term: DiceTerm): DiceTermResult {
     keptIndices = allRolls.map((_, i) => i).filter((i) => keptSet.has(i))
   }
 
-  const subtotal = term.sign * keptIndices.reduce((sum, i) => sum + allRolls[i], 0)
+  const subtotal = term.sign * keptIndices.reduce((sum, i) => sum + (allRolls[i] ?? 0), 0)
   return { term, allRolls, keptIndices, subtotal }
 }
 
@@ -258,7 +258,7 @@ export function rollDice(expression: string): DiceResult | null {
   const match = expression.trim().match(/^(\d*)d(\d+)([+-]\d+)?$/i)
   if (!match) return null
   const count = match[1] ? parseInt(match[1], 10) : 1
-  const sides = parseInt(match[2], 10)
+  const sides = parseInt(match[2] ?? '0', 10)
   const modifier = match[3] ? parseInt(match[3], 10) : 0
   if (count < 1 || count > 100 || sides < 1 || sides > 1000) return null
   const parsed = { count, sides, modifier }
@@ -336,7 +336,7 @@ export function buildTermResult(term: DiceTerm, allRolls: number[]): DiceTermRes
     keptIndices = allRolls.map((_, i) => i).filter((i) => keptSet.has(i))
   }
 
-  const subtotal = term.sign * keptIndices.reduce((sum, i) => sum + allRolls[i], 0)
+  const subtotal = term.sign * keptIndices.reduce((sum, i) => sum + (allRolls[i] ?? 0), 0)
   return { term, allRolls, keptIndices, subtotal }
 }
 

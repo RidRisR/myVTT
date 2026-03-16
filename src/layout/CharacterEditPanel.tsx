@@ -118,7 +118,10 @@ export function CharacterEditPanel({
   /* -- Resource helpers -- */
   const updateResource = (index: number, updates: Partial<ResourceView>) => {
     const next = [...resources]
-    next[index] = { ...next[index], ...updates }
+    // index is guaranteed valid — called from .map() over resources
+    const existing = next[index]
+    if (!existing) return
+    next[index] = { ...existing, ...updates }
     updateChar(updateRuleData('resources', next))
   }
   const addResource = () => {
@@ -139,7 +142,9 @@ export function CharacterEditPanel({
   /* -- Attribute helpers -- */
   const updateAttribute = (index: number, updates: Partial<AttributeView>) => {
     const next = [...attributes]
-    next[index] = { ...next[index], ...updates }
+    const existing = next[index]
+    if (!existing) return
+    next[index] = { ...existing, ...updates }
     updateChar(updateRuleData('attributes', next))
   }
   const addAttribute = () => {

@@ -112,7 +112,9 @@ export function KonvaMap({
     }
 
     const observer = new ResizeObserver((entries) => {
+      // ResizeObserver always provides at least one entry for the observed element
       const entry = entries[0]
+      if (!entry) return
       setContainerSize({
         width: entry.contentRect.width,
         height: entry.contentRect.height,

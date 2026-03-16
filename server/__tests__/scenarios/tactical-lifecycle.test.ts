@@ -71,7 +71,7 @@ describe('Tactical Lifecycle', () => {
     const { data: state2 } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
     const s2 = state2 as { mapUrl: string; tokens: { x: number }[] }
     expect(s2.mapUrl).toBe('/map2.jpg')
-    expect(s2.tokens[0].x).toBe(500)
+    expect(s2.tokens[0]!.x).toBe(500)
   })
 
   it('switching scenes preserves each scene tactical data', async () => {
@@ -80,14 +80,14 @@ describe('Tactical Lifecycle', () => {
     const { data: state1 } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
     const s1 = state1 as { mapUrl: string; tokens: { x: number }[] }
     expect(s1.mapUrl).toBe('/map1.jpg')
-    expect(s1.tokens[0].x).toBe(100)
+    expect(s1.tokens[0]!.x).toBe(100)
 
     // Switch to scene2
     await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: scene2Id })
     const { data: state2 } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
     const s2 = state2 as { mapUrl: string; tokens: { x: number }[] }
     expect(s2.mapUrl).toBe('/map2.jpg')
-    expect(s2.tokens[0].x).toBe(500)
+    expect(s2.tokens[0]!.x).toBe(500)
   })
 
   it('PATCH /tactical updates map/grid fields', async () => {
