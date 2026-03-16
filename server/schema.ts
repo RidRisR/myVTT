@@ -7,7 +7,8 @@ export function initGlobalSchema(db: Database.Database): void {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       created_by TEXT DEFAULT 'anonymous',
-      created_at INTEGER NOT NULL
+      created_at INTEGER NOT NULL,
+      rule_system_id TEXT NOT NULL DEFAULT 'generic'
     )
   `)
 }
@@ -18,9 +19,6 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS room_state (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       active_scene_id TEXT,
-      active_archive_id TEXT,
-      tactical_mode INTEGER NOT NULL DEFAULT 0,
-      rule_system_id TEXT NOT NULL DEFAULT 'generic',
       plugin_config TEXT NOT NULL DEFAULT '{}'
     );
     INSERT OR IGNORE INTO room_state (id) VALUES (1);
@@ -99,6 +97,8 @@ export function initRoomSchema(db: Database.Database): void {
     -- Tactical state (per-scene, replaces singleton combat_state)
     CREATE TABLE IF NOT EXISTS tactical_state (
       scene_id TEXT PRIMARY KEY REFERENCES scenes(id) ON DELETE CASCADE,
+      tactical_mode INTEGER NOT NULL DEFAULT 0,
+      active_archive_id TEXT,
       map_url TEXT,
       map_width INTEGER,
       map_height INTEGER,
@@ -174,12 +174,4 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_tactical_tokens_entity ON tactical_tokens(entity_id);
     CREATE INDEX IF NOT EXISTS idx_archive_tokens_archive ON archive_tokens(archive_id);
   `)
-
-  // Migrations for existing DBs (SQLite doesn't support IF NOT EXISTS in ALTER TABLE)
-  try {
-    db.exec(`ALTER TABLE room_state ADD COLUMN rule_system_id TEXT NOT NULL DEFAULT 'generic'`)
-  } catch { /* column already exists */ }
-  try {
-    db.exec(`ALTER TABLE room_state ADD COLUMN plugin_config TEXT NOT NULL DEFAULT '{}'`)
-  } catch { /* column already exists */ }
 }
