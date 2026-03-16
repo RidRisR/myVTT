@@ -2,14 +2,15 @@ import { useEffect, useState, useRef, useMemo } from 'react'
 import { Plus, Play, Save, MoreVertical, Copy, Pencil, Trash2, Swords } from 'lucide-react'
 import { useWorldStore } from '../stores/worldStore'
 import type { ArchiveRecord } from '../stores/worldStore'
+import { selectIsTactical } from '../stores/selectors'
 import { useToast } from '../shared/ui/useToast'
 import { ConfirmPopover } from '../shared/ui/ConfirmPopover'
 
 export function ArchivePanel() {
   const activeSceneId = useWorldStore((s) => s.room.activeSceneId)
-  const activeArchiveId = useWorldStore((s) => s.room.activeArchiveId)
+  const activeArchiveId = useWorldStore((s) => s.tacticalInfo?.activeArchiveId ?? null)
   const archives = useWorldStore((s) => s.archives)
-  const isTactical = useWorldStore((s) => s.tacticalInfo !== null)
+  const isTactical = useWorldStore(selectIsTactical)
   const fetchArchives = useWorldStore((s) => s.fetchArchives)
   const createArchive = useWorldStore((s) => s.createArchive)
   const deleteArchive = useWorldStore((s) => s.deleteArchive)

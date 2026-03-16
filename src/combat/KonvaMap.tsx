@@ -211,7 +211,7 @@ export function KonvaMap({
   // Create token on empty space — spawns an ephemeral entity + tactical token
   const handleCreateToken = useCallback(
     (mapX: number, mapY: number) => {
-      if (!tacticalInfo) return
+      if (!tacticalInfo?.mapUrl) return
       let x = mapX
       let y = mapY
       if (tacticalInfo.grid.snap) {
@@ -267,7 +267,7 @@ export function KonvaMap({
   const tooltipEntity = tooltipToken?.entityId ? getEntity(tooltipToken.entityId) : null
 
   // No tacticalInfo state
-  if (!tacticalInfo) {
+  if (!tacticalInfo?.mapUrl) {
     return (
       <div
         ref={containerRef}
