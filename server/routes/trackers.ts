@@ -2,7 +2,7 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import type { TypedServer } from '../socketTypes'
-import type { TeamTracker } from '../../src/stores/worldStore'
+import type { TeamTracker } from '../../src/shared/storeTypes'
 import { withRoom } from '../middleware'
 import { toCamel, toCamelAll } from '../db'
 

@@ -6,14 +6,8 @@ import { create } from 'zustand'
 import type { TypedClientSocket } from '../shared/hooks/useSocket'
 import { api } from '../shared/api'
 
-export interface Seat {
-  id: string
-  name: string
-  color: string
-  role: 'GM' | 'PL'
-  portraitUrl?: string
-  activeCharacterId?: string
-}
+export type { Seat } from '../shared/storeTypes'
+import type { Seat } from '../shared/storeTypes'
 
 const SEAT_STORAGE_KEY = 'myvtt-seat-id'
 

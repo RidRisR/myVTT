@@ -2,7 +2,7 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import type { TypedServer } from '../socketTypes'
-import type { TacticalInfo } from '../../src/stores/worldStore'
+import type { TacticalInfo } from '../../src/shared/storeTypes'
 import type { Entity, MapToken } from '../../src/shared/entityTypes'
 import type Database from 'better-sqlite3'
 import { withRoom } from '../middleware'

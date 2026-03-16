@@ -1,7 +1,7 @@
 // server/routes/state.ts — Room state (singleton) GET + PATCH
 import { Router } from 'express'
 import type { TypedServer } from '../socketTypes'
-import type { RoomState } from '../../src/stores/worldStore'
+import type { RoomState } from '../../src/shared/storeTypes'
 import { withRoom } from '../middleware'
 import { toCamel } from '../db'
 import { getTacticalState } from './tactical'

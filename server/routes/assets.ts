@@ -5,7 +5,7 @@ import path from 'path'
 import fs from 'fs'
 import multer from 'multer'
 import type { TypedServer } from '../socketTypes'
-import type { AssetRecord } from '../../src/stores/worldStore'
+import type { AssetRecord } from '../../src/shared/storeTypes'
 import { withRoom } from '../middleware'
 import { toCamel, parseJsonFields } from '../db'
 

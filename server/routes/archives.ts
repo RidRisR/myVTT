@@ -2,7 +2,7 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import type { TypedServer } from '../socketTypes'
-import type { ArchiveRecord } from '../../src/stores/worldStore'
+import type { ArchiveRecord } from '../../src/shared/storeTypes'
 import type { Entity } from '../../src/shared/entityTypes'
 import { withRoom, withRole } from '../middleware'
 import { toCamel, parseJsonFields, toBoolFields } from '../db'

@@ -3,15 +3,15 @@
 // Adding a new socket event? Define it here first. This prevents "dangling listener" bugs
 // where one side registers an event the other side never emits.
 
-import type { Seat } from '../stores/identityStore'
 import type {
+  Seat,
   Scene,
   RoomState,
   TacticalInfo,
   TeamTracker,
   AssetRecord,
   ArchiveRecord,
-} from '../stores/worldStore'
+} from './storeTypes'
 import type { Entity, MapToken } from './entityTypes'
 import type { ChatMessage } from '../chat/chatTypes'
 import type { ShowcaseItem } from '../showcase/showcaseTypes'

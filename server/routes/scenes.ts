@@ -2,7 +2,7 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import type { TypedServer } from '../socketTypes'
-import type { Scene } from '../../src/stores/worldStore'
+import type { Scene } from '../../src/shared/storeTypes'
 import { withRoom, withRole } from '../middleware'
 import { toCamel, parseJsonFields, toBoolFields } from '../db'
 import { deepMerge } from '../deepMerge'

@@ -2,7 +2,7 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import type { TypedServer } from '../socketTypes'
-import type { Seat } from '../../src/stores/identityStore'
+import type { Seat } from '../../src/shared/storeTypes'
 import { withRoom } from '../middleware'
 import { toCamel, toCamelAll } from '../db'
 

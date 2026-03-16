@@ -12,40 +12,24 @@ import { api } from '../shared/api'
 import { generateTokenId } from '../shared/idUtils'
 import { defaultNPCPermissions } from '../shared/permissions'
 
-// ── Types ──
+// ── Types (re-exported from shared/storeTypes for backward compat) ──
 
-export interface Scene {
-  id: string
-  name: string
-  sortOrder: number
-  gmOnly: boolean
-  atmosphere: Atmosphere
-}
-
-export interface RoomState {
-  activeSceneId: string | null
-  ruleSystemId: string
-}
-
-export interface TacticalInfo {
-  sceneId: string
-  mapUrl: string | null
-  mapWidth: number | null
-  mapHeight: number | null
-  grid: {
-    size: number
-    snap: boolean
-    visible: boolean
-    color: string
-    offsetX: number
-    offsetY: number
-  }
-  tokens: MapToken[]
-  roundNumber: number
-  currentTurnTokenId: string | null
-  tacticalMode: number
-  activeArchiveId: string | null
-}
+export type {
+  Scene,
+  RoomState,
+  TacticalInfo,
+  TeamTracker,
+  AssetRecord,
+  ArchiveRecord,
+} from '../shared/storeTypes'
+import type {
+  Scene,
+  RoomState,
+  TacticalInfo,
+  TeamTracker,
+  AssetRecord,
+  ArchiveRecord,
+} from '../shared/storeTypes'
 
 export interface HandoutAsset {
   id: string
@@ -55,37 +39,8 @@ export interface HandoutAsset {
   createdAt: number
 }
 
-export interface TeamTracker {
-  id: string
-  label: string
-  current: number
-  max: number
-  color: string
-  sortOrder: number
-}
-
 // ChatMessage type re-exported from chatTypes for backward compatibility
 export type { ChatMessage } from '../chat/chatTypes'
-
-export interface AssetRecord {
-  id: string
-  url: string
-  name: string
-  type: string
-  createdAt: number
-  extra: Record<string, unknown>
-}
-
-export interface ArchiveRecord {
-  id: string
-  sceneId: string
-  name: string
-  mapUrl: string | null
-  mapWidth: number | null
-  mapHeight: number | null
-  grid: TacticalInfo['grid']
-  gmOnly: boolean
-}
 
 // ── Store interface ──
 
