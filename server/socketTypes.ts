@@ -4,6 +4,7 @@ import type {
   Socket as SocketIOSocket,
   DefaultEventsMap,
 } from 'socket.io'
+import type { ClientToServerEvents, ServerToClientEvents } from '../src/shared/socketEvents'
 
 /** Shape of data attached to each socket after auth middleware runs */
 export interface SocketData {
@@ -12,18 +13,18 @@ export interface SocketData {
   role: 'GM' | 'PL' | null
 }
 
-/** Typed Socket.io Server — SocketData is the 4th generic param */
+/** Typed Socket.io Server — event maps enforce emit/listen consistency */
 export type TypedServer = SocketIOServer<
-  DefaultEventsMap,
-  DefaultEventsMap,
+  ClientToServerEvents,
+  ServerToClientEvents,
   DefaultEventsMap,
   SocketData
 >
 
 /** Typed individual socket */
 export type TypedSocket = SocketIOSocket<
-  DefaultEventsMap,
-  DefaultEventsMap,
+  ClientToServerEvents,
+  ServerToClientEvents,
   DefaultEventsMap,
   SocketData
 >

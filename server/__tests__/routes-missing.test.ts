@@ -45,7 +45,7 @@ beforeAll(async () => {
   setupSocketAuth(io, dataDir)
   setupAwareness(io)
 
-  app.use(roomRoutes(dataDir))
+  app.use(roomRoutes(dataDir, io))
   app.use(seatRoutes(dataDir, io))
   app.use(sceneRoutes(dataDir, io))
   app.use(entityRoutes(dataDir, io))

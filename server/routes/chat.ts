@@ -1,23 +1,24 @@
 // server/routes/chat.ts — Chat messages + server-side dice rolling
 import { Router } from 'express'
 import crypto from 'crypto'
-import type { Server } from 'socket.io'
+import type { TypedServer } from '../socketTypes'
+import type { ChatMessage } from '../../src/chat/chatTypes'
 import type { DiceSpec } from '../../src/shared/diceUtils'
 import { withRoom } from '../middleware'
 import { toCamel, parseJsonFields } from '../db'
 
-export function chatRoutes(dataDir: string, io: Server): Router {
+export function chatRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
-  function toMessage(row: Record<string, unknown>) {
+  function toMessage(row: Record<string, unknown>): ChatMessage {
     const msg = parseJsonFields(toCamel(row), 'rollData')
     // Flatten rollData into top-level fields for client ChatRollMessage compatibility
     if (msg.rollData && typeof msg.rollData === 'object') {
       const { rollData, ...rest } = msg
-      return { ...rest, ...(rollData as Record<string, unknown>) }
+      return { ...rest, ...(rollData as Record<string, unknown>) } as unknown as ChatMessage
     }
-    return msg
+    return msg as unknown as ChatMessage
   }
 
   // Get chat history (supports incremental fetch)
@@ -70,7 +71,7 @@ export function chatRoutes(dataDir: string, io: Server): Router {
       return
     }
     req.roomDb!.prepare('DELETE FROM chat_messages WHERE id = ?').run(req.params.id)
-    io.to(req.roomId!).emit('chat:retracted', { id: req.params.id })
+    io.to(req.roomId!).emit('chat:retracted', { id: req.params.id as string })
     res.json({ ok: true })
   })
 

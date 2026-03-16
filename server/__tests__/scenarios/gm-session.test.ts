@@ -50,9 +50,10 @@ describe('GM Session Journey', () => {
   it('1.4 lists scenes correctly', async () => {
     const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/scenes`)
     const scenes = data as Record<string, unknown>[]
-    expect(scenes).toHaveLength(1)
+    // Room starts with a default scene; step 1.2 added another
+    expect(scenes).toHaveLength(2)
     // Contract: camelCase fields, atmosphere is object, gmOnly is boolean
-    const scene = scenes[0]!
+    const scene = scenes.find((s) => s.id === sceneId)!
     expect(scene).toHaveProperty('sortOrder')
     expect(scene).not.toHaveProperty('sort_order')
     expect(typeof scene.atmosphere).toBe('object')
@@ -117,7 +118,8 @@ describe('GM Session Journey', () => {
     await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/scenes/${dungeonId}`)
 
     const { data: scenes } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/scenes`)
-    expect(scenes as unknown[]).toHaveLength(1)
+    // Default scene + sc-1 remain after deleting dungeon
+    expect(scenes as unknown[]).toHaveLength(2)
 
     const { data: state } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/state`)
     expect((state as { activeSceneId: string }).activeSceneId).toBe(sceneId) // Unchanged

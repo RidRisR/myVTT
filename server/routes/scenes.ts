@@ -1,19 +1,20 @@
 // server/routes/scenes.ts — Scene CRUD + scene-entity linking
 import { Router } from 'express'
 import crypto from 'crypto'
-import type { Server } from 'socket.io'
+import type { TypedServer } from '../socketTypes'
+import type { Scene } from '../../src/shared/storeTypes'
 import { withRoom, withRole } from '../middleware'
 import { toCamel, parseJsonFields, toBoolFields } from '../db'
 import { deepMerge } from '../deepMerge'
 import { degradeTokenReferences, toEntity } from './entities'
 
-export function sceneRoutes(dataDir: string, io: Server): Router {
+export function sceneRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
-  function toScene(row: Record<string, unknown>) {
+  function toScene(row: Record<string, unknown>): Scene {
     const r = parseJsonFields(toCamel(row), 'atmosphere')
-    return toBoolFields(r, 'gmOnly')
+    return toBoolFields(r, 'gmOnly') as unknown as Scene
   }
 
   router.get('/api/rooms/:roomId/scenes', room, withRole, (req, res) => {
@@ -157,7 +158,7 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
     for (const e of ephemeralEntities) {
       io.to(req.roomId!).emit('entity:deleted', { id: e.id })
     }
-    io.to(req.roomId!).emit('scene:deleted', { id: req.params.id })
+    io.to(req.roomId!).emit('scene:deleted', { id: req.params.id as string })
     res.json({ ok: true })
   })
 
@@ -192,8 +193,8 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
       )
       .run(req.params.sceneId, req.params.entityId, visibleFlag ? 1 : 0)
     const payload = {
-      sceneId: req.params.sceneId,
-      entityId: req.params.entityId,
+      sceneId: req.params.sceneId as string,
+      entityId: req.params.entityId as string,
       visible: visibleFlag,
     }
     io.to(req.roomId!).emit('scene:entity:linked', payload)
@@ -227,11 +228,11 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
     unlinkEntity()
 
     if (shouldDeleteEntity) {
-      io.to(req.roomId!).emit('entity:deleted', { id: req.params.entityId })
+      io.to(req.roomId!).emit('entity:deleted', { id: req.params.entityId as string })
     }
     io.to(req.roomId!).emit('scene:entity:unlinked', {
-      sceneId: req.params.sceneId,
-      entityId: req.params.entityId,
+      sceneId: req.params.sceneId as string,
+      entityId: req.params.entityId as string,
     })
     res.json({ ok: true })
   })
@@ -259,8 +260,8 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
       return
     }
     const payload = {
-      sceneId: req.params.sceneId,
-      entityId: req.params.entityId,
+      sceneId: req.params.sceneId as string,
+      entityId: req.params.entityId as string,
       visible: !!visible,
     }
     io.to(req.roomId!).emit('scene:entity:updated', payload)
@@ -332,7 +333,7 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
     io.to(req.roomId!).emit('entity:created', entity)
     if (!tacticalOnly) {
       io.to(req.roomId!).emit('scene:entity:linked', {
-        sceneId: req.params.sceneId,
+        sceneId: req.params.sceneId as string,
         entityId,
         visible: true,
       })

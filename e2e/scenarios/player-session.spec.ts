@@ -33,9 +33,8 @@ test.describe('Player Session', () => {
     // Verify GM's seat is visible in the seat list
     await playerSeat.expectSeatVisible('Game Master')
 
-    // NOTE: seat:online/offline events are not yet implemented server-side,
-    // so we cannot assert the "Online" badge. When the feature is added,
-    // uncomment: await playerSeat.expectSeatOnline('Game Master')
+    // Verify GM's seat shows as Online (seat:online broadcast)
+    await playerSeat.expectSeatOnline('Game Master')
 
     // Create player seat
     await playerSeat.createAndJoin('Warrior', 'PL')

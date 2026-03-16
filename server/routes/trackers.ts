@@ -1,11 +1,12 @@
 // server/routes/trackers.ts — Team trackers CRUD
 import { Router } from 'express'
 import crypto from 'crypto'
-import type { Server } from 'socket.io'
+import type { TypedServer } from '../socketTypes'
+import type { TeamTracker } from '../../src/shared/storeTypes'
 import { withRoom } from '../middleware'
 import { toCamel, toCamelAll } from '../db'
 
-export function trackerRoutes(dataDir: string, io: Server): Router {
+export function trackerRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
@@ -34,7 +35,7 @@ export function trackerRoutes(dataDir: string, io: Server): Router {
       )
       .run(id, label, current, max, color, sortOrder ?? count)
 
-    const tracker = toCamel(
+    const tracker = toCamel<TeamTracker>(
       req.roomDb!.prepare('SELECT * FROM team_trackers WHERE id = ?').get(id) as Record<
         string,
         unknown
@@ -74,7 +75,7 @@ export function trackerRoutes(dataDir: string, io: Server): Router {
       req.roomDb!.prepare(`UPDATE team_trackers SET ${sets.join(', ')} WHERE id = ?`).run(...values)
     }
 
-    const updated = toCamel(
+    const updated = toCamel<TeamTracker>(
       req.roomDb!.prepare('SELECT * FROM team_trackers WHERE id = ?').get(req.params.id) as Record<
         string,
         unknown
@@ -86,7 +87,7 @@ export function trackerRoutes(dataDir: string, io: Server): Router {
 
   router.delete('/api/rooms/:roomId/team-trackers/:id', room, (req, res) => {
     req.roomDb!.prepare('DELETE FROM team_trackers WHERE id = ?').run(req.params.id)
-    io.to(req.roomId!).emit('tracker:deleted', { id: req.params.id })
+    io.to(req.roomId!).emit('tracker:deleted', { id: req.params.id as string })
     res.json({ ok: true })
   })
 

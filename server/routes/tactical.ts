@@ -1,12 +1,14 @@
 // server/routes/tactical.ts — Tactical (combat) state API (per-scene)
 import { Router } from 'express'
 import crypto from 'crypto'
-import type { Server } from 'socket.io'
+import type { TypedServer } from '../socketTypes'
+import type { TacticalInfo } from '../../src/shared/storeTypes'
+import type { Entity, MapToken } from '../../src/shared/entityTypes'
 import type Database from 'better-sqlite3'
 import { withRoom } from '../middleware'
 import { toCamel, parseJsonFields } from '../db'
 
-function toToken(row: Record<string, unknown>) {
+function toToken(row: Record<string, unknown>): MapToken {
   return {
     id: row.id,
     entityId: row.entity_id,
@@ -18,14 +20,14 @@ function toToken(row: Record<string, unknown>) {
     imageScaleX: row.image_scale_x ?? 1,
     imageScaleY: row.image_scale_y ?? 1,
     initiativePosition: row.initiative_position ?? null,
-  }
+  } as unknown as MapToken
 }
 
-function toEntity(row: Record<string, unknown>) {
-  return parseJsonFields(toCamel(row), 'ruleData', 'permissions')
+function toEntity(row: Record<string, unknown>): Entity {
+  return parseJsonFields(toCamel(row), 'ruleData', 'permissions') as unknown as Entity
 }
 
-export function getTacticalState(db: Database.Database, sceneId: string) {
+export function getTacticalState(db: Database.Database, sceneId: string): TacticalInfo | null {
   const stateRow = db.prepare('SELECT * FROM tactical_state WHERE scene_id = ?').get(sceneId) as
     | Record<string, unknown>
     | undefined
@@ -40,7 +42,7 @@ export function getTacticalState(db: Database.Database, sceneId: string) {
   return {
     ...state,
     tokens: tokenRows.map(toToken),
-  }
+  } as unknown as TacticalInfo
 }
 
 function getActiveSceneId(db: Database.Database): string | null {
@@ -50,7 +52,7 @@ function getActiveSceneId(db: Database.Database): string | null {
   return roomState.active_scene_id
 }
 
-export function tacticalRoutes(dataDir: string, io: Server): Router {
+export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
@@ -121,7 +123,9 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
     })
 
     const updated = doPatch()
-    io.to(req.roomId!).emit('tactical:updated', updated)
+    if (updated) {
+      io.to(req.roomId!).emit('tactical:updated', updated)
+    }
     res.json(updated)
   })
 
@@ -136,11 +140,8 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
       .roomDb!.prepare('UPDATE tactical_state SET tactical_mode = 1 WHERE scene_id = ?')
       .run(sceneId)
     const state = getTacticalState(req.roomDb!, sceneId)
-    io.to(req.roomId!).emit('tactical:updated', state)
-    // Also broadcast tactical:activated so clients populate tacticalInfo from the store.
-    // tactical:updated alone doesn't trigger the client to enter tactical view.
     if (state) {
-      io.to(req.roomId!).emit('tactical:activated', state)
+      io.to(req.roomId!).emit('tactical:updated', state)
     }
     res.json(state)
   })
@@ -156,7 +157,9 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
       .roomDb!.prepare('UPDATE tactical_state SET tactical_mode = 0 WHERE scene_id = ?')
       .run(sceneId)
     const state = getTacticalState(req.roomDb!, sceneId)
-    io.to(req.roomId!).emit('tactical:updated', state)
+    if (state) {
+      io.to(req.roomId!).emit('tactical:updated', state)
+    }
     res.json(state)
   })
 
@@ -455,7 +458,7 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
       return
     }
     req.roomDb!.prepare('DELETE FROM tactical_tokens WHERE id = ?').run(req.params.tokenId)
-    io.to(req.roomId!).emit('tactical:token:removed', { id: req.params.tokenId })
+    io.to(req.roomId!).emit('tactical:token:removed', { id: req.params.tokenId as string })
     res.json({ id: req.params.tokenId })
   })
 

@@ -3,17 +3,11 @@
 // REST API for seat CRUD; Socket.io events for real-time updates.
 
 import { create } from 'zustand'
-import type { Socket } from 'socket.io-client'
+import type { TypedClientSocket } from '../shared/hooks/useSocket'
 import { api } from '../shared/api'
 
-export interface Seat {
-  id: string
-  name: string
-  color: string
-  role: 'GM' | 'PL'
-  portraitUrl?: string
-  activeCharacterId?: string
-}
+export type { Seat } from '../shared/storeTypes'
+import type { Seat } from '../shared/storeTypes'
 
 const SEAT_STORAGE_KEY = 'myvtt-seat-id'
 
@@ -34,7 +28,7 @@ const SEAT_WS_EVENTS = [
   'seat:deleted',
   'seat:online',
   'seat:offline',
-]
+] as const
 
 interface IdentityState {
   seats: Seat[]
@@ -42,14 +36,14 @@ interface IdentityState {
   onlineSeatIds: Set<string>
 
   // Internal refs
-  _socket: Socket | null
+  _socket: TypedClientSocket | null
   _roomId: string | null
 
   // Derived getters
   getMySeat: () => Seat | null
 
   // Init — connects Socket.io listeners + loads seats
-  init: (roomId: string, socket: Socket) => Promise<() => void>
+  init: (roomId: string, socket: TypedClientSocket) => Promise<() => void>
 
   // Actions
   claimSeat: (seatId: string) => void
@@ -79,19 +73,10 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
   init: async (roomId, socket) => {
     set({ _socket: socket, _roomId: roomId })
 
-    // Load seats from REST
-    const seats = await api.get<Seat[]>(`/api/rooms/${roomId}/seats`)
-    set({ seats })
-
-    // Auto-claim from sessionStorage
-    const cached = sessionStorage.getItem(SEAT_STORAGE_KEY)
-    if (cached && seats.some((s) => s.id === cached)) {
-      set({ mySeatId: cached })
-      // Announce presence
-      socket.emit('seat:claim', { seatId: cached })
-    }
-
-    // Register WS event listeners
+    // Register WS event listeners BEFORE the REST call.
+    // The server sends seat:online events immediately on connection (initial sync).
+    // If we await the REST call first, those events arrive before the listener
+    // is registered and are silently dropped.
     socket.on('seat:created', (seat: Seat) => {
       set((s) => ({ seats: [...s.seats, seat] }))
     })
@@ -127,6 +112,18 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
         return { onlineSeatIds: next }
       })
     })
+
+    // Load seats from REST (after listeners are registered)
+    const seats = await api.get<Seat[]>(`/api/rooms/${roomId}/seats`)
+    set({ seats })
+
+    // Auto-claim from sessionStorage
+    const cached = sessionStorage.getItem(SEAT_STORAGE_KEY)
+    if (cached && seats.some((s) => s.id === cached)) {
+      set({ mySeatId: cached })
+      // Announce presence
+      socket.emit('seat:claim', { seatId: cached })
+    }
 
     // Return cleanup
     return () => {

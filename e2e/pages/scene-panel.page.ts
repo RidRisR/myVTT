@@ -55,6 +55,9 @@ export class ScenePanelPage {
   }
 
   async expectSceneNotExists(name: string) {
-    await expect(this.page.getByText(name)).toBeHidden()
+    // Scope to scene name spans only — avoids matching the "+ New Scene" create button
+    await expect(
+      this.page.locator('[title="Double-click to rename"]', { hasText: name }),
+    ).toBeHidden()
   }
 }

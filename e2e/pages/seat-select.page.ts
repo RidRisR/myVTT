@@ -45,4 +45,12 @@ export class SeatSelectPage {
     const seatButton = this.page.getByRole('button').filter({ hasText: name }).first()
     await expect(seatButton.getByText('Online')).toBeVisible({ timeout: 10_000 })
   }
+
+  async expectSeatAvailable(name: string) {
+    // Seat should be visible, enabled, and NOT show "Online" badge.
+    const seatButton = this.page.getByRole('button').filter({ hasText: name }).first()
+    await expect(seatButton).toBeVisible({ timeout: 10_000 })
+    await expect(seatButton).toBeEnabled()
+    await expect(seatButton.getByText('Online')).toBeHidden()
+  }
 }

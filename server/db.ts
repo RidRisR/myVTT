@@ -56,17 +56,18 @@ function snakeToCamel(str: string): string {
 }
 
 /** Convert a DB row's snake_case keys to camelCase */
-export function toCamel(row: Record<string, unknown>): Record<string, unknown> {
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- deliberate cast for DB row → typed object
+export function toCamel<T = Record<string, unknown>>(row: Record<string, unknown>): T {
   const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(row)) {
     result[snakeToCamel(key)] = value
   }
-  return result
+  return result as T
 }
 
 /** Batch convert */
-export function toCamelAll(rows: Record<string, unknown>[]): Record<string, unknown>[] {
-  return rows.map((r) => toCamel(r))
+export function toCamelAll<T = Record<string, unknown>>(rows: Record<string, unknown>[]): T[] {
+  return rows.map((r) => toCamel<T>(r))
 }
 
 /** Parse JSON string fields in a row, returning the parsed object */

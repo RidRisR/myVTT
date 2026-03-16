@@ -1,11 +1,12 @@
 // server/routes/state.ts — Room state (singleton) GET + PATCH
 import { Router } from 'express'
-import type { Server } from 'socket.io'
+import type { TypedServer } from '../socketTypes'
+import type { RoomState } from '../../src/shared/storeTypes'
 import { withRoom } from '../middleware'
 import { toCamel } from '../db'
 import { getTacticalState } from './tactical'
 
-export function stateRoutes(dataDir: string, io: Server): Router {
+export function stateRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
@@ -35,7 +36,7 @@ export function stateRoutes(dataDir: string, io: Server): Router {
       req.roomDb!.prepare(`UPDATE room_state SET ${sets.join(', ')} WHERE id = 1`).run(...values)
     }
 
-    const updated = toCamel(
+    const updated = toCamel<RoomState>(
       req.roomDb!.prepare('SELECT * FROM room_state WHERE id = 1').get() as Record<string, unknown>,
     )
     io.to(req.roomId!).emit('room:state:updated', updated)

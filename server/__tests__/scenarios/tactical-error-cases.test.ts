@@ -13,6 +13,11 @@ afterAll(async () => {
 })
 
 describe('Tactical error cases: no active scene (404)', () => {
+  beforeAll(async () => {
+    // Room now starts with a default scene; clear it to test no-scene error paths
+    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: null })
+  })
+
   it('GET /tactical with no active scene returns 404', async () => {
     const { status } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
     expect(status).toBe(404)
@@ -135,11 +140,7 @@ describe('Tactical idempotency', () => {
     const { data: before } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
 
     // Patch with empty body
-    const { status, data: after } = await ctx.api(
-      'PATCH',
-      `/api/rooms/${ctx.roomId}/tactical`,
-      {},
-    )
+    const { status, data: after } = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/tactical`, {})
     expect(status).toBe(200)
 
     // State should be unchanged
