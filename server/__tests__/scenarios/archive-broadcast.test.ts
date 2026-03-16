@@ -139,31 +139,6 @@ describe('Archive broadcast tests', () => {
     socket2.disconnect()
   })
 
-  it('POST /archives/:id/load broadcasts tactical:updated with activeArchiveId', async () => {
-    const socket2 = await connectSecondClient(ctx.apiBase, ctx.roomId)
-
-    // Create and save an archive
-    const { data: archive } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/scenes/${sceneId}/archives`,
-      { name: 'State Broadcast Test' },
-    )
-    const archiveId = (archive as { id: string }).id
-    await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${archiveId}/save`)
-
-    const eventPromise = waitForSocketEvent<{ activeArchiveId: string }>(
-      socket2,
-      'tactical:updated',
-    )
-
-    await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${archiveId}/load`)
-
-    const payload = await eventPromise
-    expect(payload.activeArchiveId).toBe(archiveId)
-
-    socket2.disconnect()
-  })
-
   it('POST /archives/:id/load broadcasts entity:deleted for orphan ephemerals', async () => {
     const socket2 = await connectSecondClient(ctx.apiBase, ctx.roomId)
 

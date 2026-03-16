@@ -120,35 +120,6 @@ describe('Archive gmOnly filtering', () => {
   })
 })
 
-describe('Archive active_archive_id cleared on delete', () => {
-  it('loading then deleting an archive clears activeArchiveId', async () => {
-    // Ensure active scene
-    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: sceneId })
-
-    // Create archive
-    const { data: archive } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/scenes/${sceneId}/archives`,
-      { name: 'To Be Deleted' },
-    )
-    const archiveId = (archive as { id: string }).id
-
-    // Load it (sets active_archive_id)
-    await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${archiveId}/load`)
-
-    // Verify activeArchiveId is set
-    const { data: tacticalBefore } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
-    expect((tacticalBefore as { activeArchiveId: string | null }).activeArchiveId).toBe(archiveId)
-
-    // Delete the archive
-    await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/archives/${archiveId}`)
-
-    // Verify activeArchiveId is cleared
-    const { data: tacticalAfter } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
-    expect((tacticalAfter as { activeArchiveId: string | null }).activeArchiveId).toBeNull()
-  })
-})
-
 describe('Archive load when reusable entity deleted', () => {
   it('load skips tokens whose reusable entity was deleted', async () => {
     // Ensure active scene

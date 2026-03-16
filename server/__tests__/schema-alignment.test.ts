@@ -68,7 +68,7 @@ describe('schema alignment with design doc 43', () => {
     expect(row.id).toBe(1)
     expect(row.active_scene_id).toBeNull()
     expect(row.plugin_config).toBe('{}')
-    // tactical_mode and active_archive_id now live in tactical_state (per-scene)
+    // tactical_mode now lives in tactical_state (per-scene)
   })
 
   it('FK cascade: delete scene removes scene_entities rows', () => {
