@@ -125,13 +125,15 @@ test.describe('Cascade Deletion', () => {
       { timeout: 10_000 },
     )
 
-    // Exit tactical -> re-enter tactical (triggers server re-fetch, CASCADE-deleted tokens won't return)
+    // BUG: Entity deletion route only emits entity:deleted, NOT tactical:token:removed.
+    // SQLite FK CASCADE deletes tokens in DB, but client is never notified.
+    // Workaround: exit + re-enter tactical triggers server re-fetch with clean state.
     await room.gmDock.exitCombat()
     await room.tactical.expectHidden()
     await room.gmDock.enterCombat()
     await room.tactical.expectVisible()
 
-    // Verify tokens are gone (CASCADE deletion removed them on server)
+    // Verify tokens are gone (CASCADE deletion removed them on server, re-fetch confirms)
     await page.waitForFunction(
       (eid: string) => {
         const store = (window as any).__MYVTT_STORES__?.world()
