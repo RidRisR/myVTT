@@ -1,11 +1,12 @@
 // server/routes/seats.ts — Seat CRUD with WS broadcast
 import { Router } from 'express'
 import crypto from 'crypto'
-import type { Server } from 'socket.io'
+import type { TypedServer } from '../socketTypes'
+import type { Seat } from '../../src/stores/identityStore'
 import { withRoom } from '../middleware'
 import { toCamel, toCamelAll } from '../db'
 
-export function seatRoutes(dataDir: string, io: Server): Router {
+export function seatRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
@@ -32,7 +33,7 @@ export function seatRoutes(dataDir: string, io: Server): Router {
       )
       .run(id, name, color, role, body.userId || null, body.portraitUrl || null, count)
 
-    const seat = toCamel(
+    const seat = toCamel<Seat>(
       req.roomDb!.prepare('SELECT * FROM seats WHERE id = ?').get(id) as Record<string, unknown>,
     )
     io.to(req.roomId!).emit('seat:created', seat)
@@ -70,7 +71,7 @@ export function seatRoutes(dataDir: string, io: Server): Router {
       req.roomDb!.prepare(`UPDATE seats SET ${sets.join(', ')} WHERE id = ?`).run(...values)
     }
 
-    const updated = toCamel(
+    const updated = toCamel<Seat>(
       req.roomDb!.prepare('SELECT * FROM seats WHERE id = ?').get(req.params.id) as Record<
         string,
         unknown
@@ -91,7 +92,7 @@ export function seatRoutes(dataDir: string, io: Server): Router {
     const claimBody = req.body as Record<string, unknown>
     const userId = (claimBody.userId as string | undefined) || 'anonymous'
     req.roomDb!.prepare('UPDATE seats SET user_id = ? WHERE id = ?').run(userId, req.params.id)
-    const updated = toCamel(
+    const updated = toCamel<Seat>(
       req.roomDb!.prepare('SELECT * FROM seats WHERE id = ?').get(req.params.id) as Record<
         string,
         unknown
@@ -103,7 +104,7 @@ export function seatRoutes(dataDir: string, io: Server): Router {
 
   router.delete('/api/rooms/:roomId/seats/:id', room, (req, res) => {
     req.roomDb!.prepare('DELETE FROM seats WHERE id = ?').run(req.params.id)
-    io.to(req.roomId!).emit('seat:deleted', { id: req.params.id })
+    io.to(req.roomId!).emit('seat:deleted', { id: req.params.id as string })
     res.json({ ok: true })
   })
 

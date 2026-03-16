@@ -1,17 +1,18 @@
 // server/routes/showcase.ts — Showcase items CRUD
 import { Router } from 'express'
 import crypto from 'crypto'
-import type { Server } from 'socket.io'
+import type { TypedServer } from '../socketTypes'
+import type { ShowcaseItem } from '../../src/showcase/showcaseTypes'
 import { withRoom } from '../middleware'
 import { toCamel, toBoolFields, parseJsonFields } from '../db'
 
-export function showcaseRoutes(dataDir: string, io: Server): Router {
+export function showcaseRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
-  function toShowcase(row: Record<string, unknown>) {
+  function toShowcase(row: Record<string, unknown>): ShowcaseItem {
     const r = parseJsonFields(toCamel(row), 'data')
-    return toBoolFields(r, 'pinned')
+    return toBoolFields(r, 'pinned') as unknown as ShowcaseItem
   }
 
   router.get('/api/rooms/:roomId/showcase', room, (req, res) => {
@@ -92,7 +93,7 @@ export function showcaseRoutes(dataDir: string, io: Server): Router {
 
   router.delete('/api/rooms/:roomId/showcase/:id', room, (req, res) => {
     req.roomDb!.prepare('DELETE FROM showcase_items WHERE id = ?').run(req.params.id)
-    io.to(req.roomId!).emit('showcase:deleted', { id: req.params.id })
+    io.to(req.roomId!).emit('showcase:deleted', { id: req.params.id as string })
     res.json({ ok: true })
   })
 
@@ -106,7 +107,7 @@ export function showcaseRoutes(dataDir: string, io: Server): Router {
       return
     }
     req.roomDb!.prepare('UPDATE showcase_items SET pinned = 1 WHERE id = ?').run(req.params.id)
-    io.to(req.roomId!).emit('showcase:pinned', { id: req.params.id })
+    io.to(req.roomId!).emit('showcase:pinned', { id: req.params.id as string })
     res.json({ ok: true })
   })
 

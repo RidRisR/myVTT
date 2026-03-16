@@ -4,11 +4,12 @@ import crypto from 'crypto'
 import path from 'path'
 import fs from 'fs'
 import multer from 'multer'
-import type { Server } from 'socket.io'
+import type { TypedServer } from '../socketTypes'
+import type { AssetRecord } from '../../src/stores/worldStore'
 import { withRoom } from '../middleware'
 import { toCamel, parseJsonFields } from '../db'
 
-export function assetRoutes(dataDir: string, io: Server): Router {
+export function assetRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
@@ -18,8 +19,8 @@ export function assetRoutes(dataDir: string, io: Server): Router {
     return dir
   }
 
-  function toAsset(row: Record<string, unknown>) {
-    return parseJsonFields(toCamel(row), 'extra', 'tags')
+  function toAsset(row: Record<string, unknown>): AssetRecord {
+    return parseJsonFields(toCamel(row), 'extra', 'tags') as unknown as AssetRecord
   }
 
   router.get('/api/rooms/:roomId/assets', room, (req, res) => {
@@ -184,7 +185,7 @@ export function assetRoutes(dataDir: string, io: Server): Router {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
 
     req.roomDb!.prepare('DELETE FROM assets WHERE id = ?').run(req.params.id)
-    io.to(req.roomId!).emit('asset:deleted', { id: req.params.id })
+    io.to(req.roomId!).emit('asset:deleted', { id: req.params.id as string })
     res.json({ ok: true })
   })
 

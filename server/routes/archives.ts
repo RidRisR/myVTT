@@ -1,17 +1,19 @@
 // server/routes/archives.ts — Archive CRUD (replaces encounters)
 import { Router } from 'express'
 import crypto from 'crypto'
-import type { Server } from 'socket.io'
+import type { TypedServer } from '../socketTypes'
+import type { ArchiveRecord } from '../../src/stores/worldStore'
+import type { Entity } from '../../src/shared/entityTypes'
 import { withRoom, withRole } from '../middleware'
 import { toCamel, parseJsonFields, toBoolFields } from '../db'
 import { getTacticalState } from './tactical'
 
-function toArchive(row: Record<string, unknown>) {
+function toArchive(row: Record<string, unknown>): ArchiveRecord {
   const r = parseJsonFields(toCamel(row), 'grid')
-  return toBoolFields(r, 'gmOnly')
+  return toBoolFields(r, 'gmOnly') as unknown as ArchiveRecord
 }
 
-export function archiveRoutes(dataDir: string, io: Server): Router {
+export function archiveRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
@@ -107,7 +109,7 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
       req.roomDb!.prepare('DELETE FROM archives WHERE id = ?').run(req.params.archiveId)
     })
     deleteArchive()
-    io.to(req.roomId!).emit('archive:deleted', { id: req.params.archiveId })
+    io.to(req.roomId!).emit('archive:deleted', { id: req.params.archiveId as string })
     res.json({ ok: true })
   })
 
@@ -389,13 +391,19 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
         string,
         unknown
       >
-      const entity = parseJsonFields(toCamel(entityRow), 'ruleData', 'permissions')
+      const entity = parseJsonFields(
+        toCamel(entityRow),
+        'ruleData',
+        'permissions',
+      ) as unknown as Entity
       io.to(req.roomId!).emit('entity:created', entity)
     }
 
     // 7. Emit tactical:updated (replaces room:state:updated — activeArchiveId is now per-scene)
     const result = getTacticalState(db, sceneId)
-    io.to(req.roomId!).emit('tactical:updated', result)
+    if (result) {
+      io.to(req.roomId!).emit('tactical:updated', result)
+    }
     res.json(result)
   })
 

@@ -1,5 +1,4 @@
 // server/awareness.ts — Ephemeral awareness state relay via Socket.io
-import type { Server } from 'socket.io'
 import type { TypedServer } from './socketTypes'
 
 /**
@@ -7,9 +6,8 @@ import type { TypedServer } from './socketTypes'
  * Awareness state is ephemeral — not persisted to DB.
  * Handles: cursor positions, resource drag state, online presence.
  */
-export function setupAwareness(io: Server): void {
-  const typedIo = io as TypedServer
-  typedIo.on('connection', (socket) => {
+export function setupAwareness(io: TypedServer): void {
+  io.on('connection', (socket) => {
     const roomId: string = socket.data.roomId
     if (!roomId) {
       console.warn('awareness: socket.data.roomId missing, skipping')
@@ -17,7 +15,8 @@ export function setupAwareness(io: Server): void {
     }
 
     // Relay awareness updates to other clients in the room
-    socket.on('awareness:update', (data: { field: string; state: unknown }) => {
+    socket.on('awareness:update', (data) => {
+      if (!socket.data.seatId) return
       socket.to(roomId).emit('awareness:update', {
         ...data,
         seatId: socket.data.seatId,
@@ -27,18 +26,22 @@ export function setupAwareness(io: Server): void {
 
     // Relay resource-drag awareness (editing/clear)
     // Server injects seatId to prevent client spoofing
-    socket.on('awareness:editing', (data: Record<string, unknown>) => {
+    socket.on('awareness:editing', (data) => {
+      if (!socket.data.seatId) return
       socket.to(roomId).emit('awareness:editing', { ...data, seatId: socket.data.seatId })
     })
     socket.on('awareness:clear', () => {
+      if (!socket.data.seatId) return
       socket.to(roomId).emit('awareness:clear', { seatId: socket.data.seatId })
     })
 
     // Relay token drag awareness — server injects seatId
-    socket.on('awareness:tokenDrag', (data: Record<string, unknown>) => {
+    socket.on('awareness:tokenDrag', (data) => {
+      if (!socket.data.seatId) return
       socket.to(roomId).emit('awareness:tokenDrag', { ...data, seatId: socket.data.seatId })
     })
     socket.on('awareness:tokenDragEnd', () => {
+      if (!socket.data.seatId) return
       socket.to(roomId).emit('awareness:tokenDragEnd', { seatId: socket.data.seatId })
     })
 

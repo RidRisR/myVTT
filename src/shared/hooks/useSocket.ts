@@ -1,19 +1,23 @@
 // src/shared/hooks/useSocket.ts — Socket.io connection hook
 import { useEffect, useState, useRef } from 'react'
-import { io, Socket } from 'socket.io-client'
+import { io, type Socket } from 'socket.io-client'
+import type { ServerToClientEvents, ClientToServerEvents } from '../socketEvents'
 import { API_BASE } from '../config'
+
+/** Typed client socket — enforces event name + payload consistency */
+export type TypedClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
 export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
 export function useSocket(roomId: string) {
-  const [socket, setSocket] = useState<Socket | null>(null)
+  const [socket, setSocket] = useState<TypedClientSocket | null>(null)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting')
-  const socketRef = useRef<Socket | null>(null)
+  const socketRef = useRef<TypedClientSocket | null>(null)
 
   useEffect(() => {
     const s = io(API_BASE || window.location.origin, {
       query: { roomId },
-    })
+    }) as TypedClientSocket
 
     // 'connect' fires on initial connection AND every reconnect
     s.on('connect', () => {

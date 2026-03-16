@@ -1,14 +1,15 @@
 // server/routes/entities.ts — Entity CRUD with deep merge for JSON fields
 import { Router } from 'express'
 import crypto from 'crypto'
-import type { Server } from 'socket.io'
+import type { TypedServer } from '../socketTypes'
+import type { Entity } from '../../src/shared/entityTypes'
 import type Database from 'better-sqlite3'
 import { withRoom } from '../middleware'
 import { toCamel, parseJsonFields } from '../db'
 import { deepMerge } from '../deepMerge'
 
-export function toEntity(row: Record<string, unknown>) {
-  return parseJsonFields(toCamel(row), 'ruleData', 'permissions')
+export function toEntity(row: Record<string, unknown>): Entity {
+  return parseJsonFields(toCamel(row), 'ruleData', 'permissions') as unknown as Entity
 }
 
 export function degradeTokenReferences(_db: Database.Database, _entityId: string): void {
@@ -18,7 +19,7 @@ export function degradeTokenReferences(_db: Database.Database, _entityId: string
   // This function is kept for API compatibility but is now a no-op.
 }
 
-export function entityRoutes(dataDir: string, io: Server): Router {
+export function entityRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
@@ -179,7 +180,7 @@ export function entityRoutes(dataDir: string, io: Server): Router {
     })
     deleteEntity()
 
-    io.to(req.roomId!).emit('entity:deleted', { id: req.params.id })
+    io.to(req.roomId!).emit('entity:deleted', { id: req.params.id as string })
     res.json({ ok: true })
   })
 

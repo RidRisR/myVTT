@@ -3,7 +3,7 @@
 // All actions send REST requests; store updates come ONLY via WS events.
 
 import { create } from 'zustand'
-import type { Socket } from 'socket.io-client'
+import type { TypedClientSocket } from '../shared/hooks/useSocket'
 import type { Entity, MapToken, Atmosphere, SceneEntityEntry } from '../shared/entityTypes'
 import type { ShowcaseItem } from '../showcase/showcaseTypes'
 import type { ChatMessage } from '../chat/chatTypes'
@@ -105,11 +105,11 @@ interface WorldState {
   assets: AssetRecord[]
 
   // Internal refs
-  _socket: Socket | null
+  _socket: TypedClientSocket | null
   _roomId: string | null
 
   // Lifecycle
-  init: (roomId: string, socket: Socket) => Promise<() => void>
+  init: (roomId: string, socket: TypedClientSocket) => Promise<() => void>
   reinit: () => Promise<void>
 
   // Room actions
@@ -283,7 +283,7 @@ async function loadAll(roomId: string) {
 }
 
 function registerSocketEvents(
-  socket: Socket,
+  socket: TypedClientSocket,
   set: (fn: (s: WorldState) => Partial<WorldState>) => void,
 ) {
   // ── Scene events ──
@@ -510,7 +510,7 @@ const WS_EVENTS = [
   'archive:created',
   'archive:updated',
   'archive:deleted',
-]
+] as const
 
 // ── Store creation ──
 
