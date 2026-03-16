@@ -117,6 +117,8 @@ const makeTacticalInfo = (overrides: Partial<TacticalInfo> = {}): TacticalInfo =
   tokens: [],
   roundNumber: 0,
   currentTurnTokenId: null,
+  tacticalMode: 1,
+  activeArchiveId: null,
   ...overrides,
 })
 
@@ -167,7 +169,7 @@ const makeShowcaseItem = (overrides: Partial<ShowcaseItem> = {}): ShowcaseItem =
 
 beforeEach(() => {
   useWorldStore.setState({
-    room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0, ruleSystemId: 'generic' },
+    room: { activeSceneId: null, ruleSystemId: 'generic' },
     scenes: [],
     entities: {},
     sceneEntityMap: {},
@@ -197,8 +199,9 @@ function setupInitMockResponses(overrides: Record<string, unknown> = {}) {
     [`/api/rooms/${ROOM_ID}/team-trackers`]: [makeTracker()],
     [`/api/rooms/${ROOM_ID}/state`]: {
       activeSceneId: scene.id,
-      activeArchiveId: null,
-      tacticalMode: 0,
+    },
+    [`/api/rooms/${ROOM_ID}`]: {
+      ruleSystemId: 'generic',
     },
     [`/api/rooms/${ROOM_ID}/assets`]: [makeAsset()],
     [`/api/rooms/${ROOM_ID}/showcase`]: [makeShowcaseItem()],
@@ -257,7 +260,7 @@ describe('init()', () => {
     const registeredEvents = socket._onSpy.mock.calls.map((c) => c[0])
     expect(registeredEvents).toContain('scene:created')
     expect(registeredEvents).toContain('entity:created')
-    expect(registeredEvents).toContain('tactical:activated')
+    expect(registeredEvents).toContain('tactical:updated')
     expect(registeredEvents).toContain('chat:new')
     expect(registeredEvents).toContain('room:state:updated')
     expect(registeredEvents).toContain('tracker:created')
@@ -278,7 +281,7 @@ describe('init()', () => {
     expect(removedEvents).toContain('scene:updated')
     expect(removedEvents).toContain('scene:deleted')
     expect(removedEvents).toContain('entity:created')
-    expect(removedEvents).toContain('tactical:activated')
+    expect(removedEvents).toContain('tactical:updated')
     expect(removedEvents).toContain('chat:new')
     expect(removedEvents).toContain('room:state:updated')
     expect(removedEvents).toContain('tracker:created')
@@ -366,26 +369,26 @@ describe('socket event handlers', () => {
 
   // -- Tactical events --
 
-  it('tactical:activated sets tacticalInfo', () => {
+  it('tactical:updated sets tacticalInfo', () => {
     const tactical = makeTacticalInfo()
-    socket._trigger('tactical:activated', tactical)
+    socket._trigger('tactical:updated', tactical)
 
     expect(useWorldStore.getState().tacticalInfo).not.toBeNull()
     expect(useWorldStore.getState().tacticalInfo?.mapUrl).toBe('/map.png')
   })
 
-  it('tactical:ended clears tacticalInfo', () => {
+  it('tactical:updated with tacticalMode=0', () => {
     // First activate tactical
-    socket._trigger('tactical:activated', makeTacticalInfo())
+    socket._trigger('tactical:updated', makeTacticalInfo())
     expect(useWorldStore.getState().tacticalInfo).not.toBeNull()
 
-    socket._trigger('tactical:ended')
+    socket._trigger('tactical:updated', makeTacticalInfo({ tacticalMode: 0 }))
 
-    expect(useWorldStore.getState().tacticalInfo).toBeNull()
+    expect(useWorldStore.getState().tacticalInfo?.tacticalMode).toBe(0)
   })
 
   it('tactical:token:added adds to tacticalInfo.tokens', () => {
-    socket._trigger('tactical:activated', makeTacticalInfo())
+    socket._trigger('tactical:updated', makeTacticalInfo())
 
     const token = makeToken({ id: 'token-1' })
     socket._trigger('tactical:token:added', token)
@@ -403,7 +406,7 @@ describe('socket event handlers', () => {
 
   it('tactical:token:updated updates token fields', () => {
     socket._trigger(
-      'tactical:activated',
+      'tactical:updated',
       makeTacticalInfo({
         tokens: [makeToken({ id: 'token-1', x: 100 })],
       }),
@@ -418,7 +421,7 @@ describe('socket event handlers', () => {
 
   it('tactical:token:removed removes from tacticalInfo.tokens', () => {
     socket._trigger(
-      'tactical:activated',
+      'tactical:updated',
       makeTacticalInfo({
         tokens: [makeToken({ id: 'token-1' })],
       }),
@@ -479,7 +482,7 @@ describe('socket event handlers', () => {
 
     const room = useWorldStore.getState().room
     expect(room.activeSceneId).toBe('scene-99')
-    expect(room.activeArchiveId).toBeNull()
+    expect(room.ruleSystemId).toBe('generic')
   })
 
   // -- Tracker events --
@@ -523,7 +526,7 @@ describe('socket event handlers', () => {
   // -- Tactical edge cases --
 
   it('tactical:updated replaces tacticalInfo completely', () => {
-    socket._trigger('tactical:activated', makeTacticalInfo({ mapUrl: '/old.png' }))
+    socket._trigger('tactical:updated', makeTacticalInfo({ mapUrl: '/old.png' }))
     const updatedTactical = makeTacticalInfo({ mapUrl: '/new.png', roundNumber: 3 })
     socket._trigger('tactical:updated', updatedTactical)
 
@@ -540,7 +543,7 @@ describe('socket event handlers', () => {
 
   it('tactical:token:updated is no-op when token does not exist', () => {
     socket._trigger(
-      'tactical:activated',
+      'tactical:updated',
       makeTacticalInfo({
         tokens: [makeToken({ id: 'token-1', x: 100 })],
       }),
@@ -623,9 +626,7 @@ describe('socket event handlers', () => {
     useWorldStore.setState({
       room: {
         activeSceneId: 'scene-1',
-        activeArchiveId: 'arc-1',
-        tacticalMode: 1,
-        ruleSystemId: 'generic',
+        ruleSystemId: 'dnd5e',
       },
     })
 
@@ -634,7 +635,7 @@ describe('socket event handlers', () => {
 
     const room = useWorldStore.getState().room
     expect(room.activeSceneId).toBe('scene-2')
-    expect(room.activeArchiveId).toBe('arc-1')
+    expect(room.ruleSystemId).toBe('dnd5e')
   })
 })
 

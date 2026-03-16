@@ -18,7 +18,7 @@ import {
   selectSpeakerEntities,
 } from '../selectors'
 import type { Atmosphere, Entity, MapToken } from '../../shared/entityTypes'
-import type { Scene } from '../worldStore'
+import type { Scene, TacticalInfo } from '../worldStore'
 
 const makeEntity = (id: string, overrides?: Partial<Entity>): Entity => ({
   id,
@@ -76,8 +76,6 @@ describe('selector referential stability', () => {
     const state = {
       room: {
         activeSceneId: null,
-        activeArchiveId: null,
-        tacticalMode: 0,
         ruleSystemId: 'generic',
       },
       scenes: [],
@@ -107,8 +105,6 @@ describe('selector referential stability', () => {
     const state = {
       room: {
         activeSceneId: 's1',
-        activeArchiveId: null,
-        tacticalMode: 0,
         ruleSystemId: 'generic',
       },
       scenes: [scene],
@@ -119,23 +115,10 @@ describe('selector referential stability', () => {
   })
 
   it('selectIsTactical returns primitive (always stable)', () => {
-    const state = {
-      room: {
-        activeSceneId: null,
-        activeArchiveId: null,
-        tacticalMode: 0,
-        ruleSystemId: 'generic',
-      },
-    }
-    expect(selectIsTactical(state)).toBe(false)
+    expect(selectIsTactical({ tacticalInfo: null })).toBe(false)
     expect(
       selectIsTactical({
-        room: {
-          activeSceneId: null,
-          activeArchiveId: null,
-          tacticalMode: 1,
-          ruleSystemId: 'generic',
-        },
+        tacticalInfo: { tacticalMode: 1 } as TacticalInfo,
       }),
     ).toBe(true)
   })
@@ -159,8 +142,6 @@ describe('selector referential stability', () => {
   it('selectRoom returns same reference when state is unchanged', () => {
     const room = {
       activeSceneId: 's1',
-      activeArchiveId: null,
-      tacticalMode: 0,
       ruleSystemId: 'generic',
     }
     const state = { room }
@@ -191,8 +172,6 @@ describe('selector referential stability', () => {
     const state = {
       room: {
         activeSceneId: 'abc',
-        activeArchiveId: null,
-        tacticalMode: 0,
         ruleSystemId: 'generic',
       },
     }
