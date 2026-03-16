@@ -13,6 +13,7 @@
 ## 文件结构（File Structure）
 
 **新建（Create）：**
+
 - `src/layout/PluginPanelContainer.tsx` — 基座 Portal 容器，将插件面板渲染到 `document.body`
 - `src/rules/usePluginPanels.ts` — 插件内部调用的 hook，用于打开/关闭 plugin 面板
 - `server/__tests__/scenarios/rule-system-switch.test.ts` — 规则系统切换集成测试
@@ -21,6 +22,7 @@
 - `plugins/daggerheart/__tests__/FullCharacterSheet.test.tsx` — FullCharacterSheet 单元测试
 
 **修改（Modify）：**
+
 - `src/stores/uiStore.ts` — 新增 `ActivePluginPanel` 类型 + 面板状态 + open/close actions
 - `src/rules/sdk.ts` — 导出 `usePluginPanels`
 - `src/App.tsx` — 挂载 `<PluginPanelContainer>`
@@ -40,12 +42,14 @@
 ### Task 1：插件面板 Portal 系统（PluginPanelContainer）
 
 **读取前置文件（先读，再写）：**
+
 - `src/stores/uiStore.ts`（了解现有 state 结构，修改它）
 - `src/rules/types.ts`（了解 `PluginPanelDef` / `PluginPanelProps`）
 - `src/rules/sdk.ts`（了解当前导出列表）
 - `src/App.tsx`（找到 `<PortraitBar>` 附近，在其后挂载 `<PluginPanelContainer>`）
 
 **Files:**
+
 - Modify: `src/stores/uiStore.ts`
 - Create: `src/rules/usePluginPanels.ts`
 - Create: `src/rules/__tests__/usePluginPanels.test.ts`
@@ -111,6 +115,7 @@ cd /Users/zhonghanzhen/Desktop/proj/myVTT/.worktrees/feat/daggerheart-plugin && 
 在 `src/stores/uiStore.ts` 中：
 
 在文件顶部类型定义部分新增：
+
 ```typescript
 export interface ActivePluginPanel {
   panelId: string
@@ -119,6 +124,7 @@ export interface ActivePluginPanel {
 ```
 
 在 `UiState` interface 新增（在 `gmSidebarCollapsed` 之后）：
+
 ```typescript
   // Plugin panel portal
   activePluginPanels: ActivePluginPanel[]
@@ -127,6 +133,7 @@ export interface ActivePluginPanel {
 ```
 
 在 `useUiStore` 的 create 函数初始值中新增：
+
 ```typescript
   activePluginPanels: [],
   openPluginPanel: (panelId, entityId) =>
@@ -253,11 +260,15 @@ export function PluginPanelContainer() {
 - [ ] **Step 7：在 sdk.ts 导出 usePluginPanels**
 
 在 `src/rules/sdk.ts` 中，在工具 hook 导出区：
+
 1. 新增一行：
+
 ```typescript
 export { usePluginPanels } from './usePluginPanels'
 ```
+
 2. 删除已过期的注释行（如存在）：
+
 ```typescript
 // usePluginPanels will be added when surfaces/panels system is implemented
 ```
@@ -265,12 +276,15 @@ export { usePluginPanels } from './usePluginPanels'
 - [ ] **Step 8：在 App.tsx 挂载 PluginPanelContainer**
 
 在 `src/App.tsx` 中：
+
 1. 新增 import：`import { PluginPanelContainer } from './layout/PluginPanelContainer'`
 2. 在 `RoomSession` 渲染的 JSX 中，在 `</ToastProvider>` 结束标签之前，紧接 `<PortraitBar>` 后面（或 ChatPanel 之后）添加：
 
 ```tsx
-{/* Plugin panel portal — renders active plugin panels at high z-index */}
-<PluginPanelContainer />
+{
+  /* Plugin panel portal — renders active plugin panels at high z-index */
+}
+;<PluginPanelContainer />
 ```
 
 - [ ] **Step 9：运行全部测试**
@@ -292,12 +306,14 @@ cd /Users/zhonghanzhen/Desktop/proj/myVTT/.worktrees/feat/daggerheart-plugin && 
 ### Task 2：房间游戏系统切换
 
 **读取前置文件（先读，再写）：**
+
 - `src/stores/worldStore.ts`（了解 `setActiveScene` 模式，在其旁边添加 `setRuleSystem`）
 - `src/rules/registry.ts`（添加 `getAvailablePlugins()` 工具函数）
 - `src/layout/HamburgerMenu.tsx`（了解现有 props 结构，添加 GM 系统选择器）
 - `server/routes/state.ts`（确认 `ruleSystemId` 已在 PATCH handler 中处理，无需修改）
 
 **Files:**
+
 - Modify: `src/stores/worldStore.ts`
 - Modify: `src/rules/registry.ts`
 - Modify: `src/layout/HamburgerMenu.tsx`
@@ -368,11 +384,13 @@ npm test -- server/__tests__/scenarios/rule-system-switch.test.ts
 - [ ] **Step 3：在 worldStore 新增 setRuleSystem**
 
 在 `src/stores/worldStore.ts` 的 `WorldState` interface 中，在 `setActiveScene` 之后新增：
+
 ```typescript
-  setRuleSystem: (id: string) => Promise<void>
+setRuleSystem: (id: string) => Promise<void>
 ```
 
 在实现部分（`setActiveScene` 实现旁边）新增：
+
 ```typescript
   setRuleSystem: async (id) => {
     const roomId = get()._roomId
@@ -397,59 +415,65 @@ export function getAvailablePlugins(): Array<{ id: string; name: string }> {
 在 `src/layout/HamburgerMenu.tsx` 中：
 
 1. 修改文件顶部 React import，添加 `useMemo`（当前为 `useState, useEffect, useRef`）：
+
 ```typescript
 import { useState, useEffect, useRef, useMemo } from 'react'
 ```
 
 2. 新增 imports：
+
 ```typescript
 import { useWorldStore } from '../stores/worldStore'
 import { getAvailablePlugins } from '../rules/registry'
 ```
 
 2. 在 `HamburgerMenu` 组件体内，`const [open, setOpen]` 之后新增 hooks（注意：`getAvailablePlugins()` 返回新数组，必须用 `useMemo` 包裹以避免每次渲染重新分配）：
+
 ```typescript
-  const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
-  const setRuleSystem = useWorldStore((s) => s.setRuleSystem)
-  const availablePlugins = useMemo(() => getAvailablePlugins(), [])
-  const isGM = mySeat.role === 'GM'
+const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
+const setRuleSystem = useWorldStore((s) => s.setRuleSystem)
+const availablePlugins = useMemo(() => getAvailablePlugins(), [])
+const isGM = mySeat.role === 'GM'
 ```
+
 （在文件顶部确保 `useMemo` 已从 `'react'` 中导入）
 
 3. 在 `ThemeToggle` 之后、`Leave Seat` 按钮之前，新增 GM 专属系统选择器区块：
 
 ```tsx
-{isGM && (
-  <>
-    <div className="h-px bg-border-glass mx-2 my-0.5" />
-    <div className="px-3 py-2">
-      <div className="text-[10px] text-text-muted/40 uppercase tracking-wider mb-1.5">
-        游戏系统
+{
+  isGM && (
+    <>
+      <div className="h-px bg-border-glass mx-2 my-0.5" />
+      <div className="px-3 py-2">
+        <div className="text-[10px] text-text-muted/40 uppercase tracking-wider mb-1.5">
+          游戏系统
+        </div>
+        <div className="flex flex-col gap-0.5">
+          {availablePlugins.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => {
+                setRuleSystem(p.id)
+                setOpen(false)
+              }}
+              className={`w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors duration-fast ${
+                ruleSystemId === p.id
+                  ? 'bg-accent/20 text-accent font-semibold'
+                  : 'text-text-muted hover:bg-hover hover:text-text-primary'
+              }`}
+            >
+              {p.name}
+              {ruleSystemId === p.id && (
+                <span className="ml-1 text-[10px] opacity-60">（当前）</span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="flex flex-col gap-0.5">
-        {availablePlugins.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => {
-              setRuleSystem(p.id)
-              setOpen(false)
-            }}
-            className={`w-full px-2.5 py-1.5 rounded-md text-xs text-left transition-colors duration-fast ${
-              ruleSystemId === p.id
-                ? 'bg-accent/20 text-accent font-semibold'
-                : 'text-text-muted hover:bg-hover hover:text-text-primary'
-            }`}
-          >
-            {p.name}
-            {ruleSystemId === p.id && (
-              <span className="ml-1 text-[10px] opacity-60">（当前）</span>
-            )}
-          </button>
-        ))}
-      </div>
-    </div>
-  </>
-)}
+    </>
+  )
+}
 ```
 
 - [ ] **Step 6：运行全部测试**
@@ -473,10 +497,12 @@ cd /Users/zhonghanzhen/Desktop/proj/myVTT/.worktrees/feat/daggerheart-plugin && 
 ### Task 3：机械接线任务（实体默认数据 + KonvaToken 适配器）
 
 **读取前置文件（先读，再写）：**
+
 - `src/dock/CharacterLibraryTab.tsx`（找到 `handleCreate`，约第 41-59 行）
 - `src/combat/KonvaToken.tsx`（找到 `getEntityResources` / `getEntityStatuses` 调用，约第 55-60 行）
 
 **Files:**
+
 - Modify: `src/dock/CharacterLibraryTab.tsx`
 - Modify: `src/combat/KonvaToken.tsx`
 - Modify: `src/layout/PortraitBar.tsx`（portrait ring 和 status dot 也走 plugin adapters）
@@ -490,16 +516,19 @@ cd /Users/zhonghanzhen/Desktop/proj/myVTT/.worktrees/feat/daggerheart-plugin && 
 在 `src/dock/CharacterLibraryTab.tsx` 中：
 
 1. 在现有 imports 之后新增：
+
 ```typescript
 import { useRulePlugin } from '../rules/useRulePlugin'
 ```
 
 2. 在组件体内，现有 hooks 之后新增：
+
 ```typescript
-  const plugin = useRulePlugin()
+const plugin = useRulePlugin()
 ```
 
 3. 修改 `handleCreate` 中的 `ruleData: null` 为：
+
 ```typescript
       ruleData: plugin.dataTemplates?.createDefaultEntityData() ?? null,
 ```
@@ -509,46 +538,54 @@ import { useRulePlugin } from '../rules/useRulePlugin'
 在 `src/combat/KonvaToken.tsx` 中：
 
 1. 删除 import（如果不再使用则删除整行）：
+
 ```typescript
 import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
 ```
+
 改为：
+
 ```typescript
 import { useRulePlugin } from '../rules/useRulePlugin'
 ```
 
 2. 在 `KonvaToken` 组件体内，`const rawColor` 之前新增：
+
 ```typescript
-  const plugin = useRulePlugin()
+const plugin = useRulePlugin()
 ```
 
 3. 替换 `resources` / `mainResource` / `hasHp` / `hpPct` 四行（约第 55-58 行）：
 
 原来：
+
 ```typescript
-  const resources = getEntityResources(entity)
-  const mainResource = resources[0]
-  const hasHp = mainResource !== undefined && mainResource.max > 0
-  const hpPct = hasHp ? Math.min(mainResource.current / mainResource.max, 1) : 0
+const resources = getEntityResources(entity)
+const mainResource = resources[0]
+const hasHp = mainResource !== undefined && mainResource.max > 0
+const hpPct = hasHp ? Math.min(mainResource.current / mainResource.max, 1) : 0
 ```
 
 替换为：
+
 ```typescript
-  const mainResource = entity ? plugin.adapters.getMainResource(entity) : null
-  const hasHp = mainResource !== null && mainResource.max > 0
-  const hpPct = hasHp ? Math.min(mainResource.current / mainResource.max, 1) : 0
+const mainResource = entity ? plugin.adapters.getMainResource(entity) : null
+const hasHp = mainResource !== null && mainResource.max > 0
+const hpPct = hasHp ? Math.min(mainResource.current / mainResource.max, 1) : 0
 ```
 
 4. 替换 `getEntityStatuses` 调用（约第 60 行）：
 
 原来：
+
 ```typescript
-  const statuses = getEntityStatuses(entity)
+const statuses = getEntityStatuses(entity)
 ```
 
 替换为：
+
 ```typescript
-  const statuses = entity ? plugin.adapters.getStatuses(entity) : []
+const statuses = entity ? plugin.adapters.getStatuses(entity) : []
 ```
 
 5. 如果 `entityAdapters` 在此文件中不再有其他引用，import 行已经替换完毕。
@@ -560,13 +597,15 @@ import { useRulePlugin } from '../rules/useRulePlugin'
 先读取该文件，找到 `getEntityResources` 和 `getEntityStatuses` 的调用位置（用于 portrait ring 渲染和 status dot）。
 
 1. 新增 import：
+
 ```typescript
 import { useRulePlugin } from '../rules/useRulePlugin'
 ```
 
 2. 在组件体内（所有其他 hooks 之后，任何 early return 之前）新增：
+
 ```typescript
-  const plugin = useRulePlugin()
+const plugin = useRulePlugin()
 ```
 
 3. 将所有 `getEntityResources(someEntity)` 替换为 `plugin.adapters.getPortraitResources(someEntity)`（注意：portrait bar 用 `getPortraitResources`，返回多条资源用于显示多个圆环）
@@ -594,6 +633,7 @@ cd /Users/zhonghanzhen/Desktop/proj/myVTT/.worktrees/feat/daggerheart-plugin && 
 ### Task 4：DaggerHeart 完整角色卡（FullCharacterSheet）
 
 **读取前置文件（先读，再写）：**
+
 - `plugins/daggerheart/types.ts`（了解 `DHRuleData` 字段结构）
 - `plugins/daggerheart/DaggerHeartCard.tsx`（了解现有只读卡片结构）
 - `plugins/daggerheart/index.ts`（了解 surfaces 注册方式）
@@ -601,6 +641,7 @@ cd /Users/zhonghanzhen/Desktop/proj/myVTT/.worktrees/feat/daggerheart-plugin && 
 - `src/rules/types.ts`（确认 `PluginPanelProps` 接口）
 
 **Files:**
+
 - Create: `plugins/daggerheart/ui/FullCharacterSheet.tsx`
 - Create: `plugins/daggerheart/__tests__/FullCharacterSheet.test.tsx`
 - Modify: `plugins/daggerheart/DaggerHeartCard.tsx`
@@ -1125,31 +1166,38 @@ cd /Users/zhonghanzhen/Desktop/proj/myVTT/.worktrees/feat/daggerheart-plugin && 
 在 `plugins/daggerheart/DaggerHeartCard.tsx` 中：
 
 1. 新增 import：
+
 ```typescript
 import { usePluginPanels } from '@myvtt/sdk'
 ```
 
 2. 修改函数签名，解构 `readonly` 和 `entity`：
+
 ```typescript
 export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
 ```
+
 （原来只有 `{ entity }`，在 `EntityCardProps` 中 `readonly?: boolean` 已存在）
 
 3. 在组件体内，`const d = ...` 之后新增：
+
 ```typescript
-  const { openPanel } = usePluginPanels()
+const { openPanel } = usePluginPanels()
 ```
 
 4. 在 JSX 的最外层 `div` 内，`{d && (...)}` 之后，新增：
+
 ```tsx
-{!readonly && (
-  <button
-    onClick={() => openPanel('dh-full-sheet', entity.id)}
-    className="mt-2 w-full py-1.5 text-[11px] text-text-muted/50 bg-black/20 hover:bg-black/40 rounded-md transition-colors duration-fast"
-  >
-    完整角色卡 →
-  </button>
-)}
+{
+  !readonly && (
+    <button
+      onClick={() => openPanel('dh-full-sheet', entity.id)}
+      className="mt-2 w-full py-1.5 text-[11px] text-text-muted/50 bg-black/20 hover:bg-black/40 rounded-md transition-colors duration-fast"
+    >
+      完整角色卡 →
+    </button>
+  )
+}
 ```
 
 - [ ] **Step 6：在 daggerheart/index.ts 中注册 FullCharacterSheet**
@@ -1157,11 +1205,13 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
 在 `plugins/daggerheart/index.ts` 中：
 
 1. 新增 import：
+
 ```typescript
 import { FullCharacterSheet } from './ui/FullCharacterSheet'
 ```
 
 2. 修改 `surfaces` 字段，新增 `panels`：
+
 ```typescript
   surfaces: {
     panels: [
@@ -1182,6 +1232,7 @@ import { FullCharacterSheet } from './ui/FullCharacterSheet'
 在 `src/layout/PortraitBar.tsx` 中，找到可编辑锁定状态的分支（在 `isLocked` 条件内，`isEditable` 为 true 的分支）。
 
 **找到这段代码**（搜索 `CharacterEditPanel`）：
+
 ```tsx
 isEditable ? (
   // Plugin's FullCharacterSheet will replace this when surfaces/panels land.
@@ -1194,6 +1245,7 @@ isEditable ? (
 ```
 
 **替换为：**
+
 ```tsx
 isEditable ? (
   // Plugin handles editing — DH uses DaggerHeartCard + openPanel('dh-full-sheet')
@@ -1207,6 +1259,7 @@ isEditable ? (
 ```
 
 同时，检查文件顶部的 imports：
+
 - `import { CharacterEditPanel }` — 此修改后不再被引用，**删除**
 - `import { getEntityResources, getEntityStatuses }` — 已在 Task 3 Step 3 被 plugin adapters 替换，**确认已删除**（Task 3 已处理）
 

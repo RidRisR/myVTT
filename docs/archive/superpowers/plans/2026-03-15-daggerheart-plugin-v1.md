@@ -13,6 +13,7 @@
 ## 文件结构
 
 **修改（基础层）：**
+
 - `src/shared/diceUtils.ts` — 新增 `DiceSpec`, `toDiceSpecs`, `buildTermResult`, `buildCompoundResult`
 - `src/chat/chatTypes.ts` — 更新 `ChatRollMessage`（`dice`+`rolls`+`rollType` 替换 `terms`+`total`）
 - `src/rules/types.ts` — 更新 `evaluateRoll` 签名，新增 `rollCommands` + `rollCardRenderers`
@@ -24,6 +25,7 @@
 - `src/chat/ChatInput.tsx` — `.r` 提取 dice specs，新增 `.dd` 命令
 
 **新建（DaggerHeart 插件）：**
+
 - `plugins/daggerheart/types.ts`
 - `plugins/daggerheart/adapters.ts` + `__tests__/adapters.test.ts`
 - `plugins/daggerheart/templates.ts` + `__tests__/templates.test.ts`
@@ -32,6 +34,7 @@
 - `plugins/daggerheart/index.ts`
 
 **修改（DaggerHeart 插件）：**
+
 - `src/rules/registry.ts` — 注册 daggerheartPlugin
 - `plugins/generic/index.ts` — 更新 `getFormulaTokens`
 - `src/chat/ChatPanel.tsx` — 用 `plugin.adapters.getFormulaTokens` 替换
@@ -43,6 +46,7 @@
 ### Task 1: 更新核心类型
 
 **Files:**
+
 - Modify: `src/shared/diceUtils.ts`
 - Modify: `src/chat/chatTypes.ts`
 - Modify: `src/rules/types.ts`
@@ -154,13 +158,13 @@ export interface ChatRollMessage {
   portraitUrl?: string
   timestamp: number
 
-  formula: string           // 原始公式（含 @key），用于显示
-  resolvedFormula?: string  // @key 解析后的实际公式，用于解析 dice
+  formula: string // 原始公式（含 @key），用于显示
+  resolvedFormula?: string // @key 解析后的实际公式，用于解析 dice
 
-  dice: DiceSpec[]          // 客户端发送，服务端透传
-  rolls: number[][]         // 服务端生成的原始随机数
+  dice: DiceSpec[] // 客户端发送，服务端透传
+  rolls: number[][] // 服务端生成的原始随机数
 
-  rollType?: string         // 'daggerheart:dd' 等，用于查 rollCardRenderers
+  rollType?: string // 'daggerheart:dd' 等，用于查 rollCardRenderers
   actionName?: string
 }
 
@@ -174,6 +178,7 @@ export type ChatMessage = ChatTextMessage | ChatRollMessage
 在 `src/rules/types.ts` 中：
 
 1. 更新 `diceSystem.evaluateRoll` 签名（移除 `DiceTermResult[]` 和 `ctx`）：
+
 ```typescript
 diceSystem?: {
   getRollActions(entity: Entity): RollAction[]
@@ -187,6 +192,7 @@ diceSystem?: {
 ```
 
 2. 在 `surfaces` 中新增 `rollCardRenderers`，先新增 `RollCardProps` 接口：
+
 ```typescript
 export interface RollCardProps {
   message: ChatRollMessage
@@ -195,6 +201,7 @@ export interface RollCardProps {
 ```
 
 然后在 `surfaces` 里添加：
+
 ```typescript
 surfaces?: {
   panels?: PluginPanelDef[]
@@ -212,16 +219,19 @@ surfaces?: {
 在 `src/rules/sdk.ts` 中：
 
 1. 找到现有的 `export type { DiceTermResult } from '../shared/diceUtils'` 一行，**扩展**为（合并 DiceSpec，避免重复来源）：
+
 ```typescript
 export type { DiceTermResult, DiceSpec } from '../shared/diceUtils'
 ```
 
 2. 在现有的工具函数导出区（如 `export { useHoldRepeat }` 旁边）追加：
+
 ```typescript
 export { tokenizeExpression, buildCompoundResult } from '../shared/diceUtils'
 ```
 
 3. 追加两个新类型导出：
+
 ```typescript
 export type { ChatRollMessage } from '../chat/chatTypes'
 export type { RollCardProps } from './types'
@@ -248,6 +258,7 @@ git commit -m "refactor: update dice types — DiceSpec, pure rolls ChatRollMess
 ### Task 2: 服务端纯随机数重构
 
 **Files:**
+
 - Modify: `server/routes/chat.ts`
 - Modify: `server/__tests__/scenarios/` (已有集成测试，验证新格式)
 
@@ -298,12 +309,20 @@ router.post('/api/rooms/:roomId/roll', room, (req, res) => {
   const timestamp = Date.now()
   const rollData = { formula, resolvedFormula, dice, rolls, rollType, actionName }
 
-  req.roomDb!
-    .prepare(
+  req
+    .roomDb!.prepare(
       `INSERT INTO chat_messages (id, type, sender_id, sender_name, sender_color, portrait_url, roll_data, timestamp)
        VALUES (?, 'roll', ?, ?, ?, ?, ?, ?)`,
     )
-    .run(id, senderId, senderName, senderColor, portraitUrl || null, JSON.stringify(rollData), timestamp)
+    .run(
+      id,
+      senderId,
+      senderName,
+      senderColor,
+      portraitUrl || null,
+      JSON.stringify(rollData),
+      timestamp,
+    )
 
   const message = toMessage(
     req.roomDb!.prepare('SELECT * FROM chat_messages WHERE id = ?').get(id) as Record<
@@ -317,6 +336,7 @@ router.post('/api/rooms/:roomId/roll', room, (req, res) => {
 ```
 
 同时移除 `chat.ts` 顶部的动态 import 行：
+
 ```typescript
 // 删除这行:
 const { rollCompound } = await import('../../src/shared/diceUtils')
@@ -376,7 +396,12 @@ describe('POST /api/rooms/:roomId/roll — pure RNG', () => {
     const res = await fetch(`${baseUrl}/api/rooms/test/roll`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ formula: '2d12', senderId: 's1', senderName: 'T', senderColor: '#fff' }),
+      body: JSON.stringify({
+        formula: '2d12',
+        senderId: 's1',
+        senderName: 'T',
+        senderColor: '#fff',
+      }),
     })
     expect(res.status).toBe(400)
   })
@@ -405,6 +430,7 @@ git commit -m "refactor: server POST /roll becomes pure RNG — removes rollComp
 ### Task 3: 客户端显示层更新
 
 **Files:**
+
 - Modify: `src/chat/DiceResultCard.tsx`
 - Modify: `src/chat/MessageCard.tsx`
 - Modify: `src/stores/worldStore.ts`
@@ -556,24 +582,27 @@ export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
 以下是对 `src/chat/MessageCard.tsx` 的**完整变更清单**（字段全部从旧 API 迁移到新 API）：
 
 1. 顶部添加导入：
+
 ```typescript
 import { useRulePlugin } from '../rules/useRulePlugin'
 ```
 
 2. 在组件函数体内（所有现有 `useState` 之后，early return 之前）添加 hook：
+
 ```typescript
 const plugin = useRulePlugin()
 ```
 
 3. 将 roll message 分支中所有字段引用迁移：
 
-| 旧代码 | 新代码 |
-|---|---|
-| `message.expression` | `message.formula` |
+| 旧代码                       | 新代码                    |
+| ---------------------------- | ------------------------- |
+| `message.expression`         | `message.formula`         |
 | `message.resolvedExpression` | `message.resolvedFormula` |
-| `.r {message.expression}` | 见下方 |
+| `.r {message.expression}`    | 见下方                    |
 
 4. 替换公式显示行（原来的 `.r {message.expression}` 固定前缀）：
+
 ```typescript
 <span className="text-xs text-text-muted/50 font-mono">
   {message.rollType
@@ -586,6 +615,7 @@ const plugin = useRulePlugin()
 ```
 
 5. 在 `useRulePlugin()` 下方添加：
+
 ```typescript
 const CustomCard =
   message.type === 'roll' && message.rollType
@@ -594,6 +624,7 @@ const CustomCard =
 ```
 
 6. 替换 roll 分支的内容渲染行（原来的单行 `<DiceResultCard />`）：
+
 ```typescript
 {CustomCard
   ? <CustomCard message={message} isNew={isNew} />
@@ -609,11 +640,12 @@ const CustomCard =
 在文件顶部添加 `import type { DiceSpec } from '../shared/diceUtils'`。
 
 在 `State` 接口中，**找到旧的 `sendRoll` 类型定义（含 `resolvedExpression` 字段），整行替换**为：
+
 ```typescript
 sendRoll: (data: {
   dice: DiceSpec[]
   formula: string
-  resolvedFormula?: string   // 注意：旧字段名 resolvedExpression 已删除
+  resolvedFormula?: string // 注意：旧字段名 resolvedExpression 已删除
   rollType?: string
   senderId: string
   senderName: string
@@ -624,6 +656,7 @@ sendRoll: (data: {
 ```
 
 实现不变（仍是 POST，新字段自动传递）：
+
 ```typescript
 sendRoll: async (data) => {
   const roomId = get()._roomId
@@ -662,7 +695,10 @@ const handleRoll = (formula: string) => {
     resolvedFormula = resolved.resolved
   }
   const terms = tokenizeExpression(resolvedFormula ?? formula)
-  if (!terms) { setError('Invalid dice formula'); return }
+  if (!terms) {
+    setError('Invalid dice formula')
+    return
+  }
   const dice = toDiceSpecs(terms)
   if (onRoll) onRoll(formula, resolvedFormula, dice, undefined)
   setInput('')
@@ -678,11 +714,17 @@ const handleDaggerheartRoll = (modifierExpr: string) => {
   if (/@[\p{L}\p{N}_]+/u.test(formula)) {
     // @key 修饰符场景（如 .dd +@agility）：解析为实际数值
     const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
-    if ('error' in resolved) { setError(resolved.error); return }
+    if ('error' in resolved) {
+      setError(resolved.error)
+      return
+    }
     resolvedFormula = resolved.resolved
   }
   const terms = tokenizeExpression(resolvedFormula ?? formula)
-  if (!terms) { setError('Invalid formula'); return }
+  if (!terms) {
+    setError('Invalid formula')
+    return
+  }
   const dice = toDiceSpecs(terms)
   if (onRoll) onRoll(formula, resolvedFormula, dice, 'daggerheart:dd')
   setInput('')
@@ -694,9 +736,15 @@ const handleSend = () => {
   const trimmed = input.trim()
   if (!trimmed) return
   const ddMatch = trimmed.match(/^\.dd\s*(.*)$/i)
-  if (ddMatch) { handleDaggerheartRoll(ddMatch[1]); return }
+  if (ddMatch) {
+    handleDaggerheartRoll(ddMatch[1])
+    return
+  }
   const rollMatch = trimmed.match(/^\.r\s*(.+)$/i)
-  if (rollMatch) { handleRoll(rollMatch[1].trim()); return }
+  if (rollMatch) {
+    handleRoll(rollMatch[1].trim())
+    return
+  }
   // text message...
 }
 ```
@@ -704,6 +752,7 @@ const handleSend = () => {
 更新 `ChatPanel.tsx` 中的 `handleRoll` 回调以接收新参数：
 
 在 `ChatPanel.tsx` 顶部补充导入：
+
 ```typescript
 import type { DiceSpec } from '../shared/diceUtils'
 ```
@@ -757,9 +806,11 @@ git commit -m "refactor: client-side dice computation — buildCompoundResult in
 ## Chunk 2: DaggerHeart 插件
 
 > **前提：Chunk 1 必须已完成。** 执行本 Chunk 前，先验证：
+>
 > ```bash
 > cd .worktrees/feat/daggerheart-plugin && npx tsc --noEmit 2>&1 | head -10
 > ```
+>
 > 期望：无报错。还需确认 `@myvtt/sdk`（即 `src/rules/sdk.ts`）已导出 `DiceSpec`、`ChatRollMessage`、`RollCardProps`、`tokenizeExpression`、`buildCompoundResult`（Chunk 1 Task 1 Step 4 的成果）。
 >
 > **`@myvtt/sdk` 路径别名**：已在 `tsconfig.app.json` 的 `paths` 和 `vite.config.ts` 的 `resolve.alias` 中配置，且 `plugins/` 目录已包含在 `tsconfig.app.json` 的 `include` 中。插件直接 `import from '@myvtt/sdk'` 即可正常使用，无需手动配置。
@@ -767,6 +818,7 @@ git commit -m "refactor: client-side dice computation — buildCompoundResult in
 ### Task 4: DHRuleData 类型定义
 
 **Files:**
+
 - Create: `plugins/daggerheart/types.ts`
 
 - [ ] **Step 1: 创建类型文件**
@@ -808,6 +860,7 @@ git add plugins/daggerheart/types.ts && git commit -m "feat: add DHRuleData type
 ### Task 5: DH 适配器层
 
 **Files:**
+
 - Create: `plugins/daggerheart/adapters.ts`
 - Create: `plugins/daggerheart/__tests__/adapters.test.ts`
 
@@ -819,14 +872,30 @@ git add plugins/daggerheart/types.ts && git commit -m "feat: add DHRuleData type
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
 import { makeEntity } from '../../../src/__test-utils__/fixtures'
-import { dhGetMainResource, dhGetPortraitResources, dhGetStatuses, dhGetFormulaTokens } from '../adapters'
+import {
+  dhGetMainResource,
+  dhGetPortraitResources,
+  dhGetStatuses,
+  dhGetFormulaTokens,
+} from '../adapters'
 import type { DHRuleData } from '../types'
 
 const makeDHEntity = (overrides?: Partial<DHRuleData>) => {
   const defaults: DHRuleData = {
-    agility: 2, strength: 1, finesse: 3, instinct: 0, presence: 1, knowledge: 2,
-    tier: 1, proficiency: 1, className: 'Ranger', ancestry: 'Elf',
-    hp: { current: 15, max: 20 }, stress: { current: 2, max: 6 }, hope: 3, armor: 2,
+    agility: 2,
+    strength: 1,
+    finesse: 3,
+    instinct: 0,
+    presence: 1,
+    knowledge: 2,
+    tier: 1,
+    proficiency: 1,
+    className: 'Ranger',
+    ancestry: 'Elf',
+    hp: { current: 15, max: 20 },
+    stress: { current: 2, max: 6 },
+    hope: 3,
+    armor: 2,
   }
   return makeEntity({ ruleData: { ...defaults, ...overrides } })
 }
@@ -869,7 +938,15 @@ describe('dhGetFormulaTokens', () => {
   })
   it('returns 6 attributes + proficiency', () => {
     const tokens = dhGetFormulaTokens(makeDHEntity())
-    expect(tokens).toEqual({ agility: 2, strength: 1, finesse: 3, instinct: 0, presence: 1, knowledge: 2, proficiency: 1 })
+    expect(tokens).toEqual({
+      agility: 2,
+      strength: 1,
+      finesse: 3,
+      instinct: 0,
+      presence: 1,
+      knowledge: 2,
+      proficiency: 1,
+    })
   })
 })
 ```
@@ -910,12 +987,22 @@ export function dhGetPortraitResources(entity: Entity): ResourceView[] {
   ]
 }
 
-export function dhGetStatuses(_entity: Entity): StatusView[] { return [] }
+export function dhGetStatuses(_entity: Entity): StatusView[] {
+  return []
+}
 
 export function dhGetFormulaTokens(entity: Entity): Record<string, number> {
   const d = getDH(entity)
   if (!d) return {}
-  return { agility: d.agility, strength: d.strength, finesse: d.finesse, instinct: d.instinct, presence: d.presence, knowledge: d.knowledge, proficiency: d.proficiency }
+  return {
+    agility: d.agility,
+    strength: d.strength,
+    finesse: d.finesse,
+    instinct: d.instinct,
+    presence: d.presence,
+    knowledge: d.knowledge,
+    proficiency: d.proficiency,
+  }
 }
 ```
 
@@ -937,6 +1024,7 @@ git commit -m "feat: add daggerheart adapters layer"
 ### Task 6: DH 数据模板层
 
 **Files:**
+
 - Create: `plugins/daggerheart/templates.ts`
 - Create: `plugins/daggerheart/__tests__/templates.test.ts`
 
@@ -981,9 +1069,20 @@ import type { DHRuleData } from './types'
 
 export function createDefaultDHEntityData(): DHRuleData {
   return {
-    agility: 0, strength: 0, finesse: 0, instinct: 0, presence: 0, knowledge: 0,
-    tier: 1, proficiency: 1, className: '', ancestry: '',
-    hp: { current: 0, max: 0 }, stress: { current: 0, max: 0 }, hope: 0, armor: 0,
+    agility: 0,
+    strength: 0,
+    finesse: 0,
+    instinct: 0,
+    presence: 0,
+    knowledge: 0,
+    tier: 1,
+    proficiency: 1,
+    className: '',
+    ancestry: '',
+    hp: { current: 0, max: 0 },
+    stress: { current: 0, max: 0 },
+    hope: 0,
+    armor: 0,
   }
 }
 ```
@@ -1002,6 +1101,7 @@ git commit -m "feat: add daggerheart data templates"
 ### Task 7: DH 骰子系统
 
 **Files:**
+
 - Create: `plugins/daggerheart/diceSystem.ts`
 - Create: `plugins/daggerheart/__tests__/diceSystem.test.ts`
 
@@ -1014,7 +1114,13 @@ git commit -m "feat: add daggerheart data templates"
 ```typescript
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
-import { dhEvaluateRoll, dhGetDieStyles, dhGetJudgmentDisplay, dhGetRollActions, rollCommands } from '../diceSystem'
+import {
+  dhEvaluateRoll,
+  dhGetDieStyles,
+  dhGetJudgmentDisplay,
+  dhGetRollActions,
+  rollCommands,
+} from '../diceSystem'
 import { makeEntity } from '../../../src/__test-utils__/fixtures'
 import type { DHRuleData } from '../types'
 
@@ -1065,19 +1171,38 @@ describe('dhGetDieStyles', () => {
 
 describe('dhGetJudgmentDisplay', () => {
   it('critical severity for critical_success', () => {
-    expect(dhGetJudgmentDisplay({ type: 'daggerheart', hopeDie: 7, fearDie: 7, outcome: 'critical_success' }).severity).toBe('critical')
+    expect(
+      dhGetJudgmentDisplay({
+        type: 'daggerheart',
+        hopeDie: 7,
+        fearDie: 7,
+        outcome: 'critical_success',
+      }).severity,
+    ).toBe('critical')
   })
   it('success for success_hope', () => {
-    expect(dhGetJudgmentDisplay({ type: 'daggerheart', hopeDie: 8, fearDie: 5, outcome: 'success_hope' }).severity).toBe('success')
+    expect(
+      dhGetJudgmentDisplay({ type: 'daggerheart', hopeDie: 8, fearDie: 5, outcome: 'success_hope' })
+        .severity,
+    ).toBe('success')
   })
   it('partial for success_fear', () => {
-    expect(dhGetJudgmentDisplay({ type: 'daggerheart', hopeDie: 4, fearDie: 9, outcome: 'success_fear' }).severity).toBe('partial')
+    expect(
+      dhGetJudgmentDisplay({ type: 'daggerheart', hopeDie: 4, fearDie: 9, outcome: 'success_fear' })
+        .severity,
+    ).toBe('partial')
   })
   it('failure for failure_hope', () => {
-    expect(dhGetJudgmentDisplay({ type: 'daggerheart', hopeDie: 7, fearDie: 3, outcome: 'failure_hope' }).severity).toBe('failure')
+    expect(
+      dhGetJudgmentDisplay({ type: 'daggerheart', hopeDie: 7, fearDie: 3, outcome: 'failure_hope' })
+        .severity,
+    ).toBe('failure')
   })
   it('fumble for failure_fear', () => {
-    expect(dhGetJudgmentDisplay({ type: 'daggerheart', hopeDie: 3, fearDie: 6, outcome: 'failure_fear' }).severity).toBe('fumble')
+    expect(
+      dhGetJudgmentDisplay({ type: 'daggerheart', hopeDie: 3, fearDie: 6, outcome: 'failure_fear' })
+        .severity,
+    ).toBe('fumble')
   })
 })
 
@@ -1086,10 +1211,27 @@ describe('dhGetRollActions', () => {
     expect(dhGetRollActions(makeEntity({ ruleData: null }))).toEqual([])
   })
   it('returns 6 actions with 2d12+@attr formulas', () => {
-    const entity = makeEntity({ ruleData: { agility:2, strength:1, finesse:3, instinct:0, presence:1, knowledge:2, tier:1, proficiency:1, className:'', ancestry:'', hp:{current:0,max:0}, stress:{current:0,max:0}, hope:0, armor:0 } satisfies DHRuleData })
+    const entity = makeEntity({
+      ruleData: {
+        agility: 2,
+        strength: 1,
+        finesse: 3,
+        instinct: 0,
+        presence: 1,
+        knowledge: 2,
+        tier: 1,
+        proficiency: 1,
+        className: '',
+        ancestry: '',
+        hp: { current: 0, max: 0 },
+        stress: { current: 0, max: 0 },
+        hope: 0,
+        armor: 0,
+      } satisfies DHRuleData,
+    })
     const actions = dhGetRollActions(entity)
     expect(actions).toHaveLength(6)
-    expect(actions.every(a => a.formula.startsWith('2d12+@'))).toBe(true)
+    expect(actions.every((a) => a.formula.startsWith('2d12+@'))).toBe(true)
   })
 })
 
@@ -1120,7 +1262,15 @@ npx vitest run plugins/daggerheart/__tests__/diceSystem.test.ts 2>&1 | tail -10
 
 ```typescript
 // plugins/daggerheart/diceSystem.ts
-import type { Entity, DiceTermResult, JudgmentResult, JudgmentDisplay, DieStyle, RollAction, DaggerheartOutcome } from '@myvtt/sdk'
+import type {
+  Entity,
+  DiceTermResult,
+  JudgmentResult,
+  JudgmentDisplay,
+  DieStyle,
+  RollAction,
+  DaggerheartOutcome,
+} from '@myvtt/sdk'
 import type { DHRuleData } from './types'
 
 const DH_DC = 12 // DaggerHeart standard action roll difficulty
@@ -1150,24 +1300,37 @@ export function dhGetDieStyles(rolls: number[][]): DieStyle[] {
 }
 
 export function dhGetJudgmentDisplay(result: JudgmentResult): JudgmentDisplay {
-  if (result.type !== 'daggerheart') return { text: '未知判定', color: '#64748b', severity: 'partial' }
+  if (result.type !== 'daggerheart')
+    return { text: '未知判定', color: '#64748b', severity: 'partial' }
   switch (result.outcome) {
-    case 'critical_success': return { text: '命运临界！', color: '#a78bfa', severity: 'critical' }
-    case 'success_hope':     return { text: '乘希望而为', color: '#fbbf24', severity: 'success' }
-    case 'success_fear':     return { text: '带着恐惧成功', color: '#f97316', severity: 'partial' }
-    case 'failure_hope':     return { text: '失败，但保有希望', color: '#60a5fa', severity: 'failure' }
-    case 'failure_fear':     return { text: '带着恐惧失败', color: '#ef4444', severity: 'fumble' }
+    case 'critical_success':
+      return { text: '命运临界！', color: '#a78bfa', severity: 'critical' }
+    case 'success_hope':
+      return { text: '乘希望而为', color: '#fbbf24', severity: 'success' }
+    case 'success_fear':
+      return { text: '带着恐惧成功', color: '#f97316', severity: 'partial' }
+    case 'failure_hope':
+      return { text: '失败，但保有希望', color: '#60a5fa', severity: 'failure' }
+    case 'failure_fear':
+      return { text: '带着恐惧失败', color: '#ef4444', severity: 'fumble' }
   }
 }
 
 export function dhGetRollActions(entity: Entity): RollAction[] {
   if (!entity.ruleData) return []
   const attrs: [string, string][] = [
-    ['agility', '敏捷'], ['strength', '力量'], ['finesse', '精巧'],
-    ['instinct', '本能'], ['presence', '风采'], ['knowledge', '知识'],
+    ['agility', '敏捷'],
+    ['strength', '力量'],
+    ['finesse', '精巧'],
+    ['instinct', '本能'],
+    ['presence', '风采'],
+    ['knowledge', '知识'],
   ]
   return attrs.map(([key, name]) => ({
-    id: key, name: `${name}检定`, formula: `2d12+@${key}`, targetAttributeKey: key,
+    id: key,
+    name: `${name}检定`,
+    formula: `2d12+@${key}`,
+    targetAttributeKey: key,
   }))
 }
 
@@ -1210,6 +1373,7 @@ git commit -m "feat: add daggerheart dice system — evaluateRoll, rollCommands,
 ### Task 8: DHRollCard + 插件组装 + 注册 + 接线
 
 **Files:**
+
 - Create: `plugins/daggerheart/ui/DHRollCard.tsx`
 - Create: `plugins/daggerheart/DaggerHeartCard.tsx`
 - Create: `plugins/daggerheart/index.ts`
@@ -1334,8 +1498,19 @@ export function DaggerHeartCard({ entity }: EntityCardProps) {
 ```typescript
 // plugins/daggerheart/index.ts
 import type { RulePlugin } from '@myvtt/sdk'
-import { dhGetMainResource, dhGetPortraitResources, dhGetStatuses, dhGetFormulaTokens } from './adapters'
-import { dhGetRollActions, dhEvaluateRoll, dhGetDieStylesFromTerms, dhGetJudgmentDisplay, rollCommands } from './diceSystem'
+import {
+  dhGetMainResource,
+  dhGetPortraitResources,
+  dhGetStatuses,
+  dhGetFormulaTokens,
+} from './adapters'
+import {
+  dhGetRollActions,
+  dhEvaluateRoll,
+  dhGetDieStylesFromTerms,
+  dhGetJudgmentDisplay,
+  rollCommands,
+} from './diceSystem'
 import { createDefaultDHEntityData } from './templates'
 import { DaggerHeartCard } from './DaggerHeartCard'
 import { DHRollCard } from './ui/DHRollCard'
@@ -1407,7 +1582,24 @@ describe('daggerheartPlugin registration', () => {
   })
   it('daggerheart adapters.getMainResource returns HP', () => {
     const plugin = getRulePlugin('daggerheart')
-    const entity = makeEntity({ ruleData: { agility:2, strength:1, finesse:3, instinct:0, presence:1, knowledge:2, tier:1, proficiency:1, className:'R', ancestry:'E', hp:{current:12,max:20}, stress:{current:0,max:6}, hope:2, armor:1 } })
+    const entity = makeEntity({
+      ruleData: {
+        agility: 2,
+        strength: 1,
+        finesse: 3,
+        instinct: 0,
+        presence: 1,
+        knowledge: 2,
+        tier: 1,
+        proficiency: 1,
+        className: 'R',
+        ancestry: 'E',
+        hp: { current: 12, max: 20 },
+        stress: { current: 0, max: 6 },
+        hope: 2,
+        armor: 1,
+      },
+    })
     expect(plugin.adapters.getMainResource(entity)!.current).toBe(12)
   })
   it('daggerheart diceSystem.evaluateRoll works', () => {
@@ -1502,20 +1694,20 @@ npx tsc --noEmit  # TypeScript 无报错
 
 **端到端验证路径：**
 
-| 步骤 | 操作 | 期望结果 |
-|---|---|---|
-| 1 | 在 DaggerHeart 房间输入 `.dd +2` 发送 | 服务端生成 2 个 d12 随机数，广播 `{rolls: [[x,y]], rollType: 'daggerheart:dd'}` |
-| 2 | 消息出现在聊天 | 渲染 `DHRollCard`（不是 `DiceResultCard`） |
-| 3 | DHRollCard 显示 | 希望骰（金色）、恐惧骰（红色）、总数、判定徽章 |
-| 4 | 在 generic 房间输入 `.r 2d6+3` | 渲染标准 `DiceResultCard`，显示骰子动画 |
-| 5 | 以 DH 角色身份投骰 `.dd +@agility` | `@agility` 正确解析为数字（通过 `getFormulaTokens`） |
+| 步骤 | 操作                                  | 期望结果                                                                        |
+| ---- | ------------------------------------- | ------------------------------------------------------------------------------- |
+| 1    | 在 DaggerHeart 房间输入 `.dd +2` 发送 | 服务端生成 2 个 d12 随机数，广播 `{rolls: [[x,y]], rollType: 'daggerheart:dd'}` |
+| 2    | 消息出现在聊天                        | 渲染 `DHRollCard`（不是 `DiceResultCard`）                                      |
+| 3    | DHRollCard 显示                       | 希望骰（金色）、恐惧骰（红色）、总数、判定徽章                                  |
+| 4    | 在 generic 房间输入 `.r 2d6+3`        | 渲染标准 `DiceResultCard`，显示骰子动画                                         |
+| 5    | 以 DH 角色身份投骰 `.dd +@agility`    | `@agility` 正确解析为数字（通过 `getFormulaTokens`）                            |
 
 **数据层验证：**
 
-| 层 | 验证方式 |
-|---|---|
-| 服务端纯随机数 | `dice-pure-rng.test.ts`：响应含 `rolls`，无 `terms`/`total` |
-| 客户端重建 | `DiceResultCard` 正常渲染（`buildCompoundResult` 从 `rolls` 重建） |
-| 插件注册 | `registry.test.ts` 新增 4 个测试通过 |
-| 骰子判定 | `diceSystem.test.ts` 19 个测试全通过 |
-| 自定义卡片分发 | `rollCardRenderers['daggerheart:dd']` 已注册且可调用 |
+| 层             | 验证方式                                                           |
+| -------------- | ------------------------------------------------------------------ |
+| 服务端纯随机数 | `dice-pure-rng.test.ts`：响应含 `rolls`，无 `terms`/`total`        |
+| 客户端重建     | `DiceResultCard` 正常渲染（`buildCompoundResult` 从 `rolls` 重建） |
+| 插件注册       | `registry.test.ts` 新增 4 个测试通过                               |
+| 骰子判定       | `diceSystem.test.ts` 19 个测试全通过                               |
+| 自定义卡片分发 | `rollCardRenderers['daggerheart:dd']` 已注册且可调用               |

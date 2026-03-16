@@ -2,6 +2,8 @@ npx lint-staged
 npx tsc --noEmit
 
 # Validate design doc structure (required sections check)
-for file in $(git diff --cached --name-only -- 'docs/design/*.md'); do
+# --diff-filter=A: only newly added files (existing docs predate this check)
+# -z + read -d '': handle non-ASCII filenames correctly
+git diff --cached --name-only --diff-filter=A -z -- 'docs/design/*.md' | while IFS= read -r -d '' file; do
   scripts/check-doc-structure.sh "$file" || exit 1
 done

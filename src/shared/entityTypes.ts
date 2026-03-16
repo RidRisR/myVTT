@@ -48,8 +48,6 @@ export interface Blueprint {
   defaultRuleData?: unknown
 }
 
-// --- New types for data layer refactor (SceneV2 replaces Scene in Task 8) ---
-
 export interface Atmosphere {
   imageUrl: string
   width: number
@@ -58,47 +56,4 @@ export interface Atmosphere {
   ambientPreset: string
   ambientAudioUrl: string
   ambientAudioVolume: number
-}
-
-export interface ArchiveData {
-  name: string
-  mapUrl: string
-  mapWidth: number
-  mapHeight: number
-  grid: {
-    size: number
-    snap: boolean
-    visible: boolean
-    color: string
-    offsetX: number
-    offsetY: number
-  }
-  gmOnly: boolean
-}
-
-export interface SceneV2 {
-  id: string
-  name: string
-  sortOrder: number
-  atmosphere: Atmosphere
-  entityEntries: SceneEntityEntry[]
-  archives: Record<string, ArchiveData>
-}
-
-export interface TacticalState {
-  sceneId: string
-  mapUrl: string
-  mapWidth: number
-  mapHeight: number
-  grid: {
-    size: number
-    snap: boolean
-    visible: boolean
-    color: string
-    offsetX: number
-    offsetY: number
-  }
-  roundNumber: number
-  currentTurnTokenId: string | null
-  tokens: MapToken[]
 }

@@ -1,30 +1,21 @@
 # 实体生命周期重构设计
 
-> **✅ 实现状态：核心已落地**
->
-> 三值生命周期（ephemeral/reusable/persistent）、Scene-Entity M2M、右键创建流程、Blueprint 互转均已实现。
-> **与本文档的偏差**：
->
-> - size 单字段 → width+height 双字段（被 doc 10 取代）
-> - Token 降级方案 → FK CASCADE 删除（被 doc 10 取代）
-> - 三 tab UI → 两 tab（角色库+场景角色，简化实现）
-> - 延迟删除 + Toast 撤销 → 未完全实现
-
 ## 背景与动机
 
 当前实体系统存在以下体验问题：
 
 1. **创建 NPC 流程繁琐** —— 需要从蓝图上传到蓝图区 → 从蓝图创建实体 → 将实体加入场景，至少 3 步操作
 2. **一次性 NPC 污染实体库** —— 所有 NPC 都永久存在于全局 `entities` 表中，即使只在一个场景用过一次。类似 Foundry VTT 社区公认的 Actors 目录膨胀问题
-3. **缺少"离场"概念** —— 实体要么在场景中（角色栏可见），要么不在。GM 无法预先安排 NPC 到场景中但暂不上场
-4. **UI 布局不合理** —— 蓝图库（原 Token tab）命名混淆，缺少独立的角色库，PC 和 NPC 混在同一个面板中
+3. **GC 系统未迁移** —— 旧 Yjs 架构的 `performGC()` 未移植到 SQLite，非持久实体永远不会被清理
+4. **缺少"候场"概念** —— 实体要么在场景中（角色栏可见），要么不在。GM 无法预先安排 NPC 到场景中但暂不上场
+5. **UI 布局不合理** —— 蓝图库（原 Token tab）命名混淆，缺少独立的角色库，PC 和 NPC 混在同一个面板中
 
 ## 设计原则
 
 - **轻备团优先** —— 一次性 NPC 一键生成，用完即弃
 - **直觉式交互** —— 底部 Dock = 素材来源（跨场景），侧面面板 = 当前场景管理
 - **同步删除，无 GC** —— 不需要后台垃圾回收，删除在路由中同步完成，用 SQLite 事务保证原子性
-- **延迟删除 + Toast 撤销** —— 删除操作先从 UI 隐藏，延迟 5 秒后真正执行，期间可通过 Toast 撤销
+- **无撤销机制** —— 不做 Toast 撤销，重要操作用确认对话框
 
 ## 数据模型
 
@@ -46,46 +37,68 @@ scene_id | entity_id | visible
 tavern   | e1        | 1        ← 战士在酒馆，在场
 tavern   | e2        | 1        ← 商人在酒馆，在场
 tavern   | e3        | 1        ← 哥布林在酒馆，在场
-tavern   | e6        | 0        ← 暗杀者在酒馆，离场
+tavern   | e6        | 0        ← 暗杀者在酒馆，候场
 forest   | e1        | 1        ← 战士在森林
 ```
 
-### schema 定义
+### schema 变更
 
-**entities 表**：使用 `lifecycle` 三值枚举替代原来的 `persistent` 布尔值
+**entities 表**：`persistent INTEGER` 替换为 `lifecycle TEXT`
 
 ```sql
-CREATE TABLE IF NOT EXISTS entities (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL DEFAULT '',
-  image_url TEXT DEFAULT '',
-  color TEXT DEFAULT '#888888',
-  size REAL DEFAULT 1,
-  notes TEXT DEFAULT '',
-  rule_data TEXT DEFAULT '{}',
-  permissions TEXT DEFAULT '{"default":"none","seats":{}}',
-  lifecycle TEXT DEFAULT 'ephemeral' CHECK(lifecycle IN ('ephemeral','reusable','persistent')),
-  blueprint_id TEXT
-);
+-- 原字段
+persistent INTEGER DEFAULT 0
+
+-- 替换为
+lifecycle TEXT DEFAULT 'ephemeral' CHECK(lifecycle IN ('ephemeral','reusable','persistent'))
 ```
 
-**scene_entities 表**：包含 `visible` 字段
+**scene_entities 表**：新增 `visible` 字段
 
 ```sql
 CREATE TABLE IF NOT EXISTS scene_entities (
   scene_id TEXT NOT NULL REFERENCES scenes(id) ON DELETE CASCADE,
   entity_id TEXT NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
-  visible INTEGER DEFAULT 1,  -- 1=在场, 0=离场
+  visible INTEGER DEFAULT 1,  -- 1=在场, 0=候场
   PRIMARY KEY (scene_id, entity_id)
 );
 ```
 
-**索引**：
+**索引变更**：
 
 ```sql
-CREATE INDEX IF NOT EXISTS idx_scene_entities_scene ON scene_entities(scene_id);
+-- 删除旧索引
+DROP INDEX IF EXISTS idx_entities_persistent;
+
+-- 新增索引
 CREATE INDEX IF NOT EXISTS idx_entities_lifecycle ON entities(lifecycle);
 ```
+
+### 数据迁移
+
+现有数据库需要执行以下迁移：
+
+```sql
+-- 1. 添加 lifecycle 列
+ALTER TABLE entities ADD COLUMN lifecycle TEXT DEFAULT 'ephemeral'
+  CHECK(lifecycle IN ('ephemeral','reusable','persistent'));
+
+-- 2. 迁移数据：persistent=1 → 'persistent'，persistent=0 → 'reusable'（保守策略，保留实体）
+UPDATE entities SET lifecycle = 'persistent' WHERE persistent = 1;
+UPDATE entities SET lifecycle = 'reusable' WHERE persistent = 0;
+
+-- 3. 删除旧列（SQLite 不支持 DROP COLUMN，需重建表或保留旧列）
+-- 实际实现中可保留 persistent 列不使用，代码层面只读写 lifecycle
+
+-- 4. scene_entities 添加 visible 列（默认 1，现有关联全部变为"在场"）
+ALTER TABLE scene_entities ADD COLUMN visible INTEGER DEFAULT 1;
+
+-- 5. 索引更新
+DROP INDEX IF EXISTS idx_entities_persistent;
+CREATE INDEX IF NOT EXISTS idx_entities_lifecycle ON entities(lifecycle);
+```
+
+迁移策略：`persistent=0` 映射为 `reusable`（而非 `ephemeral`），确保现有实体不会被意外删除。GM 可后续在 UI 中将不需要的实体手动删除。
 
 ### 三种生命周期
 
@@ -105,7 +118,7 @@ CREATE INDEX IF NOT EXISTS idx_entities_lifecycle ON entities(lifecycle);
 这两个字段各管各的，没有重叠：
 
 - **lifecycle**：决定实体的生命周期行为（创建新场景时是否自动加入、移除时是否删除、角色库是否显示）
-- **visible**：决定实体在某个场景中是否对玩家可见（在场 vs 离场）
+- **visible**：决定实体在某个场景中是否对玩家可见（在场 vs 候场）
 
 `lifecycle='persistent'` 的含义是"自动加入新场景"，不是"必定在所有场景" —— GM 仍可手动将 persistent entity 从特定场景移除。因此 scene_entities 始终是场景成员关系的唯一真相源。
 
@@ -127,7 +140,7 @@ BEGIN TRANSACTION;
 COMMIT;
 ```
 
-ephemeral entity 仅限单场景，移除即删除，不需要检查其他场景。
+注意：此路由对 ephemeral entity 是**行为变更**（原路由仅删关联行）。ephemeral entity 仅限单场景，移除即删除，不需要检查其他场景。
 
 **删除场景：**
 
@@ -235,7 +248,7 @@ COMMIT;
 
 | 事件                   | 载荷                             | 触发时机      |
 | ---------------------- | -------------------------------- | ------------- |
-| `scene:entity:updated` | `{ sceneId, entityId, visible }` | 切换在场/离场 |
+| `scene:entity:updated` | `{ sceneId, entityId, visible }` | 切换在场/候场 |
 
 ### worldStore 变更
 
@@ -285,7 +298,7 @@ COMMIT;
 **角色库交互：**
 
 - 单击角色 → 直接加入当前场景并上场（INSERT scene_entities visible=1）
-- 右键 → 菜单：加入离场（visible=0）/ 编辑 / 永久删除（确认对话框）
+- 右键 → 菜单：加入候场（visible=0）/ 编辑 / 永久删除（确认对话框）
 
 ### 侧面 GM 面板（当前场景管理）
 
@@ -294,7 +307,7 @@ COMMIT;
 | Tab     | 内容                         |
 | ------- | ---------------------------- |
 | ⚔️ 遭遇 | 遭遇预设列表（不变）         |
-| 🎭 NPC  | 当前场景的 NPC：在场 + 离场  |
+| 🎭 NPC  | 当前场景的 NPC：在场 + 候场  |
 | 👥 玩家 | PC 列表（在线状态、HP 概览） |
 
 **NPC Tab 布局：**
@@ -308,7 +321,7 @@ COMMIT;
 │  ├ 哥布林 1              │ ← ephemeral
 │  └ 哥布林 2              │ ← ephemeral
 ├────────────────────────┤
-│ ◐ 离场                  │
+│ ◐ 候场                  │
 │  └ 暗杀者         ⭐     │ ← 预设但未出现
 ├────────────────────────┤
 │ [+ 新建 NPC]            │
@@ -318,12 +331,12 @@ COMMIT;
 数据查询：
 
 - 在场：`SELECT entity_id FROM scene_entities WHERE scene_id = ? AND visible = 1`（排除有 owner seat 的 PC）
-- 离场：`SELECT entity_id FROM scene_entities WHERE scene_id = ? AND visible = 0`
+- 候场：`SELECT entity_id FROM scene_entities WHERE scene_id = ? AND visible = 0`
 
 **"+ 新建 NPC" 按钮：**
 
 - 创建 lifecycle='ephemeral' 的 entity
-- 加入当前场景离场区（INSERT scene_entities visible=0）
+- 加入当前场景候场区（INSERT scene_entities visible=0）
 - 打开编辑面板
 
 **角色栏查询（顶部 Portrait Bar）：**
@@ -340,12 +353,12 @@ WHERE scene_id = ? AND visible = 1
 | 菜单项         | 行为                                               | 显示条件     |
 | -------------- | -------------------------------------------------- | ------------ |
 | 📋 查看 / 编辑 | 打开 CharacterEditPanel                            | 始终         |
-| ◐ 退到离场     | `PATCH scene_entities SET visible=0`               | 始终         |
+| ◐ 退到候场     | `PATCH scene_entities SET visible=0`               | 始终         |
 | 🎨 保存为蓝图  | 创建 blueprint asset                               | 始终         |
 | ⭐ 保存为角色  | `PATCH lifecycle='reusable'`                       | 仅 ephemeral |
 | 🗑 移除        | ephemeral: 删除 entity；其他: 删 scene_entities 行 | 始终         |
 
-### 离场 NPC（NPC 面板）
+### 候场 NPC（NPC 面板）
 
 | 菜单项         | 行为                                               | 显示条件     |
 | -------------- | -------------------------------------------------- | ------------ |
@@ -360,20 +373,22 @@ WHERE scene_id = ? AND visible = 1
 | 菜单项         | 行为                                |
 | -------------- | ----------------------------------- |
 | 📋 查看 / 编辑 | 打开 CharacterEditPanel             |
-| 加入离场       | `INSERT scene_entities (visible=0)` |
+| 加入候场       | `INSERT scene_entities (visible=0)` |
 | 🗑 永久删除    | 确认对话框 → DELETE entity          |
 
 ## 删除策略
 
-统一原则：**延迟删除 + Toast 撤销。** 删除操作先从 UI 隐藏，延迟 5 秒后真正执行服务端删除，期间用户可通过 Toast 中的「撤销」按钮取消操作。
+统一原则：**不做 Toast 撤销，重要操作用确认对话框。**
 
-| 操作                                | 确认方式         | 理由                               |
-| ----------------------------------- | ---------------- | ---------------------------------- |
-| 移除一次性 NPC                      | Toast 撤销（5s） | 成本低，但提供后悔窗口             |
-| 移除 reusable/persistent NPC 出场景 | 不确认           | 实体保留在角色库                   |
-| 永久删除 reusable/persistent NPC    | Toast 撤销（5s） | 延迟删除保证可恢复                 |
-| 删除场景                            | 确认对话框       | 级联删除 ephemeral NPC，影响范围大 |
-| 删除蓝图                            | Toast 撤销（5s） | 延迟删除保证可恢复                 |
+| 操作                                | 确认方式   | 理由                   |
+| ----------------------------------- | ---------- | ---------------------- |
+| 移除一次性 NPC                      | 不确认     | 成本低，蓝图可再生     |
+| 移除 reusable/persistent NPC 出场景 | 不确认     | 实体保留在角色库       |
+| 永久删除 reusable/persistent NPC    | 确认对话框 | 不可恢复               |
+| 删除场景                            | 确认对话框 | 级联删除 ephemeral NPC |
+| 删除蓝图                            | 确认对话框 | 不可恢复               |
+
+清理历史遗留：移除现有代码中的 `useUndoableDelete`、`useHoldToConfirm` hooks 及相关 Toast 撤销逻辑。
 
 ## 命名变更
 
@@ -385,5 +400,5 @@ WHERE scene_id = ? AND visible = 1
 ## 不在本次范围内
 
 - **战术模式 token 数据模型** —— token 自带 label/imageUrl/color 与 entity 数据冗余的问题，留待战术模式设计解决。删除 entity 时，服务端会将 combat_state/encounters 中引用该 entity 的 token 的 entityId 置为 null（退化为匿名 token），但 token 数据模型本身的重构不在本次范围内
-- **权限系统** —— 离场 NPC 对玩家不可见的权限控制，依赖未来的安全系统
+- **权限系统** —— 候场 NPC 对玩家不可见的权限控制，依赖未来的安全系统
 - **角色导入/导出** —— 跨房间的角色迁移功能
