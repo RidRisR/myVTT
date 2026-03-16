@@ -28,7 +28,7 @@ db/
 dist/
 server/uploads/
 .worktrees/
-.claude/
+.claude/settings.local.json
 coverage/
 .superpowers/
 data/
