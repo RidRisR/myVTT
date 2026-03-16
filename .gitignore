@@ -26,9 +26,10 @@ dist-ssr
 node_modules/
 db/
 dist/
+*.tsbuildinfo
 server/uploads/
 .worktrees/
-.claude/
+.claude/settings.local.json
 coverage/
 .superpowers/
 data/
