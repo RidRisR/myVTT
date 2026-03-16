@@ -76,6 +76,7 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
       }}
     >
       <button
+        data-testid="hamburger-menu"
         onClick={() => {
           setOpen(!open)
         }}

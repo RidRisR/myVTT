@@ -39,6 +39,7 @@ export function TacticalPanel({
 
   return (
     <div
+      data-testid="tactical-canvas"
       className={`fixed inset-0 z-tactical motion-reduce:duration-0 ${
         visible
           ? 'opacity-100 transition-opacity duration-slow ease-out pointer-events-auto'
