@@ -40,13 +40,12 @@ rooms (全局)
 
 ### room_state（单例行，id=1）
 
-| 列                | 类型       | 说明                          |
-| ----------------- | ---------- | ----------------------------- |
-| active_scene_id   | TEXT       | 当前活动场景                  |
-| active_archive_id | TEXT       | 当前活动存档                  |
-| tactical_mode     | INTEGER    | 战术模式开关                  |
-| rule_system_id    | TEXT       | 规则系统 ID（默认 'generic'） |
-| plugin_config     | TEXT(JSON) | 插件配置                      |
+| 列              | 类型       | 说明                          |
+| --------------- | ---------- | ----------------------------- |
+| active_scene_id | TEXT       | 当前活动场景                  |
+| tactical_mode   | INTEGER    | 战术模式开关                  |
+| rule_system_id  | TEXT       | 规则系统 ID（默认 'generic'） |
+| plugin_config   | TEXT(JSON) | 插件配置                      |
 
 ### seats
 
