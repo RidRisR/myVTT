@@ -16,7 +16,8 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
   const [role, setRole] = useState<'GM' | 'PL'>('PL')
   const usedColors = seats.map((s) => s.color)
   const [color, setColor] = useState(
-    () => SEAT_COLORS.find((c) => !usedColors.includes(c)) ?? SEAT_COLORS[0],
+    // SEAT_COLORS is a non-empty constant array, so [0] is always defined
+    () => SEAT_COLORS.find((c) => !usedColors.includes(c)) ?? (SEAT_COLORS[0] as string),
   )
 
   return (

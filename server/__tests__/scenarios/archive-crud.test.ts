@@ -97,7 +97,7 @@ describe('Archive CRUD', () => {
       `/api/rooms/${ctx.roomId}/scenes/${sceneId}/archives`,
     )
     expect(list as unknown[]).toHaveLength(1)
-    expect((list as { id: string }[])[0].id).toBe(archiveId)
+    expect((list as { id: string }[])[0]!.id).toBe(archiveId)
   })
 
   it('archive response uses camelCase', async () => {

@@ -37,7 +37,7 @@ describe('Asset Roundtrip Journey', () => {
     const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/assets`)
     const assets = data as Record<string, unknown>[]
     expect(assets).toHaveLength(1)
-    const asset = assets[0]
+    const asset = assets[0]!
     expect(asset.id).toBe(assetId)
     expect(Array.isArray(asset.tags)).toBe(true)
     expect(typeof asset.createdAt).toBe('number')
@@ -106,7 +106,7 @@ describe('Asset Roundtrip Journey', () => {
     const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/assets?type=blueprint`)
     const assets = data as Record<string, unknown>[]
     expect(assets).toHaveLength(1)
-    expect(assets[0].id).toBe(blueprintId)
+    expect(assets[0]!.id).toBe(blueprintId)
   })
 
   it('3.8 PATCH updates blueprint name', async () => {
@@ -120,7 +120,7 @@ describe('Asset Roundtrip Journey', () => {
 
     // Verify persistence via GET
     const { data: list } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/assets?type=blueprint`)
-    expect((list as Record<string, unknown>[])[0].name).toBe('Goblin Chief')
+    expect((list as Record<string, unknown>[])[0]!.name).toBe('Goblin Chief')
   })
 
   it('3.9 PATCH updates blueprint extra metadata', async () => {
@@ -147,8 +147,8 @@ describe('Asset Roundtrip Journey', () => {
     const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/assets?type=blueprint`)
     const assets = data as Record<string, unknown>[]
     expect(assets).toHaveLength(1)
-    expect(assets[0].name).toBe('Goblin Chief')
-    expect(assets[0].url).toBe(blueprintUrl)
+    expect(assets[0]!.name).toBe('Goblin Chief')
+    expect(assets[0]!.url).toBe(blueprintUrl)
   })
 
   it('3.12 deleting blueprint removes it', async () => {

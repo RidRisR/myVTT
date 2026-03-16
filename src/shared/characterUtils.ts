@@ -14,7 +14,7 @@ export function nextNpcName(
 
   const numbers = siblings.map((e) => {
     const match = e.name.match(/(\d+)$/)
-    return match ? parseInt(match[1], 10) : 0
+    return match ? parseInt(match[1] ?? '0', 10) : 0
   })
   const maxNum = Math.max(0, ...numbers)
   return `${baseName} ${maxNum + 1}`

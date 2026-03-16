@@ -28,7 +28,7 @@ describe('usePluginPanels', () => {
       result.current.openPanel('dh-full-sheet', 'entity-2')
     })
     expect(useUiStore.getState().activePluginPanels).toHaveLength(1)
-    expect(useUiStore.getState().activePluginPanels[0].entityId).toBe('entity-2')
+    expect(useUiStore.getState().activePluginPanels[0]?.entityId).toBe('entity-2')
   })
 
   it('closePanel removes panel from active list', () => {

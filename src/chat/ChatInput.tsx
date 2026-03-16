@@ -73,7 +73,7 @@ export function ChatInput({
     const pos = el.selectionStart ?? input.length
     const before = input.slice(0, pos)
     const match = before.match(/@([\p{L}\p{N}_]*)$/u)
-    return match ? match[1] : null
+    return match ? (match[1] ?? '') : null
   }
 
   const atPrefix = showSuggestions ? getAtPrefix() : null
@@ -155,20 +155,20 @@ export function ChatInput({
     // Standard dice roll
     const rollMatch = trimmed.match(/^\.r\s*(.+)$/i)
     if (rollMatch) {
-      handleRoll(rollMatch[1].trim())
+      handleRoll((rollMatch[1] ?? '').trim())
       return
     }
 
     // Plugin-registered roll commands (e.g., .dd → daggerheart:dd)
     const cmdMatch = trimmed.match(/^\.([a-zA-Z][a-zA-Z0-9]*)\s*(.*)$/i)
     if (cmdMatch) {
-      const cmd = cmdMatch[1].toLowerCase()
+      const cmd = (cmdMatch[1] ?? '').toLowerCase()
       const rollCmds = plugin.diceSystem?.rollCommands
       if (!rollCmds) return
       const entry = Object.entries(rollCmds).find(([key]) => key.split(':').at(-1) === cmd)
       if (entry) {
         const [rollType, rollCommand] = entry
-        handlePluginRoll(cmdMatch[2], rollType, rollCommand)
+        handlePluginRoll(cmdMatch[2] ?? '', rollType, rollCommand)
         return
       }
     }
@@ -229,7 +229,7 @@ export function ChatInput({
               }
               if (e.key === 'Tab') {
                 e.preventDefault()
-                applySuggestion(filteredSuggestions[suggestionIndex].key)
+                applySuggestion(filteredSuggestions[suggestionIndex]?.key ?? '')
                 return
               }
               if (e.key === 'Escape') {
@@ -245,7 +245,7 @@ export function ChatInput({
             if (e.key === 'Enter') {
               if (showSuggestions && filteredSuggestions.length > 0) {
                 e.preventDefault()
-                applySuggestion(filteredSuggestions[suggestionIndex].key)
+                applySuggestion(filteredSuggestions[suggestionIndex]?.key ?? '')
                 return
               }
               handleSend()

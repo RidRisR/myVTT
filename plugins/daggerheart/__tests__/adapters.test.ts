@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
 import { makeEntity } from '../../../src/__test-utils__/fixtures'
-import { dhGetMainResource, dhGetPortraitResources, dhGetStatuses, dhGetFormulaTokens } from '../adapters'
+import {
+  dhGetMainResource,
+  dhGetPortraitResources,
+  dhGetStatuses,
+  dhGetFormulaTokens,
+} from '../adapters'
 import type { DHRuleData } from '../types'
 
 const makeDHEntity = (overrides?: Partial<DHRuleData>) => {
@@ -44,9 +49,9 @@ describe('dhGetPortraitResources', () => {
   it('returns [HP, Stress] in order', () => {
     const r = dhGetPortraitResources(makeDHEntity())
     expect(r).toHaveLength(2)
-    expect(r[0].label).toBe('HP')
-    expect(r[1].label).toBe('Stress')
-    expect(r[1].color).toBe('#f97316')
+    expect(r[0]?.label).toBe('HP')
+    expect(r[1]?.label).toBe('Stress')
+    expect(r[1]?.color).toBe('#f97316')
   })
 })
 

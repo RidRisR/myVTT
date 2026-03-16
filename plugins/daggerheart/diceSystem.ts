@@ -1,11 +1,22 @@
 // plugins/daggerheart/diceSystem.ts
-import type { Entity, DiceTermResult, JudgmentResult, JudgmentDisplay, DieStyle, RollAction, DaggerheartOutcome } from '@myvtt/sdk'
+import type {
+  Entity,
+  DiceTermResult,
+  JudgmentResult,
+  JudgmentDisplay,
+  DieStyle,
+  RollAction,
+  DaggerheartOutcome,
+} from '@myvtt/sdk'
 
 const DH_DC = 12 // DaggerHeart standard action roll difficulty
 
 export function dhEvaluateRoll(rolls: number[][], total: number): JudgmentResult | null {
   if (rolls.length === 0 || (rolls[0]?.length ?? 0) < 2) return null
-  const [hopeDie, fearDie] = rolls[0]
+  // Guard above ensures rolls[0] exists and has at least 2 elements
+  const roll = rolls[0] as number[]
+  const hopeDie = roll[0] as number
+  const fearDie = roll[1] as number
   const succeeded = total >= DH_DC
 
   let outcome: DaggerheartOutcome
@@ -28,24 +39,37 @@ export function dhGetDieStyles(rolls: number[][]): DieStyle[] {
 }
 
 export function dhGetJudgmentDisplay(result: JudgmentResult): JudgmentDisplay {
-  if (result.type !== 'daggerheart') return { text: '未知判定', color: '#64748b', severity: 'partial' }
+  if (result.type !== 'daggerheart')
+    return { text: '未知判定', color: '#64748b', severity: 'partial' }
   switch (result.outcome) {
-    case 'critical_success': return { text: '命运临界！', color: '#a78bfa', severity: 'critical' }
-    case 'success_hope':     return { text: '乘希望而为', color: '#fbbf24', severity: 'success' }
-    case 'success_fear':     return { text: '带着恐惧成功', color: '#f97316', severity: 'partial' }
-    case 'failure_hope':     return { text: '失败，但保有希望', color: '#60a5fa', severity: 'failure' }
-    case 'failure_fear':     return { text: '带着恐惧失败', color: '#ef4444', severity: 'fumble' }
+    case 'critical_success':
+      return { text: '命运临界！', color: '#a78bfa', severity: 'critical' }
+    case 'success_hope':
+      return { text: '乘希望而为', color: '#fbbf24', severity: 'success' }
+    case 'success_fear':
+      return { text: '带着恐惧成功', color: '#f97316', severity: 'partial' }
+    case 'failure_hope':
+      return { text: '失败，但保有希望', color: '#60a5fa', severity: 'failure' }
+    case 'failure_fear':
+      return { text: '带着恐惧失败', color: '#ef4444', severity: 'fumble' }
   }
 }
 
 export function dhGetRollActions(entity: Entity): RollAction[] {
   if (!entity.ruleData) return []
   const attrs: [string, string][] = [
-    ['agility', '敏捷'], ['strength', '力量'], ['finesse', '精巧'],
-    ['instinct', '本能'], ['presence', '风采'], ['knowledge', '知识'],
+    ['agility', '敏捷'],
+    ['strength', '力量'],
+    ['finesse', '精巧'],
+    ['instinct', '本能'],
+    ['presence', '风采'],
+    ['knowledge', '知识'],
   ]
   return attrs.map(([key, name]) => ({
-    id: key, name: `${name}检定`, formula: `2d12+@${key}`, targetAttributeKey: key,
+    id: key,
+    name: `${name}检定`,
+    formula: `2d12+@${key}`,
+    targetAttributeKey: key,
   }))
 }
 

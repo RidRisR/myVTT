@@ -95,7 +95,7 @@ describe('assetStore', () => {
 
       const remaining = useAssetStore.getState().assets
       expect(remaining).toHaveLength(1)
-      expect(remaining[0].id).toBe('a2')
+      expect(remaining[0]?.id).toBe('a2')
     })
   })
 
@@ -111,7 +111,7 @@ describe('assetStore', () => {
 
       await useAssetStore.getState().update('a1', { name: 'new.png' })
 
-      expect(useAssetStore.getState().assets[0].name).toBe('new.png')
+      expect(useAssetStore.getState().assets[0]?.name).toBe('new.png')
     })
   })
 
@@ -135,7 +135,8 @@ describe('assetStore', () => {
       await useAssetStore.getState().init('room-norm')
 
       const asset = useAssetStore.getState().assets[0]
-      expect(asset.tags).toEqual(['map', 'outdoor'])
+      expect(asset).toBeDefined()
+      expect(asset?.tags).toEqual(['map', 'outdoor'])
     })
 
     it('extracts blueprint metadata from extra', async () => {
@@ -160,8 +161,9 @@ describe('assetStore', () => {
       await useAssetStore.getState().init('room-bp')
 
       const asset = useAssetStore.getState().assets[0]
-      expect(asset.type).toBe('blueprint')
-      expect(asset.blueprint).toEqual({
+      expect(asset).toBeDefined()
+      expect(asset?.type).toBe('blueprint')
+      expect(asset?.blueprint).toEqual({
         defaultSize: 2,
         defaultColor: '#ff0000',
       })
@@ -185,8 +187,9 @@ describe('assetStore', () => {
       await useAssetStore.getState().init('room-bare')
 
       const asset = useAssetStore.getState().assets[0]
-      expect(asset.tags).toEqual([])
-      expect(asset.blueprint).toBeUndefined()
+      expect(asset).toBeDefined()
+      expect(asset?.tags).toEqual([])
+      expect(asset?.blueprint).toBeUndefined()
     })
   })
 
@@ -225,7 +228,7 @@ describe('assetStore', () => {
 
       const assets = useAssetStore.getState().assets
       expect(assets).toHaveLength(1)
-      expect(assets[0].type).toBe('blueprint')
+      expect(assets[0]?.type).toBe('blueprint')
     })
   })
 })

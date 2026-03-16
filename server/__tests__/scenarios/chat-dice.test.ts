@@ -53,8 +53,8 @@ describe('Chat & Dice Roll Journey', () => {
     const { data: history } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/chat`)
     const messages = history as Record<string, unknown>[]
     expect(messages).toHaveLength(1)
-    expect(messages[0].id).toBe(textMsgId)
-    expect(messages[0].content).toBe('Welcome to the dungeon!')
+    expect(messages[0]!.id).toBe(textMsgId)
+    expect(messages[0]!.content).toBe('Welcome to the dungeon!')
   })
 
   // ── 6.2 Send dice roll ──

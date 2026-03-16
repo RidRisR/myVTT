@@ -53,6 +53,7 @@ export function EntityPanel() {
     const off: Entity[] = []
     for (const entry of sceneEntries) {
       const entity = entities[entry.entityId]
+      if (!entity) continue
       if (pcIds.has(entity.id)) continue
       if (search && !entity.name.toLowerCase().includes(search.toLowerCase())) continue
       if (entry.visible) on.push(entity)

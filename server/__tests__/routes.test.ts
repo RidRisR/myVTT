@@ -140,7 +140,7 @@ describe('Full room lifecycle', () => {
   it('lists seats', async () => {
     const { data } = await api<{ name: string }[]>(`GET`, `/api/rooms/${roomId}/seats`)
     expect(data.length).toBe(1)
-    expect(data[0].name).toBe('GM')
+    expect(data[0]!.name).toBe('GM')
   })
 
   // ── Scenes ──
@@ -264,7 +264,7 @@ describe('Full room lifecycle', () => {
     type TacticalState = { tokens: { entityId: string }[] }
     const { data } = await api<TacticalState>('GET', `/api/rooms/${roomId}/tactical`)
     expect(data.tokens.length).toBeGreaterThanOrEqual(1)
-    expect(data.tokens[0].entityId).toBe(entityId)
+    expect(data.tokens[0]!.entityId).toBe(entityId)
   })
 
   it('exits tactical mode', async () => {
@@ -301,7 +301,7 @@ describe('Full room lifecycle', () => {
   it('retrieves chat history', async () => {
     const { data } = await api<{ senderName: string }[]>('GET', `/api/rooms/${roomId}/chat`)
     expect(data.length).toBe(1)
-    expect(data[0].senderName).toBe('GM')
+    expect(data[0]!.senderName).toBe('GM')
   })
 
   // ── Team Trackers ──

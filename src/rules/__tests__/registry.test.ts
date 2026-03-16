@@ -62,7 +62,7 @@ describe('genericPlugin adapters', () => {
     })
     const statuses = plugin.adapters.getStatuses(entity)
     expect(statuses).toHaveLength(2)
-    expect(statuses[0].label).toBe('Poisoned')
+    expect(statuses[0]?.label).toBe('Poisoned')
   })
 
   it('getPortraitResources returns all resources', () => {
@@ -77,7 +77,7 @@ describe('genericPlugin adapters', () => {
     })
     const resources = plugin.adapters.getPortraitResources(entity)
     expect(resources).toHaveLength(2)
-    expect(resources[0].label).toBe('hp')
+    expect(resources[0]?.label).toBe('hp')
   })
 })
 

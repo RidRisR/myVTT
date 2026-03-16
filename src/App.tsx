@@ -570,7 +570,7 @@ export default function App() {
 
   const roomMatch = hash.match(/^#room=([a-zA-Z0-9_-]+)$/)
   if (roomMatch) {
-    return <RoomSession roomId={roomMatch[1]} />
+    return <RoomSession roomId={roomMatch[1] as string} />
   }
 
   return (

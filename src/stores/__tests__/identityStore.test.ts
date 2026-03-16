@@ -96,8 +96,8 @@ describe('init()', () => {
 
     const state = useIdentityStore.getState()
     expect(state.seats).toHaveLength(2)
-    expect(state.seats[0].name).toBe('Player One')
-    expect(state.seats[1].role).toBe('GM')
+    expect(state.seats[0]?.name).toBe('Player One')
+    expect(state.seats[1]?.role).toBe('GM')
   })
 
   it('auto-claims cached seatId from sessionStorage', async () => {
@@ -156,13 +156,13 @@ describe('socket event handlers', () => {
 
     const seats = useIdentityStore.getState().seats
     expect(seats).toHaveLength(2)
-    expect(seats[1].id).toBe('seat-2')
+    expect(seats[1]?.id).toBe('seat-2')
   })
 
   it('seat:updated updates matching seat', () => {
     socket._trigger('seat:updated', makeSeat({ id: 'seat-1', name: 'Renamed Player' }))
 
-    expect(useIdentityStore.getState().seats[0].name).toBe('Renamed Player')
+    expect(useIdentityStore.getState().seats[0]?.name).toBe('Renamed Player')
   })
 
   it('seat:deleted removes from seats', () => {
@@ -219,7 +219,7 @@ describe('action methods', () => {
 
   function getLastFetchCall() {
     const calls = vi.mocked(fetch).mock.calls
-    const lastCall = calls[calls.length - 1]
+    const lastCall = calls[calls.length - 1] as [string, RequestInit | undefined]
     const url = lastCall[0]
     const options = lastCall[1]
     return {

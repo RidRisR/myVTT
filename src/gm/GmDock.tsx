@@ -142,6 +142,7 @@ export function GmDock({
   const handleToggleVisibility = () => {
     if (!selectedToken) return
     const entity = useWorldStore.getState().entities[selectedToken.entityId]
+    if (!entity) return
     const isHidden = entity.permissions.default === 'none'
     const newPerms = isHidden ? defaultNPCPermissions() : { default: 'none' as const, seats: {} }
     void useWorldStore.getState().updateEntity(entity.id, { permissions: newPerms })
@@ -309,6 +310,7 @@ export function GmDock({
             </button>
             {(() => {
               const selectedEntity = useWorldStore.getState().entities[selectedToken.entityId]
+              if (!selectedEntity) return null
               const isHidden = selectedEntity.permissions.default === 'none'
               return (
                 <button

@@ -56,7 +56,7 @@ describe('POST /tactical/tokens/from-entity — place existing entity on map', (
     const entities = data as { id: string }[]
     // Only the one we created in beforeAll
     expect(entities).toHaveLength(1)
-    expect(entities[0].id).toBe(entityId)
+    expect(entities[0]!.id).toBe(entityId)
   })
 
   it('returns 409 if same entity already has a token in this scene', async () => {

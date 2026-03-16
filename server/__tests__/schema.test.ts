@@ -111,8 +111,8 @@ describe('toCamelAll', () => {
     ]
     const result = toCamelAll(rows) as { id: string; sortOrder: number }[]
     expect(result).toHaveLength(2)
-    expect(result[0].sortOrder).toBe(0)
-    expect(result[1].sortOrder).toBe(1)
+    expect(result[0]!.sortOrder).toBe(0)
+    expect(result[1]!.sortOrder).toBe(1)
   })
 })
 

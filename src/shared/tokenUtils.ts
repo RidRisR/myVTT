@@ -7,7 +7,8 @@ export const BAR_COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4'
 export function barColorForKey(key: string): string {
   let hash = 0
   for (let i = 0; i < key.length; i++) hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0
-  return BAR_COLORS[Math.abs(hash) % BAR_COLORS.length]
+  // Modulo guarantees index is within bounds of the non-empty array
+  return BAR_COLORS[Math.abs(hash) % BAR_COLORS.length] as string
 }
 
 const STATUS_COLORS = [
@@ -26,7 +27,8 @@ const STATUS_COLORS = [
 export function statusColor(label: string): string {
   let hash = 0
   for (let i = 0; i < label.length; i++) hash = ((hash << 5) - hash + label.charCodeAt(i)) | 0
-  return STATUS_COLORS[Math.abs(hash) % STATUS_COLORS.length]
+  // Modulo guarantees index is within bounds of the non-empty array
+  return STATUS_COLORS[Math.abs(hash) % STATUS_COLORS.length] as string
 }
 
 /** Read resources from shape.meta, with safe defaults */

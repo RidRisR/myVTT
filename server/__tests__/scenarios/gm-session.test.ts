@@ -52,7 +52,7 @@ describe('GM Session Journey', () => {
     const scenes = data as Record<string, unknown>[]
     expect(scenes).toHaveLength(1)
     // Contract: camelCase fields, atmosphere is object, gmOnly is boolean
-    const scene = scenes[0]
+    const scene = scenes[0]!
     expect(scene).toHaveProperty('sortOrder')
     expect(scene).not.toHaveProperty('sort_order')
     expect(typeof scene.atmosphere).toBe('object')
@@ -127,7 +127,7 @@ describe('GM Session Journey', () => {
     const { data: entities } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/entities`)
     const list = entities as Record<string, unknown>[]
     expect(list).toHaveLength(1)
-    const entity = list[0]
+    const entity = list[0]!
     // Contract checks
     expect(typeof entity.lifecycle).toBe('string')
     expect(entity.lifecycle).toBe('persistent')

@@ -5,7 +5,7 @@ export function getCurrentRoomId(): string {
   const hash = window.location.hash
   const match = hash.match(/^#room=([a-zA-Z0-9_-]+)/)
   if (!match) throw new Error('No roomId found in URL hash')
-  return match[1]
+  return match[1] as string
 }
 
 export async function fetchAssets(roomId: string): Promise<AssetMeta[]> {

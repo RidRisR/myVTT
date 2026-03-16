@@ -458,9 +458,7 @@ describe('buildTermResult', () => {
   })
 
   it('throws if fewer rolls than term.count', () => {
-    expect(() =>
-      buildTermResult({ type: 'dice', sides: 6, count: 3, sign: 1 }, [1, 2]),
-    ).toThrow()
+    expect(() => buildTermResult({ type: 'dice', sides: 6, count: 3, sign: 1 }, [1, 2])).toThrow()
   })
 
   it('throws if more rolls than term.count', () => {
@@ -475,7 +473,7 @@ describe('buildCompoundResult', () => {
     const terms = tokenizeExpression('2d6') ?? []
     const { termResults, total } = buildCompoundResult(terms, [[3, 5]])
     expect(total).toBe(8)
-    expect(termResults[0].allRolls).toEqual([3, 5])
+    expect(termResults[0]?.allRolls).toEqual([3, 5])
   })
 
   it('dice + constant', () => {
