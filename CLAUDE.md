@@ -2,18 +2,9 @@
 
 React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (combat tokens on react-konva canvas).
 
-## Tech Stack
-
-| Layer    | Stack                                                                      |
-| -------- | -------------------------------------------------------------------------- |
-| Frontend | React 19.2, Vite 7.3, TypeScript 5.9, Tailwind CSS v4, konva + react-konva |
-| State    | zustand v5 (REST init + Socket.io events → React)                          |
-| Server   | Express 5.2, better-sqlite3 (per-room SQLite), Socket.io v4.8              |
-| Testing  | vitest v4 + @testing-library/react + jsdom; Playwright (E2E)               |
-
 ## ⚠️ NEVER Commit Directly on main
 
-**All development MUST happen on a feature branch** (via worktree or `git checkout -b`). Do NOT commit, edit, or create files intended for commit on the `main` branch. Always create a branch first before writing any code. See [git-workflow.md](docs/conventions/git-workflow.md).
+**All development MUST happen on a feature branch** (via worktree and `git checkout -b`). Do NOT commit, edit, or create files intended for commit on the `main` branch. Always create a branch first before writing any code. See [git-workflow.md](docs/conventions/git-workflow.md).
 
 ## ⚠️ MANDATORY — Required Reading Before You Code
 
@@ -25,6 +16,7 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 | Fixing any bug                                       | [bug-fix-workflow.md](docs/conventions/bug-fix-workflow.md)           |
 | Adding or modifying server routes / middleware       | [server-infrastructure.md](docs/conventions/server-infrastructure.md) |
 | Creating branches, committing, or opening PRs        | [git-workflow.md](docs/conventions/git-workflow.md)                   |
+| Working on UI components or styling                  | [ui-patterns.md](docs/conventions/ui-patterns.md)                     |
 
 ## ⚠️ Bug Fix Discipline
 
@@ -32,87 +24,25 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 
 ## Architecture Gotchas (cannot be linted — read before touching these areas)
 
-### react-konva (Canvas, not DOM)
-
-- `KonvaMap.tsx`: Stage → Layers (background → grid → tokens → tools)
-- Token positions in map coordinates; screen→map: `mapX = (screenX - stageOffset.x) / scale`
 - **Konva right-click**: `e.evt.stopPropagation()` required — `preventDefault()` alone does NOT stop DOM-level `contextmenu` from firing
-- Token drag: local React state during drag (60fps) → grid snap + REST on pointerUp
+- **zustand selectors**: No `.filter()/.sort()` in stores (new refs → infinite re-renders). Use `useMemo` in components
+- **zustand fallbacks**: Module-level constants for defaults (`const EMPTY: X[] = []`), never inline `?? []`
+- **zustand data flags**: Flags controlling render must be in the same `set()` call as the data (no `useState` + `useEffect` timing gaps)
+- **Socket.io**: Every client `socket.on()` MUST have a server-side `io.emit()`. New connections must receive catch-up state
+- **Express**: `res.sendFile()` MUST include `dotfiles: 'allow'`
 
-### zustand Selector Pitfalls
+## Reference Docs
 
-- **No derived-data methods in stores** — `.filter()` / `.sort()` return new refs → infinite re-renders. Use `useMemo` in components
-- **Module-level constants for all fallback/default values** — `?? []` or `?? {}` inline creates a new reference on every call/render. This breaks both zustand `Object.is()` equality and `useMemo` deps stability. Use `const EMPTY: X[] = []` at module scope anywhere the value is used in selector return, `useMemo` dep array, or component-level equality comparison.
-- **All hooks before any early return** — React hook ordering rules apply
-- **Flags that describe data must live with the data** — If a flag (e.g. "is this item new?") controls render behavior on first mount, it MUST be in the same zustand `set()` call as the item itself. Tracking it in a component `useState` + `useEffect` creates a timing gap: the component mounts before the effect fires, so `useRef(flag)` freezes the wrong value. Example: `freshChatIds` is updated atomically with `chatMessages` inside the `chat:new` handler.
-
-### Socket.io Events
-
-- **Every client-side event listener MUST have a corresponding server-side emit** — If a zustand store registers `socket.on('foo', ...)`, the server MUST have code that calls `io.emit('foo', ...)` somewhere. Missing emits create "dangling listeners" where client UI never updates. Add integration tests that verify events are received by connected clients.
-- **Initial state sync on connection** — When a new socket connects, it must receive the current state (e.g. which seats are online). The server's `connection` handler should emit catch-up events to the new socket.
-
-### Express / Server
-
-- `res.sendFile()` MUST include `dotfiles: 'allow'` — Express silently 404s paths with dot-prefixed dirs
-- Route params in filesystem paths: validated via `app.param('roomId', ...)` middleware
-- multer: `fileFilter` restricts MIME types; asset deletion cleans both SQLite and disk file
-
-## UI Patterns
-
-- **Tailwind only** — no inline styles (except dynamic runtime values)
-- Design tokens: `bg-glass`, `text-primary`, `text-muted`, `border-glass`, `accent`, `danger`, `success`
-- z-index: base(0) → tactical(100) → ui(1000) → popover(5000) → overlay(8000) → modal(9000) → toast(10000)
-- Icons: Lucide React, strokeWidth=1.5, sizes 16/20/24px
-- Themes: Warm (default, amber gold) / Cold (blue)
-
-## Code Quality
-
-- **Prettier**: no semicolons, single quotes, trailing commas, printWidth 100
-- **ESLint**: TypeScript strict, react-hooks, `no-restricted-imports` for api module
-- **Husky**: pre-commit runs worktree isolation guard + lint-staged + tsc + doc structure check
-- **Worktree isolation**: pre-commit hook blocks commits outside worktrees (compares `--git-dir` vs `--git-common-dir`). Agent must always use worktrees for feature work and audit `git diff --cached --stat` before every commit. Agent must NEVER use `--no-verify` to bypass this guard
-- **TypeScript**: strict mode, noUnusedLocals, noUnusedParameters, noUncheckedIndexedAccess
-- **Tests**: Three-tier test pyramid:
-  - **Unit tests** (client): `src/**/__tests__/` — vitest + jsdom, store selectors, utils
-  - **Integration tests** (server): `server/__tests__/scenarios/` — real Express+SQLite+Socket.io per test, scenario-style sequential chains
-  - **E2E tests** (Playwright): `e2e/scenarios/` — full browser, Page Object pattern, `npm run test:e2e`
-  - Run unit+integration: `npm test` (vitest run); Run E2E: `npm run test:e2e`
-  - CI runs both; pre-push hook runs only unit+integration (E2E too slow for local hook)
-- `react-hooks/set-state-in-effect` OFF — Socket.io listener pattern requires it
-
-## Product Design Principles
-
-1. **轻备团优先** — minimal GM preparation overhead
-2. **氛围感至上** — atmosphere over mechanical precision
-3. **直觉式交互** — zero learning curve
-
-Target aesthetic: **Alchemy RPG** — dark warm tones, candlelit parchment feel.
-
-## Architecture (details in docs/)
-
-For deeper understanding, read the linked docs. The summaries below help you orient quickly.
-
-| Document                                                      | What it covers                                                           |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| [overview](docs/architecture/overview.md)                     | Tech stack, data flow, module map, deployment, Socket.io events          |
-| [data-model](docs/architecture/data-model.md)                 | SQLite schema (13 tables), Entity/Scene/Token types, JSON field strategy |
-| [state-management](docs/architecture/state-management.md)     | 4 zustand stores, Socket.io event handlers, optimistic update rules      |
-| [tactical-system](docs/architecture/tactical-system.md)       | KonvaMap layers, Token drag flow, Archive save/load, enter/exit          |
-| [rule-plugin-system](docs/architecture/rule-plugin-system.md) | RulePlugin 6+1 layer interface, registry, SDK, existing plugins          |
-
-**Quick reference**:
-
-- **Data flow**: REST API (init) + Socket.io (real-time) → zustand stores → React
-- **Stores**: worldStore (core data), identityStore (seats), assetStore (files), uiStore (client UI)
-- **Server**: `server/index.ts` → 11 route modules → `schema.ts` (13 tables) → per-room SQLite
-- **Entity lifecycle**: `'ephemeral'` (one-time NPC) / `'reusable'` (library NPC) / `'persistent'` (PC)
-- **Entity data**: `{ id, name, imageUrl, color, width, height, notes, ruleData, permissions, lifecycle }`
-- **Scene-Entity M2M**: `sceneEntityEntries: { entityId, visible }[]` (NOT embedded entity data)
-- **Entity deletion**: FK `ON DELETE CASCADE` removes related tokens
-- **Rule plugin**: `getRulePlugin(roomState.ruleSystemId)` — base code never imports `plugins/` directly
-- **No auth**: Currently no JWT/identity — `withRole` reads `X-MyVTT-Role` header (spoofable)
+| Document                                                      | What it covers                                   |
+| ------------------------------------------------------------- | ------------------------------------------------ |
+| [overview](docs/architecture/overview.md)                     | Tech stack, data flow, module map, Socket events |
+| [data-model](docs/architecture/data-model.md)                 | SQLite schema, Entity/Scene/Token types          |
+| [state-management](docs/architecture/state-management.md)     | zustand stores, Socket.io handlers               |
+| [tactical-system](docs/architecture/tactical-system.md)       | KonvaMap layers, Token drag, Archive save/load   |
+| [rule-plugin-system](docs/architecture/rule-plugin-system.md) | RulePlugin interface, registry, SDK              |
+| [code-quality.md](docs/conventions/code-quality.md)           | Prettier, ESLint, TypeScript, test pyramid       |
 
 ## Documentation Language
 
 - New docs (design, plans, specs): Chinese (中文)
-- Code comments and CLAUDE.md: English
+- Code comments, CLAUDE.md, and convention docs (`docs/conventions/`): English
