@@ -40,9 +40,9 @@ describe('Tactical Mode', () => {
     expect(status).toBe(200)
     expect((data as { tacticalMode: number }).tacticalMode).toBe(1)
 
-    // Verify via GET /state
-    const { data: state } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/state`)
-    expect((state as { tacticalMode: number }).tacticalMode).toBe(1)
+    // Verify via GET /tactical
+    const { data: tactical } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
+    expect((tactical as { tacticalMode: number }).tacticalMode).toBe(1)
   })
 
   it('POST /tactical/exit sets tactical_mode=0', async () => {
@@ -50,9 +50,9 @@ describe('Tactical Mode', () => {
     expect(status).toBe(200)
     expect((data as { tacticalMode: number }).tacticalMode).toBe(0)
 
-    // Verify via GET /state
-    const { data: state } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/state`)
-    expect((state as { tacticalMode: number }).tacticalMode).toBe(0)
+    // Verify via GET /tactical
+    const { data: tactical } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
+    expect((tactical as { tacticalMode: number }).tacticalMode).toBe(0)
   })
 
   it('entering/exiting tactical mode does NOT clear tokens', async () => {

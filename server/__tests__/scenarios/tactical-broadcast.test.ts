@@ -152,16 +152,13 @@ describe('Tactical broadcast tests', () => {
     socket2.disconnect()
   })
 
-  it('POST /tactical/enter broadcasts room:state:updated with tacticalMode=1', async () => {
+  it('POST /tactical/enter broadcasts tactical:updated with tacticalMode=1', async () => {
     const socket2 = await connectSecondClient(ctx.apiBase, ctx.roomId)
 
     // Ensure we are exited first
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/exit`)
 
-    const eventPromise = waitForSocketEvent<{ tacticalMode: number }>(
-      socket2,
-      'room:state:updated',
-    )
+    const eventPromise = waitForSocketEvent<{ tacticalMode: number }>(socket2, 'tactical:updated')
 
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/enter`)
 
@@ -171,16 +168,13 @@ describe('Tactical broadcast tests', () => {
     socket2.disconnect()
   })
 
-  it('POST /tactical/exit broadcasts room:state:updated with tacticalMode=0', async () => {
+  it('POST /tactical/exit broadcasts tactical:updated with tacticalMode=0', async () => {
     const socket2 = await connectSecondClient(ctx.apiBase, ctx.roomId)
 
     // Ensure we are entered first
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/enter`)
 
-    const eventPromise = waitForSocketEvent<{ tacticalMode: number }>(
-      socket2,
-      'room:state:updated',
-    )
+    const eventPromise = waitForSocketEvent<{ tacticalMode: number }>(socket2, 'tactical:updated')
 
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/exit`)
 
