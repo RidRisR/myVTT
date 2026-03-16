@@ -65,6 +65,8 @@ describe('selector referential stability', () => {
         tokens,
         roundNumber: 0,
         currentTurnTokenId: null,
+        tacticalMode: 1,
+        activeArchiveId: null,
       },
     }
     const a = selectTokens(state)
@@ -215,6 +217,8 @@ describe('selector referential stability', () => {
         tokens: [token],
         roundNumber: 0,
         currentTurnTokenId: null,
+        tacticalMode: 1,
+        activeArchiveId: null,
       },
     }
     const selector = selectTokenById('t1')
