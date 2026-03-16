@@ -288,6 +288,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
               {/* Delete button on hover */}
               {isHovered && (
                 <button
+                  aria-label="Delete blueprint"
                   onClick={(e) => {
                     e.stopPropagation()
                     handleDelete(bp)
