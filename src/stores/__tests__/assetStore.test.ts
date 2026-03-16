@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useAssetStore } from '../assetStore'
 import type { AssetMeta } from '../../shared/assetTypes'
 

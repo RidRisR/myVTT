@@ -392,7 +392,6 @@ describe('socket event handlers', () => {
   })
 
   it('scene:entity:updated is no-op for unknown sceneId (no crash, no new key)', () => {
-    const before = useWorldStore.getState().sceneEntityMap
     socket._trigger('scene:entity:updated', {
       sceneId: 'nonexistent',
       entityId: 'entity-1',
