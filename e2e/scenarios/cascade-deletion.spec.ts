@@ -4,7 +4,7 @@ import { SeatSelectPage } from '../pages/seat-select.page'
 import { RoomPage } from '../pages/room.page'
 import { writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
-import { getTokenScreenPosition } from '../helpers/canvas-helpers'
+import { getTokenScreenPosition, getTokenRadius } from '../helpers/canvas-helpers'
 
 /** 1x1 red pixel PNG for cascade test */
 const MINIMAL_PNG = Buffer.from(
@@ -15,17 +15,6 @@ const ASSETS_DIR = '/tmp/myvtt-e2e-assets'
 mkdirSync(ASSETS_DIR, { recursive: true })
 const cascadePngPath = join(ASSETS_DIR, 'test-cascade.png')
 writeFileSync(cascadePngPath, MINIMAL_PNG)
-
-/** Get the token's pixel radius on screen (half of width * gridSize) */
-async function getTokenRadius(page: import('@playwright/test').Page): Promise<number> {
-  return page.evaluate(() => {
-    const store = (window as any).__MYVTT_STORES__?.world()
-    const token = store?.tacticalInfo?.tokens?.[0]
-    const grid = store?.tacticalInfo?.grid
-    if (!token || !grid) throw new Error('Token or grid not found')
-    return (token.width * grid.size) / 2
-  })
-}
 
 test.describe('Cascade Deletion', () => {
   test('delete gallery asset -> file returns 404', async ({ page }) => {

@@ -51,6 +51,17 @@ export async function dragOnCanvas(
   await page.mouse.up()
 }
 
+/** Get the token's pixel radius on screen (half of width * gridSize) */
+export async function getTokenRadius(page: Page, tokenIndex = 0): Promise<number> {
+  return page.evaluate((idx) => {
+    const store = (window as any).__MYVTT_STORES__?.world()
+    const token = store?.tacticalInfo?.tokens?.[idx]
+    const grid = store?.tacticalInfo?.grid
+    if (!token || !grid) throw new Error('Token or grid not found')
+    return (token.width * grid.size) / 2
+  }, tokenIndex)
+}
+
 /** Read grid settings from store */
 export async function getGridSettings(page: Page): Promise<{
   size: number

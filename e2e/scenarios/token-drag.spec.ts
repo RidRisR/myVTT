@@ -5,20 +5,10 @@ import { RoomPage } from '../pages/room.page'
 import {
   getTokenPosition,
   getTokenScreenPosition,
+  getTokenRadius,
   dragOnCanvas,
   getGridSettings,
 } from '../helpers/canvas-helpers'
-
-/** Get the token's pixel radius on screen (half of width * gridSize) */
-async function getTokenRadius(page: import('@playwright/test').Page): Promise<number> {
-  return page.evaluate(() => {
-    const store = (window as any).__MYVTT_STORES__?.world()
-    const token = store?.tacticalInfo?.tokens?.[0]
-    const grid = store?.tacticalInfo?.grid
-    if (!token || !grid) throw new Error('Token or grid not found')
-    return (token.width * grid.size) / 2
-  })
-}
 
 test.describe('Token Drag', () => {
   test('drag token updates store position', async ({ page }) => {
