@@ -1,8 +1,6 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(gh api:*)"
-    ]
+    "allow": ["Bash(gh api:*)"]
   },
   "hooks": {
     "Stop": [
