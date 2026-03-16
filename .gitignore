@@ -32,6 +32,7 @@ server/uploads/
 coverage/
 .superpowers/
 data/
+refs/
 
 # Playwright
 e2e/playwright-report/
