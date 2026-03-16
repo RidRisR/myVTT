@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import type { TacticalInfo } from '../../stores/worldStore'
 
-/** Bottom offset so GridConfigPanel clears the dual-row GmToolbar (~68px) + 4px gap */
-const GM_TOOLBAR_HEIGHT = 72
+/** Toolbar button width + padding + gap so panel clears the toolbar pill */
+const TOOLBAR_OFFSET = 48
 
 interface GridConfigPanelProps {
   tacticalInfo: TacticalInfo
@@ -55,8 +55,8 @@ export function GridConfigPanel({ tacticalInfo, onUpdateGrid, onClose }: GridCon
   return (
     <div
       ref={panelRef}
-      className="fixed left-3 w-[200px] p-3 z-popover bg-glass backdrop-blur-[12px] border border-border-glass rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
-      style={{ bottom: GM_TOOLBAR_HEIGHT }}
+      className="absolute top-0 w-[200px] p-3 z-popover bg-glass backdrop-blur-[12px] border border-border-glass rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
+      style={{ right: TOOLBAR_OFFSET }}
     >
       <div className="text-text-primary text-xs font-medium mb-3">Grid Settings</div>
 
