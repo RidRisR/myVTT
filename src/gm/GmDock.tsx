@@ -15,7 +15,6 @@ import {
 import type { MapToken, Entity, Blueprint, Atmosphere } from '../shared/entityTypes'
 import { useToast } from '../shared/ui/useToast'
 import { defaultNPCPermissions } from '../shared/permissions'
-import { generateTokenId } from '../shared/idUtils'
 import { useWorldStore } from '../stores/worldStore'
 import { MapDockTab } from '../dock/MapDockTab'
 import { BlueprintDockTab } from '../dock/BlueprintDockTab'
@@ -100,21 +99,12 @@ export function GmDock({
 
   const handleSpawnFromBlueprint = async (bp: Blueprint) => {
     if (!activeSceneId) return
-    const entity = await useWorldStore.getState().spawnFromBlueprint(activeSceneId, bp.id)
+    const entity = await useWorldStore.getState().spawnFromBlueprint(activeSceneId, bp.id, {
+      tacticalOnly: isTactical,
+    })
     if (!entity) return
     if (isTactical) {
-      const token: MapToken = {
-        id: generateTokenId(),
-        entityId: entity.id,
-        x: 200,
-        y: 200,
-        width: bp.defaultSize,
-        height: bp.defaultSize,
-        imageScaleX: 1,
-        imageScaleY: 1,
-      }
-      onAddToken(token)
-      onSelectToken(token.id)
+      void useWorldStore.getState().placeEntityOnMap(entity.id, 200, 200)
     }
   }
 
