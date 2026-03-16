@@ -106,10 +106,24 @@ export default defineConfig([
     },
   },
   // Server: req.roomDb! and req.roomId! are guaranteed by withRoom middleware.
+  // Server boundary: server/ must not import from src/stores/ (client-only, uses DOM/window).
+  // Shared types should live in src/shared/ or server/socketTypes.ts.
   {
     files: ['server/**/*.ts'],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/src/stores/**', '**/stores/**'],
+              message:
+                'Server boundary: server/ must not import from src/stores/ (client-only). Use src/shared/ for shared types.',
+            },
+          ],
+        },
+      ],
     },
   },
   prettier,
