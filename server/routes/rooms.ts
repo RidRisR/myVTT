@@ -3,7 +3,7 @@ import { Router } from 'express'
 import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { getGlobalDb, getRoomDb, closeRoomDb, toCamelAll } from '../db'
+import { getGlobalDb, getRoomDb, closeRoomDb, toCamel, toCamelAll } from '../db'
 
 export function roomRoutes(dataDir: string): Router {
   const router = Router()
@@ -43,7 +43,7 @@ export function roomRoutes(dataDir: string): Router {
       res.status(404).json({ error: 'Room not found' })
       return
     }
-    res.json(toCamelAll([row])[0])
+    res.json(toCamel(row))
   })
 
   router.delete('/api/rooms/:roomId', (req, res) => {
