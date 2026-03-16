@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { PluginPanelProps } from '@myvtt/sdk'
 import type { DHRuleData } from '../types'
-import { parseDHRuleData } from '../parseRuleData'
+import { createDefaultDHEntityData } from '../templates'
 
 const ATTRS = [
   { key: 'agility', label: '敏捷' },
@@ -26,7 +26,8 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
     )
   }
 
-  const d = parseDHRuleData(entity.ruleData ?? {})
+  // Edit view: merge with defaults so all fields are editable even on new entities
+  const d = { ...createDefaultDHEntityData(), ...(entity.ruleData as Record<string, unknown>) }
 
   const updateDH = (patch: Partial<DHRuleData>) => {
     onUpdateEntity(entity.id, { ruleData: { ...d, ...patch } })

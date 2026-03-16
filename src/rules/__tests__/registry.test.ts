@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
-import { getRulePlugin, registerPlugin } from '../registry'
+import { getRulePlugin, getAvailablePlugins, registerPlugin } from '../registry'
 import { makeEntity } from '../../__test-utils__/fixtures'
 
 describe('getRulePlugin', () => {
@@ -83,7 +83,9 @@ describe('genericPlugin adapters', () => {
 
 // ── Base-level contract: all plugins must handle edge-case ruleData without crashing ──
 
-describe.each(['generic', 'daggerheart'])('%s plugin — adapter safety contract', (pluginId) => {
+const allPluginIds = getAvailablePlugins().map((p) => p.id)
+
+describe.each(allPluginIds)('%s plugin — adapter safety contract', (pluginId) => {
   const plugin = getRulePlugin(pluginId)
 
   const edgeCases = [
