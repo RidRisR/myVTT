@@ -11,11 +11,12 @@ export class ScenePanelPage {
   }
 
   async openSceneList() {
+    // Idempotent: if the panel header is already visible, don't toggle it off by re-clicking
+    const header = this.page.locator('.text-sm.font-semibold').filter({ hasText: 'Scenes' })
+    const alreadyOpen = await header.isVisible().catch(() => false)
+    if (alreadyOpen) return
     await this.scenesButton.click()
-    // Wait for scene list panel header to appear
-    await expect(
-      this.page.locator('.text-sm.font-semibold').filter({ hasText: 'Scenes' }),
-    ).toBeVisible()
+    await expect(header).toBeVisible()
   }
 
   async createScene() {
@@ -32,7 +33,8 @@ export class ScenePanelPage {
     // Double-click the scene name span (has title attribute) to trigger inline edit
     const nameSpan = this.page.locator('[title="Double-click to rename"]', { hasText: oldName })
     await nameSpan.dblclick()
-    const input = this.page.locator('input.text-xs')
+    // The scene rename input has bg-black/40 class, distinguishing it from other text-xs inputs
+    const input = this.page.locator('input.bg-black\\/40')
     await input.waitFor({ timeout: 3000 })
     await input.fill(newName)
     await input.press('Enter')
