@@ -66,7 +66,6 @@ describe('selector referential stability', () => {
         roundNumber: 0,
         currentTurnTokenId: null,
         tacticalMode: 1,
-        activeArchiveId: null,
       },
     }
     const a = selectTokens(state)
@@ -218,7 +217,6 @@ describe('selector referential stability', () => {
         roundNumber: 0,
         currentTurnTokenId: null,
         tacticalMode: 1,
-        activeArchiveId: null,
       },
     }
     const selector = selectTokenById('t1')
@@ -255,7 +253,6 @@ describe('selectIsTactical edge cases', () => {
           roundNumber: 0,
           currentTurnTokenId: null,
           tacticalMode: 1,
-          activeArchiveId: null,
         },
       }),
     ).toBe(true)
@@ -274,7 +271,6 @@ describe('selectTacticalInfo with blank canvas', () => {
       roundNumber: 0,
       currentTurnTokenId: null,
       tacticalMode: 1,
-      activeArchiveId: null,
     }
     const state = { tacticalInfo: info }
     expect(selectTacticalInfo(state)).toBe(info)
@@ -296,7 +292,6 @@ describe('selectTokens with blank canvas', () => {
         roundNumber: 0,
         currentTurnTokenId: null,
         tacticalMode: 1,
-        activeArchiveId: null,
       },
     }
     expect(selectTokens(state)).toEqual([])
@@ -326,7 +321,6 @@ describe('selectTokens with blank canvas', () => {
         roundNumber: 0,
         currentTurnTokenId: null,
         tacticalMode: 1,
-        activeArchiveId: null,
       },
     }
     expect(selectTokens(state)).toBe(tokens)
