@@ -42,6 +42,11 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 - **All hooks before any early return** — React hook ordering rules apply
 - **Flags that describe data must live with the data** — If a flag (e.g. "is this item new?") controls render behavior on first mount, it MUST be in the same zustand `set()` call as the item itself. Tracking it in a component `useState` + `useEffect` creates a timing gap: the component mounts before the effect fires, so `useRef(flag)` freezes the wrong value. Example: `freshChatIds` is updated atomically with `chatMessages` inside the `chat:new` handler.
 
+### Socket.io Events
+
+- **Every client-side event listener MUST have a corresponding server-side emit** — If a zustand store registers `socket.on('foo', ...)`, the server MUST have code that calls `io.emit('foo', ...)` somewhere. Missing emits create "dangling listeners" where client UI never updates. Add integration tests that verify events are received by connected clients.
+- **Initial state sync on connection** — When a new socket connects, it must receive the current state (e.g. which seats are online). The server's `connection` handler should emit catch-up events to the new socket.
+
 ### Express / Server
 
 - `res.sendFile()` MUST include `dotfiles: 'allow'` — Express silently 404s paths with dot-prefixed dirs

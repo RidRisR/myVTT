@@ -25,7 +25,7 @@ describe('Room Presence in GET /api/rooms', () => {
     expect(room!.onlineColors).toEqual([])
   })
 
-  it('returns seat color after client claims a seat via auth:update', async () => {
+  it('returns seat color after client claims a seat', async () => {
     // Create a seat with a known color
     const { data: seatData } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/seats`, {
       name: 'GM',
@@ -35,7 +35,7 @@ describe('Room Presence in GET /api/rooms', () => {
     const seatId = (seatData as { id: string }).id
 
     // Claim the seat on the socket
-    ctx.socket.emit('auth:update', { seatId })
+    ctx.socket.emit('seat:claim', { seatId })
     // Small delay for the server to process
     await new Promise((r) => setTimeout(r, 100))
 
@@ -56,7 +56,7 @@ describe('Room Presence in GET /api/rooms', () => {
 
     // Connect second client and claim the second seat
     secondClient = await connectSecondClient(ctx.apiBase, ctx.roomId)
-    secondClient.emit('auth:update', { seatId: seat2Id })
+    secondClient.emit('seat:claim', { seatId: seat2Id })
     await new Promise((r) => setTimeout(r, 100))
 
     const { data } = await ctx.api('GET', '/api/rooms')
@@ -73,7 +73,7 @@ describe('Room Presence in GET /api/rooms', () => {
     // Claim same GM seat
     const { data: seats } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/seats`)
     const gmSeat = (seats as { id: string; role: string }[]).find((s) => s.role === 'GM')
-    thirdClient.emit('auth:update', { seatId: gmSeat!.id })
+    thirdClient.emit('seat:claim', { seatId: gmSeat!.id })
     await new Promise((r) => setTimeout(r, 100))
 
     const { data } = await ctx.api('GET', '/api/rooms')
