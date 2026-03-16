@@ -17,7 +17,8 @@ export function roomRoutes(dataDir: string): Router {
   })
 
   router.post('/api/rooms', (req, res) => {
-    const { name, ruleSystemId = 'generic' } = req.body
+    const body = (req.body ?? {}) as Record<string, unknown>
+    const { name, ruleSystemId = 'generic' } = body
     if (!name) {
       res.status(400).json({ error: 'name is required' })
       return

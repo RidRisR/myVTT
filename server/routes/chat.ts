@@ -34,7 +34,8 @@ export function chatRoutes(dataDir: string, io: Server): Router {
 
   // Send text message
   router.post('/api/rooms/:roomId/chat', room, (req, res) => {
-    const { senderId, senderName, senderColor, portraitUrl, content } = req.body
+    const body = req.body as Record<string, unknown>
+    const { senderId, senderName, senderColor, portraitUrl, content } = body
     if (!content) {
       res.status(400).json({ error: 'content is required' })
       return
@@ -75,17 +76,16 @@ export function chatRoutes(dataDir: string, io: Server): Router {
 
   // Server-side dice roll — pure RNG only, no formula evaluation
   router.post('/api/rooms/:roomId/roll', room, (req, res) => {
-    const {
-      dice,
-      formula,
-      resolvedFormula,
-      rollType,
-      senderId,
-      senderName,
-      senderColor,
-      portraitUrl,
-      actionName,
-    } = req.body
+    const rollBody = (req.body ?? {}) as Record<string, unknown>
+    const dice = rollBody.dice as DiceSpec[] | undefined
+    const formula = rollBody.formula as string | undefined
+    const resolvedFormula = rollBody.resolvedFormula as string | undefined
+    const rollType = rollBody.rollType as string | undefined
+    const senderId = rollBody.senderId as string | undefined
+    const senderName = rollBody.senderName as string | undefined
+    const senderColor = rollBody.senderColor as string | undefined
+    const portraitUrl = rollBody.portraitUrl as string | undefined
+    const actionName = rollBody.actionName as string | undefined
 
     if (!Array.isArray(dice) || dice.length === 0) {
       res.status(400).json({ error: 'dice is required' })
@@ -93,19 +93,19 @@ export function chatRoutes(dataDir: string, io: Server): Router {
     }
 
     // Validate bounds
-    for (const spec of dice as DiceSpec[]) {
+    for (const spec of dice) {
       if (!spec.sides || spec.sides < 1 || spec.sides > 1000) {
-        res.status(400).json({ error: `Invalid sides: ${spec.sides}` })
+        res.status(400).json({ error: `Invalid sides: ${String(spec.sides)}` })
         return
       }
       if (!spec.count || spec.count < 1 || spec.count > 100) {
-        res.status(400).json({ error: `Invalid count: ${spec.count}` })
+        res.status(400).json({ error: `Invalid count: ${String(spec.count)}` })
         return
       }
     }
 
     // Generate raw random numbers — the ONLY thing the server does
-    const rolls: number[][] = (dice as DiceSpec[]).map(({ sides, count }) =>
+    const rolls: number[][] = dice.map(({ sides, count }) =>
       Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1),
     )
 
@@ -123,7 +123,7 @@ export function chatRoutes(dataDir: string, io: Server): Router {
         senderId,
         senderName,
         senderColor,
-        portraitUrl || null,
+        portraitUrl ?? null,
         JSON.stringify(rollData),
         timestamp,
       )

@@ -86,18 +86,11 @@ export default defineConfig([
       '@typescript-eslint/unbound-method': 'off',
     },
   },
-  // Server: req.roomDb! is guaranteed by withRoom middleware; no-unsafe-* rules
-  // are disabled because server/tsconfig.json has noImplicitAny:false — fix that
-  // first (add type annotations to all server code), then re-enable these rules.
+  // Server: req.roomDb! and req.roomId! are guaranteed by withRoom middleware.
   {
     files: ['server/**/*.ts'],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
     },
   },
   prettier,

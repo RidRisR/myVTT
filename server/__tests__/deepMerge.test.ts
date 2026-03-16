@@ -66,7 +66,7 @@ describe('deepMerge', () => {
     const result = deepMerge(target, source)
 
     expect(result.l1.l2.l3.l4.l5).toBe('updated')
-    expect(result.l1.l2.l3.l4.added).toBe(42)
+    expect((result.l1.l2.l3.l4 as Record<string, unknown>).added).toBe(42)
     expect(result.l1.l2.l3.l4.keep).toBe(true)
     expect(result.l1.l2.l3.keep3).toBe('yes')
   })

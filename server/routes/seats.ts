@@ -10,27 +10,27 @@ export function seatRoutes(dataDir: string, io: Server): Router {
   const room = withRoom(dataDir)
 
   router.get('/api/rooms/:roomId/seats', room, (req, res) => {
-    const rows = req.roomDb!
-      .prepare('SELECT * FROM seats ORDER BY sort_order')
-      .all() as Record<string, unknown>[]
+    const rows = req.roomDb!.prepare('SELECT * FROM seats ORDER BY sort_order').all() as Record<
+      string,
+      unknown
+    >[]
     res.json(toCamelAll(rows))
   })
 
   router.post('/api/rooms/:roomId/seats', room, (req, res) => {
-    const { name, color, role } = req.body
+    const body = req.body as Record<string, unknown>
+    const { name, color, role } = body
     if (!name || !color || !role) {
       res.status(400).json({ error: 'name, color, role required' })
       return
     }
     const id = 's-' + crypto.randomUUID().slice(0, 8)
-    const count = (
-      req.roomDb!.prepare('SELECT COUNT(*) as c FROM seats').get() as { c: number }
-    ).c
-    req.roomDb!
-      .prepare(
+    const count = (req.roomDb!.prepare('SELECT COUNT(*) as c FROM seats').get() as { c: number }).c
+    req
+      .roomDb!.prepare(
         'INSERT INTO seats (id, name, color, role, user_id, portrait_url, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
       )
-      .run(id, name, color, role, req.body.userId || null, req.body.portraitUrl || null, count)
+      .run(id, name, color, role, body.userId || null, body.portraitUrl || null, count)
 
     const seat = toCamel(
       req.roomDb!.prepare('SELECT * FROM seats WHERE id = ?').get(id) as Record<string, unknown>,
@@ -40,9 +40,7 @@ export function seatRoutes(dataDir: string, io: Server): Router {
   })
 
   router.patch('/api/rooms/:roomId/seats/:id', room, (req, res) => {
-    const existing = req.roomDb!
-      .prepare('SELECT id FROM seats WHERE id = ?')
-      .get(req.params.id)
+    const existing = req.roomDb!.prepare('SELECT id FROM seats WHERE id = ?').get(req.params.id)
     if (!existing) {
       res.status(404).json({ error: 'Seat not found' })
       return
@@ -58,19 +56,18 @@ export function seatRoutes(dataDir: string, io: Server): Router {
       activeCharacterId: 'active_character_id',
       sortOrder: 'sort_order',
     }
+    const body = req.body as Record<string, unknown>
     const sets: string[] = []
     const values: unknown[] = []
     for (const [camel, snake] of Object.entries(fieldMap)) {
-      if (req.body[camel] !== undefined) {
+      if (body[camel] !== undefined) {
         sets.push(`${snake} = ?`)
-        values.push(req.body[camel])
+        values.push(body[camel])
       }
     }
     if (sets.length > 0) {
       values.push(req.params.id)
-      req.roomDb!
-        .prepare(`UPDATE seats SET ${sets.join(', ')} WHERE id = ?`)
-        .run(...values)
+      req.roomDb!.prepare(`UPDATE seats SET ${sets.join(', ')} WHERE id = ?`).run(...values)
     }
 
     const updated = toCamel(
@@ -85,18 +82,15 @@ export function seatRoutes(dataDir: string, io: Server): Router {
 
   // Claim a seat (bind current user to seat)
   router.post('/api/rooms/:roomId/seats/:id/claim', room, (req, res) => {
-    const existing = req.roomDb!
-      .prepare('SELECT id FROM seats WHERE id = ?')
-      .get(req.params.id)
+    const existing = req.roomDb!.prepare('SELECT id FROM seats WHERE id = ?').get(req.params.id)
     if (!existing) {
       res.status(404).json({ error: 'Seat not found' })
       return
     }
     // TODO: use JWT userId after identity system (doc 53)
-    const userId = req.body.userId || 'anonymous'
-    req.roomDb!
-      .prepare('UPDATE seats SET user_id = ? WHERE id = ?')
-      .run(userId, req.params.id)
+    const claimBody = req.body as Record<string, unknown>
+    const userId = (claimBody.userId as string | undefined) || 'anonymous'
+    req.roomDb!.prepare('UPDATE seats SET user_id = ? WHERE id = ?').run(userId, req.params.id)
     const updated = toCamel(
       req.roomDb!.prepare('SELECT * FROM seats WHERE id = ?').get(req.params.id) as Record<
         string,

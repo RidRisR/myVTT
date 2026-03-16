@@ -37,7 +37,7 @@ beforeAll(async () => {
   app.use(express.json())
 
   // Room ID validation
-  app.param('roomId', (req, res, next, val) => {
+  app.param('roomId', (_req, res, next, val) => {
     if (!/^[a-zA-Z0-9_-]{1,64}$/.test(val as string)) {
       res.status(400).json({ error: 'Invalid room ID' })
       return
@@ -83,13 +83,18 @@ afterAll(() => {
   fs.rmSync(dataDir, { recursive: true, force: true })
 })
 
-async function api(method: string, path: string, body?: unknown) {
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+async function api<T = Record<string, unknown>>(
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<{ status: number; data: T }> {
   const res = await fetch(`${baseUrl}${path}`, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   })
-  const data = await res.json()
+  const data = (await res.json()) as T
   return { status: res.status, data }
 }
 
@@ -100,9 +105,9 @@ describe('Rooms API', () => {
     expect(data.name).toBe('Test Room')
     expect(data.id).toBeTruthy()
 
-    const list = await api('GET', '/api/rooms')
+    const list = await api<{ name: string }[]>('GET', '/api/rooms')
     expect(list.data.length).toBeGreaterThan(0)
-    expect(list.data.some((r: { name: string }) => r.name === 'Test Room')).toBe(true)
+    expect(list.data.some((r) => r.name === 'Test Room')).toBe(true)
   })
 
   it('rejects room creation without name', async () => {
@@ -116,7 +121,7 @@ describe('Full room lifecycle', () => {
 
   it('creates a room', async () => {
     const { data } = await api('POST', '/api/rooms', { name: 'Lifecycle Room' })
-    roomId = data.id
+    roomId = data.id as string
     expect(roomId).toBeTruthy()
   })
 
@@ -133,7 +138,7 @@ describe('Full room lifecycle', () => {
   })
 
   it('lists seats', async () => {
-    const { data } = await api('GET', `/api/rooms/${roomId}/seats`)
+    const { data } = await api<{ name: string }[]>(`GET`, `/api/rooms/${roomId}/seats`)
     expect(data.length).toBe(1)
     expect(data[0].name).toBe('GM')
   })
@@ -141,7 +146,13 @@ describe('Full room lifecycle', () => {
   // ── Scenes ──
   let sceneId: string
   it('creates a scene', async () => {
-    const { status, data } = await api('POST', `/api/rooms/${roomId}/scenes`, {
+    type SceneResponse = {
+      id: string
+      name: string
+      gmOnly: boolean
+      atmosphere: { imageUrl: string; particlePreset: string; ambientPreset: string }
+    }
+    const { status, data } = await api<SceneResponse>('POST', `/api/rooms/${roomId}/scenes`, {
       name: 'Tavern',
       atmosphere: { imageUrl: 'tavern.jpg', particlePreset: 'embers' },
     })
@@ -153,7 +164,10 @@ describe('Full room lifecycle', () => {
   })
 
   it('updates a scene with deep merge on atmosphere', async () => {
-    const { data } = await api('PATCH', `/api/rooms/${roomId}/scenes/${sceneId}`, {
+    type SceneResponse = {
+      atmosphere: { imageUrl: string; ambientPreset: string; particlePreset: string }
+    }
+    const { data } = await api<SceneResponse>('PATCH', `/api/rooms/${roomId}/scenes/${sceneId}`, {
       atmosphere: { ambientPreset: 'forest' },
     })
     expect(data.atmosphere.imageUrl).toBe('tavern.jpg')
@@ -164,7 +178,13 @@ describe('Full room lifecycle', () => {
   // ── Entities ──
   let entityId: string
   it('creates an entity', async () => {
-    const { status, data } = await api('POST', `/api/rooms/${roomId}/entities`, {
+    type EntityResponse = {
+      id: string
+      name: string
+      lifecycle: string
+      ruleData: { hp: { current: number; max: number }; str: number }
+    }
+    const { status, data } = await api<EntityResponse>('POST', `/api/rooms/${roomId}/entities`, {
       name: 'Hero',
       color: '#00ff00',
       ruleData: { hp: { current: 20, max: 20 }, str: 14 },
@@ -178,14 +198,24 @@ describe('Full room lifecycle', () => {
   })
 
   it('persistent entity auto-linked to existing scene', async () => {
-    const { data } = await api('GET', `/api/rooms/${roomId}/scenes/${sceneId}/entities`)
-    expect((data as { entityId: string }[]).map((r) => r.entityId)).toContain(entityId)
+    const { data } = await api<{ entityId: string }[]>(
+      'GET',
+      `/api/rooms/${roomId}/scenes/${sceneId}/entities`,
+    )
+    expect(data.map((r) => r.entityId)).toContain(entityId)
   })
 
   it('updates entity with deep merge on ruleData', async () => {
-    const { data } = await api('PATCH', `/api/rooms/${roomId}/entities/${entityId}`, {
-      ruleData: { hp: { current: 15 } },
-    })
+    type EntityResponse = {
+      ruleData: { hp: { current: number; max: number }; str: number }
+    }
+    const { data } = await api<EntityResponse>(
+      'PATCH',
+      `/api/rooms/${roomId}/entities/${entityId}`,
+      {
+        ruleData: { hp: { current: 15 } },
+      },
+    )
     expect(data.ruleData.hp.current).toBe(15)
     expect(data.ruleData.hp.max).toBe(20) // preserved
     expect(data.ruleData.str).toBe(14) // preserved
@@ -194,13 +224,18 @@ describe('Full room lifecycle', () => {
   // ── Archives + Tactical ──
   let archiveId: string
   it('creates an archive', async () => {
-    const { status, data } = await api('POST', `/api/rooms/${roomId}/scenes/${sceneId}/archives`, {
-      name: 'Bar Fight',
-      mapUrl: 'tavern-map.jpg',
-      mapWidth: 1000,
-      mapHeight: 800,
-      grid: { size: 50, snap: true, visible: true },
-    })
+    type ArchiveResponse = { id: string; name: string; grid: { size: number } }
+    const { status, data } = await api<ArchiveResponse>(
+      'POST',
+      `/api/rooms/${roomId}/scenes/${sceneId}/archives`,
+      {
+        name: 'Bar Fight',
+        mapUrl: 'tavern-map.jpg',
+        mapWidth: 1000,
+        mapHeight: 800,
+        grid: { size: 50, snap: true, visible: true },
+      },
+    )
     expect(status).toBe(201)
     expect(data.name).toBe('Bar Fight')
     expect(data.grid.size).toBe(50)
@@ -226,7 +261,8 @@ describe('Full room lifecycle', () => {
   })
 
   it('gets tactical state with tokens', async () => {
-    const { data } = await api('GET', `/api/rooms/${roomId}/tactical`)
+    type TacticalState = { tokens: { entityId: string }[] }
+    const { data } = await api<TacticalState>('GET', `/api/rooms/${roomId}/tactical`)
     expect(data.tokens.length).toBeGreaterThanOrEqual(1)
     expect(data.tokens[0].entityId).toBe(entityId)
   })
@@ -263,7 +299,7 @@ describe('Full room lifecycle', () => {
   })
 
   it('retrieves chat history', async () => {
-    const { data } = await api('GET', `/api/rooms/${roomId}/chat`)
+    const { data } = await api<{ senderName: string }[]>('GET', `/api/rooms/${roomId}/chat`)
     expect(data.length).toBe(1)
     expect(data[0].senderName).toBe('GM')
   })
@@ -279,7 +315,7 @@ describe('Full room lifecycle', () => {
     })
     expect(status).toBe(201)
     expect(data.label).toBe('Inspiration')
-    trackerId = data.id
+    trackerId = data.id as string
   })
 
   it('updates a tracker', async () => {
@@ -293,7 +329,13 @@ describe('Full room lifecycle', () => {
   // ── Showcase ──
   let showcaseId: string
   it('creates a showcase item', async () => {
-    const { status, data } = await api('POST', `/api/rooms/${roomId}/showcase`, {
+    type ShowcaseResponse = {
+      id: string
+      type: string
+      pinned: boolean
+      data: { title: string; imageUrl: string }
+    }
+    const { status, data } = await api<ShowcaseResponse>('POST', `/api/rooms/${roomId}/showcase`, {
       type: 'image',
       data: { imageUrl: 'treasure.jpg', title: 'Ancient Map' },
     })
@@ -351,8 +393,8 @@ describe('Full room lifecycle', () => {
     expect(Buffer.from(serveRes.body).equals(fileContent)).toBe(true)
 
     // List assets — should include the uploaded asset
-    const listRes = await api('GET', `/api/rooms/${roomId}/assets`)
-    expect(listRes.data.some((a: { id: string }) => a.id === assetId)).toBe(true)
+    const listRes = await api<{ id: string }[]>('GET', `/api/rooms/${roomId}/assets`)
+    expect(listRes.data.some((a) => a.id === assetId)).toBe(true)
 
     // Delete the asset — should clean up disk file
     const delRes = await api('DELETE', `/api/rooms/${roomId}/assets/${assetId}`)
@@ -405,11 +447,11 @@ describe('Full room lifecycle', () => {
     }
     const newSceneId = 'auto-link-scene'
     await api('POST', `/api/rooms/${roomId}/scenes`, { id: newSceneId, name: 'Auto Link' })
-    const { data: linkedEntries } = await api(
+    const { data: linkedEntries } = await api<{ entityId: string }[]>(
       'GET',
       `/api/rooms/${roomId}/scenes/${newSceneId}/entities`,
     )
-    const linkedIds = (linkedEntries as { entityId: string }[]).map((r) => r.entityId)
+    const linkedIds = linkedEntries.map((r) => r.entityId)
     for (const id of ids) {
       expect(linkedIds).toContain(id)
     }
@@ -426,7 +468,7 @@ describe('Full room lifecycle', () => {
 describe('Room DELETE disk cleanup', () => {
   it('deletes room directory from disk', async () => {
     const { data: room } = await api('POST', '/api/rooms', { name: 'Disk Cleanup Room' })
-    const rid = room.id
+    const rid = room.id as string
     const roomDir = path.join(dataDir, 'rooms', rid)
 
     expect(fs.existsSync(roomDir)).toBe(true)
