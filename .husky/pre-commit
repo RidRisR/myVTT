@@ -1,3 +1,33 @@
+# ── Worktree isolation guard ──
+# Compares --git-dir vs --git-common-dir to detect main repo vs worktree:
+# - Main repo: both resolve to the same path → block commit
+# - Worktree: --git-dir points to .git/worktrees/<name> → allow commit
+GIT_DIR_ABS="$(cd "$(git rev-parse --git-dir)" && pwd)" || exit 0
+GIT_COMMON_DIR_ABS="$(cd "$(git rev-parse --git-common-dir)" && pwd)" || exit 0
+
+if [[ "$GIT_DIR_ABS" == "$GIT_COMMON_DIR_ABS" ]]; then
+  BRANCH="$(git branch --show-current)"
+  if [[ -z "$BRANCH" ]]; then
+    echo ""
+    echo "❌ Committing in detached HEAD state in the main working tree is not allowed."
+    echo "   Use a worktree for development work."
+    echo ""
+    exit 1
+  elif [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
+    echo ""
+    echo "❌ Committing directly on $BRANCH is not allowed."
+    echo "   Create a worktree + feature branch first."
+    echo ""
+    exit 1
+  else
+    echo ""
+    echo "❌ Committing on branch '$BRANCH' outside a worktree."
+    echo "   Use: git worktree add .worktrees/$BRANCH $BRANCH"
+    echo ""
+    exit 1
+  fi
+fi
+
 npx lint-staged
 npx tsc --noEmit
 
