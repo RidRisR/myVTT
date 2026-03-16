@@ -1,30 +1,30 @@
-# Server Infrastructure Rule（服务端基础设施规范）
+# Server Infrastructure Rule
 
-## 规则：一个概念一个门控
+## Rule: One Concept, One Gate
 
-同一个概念（如"房间是否存在"）在系统中只能有一个判定来源。
-REST 中间件和 Socket.io 认证 **必须** 使用相同的检查逻辑。
+Each concept (e.g. "does this room exist?") must have exactly one source of truth in the system.
+REST middleware and Socket.io auth **MUST** use the same check logic.
 
-## 当前设计
+## Current Design
 
-- `POST /api/rooms` 是创建房间的唯一入口
-- 全局 `rooms` 表是"房间是否存在"的唯一真相源
-- `withRoom` 和 `setupSocketAuth` 都先查全局 `rooms` 表
+- `POST /api/rooms` is the only entry point for creating rooms
+- The global `rooms` table is the single source of truth for "does this room exist?"
+- Both `withRoom` and `setupSocketAuth` check the global `rooms` table first
 
-## 合规要求
+## Compliance Checklist
 
-新增任何服务端中间件时，必须回答：
+When adding any server-side middleware, you must answer:
 
-1. **这个检查的真相源是什么？** — 明确声明依赖哪张表/哪个函数
-2. **是否已有另一个中间件做同样的检查？** — 如果有，必须复用同一个函数
-3. **两条路径（REST 和 Socket.io）是否一致？** — 不能出现"REST 能访问但 Socket.io 被拒绝"的情况
+1. **What is the source of truth for this check?** — explicitly state the table/function it depends on
+2. **Does another middleware already do the same check?** — if so, reuse the same function
+3. **Are both paths (REST and Socket.io) consistent?** — no "REST works but Socket.io rejects" scenarios
 
-## 教训
+## Lesson Learned
 
-### 旧 bug：战斗按钮无反应
+### Old bug: combat button unresponsive
 
-- `withRoom` 使用 `getRoomDb()`（自动创建房间 DB）
-- `setupSocketAuth` 检查 `rooms` 表（未注册则拒绝）
-- 用户通过 URL 进入房间 → REST 正常 → Socket.io 被拒 → 所有实时事件丢失
+- `withRoom` used `getRoomDb()` (auto-creates room DB)
+- `setupSocketAuth` checked `rooms` table (rejected if not registered)
+- User enters room via URL → REST works → Socket.io rejected → all real-time events lost
 
-修复：两者统一使用 `rooms` 表作为门控。
+Fix: both paths now use the `rooms` table as the single gate.
