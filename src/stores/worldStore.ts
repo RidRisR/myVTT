@@ -129,7 +129,11 @@ interface WorldState {
   getSceneEntityEntries: (sceneId: string) => SceneEntityEntry[]
   toggleEntityVisibility: (sceneId: string, entityId: string, visible: boolean) => Promise<void>
   saveEntityAsBlueprint: (entity: Entity) => Promise<void>
-  spawnFromBlueprint: (sceneId: string, blueprintId: string) => Promise<Entity | null>
+  spawnFromBlueprint: (
+    sceneId: string,
+    blueprintId: string,
+    opts?: { tacticalOnly?: boolean },
+  ) => Promise<Entity | null>
   duplicateScene: (sourceId: string, newId: string) => Promise<void>
 
   // Archive actions
@@ -154,7 +158,6 @@ interface WorldState {
   deleteEntity: (id: string) => Promise<void>
   // Composed actions — multi-step orchestration
   createEphemeralNpcInScene: () => Promise<Entity | null>
-  spawnEphemeralTokenAtPosition: (x: number, y: number) => Promise<Entity | null>
 
   // Token actions
   createToken: (x: number, y: number, opts?: { name?: string; color?: string }) => Promise<void>
@@ -773,41 +776,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     return entity
   },
 
-  spawnEphemeralTokenAtPosition: async (x, y) => {
-    const roomId = get()._roomId
-    if (!roomId) return null
-    const sceneId = get().room.activeSceneId
-    if (!sceneId) return null
-    const entity: Entity = {
-      id: generateTokenId(),
-      name: 'New NPC',
-      imageUrl: '',
-      color: '#3b82f6',
-      width: 1,
-      height: 1,
-      notes: '',
-      ruleData: null,
-      permissions: defaultNPCPermissions(),
-      lifecycle: 'ephemeral',
-    }
-    // Optimistic update
-    set((s) => ({
-      entities: { ...s.entities, [entity.id]: entity },
-      sceneEntityMap: {
-        ...s.sceneEntityMap,
-        [sceneId]: [...(s.sceneEntityMap[sceneId] ?? []), { entityId: entity.id, visible: true }],
-      },
-    }))
-    await api.post(`/api/rooms/${roomId}/entities`, entity)
-    await api.post(`/api/rooms/${roomId}/scenes/${sceneId}/entities/${entity.id}`)
-    await api.post(`/api/rooms/${roomId}/tactical/tokens/from-entity`, {
-      entityId: entity.id,
-      x,
-      y,
-    })
-    return entity
-  },
-
   saveEntityAsBlueprint: async (entity) => {
     const roomId = get()._roomId
     if (!roomId) return
@@ -831,12 +799,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     await api.patch(`/api/rooms/${roomId}/scenes/${sceneId}/entities/${entityId}`, { visible })
   },
 
-  spawnFromBlueprint: async (sceneId, blueprintId) => {
+  spawnFromBlueprint: async (sceneId, blueprintId, opts = {}) => {
     const roomId = get()._roomId
     if (!roomId) return null
     const result = await api.post<{ entity: Entity }>(
       `/api/rooms/${roomId}/scenes/${sceneId}/spawn`,
-      { blueprintId },
+      { blueprintId, tacticalOnly: opts.tacticalOnly },
     )
     return result.entity
   },

@@ -225,7 +225,7 @@ export function KonvaMap({
         x = snapped.x
         y = snapped.y
       }
-      void useWorldStore.getState().spawnEphemeralTokenAtPosition(x, y)
+      void useWorldStore.getState().createToken(x, y)
     },
     [tacticalInfo],
   )
