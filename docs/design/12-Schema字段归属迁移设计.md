@@ -62,7 +62,10 @@ try {
   db.exec('ALTER TABLE tactical_state ADD COLUMN active_archive_id TEXT')
 } catch {}
 
-// 2. 从 room_state 迁移数据到当前活跃场景的 tactical_state
+// 2. 补全旧场景缺失的 tactical_state 行（场景创建于伴生逻辑之前）
+db.exec(`INSERT OR IGNORE INTO tactical_state (scene_id) SELECT id FROM scenes`)
+
+// 3. 从 room_state 迁移数据到当前活跃场景的 tactical_state
 const rs = db
   .prepare('SELECT active_scene_id, tactical_mode, active_archive_id FROM room_state WHERE id = 1')
   .get()
@@ -101,11 +104,11 @@ try {
 - **GET /tactical**：响应中新增 `tacticalMode` 和 `activeArchiveId` 字段（从 `tactical_state` 读取）
 - **POST /tactical/enter**：`UPDATE tactical_state SET tactical_mode = 1 WHERE scene_id = ?`，广播 `tactical:updated`
 - **POST /tactical/exit**：`UPDATE tactical_state SET tactical_mode = 0 WHERE scene_id = ?`，广播 `tactical:updated`
-- **PATCH /tactical**：fieldMap 新增 `tacticalMode`
+- **PATCH /tactical**：fieldMap 新增 `tacticalMode`。注意 `activeArchiveId` **不**加入 PATCH /tactical — 它只由 archives 路由通过 load/delete 操作修改，不允许客户端直接 PATCH
 
 ### `archives.ts`
 
-- **POST /archives/:id/load**：`UPDATE tactical_state SET active_archive_id = ? WHERE scene_id = ?`（替代 `room_state`），广播 `tactical:updated`（替代 `room:state:updated`）
+- **POST /archives/:id/load**：`UPDATE tactical_state SET active_archive_id = ? WHERE scene_id = ?`（替代 `room_state`），广播 `tactical:updated`（替代 `room:state:updated`）。响应构建改为复用 `getTacticalState()` 共享函数（从 `tactical.ts` 导出），消除当前 load 路由中手动拼装 tactical 响应的重复代码。
 - **DELETE /archives/:id**：清理引用改为 `UPDATE tactical_state SET active_archive_id = NULL WHERE scene_id = ? AND active_archive_id = ?`
 
 ### Socket 事件变更
@@ -130,7 +133,7 @@ export interface RoomState {
 }
 ```
 
-注：`ruleSystemId` 仍在 `RoomState` 中，因为前端在 init 时从 `GET /state`（或 `GET /rooms/:id`）获取，使用方式不变。
+注：`ruleSystemId` 仍在前端 `RoomState` 中，但数据源变更：`GET /state` 不再返回该字段。前端 init 时从 `GET /rooms` 列表或 `GET /rooms/:id`（待确认哪个更自然）获取 `ruleSystemId`，在 `worldStore.init()` 中写入 `room.ruleSystemId`。
 
 **`TacticalInfo`**（worldStore.ts）新增字段：
 
@@ -158,20 +161,26 @@ export interface TacticalInfo {
 
 ### 受影响的组件
 
-| 文件                              | 当前                            | 迁移后                                                                  |
-| --------------------------------- | ------------------------------- | ----------------------------------------------------------------------- |
-| `selectors.ts` `selectIsTactical` | `s.room.tacticalMode === 1`     | `s.tacticalInfo?.tacticalMode === 1 ?? false`                           |
-| `ArchivePanel.tsx:10`             | `s.room.activeArchiveId`        | `s.tacticalInfo?.activeArchiveId ?? null`                               |
-| `ArchivePanel.tsx:12`             | `s.tacticalInfo !== null`       | `selectIsTactical`（复用 selector）                                     |
-| `KonvaMap.tsx:270`                | `if (!tacticalInfo)` 显示空状态 | 语义变更：`tacticalInfo` 始终非 null，改为 `if (!tacticalInfo?.mapUrl)` |
+| 文件                              | 当前                                        | 迁移后                                                                                          |
+| --------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `selectors.ts` `selectIsTactical` | `s.room.tacticalMode === 1`                 | `s.tacticalInfo?.tacticalMode === 1`（`=== 1` 已产生 boolean，无需 `?? false`）                 |
+| `ArchivePanel.tsx:10`             | `s.room.activeArchiveId`                    | `s.tacticalInfo?.activeArchiveId ?? null`                                                       |
+| `ArchivePanel.tsx:12`             | `s.tacticalInfo !== null`                   | `selectIsTactical`（复用 selector）                                                             |
+| `KonvaMap.tsx:214`                | `if (!tacticalInfo) return`（createToken）  | 语义变更：`tacticalInfo` 始终非 null，移除空检查或改为 `if (!tacticalInfo?.mapUrl)`             |
+| `KonvaMap.tsx:270`                | `if (!tacticalInfo)` 显示空状态             | 语义变更：`tacticalInfo` 始终非 null，改为 `if (!tacticalInfo?.mapUrl)`                         |
+| `PortraitBar.tsx:606`             | `tacticalInfo ? \`Round ...\`` null 检查    | `tacticalInfo` 始终非 null，改为检查 `tacticalInfo?.tacticalMode === 1`（仅战术模式显示 Round） |
+| `useCameraControls.ts:62,82`      | `if (!tacticalInfo) return`                 | dead code — `tacticalInfo` 始终非 null，移除无效空检查                                          |
+| `worldStore.ts` `setRuleSystem`   | `api.patch('/state', { ruleSystemId: id })` | 移除或改为 PATCH `/rooms/:id`（`ruleSystemId` 不再在 `room_state`）                             |
+| `worldStore.ts` `WS_EVENTS`       | 包含 `'tactical:ended'`                     | 移除 `'tactical:ended'`（事件已删除）                                                           |
 
-**不需要修改的**：`App.tsx`, `GmDock.tsx`, `MapDockTab.tsx`, `BlueprintDockTab.tsx`, `PortraitBar.tsx`, `useRulePlugin.ts`, `HamburgerMenu.tsx` — 这些通过 `selectIsTactical` 或 `s.room.ruleSystemId` 间接访问，selector 改了就全部生效。
+**不需要修改的**：`App.tsx`, `GmDock.tsx`, `MapDockTab.tsx`, `BlueprintDockTab.tsx`, `useRulePlugin.ts`, `HamburgerMenu.tsx` — 这些通过 `selectIsTactical` 或 `s.room.ruleSystemId` 间接访问，selector 改了就全部生效。
 
 ### Socket 事件处理变更
 
 - `room:state:updated` handler：不变，payload 自然不含迁出字段
 - `tactical:activated` / `tactical:updated` handler：payload 现在包含 `tacticalMode` + `activeArchiveId`，`normalizeTacticalInfo` 处理新字段
 - `tactical:ended` handler：**删除**，退出战术模式通过 `tactical:updated` with `tacticalMode: 0` 传达
+- `WS_EVENTS` 数组（`worldStore.ts`）：移除 `'tactical:ended'` 条目
 
 ### `isTactical` 语义变更
 
