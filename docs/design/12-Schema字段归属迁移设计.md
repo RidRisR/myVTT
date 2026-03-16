@@ -92,12 +92,13 @@ try {
 
 - **POST /api/rooms**：`rule_system_id` 直接写入 `rooms` 表的 INSERT 语句，不再写 `room_state`
 - **GET /api/rooms**：响应中包含 `ruleSystemId`（之前不包含）
+- **GET /api/rooms/:id**（新增）：返回单个房间信息（含 `ruleSystemId`），供前端 `loadAll()` 获取房间身份属性
 
 ### `state.ts`（room_state）
 
 - **GET /state**：响应中移除 `tacticalMode`、`activeArchiveId`、`ruleSystemId`
 - **PATCH /state**：fieldMap 中移除三个迁出字段，只保留 `activeSceneId`
-- **PATCH /state 切换场景时**：广播 `tactical:updated` 事件携带新场景的 tactical_state（含 `tacticalMode` + `activeArchiveId`），让前端自动切换战术状态
+- **PATCH /state 切换场景时**：广播 `tactical:updated` 事件携带新场景的 tactical_state（含 `tacticalMode` + `activeArchiveId`），让前端自动切换战术状态。注意 `state.ts` 需导入 `getTacticalState()` 函数（从 `tactical.ts` 导出），形成新的跨模块依赖
 
 ### `tactical.ts`
 
@@ -133,7 +134,7 @@ export interface RoomState {
 }
 ```
 
-注：`ruleSystemId` 仍在前端 `RoomState` 中，但数据源变更：`GET /state` 不再返回该字段。前端 init 时从 `GET /rooms` 列表或 `GET /rooms/:id`（待确认哪个更自然）获取 `ruleSystemId`，在 `worldStore.init()` 中写入 `room.ruleSystemId`。
+注：`ruleSystemId` 仍在前端 `RoomState` 中，但数据源变更：`GET /state` 不再返回该字段。前端 `loadAll()` 新增 `GET /rooms/:id` 调用（加入现有 `Promise.all`），从响应中提取 `ruleSystemId` 写入 `room.ruleSystemId`。`GET /state` 返回的 `RoomState` 仅含 `activeSceneId`，与 `rooms/:id` 的 `ruleSystemId` 合并后构成完整的前端 `RoomState`。
 
 **`TacticalInfo`**（worldStore.ts）新增字段：
 
@@ -173,7 +174,7 @@ export interface TacticalInfo {
 | `worldStore.ts` `setRuleSystem`   | `api.patch('/state', { ruleSystemId: id })` | 移除或改为 PATCH `/rooms/:id`（`ruleSystemId` 不再在 `room_state`）                             |
 | `worldStore.ts` `WS_EVENTS`       | 包含 `'tactical:ended'`                     | 移除 `'tactical:ended'`（事件已删除）                                                           |
 
-**不需要修改的**：`App.tsx`, `GmDock.tsx`, `MapDockTab.tsx`, `BlueprintDockTab.tsx`, `useRulePlugin.ts`, `HamburgerMenu.tsx` — 这些通过 `selectIsTactical` 或 `s.room.ruleSystemId` 间接访问，selector 改了就全部生效。
+**不需要修改的**：`App.tsx`, `GmDock.tsx`, `MapDockTab.tsx`, `BlueprintDockTab.tsx`, `useRulePlugin.ts`, `HamburgerMenu.tsx` — 这些通过 `selectIsTactical` 或直接读取 `s.room.ruleSystemId`。`selectIsTactical` 改了就全部生效；`s.room.ruleSystemId` 字段名不变（只是数据源从 `GET /state` 改为 `GET /rooms/:id`），组件代码无需修改。
 
 ### Socket 事件处理变更
 
@@ -195,6 +196,8 @@ export interface TacticalInfo {
 | 测试文件                      | 改动内容                                                                                                  |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `tactical-mode.test.ts`       | `tacticalMode` 从 `GET /state` 改为 `GET /tactical` 验证                                                  |
+| `tactical-broadcast.test.ts`  | enter/exit 广播事件从 `room:state:updated` 改为 `tactical:updated`（`lines 155-191`）                     |
+| `multi-client-sync.test.ts`   | 5.5/5.7 测试 enter/exit 广播事件从 `room:state:updated` 改为 `tactical:updated`（`lines 93-131`）         |
 | `rule-system-switch.test.ts`  | `ruleSystemId` 不再在 `/state`，创建房间时验证 `GET /rooms`                                               |
 | `archive-broadcast.test.ts`   | `activeArchiveId` 广播事件从 `room:state:updated` 改为 `tactical:updated`                                 |
 | `archive-error-cases.test.ts` | 删除存档清 `activeArchiveId` 改为从 `GET /tactical` 验证                                                  |
