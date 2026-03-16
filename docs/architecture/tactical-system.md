@@ -24,7 +24,7 @@
 │  │  │  └─ Tools Layer (测量/范围工具)             │ │ │
 │  │  └──────────────────────────────────────────┘ │ │
 │  │                                                │ │
-│  │  ZoomControls + TokenContextMenu + Tooltip     │ │
+│  │  TacticalToolbar + TokenContextMenu + Tooltip   │ │
 │  └────────────────────────────────────────────────┘ │
 └────────────────────────────────────────────────────┘
 ```
@@ -218,7 +218,7 @@ worldStore.exitTactical()
 | `GhostToken.tsx`       | 其他玩家拖拽时的半透明预览                       |
 | `TokenContextMenu.tsx` | Token 右键菜单                                   |
 | `TokenTooltip.tsx`     | Token hover 信息提示                             |
-| `ZoomControls.tsx`     | 缩放 +/- 按钮                                    |
+| `TacticalToolbar.tsx`  | 工具选择 + 缩放控制（右侧垂直胶囊）              |
 | `combatUtils.ts`       | 坐标转换、grid snap 计算                         |
 | `tools/`               | 测量工具（距离、圆形范围、锥形范围、矩形范围）   |
 | `hooks/`               | 战术相关 hooks                                   |
