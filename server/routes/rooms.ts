@@ -26,16 +26,24 @@ export function roomRoutes(dataDir: string): Router {
     const id = crypto.randomUUID().slice(0, 8)
     const db = getGlobalDb(dataDir)
     const now = Date.now()
-    db.prepare('INSERT INTO rooms (id, name, created_by, created_at) VALUES (?, ?, ?, ?)').run(
-      id,
-      name,
-      'anonymous',
-      now,
-    )
-    // Initialize room database (triggers schema creation), then stamp rule system
-    const roomDb = getRoomDb(dataDir, id)
-    roomDb.prepare('UPDATE room_state SET rule_system_id = ? WHERE id = 1').run(ruleSystemId)
-    res.status(201).json({ id, name, createdBy: 'anonymous', createdAt: now })
+    db.prepare(
+      'INSERT INTO rooms (id, name, created_by, created_at, rule_system_id) VALUES (?, ?, ?, ?, ?)',
+    ).run(id, name, 'anonymous', now, ruleSystemId)
+    // Initialize room database (triggers schema creation)
+    getRoomDb(dataDir, id)
+    res.status(201).json({ id, name, createdBy: 'anonymous', createdAt: now, ruleSystemId })
+  })
+
+  router.get('/api/rooms/:roomId', (req, res) => {
+    const db = getGlobalDb(dataDir)
+    const row = db.prepare('SELECT * FROM rooms WHERE id = ?').get(req.params.roomId) as
+      | Record<string, unknown>
+      | undefined
+    if (!row) {
+      res.status(404).json({ error: 'Room not found' })
+      return
+    }
+    res.json(toCamelAll([row])[0])
   })
 
   router.delete('/api/rooms/:roomId', (req, res) => {
