@@ -1,8 +1,9 @@
 import type { Entity, ResourceView, StatusView } from '@myvtt/sdk'
 import type { DHRuleData } from './types'
+import { parseDHRuleData } from './parseRuleData'
 
 function getDH(entity: Entity): DHRuleData | null {
-  return entity.ruleData ? (entity.ruleData as DHRuleData) : null
+  return entity.ruleData ? parseDHRuleData(entity.ruleData) : null
 }
 
 export function dhGetMainResource(entity: Entity): ResourceView | null {

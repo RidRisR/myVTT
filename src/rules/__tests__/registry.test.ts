@@ -81,6 +81,34 @@ describe('genericPlugin adapters', () => {
   })
 })
 
+// ── Base-level contract: all plugins must handle edge-case ruleData without crashing ──
+
+describe.each(['generic', 'daggerheart'])('%s plugin — adapter safety contract', (pluginId) => {
+  const plugin = getRulePlugin(pluginId)
+
+  const edgeCases = [
+    { label: 'null ruleData', ruleData: null },
+    { label: 'empty object ruleData', ruleData: {} },
+    { label: 'partial ruleData', ruleData: { hp: { current: 5, max: 10 } } },
+    { label: 'unrelated ruleData', ruleData: { foo: 'bar' } },
+  ]
+
+  for (const { label, ruleData } of edgeCases) {
+    it(`getMainResource does not crash with ${label}`, () => {
+      expect(() => plugin.adapters.getMainResource(makeEntity({ ruleData }))).not.toThrow()
+    })
+    it(`getPortraitResources does not crash with ${label}`, () => {
+      expect(() => plugin.adapters.getPortraitResources(makeEntity({ ruleData }))).not.toThrow()
+    })
+    it(`getStatuses does not crash with ${label}`, () => {
+      expect(() => plugin.adapters.getStatuses(makeEntity({ ruleData }))).not.toThrow()
+    })
+    it(`getFormulaTokens does not crash with ${label}`, () => {
+      expect(() => plugin.adapters.getFormulaTokens(makeEntity({ ruleData }))).not.toThrow()
+    })
+  }
+})
+
 describe('daggerheartPlugin registration', () => {
   it('getRulePlugin returns daggerheart after registration', () => {
     const plugin = getRulePlugin('daggerheart')

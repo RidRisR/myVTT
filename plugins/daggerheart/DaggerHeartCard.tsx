@@ -1,12 +1,12 @@
 // plugins/daggerheart/DaggerHeartCard.tsx
 import type { EntityCardProps } from '@myvtt/sdk'
 import { usePluginPanels } from '@myvtt/sdk'
-import type { DHRuleData } from './types'
+import { parseDHRuleData } from './parseRuleData'
 
 const ATTRS = ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowledge'] as const
 
 export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
-  const d = entity.ruleData as DHRuleData | null
+  const d = entity.ruleData ? parseDHRuleData(entity.ruleData) : null
   const { openPanel } = usePluginPanels()
 
   return (
