@@ -427,7 +427,6 @@ function RoomSession({ roomId }: { roomId: string }) {
 
         {/* Bottom-right: Chat overlay */}
         <ChatPanel
-          roomId={roomId}
           senderId={mySeatId}
           senderName={mySeat.name}
           senderColor={mySeat.color}

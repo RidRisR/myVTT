@@ -111,7 +111,9 @@ export function AdminPanel() {
             />
             <select
               value={newSystemId}
-              onChange={(e) => setNewSystemId(e.target.value)}
+              onChange={(e) => {
+                setNewSystemId(e.target.value)
+              }}
               className="px-3 py-2 border border-border-glass rounded-md text-[13px] bg-surface text-text-primary outline-none cursor-pointer"
             >
               {AVAILABLE_SYSTEMS.map((s) => (

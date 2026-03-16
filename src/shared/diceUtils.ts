@@ -330,7 +330,7 @@ export function buildTermResult(term: DiceTerm, allRolls: number[]): DiceTermRes
         break
       default: {
         const _exhaust: never = mode
-        throw new Error(`Unknown keep/drop mode: ${_exhaust}`)
+        throw new Error(`Unknown keep/drop mode: ${String(_exhaust)}`)
       }
     }
     keptIndices = allRolls.map((_, i) => i).filter((i) => keptSet.has(i))

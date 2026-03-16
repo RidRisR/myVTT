@@ -18,8 +18,8 @@ export function dhGetPortraitResources(entity: Entity): ResourceView[] {
     { label: 'HP', current: d.hp.current, max: d.hp.max, color: '#ef4444' },
     {
       label: 'Stress',
-      current: d.stress?.current ?? 0,
-      max: d.stress?.max ?? 0,
+      current: d.stress.current,
+      max: d.stress.max,
       color: '#f97316',
     },
   ]

@@ -74,7 +74,12 @@ describe('selector referential stability', () => {
 
   it('selectActiveScene returns null stably when no active scene', () => {
     const state = {
-      room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0 },
+      room: {
+        activeSceneId: null,
+        activeArchiveId: null,
+        tacticalMode: 0,
+        ruleSystemId: 'generic',
+      },
       scenes: [],
     }
     const a = selectActiveScene(state)
@@ -100,7 +105,12 @@ describe('selector referential stability', () => {
       },
     }
     const state = {
-      room: { activeSceneId: 's1', activeArchiveId: null, tacticalMode: 0 },
+      room: {
+        activeSceneId: 's1',
+        activeArchiveId: null,
+        tacticalMode: 0,
+        ruleSystemId: 'generic',
+      },
       scenes: [scene],
     }
     const a = selectActiveScene(state)
@@ -109,11 +119,23 @@ describe('selector referential stability', () => {
   })
 
   it('selectIsTactical returns primitive (always stable)', () => {
-    const state = { room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0 } }
+    const state = {
+      room: {
+        activeSceneId: null,
+        activeArchiveId: null,
+        tacticalMode: 0,
+        ruleSystemId: 'generic',
+      },
+    }
     expect(selectIsTactical(state)).toBe(false)
     expect(
       selectIsTactical({
-        room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 1 },
+        room: {
+          activeSceneId: null,
+          activeArchiveId: null,
+          tacticalMode: 1,
+          ruleSystemId: 'generic',
+        },
       }),
     ).toBe(true)
   })
@@ -135,7 +157,12 @@ describe('selector referential stability', () => {
   // ── Additional stability tests (Bug #1 regression coverage) ──
 
   it('selectRoom returns same reference when state is unchanged', () => {
-    const room = { activeSceneId: 's1', activeArchiveId: null, tacticalMode: 0 }
+    const room = {
+      activeSceneId: 's1',
+      activeArchiveId: null,
+      tacticalMode: 0,
+      ruleSystemId: 'generic',
+    }
     const state = { room }
     expect(selectRoom(state)).toBe(selectRoom(state))
   })
@@ -162,7 +189,12 @@ describe('selector referential stability', () => {
 
   it('selectActiveSceneId returns same primitive across calls', () => {
     const state = {
-      room: { activeSceneId: 'abc', activeArchiveId: null, tacticalMode: 0 },
+      room: {
+        activeSceneId: 'abc',
+        activeArchiveId: null,
+        tacticalMode: 0,
+        ruleSystemId: 'generic',
+      },
     }
     expect(selectActiveSceneId(state)).toBe('abc')
     expect(selectActiveSceneId(state)).toBe(selectActiveSceneId(state))

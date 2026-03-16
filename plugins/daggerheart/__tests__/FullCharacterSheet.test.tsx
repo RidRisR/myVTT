@@ -63,9 +63,10 @@ describe('FullCharacterSheet', () => {
     fireEvent.change(hpCurrentInput, { target: { value: '15' } })
     fireEvent.blur(hpCurrentInput)
     // Should call with patched hp
-    expect(onUpdateEntity).toHaveBeenCalledWith('e1', {
-      ruleData: expect.objectContaining({ hp: { current: 15, max: 20 } }),
-    })
+    const expectedRuleData: Record<string, unknown> = expect.objectContaining({
+      hp: { current: 15, max: 20 },
+    }) as Record<string, unknown>
+    expect(onUpdateEntity).toHaveBeenCalledWith('e1', { ruleData: expectedRuleData })
   })
 
   it('calls onClose when close button is clicked', () => {

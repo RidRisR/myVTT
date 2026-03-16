@@ -102,12 +102,14 @@ export function DHTeamPanel({ trackers, onUpdate, onCreate }: TeamPanelProps) {
           value={fearTracker.current}
           max={fearTracker.max}
           color={FEAR_COLOR}
-          onDecrement={() =>
+          onDecrement={() => {
             onUpdate(fearTracker.id, { current: Math.max(0, fearTracker.current - 1) })
-          }
-          onIncrement={() =>
-            onUpdate(fearTracker.id, { current: Math.min(fearTracker.max, fearTracker.current + 1) })
-          }
+          }}
+          onIncrement={() => {
+            onUpdate(fearTracker.id, {
+              current: Math.min(fearTracker.max, fearTracker.current + 1),
+            })
+          }}
         />
         <div className="w-px bg-border-glass" />
         <CounterCell
@@ -115,12 +117,14 @@ export function DHTeamPanel({ trackers, onUpdate, onCreate }: TeamPanelProps) {
           value={hopeTracker.current}
           max={hopeTracker.max}
           color={HOPE_COLOR}
-          onDecrement={() =>
+          onDecrement={() => {
             onUpdate(hopeTracker.id, { current: Math.max(0, hopeTracker.current - 1) })
-          }
-          onIncrement={() =>
-            onUpdate(hopeTracker.id, { current: Math.min(hopeTracker.max, hopeTracker.current + 1) })
-          }
+          }}
+          onIncrement={() => {
+            onUpdate(hopeTracker.id, {
+              current: Math.min(hopeTracker.max, hopeTracker.current + 1),
+            })
+          }}
         />
       </div>
 

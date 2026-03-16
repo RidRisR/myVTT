@@ -13,8 +13,6 @@ const ATTRS = [
   { key: 'knowledge', label: '知识' },
 ] as const
 
-type AttrKey = (typeof ATTRS)[number]['key']
-
 export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPanelProps) {
   const [editingName, setEditingName] = useState(false)
   const [editName, setEditName] = useState(entity?.name ?? '')
@@ -76,7 +74,9 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
             <input
               autoFocus
               value={editName}
-              onChange={(e) => setEditName(e.target.value)}
+              onChange={(e) => {
+                setEditName(e.target.value)
+              }}
               onBlur={handleSaveName}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSaveName()
@@ -121,12 +121,16 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
               <IdentityField
                 label="职业"
                 value={d.className ?? ''}
-                onChange={(v) => updateDH({ className: v })}
+                onChange={(v) => {
+                  updateDH({ className: v })
+                }}
               />
               <IdentityField
                 label="血统"
                 value={d.ancestry ?? ''}
-                onChange={(v) => updateDH({ ancestry: v })}
+                onChange={(v) => {
+                  updateDH({ ancestry: v })
+                }}
               />
             </div>
           </div>
@@ -143,7 +147,9 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
                   {([1, 2, 3, 4] as const).map((t) => (
                     <button
                       key={t}
-                      onClick={() => updateDH({ tier: t })}
+                      onClick={() => {
+                        updateDH({ tier: t })
+                      }}
                       className={`flex-1 py-1 rounded text-xs font-bold transition-colors duration-fast ${
                         (d.tier ?? 1) === t
                           ? 'bg-accent text-white'
@@ -160,7 +166,9 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
                 value={d.proficiency ?? 1}
                 min={1}
                 max={6}
-                onChange={(v) => updateDH({ proficiency: v })}
+                onChange={(v) => {
+                  updateDH({ proficiency: v })
+                }}
               />
             </div>
           </div>
@@ -175,8 +183,10 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
                 <AttrField
                   key={key}
                   label={label}
-                  value={(d[key as AttrKey] as number) ?? 0}
-                  onChange={(v) => updateDH({ [key]: v } as Partial<DHRuleData>)}
+                  value={d[key] ?? 0}
+                  onChange={(v) => {
+                    updateDH({ [key]: v } as Partial<DHRuleData>)
+                  }}
                 />
               ))}
             </div>
@@ -195,16 +205,24 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
                 color="#ef4444"
                 current={d.hp?.current ?? 0}
                 max={d.hp?.max ?? 0}
-                onCurrentChange={(v) => updateHP({ current: v })}
-                onMaxChange={(v) => updateHP({ max: v })}
+                onCurrentChange={(v) => {
+                  updateHP({ current: v })
+                }}
+                onMaxChange={(v) => {
+                  updateHP({ max: v })
+                }}
               />
               <ResourceField
                 label="压力 Stress"
                 color="#f97316"
                 current={d.stress?.current ?? 0}
                 max={d.stress?.max ?? 0}
-                onCurrentChange={(v) => updateStress({ current: v })}
-                onMaxChange={(v) => updateStress({ max: v })}
+                onCurrentChange={(v) => {
+                  updateStress({ current: v })
+                }}
+                onMaxChange={(v) => {
+                  updateStress({ max: v })
+                }}
               />
               <div className="grid grid-cols-2 gap-2">
                 <NumberField
@@ -212,14 +230,18 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
                   value={d.hope ?? 0}
                   min={0}
                   max={99}
-                  onChange={(v) => updateDH({ hope: v })}
+                  onChange={(v) => {
+                    updateDH({ hope: v })
+                  }}
                 />
                 <NumberField
                   label="护甲 Armor"
                   value={d.armor ?? 0}
                   min={0}
                   max={6}
-                  onChange={(v) => updateDH({ armor: v })}
+                  onChange={(v) => {
+                    updateDH({ armor: v })
+                  }}
                 />
               </div>
             </div>
@@ -232,7 +254,9 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
             </div>
             <textarea
               value={entity.notes}
-              onChange={(e) => onUpdateEntity(entity.id, { notes: e.target.value })}
+              onChange={(e) => {
+                onUpdateEntity(entity.id, { notes: e.target.value })
+              }}
               placeholder="角色背景、笔记..."
               rows={6}
               className="w-full px-3 py-2 bg-black/20 border border-border-glass rounded-lg text-sm text-text-primary placeholder:text-text-muted/25 outline-none resize-none focus:border-accent/50 transition-colors duration-fast"
@@ -260,7 +284,9 @@ function IdentityField({
       <label className="text-[10px] text-text-muted/40 block mb-1">{label}</label>
       <input
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onChange(e.target.value)
+        }}
         placeholder={label}
         className="w-full px-2 py-1 bg-black/20 border border-border-glass rounded text-xs text-text-primary outline-none focus:border-accent/50 transition-colors duration-fast"
       />
@@ -313,7 +339,9 @@ function AttrField({
       <span className="text-[9px] text-text-muted/50 uppercase mb-1">{label}</span>
       <div className="flex items-center gap-1">
         <button
-          onClick={() => onChange(value - 1)}
+          onClick={() => {
+            onChange(value - 1)
+          }}
           className="w-5 h-5 flex items-center justify-center text-text-muted/40 hover:text-danger transition-colors duration-fast text-xs"
         >
           −
@@ -323,7 +351,9 @@ function AttrField({
           {value}
         </span>
         <button
-          onClick={() => onChange(value + 1)}
+          onClick={() => {
+            onChange(value + 1)
+          }}
           className="w-5 h-5 flex items-center justify-center text-text-muted/40 hover:text-success transition-colors duration-fast text-xs"
         >
           ＋

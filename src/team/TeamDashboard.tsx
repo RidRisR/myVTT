@@ -119,36 +119,35 @@ export function TeamDashboard({ isGM }: TeamDashboardProps) {
             if (!expanded && isGM) setExpanded(true)
           }}
         >
-          {activeTab === 'metrics' &&
-            (PluginTeamPanel ? (
-              <PluginTeamPanel
-                trackers={trackers}
-                onUpdate={(id, updates) => {
-                  void updateTracker(id, updates)
-                }}
-                onCreate={(data) => {
-                  void addTracker(data.label ?? 'Tracker')
-                }}
-                onDelete={(id) => {
-                  void deleteTracker(id)
-                }}
-              />
-            ) : (
-              <TeamMetricsTab
-                trackers={trackers}
-                expanded={expanded}
-                isGM={isGM}
-                onUpdateTracker={(id, updates) => {
-                  void updateTracker(id, updates)
-                }}
-                onAddTracker={(label) => {
-                  void addTracker(label)
-                }}
-                onDeleteTracker={(id) => {
-                  void deleteTracker(id)
-                }}
-              />
-            ))}
+          {PluginTeamPanel ? (
+            <PluginTeamPanel
+              trackers={trackers}
+              onUpdate={(id, updates) => {
+                void updateTracker(id, updates)
+              }}
+              onCreate={(data) => {
+                void addTracker(data.label ?? 'Tracker')
+              }}
+              onDelete={(id) => {
+                void deleteTracker(id)
+              }}
+            />
+          ) : (
+            <TeamMetricsTab
+              trackers={trackers}
+              expanded={expanded}
+              isGM={isGM}
+              onUpdateTracker={(id, updates) => {
+                void updateTracker(id, updates)
+              }}
+              onAddTracker={(label) => {
+                void addTracker(label)
+              }}
+              onDeleteTracker={(id) => {
+                void deleteTracker(id)
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

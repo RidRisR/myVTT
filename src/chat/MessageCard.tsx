@@ -128,9 +128,11 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           </div>
           <span className="text-[11px] text-text-muted/40">{formatTime(message.timestamp)}</span>
         </div>
-        {CustomCard
-          ? <CustomCard message={message as ChatRollMessage} isNew={isNew} renderDice={renderDice} />
-          : <DiceResultCard message={message as ChatRollMessage} isNew={isNew} />}
+        {CustomCard ? (
+          <CustomCard message={message} isNew={isNew} renderDice={renderDice} />
+        ) : (
+          <DiceResultCard message={message} isNew={isNew} />
+        )}
       </div>
     </div>
   )

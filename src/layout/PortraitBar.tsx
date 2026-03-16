@@ -214,8 +214,8 @@ export function PortraitBar({
       permissions: defaultPCPermissions(mySeatId),
       lifecycle: 'persistent',
     }
-    addEntity(newEntity)
-    addEntityToScene(activeSceneId, newEntity.id, true)
+    void addEntity(newEntity)
+    void addEntityToScene(activeSceneId, newEntity.id, true)
     setInspectedCharacterId(newEntity.id)
   }
 
@@ -500,7 +500,8 @@ export function PortraitBar({
   // Hover only searches visibleEntities (entity must be visible to have a portrait to hover).
   const popoverEntity = popoverCharId
     ? isLocked
-      ? entities.find((e) => e.id === popoverCharId) ?? visibleEntities.find((e) => e.id === popoverCharId)
+      ? (entities.find((e) => e.id === popoverCharId) ??
+        visibleEntities.find((e) => e.id === popoverCharId))
       : visibleEntities.find((e) => e.id === popoverCharId)
     : null
 
@@ -580,15 +581,17 @@ export function PortraitBar({
           {partyEntities.map(renderPortrait)}
 
           {/* Player "create my character" slot — shown when not GM and player has no owned entity */}
-          {!isGM && mySeatId && !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
-            <button
-              onClick={handleCreateMyCharacter}
-              title="创建我的角色"
-              className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
-            >
-              <Plus size={16} strokeWidth={1.5} />
-            </button>
-          )}
+          {!isGM &&
+            mySeatId &&
+            !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
+              <button
+                onClick={handleCreateMyCharacter}
+                title="创建我的角色"
+                className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
+              >
+                <Plus size={16} strokeWidth={1.5} />
+              </button>
+            )}
 
           {/* Separator between PCs and NPCs */}
           {hasSection && <div className="w-px h-8 bg-border-glass mx-0.5" />}
@@ -600,9 +603,7 @@ export function PortraitBar({
       {activeTab === 'initiative' && (
         <div className="flex items-center gap-2 bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           <span className="text-xs text-text-muted/40 font-sans px-3 py-1">
-            {tacticalInfo
-              ? `Round ${tacticalInfo.roundNumber}`
-              : 'No tactical session active'}
+            {tacticalInfo ? `Round ${tacticalInfo.roundNumber}` : 'No tactical session active'}
           </span>
         </div>
       )}
@@ -653,14 +654,18 @@ export function PortraitBar({
                 // Generic plugin uses CharacterEditPanel wrapped in GenericEntityCard
                 <Card
                   entity={popoverEntity}
-                  onUpdate={(patch) => onUpdateEntity(popoverEntity.id, patch)}
+                  onUpdate={(patch) => {
+                    onUpdateEntity(popoverEntity.id, patch)
+                  }}
                   readonly={false}
                 />
               ) : (
                 // Read-only locked view: use plugin's EntityCard for display
                 <Card
                   entity={popoverEntity}
-                  onUpdate={(patch) => onUpdateEntity(popoverEntity.id, patch)}
+                  onUpdate={(patch) => {
+                    onUpdateEntity(popoverEntity.id, patch)
+                  }}
                   readonly
                 />
               )

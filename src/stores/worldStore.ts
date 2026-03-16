@@ -155,7 +155,6 @@ interface WorldState {
   // Composed actions — multi-step orchestration
   createEphemeralNpcInScene: () => Promise<Entity | null>
   spawnEphemeralTokenAtPosition: (x: number, y: number) => Promise<Entity | null>
-  saveEntityAsBlueprint: (entity: Entity) => Promise<void>
 
   // Token actions
   createToken: (x: number, y: number, opts?: { name?: string; color?: string }) => Promise<void>
@@ -832,23 +831,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     await api.patch(`/api/rooms/${roomId}/scenes/${sceneId}/entities/${entityId}`, { visible })
   },
 
-  saveEntityAsBlueprint: async (entity) => {
-    const roomId = get()._roomId
-    if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/assets`, {
-      url: entity.imageUrl,
-      name: entity.name,
-      type: 'blueprint',
-      extra: {
-        blueprint: {
-          defaultSize: entity.width,
-          defaultColor: entity.color,
-          defaultRuleData: entity.ruleData,
-        },
-      },
-    })
-  },
-
   spawnFromBlueprint: async (sceneId, blueprintId) => {
     const roomId = get()._roomId
     if (!roomId) return null
@@ -999,7 +981,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   /** @internal Test-only: reset store to initial state (preserves socket/roomId) */
   _reset: () => {
     set({
-      room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0, ruleSystemId: 'generic' },
+      room: {
+        activeSceneId: null,
+        activeArchiveId: null,
+        tacticalMode: 0,
+        ruleSystemId: 'generic',
+      },
       scenes: [],
       entities: {},
       sceneEntityMap: {},

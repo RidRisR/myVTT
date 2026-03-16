@@ -31,7 +31,9 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
         <div className="w-[272px] bg-glass backdrop-blur-[16px] rounded-r-[14px] shadow-[4px_0_32px_rgba(0,0,0,0.3)] border border-border-glass border-l-0 overflow-y-auto max-h-[80vh]">
           <Card
             entity={entity}
-            onUpdate={(patch) => onUpdateEntity(entity.id, patch)}
+            onUpdate={(patch) => {
+              onUpdateEntity(entity.id, patch)
+            }}
             readonly={false}
           />
         </div>

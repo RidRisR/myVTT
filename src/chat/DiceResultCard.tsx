@@ -26,15 +26,21 @@ function hexGlow(hex: string): string {
 }
 
 /** Shared animation body — used by DiceResultCard (base) and injected as renderDice for plugins */
-export function DiceAnimContent({ message, isNew, dieConfigs, footer, totalColor }: DiceAnimContentProps) {
+export function DiceAnimContent({
+  message,
+  isNew,
+  dieConfigs,
+  footer,
+  totalColor,
+}: DiceAnimContentProps) {
   // Lock animation state at mount — immune to isNew prop changes
-  const shouldAnimate = useRef(!!isNew)
+  const shouldAnimate = useRef(isNew)
 
   // Reconstruct termResults + total from server-generated rolls (client-side computation)
   const { termResults, total } = useMemo(() => {
     const formula = message.resolvedFormula ?? message.formula
-    const terms = tokenizeExpression(formula) ?? []
-    return buildCompoundResult(terms, message.rolls ?? [])
+    const terms = tokenizeExpression(formula)
+    return buildCompoundResult(terms ?? [], message.rolls)
   }, [message.formula, message.resolvedFormula, message.rolls])
 
   const [totalRevealed, setTotalRevealed] = useState(!shouldAnimate.current)
@@ -67,9 +73,7 @@ export function DiceAnimContent({ message, isNew, dieConfigs, footer, totalColor
       const sign = tr.term.sign === -1 ? '-' : '+'
       return (
         <span key={ti} className="inline-flex items-center gap-1">
-          {ti > 0 && (
-            <span className="text-text-muted mx-0.5 text-[13px]">{sign}</span>
-          )}
+          {ti > 0 && <span className="text-text-muted mx-0.5 text-[13px]">{sign}</span>}
           <span className="text-text-muted font-semibold text-[15px]">{value}</span>
         </span>
       )
@@ -99,9 +103,7 @@ export function DiceAnimContent({ message, isNew, dieConfigs, footer, totalColor
 
     return (
       <span key={ti} className="inline-flex items-center gap-0.5 flex-wrap">
-        {showSign && (
-          <span className="text-text-muted mx-0.5 text-[13px]">{sign}</span>
-        )}
+        {showSign && <span className="text-text-muted mx-0.5 text-[13px]">{sign}</span>}
         {reels}
       </span>
     )

@@ -167,7 +167,7 @@ const makeShowcaseItem = (overrides: Partial<ShowcaseItem> = {}): ShowcaseItem =
 
 beforeEach(() => {
   useWorldStore.setState({
-    room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0 },
+    room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0, ruleSystemId: 'generic' },
     scenes: [],
     entities: {},
     sceneEntityMap: {},
@@ -620,7 +620,12 @@ describe('socket event handlers', () => {
   it('room:state:updated preserves fields not in payload', () => {
     // Set initial room state with both fields
     useWorldStore.setState({
-      room: { activeSceneId: 'scene-1', activeArchiveId: 'arc-1', tacticalMode: 1 },
+      room: {
+        activeSceneId: 'scene-1',
+        activeArchiveId: 'arc-1',
+        tacticalMode: 1,
+        ruleSystemId: 'generic',
+      },
     })
 
     // Update only one field

@@ -112,7 +112,10 @@ export function ChatInput({
       resolvedFormula = resolved.resolved
     }
     const terms = tokenizeExpression(resolvedFormula ?? formula)
-    if (!terms) { setError('Invalid dice formula'); return }
+    if (!terms) {
+      setError('Invalid dice formula')
+      return
+    }
     const dice = toDiceSpecs(terms)
     if (onRoll) onRoll(formula, resolvedFormula, dice, undefined)
     setInput('')
@@ -128,11 +131,17 @@ export function ChatInput({
     let resolvedFormula: string | undefined
     if (/@[\p{L}\p{N}_]+/u.test(formula)) {
       const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
-      if ('error' in resolved) { setError(resolved.error); return }
+      if ('error' in resolved) {
+        setError(resolved.error)
+        return
+      }
       resolvedFormula = resolved.resolved
     }
     const terms = tokenizeExpression(resolvedFormula ?? formula)
-    if (!terms) { setError('Invalid formula'); return }
+    if (!terms) {
+      setError('Invalid formula')
+      return
+    }
     const dice = toDiceSpecs(terms)
     if (onRoll) onRoll(formula, resolvedFormula, dice, rollType)
     setInput('')
@@ -154,11 +163,12 @@ export function ChatInput({
     const cmdMatch = trimmed.match(/^\.([a-zA-Z][a-zA-Z0-9]*)\s*(.*)$/i)
     if (cmdMatch) {
       const cmd = cmdMatch[1].toLowerCase()
-      const rollCmds = plugin.diceSystem?.rollCommands ?? {}
+      const rollCmds = plugin.diceSystem?.rollCommands
+      if (!rollCmds) return
       const entry = Object.entries(rollCmds).find(([key]) => key.split(':').at(-1) === cmd)
       if (entry) {
         const [rollType, rollCommand] = entry
-        handlePluginRoll(cmdMatch[2] ?? '', rollType, rollCommand)
+        handlePluginRoll(cmdMatch[2], rollType, rollCommand)
         return
       }
     }
