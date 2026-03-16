@@ -1,8 +1,12 @@
+import { forwardRef } from 'react'
 import type { MouseEvent } from 'react'
 import type { TacticalInfo } from '../stores/worldStore'
 import type { MapToken, Entity } from '../shared/entityTypes'
 import { useUiStore } from '../stores/uiStore'
 import { KonvaMap } from './KonvaMap'
+import type { KonvaMapHandle } from './KonvaMap'
+
+export type { KonvaMapHandle }
 
 interface TacticalPanelProps {
   tacticalInfo: TacticalInfo | null
@@ -20,21 +24,24 @@ interface TacticalPanelProps {
   visible: boolean
 }
 
-export function TacticalPanel({
-  tacticalInfo,
-  tokens,
-  getEntity,
-  mySeatId,
-  role,
-  selectedTokenId,
-  onSelectToken,
-  onUpdateToken,
-  onDeleteToken,
-  onAddToken,
-  onDropEntityOnMap,
-  onContextMenu,
-  visible,
-}: TacticalPanelProps) {
+export const TacticalPanel = forwardRef<KonvaMapHandle, TacticalPanelProps>(function TacticalPanel(
+  {
+    tacticalInfo,
+    tokens,
+    getEntity,
+    mySeatId,
+    role,
+    selectedTokenId,
+    onSelectToken,
+    onUpdateToken,
+    onDeleteToken,
+    onAddToken,
+    onDropEntityOnMap,
+    onContextMenu,
+    visible,
+  },
+  ref,
+) {
   const gmViewAsPlayer = useUiStore((s) => s.gmViewAsPlayer)
 
   return (
@@ -51,10 +58,11 @@ export function TacticalPanel({
       <div
         className="absolute inset-0 pointer-events-none z-10"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.65) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4) 100%)',
         }}
       />
       <KonvaMap
+        ref={ref}
         tacticalInfo={tacticalInfo}
         tokens={tokens}
         getEntity={getEntity}
@@ -70,4 +78,4 @@ export function TacticalPanel({
       />
     </div>
   )
-}
+})

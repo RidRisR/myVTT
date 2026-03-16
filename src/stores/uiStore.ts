@@ -10,6 +10,18 @@ interface ContextMenuState {
 }
 
 export type ActiveTool = 'select' | 'measure' | 'range-circle' | 'range-cone' | 'range-rect'
+export type MeasureTool = Exclude<ActiveTool, 'select'>
+
+const MEASURE_TOOL_IDS: ReadonlySet<string> = new Set([
+  'measure',
+  'range-circle',
+  'range-cone',
+  'range-rect',
+])
+
+export function isMeasureTool(tool: ActiveTool): tool is MeasureTool {
+  return MEASURE_TOOL_IDS.has(tool)
+}
 export type ThemeId = 'warm' | 'cold'
 export type GmSidebarTab = 'archives' | 'entities'
 
@@ -53,6 +65,10 @@ interface UiState {
   portraitBarVisible: boolean
   teamPanelVisible: boolean
 
+  // Tactical toolbar
+  lastMeasureTool: MeasureTool
+  gridConfigOpen: boolean
+
   // GM sidebar
   gmSidebarTab: GmSidebarTab
   gmSidebarCollapsed: boolean
@@ -71,6 +87,8 @@ interface UiState {
   setTheme: (theme: ThemeId) => void
   setPortraitBarVisible: (visible: boolean) => void
   setTeamPanelVisible: (visible: boolean) => void
+  setGridConfigOpen: (open: boolean) => void
+  toggleGridConfig: () => void
   setGmSidebarTab: (tab: GmSidebarTab) => void
   setGmSidebarCollapsed: (collapsed: boolean) => void
 }
@@ -85,6 +103,8 @@ export const useUiStore = create<UiState>((set) => ({
   theme: getStoredTheme(),
   portraitBarVisible: true,
   teamPanelVisible: true,
+  lastMeasureTool: 'measure',
+  gridConfigOpen: false,
   gmSidebarTab: 'archives',
   gmSidebarCollapsed: false,
 
@@ -116,7 +136,7 @@ export const useUiStore = create<UiState>((set) => ({
     set({ editingHandout: asset })
   },
   setActiveTool: (tool) => {
-    set({ activeTool: tool })
+    set(isMeasureTool(tool) ? { activeTool: tool, lastMeasureTool: tool } : { activeTool: tool })
   },
   setGmViewAsPlayer: (val) => {
     set({ gmViewAsPlayer: val })
@@ -130,6 +150,12 @@ export const useUiStore = create<UiState>((set) => ({
   },
   setTeamPanelVisible: (visible) => {
     set({ teamPanelVisible: visible })
+  },
+  setGridConfigOpen: (open) => {
+    set({ gridConfigOpen: open })
+  },
+  toggleGridConfig: () => {
+    set((s) => ({ gridConfigOpen: !s.gridConfigOpen }))
   },
   setGmSidebarTab: (tab) => {
     set({ gmSidebarTab: tab })
