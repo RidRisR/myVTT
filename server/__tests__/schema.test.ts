@@ -71,7 +71,8 @@ describe('initRoomSchema', () => {
     >
     expect(roomState).toBeTruthy()
     expect(roomState.active_scene_id).toBeNull()
-    expect(roomState.tactical_mode).toBe(0)
+    // tactical_mode now lives in tactical_state (per-scene), not room_state
+    expect(roomState.plugin_config).toBe('{}')
   })
 
   it('enforces scene_entities foreign key cascade', () => {

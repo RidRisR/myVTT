@@ -102,19 +102,21 @@ describe('useCameraControls', () => {
     expect(result.current.stagePos).toEqual({ x: 100, y: 100 })
   })
 
-  it('handleResetCenter does nothing when tacticalInfo is null', () => {
+  it('handleResetCenter resets scale to 1 and centers even when tacticalInfo is null', () => {
     const { result } = renderHook(() =>
       useCameraControls({ tacticalInfo: null, containerSize: CONTAINER }),
     )
     act(() => {
       result.current.handleZoomIn()
     })
-    const scaleBefore = result.current.stageScale
+    expect(result.current.stageScale).not.toBe(1)
     act(() => {
       result.current.handleResetCenter()
     })
-    // State unchanged because tacticalInfo is null
-    expect(result.current.stageScale).toBe(scaleBefore)
+    // With null tacticalInfo, mapWidth/mapHeight default to 0
+    // so position = (containerWidth/2, containerHeight/2)
+    expect(result.current.stageScale).toBe(1)
+    expect(result.current.stagePos).toEqual({ x: 500, y: 400 })
   })
 
   // ── handleFitToWindow ──────────────────────────────────────────
