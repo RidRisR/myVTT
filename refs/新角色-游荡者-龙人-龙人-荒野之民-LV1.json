@@ -2,14 +2,7 @@
   "name": "新角色",
   "characterImage": "",
   "level": "1",
-  "proficiency": [
-    true,
-    true,
-    false,
-    false,
-    false,
-    false
-  ],
+  "proficiency": [true, true, false, false, false, false],
   "ancestry1": "Drakona-Scales",
   "ancestry2": "Drakona-ElementalBreath",
   "profession": "Rogue",
@@ -88,20 +81,8 @@
     false,
     false
   ],
-  "experience": [
-    "什么东西",
-    "这是",
-    "",
-    "",
-    ""
-  ],
-  "experienceValues": [
-    "+2",
-    "+2",
-    "",
-    "",
-    ""
-  ],
+  "experience": ["什么东西", "这是", "", "", ""],
+  "experienceValues": ["+2", "+2", "", "", ""],
   "hope": 0,
   "hopeMax": 6,
   "hp": [
@@ -827,53 +808,17 @@
   "companionEvasion": "",
   "companionStressMax": 0,
   "companionWeapon": "",
-  "companionExperience": [
-    "",
-    "",
-    "",
-    "",
-    ""
-  ],
-  "companionExperienceValue": [
-    "",
-    "",
-    "",
-    "",
-    ""
-  ],
+  "companionExperience": ["", "", "", "", ""],
+  "companionExperienceValue": ["", "", "", "", ""],
   "trainingOptions": {
-    "intelligent": [
-      false,
-      false,
-      false
-    ],
-    "radiantInDarkness": [
-      false
-    ],
-    "creatureComfort": [
-      false
-    ],
-    "armored": [
-      false
-    ],
-    "vicious": [
-      false,
-      false,
-      false
-    ],
-    "resilient": [
-      false,
-      false,
-      false
-    ],
-    "bonded": [
-      false
-    ],
-    "aware": [
-      false,
-      false,
-      false
-    ]
+    "intelligent": [false, false, false],
+    "radiantInDarkness": [false],
+    "creatureComfort": [false],
+    "armored": [false],
+    "vicious": [false, false, false],
+    "resilient": [false, false, false],
+    "bonded": [false],
+    "aware": [false, false, false]
   },
   "pageVisibility": {
     "rangerCompanion": false,
@@ -912,37 +857,10 @@
       "tier4": {}
     },
     "scrapMaterials": {
-      "fragments": [
-        0,
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      "metals": [
-        0,
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      "components": [
-        0,
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      "relics": [
-        "",
-        "",
-        "",
-        "",
-        ""
-      ]
+      "fragments": [0, 0, 0, 0, 0, 0],
+      "metals": [0, 0, 0, 0, 0, 0],
+      "components": [0, 0, 0, 0, 0, 0],
+      "relics": ["", "", "", "", ""]
     },
     "electronicCoins": 0
   },

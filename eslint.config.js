@@ -52,7 +52,12 @@ export default defineConfig([
   // plugin logic via useRulePlugin(). This enforces the plugin architectural boundary.
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/stores/**', 'src/shared/__tests__/**', 'src/shared/api.ts', 'src/rules/registry.ts'],
+    ignores: [
+      'src/stores/**',
+      'src/shared/__tests__/**',
+      'src/shared/api.ts',
+      'src/rules/registry.ts',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',

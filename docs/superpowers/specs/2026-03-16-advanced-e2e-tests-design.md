@@ -181,9 +181,7 @@ async function dragOnCanvas(
 ): Promise<void>
 
 /** 从 store 读取 grid 设置 */
-async function getGridSettings(
-  page: Page,
-): Promise<{
+async function getGridSettings(page: Page): Promise<{
   size: number
   snap: boolean
   visible: boolean

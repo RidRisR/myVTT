@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "4444:4444"
-      - "5173:5173"
+      - '4444:4444'
+      - '5173:5173'
     volumes:
       - ./src:/app/src
       - ./server:/app/server

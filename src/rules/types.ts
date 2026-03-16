@@ -116,12 +116,7 @@ export interface GMTabDef {
   component: React.ComponentType
 }
 
-export type HideableElement =
-  | 'dock'
-  | 'portrait-bar'
-  | 'chat-panel'
-  | 'gm-panel'
-  | 'scene-controls'
+export type HideableElement = 'dock' | 'portrait-bar' | 'chat-panel' | 'gm-panel' | 'scene-controls'
 
 export interface DieConfig {
   color?: string // hex color, e.g. '#fbbf24'

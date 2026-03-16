@@ -2,7 +2,7 @@ services:
   myvtt:
     build: .
     ports:
-      - "4444:4444"
+      - '4444:4444'
     volumes:
       - vtt-data:/app/db
       - vtt-uploads:/app/server/uploads
