@@ -90,16 +90,16 @@ describe('initRoomSchema', () => {
 
 describe('toCamel', () => {
   it('converts snake_case to camelCase', () => {
-    const result = toCamel({
+    const result = toCamel<{ imageUrl: string; sortOrder: number }>({
       image_url: 'test.png',
       sort_order: 3,
-    }) as { imageUrl: string; sortOrder: number }
+    })
     expect(result.imageUrl).toBe('test.png')
     expect(result.sortOrder).toBe(3)
   })
 
   it('leaves already camelCase keys unchanged', () => {
-    const result = toCamel({ name: 'foo' }) as { name: string }
+    const result = toCamel<{ name: string }>({ name: 'foo' })
     expect(result.name).toBe('foo')
   })
 })
@@ -110,7 +110,7 @@ describe('toCamelAll', () => {
       { id: '1', sort_order: 0 },
       { id: '2', sort_order: 1 },
     ]
-    const result = toCamelAll(rows) as { id: string; sortOrder: number }[]
+    const result = toCamelAll<{ id: string; sortOrder: number }>(rows)
     expect(result).toHaveLength(2)
     expect(result[0]!.sortOrder).toBe(0)
     expect(result[1]!.sortOrder).toBe(1)
