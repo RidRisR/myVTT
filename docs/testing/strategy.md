@@ -20,18 +20,20 @@ expect(canEdit(entity, seatId, 'PL')).toBe(true)
 - 速度极快（毫秒级），无需任何 mock
 - 适用于：diceUtils、permissions、combatUtils、entityAdapters 等纯函数
 
-### 第 2 层：Hook 集成测试
+### 第 2 层：Store 集成测试
 
-用 `renderHook()` 单独测试 React Hook 的逻辑，不渲染任何 UI 组件。
+直接调用 zustand store actions，验证状态变更逻辑。Mock REST API 和 Socket.io 事件。
 
 ```ts
-const { result } = renderHook(() => useRoom(yRoom))
-act(() => result.current.enterCombat('scene-1'))
-expect(result.current.room.mode).toBe('combat')
+// 例：worldStore action
+vi.spyOn(api, 'createEntity').mockResolvedValue(mockEntity)
+const { createEntity } = worldStore.getState()
+await createEntity(entityData)
+expect(worldStore.getState().entities).toContainEqual(mockEntity)
 ```
 
-- 对本项目特别有价值 — Yjs Hook 可用真实 Y.Doc 在内存中运行，无需网络
-- 适用于：useRoom、useScenes、useEntities、useSceneTokens 等数据层 Hook
+- 测试 store 内的业务逻辑，不渲染 UI
+- 适用于：worldStore actions、identityStore、assetStore 等数据层
 
 ### 第 3 层：组件测试（Component Test）
 
@@ -82,25 +84,22 @@ expect(handleClick).toHaveBeenCalled()
 | `src/shared/assetUpload.ts`    | isVideoUrl                                                               |
 | `src/shared/roleState.ts`      | roleStore, popoverStore                                                  |
 
-### P1：Yjs Hook 集成测试
+### P1：Store 集成测试 + 服务端路由测试
 
-| 文件                           | 关键场景                                       |
-| ------------------------------ | ---------------------------------------------- |
-| `src/yjs/useRoom.ts`           | 模式切换、enterCombat/exitCombat、外部变更同步 |
-| `src/yjs/useScenes.ts`         | 场景 CRUD、子 Map 自动创建、排序               |
-| `src/combat/useSceneTokens.ts` | Token CRUD、gmOnly 过滤                        |
-| `src/entities/useEntities.ts`  | 三源 Entity CRUD、promoteToGM                  |
-| `src/showcase/useShowcase.ts`  | Showcase CRUD、pin/unpin                       |
-| `src/dock/useHandoutAssets.ts` | Handout CRUD                                   |
+| 文件/模块                     | 关键场景                                  |
+| ----------------------------- | ----------------------------------------- |
+| `src/stores/worldStore.ts`    | 场景 CRUD、实体 CRUD、Socket 事件处理     |
+| `src/stores/identityStore.ts` | 座位认领、角色切换                        |
+| `server/routes/entities.ts`   | Entity CRUD、lifecycle 约束、CASCADE 删除 |
+| `server/routes/tactical.ts`   | tactical_state CRUD、token 放置/移除      |
+| `server/routes/archives.ts`   | Archive save/load、snapshot 策略          |
 
 ### P2：暂不测试
 
 | 类别                             | 原因                                         |
 | -------------------------------- | -------------------------------------------- |
 | React 组件渲染                   | 全内联样式 + 复杂指针事件，mock 成本高收益低 |
-| E2E 测试                         | 需启动服务器 + 多浏览器，留到 Milestone 5    |
-| Server API                       | 需重构 server/index.mjs 分离 app             |
-| useYjsConnection                 | 15 行代码，失败时界面直观可见                |
+| E2E 测试                         | 需启动服务器 + 多浏览器，留到后续阶段        |
 | uploadAsset / getMediaDimensions | I/O 函数，逻辑简单                           |
 
 ---
@@ -113,14 +112,14 @@ expect(handleClick).toHaveBeenCalled()
 src/
 ├── __test-utils__/
 │   ├── setup.ts           # jest-dom 扩展
-│   ├── fixtures.ts        # makeEntity(), makeToken(), makeSeat() 工厂
-│   └── yjs-helpers.ts     # createTestDoc() 内存 Y.Doc
+│   └── fixtures.ts        # makeEntity(), makeToken(), makeSeat() 工厂
 ├── shared/__tests__/      # 纯函数测试
 ├── combat/__tests__/      # 战斗逻辑测试
-├── entities/__tests__/    # 实体 Hook 测试
-├── yjs/__tests__/         # 房间/场景 Hook 测试
-├── showcase/__tests__/    # 展示 Hook 测试
-└── dock/__tests__/        # 底栏 Hook 测试
+├── stores/__tests__/      # Store 集成测试
+└── rules/__tests__/       # 规则插件测试
+
+server/
+└── __tests__/             # 服务端路由测试
 ```
 
 ---
@@ -128,8 +127,10 @@ src/
 ## 关键技术要点
 
 - **骰子随机性**：用 `vi.spyOn(Math, 'random')` 控制返回值，或断言结果范围
-- **Yjs 不需网络**：直接创建 Y.Doc，observe 回调在 transact() 内同步触发
+- **zustand store 测试**：直接 `getState()` / `setState()` 操作，mock `api` 模块的 HTTP 调用
+- **Socket.io 事件测试**：mock `socket.on` / `socket.emit`，验证 store 响应
 - **sessionStorage**：jsdom 中可用，测试前 `sessionStorage.clear()`
 - **import.meta.env.DEV**：Vitest 自动提供 Vite 的 env 变量
 - **crypto.randomUUID()**：Node.js 22 下全局可用，无需 polyfill
 - **DOMRect mock**：`{ left, top } as DOMRect`
+- **服务端测试**：使用 supertest，`server/index.ts` 中 `app` 已导出

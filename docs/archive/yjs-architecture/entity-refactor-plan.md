@@ -16,12 +16,12 @@
 
 15 tasks across 4 phases:
 
-| Phase | Tasks | What |
-|-------|-------|------|
-| 1. Types | 1-2 | New interfaces, permission helpers |
-| 2. Data layer | 3-6 | useWorld, useEntities, useSceneTokens, migration of useRoom/useScenes |
-| 3. UI migration | 7-12 | App.tsx, PortraitBar, combat, character panels, chat, dock |
-| 4. Cleanup | 13-15 | Delete old code, update RuleSystem, verify build |
+| Phase           | Tasks | What                                                                  |
+| --------------- | ----- | --------------------------------------------------------------------- |
+| 1. Types        | 1-2   | New interfaces, permission helpers                                    |
+| 2. Data layer   | 3-6   | useWorld, useEntities, useSceneTokens, migration of useRoom/useScenes |
+| 3. UI migration | 7-12  | App.tsx, PortraitBar, combat, character panels, chat, dock            |
+| 4. Cleanup      | 13-15 | Delete old code, update RuleSystem, verify build                      |
 
 Each task ends with `npx tsc --noEmit` (type-check) and, where applicable, `npm run build` (full build). No test framework exists in this project; verification is type-checking + manual browser testing.
 
@@ -30,6 +30,7 @@ Each task ends with `npx tsc --noEmit` (type-check) and, where applicable, `npm 
 ### Task 1: Entity type definitions
 
 **Files:**
+
 - Create: `src/shared/entityTypes.ts`
 - Create: `src/shared/permissions.ts`
 
@@ -129,6 +130,7 @@ git commit -m "feat: add Entity type definitions and permission helpers"
 ### Task 2: useWorld hook — nested Y.Map structure
 
 **Files:**
+
 - Create: `src/yjs/useWorld.ts`
 
 **Step 1: Create useWorld.ts**
@@ -215,6 +217,7 @@ git commit -m "feat: add useWorld hook for nested Y.Map structure"
 ### Task 3: useEntities hook — entity CRUD across containers
 
 **Files:**
+
 - Create: `src/entities/useEntities.ts`
 
 **Step 1: Create useEntities.ts**
@@ -240,7 +243,10 @@ function readYMapEntity(yMap: Y.Map<unknown>): Entity {
     blueprintId: yMap.get('blueprintId') as string | undefined,
     notes: (yMap.get('notes') as string) ?? '',
     ruleData: yMap.get('ruleData') ?? null,
-    permissions: (yMap.get('permissions') as Entity['permissions']) ?? { default: 'observer', seats: {} },
+    permissions: (yMap.get('permissions') as Entity['permissions']) ?? {
+      default: 'observer',
+      seats: {},
+    },
   }
 }
 
@@ -338,108 +344,129 @@ export function useEntities(world: WorldMaps, currentSceneId: string | null, yDo
   // --- CRUD ---
 
   /** Add PC to party (nested Y.Map) */
-  const addPartyEntity = useCallback((entity: Entity) => {
-    yDoc.transact(() => {
-      const yMap = new Y.Map<unknown>()
-      world.party.set(entity.id, yMap)
-      setYMapFields(yMap, entity)
-    })
-  }, [world, yDoc])
+  const addPartyEntity = useCallback(
+    (entity: Entity) => {
+      yDoc.transact(() => {
+        const yMap = new Y.Map<unknown>()
+        world.party.set(entity.id, yMap)
+        setYMapFields(yMap, entity)
+      })
+    },
+    [world, yDoc],
+  )
 
   /** Add NPC to current scene (plain object) */
-  const addSceneEntity = useCallback((entity: Entity, sceneId?: string) => {
-    const targetSceneId = sceneId ?? currentSceneId
-    if (!targetSceneId) return
-    const sceneMap = world.scenes.get(targetSceneId)
-    if (!(sceneMap instanceof Y.Map)) return
-    const sceneEntities = sceneMap.get('entities') as Y.Map<Entity> | undefined
-    if (sceneEntities instanceof Y.Map) {
-      sceneEntities.set(entity.id, entity)
-    }
-  }, [world, currentSceneId])
+  const addSceneEntity = useCallback(
+    (entity: Entity, sceneId?: string) => {
+      const targetSceneId = sceneId ?? currentSceneId
+      if (!targetSceneId) return
+      const sceneMap = world.scenes.get(targetSceneId)
+      if (!(sceneMap instanceof Y.Map)) return
+      const sceneEntities = sceneMap.get('entities') as Y.Map<Entity> | undefined
+      if (sceneEntities instanceof Y.Map) {
+        sceneEntities.set(entity.id, entity)
+      }
+    },
+    [world, currentSceneId],
+  )
 
   /** Add entity to prepared (plain object) */
-  const addPreparedEntity = useCallback((entity: Entity) => {
-    world.prepared.set(entity.id, entity)
-  }, [world])
+  const addPreparedEntity = useCallback(
+    (entity: Entity) => {
+      world.prepared.set(entity.id, entity)
+    },
+    [world],
+  )
 
   /** Update entity (auto-detects source) */
-  const updateEntity = useCallback((id: string, updates: Partial<Entity>) => {
-    // Check party first (nested Y.Map)
-    const partyYMap = world.party.get(id)
-    if (partyYMap instanceof Y.Map) {
-      yDoc.transact(() => {
-        for (const [key, value] of Object.entries(updates)) {
-          partyYMap.set(key, value)
-        }
-      })
-      return
-    }
+  const updateEntity = useCallback(
+    (id: string, updates: Partial<Entity>) => {
+      // Check party first (nested Y.Map)
+      const partyYMap = world.party.get(id)
+      if (partyYMap instanceof Y.Map) {
+        yDoc.transact(() => {
+          for (const [key, value] of Object.entries(updates)) {
+            partyYMap.set(key, value)
+          }
+        })
+        return
+      }
 
-    // Check prepared
-    const preparedEntity = world.prepared.get(id) as Entity | undefined
-    if (preparedEntity) {
-      world.prepared.set(id, { ...preparedEntity, ...updates })
-      return
-    }
+      // Check prepared
+      const preparedEntity = world.prepared.get(id) as Entity | undefined
+      if (preparedEntity) {
+        world.prepared.set(id, { ...preparedEntity, ...updates })
+        return
+      }
 
-    // Check current scene
-    if (currentSceneId) {
-      const sceneMap = world.scenes.get(currentSceneId)
-      if (sceneMap instanceof Y.Map) {
-        const sceneEntities = sceneMap.get('entities') as Y.Map<Entity> | undefined
-        if (sceneEntities instanceof Y.Map) {
-          const existing = sceneEntities.get(id)
-          if (existing) {
-            sceneEntities.set(id, { ...existing, ...updates })
-            return
+      // Check current scene
+      if (currentSceneId) {
+        const sceneMap = world.scenes.get(currentSceneId)
+        if (sceneMap instanceof Y.Map) {
+          const sceneEntities = sceneMap.get('entities') as Y.Map<Entity> | undefined
+          if (sceneEntities instanceof Y.Map) {
+            const existing = sceneEntities.get(id)
+            if (existing) {
+              sceneEntities.set(id, { ...existing, ...updates })
+              return
+            }
           }
         }
       }
-    }
-  }, [world, currentSceneId, yDoc])
+    },
+    [world, currentSceneId, yDoc],
+  )
 
   /** Delete entity from wherever it lives */
-  const deleteEntity = useCallback((id: string) => {
-    if (world.party.has(id)) {
-      world.party.delete(id)
-      return
-    }
-    if (world.prepared.has(id)) {
-      world.prepared.delete(id)
-      return
-    }
-    if (currentSceneId) {
-      const sceneMap = world.scenes.get(currentSceneId)
-      if (sceneMap instanceof Y.Map) {
-        const sceneEntities = sceneMap.get('entities') as Y.Map<Entity> | undefined
-        if (sceneEntities instanceof Y.Map && sceneEntities.has(id)) {
-          sceneEntities.delete(id)
+  const deleteEntity = useCallback(
+    (id: string) => {
+      if (world.party.has(id)) {
+        world.party.delete(id)
+        return
+      }
+      if (world.prepared.has(id)) {
+        world.prepared.delete(id)
+        return
+      }
+      if (currentSceneId) {
+        const sceneMap = world.scenes.get(currentSceneId)
+        if (sceneMap instanceof Y.Map) {
+          const sceneEntities = sceneMap.get('entities') as Y.Map<Entity> | undefined
+          if (sceneEntities instanceof Y.Map && sceneEntities.has(id)) {
+            sceneEntities.delete(id)
+          }
         }
       }
-    }
-  }, [world, currentSceneId])
+    },
+    [world, currentSceneId],
+  )
 
   /** Get entity by ID */
-  const getEntity = useCallback((id: string | null): Entity | null => {
-    if (!id) return null
-    return entities.find(e => e.id === id) ?? null
-  }, [entities])
+  const getEntity = useCallback(
+    (id: string | null): Entity | null => {
+      if (!id) return null
+      return entities.find((e) => e.id === id) ?? null
+    },
+    [entities],
+  )
 
   /** Promote entity from scene to prepared (GM collection) */
-  const promoteToGM = useCallback((id: string) => {
-    if (!currentSceneId) return
-    const sceneMap = world.scenes.get(currentSceneId)
-    if (!(sceneMap instanceof Y.Map)) return
-    const sceneEntities = sceneMap.get('entities') as Y.Map<Entity> | undefined
-    if (!(sceneEntities instanceof Y.Map)) return
-    const entity = sceneEntities.get(id)
-    if (!entity) return
-    yDoc.transact(() => {
-      world.prepared.set(id, entity)
-      sceneEntities.delete(id)
-    })
-  }, [world, currentSceneId, yDoc])
+  const promoteToGM = useCallback(
+    (id: string) => {
+      if (!currentSceneId) return
+      const sceneMap = world.scenes.get(currentSceneId)
+      if (!(sceneMap instanceof Y.Map)) return
+      const sceneEntities = sceneMap.get('entities') as Y.Map<Entity> | undefined
+      if (!(sceneEntities instanceof Y.Map)) return
+      const entity = sceneEntities.get(id)
+      if (!entity) return
+      yDoc.transact(() => {
+        world.prepared.set(id, entity)
+        sceneEntities.delete(id)
+      })
+    },
+    [world, currentSceneId, yDoc],
+  )
 
   return {
     entities: entities as Entity[],
@@ -471,6 +498,7 @@ git commit -m "feat: add useEntities hook with multi-container entity management
 ### Task 4: useSceneTokens hook — per-scene token management
 
 **Files:**
+
 - Create: `src/combat/useSceneTokens.ts`
 
 **Step 1: Create useSceneTokens.ts**
@@ -503,7 +531,7 @@ export function useSceneTokens(world: WorldMaps, sceneId: string | null, yDoc: Y
     }
     const read = () => {
       const result: MapToken[] = []
-      tokensMap.forEach(t => result.push(t))
+      tokensMap.forEach((t) => result.push(t))
       setTokens(result)
     }
     read()
@@ -511,26 +539,38 @@ export function useSceneTokens(world: WorldMaps, sceneId: string | null, yDoc: Y
     return () => tokensMap.unobserve(read)
   }, [tokensMap])
 
-  const addToken = useCallback((token: MapToken) => {
-    tokensMap?.set(token.id, token)
-  }, [tokensMap])
+  const addToken = useCallback(
+    (token: MapToken) => {
+      tokensMap?.set(token.id, token)
+    },
+    [tokensMap],
+  )
 
-  const updateToken = useCallback((id: string, updates: Partial<MapToken>) => {
-    if (!tokensMap) return
-    const existing = tokensMap.get(id)
-    if (existing) {
-      tokensMap.set(id, { ...existing, ...updates })
-    }
-  }, [tokensMap])
+  const updateToken = useCallback(
+    (id: string, updates: Partial<MapToken>) => {
+      if (!tokensMap) return
+      const existing = tokensMap.get(id)
+      if (existing) {
+        tokensMap.set(id, { ...existing, ...updates })
+      }
+    },
+    [tokensMap],
+  )
 
-  const deleteToken = useCallback((id: string) => {
-    tokensMap?.delete(id)
-  }, [tokensMap])
+  const deleteToken = useCallback(
+    (id: string) => {
+      tokensMap?.delete(id)
+    },
+    [tokensMap],
+  )
 
-  const getToken = useCallback((id: string | null): MapToken | null => {
-    if (!id || !tokensMap) return null
-    return tokensMap.get(id) ?? null
-  }, [tokensMap])
+  const getToken = useCallback(
+    (id: string | null): MapToken | null => {
+      if (!id || !tokensMap) return null
+      return tokensMap.get(id) ?? null
+    },
+    [tokensMap],
+  )
 
   return { tokens, addToken, updateToken, deleteToken, getToken }
 }
@@ -553,6 +593,7 @@ git commit -m "feat: add useSceneTokens hook for per-scene token management"
 ### Task 5: Migrate useRoom to use world.room
 
 **Files:**
+
 - Modify: `src/yjs/useRoom.ts`
 
 **Step 1: Update useRoom to accept world.room Y.Map instead of yDoc**
@@ -560,12 +601,14 @@ git commit -m "feat: add useSceneTokens hook for per-scene token management"
 Change the hook signature from `useRoom(yDoc)` to `useRoom(yRoom: Y.Map<unknown>)`. This decouples it from the top-level Y.Doc and works with the nested structure.
 
 Current (line 18-19):
+
 ```typescript
 export function useRoom(yDoc: Y.Doc) {
   const yRoom = yDoc.getMap<unknown>('room')
 ```
 
 Replace with:
+
 ```typescript
 export function useRoom(yRoom: Y.Map<unknown>) {
 ```
@@ -591,6 +634,7 @@ git commit -m "refactor: useRoom accepts Y.Map instead of yDoc"
 ### Task 6: Migrate useScenes + scene helper for nested structure
 
 **Files:**
+
 - Modify: `src/yjs/useScenes.ts`
 
 **Step 1: Update useScenes to work with world.scenes**
@@ -602,6 +646,7 @@ Scene config fields (name, imageUrl, gridSize, etc.) are now stored as individua
 Also, when creating a scene, initialize the nested `entities` and `tokens` Y.Maps.
 
 Key changes:
+
 - `addScene` must create a Y.Map with config fields + nested entities/tokens Y.Maps in a transaction
 - `updateScene` must set individual keys on the scene Y.Map
 - `deleteScene` is simply `yScenes.delete(id)`
@@ -686,6 +731,7 @@ git commit -m "refactor: useScenes works with nested Y.Map scene structure"
 ### Task 7: Migrate useIdentity to use world.seats
 
 **Files:**
+
 - Modify: `src/identity/useIdentity.ts`
 
 **Step 1: Update useIdentity signature**
@@ -712,6 +758,7 @@ git commit -m "refactor: useIdentity accepts Y.Map instead of yDoc"
 ### Task 8: Rewire App.tsx — connect new hooks
 
 **Files:**
+
 - Modify: `src/App.tsx`
 
 This is the critical integration task. Replace all old hook calls with the new world-based hooks.
@@ -746,7 +793,7 @@ Replace `Character` creation with `Entity` creation using `addPartyEntity`:
 ```typescript
 useEffect(() => {
   if (!mySeat || !mySeatId) return
-  const hasPC = entities.some(e => {
+  const hasPC = entities.some((e) => {
     const perm = e.permissions.seats[mySeatId]
     return perm === 'owner'
   })
@@ -765,6 +812,7 @@ Actually per the design doc: "不自动创建角色" — remove auto-create enti
 Replace `characters` prop passing with `entities`. Replace `Character` type references with `Entity`. Replace `getCharacter` with `getEntity`.
 
 Key changes:
+
 - `PortraitBar`: `entities` instead of `characters`
 - `MyCharacterCard`: `entity` instead of `character` (rename prop)
 - `CombatViewer`: `getEntity` instead of `getCharacter`
@@ -798,6 +846,7 @@ git commit -m "refactor: App.tsx uses world-based hooks and Entity model"
 ### Task 9: Migrate PortraitBar to Entity
 
 **Files:**
+
 - Modify: `src/layout/PortraitBar.tsx`
 
 **Step 1: Update props interface**
@@ -806,14 +855,15 @@ Replace `Character` with `Entity` in all props. Replace permission checks:
 
 ```typescript
 // Old:
-const featuredChars = characters.filter(c => c.type === 'pc' || (c.type === 'npc' && c.featured))
+const featuredChars = characters.filter((c) => c.type === 'pc' || (c.type === 'npc' && c.featured))
 
 // New (all entities visible to this seat are shown):
 import { canSee } from '../shared/permissions'
-const visibleEntities = entities.filter(e => canSee(e, mySeatId, role))
+const visibleEntities = entities.filter((e) => canSee(e, mySeatId, role))
 ```
 
 Replace ownership checks:
+
 ```typescript
 // Old:
 if (char.type === 'pc' && char.seatId === mySeatId)
@@ -829,7 +879,9 @@ Since resources/statuses now live in `ruleData`, the PortraitBar needs a tempora
 
 ```typescript
 // Temporary adapter until RuleSystem is implemented
-function getEntityResources(entity: Entity): { key: string; current: number; max: number; color: string }[] {
+function getEntityResources(
+  entity: Entity,
+): { key: string; current: number; max: number; color: string }[] {
   const rd = entity.ruleData as any
   if (!rd?.resources) return []
   if (Array.isArray(rd.resources)) return rd.resources
@@ -866,6 +918,7 @@ git commit -m "refactor: PortraitBar uses Entity model with permission checks"
 ### Task 10: Migrate combat components to Entity + MapToken
 
 **Files:**
+
 - Modify: `src/combat/CombatViewer.tsx`
 - Modify: `src/combat/TokenLayer.tsx`
 - Modify: `src/combat/MapToken.tsx`
@@ -880,6 +933,7 @@ Replace `CombatToken` with `MapToken`.
 **Step 2: Update TokenLayer**
 
 Replace character lookup:
+
 ```typescript
 // Old:
 const char = getCharacter(t.characterId)
@@ -889,9 +943,11 @@ const entity = t.entityId ? getEntity(t.entityId) : null
 ```
 
 Replace visibility check:
+
 ```typescript
 // Old:
-if (role === 'GM') return true; return !t.gmOnly
+if (role === 'GM') return true
+return !t.gmOnly
 
 // New:
 if (role === 'GM') return true
@@ -904,6 +960,7 @@ return true
 ```
 
 Replace drag permission:
+
 ```typescript
 // Old:
 canDragToken(role, char.seatId ?? null, mySeatId)
@@ -940,6 +997,7 @@ git commit -m "refactor: combat components use Entity + MapToken model"
 ### Task 11: Migrate character panels to Entity
 
 **Files:**
+
 - Modify: `src/layout/MyCharacterCard.tsx`
 - Modify: `src/layout/CharacterEditPanel.tsx`
 - Modify: `src/layout/CharacterHoverPreview.tsx`
@@ -992,6 +1050,7 @@ Use this in all panels instead of direct `character.resources` etc.
 **Step 3: Update resource/attribute/status editing**
 
 When updating resources, attributes, or statuses, write back to ruleData:
+
 ```typescript
 // Old:
 onUpdateCharacter(character.id, { resources: newResources })
@@ -1025,6 +1084,7 @@ git commit -m "refactor: character panels use Entity model with ruleData adapter
 ### Task 12: Migrate ChatPanel + BottomDock
 
 **Files:**
+
 - Modify: `src/chat/ChatPanel.tsx`
 - Modify: `src/dock/BottomDock.tsx`
 - Modify: `src/dock/TokenDockTab.tsx`
@@ -1053,6 +1113,7 @@ Replace `characters: Character[]` with `entities: Entity[]`.
 Replace `onAddCharacter` with `onAddSceneEntity`.
 
 Update `createCharFromBlueprint` to create Entity:
+
 ```typescript
 const createEntityFromBlueprint = (bp: Blueprint, sceneId: string): Entity => {
   const name = nextNpcName(bp.name, entities, bp.id)
@@ -1075,8 +1136,12 @@ const createEntityFromBlueprint = (bp: Blueprint, sceneId: string): Entity => {
 Rename to `entityUtils.ts` or update `nextNpcName` to work with Entity[]:
 
 ```typescript
-export function nextNpcName(baseName: string, existingEntities: Entity[], blueprintId: string): string {
-  const siblings = existingEntities.filter(e => e.blueprintId === blueprintId)
+export function nextNpcName(
+  baseName: string,
+  existingEntities: Entity[],
+  blueprintId: string,
+): string {
+  const siblings = existingEntities.filter((e) => e.blueprintId === blueprintId)
   // ... same logic
 }
 ```
@@ -1101,6 +1166,7 @@ git commit -m "refactor: ChatPanel and BottomDock use Entity model"
 ### Task 13: Delete old code
 
 **Files:**
+
 - Delete: `src/shared/characterTypes.ts`
 - Delete: `src/characters/useCharacters.ts`
 - Delete: `src/combat/useCombatTokens.ts`
@@ -1137,6 +1203,7 @@ git commit -m "chore: remove old Character/CombatToken types and hooks"
 ### Task 14: Update RuleSystem interface
 
 **Files:**
+
 - Modify: `src/rules/types.ts`
 
 **Step 1: Update to use Entity instead of Character**
@@ -1164,14 +1231,20 @@ export interface RuleSystem {
   name: string
   // Adapter methods for generic UI
   getMainResource(entity: Entity): { current: number; max: number } | null
-  getPortraitResources(entity: Entity): { label: string; current: number; max: number; color: string }[]
+  getPortraitResources(
+    entity: Entity,
+  ): { label: string; current: number; max: number; color: string }[]
   getFormulaTokens(entity: Entity): Record<string, number>
   getStatuses(entity: Entity): { label: string }[]
   // Rule-specific UI
   EntityCard: React.ComponentType<EntityCardProps>
   // Dice
   getRollActions(entity: Entity): RollAction[]
-  evaluateRoll(termResults: DiceTermResult[], total: number, context: RollContext): JudgmentResult | null
+  evaluateRoll(
+    termResults: DiceTermResult[],
+    total: number,
+    context: RollContext,
+  ): JudgmentResult | null
   getDieStyles(termResults: DiceTermResult[]): DieStyle[]
   getJudgmentDisplay(result: JudgmentResult): JudgmentDisplay
   getModifierOptions(): ModifierOption[]
@@ -1213,6 +1286,7 @@ npm run dev
 ```
 
 Open browser, create a new room, verify:
+
 - [ ] Can create a seat and join
 - [ ] Scene switching works
 - [ ] Can add blueprints to token library

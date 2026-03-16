@@ -15,6 +15,7 @@
 ## File Map
 
 ### Created
+
 - `src/rules/sdk.ts` — re-exports from `types.ts` + utility hook re-exports; the only legal import path for plugins
 - `src/rules/registry.ts` — `getRulePlugin(id)` + plugin registration; only base file that knows about `plugins/`
 - `src/rules/useRulePlugin.ts` — React hook returning the active `RulePlugin` for the current room
@@ -24,6 +25,7 @@
 - `docs/superpowers/plans/2026-03-15-rule-plugin-system.md` — this file
 
 ### Modified
+
 - `src/rules/types.ts` — full replacement: `RuleSystem` → `RulePlugin` + new supporting types
 - `src/shared/entityAdapters.ts` — import `ResourceView`/`StatusView` from `src/rules/types.ts`
 - `src/layout/CharacterEditPanel.tsx` — make `onClose` optional (hide X when undefined)
@@ -35,6 +37,7 @@
 - `vite.config.ts` — add `resolve.alias` for `@myvtt/sdk`
 
 ### NOT touched in this PR
+
 - `src/combat/KonvaToken.tsx` — defer to after `feat/tactical-ui-refactor` merges
 - `src/combat/KonvaMap.tsx` — same reason
 - Any DaggerHeart plugin files — separate future PR
@@ -74,8 +77,8 @@ export interface StatusView {
 
 export interface RollAction {
   id: string
-  name: string        // "Agility Check"
-  formula: string     // "2d12+@Agility"
+  name: string // "Agility Check"
+  formula: string // "2d12+@Agility"
   category?: string
   targetAttributeKey?: string
 }
@@ -151,9 +154,9 @@ export interface TeamPanelProps {
 
 /** Preset content bundled with the plugin (not stored in DB until GM imports it) */
 export interface PresetTemplate {
-  id: string            // namespace ID e.g. 'dh:corrupt-elf-archer'
+  id: string // namespace ID e.g. 'dh:corrupt-elf-archer'
   name: string
-  category: string      // 'adversary' | 'pc-archetype' | ...
+  category: string // 'adversary' | 'pc-archetype' | ...
   data: Partial<Entity>
 }
 
@@ -169,12 +172,7 @@ export interface GMTabDef {
   component: React.ComponentType
 }
 
-export type HideableElement =
-  | 'dock'
-  | 'portrait-bar'
-  | 'chat-panel'
-  | 'gm-panel'
-  | 'scene-controls'
+export type HideableElement = 'dock' | 'portrait-bar' | 'chat-panel' | 'gm-panel' | 'scene-controls'
 
 // ── RulePlugin — the main interface ────────────────────────────────────────
 
@@ -199,11 +197,7 @@ export interface RulePlugin {
   // Layer 3: Dice system (optional)
   diceSystem?: {
     getRollActions(entity: Entity): RollAction[]
-    evaluateRoll(
-      terms: DiceTermResult[],
-      total: number,
-      ctx: RollContext,
-    ): JudgmentResult | null
+    evaluateRoll(terms: DiceTermResult[], total: number, ctx: RollContext): JudgmentResult | null
     getDieStyles(terms: DiceTermResult[]): DieStyle[]
     getJudgmentDisplay(result: JudgmentResult): JudgmentDisplay
     getModifierOptions(): ModifierOption[]
@@ -232,20 +226,24 @@ export interface RulePlugin {
 ```
 
 - [ ] **Step 2: Verify TypeScript compiles**
+
 ```bash
 cd .worktrees/feat/rule-plugin-system
 npx tsc --noEmit 2>&1 | head -30
 ```
+
 Expected: no new errors from this file. `DiceTermResult` is already in `src/shared/diceUtils.ts`. If `TeamTracker` is not exported from `worldStore.ts`, check in Step 3 and add the export if missing.
 
 - [ ] **Step 3: Fix any import errors in the new types.ts**
 
 If `TeamTracker` is not exported from `worldStore.ts`, extract it to a shared location or use `import type` with correct path. Check:
+
 ```bash
 grep -n "export.*TeamTracker" src/stores/worldStore.ts
 ```
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git add src/rules/types.ts
 git commit -m "refactor: replace RuleSystem with RulePlugin interface"
@@ -294,12 +292,15 @@ export { useAwarenessResource } from '../shared/hooks/useAwarenessResource'
 ```
 
 - [ ] **Step 2: Verify no TypeScript errors**
+
 ```bash
 npx tsc --noEmit 2>&1 | grep "sdk.ts" | head -20
 ```
+
 Expected: no errors
 
 - [ ] **Step 3: Commit**
+
 ```bash
 git add src/rules/sdk.ts
 git commit -m "feat: add SDK boundary file for plugin imports"
@@ -344,6 +345,7 @@ export function getRulePlugin(_id: string): RulePlugin {
 ```
 
 - [ ] **Step 2: Commit (placeholder)**
+
 ```bash
 git add src/rules/registry.ts
 git commit -m "feat: add plugin registry (placeholder, wired in Task 9)"
@@ -369,17 +371,21 @@ export function useRulePlugin(): RulePlugin {
   // ruleSystemId will be added to RoomState in Task 8.
   // Room state is nested under s.room — see worldStore RoomState type.
   // Fall back to 'generic' until the store field exists.
-  const ruleSystemId = useWorldStore((s) => (s.room as Record<string, unknown>).ruleSystemId as string | undefined) ?? 'generic'
+  const ruleSystemId =
+    useWorldStore((s) => (s.room as Record<string, unknown>).ruleSystemId as string | undefined) ??
+    'generic'
   return getRulePlugin(ruleSystemId)
 }
 ```
 
 After Task 6 adds `ruleSystemId` to `RoomState`, simplify to:
+
 ```typescript
 const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
 ```
 
 - [ ] **Step 2: Commit**
+
 ```bash
 git add src/rules/useRulePlugin.ts
 git commit -m "feat: add useRulePlugin hook"
@@ -440,12 +446,15 @@ export default defineConfig(({ mode }) => {
 ```
 
 - [ ] **Step 3: Verify TypeScript sees the alias**
+
 ```bash
 npx tsc --noEmit 2>&1 | head -30
 ```
+
 Expected: no new errors from the alias config
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git add tsconfig.app.json vite.config.ts
 git commit -m "chore: add @myvtt/sdk path alias and plugins/ include"
@@ -460,6 +469,7 @@ git commit -m "chore: add @myvtt/sdk path alias and plugins/ include"
 **Files:** `server/schema.ts`
 
 - [ ] **Step 1: Read current `room_state` definition**
+
 ```bash
 grep -A 6 "CREATE TABLE IF NOT EXISTS room_state" server/schema.ts
 ```
@@ -486,19 +496,26 @@ Note: SQLite doesn't support `IF NOT EXISTS` in `ALTER TABLE ADD COLUMN`. Wrap i
 ```typescript
 try {
   db.exec(`ALTER TABLE room_state ADD COLUMN rule_system_id TEXT NOT NULL DEFAULT 'generic'`)
-} catch { /* column already exists */ }
+} catch {
+  /* column already exists */
+}
 try {
   db.exec(`ALTER TABLE room_state ADD COLUMN plugin_config TEXT NOT NULL DEFAULT '{}'`)
-} catch { /* column already exists */ }
+} catch {
+  /* column already exists */
+}
 ```
 
 - [ ] **Step 3: Run server tests to verify schema still works**
+
 ```bash
 npm test -- server/__tests__/routes.test.ts --reporter=verbose 2>&1 | tail -20
 ```
+
 Expected: all pass
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git add server/schema.ts
 git commit -m "feat: add rule_system_id and plugin_config to room_state schema"
@@ -511,6 +528,7 @@ git commit -m "feat: add rule_system_id and plugin_config to room_state schema"
 **Files:** `server/routes/state.ts`
 
 - [ ] **Step 1: Read current `fieldMap`**
+
 ```bash
 cat server/routes/state.ts
 ```
@@ -522,7 +540,7 @@ const fieldMap: Record<string, string> = {
   activeSceneId: 'active_scene_id',
   activeArchiveId: 'active_archive_id',
   tacticalMode: 'tactical_mode',
-  ruleSystemId: 'rule_system_id',   // ADD
+  ruleSystemId: 'rule_system_id', // ADD
   // pluginConfig intentionally NOT added here — it's stored in DB but not yet
   // consumed by the store (no RoomState.pluginConfig field). Add when needed.
 }
@@ -533,12 +551,15 @@ const fieldMap: Record<string, string> = {
 Start the dev server briefly or just check that the `toCamel` function will map snake_case to camelCase properly (it already does this generically).
 
 - [ ] **Step 4: Run state-related server tests**
+
 ```bash
 npm test -- server/__tests__/routes.test.ts --reporter=verbose 2>&1 | grep -E "state|PASS|FAIL"
 ```
+
 Expected: all pass
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git add server/routes/state.ts
 git commit -m "feat: expose ruleSystemId in state route"
@@ -559,9 +580,9 @@ Read the current `RoomState` definition first (`grep -n "RoomState" src/stores/w
 ```typescript
 export interface RoomState {
   activeSceneId: string | null
-  activeArchiveId: string | null   // renamed from activeEncounterId in PR B
-  tacticalMode: number             // added in PR B — SQLite INTEGER (0/1), NOT boolean
-  ruleSystemId: string             // ADD — defaults to 'generic'
+  activeArchiveId: string | null // renamed from activeEncounterId in PR B
+  tacticalMode: number // added in PR B — SQLite INTEGER (0/1), NOT boolean
+  ruleSystemId: string // ADD — defaults to 'generic'
 }
 ```
 
@@ -598,18 +619,23 @@ export function useRulePlugin(): RulePlugin {
 ```
 
 - [ ] **Step 4: Run TypeScript check**
+
 ```bash
 npx tsc --noEmit 2>&1 | head -30
 ```
+
 Expected: no new errors
 
 - [ ] **Step 5: Run store tests**
+
 ```bash
 npm test -- src/stores/__tests__/ --reporter=verbose 2>&1 | tail -20
 ```
+
 Expected: all pass (existing tests don't test ruleSystemId)
 
 - [ ] **Step 6: Commit**
+
 ```bash
 git add src/stores/worldStore.ts src/rules/useRulePlugin.ts
 git commit -m "feat: add ruleSystemId to RoomState and worldStore"
@@ -635,27 +661,31 @@ In `src/layout/CharacterEditPanel.tsx`, update the props interface:
 interface CharacterEditPanelProps {
   character: Entity
   onUpdateCharacter: (id: string, updates: Partial<Entity>) => void
-  onClose?: () => void   // CHANGED: was required, now optional
+  onClose?: () => void // CHANGED: was required, now optional
 }
 ```
 
 And update the close button (line ~601) to only render when `onClose` is defined:
 
 ```tsx
-{onClose && (
-  <button
-    onClick={onClose}
-    className="bg-transparent border-none cursor-pointer text-text-muted/30 p-0.5 leading-none transition-colors duration-fast hover:text-text-muted/70"
-  >
-    <X size={16} strokeWidth={1.5} />
-  </button>
-)}
+{
+  onClose && (
+    <button
+      onClick={onClose}
+      className="bg-transparent border-none cursor-pointer text-text-muted/30 p-0.5 leading-none transition-colors duration-fast hover:text-text-muted/70"
+    >
+      <X size={16} strokeWidth={1.5} />
+    </button>
+  )
+}
 ```
 
 - [ ] **Step 2: Verify TypeScript compiles**
+
 ```bash
 npx tsc --noEmit 2>&1 | grep "CharacterEditPanel" | head -10
 ```
+
 Expected: no errors (callers that pass `onClose` still work; callers that don't pass it now work too)
 
 - [ ] **Step 3: Create `plugins/generic/GenericEntityCard.tsx`**
@@ -688,12 +718,15 @@ export function GenericEntityCard({ entity, onUpdate, readonly }: EntityCardProp
 ```
 
 - [ ] **Step 4: Verify TypeScript compiles**
+
 ```bash
 npx tsc --noEmit 2>&1 | grep -i "generic" | head -10
 ```
+
 Expected: no errors
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git add src/layout/CharacterEditPanel.tsx plugins/generic/GenericEntityCard.tsx
 git commit -m "feat: make CharacterEditPanel.onClose optional; create GenericEntityCard"
@@ -706,6 +739,7 @@ git commit -m "feat: make CharacterEditPanel.onClose optional; create GenericEnt
 **Files:** Create `plugins/generic/index.ts`
 
 - [ ] **Step 1: Check current `entityAdapters.ts` to understand the adapter functions**
+
 ```bash
 cat src/shared/entityAdapters.ts
 ```
@@ -761,12 +795,15 @@ export const genericPlugin: RulePlugin = {
 ```
 
 - [ ] **Step 3: Verify TypeScript compiles**
+
 ```bash
 npx tsc --noEmit 2>&1 | grep -i "plugin" | head -20
 ```
+
 Expected: no errors
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git add plugins/generic/index.ts
 git commit -m "feat: implement generic plugin (fallback rule system)"
@@ -799,9 +836,11 @@ export function getRulePlugin(id: string): RulePlugin {
 ```
 
 - [ ] **Step 2: Run TypeScript check**
+
 ```bash
 npx tsc --noEmit 2>&1 | head -30
 ```
+
 Expected: no errors
 
 - [ ] **Step 3: Write unit tests for the registry**
@@ -892,12 +931,15 @@ describe('genericPlugin adapters', () => {
 ```
 
 - [ ] **Step 4: Run the tests**
+
 ```bash
 npm test -- src/rules/__tests__/registry.test.ts --reporter=verbose
 ```
+
 Expected: all pass
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git add src/rules/registry.ts src/rules/__tests__/registry.test.ts
 git commit -m "feat: wire generic plugin into registry; add registry unit tests"
@@ -910,6 +952,7 @@ git commit -m "feat: wire generic plugin into registry; add registry unit tests"
 **Files:** `src/layout/PortraitBar.tsx`
 
 - [ ] **Step 1: Read the current CharacterEditPanel usage in PortraitBar**
+
 ```bash
 grep -n "CharacterEditPanel\|CharacterDetailPanel\|isLocked\|isEditable" src/layout/PortraitBar.tsx | head -20
 ```
@@ -919,11 +962,13 @@ grep -n "CharacterEditPanel\|CharacterDetailPanel\|isLocked\|isEditable" src/lay
 In `PortraitBar.tsx`:
 
 1. Add import:
+
 ```typescript
 import { useRulePlugin } from '../rules/useRulePlugin'
 ```
 
 2. Inside the component (before any early return), add:
+
 ```typescript
 const plugin = useRulePlugin()
 ```
@@ -931,6 +976,7 @@ const plugin = useRulePlugin()
 3. Replace the `isLocked && isEditable` branch:
 
 **Before:**
+
 ```tsx
 {isLocked ? (
   isEditable ? (
@@ -952,6 +998,7 @@ const plugin = useRulePlugin()
 ```
 
 **After:**
+
 ```tsx
 {isLocked ? (
   (() => {
@@ -972,19 +1019,24 @@ const plugin = useRulePlugin()
 Note: The close button (`onClose={() => onInspectCharacter(null)}`) was inside `CharacterEditPanel` before. After this change, `CharacterEditPanel` has no close button (we made `onClose` optional in Task 9). The close button must now live in `PortraitBar`'s container around the popover. Check if PortraitBar already has a close mechanism for the popover — if so, it will still work. If not, add one.
 
 - [ ] **Step 3: Remove unused imports (if CharacterEditPanel / CharacterDetailPanel are no longer used directly)**
+
 ```bash
 npx tsc --noEmit 2>&1 | grep "PortraitBar" | head -20
 ```
+
 Remove any unused imports that TypeScript flags.
 
 - [ ] **Step 4: Full TypeScript check and run tests**
+
 ```bash
 npx tsc --noEmit 2>&1 | head -30
 npm test -- src/ --reporter=verbose 2>&1 | tail -30
 ```
+
 Expected: all pass; no TS errors
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git add src/layout/PortraitBar.tsx
 git commit -m "feat: wire plugin.characterUI.EntityCard slot in PortraitBar"
@@ -1012,6 +1064,7 @@ export interface ResourceView {
 ```
 
 - [ ] **Step 2: Commit**
+
 ```bash
 git add src/shared/entityAdapters.ts
 git commit -m "docs: clarify entityAdapters.ts is temporary pending plugin migration"
@@ -1022,25 +1075,31 @@ git commit -m "docs: clarify entityAdapters.ts is temporary pending plugin migra
 ### Task 14: Full validation + create PR
 
 - [ ] **Step 1: Run full test suite**
+
 ```bash
 npm test -- --reporter=verbose 2>&1 | tail -40
 ```
+
 Expected: all tests pass
 
 - [ ] **Step 2: Run TypeScript check**
+
 ```bash
 npx tsc --noEmit 2>&1
 ```
+
 Expected: no errors
 
 - [ ] **Step 3: Manual smoke test**
 
 Start the dev server and verify:
+
 1. Open a room — the character cards still appear and work (generic plugin active)
 2. Open browser DevTools → no console errors
 3. `getState().room.ruleSystemId` in console → `"generic"`
 
 - [ ] **Step 4: Push and create PR**
+
 ```bash
 git push -u origin feat/rule-plugin-system
 gh pr create \
@@ -1070,12 +1129,12 @@ EOF
 
 ## Deferred (Future PRs)
 
-| Item | Reason deferred | Depends on |
-|------|----------------|------------|
-| `KonvaToken` adapter wiring | `feat/tactical-ui-refactor` is modifying `KonvaToken.tsx` | PR C merging |
-| DaggerHeart plugin | Separate PR, needs full DH UI design | This PR |
-| `surfaces`/`panels` system | Needs DaggerHeart to validate design | DaggerHeart PR |
-| `usePluginPanels` hook + sdk.ts export | Part of surfaces/panels system | DaggerHeart PR |
-| `hideElements` wiring | Low priority, base UI elements are fine as-is | — |
-| `GenericEntityCard` read-only path | Phase 1 uses `CharacterEditPanel` with empty `onUpdateCharacter` for readonly; a proper `CharacterDetailPanel` wrapper should replace this | — |
-| `pluginConfig` in fieldMap + `RoomState` | Column exists in DB; expose only when a consumer exists | DaggerHeart or room settings PR |
+| Item                                     | Reason deferred                                                                                                                            | Depends on                      |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- |
+| `KonvaToken` adapter wiring              | `feat/tactical-ui-refactor` is modifying `KonvaToken.tsx`                                                                                  | PR C merging                    |
+| DaggerHeart plugin                       | Separate PR, needs full DH UI design                                                                                                       | This PR                         |
+| `surfaces`/`panels` system               | Needs DaggerHeart to validate design                                                                                                       | DaggerHeart PR                  |
+| `usePluginPanels` hook + sdk.ts export   | Part of surfaces/panels system                                                                                                             | DaggerHeart PR                  |
+| `hideElements` wiring                    | Low priority, base UI elements are fine as-is                                                                                              | —                               |
+| `GenericEntityCard` read-only path       | Phase 1 uses `CharacterEditPanel` with empty `onUpdateCharacter` for readonly; a proper `CharacterDetailPanel` wrapper should replace this | —                               |
+| `pluginConfig` in fieldMap + `RoomState` | Column exists in DB; expose only when a consumer exists                                                                                    | DaggerHeart or room settings PR |

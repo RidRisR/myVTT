@@ -48,13 +48,6 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 - Route params in filesystem paths: validated via `app.param('roomId', ...)` middleware
 - multer: `fileFilter` restricts MIME types; asset deletion cleans both SQLite and disk file
 
-## Entity System
-
-- `Entity`: id, name, imageUrl, color, size, notes, ruleData, permissions, lifecycle
-- `sceneEntityEntries`: `{ entityId, visible }[]` (NOT embedded entity data)
-- `lifecycle`: `'ephemeral'` (one-time NPC) / `'reusable'` (library NPC) / `'persistent'` (PC)
-- Entity deletion → tokens degrade to anonymous
-
 ## UI Patterns
 
 - **Tailwind only** — no inline styles (except dynamic runtime values)
@@ -62,24 +55,6 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 - z-index: base(0) → tactical(100) → ui(1000) → popover(5000) → overlay(8000) → modal(9000) → toast(10000)
 - Icons: Lucide React, strokeWidth=1.5, sizes 16/20/24px
 - Themes: Warm (default, amber gold) / Cold (blue)
-
-## State Management
-
-Data flow: **REST API (init) + Socket.io (real-time) → zustand stores → React components**
-
-| Store              | Purpose                                                 |
-| ------------------ | ------------------------------------------------------- |
-| `worldStore.ts`    | REST init + Socket.io events for scenes, entities, room |
-| `uiStore.ts`       | Client-only UI state                                    |
-| `identityStore.ts` | Seat/identity                                           |
-| `assetStore.ts`    | Asset upload/list/delete                                |
-| `selectors.ts`     | Selector functions                                      |
-
-## Server Architecture
-
-- Entry: `server/index.ts` (Express + HTTP + Socket.io)
-- Routes: `server/routes/` (each receives `io` for broadcasting)
-- DB: `server/db.ts` + `server/schema.ts` (per-room `data/rooms/{roomId}/room.db`, WAL mode)
 
 ## Code Quality
 
@@ -97,6 +72,30 @@ Data flow: **REST API (init) + Socket.io (real-time) → zustand stores → Reac
 3. **直觉式交互** — zero learning curve
 
 Target aesthetic: **Alchemy RPG** — dark warm tones, candlelit parchment feel.
+
+## Architecture (details in docs/)
+
+For deeper understanding, read the linked docs. The summaries below help you orient quickly.
+
+| Document                                                      | What it covers                                                           |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [overview](docs/architecture/overview.md)                     | Tech stack, data flow, module map, deployment, Socket.io events          |
+| [data-model](docs/architecture/data-model.md)                 | SQLite schema (13 tables), Entity/Scene/Token types, JSON field strategy |
+| [state-management](docs/architecture/state-management.md)     | 4 zustand stores, Socket.io event handlers, optimistic update rules      |
+| [tactical-system](docs/architecture/tactical-system.md)       | KonvaMap layers, Token drag flow, Archive save/load, enter/exit          |
+| [rule-plugin-system](docs/architecture/rule-plugin-system.md) | RulePlugin 6+1 layer interface, registry, SDK, existing plugins          |
+
+**Quick reference**:
+
+- **Data flow**: REST API (init) + Socket.io (real-time) → zustand stores → React
+- **Stores**: worldStore (core data), identityStore (seats), assetStore (files), uiStore (client UI)
+- **Server**: `server/index.ts` → 11 route modules → `schema.ts` (13 tables) → per-room SQLite
+- **Entity lifecycle**: `'ephemeral'` (one-time NPC) / `'reusable'` (library NPC) / `'persistent'` (PC)
+- **Entity data**: `{ id, name, imageUrl, color, width, height, notes, ruleData, permissions, lifecycle }`
+- **Scene-Entity M2M**: `sceneEntityEntries: { entityId, visible }[]` (NOT embedded entity data)
+- **Entity deletion**: FK `ON DELETE CASCADE` removes related tokens
+- **Rule plugin**: `getRulePlugin(roomState.ruleSystemId)` — base code never imports `plugins/` directly
+- **No auth**: Currently no JWT/identity — `withRole` reads `X-MyVTT-Role` header (spoofable)
 
 ## Documentation Language
 

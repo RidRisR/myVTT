@@ -8,23 +8,23 @@ Daggerheart 是 Darrington Press 发行的叙事向奇幻 TRPG，核心机制是
 
 6 个属性，值域 -1 ~ +2，总和为 +3：
 
-| 属性 | 用途 |
-|------|------|
-| Agility | 敏捷、闪避、反应 |
-| Strength | 力量、近战 |
-| Precision | 精准、远程 |
-| Presence | 气场、社交 |
-| Intuition | 直觉、感知 |
-| Knowledge | 知识、学识 |
+| 属性      | 用途             |
+| --------- | ---------------- |
+| Agility   | 敏捷、闪避、反应 |
+| Strength  | 力量、近战       |
+| Precision | 精准、远程       |
+| Presence  | 气场、社交       |
+| Intuition | 直觉、感知       |
+| Knowledge | 知识、学识       |
 
 ### 资源
 
-| 资源 | 说明 |
-|------|------|
-| HP | 生命值（等级 + 职业决定） |
-| Stress | 压力值（阈值伤害系统） |
-| Armor | 护甲值（减伤） |
-| Hope | 希望 token（可消耗获得加成） |
+| 资源   | 说明                         |
+| ------ | ---------------------------- |
+| HP     | 生命值（等级 + 职业决定）    |
+| Stress | 压力值（阈值伤害系统）       |
+| Armor  | 护甲值（减伤）               |
+| Hope   | 希望 token（可消耗获得加成） |
 
 ### 检定机制
 
@@ -34,24 +34,24 @@ Daggerheart 是 Darrington Press 发行的叙事向奇幻 TRPG，核心机制是
 
 ### 五种结果
 
-| 结果 | 条件 | 叙事效果 |
-|------|------|----------|
-| **大成功** | 双骰相等 | 自动成功 + 获得 Hope + 清除 Stress |
-| **成功 (Hope)** | 总和 ≥ DC 且 Hope > Fear | 干净利落的成功，获得 Hope token |
+| 结果            | 条件                     | 叙事效果                                |
+| --------------- | ------------------------ | --------------------------------------- |
+| **大成功**      | 双骰相等                 | 自动成功 + 获得 Hope + 清除 Stress      |
+| **成功 (Hope)** | 总和 ≥ DC 且 Hope > Fear | 干净利落的成功，获得 Hope token         |
 | **成功 (Fear)** | 总和 ≥ DC 且 Fear > Hope | 成功但有代价/并发症，GM 获得 Fear token |
-| **失败 (Hope)** | 总和 < DC 且 Hope > Fear | 失败但有银线（补偿），获得 Hope token |
-| **失败 (Fear)** | 总和 < DC 且 Fear > Hope | 纯粹的失败，GM 获得 Fear token |
+| **失败 (Hope)** | 总和 < DC 且 Hope > Fear | 失败但有银线（补偿），获得 Hope token   |
+| **失败 (Fear)** | 总和 < DC 且 Fear > Hope | 纯粹的失败，GM 获得 Fear token          |
 
 ### 伤害系统
 
 Daggerheart 的伤害不是直接扣 HP，而是基于阈值：
 
-| 伤害值 | 标记 |
-|--------|------|
-| < Major 阈值 | 1 HP |
+| 伤害值            | 标记 |
+| ----------------- | ---- |
+| < Major 阈值      | 1 HP |
 | ≥ Major, < Severe | 2 HP |
-| ≥ Severe | 3 HP |
-| ≥ 2× Severe | 4 HP |
+| ≥ Severe          | 3 HP |
+| ≥ 2× Severe       | 4 HP |
 
 Major/Severe 阈值 = 基础值 + Armor + 等级。
 
@@ -115,28 +115,25 @@ interface DaggerheartJudgment {
   hopeDie: number
   fearDie: number
   higherDie: 'hope' | 'fear' | 'critical'
-  totalVsDC: 'success' | 'failure' | null  // null if no DC
+  totalVsDC: 'success' | 'failure' | null // null if no DC
   outcome: DaggerheartOutcome
 }
 
 function evaluateDaggerheart(
   termResults: DiceTermResult[],
   total: number,
-  dc?: number
+  dc?: number,
 ): DaggerheartJudgment {
   // 找到 2d12 term 的两个骰子
-  const diceTerm = termResults.find(tr => tr.term.type === 'dice')
+  const diceTerm = termResults.find((tr) => tr.term.type === 'dice')
   const hopeDie = diceTerm?.allRolls[0] ?? 0
   const fearDie = diceTerm?.allRolls[1] ?? 0
 
   // 判断哪个更高
-  const higherDie = hopeDie === fearDie ? 'critical'
-    : hopeDie > fearDie ? 'hope' : 'fear'
+  const higherDie = hopeDie === fearDie ? 'critical' : hopeDie > fearDie ? 'hope' : 'fear'
 
   // 总和 vs DC
-  const totalVsDC = dc != null
-    ? (total >= dc ? 'success' : 'failure')
-    : null
+  const totalVsDC = dc != null ? (total >= dc ? 'success' : 'failure') : null
 
   // 五种结果
   let outcome: DaggerheartOutcome
@@ -236,7 +233,7 @@ getModifierOptions(): ModifierOption[] {
 ### 技术要点
 
 - 组件位于 `src/rules/daggerheart/DaggerheartCard.tsx`
-- 接收 `CharacterCardProps`，通过 `onUpdateCharacter` 写回 Yjs
+- 接收 `EntityCardProps`，通过 `onUpdate` 回调更新 Entity
 - 引用基座组件：`import { ResourceBar } from '../../shared/ui/ResourceBar'`
 - 不包含任何掷骰/判定逻辑，只触发 `onRollAction` 回调
 
