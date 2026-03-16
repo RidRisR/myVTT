@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import type { RefObject } from 'react'
 import {
   MousePointer2,
@@ -14,23 +15,29 @@ import {
 import type { KonvaMapHandle } from './KonvaMap'
 import type { TacticalInfo } from '../stores/worldStore'
 import { useWorldStore } from '../stores/worldStore'
-import { useUiStore, type ActiveTool } from '../stores/uiStore'
+import { useUiStore, isMeasureTool, type MeasureTool } from '../stores/uiStore'
 import { GridConfigPanel } from './tools/GridConfigPanel'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 
 const ICON_SIZE = 16
 const ICON_STROKE = 1.5
 
-interface ToolDef {
-  id: ActiveTool
+interface MeasureToolDef {
+  id: MeasureTool
   icon: React.ElementType
   label: string
   shortcut: string
 }
 
-const TOOLS: ToolDef[] = [
-  { id: 'select', icon: MousePointer2, label: 'Select', shortcut: 'V' },
-  { id: 'measure', icon: Ruler, label: 'Measure', shortcut: 'M' },
+const MEASURE_LINE: MeasureToolDef = {
+  id: 'measure',
+  icon: Ruler,
+  label: 'Measure',
+  shortcut: 'M',
+}
+
+const MEASURE_TOOLS: MeasureToolDef[] = [
+  MEASURE_LINE,
   { id: 'range-circle', icon: Circle, label: 'Circle', shortcut: '1' },
   { id: 'range-cone', icon: Triangle, label: 'Cone', shortcut: '2' },
   { id: 'range-rect', icon: RectangleHorizontal, label: 'Rectangle', shortcut: '3' },
@@ -64,19 +71,19 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
       }}
     >
       <div className="bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_4px_20px_rgba(0,0,0,0.3)] p-1.5 flex flex-col gap-0.5">
-        {/* Tool selection group */}
-        {TOOLS.map((tool) => (
-          <ToolButton
-            key={tool.id}
-            icon={tool.icon}
-            label={tool.label}
-            shortcut={tool.shortcut}
-            active={activeTool === tool.id}
-            onClick={() => {
-              setActiveTool(tool.id)
-            }}
-          />
-        ))}
+        {/* Select tool */}
+        <ToolButton
+          icon={MousePointer2}
+          label="Select"
+          shortcut="V"
+          active={activeTool === 'select'}
+          onClick={() => {
+            setActiveTool('select')
+          }}
+        />
+
+        {/* Measure split button */}
+        <MeasureSplitButton />
 
         <Divider />
 
@@ -141,6 +148,90 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
             setGridConfigOpen(false)
           }}
         />
+      )}
+    </div>
+  )
+}
+
+// ── Measure split button ──
+
+function MeasureSplitButton() {
+  const activeTool = useUiStore((s) => s.activeTool)
+  const lastMeasureTool = useUiStore((s) => s.lastMeasureTool)
+  const setActiveTool = useUiStore((s) => s.setActiveTool)
+  const [flyoutOpen, setFlyoutOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const currentDef = MEASURE_TOOLS.find((t) => t.id === lastMeasureTool) ?? MEASURE_LINE
+  const isActive = isMeasureTool(activeTool)
+
+  // Close flyout on click outside
+  useEffect(() => {
+    if (!flyoutOpen) return
+    const handler = (e: PointerEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setFlyoutOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
+  }, [flyoutOpen])
+
+  // Close flyout when keyboard shortcut changes tool away from measure
+  useEffect(() => {
+    if (flyoutOpen && !isMeasureTool(activeTool)) {
+      setFlyoutOpen(false)
+    }
+  }, [activeTool, flyoutOpen])
+
+  const Icon = currentDef.icon
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        onClick={() => {
+          setActiveTool(lastMeasureTool)
+          setFlyoutOpen((prev) => !prev)
+        }}
+        title={`${currentDef.label} (${currentDef.shortcut})`}
+        aria-label={currentDef.label}
+        className={`relative w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors duration-fast border ${
+          isActive
+            ? 'bg-accent/15 text-accent border-accent/25'
+            : 'bg-transparent text-text-muted border-transparent hover:bg-hover hover:text-text-primary'
+        }`}
+      >
+        <Icon size={ICON_SIZE} strokeWidth={ICON_STROKE} />
+        {/* Expansion indicator — small triangle in bottom-right */}
+        <svg
+          className="absolute bottom-0.5 right-0.5 opacity-40"
+          width="5"
+          height="5"
+          viewBox="0 0 5 5"
+        >
+          <polygon points="0,5 5,5 5,0" fill="currentColor" />
+        </svg>
+      </button>
+
+      {/* Flyout panel — expands to the left */}
+      {flyoutOpen && (
+        <div className="absolute right-full top-0 mr-1.5 bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_4px_20px_rgba(0,0,0,0.3)] p-1 flex flex-col gap-0.5">
+          {MEASURE_TOOLS.map((tool) => (
+            <ToolButton
+              key={tool.id}
+              icon={tool.icon}
+              label={tool.label}
+              shortcut={tool.shortcut}
+              active={activeTool === tool.id}
+              onClick={() => {
+                setActiveTool(tool.id)
+                setFlyoutOpen(false)
+              }}
+            />
+          ))}
+        </div>
       )}
     </div>
   )
