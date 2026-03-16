@@ -158,15 +158,35 @@ describe('Tactical broadcast tests', () => {
     // Ensure we are exited first
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/exit`)
 
-    const eventPromise = waitForSocketEvent<{ tacticalMode: number }>(
-      socket2,
-      'room:state:updated',
-    )
+    const eventPromise = waitForSocketEvent<{ tacticalMode: number }>(socket2, 'room:state:updated')
 
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/enter`)
 
     const payload = await eventPromise
     expect(payload.tacticalMode).toBe(1)
+
+    socket2.disconnect()
+  })
+
+  it('POST /tactical/enter also broadcasts tactical:activated with current tactical state', async () => {
+    // Regression: when entering tactical mode without loading an archive,
+    // tacticalInfo in the client store was never populated because only
+    // room:state:updated was emitted. This caused silent no-ops in operations
+    // that gate on tacticalInfo !== null (e.g. handling tactical:token:added).
+    const socket2 = await connectSecondClient(ctx.apiBase, ctx.roomId)
+
+    // Ensure we are exited first
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/exit`)
+
+    const activatedPromise = waitForSocketEvent<{ tokens: unknown[] }>(
+      socket2,
+      'tactical:activated',
+    )
+
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/enter`)
+
+    const payload = await activatedPromise
+    expect(Array.isArray(payload.tokens)).toBe(true)
 
     socket2.disconnect()
   })
@@ -177,10 +197,7 @@ describe('Tactical broadcast tests', () => {
     // Ensure we are entered first
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/enter`)
 
-    const eventPromise = waitForSocketEvent<{ tacticalMode: number }>(
-      socket2,
-      'room:state:updated',
-    )
+    const eventPromise = waitForSocketEvent<{ tacticalMode: number }>(socket2, 'room:state:updated')
 
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/exit`)
 

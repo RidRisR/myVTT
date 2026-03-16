@@ -42,7 +42,17 @@ export class GmDockPage {
       handouts: this.handoutsTab,
       dice: this.diceTab,
     }
-    await tabMap[tab].click()
+    const tabButton = tabMap[tab]
+
+    // In GmDock, clicking an already-active tab toggles it OFF (collapses the panel).
+    // To make openTab idempotent, check if the tab is already active before clicking.
+    // Active tabs have 'border-b-accent' class; inactive tabs have 'bg-glass' class.
+    const classes = (await tabButton.getAttribute('class')) ?? ''
+    if (classes.includes('border-b-accent')) {
+      // Tab is already active — content panel is already visible, do nothing.
+      return
+    }
+    await tabButton.click()
   }
 
   async enterCombat() {

@@ -129,11 +129,21 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
     res.json(updated)
   })
 
-  // POST /tactical/enter — set tactical_mode = 1
+  // POST /tactical/enter — set tactical_mode = 1 and broadcast current tactical state
   router.post('/api/rooms/:roomId/tactical/enter', room, (req, res) => {
     req.roomDb!.prepare('UPDATE room_state SET tactical_mode = 1 WHERE id = 1').run()
     const state = getRoomState(req.roomDb!)
     io.to(req.roomId!).emit('room:state:updated', state)
+    // Also broadcast tactical:activated so clients populate tacticalInfo from the store.
+    // This matches the archive load flow and ensures that token operations (which gate on
+    // tacticalInfo !== null) work correctly immediately after entering tactical mode.
+    const sceneId = getActiveSceneId(req.roomDb!)
+    if (sceneId) {
+      const tacticalState = getTacticalState(req.roomDb!, sceneId)
+      if (tacticalState) {
+        io.to(req.roomId!).emit('tactical:activated', tacticalState)
+      }
+    }
     res.json(state)
   })
 
