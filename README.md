@@ -15,24 +15,24 @@ Open `http://localhost:5173` in two browser tabs to test multiplayer.
 
 ### Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start server + client concurrently |
-| `npm run dev:server` | Server only (port 4444) |
-| `npm run dev:client` | Vite dev server only |
-| `npm run build` | TypeScript check + Vite production build |
-| `npm run start` | Production server (serves built files + WebSocket + API) |
+| Command              | Description                                              |
+| -------------------- | -------------------------------------------------------- |
+| `npm run dev`        | Start server + client concurrently                       |
+| `npm run dev:server` | Server only (port 4444)                                  |
+| `npm run dev:client` | Vite dev server only                                     |
+| `npm run build`      | TypeScript check + Vite production build                 |
+| `npm run start`      | Production server (serves built files + WebSocket + API) |
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 19, TypeScript 5.9, Vite 7 |
-| Real-time sync | Yjs (CRDT) + y-websocket v2 |
-| Persistence | y-leveldb (LevelDB) |
-| Combat viewport | react-zoom-pan-pinch |
-| Server | Express 5, multer (file upload), ws |
-| Styling | Inline styles, dark glass theme |
+| Layer           | Technology                          |
+| --------------- | ----------------------------------- |
+| Frontend        | React 19, TypeScript 5.9, Vite 7    |
+| Real-time sync  | Yjs (CRDT) + y-websocket v2         |
+| Persistence     | y-leveldb (LevelDB)                 |
+| Combat viewport | react-zoom-pan-pinch                |
+| Server          | Express 5, multer (file upload), ws |
+| Styling         | Inline styles, dark glass theme     |
 
 ## Design Philosophy
 

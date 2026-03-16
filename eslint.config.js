@@ -7,7 +7,7 @@ import prettier from 'eslint-config-prettier'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', '.worktrees', 'coverage']),
+  globalIgnores(['dist', '.worktrees', 'coverage', 'commitlint.config.ts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -52,7 +52,12 @@ export default defineConfig([
   // plugin logic via useRulePlugin(). This enforces the plugin architectural boundary.
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/stores/**', 'src/shared/__tests__/**', 'src/shared/api.ts', 'src/rules/registry.ts'],
+    ignores: [
+      'src/stores/**',
+      'src/shared/__tests__/**',
+      'src/shared/api.ts',
+      'src/rules/registry.ts',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -101,10 +106,24 @@ export default defineConfig([
     },
   },
   // Server: req.roomDb! and req.roomId! are guaranteed by withRoom middleware.
+  // Server boundary: server/ must not import from src/stores/ (client-only, uses DOM/window).
+  // Shared types should live in src/shared/ or server/socketTypes.ts.
   {
     files: ['server/**/*.ts'],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/src/stores/**', '**/stores/**'],
+              message:
+                'Server boundary: server/ must not import from src/stores/ (client-only). Use src/shared/ for shared types.',
+            },
+          ],
+        },
+      ],
     },
   },
   prettier,

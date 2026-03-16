@@ -16,10 +16,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx prettier --check .
       - run: tsc -b
       - run: tsc -p server/tsconfig.json --noEmit
       - run: npx eslint .
       - run: npx vitest run --coverage
+      - run: npm run build
 
   e2e:
     runs-on: ubuntu-latest

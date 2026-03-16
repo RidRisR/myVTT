@@ -19,10 +19,7 @@ export type RemoteEditMap = Map<string, AwarenessResourceState>
 /**
  * Hook that manages resource drag broadcasting and listening via Socket.io.
  */
-export function useAwarenessResource(
-  mySeatId: string | null,
-  mySeatColor: string | null,
-) {
+export function useAwarenessResource(mySeatId: string | null, mySeatColor: string | null) {
   const [remoteEdits, setRemoteEdits] = useState<RemoteEditMap>(() => new Map())
   const socket = useWorldStore((s) => s._socket)
 
