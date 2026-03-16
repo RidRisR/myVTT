@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Plus, Search, ClipboardList, Eye, EyeOff } from 'lucide-react'
+import { Plus, Search, ClipboardList, Eye, EyeOff, MapPin, Swords } from 'lucide-react'
 import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { useWorldStore } from '../stores/worldStore'
@@ -10,14 +10,19 @@ import { generateTokenId } from '../shared/idUtils'
 import { EntityRow } from './EntityRow'
 
 const EMPTY_ENTRIES: SceneEntityEntry[] = []
+const EMPTY_TACTICAL: Entity[] = []
+
+type GroupType = 'onStage' | 'backstage' | 'tactical'
 
 export function EntityPanel() {
   const entities = useWorldStore((s) => s.entities)
   const activeSceneId = useWorldStore((s) => s.room.activeSceneId)
   const sceneEntityMap = useWorldStore((s) => s.sceneEntityMap)
+  const tacticalInfo = useWorldStore((s) => s.tacticalInfo)
   const addEntity = useWorldStore((s) => s.addEntity)
   const deleteEntity = useWorldStore((s) => s.deleteEntity)
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
+  const removeEntityFromScene = useWorldStore((s) => s.removeEntityFromScene)
   const updateEntity = useWorldStore((s) => s.updateEntity)
   const toggleEntityVisibility = useWorldStore((s) => s.toggleEntityVisibility)
   const seats = useIdentityStore((s) => s.seats)
@@ -62,6 +67,22 @@ export function EntityPanel() {
     return { onStage: on, backstage: off }
   }, [sceneEntries, entities, pcIds, search])
 
+  // Tactical-only entities: have tokens but NO scene_entity_entry
+  const tacticalOnlyEntities = useMemo(() => {
+    if (!tacticalInfo) return EMPTY_TACTICAL
+    const sceneEntityIdSet = new Set(sceneEntries.map((e) => e.entityId))
+    const result: Entity[] = []
+    for (const token of tacticalInfo.tokens) {
+      if (sceneEntityIdSet.has(token.entityId)) continue
+      if (pcIds.has(token.entityId)) continue
+      const entity = entities[token.entityId]
+      if (!entity) continue
+      if (search && !entity.name.toLowerCase().includes(search.toLowerCase())) continue
+      result.push(entity)
+    }
+    return result
+  }, [tacticalInfo, sceneEntries, entities, pcIds, search])
+
   // Check online status per entity
   const getOnlineStatus = (entity: Entity): boolean => {
     for (const [seatId, perm] of Object.entries(entity.permissions.seats)) {
@@ -100,7 +121,26 @@ export function EntityPanel() {
     void toggleEntityVisibility(activeSceneId, entity.id, !currentlyVisible)
   }
 
-  const renderGroup = (title: string, icon: string, list: Entity[], isVisible: boolean) => {
+  // Promote tactical object → scene entity
+  const handlePromote = (entity: Entity) => {
+    if (!activeSceneId) return
+    void addEntityToScene(activeSceneId, entity.id)
+  }
+
+  // Demote scene entity → tactical object (only ephemeral entities with tokens)
+  const handleDemote = (entity: Entity) => {
+    if (!activeSceneId) return
+    void removeEntityFromScene(activeSceneId, entity.id)
+  }
+
+  // Check if entity can be demoted (ephemeral + has tactical token)
+  const canDemote = (entity: Entity): boolean => {
+    if (entity.lifecycle !== 'ephemeral') return false
+    if (!tacticalInfo) return false
+    return tacticalInfo.tokens.some((t) => t.entityId === entity.id)
+  }
+
+  const renderGroup = (title: string, icon: string, list: Entity[], groupType: GroupType) => {
     if (list.length === 0) return null
     return (
       <div className="mb-3">
@@ -130,21 +170,50 @@ export function EntityPanel() {
                   void updateEntity(entity.id, updates)
                 }}
               />
-              {/* Visibility toggle button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleToggleVisibility(entity, isVisible)
-                }}
-                className="absolute right-7 opacity-0 group-hover:opacity-100 hover:!opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
-                title={isVisible ? '离场' : '上场'}
-              >
-                {isVisible ? (
-                  <Eye size={12} strokeWidth={1.5} />
-                ) : (
-                  <EyeOff size={12} strokeWidth={1.5} />
-                )}
-              </button>
+              {/* Action buttons based on group type */}
+              {groupType === 'tactical' ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handlePromote(entity)
+                  }}
+                  className="absolute right-7 opacity-0 group-hover:opacity-100 hover:!opacity-100 text-text-muted/40 hover:text-accent p-0.5 cursor-pointer transition-opacity duration-fast"
+                  title="升级为场景角色"
+                >
+                  <MapPin size={12} strokeWidth={1.5} />
+                </button>
+              ) : (
+                <>
+                  {/* Visibility toggle for scene entities */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleToggleVisibility(entity, groupType === 'onStage')
+                    }}
+                    className="absolute right-7 opacity-0 group-hover:opacity-100 hover:!opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
+                    title={groupType === 'onStage' ? '离场' : '上场'}
+                  >
+                    {groupType === 'onStage' ? (
+                      <Eye size={12} strokeWidth={1.5} />
+                    ) : (
+                      <EyeOff size={12} strokeWidth={1.5} />
+                    )}
+                  </button>
+                  {/* Demote button for ephemeral scene entities with tokens */}
+                  {canDemote(entity) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDemote(entity)
+                      }}
+                      className="absolute right-14 opacity-0 group-hover:opacity-100 hover:!opacity-100 text-text-muted/40 hover:text-accent p-0.5 cursor-pointer transition-opacity duration-fast"
+                      title="降级为战术对象"
+                    >
+                      <Swords size={12} strokeWidth={1.5} />
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -152,7 +221,8 @@ export function EntityPanel() {
     )
   }
 
-  const isEmpty = onStage.length === 0 && backstage.length === 0
+  const isEmpty =
+    onStage.length === 0 && backstage.length === 0 && tacticalOnlyEntities.length === 0
   const noResults = !isEmpty || search.trim().length > 0
 
   return (
@@ -184,12 +254,16 @@ export function EntityPanel() {
             <span className="opacity-50">暂无NPC</span>
             <span className="opacity-30 text-[10px] mt-1">点击下方「+」创建</span>
           </div>
-        ) : onStage.length === 0 && backstage.length === 0 && noResults ? (
+        ) : onStage.length === 0 &&
+          backstage.length === 0 &&
+          tacticalOnlyEntities.length === 0 &&
+          noResults ? (
           <div className="text-center text-text-muted/40 text-xs py-8">无匹配结果</div>
         ) : (
           <>
-            {renderGroup('在场', '\u25CF', onStage, true)}
-            {renderGroup('离场', '\u25D0', backstage, false)}
+            {renderGroup('在场', '\u25CF', onStage, 'onStage')}
+            {renderGroup('离场', '\u25D0', backstage, 'backstage')}
+            {renderGroup('战术对象', '\u2694', tacticalOnlyEntities, 'tactical')}
           </>
         )}
       </div>

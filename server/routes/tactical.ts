@@ -25,7 +25,7 @@ function toEntity(row: Record<string, unknown>) {
   return parseJsonFields(toCamel(row), 'ruleData', 'permissions')
 }
 
-function getTacticalState(db: Database.Database, sceneId: string) {
+export function getTacticalState(db: Database.Database, sceneId: string) {
   const stateRow = db.prepare('SELECT * FROM tactical_state WHERE scene_id = ?').get(sceneId) as
     | Record<string, unknown>
     | undefined
@@ -48,11 +48,6 @@ function getActiveSceneId(db: Database.Database): string | null {
     active_scene_id: string | null
   }
   return roomState.active_scene_id
-}
-
-function getRoomState(db: Database.Database) {
-  const row = db.prepare('SELECT * FROM room_state WHERE id = 1').get() as Record<string, unknown>
-  return toCamel(row)
 }
 
 export function tacticalRoutes(dataDir: string, io: Server): Router {
@@ -95,6 +90,7 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
         mapHeight: 'map_height',
         roundNumber: 'round_number',
         currentTurnTokenId: 'current_turn_token_id',
+        tacticalMode: 'tactical_mode',
       }
       for (const [camel, snake] of Object.entries(simpleFields)) {
         if (patchBody[camel] !== undefined) {
@@ -131,27 +127,36 @@ export function tacticalRoutes(dataDir: string, io: Server): Router {
 
   // POST /tactical/enter — set tactical_mode = 1 and broadcast current tactical state
   router.post('/api/rooms/:roomId/tactical/enter', room, (req, res) => {
-    req.roomDb!.prepare('UPDATE room_state SET tactical_mode = 1 WHERE id = 1').run()
-    const state = getRoomState(req.roomDb!)
-    io.to(req.roomId!).emit('room:state:updated', state)
-    // Also broadcast tactical:activated so clients populate tacticalInfo from the store.
-    // This matches the archive load flow and ensures that token operations (which gate on
-    // tacticalInfo !== null) work correctly immediately after entering tactical mode.
     const sceneId = getActiveSceneId(req.roomDb!)
-    if (sceneId) {
-      const tacticalState = getTacticalState(req.roomDb!, sceneId)
-      if (tacticalState) {
-        io.to(req.roomId!).emit('tactical:activated', tacticalState)
-      }
+    if (!sceneId) {
+      res.status(404).json({ error: 'No active scene' })
+      return
+    }
+    req
+      .roomDb!.prepare('UPDATE tactical_state SET tactical_mode = 1 WHERE scene_id = ?')
+      .run(sceneId)
+    const state = getTacticalState(req.roomDb!, sceneId)
+    io.to(req.roomId!).emit('tactical:updated', state)
+    // Also broadcast tactical:activated so clients populate tacticalInfo from the store.
+    // tactical:updated alone doesn't trigger the client to enter tactical view.
+    if (state) {
+      io.to(req.roomId!).emit('tactical:activated', state)
     }
     res.json(state)
   })
 
   // POST /tactical/exit — set tactical_mode = 0
   router.post('/api/rooms/:roomId/tactical/exit', room, (req, res) => {
-    req.roomDb!.prepare('UPDATE room_state SET tactical_mode = 0 WHERE id = 1').run()
-    const state = getRoomState(req.roomDb!)
-    io.to(req.roomId!).emit('room:state:updated', state)
+    const sceneId = getActiveSceneId(req.roomDb!)
+    if (!sceneId) {
+      res.status(404).json({ error: 'No active scene' })
+      return
+    }
+    req
+      .roomDb!.prepare('UPDATE tactical_state SET tactical_mode = 0 WHERE scene_id = ?')
+      .run(sceneId)
+    const state = getTacticalState(req.roomDb!, sceneId)
+    io.to(req.roomId!).emit('tactical:updated', state)
     res.json(state)
   })
 

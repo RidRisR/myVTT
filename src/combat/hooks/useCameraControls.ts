@@ -59,9 +59,9 @@ export function useCameraControls({
 
   // Fit map to window
   const handleFitToWindow = useCallback(() => {
-    if (!tacticalInfo || containerSize.width === 0 || containerSize.height === 0) return
-    const mw = tacticalInfo.mapWidth ?? 0
-    const mh = tacticalInfo.mapHeight ?? 0
+    if (containerSize.width === 0 || containerSize.height === 0) return
+    const mw = tacticalInfo?.mapWidth ?? 0
+    const mh = tacticalInfo?.mapHeight ?? 0
     if (mw === 0 || mh === 0) return
 
     const scaleX = containerSize.width / mw
@@ -79,9 +79,8 @@ export function useCameraControls({
 
   // Reset to center at scale 1
   const handleResetCenter = useCallback(() => {
-    if (!tacticalInfo) return
-    const mw = tacticalInfo.mapWidth ?? 0
-    const mh = tacticalInfo.mapHeight ?? 0
+    const mw = tacticalInfo?.mapWidth ?? 0
+    const mh = tacticalInfo?.mapHeight ?? 0
     setStageScale(1)
     setStagePos({
       x: (containerSize.width - mw) / 2,

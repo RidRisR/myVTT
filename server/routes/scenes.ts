@@ -131,15 +131,14 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
         degradeTokenReferences(req.roomDb!, e.id)
         req.roomDb!.prepare('DELETE FROM entities WHERE id = ?').run(e.id)
       }
-      // Clear dangling room_state references
+      // Clear dangling room_state reference (active_archive_id is in tactical_state, cleaned by CASCADE)
       req
         .roomDb!.prepare(
           `UPDATE room_state SET
-           active_scene_id = CASE WHEN active_scene_id = ? THEN NULL ELSE active_scene_id END,
-           active_archive_id = CASE WHEN active_scene_id = ? THEN NULL ELSE active_archive_id END
+           active_scene_id = CASE WHEN active_scene_id = ? THEN NULL ELSE active_scene_id END
            WHERE id = 1`,
         )
-        .run(req.params.id, req.params.id)
+        .run(req.params.id)
       // Delete scene (CASCADE handles scene_entities, archives, tactical_state)
       req.roomDb!.prepare('DELETE FROM scenes WHERE id = ?').run(req.params.id)
     })
@@ -199,20 +198,26 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
       .get(req.params.entityId) as { lifecycle: string } | undefined
     const isEphemeral = entity?.lifecycle === 'ephemeral'
 
+    // Keep ephemeral entities alive if they still have a tactical token (demotion case)
+    const hasTacticalToken = req
+      .roomDb!.prepare('SELECT 1 FROM tactical_tokens WHERE entity_id = ? LIMIT 1')
+      .get(req.params.entityId)
+    const shouldDeleteEntity = isEphemeral && !hasTacticalToken
+
     const unlinkEntity = req.roomDb!.transaction(() => {
       req
         .roomDb!.prepare('DELETE FROM scene_entities WHERE scene_id = ? AND entity_id = ?')
         .run(req.params.sceneId, req.params.entityId)
 
-      // If ephemeral, also delete the entity
-      if (isEphemeral) {
+      // Only delete ephemeral entities that have no tactical tokens
+      if (shouldDeleteEntity) {
         degradeTokenReferences(req.roomDb!, req.params.entityId as string)
         req.roomDb!.prepare('DELETE FROM entities WHERE id = ?').run(req.params.entityId)
       }
     })
     unlinkEntity()
 
-    if (isEphemeral) {
+    if (shouldDeleteEntity) {
       io.to(req.roomId!).emit('entity:deleted', { id: req.params.entityId })
     }
     io.to(req.roomId!).emit('scene:entity:unlinked', {
@@ -255,7 +260,7 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
 
   // Spawn entity from blueprint
   router.post('/api/rooms/:roomId/scenes/:sceneId/spawn', room, (req, res) => {
-    const { blueprintId } = req.body as Record<string, unknown>
+    const { blueprintId, tacticalOnly } = req.body as Record<string, unknown>
     if (!blueprintId) {
       res.status(400).json({ error: 'blueprintId is required' })
       return
@@ -297,11 +302,14 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
           blueprintId,
         )
 
-      req
-        .roomDb!.prepare(
-          'INSERT INTO scene_entities (scene_id, entity_id, visible) VALUES (?, ?, 1)',
-        )
-        .run(req.params.sceneId, entityId)
+      // Only create scene_entity_entry if NOT tactical-only (tactical objects skip this)
+      if (!tacticalOnly) {
+        req
+          .roomDb!.prepare(
+            'INSERT INTO scene_entities (scene_id, entity_id, visible) VALUES (?, ?, 1)',
+          )
+          .run(req.params.sceneId, entityId)
+      }
     })
     spawnEntity()
 
@@ -313,14 +321,16 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
     )
 
     io.to(req.roomId!).emit('entity:created', entity)
-    io.to(req.roomId!).emit('scene:entity:linked', {
-      sceneId: req.params.sceneId,
-      entityId,
-      visible: true,
-    })
+    if (!tacticalOnly) {
+      io.to(req.roomId!).emit('scene:entity:linked', {
+        sceneId: req.params.sceneId,
+        entityId,
+        visible: true,
+      })
+    }
     res.status(201).json({
       entity,
-      sceneEntity: { sceneId: req.params.sceneId, entityId, visible: true },
+      sceneEntity: tacticalOnly ? null : { sceneId: req.params.sceneId, entityId, visible: true },
     })
   })
 

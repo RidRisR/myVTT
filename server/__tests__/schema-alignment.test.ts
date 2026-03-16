@@ -66,8 +66,9 @@ describe('schema alignment with design doc 43', () => {
     const row = db.prepare('SELECT * FROM room_state WHERE id = 1').get() as Record<string, unknown>
     expect(row).toBeTruthy()
     expect(row.id).toBe(1)
-    expect(row.tactical_mode).toBe(0)
-    expect(row.active_archive_id).toBeNull()
+    expect(row.active_scene_id).toBeNull()
+    expect(row.plugin_config).toBe('{}')
+    // tactical_mode and active_archive_id now live in tactical_state (per-scene)
   })
 
   it('FK cascade: delete scene removes scene_entities rows', () => {
