@@ -4,16 +4,41 @@ import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 import { getGlobalDb, getRoomDb, closeRoomDb, toCamel, toCamelAll } from '../db'
+import type { TypedServer } from '../socketTypes'
 
-export function roomRoutes(dataDir: string): Router {
+export function roomRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
 
-  router.get('/api/rooms', (_req, res) => {
+  router.get('/api/rooms', async (_req, res) => {
     const db = getGlobalDb(dataDir)
     const rooms = toCamelAll(
       db.prepare('SELECT * FROM rooms ORDER BY created_at DESC').all() as Record<string, unknown>[],
     )
-    res.json(rooms)
+
+    // Enrich each room with online seat colors
+    const enriched = await Promise.all(
+      rooms.map(async (room) => {
+        const roomId = room.id as string
+        try {
+          const sockets = await io.in(roomId).fetchSockets()
+          const seatIds = [...new Set(sockets.map((s) => s.data.seatId).filter(Boolean))]
+          let onlineColors: string[] = []
+          if (seatIds.length > 0) {
+            const roomDb = getRoomDb(dataDir, roomId)
+            const placeholders = seatIds.map(() => '?').join(',')
+            const seats = roomDb
+              .prepare(`SELECT color FROM seats WHERE id IN (${placeholders})`)
+              .all(...seatIds) as { color: string }[]
+            onlineColors = seats.map((s) => s.color)
+          }
+          return { ...room, onlineColors }
+        } catch {
+          return { ...room, onlineColors: [] }
+        }
+      }),
+    )
+
+    res.json(enriched)
   })
 
   router.post('/api/rooms', (req, res) => {

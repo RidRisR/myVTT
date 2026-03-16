@@ -1,15 +1,23 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Link, Trash2 } from 'lucide-react'
+import { Plus, Link, Trash2, Dices } from 'lucide-react'
 import { API_BASE } from '../shared/config'
 import { getAvailablePlugins } from '../rules/registry'
+import { generateRoomName } from './randomRoomName'
+import { relativeTime } from './relativeTime'
 
 interface RoomMeta {
   id: string
   name: string
   createdAt: number
+  ruleSystemId?: string
+  onlineColors?: string[]
 }
 
 const AVAILABLE_SYSTEMS = getAvailablePlugins()
+
+const SYSTEM_LABELS: Record<string, string> = Object.fromEntries(
+  AVAILABLE_SYSTEMS.map((s) => [s.id, s.name]),
+)
 
 export function AdminPanel() {
   const [rooms, setRooms] = useState<RoomMeta[]>([])
@@ -74,11 +82,6 @@ export function AdminPanel() {
     void navigator.clipboard.writeText(url)
   }
 
-  const formatDate = (ts: number) => {
-    const d = new Date(ts)
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-  }
-
   return (
     <div className="min-h-screen bg-deep text-text-primary font-sans px-6 py-10">
       <div className="max-w-[720px] mx-auto">
@@ -98,17 +101,28 @@ export function AdminPanel() {
             Create Room
           </div>
           <div className="flex gap-2 flex-wrap">
-            <input
-              value={newName}
-              onChange={(e) => {
-                setNewName(e.target.value)
-              }}
-              placeholder="Room name"
-              className="flex-[1_1_200px] min-w-[140px] px-3 py-2 border border-border-glass rounded-md text-[13px] bg-surface text-text-primary outline-none placeholder:text-text-muted/30"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleCreate()
-              }}
-            />
+            <div className="flex flex-[1_1_200px] min-w-[140px]">
+              <input
+                value={newName}
+                onChange={(e) => {
+                  setNewName(e.target.value)
+                }}
+                placeholder="Room name"
+                className="flex-1 px-3 py-2 border border-border-glass rounded-l-md text-[13px] bg-surface text-text-primary outline-none placeholder:text-text-muted/30"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void handleCreate()
+                }}
+              />
+              <button
+                onClick={() => {
+                  setNewName(generateRoomName())
+                }}
+                title="Random name"
+                className="px-2.5 py-2 border border-l-0 border-border-glass rounded-r-md bg-surface text-text-muted/50 hover:text-accent transition-colors duration-fast cursor-pointer"
+              >
+                <Dices size={14} strokeWidth={1.5} />
+              </button>
+            </div>
             <select
               value={newSystemId}
               onChange={(e) => {
@@ -151,46 +165,67 @@ export function AdminPanel() {
             </div>
           )}
 
-          {rooms.map((room) => (
-            <div
-              key={room.id}
-              className="flex items-center gap-3 px-5 py-3 border-b border-border-glass/30"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-text-primary">{room.name}</div>
-                <div className="text-[11px] text-text-muted/35 mt-0.5">
-                  {room.id} &middot; {formatDate(room.createdAt)}
+          {rooms.map((room) => {
+            const colors = room.onlineColors ?? []
+            const systemLabel = SYSTEM_LABELS[room.ruleSystemId ?? 'generic'] ?? room.ruleSystemId
+            return (
+              <div
+                key={room.id}
+                className="flex items-center gap-3 px-5 py-3 border-b border-border-glass/30"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-text-primary truncate">
+                      {room.name}
+                    </span>
+                    <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-surface text-text-muted/50 border border-border-glass/30">
+                      {systemLabel}
+                    </span>
+                    {colors.length > 0 && (
+                      <span className="flex items-center gap-0.5 shrink-0">
+                        {colors.map((c, i) => (
+                          <span
+                            key={i}
+                            className="w-2 h-2 rounded-full"
+                            style={{ background: c }}
+                          />
+                        ))}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-text-muted/30 mt-0.5">
+                    {relativeTime(room.createdAt)}
+                  </div>
                 </div>
+
+                <a
+                  href={`#room=${room.id}`}
+                  className="px-4 py-1.5 rounded-md text-xs font-semibold cursor-pointer bg-accent text-deep no-underline transition-colors duration-fast hover:bg-accent-bold"
+                >
+                  Enter
+                </a>
+
+                <button
+                  onClick={() => {
+                    copyLink(room.id)
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs cursor-pointer bg-transparent text-text-muted/40 border border-border-glass/30 transition-colors duration-fast hover:text-text-muted/70 hover:border-border-glass/50"
+                >
+                  <Link size={11} strokeWidth={1.5} />
+                  Link
+                </button>
+
+                <button
+                  onClick={() => {
+                    void handleDelete(room.id)
+                  }}
+                  className="flex items-center p-1.5 rounded-md text-xs cursor-pointer bg-transparent text-text-muted/25 border-none transition-colors duration-fast hover:text-danger"
+                >
+                  <Trash2 size={13} strokeWidth={1.5} />
+                </button>
               </div>
-
-              <a
-                href={`#room=${room.id}`}
-                className="px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer bg-success/15 text-success border border-success/20 no-underline transition-colors duration-fast hover:bg-success/25"
-              >
-                Enter
-              </a>
-
-              <button
-                onClick={() => {
-                  copyLink(room.id)
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer bg-info/15 text-info border border-info/20 transition-colors duration-fast hover:bg-info/25"
-              >
-                <Link size={11} strokeWidth={2} />
-                Copy Link
-              </button>
-
-              <button
-                onClick={() => {
-                  void handleDelete(room.id)
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer bg-danger/10 text-danger border border-danger/15 transition-colors duration-fast hover:bg-danger/20"
-              >
-                <Trash2 size={11} strokeWidth={2} />
-                Delete
-              </button>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

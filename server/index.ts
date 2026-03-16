@@ -75,7 +75,7 @@ app.get('/api/health', (_req, res) => {
 })
 
 // ── Route mounting ──
-app.use(roomRoutes(DATA_DIR))
+app.use(roomRoutes(DATA_DIR, io))
 app.use(seatRoutes(DATA_DIR, io))
 app.use(sceneRoutes(DATA_DIR, io))
 app.use(entityRoutes(DATA_DIR, io))
