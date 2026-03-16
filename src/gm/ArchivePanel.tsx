@@ -33,7 +33,7 @@ export function ArchivePanel() {
   // Fetch archives when scene changes
   useEffect(() => {
     if (activeSceneId) {
-      fetchArchives(activeSceneId)
+      void fetchArchives(activeSceneId)
     }
   }, [activeSceneId, fetchArchives])
 
@@ -51,7 +51,9 @@ export function ArchivePanel() {
       }
     }
     document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
   }, [menuId])
 
   const sortedArchives = useMemo(
@@ -61,21 +63,21 @@ export function ArchivePanel() {
 
   const commitRename = () => {
     if (renamingId && renameValue.trim()) {
-      updateArchive(renamingId, { name: renameValue.trim() })
+      void updateArchive(renamingId, { name: renameValue.trim() })
     }
     setRenamingId(null)
   }
 
   const handleCreate = () => {
     if (!activeSceneId) return
-    createArchive(activeSceneId, `存档 ${archives.length + 1}`)
+    void createArchive(activeSceneId, `存档 ${archives.length + 1}`)
   }
 
   const handleDelete = (archive: ArchiveRecord) => {
     setDeletingId(null)
     setMenuId(null)
     // Optimistic removal from local state, delete on server
-    deleteArchive(archive.id)
+    void deleteArchive(archive.id)
     toast('undo', `已删除"${archive.name}"`, {
       duration: 5000,
     })
@@ -83,12 +85,12 @@ export function ArchivePanel() {
 
   const handleActivate = () => {
     if (!selectedId) return
-    loadArchive(selectedId)
+    void loadArchive(selectedId)
   }
 
   const handleSave = () => {
     if (!activeArchiveId || !activeSceneId) return
-    saveArchive(activeArchiveId)
+    void saveArchive(activeArchiveId)
     toast('success', '已保存存档快照')
   }
 
@@ -122,7 +124,9 @@ export function ArchivePanel() {
               return (
                 <div
                   key={archive.id}
-                  onClick={() => setSelectedId(isSelected ? null : archive.id)}
+                  onClick={() => {
+                    setSelectedId(isSelected ? null : archive.id)
+                  }}
                   className={`relative rounded-md px-2.5 py-2 cursor-pointer transition-colors duration-fast group ${
                     isSelected
                       ? 'bg-accent/15 border border-accent/30'
@@ -140,13 +144,17 @@ export function ArchivePanel() {
                       <input
                         ref={renameInputRef}
                         value={renameValue}
-                        onChange={(e) => setRenameValue(e.target.value)}
+                        onChange={(e) => {
+                          setRenameValue(e.target.value)
+                        }}
                         onBlur={commitRename}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') commitRename()
                           if (e.key === 'Escape') setRenamingId(null)
                         }}
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                        }}
                         className="flex-1 text-xs bg-surface text-text-primary border border-border-glass rounded px-1.5 py-0.5 outline-none min-w-0"
                       />
                     ) : (
@@ -178,7 +186,9 @@ export function ArchivePanel() {
                     <div
                       ref={menuRef}
                       className="absolute right-1 top-full mt-0.5 z-popover bg-surface border border-border-glass rounded-md shadow-lg py-1 min-w-[120px]"
-                      onPointerDown={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => {
+                        e.stopPropagation()
+                      }}
                     >
                       <button
                         onClick={(e) => {
@@ -195,7 +205,7 @@ export function ArchivePanel() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          duplicateArchive(archive.id)
+                          void duplicateArchive(archive.id)
                           setMenuId(null)
                         }}
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
@@ -268,8 +278,12 @@ export function ArchivePanel() {
         <ConfirmPopover
           anchorRef={deleteButtonRef}
           message={`删除"${deletingArchive.name}"？`}
-          onConfirm={() => handleDelete(deletingArchive)}
-          onCancel={() => setDeletingId(null)}
+          onConfirm={() => {
+            handleDelete(deletingArchive)
+          }}
+          onCancel={() => {
+            setDeletingId(null)
+          }}
         />
       )}
     </div>

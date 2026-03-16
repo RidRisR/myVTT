@@ -25,9 +25,7 @@ interface ChatInputProps {
 }
 
 function generateId(): string {
-  return (
-    self.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
-  )
+  return self.crypto.randomUUID()
 }
 
 export function ChatInput({
@@ -114,7 +112,10 @@ export function ChatInput({
       resolvedFormula = resolved.resolved
     }
     const terms = tokenizeExpression(resolvedFormula ?? formula)
-    if (!terms) { setError('Invalid dice formula'); return }
+    if (!terms) {
+      setError('Invalid dice formula')
+      return
+    }
     const dice = toDiceSpecs(terms)
     if (onRoll) onRoll(formula, resolvedFormula, dice, undefined)
     setInput('')
@@ -130,11 +131,17 @@ export function ChatInput({
     let resolvedFormula: string | undefined
     if (/@[\p{L}\p{N}_]+/u.test(formula)) {
       const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
-      if ('error' in resolved) { setError(resolved.error); return }
+      if ('error' in resolved) {
+        setError(resolved.error)
+        return
+      }
       resolvedFormula = resolved.resolved
     }
     const terms = tokenizeExpression(resolvedFormula ?? formula)
-    if (!terms) { setError('Invalid formula'); return }
+    if (!terms) {
+      setError('Invalid formula')
+      return
+    }
     const dice = toDiceSpecs(terms)
     if (onRoll) onRoll(formula, resolvedFormula, dice, rollType)
     setInput('')
@@ -156,11 +163,12 @@ export function ChatInput({
     const cmdMatch = trimmed.match(/^\.([a-zA-Z][a-zA-Z0-9]*)\s*(.*)$/i)
     if (cmdMatch) {
       const cmd = cmdMatch[1].toLowerCase()
-      const rollCmds = plugin.diceSystem?.rollCommands ?? {}
+      const rollCmds = plugin.diceSystem?.rollCommands
+      if (!rollCmds) return
       const entry = Object.entries(rollCmds).find(([key]) => key.split(':').at(-1) === cmd)
       if (entry) {
         const [rollType, rollCommand] = entry
-        handlePluginRoll(cmdMatch[2] ?? '', rollType, rollCommand)
+        handlePluginRoll(cmdMatch[2], rollType, rollCommand)
         return
       }
     }
@@ -181,7 +189,12 @@ export function ChatInput({
   }
 
   return (
-    <div className="relative" onPointerDown={(e) => e.stopPropagation()}>
+    <div
+      className="relative"
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
+    >
       {error && (
         <div className="text-white text-[11px] mb-1 px-2.5 py-1 bg-danger/90 rounded-md">
           {error}
@@ -239,7 +252,11 @@ export function ChatInput({
             }
           }}
           onFocus={onFocus}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+          onBlur={() =>
+            setTimeout(() => {
+              setShowSuggestions(false)
+            }, 150)
+          }
           placeholder="Type a message or .r 1d20+@STR"
           className="flex-1 min-w-0 px-3.5 py-2.5 border-none rounded-l-[10px] text-[13px] outline-none bg-surface backdrop-blur-[8px] text-text-primary placeholder:text-text-muted shadow-[0_2px_12px_rgba(0,0,0,0.2)]"
         />

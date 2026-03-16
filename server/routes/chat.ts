@@ -4,14 +4,14 @@ import crypto from 'crypto'
 import type { Server } from 'socket.io'
 import type { DiceSpec } from '../../src/shared/diceUtils'
 import { withRoom } from '../middleware'
-import { toCamel, toCamelAll, parseJsonFields } from '../db'
+import { toCamel, parseJsonFields } from '../db'
 
 export function chatRoutes(dataDir: string, io: Server): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
   function toMessage(row: Record<string, unknown>) {
-    const msg = parseJsonFields(toCamel<Record<string, unknown>>(row), 'rollData')
+    const msg = parseJsonFields(toCamel(row), 'rollData')
     // Flatten rollData into top-level fields for client ChatRollMessage compatibility
     if (msg.rollData && typeof msg.rollData === 'object') {
       const { rollData, ...rest } = msg
@@ -24,8 +24,8 @@ export function chatRoutes(dataDir: string, io: Server): Router {
   router.get('/api/rooms/:roomId/chat', room, (req, res) => {
     const after = parseInt(req.query.after as string) || 0
     const limit = Math.min(parseInt(req.query.limit as string) || 200, 1000)
-    const rows = req.roomDb!
-      .prepare(
+    const rows = req
+      .roomDb!.prepare(
         'SELECT * FROM chat_messages WHERE timestamp > ? ORDER BY timestamp ASC LIMIT ?',
       )
       .all(after, limit) as Record<string, unknown>[]
@@ -42,8 +42,8 @@ export function chatRoutes(dataDir: string, io: Server): Router {
     const id = crypto.randomUUID()
     const timestamp = Date.now()
 
-    req.roomDb!
-      .prepare(
+    req
+      .roomDb!.prepare(
         `INSERT INTO chat_messages (id, type, sender_id, sender_name, sender_color, portrait_url, content, timestamp)
          VALUES (?, 'text', ?, ?, ?, ?, ?, ?)`,
       )
@@ -61,8 +61,8 @@ export function chatRoutes(dataDir: string, io: Server): Router {
 
   // Retract a message
   router.post('/api/rooms/:roomId/chat/retract/:id', room, (req, res) => {
-    const existing = req.roomDb!
-      .prepare('SELECT * FROM chat_messages WHERE id = ?')
+    const existing = req
+      .roomDb!.prepare('SELECT * FROM chat_messages WHERE id = ?')
       .get(req.params.id) as Record<string, unknown> | undefined
     if (!existing) {
       res.status(404).json({ error: 'Message not found' })
@@ -113,12 +113,20 @@ export function chatRoutes(dataDir: string, io: Server): Router {
     const timestamp = Date.now()
     const rollData = { formula, resolvedFormula, dice, rolls, rollType, actionName }
 
-    req.roomDb!
-      .prepare(
+    req
+      .roomDb!.prepare(
         `INSERT INTO chat_messages (id, type, sender_id, sender_name, sender_color, portrait_url, roll_data, timestamp)
          VALUES (?, 'roll', ?, ?, ?, ?, ?, ?)`,
       )
-      .run(id, senderId, senderName, senderColor, portraitUrl || null, JSON.stringify(rollData), timestamp)
+      .run(
+        id,
+        senderId,
+        senderName,
+        senderColor,
+        portraitUrl || null,
+        JSON.stringify(rollData),
+        timestamp,
+      )
 
     const message = toMessage(
       req.roomDb!.prepare('SELECT * FROM chat_messages WHERE id = ?').get(id) as Record<

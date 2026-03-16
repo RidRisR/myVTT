@@ -109,7 +109,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
 
   const commitEdit = () => {
     if (editingId && editName.trim()) {
-      updateAssetMeta(editingId, { name: editName.trim() })
+      void updateAssetMeta(editingId, { name: editName.trim() })
     }
     setEditingId(null)
   }
@@ -132,14 +132,14 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
       setTagInput('')
       return
     }
-    updateAssetMeta(assetId, { tags: [...asset.tags, tag] } as Record<string, unknown>)
+    void updateAssetMeta(assetId, { tags: [...asset.tags, tag] } as Record<string, unknown>)
     setTagInput('')
   }
 
   const handleRemoveTag = (assetId: string, tag: string) => {
     const asset = blueprintAssets.find((a) => a.id === assetId)
     if (!asset) return
-    updateAssetMeta(assetId, { tags: asset.tags.filter((t) => t !== tag) } as Record<
+    void updateAssetMeta(assetId, { tags: asset.tags.filter((t) => t !== tag) } as Record<
       string,
       unknown
     >)
@@ -148,9 +148,19 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
   const getContextMenuItems = (bp: Blueprint): ContextMenuItem[] => {
     const items: ContextMenuItem[] = []
     if (isTactical) {
-      items.push({ label: 'Spawn on map', onClick: () => onSpawnToken(bp) })
+      items.push({
+        label: 'Spawn on map',
+        onClick: () => {
+          onSpawnToken(bp)
+        },
+      })
     }
-    items.push({ label: 'Add as featured NPC', onClick: () => onAddToActive(bp) })
+    items.push({
+      label: 'Add as featured NPC',
+      onClick: () => {
+        onAddToActive(bp)
+      },
+    })
     items.push({
       label: 'Edit tags',
       onClick: () => {
@@ -160,7 +170,9 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     })
     items.push({
       label: 'Delete blueprint',
-      onClick: () => handleDelete(bp),
+      onClick: () => {
+        handleDelete(bp)
+      },
       color: '#f87171',
     })
     return items
@@ -173,7 +185,9 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={handleUpload}
+        onChange={(e) => {
+          void handleUpload(e)
+        }}
       />
 
       {/* Tag filter bar */}
@@ -212,13 +226,25 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
             <div
               key={bp.id}
               className="flex flex-col items-center gap-1 relative"
-              onMouseEnter={() => setHoveredId(bp.id)}
-              onMouseLeave={() => setHoveredId(null)}
-              onContextMenu={(e) => handleContextMenu(e, bp.id)}
+              onMouseEnter={() => {
+                setHoveredId(bp.id)
+              }}
+              onMouseLeave={() => {
+                setHoveredId(null)
+              }}
+              onContextMenu={(e) => {
+                handleContextMenu(e, bp.id)
+              }}
             >
               {/* Circular token image */}
               <div
-                onClick={() => (isTactical ? onSpawnToken(bp) : onAddToActive(bp))}
+                onClick={() => {
+                  if (isTactical) {
+                    onSpawnToken(bp)
+                  } else {
+                    onAddToActive(bp)
+                  }
+                }}
                 className="w-14 h-14 rounded-full overflow-hidden cursor-pointer shrink-0 transition-shadow duration-fast"
                 style={{
                   border: `3px solid ${bp.defaultColor}`,
@@ -237,7 +263,9 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
               {editingId === bp.id ? (
                 <input
                   value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
+                  onChange={(e) => {
+                    setEditName(e.target.value)
+                  }}
                   onBlur={commitEdit}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') commitEdit()
@@ -248,7 +276,9 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                 />
               ) : (
                 <span
-                  onDoubleClick={() => startEdit(bp)}
+                  onDoubleClick={() => {
+                    startEdit(bp)
+                  }}
                   className="text-[9px] text-text-muted/60 text-center overflow-hidden text-ellipsis whitespace-nowrap max-w-[72px] cursor-default"
                 >
                   {bp.name}
@@ -293,7 +323,9 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
               x={contextMenu.x}
               y={contextMenu.y}
               items={getContextMenuItems(bp)}
-              onClose={() => setContextMenu(null)}
+              onClose={() => {
+                setContextMenu(null)
+              }}
             />
           )
         })()}
@@ -310,14 +342,18 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
           return (
             <div
               className="mt-3 p-2.5 bg-surface border border-border-glass rounded-lg"
-              onPointerDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => {
+                e.stopPropagation()
+              }}
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-text-primary font-semibold truncate">
                   {asset.name} — 标签
                 </span>
                 <button
-                  onClick={() => setEditingTagsId(null)}
+                  onClick={() => {
+                    setEditingTagsId(null)
+                  }}
                   className="text-text-muted/40 hover:text-text-primary cursor-pointer"
                 >
                   <X size={12} strokeWidth={2} />
@@ -332,7 +368,9 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                   >
                     {tag}
                     <button
-                      onClick={() => handleRemoveTag(asset.id, tag)}
+                      onClick={() => {
+                        handleRemoveTag(asset.id, tag)
+                      }}
                       className="text-accent/50 hover:text-accent cursor-pointer"
                     >
                       <X size={8} strokeWidth={2.5} />
@@ -347,7 +385,9 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
               <div className="flex gap-1">
                 <input
                   value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
+                  onChange={(e) => {
+                    setTagInput(e.target.value)
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleAddTag(asset.id)
                   }}
@@ -361,7 +401,9 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                   ))}
                 </datalist>
                 <button
-                  onClick={() => handleAddTag(asset.id)}
+                  onClick={() => {
+                    handleAddTag(asset.id)
+                  }}
                   className="text-[10px] text-accent px-1.5 py-1 rounded bg-accent/10 hover:bg-accent/20 cursor-pointer transition-colors duration-fast"
                 >
                   添加

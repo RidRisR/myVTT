@@ -31,7 +31,12 @@ export function PluginPanelContainer() {
 
         const entity = activePanel.entityId ? entities[activePanel.entityId] : undefined
         const Component = def.component
-        const onClose = () => closePluginPanel(activePanel.panelId)
+        const onClose = () => {
+          closePluginPanel(activePanel.panelId)
+        }
+        const handleUpdateEntity = (id: string, updates: Partial<Entity>) => {
+          void updateEntity(id, updates)
+        }
 
         if (def.placement === 'fullscreen-overlay') {
           return (
@@ -46,7 +51,7 @@ export function PluginPanelContainer() {
                 <Component
                   entity={entity}
                   onClose={onClose}
-                  onUpdateEntity={updateEntity}
+                  onUpdateEntity={handleUpdateEntity}
                   onCreateEntity={handleCreateEntity}
                 />
               </div>
@@ -64,7 +69,7 @@ export function PluginPanelContainer() {
               <Component
                 entity={entity}
                 onClose={onClose}
-                onUpdateEntity={updateEntity}
+                onUpdateEntity={handleUpdateEntity}
                 onCreateEntity={handleCreateEntity}
               />
             </div>

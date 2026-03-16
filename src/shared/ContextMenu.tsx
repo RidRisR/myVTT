@@ -42,7 +42,9 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
       }
     }
     document.addEventListener('pointerdown', handleClick)
-    return () => document.removeEventListener('pointerdown', handleClick)
+    return () => {
+      document.removeEventListener('pointerdown', handleClick)
+    }
   }, [onClose])
 
   return createPortal(
@@ -50,7 +52,9 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
       ref={ref}
       className="fixed z-toast bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans"
       style={{ left: pos.left, top: pos.top }}
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       {items.map((item, i) => (
         <button

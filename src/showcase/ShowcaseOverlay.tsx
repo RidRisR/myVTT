@@ -36,7 +36,9 @@ export function ShowcaseOverlay({ isGM }: ShowcaseOverlayProps) {
     prevIdsRef.current = nextIds
   }, [items])
 
-  const clearNewItemId = useCallback(() => setNewItemId(null), [])
+  const clearNewItemId = useCallback(() => {
+    setNewItemId(null)
+  }, [])
 
   // scrollY as React state (source of truth for rendering)
   // scrollY can go up to items.length — that's the "dismissed" empty slot at queue head
@@ -67,7 +69,9 @@ export function ShowcaseOverlay({ isGM }: ShowcaseOverlayProps) {
     const idx = items.findIndex((i) => i.id === pinnedItemId)
     if (idx === -1) return
     setIsSnapped(true)
-    requestAnimationFrame(() => setScrollY(idx))
+    requestAnimationFrame(() => {
+      setScrollY(idx)
+    })
   }, [pinnedItemId, items])
 
   // --- New item arrival: scroll to it + trigger entrance animation ---
@@ -80,7 +84,9 @@ export function ShowcaseOverlay({ isGM }: ShowcaseOverlayProps) {
     if (!pinnedItemId) {
       setAnimateItemId(newItemId)
       setIsSnapped(true)
-      requestAnimationFrame(() => setScrollY(idx))
+      requestAnimationFrame(() => {
+        setScrollY(idx)
+      })
     }
     clearNewItemId()
   }, [newItemId, items, pinnedItemId, clearNewItemId])
@@ -92,11 +98,13 @@ export function ShowcaseOverlay({ isGM }: ShowcaseOverlayProps) {
 
     const focusedIndex = Math.round(scrollY)
     const focusedItem = items[focusedIndex]
-    if (!focusedItem || !focusedItem.ephemeral) return
+    if (!focusedItem.ephemeral) return
 
     ephemeralTimerRef.current = setTimeout(() => {
       setIsSnapped(true)
-      requestAnimationFrame(() => setScrollY(items.length))
+      requestAnimationFrame(() => {
+        setScrollY(items.length)
+      })
     }, EPHEMERAL_COLLAPSE_MS)
 
     return () => {
@@ -182,12 +190,14 @@ export function ShowcaseOverlay({ isGM }: ShowcaseOverlayProps) {
   const handleDismiss = useCallback(() => {
     if (pinnedItemId) return // Can't dismiss when pinned
     setIsSnapped(true)
-    requestAnimationFrame(() => setScrollY(items.length))
+    requestAnimationFrame(() => {
+      setScrollY(items.length)
+    })
   }, [items.length, pinnedItemId])
 
   const handlePin = useCallback(
     (id: string) => {
-      pinItem(id)
+      void pinItem(id)
     },
     [pinItem],
   )
@@ -198,7 +208,7 @@ export function ShowcaseOverlay({ isGM }: ShowcaseOverlayProps) {
 
   const handleDelete = useCallback(
     (id: string) => {
-      deleteItem(id)
+      void deleteItem(id)
     },
     [deleteItem],
   )
@@ -207,7 +217,9 @@ export function ShowcaseOverlay({ isGM }: ShowcaseOverlayProps) {
     (index: number) => {
       if (pinnedItemId) return // Can't switch when pinned
       setIsSnapped(true)
-      requestAnimationFrame(() => setScrollY(index))
+      requestAnimationFrame(() => {
+        setScrollY(index)
+      })
     },
     [pinnedItemId],
   )
@@ -249,7 +261,9 @@ export function ShowcaseOverlay({ isGM }: ShowcaseOverlayProps) {
           return (
             <div
               key={item.id}
-              onPointerDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => {
+                e.stopPropagation()
+              }}
               style={{
                 position: 'absolute',
                 transform: `translateY(${y}px) scale(${scale})`,
@@ -268,14 +282,25 @@ export function ShowcaseOverlay({ isGM }: ShowcaseOverlayProps) {
                   isGM={isGM}
                   isPinned={isPinned}
                   animateEntrance={animateItemId === item.id}
-                  onAnimationDone={() => setAnimateItemId(null)}
+                  onAnimationDone={() => {
+                    setAnimateItemId(null)
+                  }}
                   onDismiss={handleDismiss}
-                  onPin={() => handlePin(item.id)}
+                  onPin={() => {
+                    handlePin(item.id)
+                  }}
                   onUnpin={handleUnpin}
-                  onDelete={() => handleDelete(item.id)}
+                  onDelete={() => {
+                    handleDelete(item.id)
+                  }}
                 />
               ) : (
-                <PeekCard item={item} onClick={() => handleClickPeek(index)} />
+                <PeekCard
+                  item={item}
+                  onClick={() => {
+                    handleClickPeek(index)
+                  }}
+                />
               )}
             </div>
           )

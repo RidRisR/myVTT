@@ -20,7 +20,7 @@ export function deepMerge<T extends Record<string, unknown>>(
   for (const [key, val] of Object.entries(source)) {
     if (DANGEROUS_KEYS.has(key)) continue
     if (isPlainObject(val) && isPlainObject(result[key])) {
-      result[key] = deepMerge(result[key] as Record<string, unknown>, val)
+      result[key] = deepMerge(result[key], val)
     } else {
       result[key] = val
     }

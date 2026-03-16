@@ -74,7 +74,7 @@ describe('Spawn from Blueprint Journey', () => {
     const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/scenes/${sceneId}/entities`)
     const entries = data as { entityId: string; visible: boolean }[]
     expect(entries.length).toBeGreaterThanOrEqual(2)
-    expect(entries.every((e) => e.visible === true)).toBe(true)
+    expect(entries.every((e) => e.visible)).toBe(true)
   })
 
   it('rejects spawn with invalid blueprint', async () => {

@@ -12,15 +12,23 @@ export function getMediaDimensions(url: string): Promise<{ w: number; h: number 
     return new Promise((resolve) => {
       const video = document.createElement('video')
       video.preload = 'metadata'
-      video.onloadedmetadata = () => resolve({ w: video.videoWidth, h: video.videoHeight })
-      video.onerror = () => resolve({ w: 1920, h: 1080 })
+      video.onloadedmetadata = () => {
+        resolve({ w: video.videoWidth, h: video.videoHeight })
+      }
+      video.onerror = () => {
+        resolve({ w: 1920, h: 1080 })
+      }
       video.src = url
     })
   }
   return new Promise((resolve) => {
     const img = new Image()
-    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight })
-    img.onerror = () => resolve({ w: 1920, h: 1080 })
+    img.onload = () => {
+      resolve({ w: img.naturalWidth, h: img.naturalHeight })
+    }
+    img.onerror = () => {
+      resolve({ w: 1920, h: 1080 })
+    }
     img.src = url
   })
 }
@@ -28,7 +36,14 @@ export function getMediaDimensions(url: string): Promise<{ w: number; h: number 
 export async function uploadAsset(
   file: File,
   meta?: { name?: string; type?: string; extra?: Record<string, unknown> },
-): Promise<{ id: string; url: string; name: string; type: string; createdAt: number; extra: Record<string, unknown> }> {
+): Promise<{
+  id: string
+  url: string
+  name: string
+  type: string
+  createdAt: number
+  extra: Record<string, unknown>
+}> {
   const roomId = getCurrentRoomId()
   const formData = new FormData()
   formData.append('file', file)
@@ -46,5 +61,12 @@ export async function uploadAsset(
     throw new Error(`Upload failed: ${res.statusText}`)
   }
 
-  return res.json()
+  return (await res.json()) as {
+    id: string
+    url: string
+    name: string
+    type: string
+    createdAt: number
+    extra: Record<string, unknown>
+  }
 }

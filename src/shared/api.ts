@@ -16,8 +16,10 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     credentials: 'include',
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error(err.error || res.statusText)
+    const err = (await res.json().catch(() => ({ error: res.statusText }))) as {
+      error?: string
+    }
+    throw new Error(err.error ?? res.statusText)
   }
   // Handle empty responses (204, empty body).
   // Mutation endpoints (POST/PATCH/DELETE) may return 204; GET always returns JSON.

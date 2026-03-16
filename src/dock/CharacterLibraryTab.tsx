@@ -53,10 +53,10 @@ export function CharacterLibraryTab() {
       permissions: defaultNPCPermissions(),
       lifecycle: 'reusable',
     }
-    addEntity(newEntity)
+    void addEntity(newEntity)
     // Add to current scene so the inspector can locate the entity in PortraitBar.
     // visible=true so the portrait appears on stage for the GM to click/edit.
-    if (activeSceneId) addEntityToScene(activeSceneId, newEntity.id, true)
+    if (activeSceneId) void addEntityToScene(activeSceneId, newEntity.id, true)
     setInspectedCharacterId(newEntity.id)
   }
 
@@ -75,7 +75,7 @@ export function CharacterLibraryTab() {
           next.delete(id)
           return next
         })
-        deleteEntity(id)
+        void deleteEntity(id)
       }, 5000)
       deleteTimers.current.set(id, timer)
 
@@ -112,7 +112,9 @@ export function CharacterLibraryTab() {
           />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value)
+            }}
             placeholder="搜索角色..."
             className="w-full pl-6 pr-2 py-1 text-xs bg-surface/60 text-text-primary border border-border-glass rounded outline-none placeholder:text-text-muted/30"
           />
@@ -142,9 +144,11 @@ export function CharacterLibraryTab() {
               <div key={entity.id} className="relative flex items-center group">
                 <button
                   onClick={() => {
-                    if (activeSceneId) addEntityToScene(activeSceneId, entity.id)
+                    if (activeSceneId) void addEntityToScene(activeSceneId, entity.id)
                   }}
-                  onDoubleClick={() => setInspectedCharacterId(entity.id)}
+                  onDoubleClick={() => {
+                    setInspectedCharacterId(entity.id)
+                  }}
                   className="flex-1 flex items-center gap-2 px-2 py-1.5 rounded text-left hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
                 >
                   <div

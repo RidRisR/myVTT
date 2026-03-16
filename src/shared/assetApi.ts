@@ -11,7 +11,7 @@ export function getCurrentRoomId(): string {
 export async function fetchAssets(roomId: string): Promise<AssetMeta[]> {
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/assets`, { credentials: 'include' })
   if (!res.ok) throw new Error(`fetchAssets failed: ${res.status}`)
-  return res.json()
+  return (await res.json()) as AssetMeta[]
 }
 
 export async function updateAsset(
@@ -26,7 +26,7 @@ export async function updateAsset(
     credentials: 'include',
   })
   if (!res.ok) throw new Error(`updateAsset failed: ${res.status}`)
-  return res.json()
+  return (await res.json()) as AssetMeta
 }
 
 export async function deleteAsset(roomId: string, assetId: string): Promise<void> {

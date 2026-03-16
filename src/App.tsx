@@ -55,7 +55,7 @@ function RoomSession({ roomId }: { roomId: string }) {
     cancelledRef.current = false
     let cleanupWorld: (() => void) | undefined
     let cleanupIdentity: (() => void) | undefined
-    ;(async () => {
+    void (async () => {
       try {
         setInitError(null)
         const [worldCleanup, identityCleanup] = await Promise.all([
@@ -90,8 +90,10 @@ function RoomSession({ roomId }: { roomId: string }) {
   useEffect(() => {
     if (connectionStatus === 'connected' && !isLoading) {
       Promise.all([reinitWorld(), useAssetStore.getState().refresh()])
-        .then(() => setInitError(null))
-        .catch((err) => {
+        .then(() => {
+          setInitError(null)
+        })
+        .catch((err: unknown) => {
           console.error('Failed to reinitialize after reconnect:', err)
         })
     }
@@ -167,7 +169,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       (e) => e.permissions.seats[mySeatId] === 'owner',
     )
     if (ownedEntity) {
-      updateSeat(mySeatId, { activeCharacterId: ownedEntity.id })
+      void updateSeat(mySeatId, { activeCharacterId: ownedEntity.id })
     }
   }, [mySeat, mySeatId, entities, updateSeat])
 
@@ -184,7 +186,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   const seatProperties = deriveSeatProperties(activeEntity, selectedTokenEntity)
   const isGMForSpeakers = mySeat?.role === 'GM'
   const speakerEntities = useMemo(
-    () => selectSpeakerEntities(entities, mySeatId, isGMForSpeakers ?? false),
+    () => selectSpeakerEntities(entities, mySeatId, isGMForSpeakers),
     [entities, mySeatId, isGMForSpeakers],
   )
 
@@ -206,7 +208,7 @@ function RoomSession({ roomId }: { roomId: string }) {
     if (scenes.length > 0) return
     if (room.activeSceneId) return
     const id = crypto.randomUUID()
-    addScene(id, 'Scene 1', {
+    void addScene(id, 'Scene 1', {
       imageUrl: '',
       width: 1920,
       height: 1080,
@@ -215,7 +217,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       ambientAudioUrl: '',
       ambientAudioVolume: 0.5,
     })
-    setActiveScene(id)
+    void setActiveScene(id)
   }, [isLoading, isGMRole, scenes.length, room.activeSceneId, addScene, setActiveScene])
 
   if (isLoading || initError) {
@@ -238,7 +240,9 @@ function RoomSession({ roomId }: { roomId: string }) {
           <>
             <div>Failed to connect: {initError}</div>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                window.location.reload()
+              }}
               style={{
                 padding: '8px 24px',
                 background: '#3b82f6',
@@ -265,8 +269,12 @@ function RoomSession({ roomId }: { roomId: string }) {
         seats={seats}
         onlineSeatIds={onlineSeatIds}
         onClaim={claimSeat}
-        onCreate={createSeat}
-        onDelete={deleteSeat}
+        onCreate={(name, role, color) => {
+          void createSeat(name, role, color)
+        }}
+        onDelete={(seatId) => {
+          void deleteSeat(seatId)
+        }}
       />
     )
   }
@@ -274,33 +282,33 @@ function RoomSession({ roomId }: { roomId: string }) {
   const isGM = mySeat.role === 'GM'
 
   const handleRemoveFromScene = (entityId: string) => {
-    if (room.activeSceneId) removeEntityFromScene(room.activeSceneId, entityId)
+    if (room.activeSceneId) void removeEntityFromScene(room.activeSceneId, entityId)
     if (inspectedCharacterId === entityId) setInspectedCharacterId(null)
   }
 
   const handleDeleteScene = (sceneId: string) => {
-    deleteSceneRaw(sceneId)
+    void deleteSceneRaw(sceneId)
     // Orphan GC is now handled server-side
   }
 
   const handleAddScene = (id: string, name: string, atmosphere: Atmosphere) => {
     // Server auto-links persistent entities on scene creation
-    addScene(id, name, atmosphere)
+    void addScene(id, name, atmosphere)
   }
 
   const handleAddEntity = (entity: Entity) => {
-    addEntity(entity)
+    void addEntity(entity)
     // Server handles adding persistent entities to all scenes
   }
 
   const handleUpdateEntity = (id: string, updates: Partial<Entity>) => {
-    updateEntity(id, updates)
+    void updateEntity(id, updates)
     // Server handles persistent→all-scenes linking
   }
 
   const handleSetActiveCharacter = (entityId: string) => {
     if (mySeatId) {
-      updateSeat(mySeatId, { activeCharacterId: entityId })
+      void updateSeat(mySeatId, { activeCharacterId: entityId })
     }
   }
 
@@ -317,7 +325,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       ephemeral: false,
       timestamp: Date.now(),
     }
-    addShowcaseItem(item)
+    void addShowcaseItem(item)
   }
 
   const handleBgContextMenu = (e: React.MouseEvent) => {
@@ -337,7 +345,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   }
 
   const handleDropEntityOnMap = (entityId: string, mapX: number, mapY: number) => {
-    placeEntityOnMap(entityId, mapX, mapY)
+    void placeEntityOnMap(entityId, mapX, mapY)
   }
 
   return (
@@ -358,9 +366,15 @@ function RoomSession({ roomId }: { roomId: string }) {
             role={mySeat.role}
             selectedTokenId={selectedTokenId}
             onSelectToken={setSelectedTokenId}
-            onUpdateToken={updateToken}
-            onDeleteToken={deleteToken}
-            onAddToken={addToken}
+            onUpdateToken={(id, updates) => {
+              void updateToken(id, updates)
+            }}
+            onDeleteToken={(id) => {
+              void deleteToken(id)
+            }}
+            onAddToken={(token) => {
+              void addToken(token)
+            }}
             onDropEntityOnMap={handleDropEntityOnMap}
             onContextMenu={handleBgContextMenu}
             visible={isTactical}
@@ -368,7 +382,13 @@ function RoomSession({ roomId }: { roomId: string }) {
         )}
 
         {/* Top-left: Hamburger menu */}
-        <HamburgerMenu mySeat={mySeat} onUpdateSeat={updateSeat} onLeaveSeat={leaveSeat} />
+        <HamburgerMenu
+          mySeat={mySeat}
+          onUpdateSeat={(seatId, updates) => {
+            void updateSeat(seatId, updates)
+          }}
+          onLeaveSeat={leaveSeat}
+        />
 
         {/* Top-center: Portrait bar */}
         <PortraitBar
@@ -407,7 +427,6 @@ function RoomSession({ roomId }: { roomId: string }) {
 
         {/* Bottom-right: Chat overlay */}
         <ChatPanel
-          roomId={roomId}
           senderId={mySeatId}
           senderName={mySeat.name}
           senderColor={mySeat.color}
@@ -421,16 +440,18 @@ function RoomSession({ roomId }: { roomId: string }) {
           <GmDock
             activeSceneId={room.activeSceneId}
             isTactical={isTactical}
-            onUpdateScene={updateScene}
+            onUpdateScene={(id, updates) => {
+              void updateScene(id, updates)
+            }}
             onToggleCombat={() => {
               if (isTactical) {
-                exitTactical()
+                void exitTactical()
               } else {
-                enterTactical()
+                void enterTactical()
               }
             }}
             onShowcaseImage={(imageUrl) => {
-              addShowcaseItem({
+              void addShowcaseItem({
                 id: crypto.randomUUID(),
                 type: 'image',
                 imageUrl,
@@ -444,11 +465,15 @@ function RoomSession({ roomId }: { roomId: string }) {
             entities={entitiesArray}
             onAddEntity={handleAddEntity}
             onAddEntityToScene={(entityId) => {
-              if (room.activeSceneId) addEntityToScene(room.activeSceneId, entityId)
+              if (room.activeSceneId) void addEntityToScene(room.activeSceneId, entityId)
             }}
             selectedToken={selectedToken}
-            onAddToken={addToken}
-            onDeleteToken={deleteToken}
+            onAddToken={(token) => {
+              void addToken(token)
+            }}
+            onDeleteToken={(id) => {
+              void deleteToken(id)
+            }}
             onSelectToken={setSelectedTokenId}
             handoutAssets={handoutAssets}
             onAddHandoutAsset={addHandoutAsset}
@@ -469,11 +494,15 @@ function RoomSession({ roomId }: { roomId: string }) {
           <SceneButton
             scenes={scenes}
             activeSceneId={room.activeSceneId}
-            onSelectScene={setActiveScene}
-            onUpdateScene={updateScene}
+            onSelectScene={(sceneId) => {
+              void setActiveScene(sceneId)
+            }}
+            onUpdateScene={(id, updates) => {
+              void updateScene(id, updates)
+            }}
             onDeleteScene={handleDeleteScene}
             onDuplicateScene={(sceneId) => {
-              duplicateScene(sceneId, crypto.randomUUID())
+              void duplicateScene(sceneId, crypto.randomUUID())
             }}
             onCreateScene={() => {
               handleAddScene(crypto.randomUUID(), 'New Scene', {
@@ -495,7 +524,9 @@ function RoomSession({ roomId }: { roomId: string }) {
             x={bgContextMenu.x}
             y={bgContextMenu.y}
             items={[{ label: 'Add NPC', onClick: handleAddNpc }]}
-            onClose={() => setBgContextMenu(null)}
+            onClose={() => {
+              setBgContextMenu(null)
+            }}
           />
         )}
 
@@ -503,7 +534,9 @@ function RoomSession({ roomId }: { roomId: string }) {
           <HandoutEditModal
             asset={editingHandout}
             onSave={updateHandoutAsset}
-            onClose={() => setEditingHandout(null)}
+            onClose={() => {
+              setEditingHandout(null)
+            }}
           />
         )}
       </div>
@@ -517,9 +550,13 @@ function RoomSession({ roomId }: { roomId: string }) {
 function useHashRoute() {
   const [hash, setHash] = useState(location.hash)
   useEffect(() => {
-    const onHashChange = () => setHash(location.hash)
+    const onHashChange = () => {
+      setHash(location.hash)
+    }
     window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
+    return () => {
+      window.removeEventListener('hashchange', onHashChange)
+    }
   }, [])
   return hash
 }

@@ -22,14 +22,14 @@ const mockResponses: Record<string, unknown> = {}
 
 vi.stubGlobal(
   'fetch',
-  vi.fn(async (url: string, _options?: RequestInit) => {
+  vi.fn((url: string, _options?: RequestInit) => {
     const path = new URL(url).pathname
-    return {
+    return Promise.resolve({
       ok: true,
       status: 200,
       headers: new Headers({ 'content-length': '1' }),
-      json: async () => mockResponses[path] ?? {},
-    }
+      json: () => Promise.resolve(mockResponses[path] ?? {}),
+    })
   }),
 )
 
@@ -220,8 +220,8 @@ describe('action methods', () => {
   function getLastFetchCall() {
     const calls = vi.mocked(fetch).mock.calls
     const lastCall = calls[calls.length - 1]
-    const url = lastCall[0] as string
-    const options = lastCall[1] as RequestInit | undefined
+    const url = lastCall[0]
+    const options = lastCall[1]
     return {
       url,
       method: options?.method ?? 'GET',

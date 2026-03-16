@@ -21,7 +21,7 @@ export function AdminPanel() {
   const fetchRooms = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/rooms`)
-      setRooms(await res.json())
+      setRooms((await res.json()) as RoomMeta[])
     } catch {
       setError('Failed to fetch rooms')
     } finally {
@@ -30,7 +30,7 @@ export function AdminPanel() {
   }, [])
 
   useEffect(() => {
-    fetchRooms()
+    void fetchRooms()
   }, [fetchRooms])
 
   const handleCreate = async () => {
@@ -47,13 +47,13 @@ export function AdminPanel() {
         body: JSON.stringify({ name, ruleSystemId: newSystemId }),
       })
       if (!res.ok) {
-        const body = await res.json()
-        setError(body.error || 'Create failed')
+        const body = (await res.json()) as { error?: string }
+        setError(body.error ?? 'Create failed')
         return
       }
       setNewName('')
       setNewSystemId('generic')
-      fetchRooms()
+      void fetchRooms()
     } catch {
       setError('Network error')
     }
@@ -63,7 +63,7 @@ export function AdminPanel() {
     if (!confirm(`Delete room "${roomId}"? This will permanently erase all data.`)) return
     try {
       await fetch(`${API_BASE}/api/rooms/${roomId}`, { method: 'DELETE' })
-      fetchRooms()
+      void fetchRooms()
     } catch {
       setError('Delete failed')
     }
@@ -71,7 +71,7 @@ export function AdminPanel() {
 
   const copyLink = (roomId: string) => {
     const url = `${location.origin}${location.pathname}#room=${roomId}`
-    navigator.clipboard.writeText(url)
+    void navigator.clipboard.writeText(url)
   }
 
   const formatDate = (ts: number) => {
@@ -100,16 +100,20 @@ export function AdminPanel() {
           <div className="flex gap-2 flex-wrap">
             <input
               value={newName}
-              onChange={(e) => setNewName(e.target.value)}
+              onChange={(e) => {
+                setNewName(e.target.value)
+              }}
               placeholder="Room name"
               className="flex-[1_1_200px] min-w-[140px] px-3 py-2 border border-border-glass rounded-md text-[13px] bg-surface text-text-primary outline-none placeholder:text-text-muted/30"
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreate()
+                if (e.key === 'Enter') void handleCreate()
               }}
             />
             <select
               value={newSystemId}
-              onChange={(e) => setNewSystemId(e.target.value)}
+              onChange={(e) => {
+                setNewSystemId(e.target.value)
+              }}
               className="px-3 py-2 border border-border-glass rounded-md text-[13px] bg-surface text-text-primary outline-none cursor-pointer"
             >
               {AVAILABLE_SYSTEMS.map((s) => (
@@ -119,7 +123,9 @@ export function AdminPanel() {
               ))}
             </select>
             <button
-              onClick={handleCreate}
+              onClick={() => {
+                void handleCreate()
+              }}
               className="flex items-center gap-2 px-5 py-2 border-none rounded-md text-[13px] font-semibold cursor-pointer bg-accent text-deep transition-colors duration-fast hover:bg-accent-bold"
             >
               <Plus size={14} strokeWidth={2} />
@@ -165,7 +171,9 @@ export function AdminPanel() {
               </a>
 
               <button
-                onClick={() => copyLink(room.id)}
+                onClick={() => {
+                  copyLink(room.id)
+                }}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer bg-info/15 text-info border border-info/20 transition-colors duration-fast hover:bg-info/25"
               >
                 <Link size={11} strokeWidth={2} />
@@ -173,7 +181,9 @@ export function AdminPanel() {
               </button>
 
               <button
-                onClick={() => handleDelete(room.id)}
+                onClick={() => {
+                  void handleDelete(room.id)
+                }}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-xs font-semibold cursor-pointer bg-danger/10 text-danger border border-danger/15 transition-colors duration-fast hover:bg-danger/20"
               >
                 <Trash2 size={11} strokeWidth={2} />

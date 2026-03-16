@@ -75,13 +75,17 @@ export function DiceReel({
       setPhase('landing')
 
       // Phase 3: Finish landing animation
-      setTimeout(() => setPhase('stopped'), 300)
+      setTimeout(() => {
+        setPhase('stopped')
+      }, 300)
     }, delay * 1000)
 
     // Reveal dropped styling after all dice have landed
     let dropTimer: ReturnType<typeof setTimeout> | undefined
     if (drd != null && drd > 0) {
-      dropTimer = setTimeout(() => setShowDropped(true), drd * 1000)
+      dropTimer = setTimeout(() => {
+        setShowDropped(true)
+      }, drd * 1000)
     }
 
     return () => {

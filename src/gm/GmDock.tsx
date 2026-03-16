@@ -89,7 +89,9 @@ export function GmDock({
       }
     }
     document.addEventListener('pointerdown', handleClickOutside)
-    return () => document.removeEventListener('pointerdown', handleClickOutside)
+    return () => {
+      document.removeEventListener('pointerdown', handleClickOutside)
+    }
   }, [activeTab])
 
   const toggleTab = (tab: TabId) => {
@@ -130,7 +132,9 @@ export function GmDock({
       duration: 5000,
       action: {
         label: '撤销',
-        onClick: () => onAddToken(cached),
+        onClick: () => {
+          onAddToken(cached)
+        },
       },
     })
   }
@@ -138,20 +142,23 @@ export function GmDock({
   const handleToggleVisibility = () => {
     if (!selectedToken) return
     const entity = useWorldStore.getState().entities[selectedToken.entityId]
-    if (!entity) return
     const isHidden = entity.permissions.default === 'none'
     const newPerms = isHidden ? defaultNPCPermissions() : { default: 'none' as const, seats: {} }
-    useWorldStore.getState().updateEntity(entity.id, { permissions: newPerms })
+    void useWorldStore.getState().updateEntity(entity.id, { permissions: newPerms })
   }
 
   if (collapsed) {
     return (
       <div
         className="fixed bottom-3 left-1/2 -translate-x-1/2 z-toast"
-        onPointerDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => {
+          e.stopPropagation()
+        }}
       >
         <button
-          onClick={() => setCollapsed(false)}
+          onClick={() => {
+            setCollapsed(false)
+          }}
           className="flex items-center gap-1 rounded-lg bg-glass backdrop-blur-[12px] border border-border-glass px-3 py-1.5 text-xs text-text-muted cursor-pointer hover:bg-hover transition-colors duration-fast"
         >
           <ChevronDown size={14} strokeWidth={1.5} className="rotate-180" />
@@ -172,7 +179,9 @@ export function GmDock({
     <div
       ref={dockRef}
       className="fixed bottom-3 left-1/2 -translate-x-1/2 z-toast flex flex-col items-center"
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       {/* Expanded content area */}
       {activeTab !== null && activeTab !== 'dice' && (
@@ -181,17 +190,21 @@ export function GmDock({
             <MemoMapDockTab
               activeSceneId={activeSceneId}
               isTactical={isTactical}
-              onSetAsBackground={(sceneId, imageUrl) =>
+              onSetAsBackground={(sceneId, imageUrl) => {
                 onUpdateScene(sceneId, { atmosphere: { imageUrl } })
-              }
+              }}
               onSetAsTacticalMap={onSetAsTacticalMap}
               onShowcaseImage={onShowcaseImage}
             />
           )}
           {activeTab === 'tokens' && (
             <MemoBlueprintDockTab
-              onSpawnToken={handleSpawnFromBlueprint}
-              onAddToActive={handleAddToActive}
+              onSpawnToken={(bp) => {
+                void handleSpawnFromBlueprint(bp)
+              }}
+              onAddToActive={(bp) => {
+                void handleAddToActive(bp)
+              }}
               isTactical={isTactical}
             />
           )}
@@ -218,27 +231,52 @@ export function GmDock({
 
       {/* Tab bar */}
       <div className="flex gap-1.5">
-        <button onClick={() => toggleTab('gallery')} className={tabBtnClass('gallery')}>
+        <button
+          onClick={() => {
+            toggleTab('gallery')
+          }}
+          className={tabBtnClass('gallery')}
+        >
           <FolderOpen size={14} strokeWidth={1.5} />
           Gallery
         </button>
 
-        <button onClick={() => toggleTab('tokens')} className={tabBtnClass('tokens')}>
+        <button
+          onClick={() => {
+            toggleTab('tokens')
+          }}
+          className={tabBtnClass('tokens')}
+        >
           <CircleUser size={14} strokeWidth={1.5} />
           蓝图
         </button>
 
-        <button onClick={() => toggleTab('characters')} className={tabBtnClass('characters')}>
+        <button
+          onClick={() => {
+            toggleTab('characters')
+          }}
+          className={tabBtnClass('characters')}
+        >
           <Users size={14} strokeWidth={1.5} />
           Characters
         </button>
 
-        <button onClick={() => toggleTab('handouts')} className={tabBtnClass('handouts')}>
+        <button
+          onClick={() => {
+            toggleTab('handouts')
+          }}
+          className={tabBtnClass('handouts')}
+        >
           <BookOpen size={14} strokeWidth={1.5} />
           Handouts
         </button>
 
-        <button onClick={() => toggleTab('dice')} className={tabBtnClass('dice')}>
+        <button
+          onClick={() => {
+            toggleTab('dice')
+          }}
+          className={tabBtnClass('dice')}
+        >
           <Dice5 size={14} strokeWidth={1.5} />
           Dice
         </button>
@@ -271,7 +309,7 @@ export function GmDock({
             </button>
             {(() => {
               const selectedEntity = useWorldStore.getState().entities[selectedToken.entityId]
-              const isHidden = selectedEntity?.permissions.default === 'none'
+              const isHidden = selectedEntity.permissions.default === 'none'
               return (
                 <button
                   onClick={handleToggleVisibility}

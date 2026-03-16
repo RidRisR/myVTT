@@ -18,7 +18,9 @@ export function GmSidebar() {
   return (
     <div
       className="fixed top-1/2 left-0 -translate-y-1/2 z-ui flex pointer-events-none"
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       <div
         className="flex pointer-events-auto"
@@ -78,7 +80,9 @@ export function GmSidebar() {
           {/* Collapse/expand toggle */}
           <div className="mt-auto">
             <button
-              onClick={() => setCollapsed(!collapsed)}
+              onClick={() => {
+                setCollapsed(!collapsed)
+              }}
               className="w-8 h-8 flex items-center justify-center text-text-muted/40 hover:text-text-muted cursor-pointer transition-colors duration-fast"
               aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
             >

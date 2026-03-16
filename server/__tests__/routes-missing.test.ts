@@ -67,8 +67,8 @@ beforeAll(async () => {
   })
 })
 
-afterAll(async () => {
-  io.close()
+afterAll(() => {
+  void io.close()
   server.close()
   closeAllDbs()
   fs.rmSync(dataDir, { recursive: true, force: true })
@@ -98,11 +98,11 @@ describe('POST /seats/:id/claim', () => {
 
   it('creates a seat, claims it, and verifies userId is set', async () => {
     // Create seat
-    const { status: createStatus, data: seat } = await api(
-      'POST',
-      `/api/rooms/${roomId}/seats`,
-      { name: 'Ranger', color: '#228b22', role: 'PL' },
-    )
+    const { status: createStatus, data: seat } = await api('POST', `/api/rooms/${roomId}/seats`, {
+      name: 'Ranger',
+      color: '#228b22',
+      role: 'PL',
+    })
     expect(createStatus).toBe(201)
     expect(seat.userId).toBeNull()
 
@@ -123,11 +123,9 @@ describe('POST /seats/:id/claim', () => {
   })
 
   it('returns 404 for non-existent seat', async () => {
-    const { status } = await api(
-      'POST',
-      `/api/rooms/${roomId}/seats/no-such-seat/claim`,
-      { userId: 'user-1' },
-    )
+    const { status } = await api('POST', `/api/rooms/${roomId}/seats/no-such-seat/claim`, {
+      userId: 'user-1',
+    })
     expect(status).toBe(404)
   })
 })
@@ -141,16 +139,12 @@ describe('POST /chat/retract/:id', () => {
 
   it('creates a message, retracts it, and verifies it is gone from GET', async () => {
     // Send a message
-    const { status: sendStatus, data: msg } = await api(
-      'POST',
-      `/api/rooms/${roomId}/chat`,
-      {
-        senderId: 's-gm',
-        senderName: 'GM',
-        senderColor: '#ff6600',
-        content: 'This message will be retracted',
-      },
-    )
+    const { status: sendStatus, data: msg } = await api('POST', `/api/rooms/${roomId}/chat`, {
+      senderId: 's-gm',
+      senderName: 'GM',
+      senderColor: '#ff6600',
+      content: 'This message will be retracted',
+    })
     expect(sendStatus).toBe(201)
     expect(msg.id).toBeTruthy()
 
@@ -172,10 +166,7 @@ describe('POST /chat/retract/:id', () => {
   })
 
   it('returns 404 for non-existent message', async () => {
-    const { status } = await api(
-      'POST',
-      `/api/rooms/${roomId}/chat/retract/fake-msg-id`,
-    )
+    const { status } = await api('POST', `/api/rooms/${roomId}/chat/retract/fake-msg-id`)
     expect(status).toBe(404)
   })
 })
@@ -213,10 +204,7 @@ describe('POST /showcase/:id/pin + POST /showcase/unpin', () => {
   })
 
   it('returns 404 when pinning non-existent item', async () => {
-    const { status } = await api(
-      'POST',
-      `/api/rooms/${roomId}/showcase/does-not-exist/pin`,
-    )
+    const { status } = await api('POST', `/api/rooms/${roomId}/showcase/does-not-exist/pin`)
     expect(status).toBe(404)
   })
 

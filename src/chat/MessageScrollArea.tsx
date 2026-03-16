@@ -90,7 +90,9 @@ export function MessageScrollArea({ messages, newMessageIds }: MessageScrollArea
             WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 40px)',
           }}
           onScroll={checkIfAtBottom}
-          onWheel={(e) => e.stopPropagation()}
+          onWheel={(e) => {
+            e.stopPropagation()
+          }}
         >
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">

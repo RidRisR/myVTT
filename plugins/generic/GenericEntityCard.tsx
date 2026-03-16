@@ -8,17 +8,14 @@ export function GenericEntityCard({ entity, onUpdate, readonly }: EntityCardProp
   if (readonly) {
     // Read-only: render panel with no update handler and no close button.
     // CharacterDetailPanel integration deferred (see plan Deferred table).
-    return (
-      <CharacterEditPanel
-        character={entity}
-        onUpdateCharacter={() => {}}
-      />
-    )
+    return <CharacterEditPanel character={entity} onUpdateCharacter={() => {}} />
   }
   return (
     <CharacterEditPanel
       character={entity}
-      onUpdateCharacter={(_id, patch) => onUpdate(patch)}
+      onUpdateCharacter={(_id, patch) => {
+        onUpdate(patch)
+      }}
     />
   )
 }

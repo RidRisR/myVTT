@@ -43,7 +43,9 @@ export function HandoutDockTab({
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={handleUpload}
+        onChange={(e) => {
+          void handleUpload(e)
+        }}
       />
       {assets.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
@@ -63,9 +65,15 @@ export function HandoutDockTab({
             <div
               key={asset.id}
               className="relative cursor-pointer rounded-lg overflow-hidden border-2 border-border-glass transition-colors duration-fast hover:border-text-muted/20"
-              onClick={() => onShowcase(asset)}
-              onMouseEnter={() => setHoveredId(asset.id)}
-              onMouseLeave={() => setHoveredId(null)}
+              onClick={() => {
+                onShowcase(asset)
+              }}
+              onMouseEnter={() => {
+                setHoveredId(asset.id)
+              }}
+              onMouseLeave={() => {
+                setHoveredId(null)
+              }}
             >
               <img
                 src={asset.imageUrl}

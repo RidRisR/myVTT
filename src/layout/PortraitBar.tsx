@@ -145,7 +145,9 @@ export function PortraitBar({
       }
     }
     document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
+    return () => {
+      document.removeEventListener('pointerdown', handler)
+    }
   }, [inspectedCharacterId, onInspectCharacter])
 
   // Clear hover when a portrait is locked
@@ -168,7 +170,9 @@ export function PortraitBar({
 
   const handlePortraitMouseLeave = useCallback(() => {
     if (inspectedCharacterId) return
-    hoverTimeoutRef.current = setTimeout(() => setHoveredCharId(null), 200)
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredCharId(null)
+    }, 200)
   }, [inspectedCharacterId])
 
   const handlePopoverMouseEnter = useCallback(() => {
@@ -177,7 +181,9 @@ export function PortraitBar({
 
   const handlePopoverMouseLeave = useCallback(() => {
     if (!inspectedCharacterId) {
-      hoverTimeoutRef.current = setTimeout(() => setHoveredCharId(null), 200)
+      hoverTimeoutRef.current = setTimeout(() => {
+        setHoveredCharId(null)
+      }, 200)
     }
   }, [inspectedCharacterId])
 
@@ -208,8 +214,8 @@ export function PortraitBar({
       permissions: defaultPCPermissions(mySeatId),
       lifecycle: 'persistent',
     }
-    addEntity(newEntity)
-    addEntityToScene(activeSceneId, newEntity.id, true)
+    void addEntity(newEntity)
+    void addEntityToScene(activeSceneId, newEntity.id, true)
     setInspectedCharacterId(newEntity.id)
   }
 
@@ -237,7 +243,9 @@ export function PortraitBar({
     return (
       <div className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center">
         <button
-          onClick={() => setPortraitBarVisible(true)}
+          onClick={() => {
+            setPortraitBarVisible(true)
+          }}
           className="pointer-events-auto flex items-center gap-1 bg-glass backdrop-blur-[12px] rounded-full px-3 py-1.5 border border-border-glass text-text-muted text-[10px] cursor-pointer hover:bg-hover transition-colors duration-fast shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
         >
           <ChevronUp size={12} strokeWidth={1.5} className="rotate-180" />
@@ -279,7 +287,9 @@ export function PortraitBar({
     if (mySeatId && canEdit(entity.permissions, mySeatId, role)) {
       items.push({
         label: 'Set as active',
-        onClick: () => onSetActiveCharacter(entity.id),
+        onClick: () => {
+          onSetActiveCharacter(entity.id)
+        },
         disabled: activeCharacterId === entity.id,
       })
     }
@@ -302,7 +312,7 @@ export function PortraitBar({
         items.push({
           label: '离场',
           onClick: () => {
-            if (activeSceneId) toggleEntityVisibility(activeSceneId, entity.id, false)
+            if (activeSceneId) void toggleEntityVisibility(activeSceneId, entity.id, false)
           },
         })
       }
@@ -310,14 +320,18 @@ export function PortraitBar({
       // Save as blueprint
       items.push({
         label: '保存为蓝图',
-        onClick: () => saveEntityAsBlueprint(entity),
+        onClick: () => {
+          void saveEntityAsBlueprint(entity)
+        },
       })
 
       // Save as reusable character (only for ephemeral entities)
       if (entity.lifecycle === 'ephemeral') {
         items.push({
           label: '保存为角色',
-          onClick: () => updateEntity(entity.id, { lifecycle: 'reusable' }),
+          onClick: () => {
+            void updateEntity(entity.id, { lifecycle: 'reusable' })
+          },
         })
       }
 
@@ -325,7 +339,9 @@ export function PortraitBar({
       if (entity.lifecycle !== 'persistent') {
         items.push({
           label: '移除',
-          onClick: () => onRemoveFromScene(entity.id),
+          onClick: () => {
+            onRemoveFromScene(entity.id)
+          },
           color: '#f87171',
         })
       }
@@ -363,7 +379,9 @@ export function PortraitBar({
         onClick={(e) => {
           handlePortraitClick(entity.id, e.currentTarget as HTMLElement)
         }}
-        onContextMenu={(e) => handleContextMenu(e, entity.id)}
+        onContextMenu={(e) => {
+          handleContextMenu(e, entity.id)
+        }}
         onMouseEnter={(e) => {
           if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'
           handlePortraitMouseEnter(entity.id, e.currentTarget as HTMLElement)
@@ -482,16 +500,15 @@ export function PortraitBar({
   // Hover only searches visibleEntities (entity must be visible to have a portrait to hover).
   const popoverEntity = popoverCharId
     ? isLocked
-      ? entities.find((e) => e.id === popoverCharId) ?? visibleEntities.find((e) => e.id === popoverCharId)
+      ? (entities.find((e) => e.id === popoverCharId) ??
+        visibleEntities.find((e) => e.id === popoverCharId))
       : visibleEntities.find((e) => e.id === popoverCharId)
     : null
 
   // Resolve rect: use lockedRect/hoveredRect, fallback to querying the portrait element
   let rect = isLocked ? lockedRect : hoveredRect
   if (!rect && isLocked && popoverCharId && portraitBarRef.current) {
-    const el = portraitBarRef.current.querySelector(
-      `[data-char-id="${popoverCharId}"]`,
-    ) as HTMLElement | null
+    const el = portraitBarRef.current.querySelector(`[data-char-id="${popoverCharId}"]`)
     if (el) rect = el.getBoundingClientRect()
   }
 
@@ -517,12 +534,16 @@ export function PortraitBar({
     <div
       ref={portraitBarRef}
       className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center gap-[3px]"
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation()
+      }}
     >
       {/* Tab buttons + collapse */}
       <div className="flex gap-0.5 items-center pointer-events-auto">
         <button
-          onClick={() => setActiveTab('characters')}
+          onClick={() => {
+            setActiveTab('characters')
+          }}
           className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
             activeTab === 'characters'
               ? 'text-text-primary border-b-2 border-accent'
@@ -532,7 +553,9 @@ export function PortraitBar({
           Characters
         </button>
         <button
-          onClick={() => setActiveTab('initiative')}
+          onClick={() => {
+            setActiveTab('initiative')
+          }}
           className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
             activeTab === 'initiative'
               ? 'text-text-primary border-b-2 border-accent'
@@ -542,7 +565,9 @@ export function PortraitBar({
           Initiative
         </button>
         <button
-          onClick={() => setPortraitBarVisible(false)}
+          onClick={() => {
+            setPortraitBarVisible(false)
+          }}
           className="ml-1 p-0.5 text-text-muted/30 hover:text-text-muted/60 bg-transparent border-none cursor-pointer transition-colors duration-fast"
           title="Hide portraits"
         >
@@ -556,15 +581,17 @@ export function PortraitBar({
           {partyEntities.map(renderPortrait)}
 
           {/* Player "create my character" slot — shown when not GM and player has no owned entity */}
-          {!isGM && mySeatId && !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
-            <button
-              onClick={handleCreateMyCharacter}
-              title="创建我的角色"
-              className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
-            >
-              <Plus size={16} strokeWidth={1.5} />
-            </button>
-          )}
+          {!isGM &&
+            mySeatId &&
+            !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
+              <button
+                onClick={handleCreateMyCharacter}
+                title="创建我的角色"
+                className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
+              >
+                <Plus size={16} strokeWidth={1.5} />
+              </button>
+            )}
 
           {/* Separator between PCs and NPCs */}
           {hasSection && <div className="w-px h-8 bg-border-glass mx-0.5" />}
@@ -576,9 +603,7 @@ export function PortraitBar({
       {activeTab === 'initiative' && (
         <div className="flex items-center gap-2 bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           <span className="text-xs text-text-muted/40 font-sans px-3 py-1">
-            {tacticalInfo
-              ? `Round ${tacticalInfo.roundNumber}`
-              : 'No tactical session active'}
+            {tacticalInfo ? `Round ${tacticalInfo.roundNumber}` : 'No tactical session active'}
           </span>
         </div>
       )}
@@ -593,7 +618,9 @@ export function PortraitBar({
               x={contextMenu.x}
               y={contextMenu.y}
               items={getContextMenuItems(entity)}
-              onClose={() => setContextMenu(null)}
+              onClose={() => {
+                setContextMenu(null)
+              }}
             />,
             document.body,
           )
@@ -612,8 +639,12 @@ export function PortraitBar({
               zIndex: 10001,
               maxHeight: popoverMaxHeight,
             }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onWheel={(e) => e.stopPropagation()}
+            onPointerDown={(e) => {
+              e.stopPropagation()
+            }}
+            onWheel={(e) => {
+              e.stopPropagation()
+            }}
             onMouseEnter={handlePopoverMouseEnter}
             onMouseLeave={handlePopoverMouseLeave}
           >
@@ -623,14 +654,18 @@ export function PortraitBar({
                 // Generic plugin uses CharacterEditPanel wrapped in GenericEntityCard
                 <Card
                   entity={popoverEntity}
-                  onUpdate={(patch) => onUpdateEntity(popoverEntity.id, patch)}
+                  onUpdate={(patch) => {
+                    onUpdateEntity(popoverEntity.id, patch)
+                  }}
                   readonly={false}
                 />
               ) : (
                 // Read-only locked view: use plugin's EntityCard for display
                 <Card
                   entity={popoverEntity}
-                  onUpdate={(patch) => onUpdateEntity(popoverEntity.id, patch)}
+                  onUpdate={(patch) => {
+                    onUpdateEntity(popoverEntity.id, patch)
+                  }}
                   readonly
                 />
               )

@@ -19,7 +19,7 @@ export function assetRoutes(dataDir: string, io: Server): Router {
   }
 
   function toAsset(row: Record<string, unknown>) {
-    return parseJsonFields(toCamel<Record<string, unknown>>(row), 'extra', 'tags')
+    return parseJsonFields(toCamel(row), 'extra', 'tags')
   }
 
   router.get('/api/rooms/:roomId/assets', room, (req, res) => {
@@ -38,11 +38,9 @@ export function assetRoutes(dataDir: string, io: Server): Router {
     const dir = uploadsDir(req.roomId!)
     const storage = multer.diskStorage({
       destination: dir,
-      filename: (_r, file, cb) =>
-        cb(
-          null,
-          `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase() || '.bin'}`,
-        ),
+      filename: (_r, file, cb) => {
+        cb(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase() || '.bin'}`)
+      },
     })
     const allowedMimes = [
       'image/jpeg',

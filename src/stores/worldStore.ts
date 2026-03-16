@@ -155,7 +155,6 @@ interface WorldState {
   // Composed actions — multi-step orchestration
   createEphemeralNpcInScene: () => Promise<Entity | null>
   spawnEphemeralTokenAtPosition: (x: number, y: number) => Promise<Entity | null>
-  saveEntityAsBlueprint: (entity: Entity) => Promise<void>
 
   // Token actions
   createToken: (x: number, y: number, opts?: { name?: string; color?: string }) => Promise<void>
@@ -167,7 +166,7 @@ interface WorldState {
 
   // Showcase actions
   addShowcaseItem: (item: ShowcaseItem) => Promise<void>
-  updateShowcaseItem: (id: string, updates: Partial<ShowcaseItem>) => void
+  updateShowcaseItem: (id: string, updates: Partial<ShowcaseItem>) => Promise<void>
   deleteShowcaseItem: (id: string) => Promise<void>
   clearShowcase: () => Promise<void>
   pinShowcaseItem: (id: string) => Promise<void>
@@ -220,7 +219,9 @@ const DEFAULT_GRID: TacticalInfo['grid'] = {
   offsetY: 0,
 }
 
-function normalizeTacticalInfo(raw: TacticalInfo): TacticalInfo {
+function normalizeTacticalInfo(
+  raw: Omit<TacticalInfo, 'tokens'> & { tokens?: MapToken[] },
+): TacticalInfo {
   return {
     ...raw,
     grid: { ...DEFAULT_GRID, ...raw.grid },
@@ -249,9 +250,7 @@ async function loadAll(roomId: string) {
   let tacticalInfo: TacticalInfo | null = null
   try {
     const tacticalRaw = await api.get<TacticalInfo>(`/api/rooms/${roomId}/tactical`)
-    if (tacticalRaw) {
-      tacticalInfo = normalizeTacticalInfo(tacticalRaw)
-    }
+    tacticalInfo = normalizeTacticalInfo(tacticalRaw)
   } catch {
     // 404 means no active scene or no tactical state — leave as null
   }
@@ -832,23 +831,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     await api.patch(`/api/rooms/${roomId}/scenes/${sceneId}/entities/${entityId}`, { visible })
   },
 
-  saveEntityAsBlueprint: async (entity) => {
-    const roomId = get()._roomId
-    if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/assets`, {
-      url: entity.imageUrl,
-      name: entity.name,
-      type: 'blueprint',
-      extra: {
-        blueprint: {
-          defaultSize: entity.width,
-          defaultColor: entity.color,
-          defaultRuleData: entity.ruleData,
-        },
-      },
-    })
-  },
-
   spawnFromBlueprint: async (sceneId, blueprintId) => {
     const roomId = get()._roomId
     if (!roomId) return null
@@ -997,9 +979,14 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   /** @internal Test-only: reset store to initial state (preserves socket/roomId) */
-  _reset: () =>
+  _reset: () => {
     set({
-      room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0, ruleSystemId: 'generic' },
+      room: {
+        activeSceneId: null,
+        activeArchiveId: null,
+        tacticalMode: 0,
+        ruleSystemId: 'generic',
+      },
       scenes: [],
       entities: {},
       sceneEntityMap: {},
@@ -1011,5 +998,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       teamTrackers: [],
       assets: [],
       archives: [],
-    }),
+    })
+  },
 }))

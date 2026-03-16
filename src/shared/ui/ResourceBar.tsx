@@ -143,7 +143,7 @@ export function ResourceBar({
         >
           {showLabel && <span>{label}</span>}
           {valueDisplay === 'outside' && (
-            <span style={{ color: isRemoteLocked ? (softLockColor ?? color) : color }}>
+            <span style={{ color: isRemoteLocked ? softLockColor : color }}>
               {displayValue} / {max}
             </span>
           )}
@@ -225,7 +225,7 @@ export function ResourceBar({
                 width: 6,
                 height: 6,
                 borderRadius: '50%',
-                background: softLockColor ?? undefined,
+                background: softLockColor,
                 boxShadow: `0 0 4px ${softLockColor}`,
                 pointerEvents: 'none',
                 zIndex: 1,

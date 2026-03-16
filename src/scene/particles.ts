@@ -12,7 +12,7 @@ export interface ParticlePresetConfig {
   shape?: 'circle' | 'streak'
 }
 
-export const PRESETS: Record<string, ParticlePresetConfig> = {
+export const PRESETS: Partial<Record<string, ParticlePresetConfig>> = {
   embers: {
     count: 80,
     colors: ['#ff6600', '#ff4400', '#ff8800', '#ffaa00', '#cc3300'],
