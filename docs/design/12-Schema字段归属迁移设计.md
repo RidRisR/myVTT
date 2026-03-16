@@ -24,67 +24,50 @@
 
 ## Schema 变更
 
+无旧实例需要兼容，直接修改 `CREATE TABLE` 定义。
+
 ### 全局库 `rooms` 表 — 新增列
 
 ```sql
-ALTER TABLE rooms ADD COLUMN rule_system_id TEXT NOT NULL DEFAULT 'generic'
+CREATE TABLE IF NOT EXISTS rooms (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  created_by TEXT DEFAULT 'anonymous',
+  created_at INTEGER NOT NULL,
+  rule_system_id TEXT NOT NULL DEFAULT 'generic'  -- 新增
+)
 ```
 
 ### Per-room `tactical_state` 表 — 新增两列
 
 ```sql
-ALTER TABLE tactical_state ADD COLUMN tactical_mode INTEGER NOT NULL DEFAULT 0
-ALTER TABLE tactical_state ADD COLUMN active_archive_id TEXT
+CREATE TABLE IF NOT EXISTS tactical_state (
+  scene_id TEXT PRIMARY KEY REFERENCES scenes(id) ON DELETE CASCADE,
+  map_url TEXT,
+  map_width INTEGER,
+  map_height INTEGER,
+  grid TEXT NOT NULL DEFAULT '{}',
+  round_number INTEGER NOT NULL DEFAULT 0,
+  current_turn_token_id TEXT,
+  tactical_mode INTEGER NOT NULL DEFAULT 0,  -- 新增
+  active_archive_id TEXT                     -- 新增
+)
 ```
 
-### `room_state` 表 — 旧列废弃
+### `room_state` 表 — 移除三列
 
-SQLite < 3.35.0 不支持 `DROP COLUMN`，旧列保留但不再读写：
-
-| 字段                | 迁移后状态              |
-| ------------------- | ----------------------- |
-| `active_scene_id`   | **保留** — 全局当前场景 |
-| `plugin_config`     | **保留** — 全局插件配置 |
-| `tactical_mode`     | 废弃（不再读写）        |
-| `active_archive_id` | 废弃（不再读写）        |
-| `rule_system_id`    | 废弃（不再读写）        |
-
-### 数据迁移逻辑
-
-在 `initRoomSchema()` 的 migration 区域执行：
-
-```typescript
-// 1. tactical_state 加列
-try {
-  db.exec('ALTER TABLE tactical_state ADD COLUMN tactical_mode INTEGER NOT NULL DEFAULT 0')
-} catch {}
-try {
-  db.exec('ALTER TABLE tactical_state ADD COLUMN active_archive_id TEXT')
-} catch {}
-
-// 2. 补全旧场景缺失的 tactical_state 行（场景创建于伴生逻辑之前）
-db.exec(`INSERT OR IGNORE INTO tactical_state (scene_id) SELECT id FROM scenes`)
-
-// 3. 从 room_state 迁移数据到当前活跃场景的 tactical_state
-const rs = db
-  .prepare('SELECT active_scene_id, tactical_mode, active_archive_id FROM room_state WHERE id = 1')
-  .get()
-if (rs?.active_scene_id) {
-  db.prepare(
-    'UPDATE tactical_state SET tactical_mode = ?, active_archive_id = ? WHERE scene_id = ?',
-  ).run(rs.tactical_mode, rs.active_archive_id, rs.active_scene_id)
-}
+```sql
+CREATE TABLE IF NOT EXISTS room_state (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  active_scene_id TEXT,
+  plugin_config TEXT NOT NULL DEFAULT '{}'
+)
+-- 移除：tactical_mode, active_archive_id, rule_system_id
 ```
 
-在 `initGlobalSchema()` 中：
+### Migration 区域清理
 
-```typescript
-try {
-  db.exec("ALTER TABLE rooms ADD COLUMN rule_system_id TEXT NOT NULL DEFAULT 'generic'")
-} catch {}
-```
-
-`rule_system_id` 从各房间的 `room.db` 回填到 `rooms` 表的逻辑在房间首次打开时执行（`withRoom` 中间件或 `getRoomDb` 调用时）。
+`initRoomSchema()` 末尾的 migration try/catch 区域删除 `rule_system_id` 和 `plugin_config` 的 ALTER TABLE（不再需要向后兼容旧 DB）。
 
 ## 服务端路由变更
 
@@ -212,18 +195,14 @@ export interface TacticalInfo {
 | 场景切换保留 activeArchiveId | 场景 A 加载存档 → 切到 B → 切回 A → A 的 `activeArchiveId` 不变        |
 | 新场景伴生 tactical_state    | 创建场景 → `GET /tactical`（切到该场景后）→ 200，`tacticalMode: 0`     |
 | rule_system_id 在 rooms 表   | 创建房间带 `ruleSystemId: 'daggerheart'` → `GET /rooms` 列表包含该字段 |
-| 数据迁移兼容                 | 旧格式 DB 打开 → migration 自动搬移字段值 → 新位置正确                 |
 
 ## Assumptions
 
-- SQLite 版本 < 3.35.0，不支持 DROP COLUMN，旧列保留但废弃
+- 无旧实例需要向后兼容，直接修改 schema 定义（删除旧列、新增新列）
 - `tactical_state` 已在场景创建时自动 INSERT（`scenes.ts:46`），本次无需改动
 - `rule_system_id` 创建后不可更改的约束由 UI 保证（HamburgerMenu 不提供切换入口），无需数据库级约束
-- 数据迁移只需处理当前活跃场景的 `tactical_mode` 和 `active_archive_id`，非活跃场景保持默认值
 
 ## Edge Cases
 
-- 旧 DB 中 `tactical_state` 行不存在（场景创建于伴生逻辑之前）→ migration 需先确保每个 scene 有对应 `tactical_state` 行
 - `active_archive_id` 指向已删除的存档 → 现有 DELETE 清理逻辑已处理，迁移到 `tactical_state` 后保持相同逻辑
-- 房间首次打开时 `rooms.rule_system_id` 为 `'generic'`（默认值）但 `room_state.rule_system_id` 为 `'daggerheart'` → 回填逻辑在 `withRoom` 中执行
 - 多客户端同时在线时切换场景 → `PATCH /state` 的 `activeSceneId` 变更广播 `room:state:updated` + `tactical:updated`，所有客户端同步获得新场景的战术状态
