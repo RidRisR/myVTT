@@ -22,6 +22,10 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 | Adding or modifying server routes / middleware       | [server-infrastructure.md](docs/conventions/server-infrastructure.md) |
 | Creating branches, committing, or opening PRs        | [git-workflow.md](docs/conventions/git-workflow.md)                   |
 
+## ⚠️ Bug Fix Discipline
+
+**Every bug fix MUST**: identify root cause → add regression test → propose & implement systemic prevention for the entire bug category. PR must have `## Root Cause`, `## Regression Test`, `## Systemic Prevention` sections. See [bug-fix-workflow.md](docs/conventions/bug-fix-workflow.md).
+
 ## Architecture Gotchas (cannot be linted — read before touching these areas)
 
 ### react-konva (Canvas, not DOM)
@@ -82,7 +86,7 @@ Data flow: **REST API (init) + Socket.io (real-time) → zustand stores → Reac
 - **Prettier**: no semicolons, single quotes, trailing commas, printWidth 100
 - **ESLint**: TypeScript strict, react-hooks, `no-restricted-imports` for api module
 - **Husky**: pre-commit runs lint-staged + tsc + doc structure check
-- **TypeScript**: strict mode, noUnusedLocals, noUnusedParameters
+- **TypeScript**: strict mode, noUnusedLocals, noUnusedParameters, noUncheckedIndexedAccess
 - **Tests**: `npm test` (vitest run), files in `src/**/__tests__/` and `server/__tests__/`
 - `react-hooks/set-state-in-effect` OFF — Socket.io listener pattern requires it
 

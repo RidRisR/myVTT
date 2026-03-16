@@ -19,12 +19,12 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
         <>
           <div className="flex gap-4 text-sm">
             <span className="text-red-500">
-              HP {d.hp.current}/{d.hp.max}
+              HP {d.hp?.current ?? 0}/{d.hp?.max ?? 0}
             </span>
             <span className="text-orange-400">
-              压力 {d.stress.current}/{d.stress.max}
+              压力 {d.stress?.current ?? 0}/{d.stress?.max ?? 0}
             </span>
-            <span className="text-accent">希望 {d.hope}</span>
+            <span className="text-accent">希望 {d.hope ?? 0}</span>
           </div>
           <div className="grid grid-cols-3 gap-1 text-xs">
             {ATTRS.map((k) => (

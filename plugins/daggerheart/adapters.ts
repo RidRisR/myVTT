@@ -14,15 +14,18 @@ export function dhGetMainResource(entity: Entity): ResourceView | null {
 export function dhGetPortraitResources(entity: Entity): ResourceView[] {
   const d = getDH(entity)
   if (!d?.hp) return []
-  return [
+  const resources: ResourceView[] = [
     { label: 'HP', current: d.hp.current, max: d.hp.max, color: '#ef4444' },
-    {
+  ]
+  if (d.stress) {
+    resources.push({
       label: 'Stress',
       current: d.stress.current,
       max: d.stress.max,
       color: '#f97316',
-    },
-  ]
+    })
+  }
+  return resources
 }
 
 export function dhGetStatuses(_entity: Entity): StatusView[] {

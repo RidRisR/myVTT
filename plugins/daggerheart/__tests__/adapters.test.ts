@@ -55,6 +55,26 @@ describe('dhGetPortraitResources', () => {
   })
 })
 
+describe('dhGetMainResource — partial ruleData', () => {
+  it('returns null when hp is missing from ruleData', () => {
+    const entity = makeEntity({ ruleData: { agility: 1 } })
+    expect(dhGetMainResource(entity)).toBeNull()
+  })
+})
+
+describe('dhGetPortraitResources — partial ruleData', () => {
+  it('returns empty when hp is missing', () => {
+    const entity = makeEntity({ ruleData: { agility: 1 } })
+    expect(dhGetPortraitResources(entity)).toEqual([])
+  })
+  it('returns only HP when stress is missing', () => {
+    const entity = makeEntity({ ruleData: { hp: { current: 10, max: 20 } } })
+    const r = dhGetPortraitResources(entity)
+    expect(r).toHaveLength(1)
+    expect(r[0]?.label).toBe('HP')
+  })
+})
+
 describe('dhGetStatuses', () => {
   it('returns empty array (no status system in v1)', () => {
     expect(dhGetStatuses(makeDHEntity())).toEqual([])
