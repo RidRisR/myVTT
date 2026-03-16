@@ -14,10 +14,10 @@
 
 ## Test Pyramid
 
-| Tier        | Location                       | Stack                                    | Run command        |
-| ----------- | ------------------------------ | ---------------------------------------- | ------------------ |
-| Unit        | `src/**/__tests__/`            | vitest + jsdom + @testing-library/react  | `npm test`         |
-| Integration | `server/__tests__/scenarios/`  | real Express + SQLite + Socket.io        | `npm test`         |
-| E2E         | `e2e/scenarios/`               | Playwright, Page Object pattern          | `npm run test:e2e` |
+| Tier        | Location                      | Stack                                   | Run command        |
+| ----------- | ----------------------------- | --------------------------------------- | ------------------ |
+| Unit        | `src/**/__tests__/`           | vitest + jsdom + @testing-library/react | `npm test`         |
+| Integration | `server/__tests__/scenarios/` | real Express + SQLite + Socket.io       | `npm test`         |
+| E2E         | `e2e/scenarios/`              | Playwright, Page Object pattern         | `npm run test:e2e` |
 
 - CI runs both; pre-push hook runs only unit + integration (E2E too slow for local hook)

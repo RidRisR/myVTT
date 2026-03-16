@@ -19,10 +19,10 @@ Bug fix PRs **MUST** include all of these sections in the description:
 
 ## Systemic Prevention Examples
 
-| Problem                                  | Prevention                                                    |
-| ---------------------------------------- | ------------------------------------------------------------- |
-| Express `send` rejects dotfile paths     | Document in CLAUDE.md + file-serving round-trip test          |
-| `app.param()` middleware                 | Structural guard, auto-validate all route params              |
-| Duplicate data sources in stores         | Single source of truth rule (see `store-actions.md`)          |
-| Multi-step async logic in component closures | ESLint `no-restricted-imports` (see `store-actions.md`)   |
-| Konva events bubbling to DOM            | Document framework-specific behavior in CLAUDE.md             |
+| Problem                                      | Prevention                                              |
+| -------------------------------------------- | ------------------------------------------------------- |
+| Express `send` rejects dotfile paths         | Document in CLAUDE.md + file-serving round-trip test    |
+| `app.param()` middleware                     | Structural guard, auto-validate all route params        |
+| Duplicate data sources in stores             | Single source of truth rule (see `store-actions.md`)    |
+| Multi-step async logic in component closures | ESLint `no-restricted-imports` (see `store-actions.md`) |
+| Konva events bubbling to DOM                 | Document framework-specific behavior in CLAUDE.md       |
