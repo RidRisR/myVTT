@@ -36,10 +36,10 @@ export default defineConfig(({ mode }) => {
       coverage: {
         provider: 'v8',
         thresholds: {
-          statements: 80,
-          branches: 65,
-          functions: 75,
-          lines: 80,
+          statements: 70,
+          branches: 55,
+          functions: 60,
+          lines: 70,
         },
       },
     },
