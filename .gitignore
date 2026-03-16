@@ -28,7 +28,10 @@ db/
 dist/
 server/uploads/
 .worktrees/
-.claude/
+# Claude Code — track settings and hooks, ignore everything else
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
 coverage/
 .superpowers/
 data/
