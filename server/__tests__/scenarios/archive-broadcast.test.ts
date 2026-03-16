@@ -116,7 +116,7 @@ describe('Archive broadcast tests', () => {
     socket2.disconnect()
   })
 
-  it('POST /archives/:id/load broadcasts tactical:activated', async () => {
+  it('POST /archives/:id/load broadcasts tactical:updated', async () => {
     const socket2 = await connectSecondClient(ctx.apiBase, ctx.roomId)
 
     // Create and save an archive
@@ -128,7 +128,7 @@ describe('Archive broadcast tests', () => {
     const archiveId = (archive as { id: string }).id
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${archiveId}/save`)
 
-    const eventPromise = waitForSocketEvent<{ tokens: unknown[] }>(socket2, 'tactical:activated')
+    const eventPromise = waitForSocketEvent<{ tokens: unknown[] }>(socket2, 'tactical:updated')
 
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${archiveId}/load`)
 
@@ -139,7 +139,7 @@ describe('Archive broadcast tests', () => {
     socket2.disconnect()
   })
 
-  it('POST /archives/:id/load broadcasts room:state:updated with activeArchiveId', async () => {
+  it('POST /archives/:id/load broadcasts tactical:updated with activeArchiveId', async () => {
     const socket2 = await connectSecondClient(ctx.apiBase, ctx.roomId)
 
     // Create and save an archive
@@ -153,7 +153,7 @@ describe('Archive broadcast tests', () => {
 
     const eventPromise = waitForSocketEvent<{ activeArchiveId: string }>(
       socket2,
-      'room:state:updated',
+      'tactical:updated',
     )
 
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${archiveId}/load`)

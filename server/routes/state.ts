@@ -3,6 +3,7 @@ import { Router } from 'express'
 import type { Server } from 'socket.io'
 import { withRoom } from '../middleware'
 import { toCamel } from '../db'
+import { getTacticalState } from './tactical'
 
 export function stateRoutes(dataDir: string, io: Server): Router {
   const router = Router()
@@ -23,10 +24,6 @@ export function stateRoutes(dataDir: string, io: Server): Router {
 
     const fieldMap: Record<string, string> = {
       activeSceneId: 'active_scene_id',
-      activeArchiveId: 'active_archive_id',
-      tacticalMode: 'tactical_mode',
-      ruleSystemId: 'rule_system_id',
-      // pluginConfig intentionally NOT added here — DB column exists but no RoomState field yet
     }
     for (const [camel, snake] of Object.entries(fieldMap)) {
       if (body[camel] !== undefined) {
@@ -42,6 +39,15 @@ export function stateRoutes(dataDir: string, io: Server): Router {
       req.roomDb!.prepare('SELECT * FROM room_state WHERE id = 1').get() as Record<string, unknown>,
     )
     io.to(req.roomId!).emit('room:state:updated', updated)
+
+    // When scene changes, broadcast the new scene's tactical state
+    if (body.activeSceneId) {
+      const tactical = getTacticalState(req.roomDb!, body.activeSceneId as string)
+      if (tactical) {
+        io.to(req.roomId!).emit('tactical:updated', tactical)
+      }
+    }
+
     res.json(updated)
   })
 

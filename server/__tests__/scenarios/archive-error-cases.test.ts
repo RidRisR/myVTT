@@ -22,11 +22,9 @@ afterAll(async () => {
 
 describe('Archive 404 error cases', () => {
   it('PATCH /archives/nonexistent returns 404', async () => {
-    const { status } = await ctx.api(
-      'PATCH',
-      `/api/rooms/${ctx.roomId}/archives/nonexistent`,
-      { name: 'Nope' },
-    )
+    const { status } = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/archives/nonexistent`, {
+      name: 'Nope',
+    })
     expect(status).toBe(404)
   })
 
@@ -34,18 +32,12 @@ describe('Archive 404 error cases', () => {
     // Need active scene for save to get past the scene check
     await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: sceneId })
 
-    const { status } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/archives/nonexistent/save`,
-    )
+    const { status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/nonexistent/save`)
     expect(status).toBe(404)
   })
 
   it('POST /archives/nonexistent/load returns 404 (archive not found)', async () => {
-    const { status } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/archives/nonexistent/load`,
-    )
+    const { status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/nonexistent/load`)
     expect(status).toBe(404)
   })
 
@@ -61,10 +53,7 @@ describe('Archive 404 error cases', () => {
     // Clear active scene
     await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: null })
 
-    const { status } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/archives/${archiveId}/save`,
-    )
+    const { status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${archiveId}/save`)
     expect(status).toBe(404)
 
     // Restore active scene for subsequent tests
@@ -83,10 +72,7 @@ describe('Archive 404 error cases', () => {
     // Clear active scene
     await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: null })
 
-    const { status } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/archives/${archiveId}/load`,
-    )
+    const { status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${archiveId}/load`)
     expect(status).toBe(404)
 
     // Restore active scene for subsequent tests
@@ -108,19 +94,16 @@ describe('Archive gmOnly filtering', () => {
   })
 
   it('GET archives without role header does NOT include gmOnly archive', async () => {
-    const res = await fetch(
-      `${ctx.apiBase}/api/rooms/${ctx.roomId}/scenes/${sceneId}/archives`,
-    )
+    const res = await fetch(`${ctx.apiBase}/api/rooms/${ctx.roomId}/scenes/${sceneId}/archives`)
     const data = (await res.json()) as { id: string; gmOnly: boolean }[]
     const found = data.find((a) => a.id === gmOnlyArchiveId)
     expect(found).toBeUndefined()
   })
 
   it('GET archives with x-myvtt-role: GM header DOES include gmOnly archive', async () => {
-    const res = await fetch(
-      `${ctx.apiBase}/api/rooms/${ctx.roomId}/scenes/${sceneId}/archives`,
-      { headers: { 'x-myvtt-role': 'GM' } },
-    )
+    const res = await fetch(`${ctx.apiBase}/api/rooms/${ctx.roomId}/scenes/${sceneId}/archives`, {
+      headers: { 'x-myvtt-role': 'GM' },
+    })
     const data = (await res.json()) as { id: string; gmOnly: boolean }[]
     const found = data.find((a) => a.id === gmOnlyArchiveId)
     expect(found).toBeDefined()
@@ -128,10 +111,9 @@ describe('Archive gmOnly filtering', () => {
   })
 
   it('GET archives with x-myvtt-role: PL header does NOT include gmOnly archive', async () => {
-    const res = await fetch(
-      `${ctx.apiBase}/api/rooms/${ctx.roomId}/scenes/${sceneId}/archives`,
-      { headers: { 'x-myvtt-role': 'PL' } },
-    )
+    const res = await fetch(`${ctx.apiBase}/api/rooms/${ctx.roomId}/scenes/${sceneId}/archives`, {
+      headers: { 'x-myvtt-role': 'PL' },
+    })
     const data = (await res.json()) as { id: string; gmOnly: boolean }[]
     const found = data.find((a) => a.id === gmOnlyArchiveId)
     expect(found).toBeUndefined()
@@ -155,15 +137,15 @@ describe('Archive active_archive_id cleared on delete', () => {
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${archiveId}/load`)
 
     // Verify activeArchiveId is set
-    const { data: stateBefore } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/state`)
-    expect((stateBefore as { activeArchiveId: string | null }).activeArchiveId).toBe(archiveId)
+    const { data: tacticalBefore } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
+    expect((tacticalBefore as { activeArchiveId: string | null }).activeArchiveId).toBe(archiveId)
 
     // Delete the archive
     await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/archives/${archiveId}`)
 
     // Verify activeArchiveId is cleared
-    const { data: stateAfter } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/state`)
-    expect((stateAfter as { activeArchiveId: string | null }).activeArchiveId).toBeNull()
+    const { data: tacticalAfter } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
+    expect((tacticalAfter as { activeArchiveId: string | null }).activeArchiveId).toBeNull()
   })
 })
 

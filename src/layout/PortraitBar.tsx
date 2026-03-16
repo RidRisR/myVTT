@@ -603,7 +603,9 @@ export function PortraitBar({
       {activeTab === 'initiative' && (
         <div className="flex items-center gap-2 bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           <span className="text-xs text-text-muted/40 font-sans px-3 py-1">
-            {tacticalInfo ? `Round ${tacticalInfo.roundNumber}` : 'No tactical session active'}
+            {tacticalInfo?.tacticalMode === 1
+              ? `Round ${tacticalInfo.roundNumber}`
+              : 'No tactical session active'}
           </span>
         </div>
       )}

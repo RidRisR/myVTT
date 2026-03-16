@@ -90,11 +90,11 @@ describe('Multi-Client Sync Journey', () => {
 
   // ── Tactical events ──
 
-  it('5.5 room:state:updated broadcasts on POST /tactical/enter', async () => {
+  it('5.5 tactical:updated broadcasts on POST /tactical/enter', async () => {
     // Set active scene first
     await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: sceneId })
 
-    const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'room:state:updated')
+    const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'tactical:updated')
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/enter`)
 
     const payload = await eventPromise
@@ -121,8 +121,8 @@ describe('Multi-Client Sync Journey', () => {
     expect(payload.y).toBe(200)
   })
 
-  it('5.7 room:state:updated broadcasts on POST /tactical/exit', async () => {
-    const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'room:state:updated')
+  it('5.7 tactical:updated broadcasts on POST /tactical/exit', async () => {
+    const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'tactical:updated')
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/exit`)
 
     const payload = await eventPromise

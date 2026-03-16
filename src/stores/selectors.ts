@@ -24,8 +24,8 @@ export const selectActiveScene = (s: { room: RoomState; scenes: Scene[] }): Scen
   return s.scenes.find((sc) => sc.id === id) ?? null
 }
 
-export const selectIsTactical = (s: { room: RoomState }): boolean => {
-  return s.room.tacticalMode === 1
+export const selectIsTactical = (s: { tacticalInfo: TacticalInfo | null }): boolean => {
+  return s.tacticalInfo?.tacticalMode === 1
 }
 
 // ── Entity lookups ──
