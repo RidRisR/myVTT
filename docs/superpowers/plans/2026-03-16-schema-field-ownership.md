@@ -396,6 +396,9 @@ req
 
 // After:
 // Clear dangling tactical_state reference (all scenes that reference this archive)
+// NOTE: Spec says `WHERE scene_id = ? AND active_archive_id = ?` (single scene).
+// Plan intentionally broadens to all scenes — an archive ID is globally unique,
+// so clearing all references is safer and avoids needing to resolve scene_id here.
 req
   .roomDb!.prepare('UPDATE tactical_state SET active_archive_id = NULL WHERE active_archive_id = ?')
   .run(req.params.archiveId)
@@ -952,9 +955,23 @@ Key changes needed:
 1. **Add mock for `GET /rooms/:id`** in `setupInitMockResponses` — add `{ ruleSystemId: 'generic' }` response for the new endpoint (`/api/rooms/${ROOM_ID}`)
 2. **Remove `activeArchiveId`, `tacticalMode` from all RoomState mock objects** — includes `setupInitMockResponses` state response (~line 198), `beforeEach` setState (~line 170), and any inline RoomState construction
 3. **Add `tacticalMode: 0` and `activeArchiveId: null` to all TacticalInfo mock objects**
-4. **Remove `tactical:ended` event test** — replace with `tactical:updated` carrying `tacticalMode: 0`
-5. **Remove `tactical:activated` event test** — if one exists, merge into `tactical:updated` test
-6. **Update `room:state:updated` test** (~line 621-638) — the "preserves fields not in payload" test that checks `activeArchiveId` preservation no longer applies. Rewrite to test that only `activeSceneId` and `ruleSystemId` survive partial update.
+4. **Remove `tactical:ended` event test (line 377-383)** — replace with `tactical:updated` carrying `tacticalMode: 0`:
+   - Line 377: rename test `'tactical:ended clears tacticalInfo'` → `'tactical:updated with tacticalMode=0 clears tactical mode'`
+   - Line 382: `socket._trigger('tactical:ended')` → `socket._trigger('tactical:updated', makeTacticalInfo({ tacticalMode: 0 }))`
+   - Assertion: instead of `tacticalInfo` being `null`, check `tacticalInfo.tacticalMode === 0`
+5. **Replace ALL `tactical:activated` references** — there are ~13 occurrences, not just one test:
+   - **Line 260**: `expect(registeredEvents).toContain('tactical:activated')` → remove this assertion
+   - **Line 281**: `expect(removedEvents).toContain('tactical:activated')` → remove this assertion
+   - **Lines 369-375**: rename test `'tactical:activated sets tacticalInfo'` → `'tactical:updated sets tacticalInfo'`, change `socket._trigger('tactical:activated', ...)` → `socket._trigger('tactical:updated', ...)`
+   - **Line 379**: `socket._trigger('tactical:activated', ...)` (setup in `tactical:ended` test) → `socket._trigger('tactical:updated', ...)`
+   - **Line 388**: `socket._trigger('tactical:activated', ...)` (setup in `tactical:updated` test) → `socket._trigger('tactical:updated', ...)`
+   - **Lines 406, 421**: `'tactical:activated'` event name strings → `'tactical:updated'`
+   - **Line 526**: `socket._trigger('tactical:activated', ...)` (setup in map update test) → `socket._trigger('tactical:updated', ...)`
+   - **Line 543**: `'tactical:activated'` event name → `'tactical:updated'`
+     **Quick approach**: global find-replace `'tactical:activated'` → `'tactical:updated'` within the file, then remove the two `toContain('tactical:activated')` assertions (lines 260, 281) since the event no longer exists.
+6. **Update `room:state:updated` tests**:
+   - **Lines 477-483**: the handler test asserts `expect(room.activeArchiveId).toBeNull()` — remove this assertion since `activeArchiveId` is no longer in `RoomState`
+   - **Lines 621-638**: the "preserves fields not in payload" test checks `activeArchiveId` preservation — rewrite to test that only `activeSceneId` and `ruleSystemId` survive partial update
 
 - [ ] **Step 2: Update selectors.test.ts — all RoomState instances**
 
