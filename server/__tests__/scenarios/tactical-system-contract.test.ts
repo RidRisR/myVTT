@@ -273,7 +273,17 @@ describe('Tactical System Contract', () => {
 
   describe('cannot delete last scene', () => {
     it('deleting a scene when multiple exist succeeds', async () => {
-      // We have scene1 and scene2; delete scene2
+      // Room starts with a default scene; delete it first along with scene2
+      // so we can test the last-scene guard with scene1.
+      const { data: allScenes } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/scenes`)
+      const defaultScene = (allScenes as { id: string }[]).find(
+        (s) => s.id !== scene1Id && s.id !== scene2Id,
+      )
+      if (defaultScene) {
+        await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/scenes/${defaultScene.id}`)
+      }
+
+      // Now delete scene2
       const { status } = await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/scenes/${scene2Id}`)
       expect(status).toBe(200)
 

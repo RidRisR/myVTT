@@ -232,7 +232,7 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
   // Create token on empty space — spawns an ephemeral entity + tactical token
   const handleCreateToken = useCallback(
     (mapX: number, mapY: number) => {
-      if (!tacticalInfo?.mapUrl) return
+      if (!tacticalInfo) return
       let x = mapX
       let y = mapY
       if (tacticalInfo.grid.snap) {

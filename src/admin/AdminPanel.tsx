@@ -43,7 +43,9 @@ export function AdminPanel() {
     const timer = setInterval(() => {
       void fetchRooms()
     }, 5000)
-    return () => { clearInterval(timer); }
+    return () => {
+      clearInterval(timer)
+    }
   }, [fetchRooms])
 
   const handleCreate = async () => {
@@ -225,6 +227,7 @@ export function AdminPanel() {
                     void handleDelete(room.id)
                   }}
                   className="flex items-center p-1.5 rounded-md text-xs cursor-pointer bg-transparent text-text-muted/25 border-none transition-colors duration-fast hover:text-danger"
+                  aria-label="Delete"
                 >
                   <Trash2 size={13} strokeWidth={1.5} />
                 </button>

@@ -208,24 +208,8 @@ function RoomSession({ roomId }: { roomId: string }) {
   // Convert Record types to arrays for components that still expect arrays
   const entitiesArray = useMemo(() => Object.values(entities), [entities])
 
-  // Auto-create a default scene when GM enters a room with no scenes
-  const isGMRole = mySeat?.role === 'GM'
-  useEffect(() => {
-    if (isLoading || !isGMRole) return
-    if (scenes.length > 0) return
-    if (room.activeSceneId) return
-    const id = crypto.randomUUID()
-    void addScene(id, 'Scene 1', {
-      imageUrl: '',
-      width: 1920,
-      height: 1080,
-      particlePreset: 'none',
-      ambientPreset: '',
-      ambientAudioUrl: '',
-      ambientAudioVolume: 0.5,
-    })
-    void setActiveScene(id)
-  }, [isLoading, isGMRole, scenes.length, room.activeSceneId, addScene, setActiveScene])
+  // Default scene is created server-side in POST /api/rooms (rooms.ts).
+  // No client-side auto-create needed.
 
   if (isLoading || initError) {
     return (
