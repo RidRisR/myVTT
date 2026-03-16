@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Stage } from 'react-konva'
 import type Konva from 'konva'
 import type { MapToken, Entity } from '../shared/entityTypes'
@@ -18,6 +18,7 @@ import { useCameraControls } from './hooks/useCameraControls'
 import { useTokenAwareness } from './hooks/useTokenAwareness'
 import { useEntityDrop } from './hooks/useEntityDrop'
 import { BackgroundLayer } from './BackgroundLayer'
+import { ZoomControls } from './ZoomControls'
 
 interface ContextMenuState {
   screenX: number
@@ -25,13 +26,6 @@ interface ContextMenuState {
   tokenId: string | null
   mapX: number
   mapY: number
-}
-
-export interface KonvaMapHandle {
-  zoomIn: () => void
-  zoomOut: () => void
-  fitToWindow: () => void
-  resetCenter: () => void
 }
 
 interface KonvaMapProps {
@@ -49,23 +43,20 @@ interface KonvaMapProps {
   gmViewAsPlayer?: boolean
 }
 
-export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function KonvaMap(
-  {
-    tacticalInfo,
-    tokens,
-    getEntity,
-    mySeatId,
-    role,
-    selectedTokenId,
-    onSelectToken,
-    onUpdateToken,
-    onDeleteToken,
-    onAddToken,
-    onDropEntityOnMap,
-    gmViewAsPlayer = false,
-  },
-  ref,
-) {
+export function KonvaMap({
+  tacticalInfo,
+  tokens,
+  getEntity,
+  mySeatId,
+  role,
+  selectedTokenId,
+  onSelectToken,
+  onUpdateToken,
+  onDeleteToken,
+  onAddToken,
+  onDropEntityOnMap,
+  gmViewAsPlayer = false,
+}: KonvaMapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<Konva.Stage>(null)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
@@ -88,18 +79,6 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     handleZoomOut,
     handleDragEnd,
   } = useCameraControls({ tacticalInfo, containerSize })
-
-  // Expose camera controls via imperative handle for TacticalToolbar
-  useImperativeHandle(
-    ref,
-    () => ({
-      zoomIn: handleZoomIn,
-      zoomOut: handleZoomOut,
-      fitToWindow: handleFitToWindow,
-      resetCenter: handleResetCenter,
-    }),
-    [handleZoomIn, handleZoomOut, handleFitToWindow, handleResetCenter],
-  )
 
   // Token awareness (real-time drag broadcasting)
   const { remoteTokenDrags, handleTokenDragMove, handleTokenDragEnd } = useTokenAwareness(mySeatId)
@@ -287,8 +266,8 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     : null
   const tooltipEntity = tooltipToken?.entityId ? getEntity(tooltipToken.entityId) : null
 
-  // No tacticalInfo state (no active scene)
-  if (!tacticalInfo) {
+  // No tacticalInfo state
+  if (!tacticalInfo?.mapUrl) {
     return (
       <div
         ref={containerRef}
@@ -413,6 +392,14 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
           screenY={tooltipState.screenY}
         />
       )}
+
+      {/* Zoom helper controls — HTML overlay */}
+      <ZoomControls
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onFitToWindow={handleFitToWindow}
+        onResetCenter={handleResetCenter}
+      />
     </div>
   )
-})
+}

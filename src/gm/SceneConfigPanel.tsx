@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Trash2, Upload, XCircle } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
-import { useWorldStore } from '../stores/worldStore'
 import type { Atmosphere } from '../shared/entityTypes'
 import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
 import { uploadAsset } from '../shared/assetUpload'
@@ -24,8 +23,6 @@ export function SceneConfigPanel({
   onDeleteScene,
   onClose,
 }: SceneConfigPanelProps) {
-  const sceneCount = useWorldStore((s) => s.scenes.length)
-  const canDelete = sceneCount > 1
   const panelRef = useRef<HTMLDivElement>(null)
   const audioInputRef = useRef<HTMLInputElement>(null)
 
@@ -243,18 +240,14 @@ export function SceneConfigPanel({
 
       {/* Footer */}
       <div className="flex items-center justify-between px-3 py-2 border-t border-border-glass">
-        {/* Delete button — hidden when this is the last scene */}
-        {canDelete ? (
-          <button
-            onClick={handleDelete}
-            className="flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded transition-colors duration-fast cursor-pointer text-danger hover:bg-danger/15"
-          >
-            <Trash2 size={14} strokeWidth={1.5} />
-            Delete
-          </button>
-        ) : (
-          <div />
-        )}
+        {/* Delete button */}
+        <button
+          onClick={handleDelete}
+          className="flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded transition-colors duration-fast cursor-pointer text-danger hover:bg-danger/15"
+        >
+          <Trash2 size={14} strokeWidth={1.5} />
+          Delete
+        </button>
 
         {/* Save button */}
         <button

@@ -116,15 +116,6 @@ export function sceneRoutes(dataDir: string, io: Server): Router {
   })
 
   router.delete('/api/rooms/:roomId/scenes/:id', room, (req, res) => {
-    // Room must always have at least one scene
-    const sceneCount = (
-      req.roomDb!.prepare('SELECT COUNT(*) as cnt FROM scenes').get() as { cnt: number }
-    ).cnt
-    if (sceneCount <= 1) {
-      res.status(400).json({ error: 'Cannot delete the last scene' })
-      return
-    }
-
     // Find ephemeral entities linked only to this scene
     const ephemeralEntities = req
       .roomDb!.prepare(

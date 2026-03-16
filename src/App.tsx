@@ -20,9 +20,6 @@ import { ChatPanel } from './chat/ChatPanel'
 import { SceneViewer } from './scene/SceneViewer'
 import { AmbientAudio } from './scene/AmbientAudio'
 import { TacticalPanel } from './combat/TacticalPanel'
-import type { KonvaMapHandle } from './combat/TacticalPanel'
-import { TacticalToolbar } from './combat/TacticalToolbar'
-import { useTacticalKeyboard } from './combat/hooks/useTacticalKeyboard'
 import { GmDock } from './gm/GmDock'
 import { GmSidebar } from './gm/GmSidebar'
 
@@ -47,7 +44,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const [isLoading, setIsLoading] = useState(true)
   const [initError, setInitError] = useState<string | null>(null)
   const cancelledRef = useRef(false)
-  const konvaMapRef = useRef<KonvaMapHandle>(null)
 
   // Initialize stores with Socket.io
   const initWorld = useWorldStore((s) => s.init)
@@ -113,9 +109,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const activeScene = useWorldStore(selectActiveScene)
   const isTactical = useWorldStore(selectIsTactical)
   const tacticalInfo = useWorldStore(selectTacticalInfo)
-
-  // Tactical keyboard shortcuts
-  useTacticalKeyboard({ mapRef: konvaMapRef, enabled: isTactical })
 
   // World store actions
   const setActiveScene = useWorldStore((s) => s.setActiveScene)
@@ -366,7 +359,6 @@ function RoomSession({ roomId }: { roomId: string }) {
 
         {activeScene && (
           <TacticalPanel
-            ref={konvaMapRef}
             tacticalInfo={tacticalInfo}
             tokens={tokens}
             getEntity={getEntity}
@@ -420,11 +412,6 @@ function RoomSession({ roomId }: { roomId: string }) {
 
         {/* Top-right: Team dashboard */}
         <TeamDashboard roomId={roomId} isGM={isGM} />
-
-        {/* Right: Tactical toolbar (left of TeamDashboard, only in tactical mode) */}
-        {isTactical && tacticalInfo && (
-          <TacticalToolbar mapRef={konvaMapRef} role={mySeat.role} tacticalInfo={tacticalInfo} />
-        )}
 
         {/* Left: GM sidebar or player character card */}
         {isGM ? (

@@ -175,19 +175,17 @@ export function SceneListPanel({
                     >
                       <Pencil size={12} strokeWidth={1.5} />
                     </button>
-                    {scenes.length > 1 && (
-                      <button
-                        ref={deletingId === scene.id ? deleteButtonRef : undefined}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeletingId(scene.id)
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-danger transition-all duration-fast p-1 cursor-pointer"
-                        title="Delete scene"
-                      >
-                        <Trash2 size={12} strokeWidth={1.5} />
-                      </button>
-                    )}
+                    <button
+                      ref={deletingId === scene.id ? deleteButtonRef : undefined}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeletingId(scene.id)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-danger transition-all duration-fast p-1 cursor-pointer"
+                      title="Delete scene"
+                    >
+                      <Trash2 size={12} strokeWidth={1.5} />
+                    </button>
                   </div>
                 </div>
               </div>
