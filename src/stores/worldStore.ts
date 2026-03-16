@@ -24,8 +24,6 @@ export interface Scene {
 
 export interface RoomState {
   activeSceneId: string | null
-  activeArchiveId: string | null
-  tacticalMode: number
   ruleSystemId: string
 }
 
@@ -45,6 +43,8 @@ export interface TacticalInfo {
   tokens: MapToken[]
   roundNumber: number
   currentTurnTokenId: string | null
+  tacticalMode: number
+  activeArchiveId: string | null
 }
 
 export interface HandoutAsset {
@@ -114,8 +114,6 @@ interface WorldState {
 
   // Room actions
   setActiveScene: (sceneId: string) => Promise<void>
-  setRuleSystem: (id: string) => Promise<void>
-
   // Scene actions
   addScene: (id: string, name: string, atmosphere: Atmosphere) => Promise<void>
   updateScene: (
@@ -235,15 +233,17 @@ function normalizeTacticalInfo(
 // ── Helpers ──
 
 async function loadAll(roomId: string) {
-  const [scenes, entitiesArr, chat, trackers, state, assets, showcase] = await Promise.all([
-    api.get<Scene[]>(`/api/rooms/${roomId}/scenes`),
-    api.get<Entity[]>(`/api/rooms/${roomId}/entities`),
-    api.get<ChatMessage[]>(`/api/rooms/${roomId}/chat?limit=200`),
-    api.get<TeamTracker[]>(`/api/rooms/${roomId}/team-trackers`),
-    api.get<RoomState>(`/api/rooms/${roomId}/state`),
-    api.get<AssetRecord[]>(`/api/rooms/${roomId}/assets`),
-    api.get<ShowcaseItem[]>(`/api/rooms/${roomId}/showcase`),
-  ])
+  const [scenes, entitiesArr, chat, trackers, state, assets, showcase, roomInfo] =
+    await Promise.all([
+      api.get<Scene[]>(`/api/rooms/${roomId}/scenes`),
+      api.get<Entity[]>(`/api/rooms/${roomId}/entities`),
+      api.get<ChatMessage[]>(`/api/rooms/${roomId}/chat?limit=200`),
+      api.get<TeamTracker[]>(`/api/rooms/${roomId}/team-trackers`),
+      api.get<{ activeSceneId: string | null }>(`/api/rooms/${roomId}/state`),
+      api.get<AssetRecord[]>(`/api/rooms/${roomId}/assets`),
+      api.get<ShowcaseItem[]>(`/api/rooms/${roomId}/showcase`),
+      api.get<{ ruleSystemId: string }>(`/api/rooms/${roomId}`),
+    ])
 
   // Convert entity array to Record
   const entities: Record<string, Entity> = {}
@@ -275,7 +275,7 @@ async function loadAll(roomId: string) {
     chatMessages: chat,
     tacticalInfo,
     teamTrackers: trackers,
-    room: state,
+    room: { ...state, ruleSystemId: roomInfo.ruleSystemId },
     assets,
     showcaseItems: showcase,
     sceneEntityMap,
@@ -354,14 +354,8 @@ function registerSocketEvents(
   })
 
   // ── Tactical events ──
-  socket.on('tactical:activated', (tacticalState: TacticalInfo) => {
-    set(() => ({ tacticalInfo: normalizeTacticalInfo(tacticalState) }))
-  })
   socket.on('tactical:updated', (tacticalState: TacticalInfo) => {
     set(() => ({ tacticalInfo: normalizeTacticalInfo(tacticalState) }))
-  })
-  socket.on('tactical:ended', () => {
-    set(() => ({ tacticalInfo: null }))
   })
   socket.on('tactical:token:added', (token: MapToken) => {
     set((s) => {
@@ -488,9 +482,7 @@ const WS_EVENTS = [
   'entity:created',
   'entity:updated',
   'entity:deleted',
-  'tactical:activated',
   'tactical:updated',
-  'tactical:ended',
   'tactical:token:added',
   'tactical:token:updated',
   'tactical:token:removed',
@@ -516,7 +508,7 @@ const WS_EVENTS = [
 
 export const useWorldStore = create<WorldState>((set, get) => ({
   // Initial data
-  room: { activeSceneId: null, activeArchiveId: null, tacticalMode: 0, ruleSystemId: 'generic' },
+  room: { activeSceneId: null, ruleSystemId: 'generic' },
   scenes: [],
   entities: {},
   sceneEntityMap: {},
@@ -565,13 +557,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const roomId = get()._roomId
     if (!roomId) return
     await api.patch(`/api/rooms/${roomId}/state`, { activeSceneId: sceneId })
-  },
-
-  setRuleSystem: async (id) => {
-    const roomId = get()._roomId
-    if (!roomId) return
-    await api.patch(`/api/rooms/${roomId}/state`, { ruleSystemId: id })
-    // No local update needed — 'room:state:updated' socket event handles it
   },
 
   // ── Scene actions ──
@@ -951,8 +936,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     set({
       room: {
         activeSceneId: null,
-        activeArchiveId: null,
-        tacticalMode: 0,
         ruleSystemId: 'generic',
       },
       scenes: [],
