@@ -364,6 +364,39 @@ describe('socket event handlers', () => {
     expect(useWorldStore.getState().entities['entity-1']).toBeUndefined()
   })
 
+  // Regression: entity deletion must also remove tokens referencing that entity
+  // (mirrors DB FK CASCADE that deletes tactical_tokens when entity is deleted)
+  it('entity:deleted also removes tokens referencing that entity from tacticalInfo', () => {
+    // Set up tactical mode with two tokens: one for entity-1, one for entity-2
+    socket._trigger(
+      'tactical:activated',
+      makeTacticalInfo({
+        tokens: [
+          makeToken({ id: 'token-a', entityId: 'entity-1' }),
+          makeToken({ id: 'token-b', entityId: 'entity-2' }),
+        ],
+      }),
+    )
+    // Also add entity-2 to the store
+    socket._trigger('entity:created', makeEntity({ id: 'entity-2', name: 'Other' }))
+
+    // Delete entity-1
+    socket._trigger('entity:deleted', { id: 'entity-1' })
+
+    // entity-1's token should be gone, entity-2's token should remain
+    const tokens = useWorldStore.getState().tacticalInfo?.tokens ?? []
+    expect(tokens.find((t) => t.id === 'token-a')).toBeUndefined()
+    expect(tokens.find((t) => t.id === 'token-b')).toBeDefined()
+  })
+
+  it('entity:deleted is safe when tacticalInfo is null', () => {
+    // tacticalInfo is null (not in tactical mode)
+    socket._trigger('entity:deleted', { id: 'entity-1' })
+
+    expect(useWorldStore.getState().tacticalInfo).toBeNull()
+    expect(useWorldStore.getState().entities['entity-1']).toBeUndefined()
+  })
+
   // -- Tactical events --
 
   it('tactical:activated sets tacticalInfo', () => {
