@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import type { Server } from 'socket.io'
 import { withRoom, withRole } from '../middleware'
 import { toCamel, parseJsonFields, toBoolFields } from '../db'
+import { getTacticalState } from './tactical'
 
 function toArchive(row: Record<string, unknown>) {
   const r = parseJsonFields(toCamel(row), 'grid')
@@ -97,10 +98,10 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
   // DELETE /archives/:archiveId — delete archive (CASCADE handles archive_tokens)
   router.delete('/api/rooms/:roomId/archives/:archiveId', room, (req, res) => {
     const deleteArchive = req.roomDb!.transaction(() => {
-      // Clear dangling room_state reference
+      // Clear dangling tactical_state reference (all scenes that reference this archive)
       req
         .roomDb!.prepare(
-          'UPDATE room_state SET active_archive_id = NULL WHERE id = 1 AND active_archive_id = ?',
+          'UPDATE tactical_state SET active_archive_id = NULL WHERE active_archive_id = ?',
         )
         .run(req.params.archiveId)
       req.roomDb!.prepare('DELETE FROM archives WHERE id = ?').run(req.params.archiveId)
@@ -371,8 +372,11 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
         sceneId,
       )
 
-      // e. Update room_state active_archive_id
-      db.prepare('UPDATE room_state SET active_archive_id = ? WHERE id = 1').run(archiveId)
+      // e. Update tactical_state active_archive_id
+      db.prepare('UPDATE tactical_state SET active_archive_id = ? WHERE scene_id = ?').run(
+        archiveId,
+        sceneId,
+      )
     })
     doLoad()
 
@@ -389,38 +393,9 @@ export function archiveRoutes(dataDir: string, io: Server): Router {
       io.to(req.roomId!).emit('entity:created', entity)
     }
 
-    // 7. Emit room:state:updated so clients see activeArchiveId change
-    const roomStateRow = db.prepare('SELECT * FROM room_state WHERE id = 1').get() as Record<
-      string,
-      unknown
-    >
-    io.to(req.roomId!).emit('room:state:updated', toCamel(roomStateRow))
-
-    // Build and return the current tactical state
-    const stateRow = db
-      .prepare('SELECT * FROM tactical_state WHERE scene_id = ?')
-      .get(sceneId) as Record<string, unknown>
-    const state = parseJsonFields(toCamel(stateRow), 'grid')
-    const tokenRows = db
-      .prepare('SELECT * FROM tactical_tokens WHERE scene_id = ?')
-      .all(sceneId) as Record<string, unknown>[]
-    const result = {
-      ...state,
-      tokens: tokenRows.map((r) => ({
-        id: r.id,
-        entityId: r.entity_id,
-        sceneId: r.scene_id,
-        x: r.x,
-        y: r.y,
-        width: r.width,
-        height: r.height,
-        imageScaleX: r.image_scale_x ?? 1,
-        imageScaleY: r.image_scale_y ?? 1,
-        initiativePosition: r.initiative_position ?? null,
-      })),
-    }
-
-    io.to(req.roomId!).emit('tactical:activated', result)
+    // 7. Emit tactical:updated (replaces room:state:updated — activeArchiveId is now per-scene)
+    const result = getTacticalState(db, sceneId)
+    io.to(req.roomId!).emit('tactical:updated', result)
     res.json(result)
   })
 
