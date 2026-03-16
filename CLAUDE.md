@@ -11,6 +11,10 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 | Server   | Express 5.2, better-sqlite3 (per-room SQLite), Socket.io v4.8              |
 | Testing  | vitest v4 + @testing-library/react + jsdom; Playwright (E2E)               |
 
+## ⚠️ NEVER Commit Directly on main
+
+**All development MUST happen on a feature branch** (via worktree or `git checkout -b`). Do NOT commit, edit, or create files intended for commit on the `main` branch. Always create a branch first before writing any code. See [git-workflow.md](docs/conventions/git-workflow.md).
+
 ## ⚠️ MANDATORY — Required Reading Before You Code
 
 **STOP. Before writing any code, check the table below. If your task matches a trigger, you MUST read the linked document first. Do NOT skip this step.**
