@@ -53,6 +53,9 @@ interface UiState {
   portraitBarVisible: boolean
   teamPanelVisible: boolean
 
+  // Tactical toolbar
+  gridConfigOpen: boolean
+
   // GM sidebar
   gmSidebarTab: GmSidebarTab
   gmSidebarCollapsed: boolean
@@ -71,6 +74,8 @@ interface UiState {
   setTheme: (theme: ThemeId) => void
   setPortraitBarVisible: (visible: boolean) => void
   setTeamPanelVisible: (visible: boolean) => void
+  setGridConfigOpen: (open: boolean) => void
+  toggleGridConfig: () => void
   setGmSidebarTab: (tab: GmSidebarTab) => void
   setGmSidebarCollapsed: (collapsed: boolean) => void
 }
@@ -85,6 +90,7 @@ export const useUiStore = create<UiState>((set) => ({
   theme: getStoredTheme(),
   portraitBarVisible: true,
   teamPanelVisible: true,
+  gridConfigOpen: false,
   gmSidebarTab: 'archives',
   gmSidebarCollapsed: false,
 
@@ -130,6 +136,12 @@ export const useUiStore = create<UiState>((set) => ({
   },
   setTeamPanelVisible: (visible) => {
     set({ teamPanelVisible: visible })
+  },
+  setGridConfigOpen: (open) => {
+    set({ gridConfigOpen: open })
+  },
+  toggleGridConfig: () => {
+    set((s) => ({ gridConfigOpen: !s.gridConfigOpen }))
   },
   setGmSidebarTab: (tab) => {
     set({ gmSidebarTab: tab })
