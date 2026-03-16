@@ -25,16 +25,4 @@ export class TacticalCanvasPage {
       button: 'right',
     })
   }
-
-  /** Read token count from zustand store */
-  async getTokenCount(): Promise<number> {
-    return this.page.evaluate(() => {
-      // Access zustand store from window (if exposed) or via React internals
-      // We'll use a more reliable method: check the DOM for token-related state
-      const store = document.querySelector('[data-testid="tactical-canvas"]')
-      if (!store) return 0
-      // Fallback: count canvas elements is unreliable, use store evaluation
-      return 0
-    })
-  }
 }

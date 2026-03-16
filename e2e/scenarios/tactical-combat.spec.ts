@@ -24,10 +24,10 @@ test.describe('Tactical Combat', () => {
 
     // 2. Right-click on canvas opens context menu
     await room.tactical.rightClickCenter()
-    await expect(page.getByText('Add NPC')).toBeVisible({ timeout: 3000 })
+    await expect(page.getByText('Create Token')).toBeVisible({ timeout: 3000 })
 
-    // 3. Add NPC via context menu
-    await page.getByText('Add NPC').click()
+    // 3. Create token via context menu
+    await page.getByText('Create Token').click()
     await page.waitForTimeout(1000)
 
     // 4. Exit and re-enter tactical — state persists
