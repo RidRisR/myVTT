@@ -9,7 +9,7 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 | Frontend | React 19.2, Vite 7.3, TypeScript 5.9, Tailwind CSS v4, konva + react-konva |
 | State    | zustand v5 (REST init + Socket.io events → React)                          |
 | Server   | Express 5.2, better-sqlite3 (per-room SQLite), Socket.io v4.8              |
-| Testing  | vitest v4 + @testing-library/react + jsdom                                 |
+| Testing  | vitest v4 + @testing-library/react + jsdom; Playwright (E2E)               |
 
 ## ⚠️ MANDATORY — Required Reading Before You Code
 
@@ -62,7 +62,12 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 - **ESLint**: TypeScript strict, react-hooks, `no-restricted-imports` for api module
 - **Husky**: pre-commit runs lint-staged + tsc + doc structure check
 - **TypeScript**: strict mode, noUnusedLocals, noUnusedParameters, noUncheckedIndexedAccess
-- **Tests**: `npm test` (vitest run), files in `src/**/__tests__/` and `server/__tests__/`
+- **Tests**: Three-tier test pyramid:
+  - **Unit tests** (client): `src/**/__tests__/` — vitest + jsdom, store selectors, utils
+  - **Integration tests** (server): `server/__tests__/scenarios/` — real Express+SQLite+Socket.io per test, scenario-style sequential chains
+  - **E2E tests** (Playwright): `e2e/scenarios/` — full browser, Page Object pattern, `npm run test:e2e`
+  - Run unit+integration: `npm test` (vitest run); Run E2E: `npm run test:e2e`
+  - CI runs both; pre-push hook runs only unit+integration (E2E too slow for local hook)
 - `react-hooks/set-state-in-effect` OFF — Socket.io listener pattern requires it
 
 ## Product Design Principles

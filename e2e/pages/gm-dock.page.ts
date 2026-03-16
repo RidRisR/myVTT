@@ -60,16 +60,6 @@ export class GmDockPage {
 
   async enterCombat() {
     await this.page.getByRole('button', { name: 'Combat' }).click()
-
-    // New tactical schema requires mapUrl to be set for the canvas to render.
-    // Without a map, KonvaMap shows "No combat scene selected" placeholder.
-    // Use the store action to set a dummy map URL so the canvas becomes interactive.
-    await this.page.evaluate(async () => {
-      const store = (window as any).__MYVTT_STORES__?.world()
-      if (store?.setTacticalMapUrl) {
-        await store.setTacticalMapUrl('/maps/test-grid.png', 1000, 1000)
-      }
-    })
   }
 
   async exitCombat() {
