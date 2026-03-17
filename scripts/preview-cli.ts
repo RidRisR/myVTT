@@ -199,9 +199,54 @@ function waitForReady(port: number, onReady: () => void): { cancel: () => void }
   }
 }
 
+// ── TTL helpers ──
+
+/**
+ * Parse a --ttl <duration> flag from the remaining CLI args.
+ * Accepts: 2h | 30m | 1h30m | 90m
+ * Returns milliseconds, or null if --ttl is absent.
+ */
+function parseTtl(flags: string[]): number | null {
+  const idx = flags.indexOf('--ttl')
+  if (idx === -1) return null
+
+  const raw = flags[idx + 1]
+  if (!raw || raw.startsWith('-')) {
+    error('--ttl requires a value (e.g. --ttl 2h, --ttl 30m, --ttl 1h30m)')
+    process.exit(1)
+  }
+
+  const match = raw.match(/^(?:(\d+)h)?(?:(\d+)m)?$/)
+  if (!match || (!match[1] && !match[2])) {
+    error(`Invalid --ttl format '${raw}'. Use: 2h, 30m, 1h30m, 90m`)
+    process.exit(1)
+  }
+
+  const hours = parseInt(match[1] || '0', 10)
+  const minutes = parseInt(match[2] || '0', 10)
+  const ms = (hours * 60 + minutes) * 60 * 1000
+
+  if (ms <= 0) {
+    error('--ttl must be a positive duration (e.g. --ttl 2h)')
+    process.exit(1)
+  }
+
+  return ms
+}
+
+/** Convert milliseconds to a human-readable string: 4h | 1h30m | 30m */
+function formatDuration(ms: number): string {
+  const totalMinutes = Math.round(ms / 60000)
+  const h = Math.floor(totalMinutes / 60)
+  const m = totalMinutes % 60
+  if (h > 0 && m > 0) return `${h}h${m}m`
+  if (h > 0) return `${h}h`
+  return `${m}m`
+}
+
 // ── Commands ──
 
-function cmdStart(branch: string) {
+function cmdStart(branch: string, flags: string[]) {
   if (branch === 'main' || branch === 'master') {
     error("Cannot preview 'main' or 'master'. Use a feature branch.")
     process.exit(1)
@@ -231,6 +276,16 @@ function cmdStart(branch: string) {
     VITE_PREVIEW_BRANCH: branch,
   }
 
+  // Determine TTL: explicit --ttl flag, or default 4h when running without a TTY (e.g. AI background)
+  const explicitTtl = parseTtl(flags)
+  const DEFAULT_TTL_MS = 4 * 60 * 60 * 1000 // 4h
+  let ttlMs: number | null = null
+  if (explicitTtl !== null) {
+    ttlMs = explicitTtl
+  } else if (!process.stdout.isTTY) {
+    ttlMs = DEFAULT_TTL_MS
+  }
+
   log('')
   log('\x1b[36m┌──────────────────────────────────────────────────┐\x1b[0m')
   log(
@@ -243,6 +298,14 @@ function cmdStart(branch: string) {
   )
   log('\x1b[36m│\x1b[0m                                                  \x1b[36m│\x1b[0m')
   warn('│  ⚠ Data is ephemeral — deleted on stop           │')
+  if (ttlMs !== null) {
+    const stopAt = new Date(Date.now() + ttlMs).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    const ttlLine = `[TTL] Auto-stop in ${formatDuration(ttlMs)} (at ${stopAt})`
+    warn(`│  ${ttlLine.padEnd(47)} │`)
+  }
   log('\x1b[36m│\x1b[0m  Ctrl+C to stop                                  \x1b[36m│\x1b[0m')
   log('\x1b[36m└──────────────────────────────────────────────────┘\x1b[0m')
   log('')
@@ -302,6 +365,15 @@ function cmdStart(branch: string) {
     cleanup()
     process.exit(code ?? 0)
   })
+
+  // Auto-stop on TTL expiry.
+  // Chain: setTimeout → child.kill('SIGTERM') → child exits
+  //      → child.on('exit') → cleanup() → docker compose down -v
+  if (ttlMs !== null) {
+    setTimeout(() => {
+      child.kill('SIGTERM')
+    }, ttlMs)
+  }
 }
 
 function cmdStop(branchOrFlag: string) {
@@ -478,7 +550,7 @@ function printUsage() {
   log('Usage: ./scripts/preview <command> [options]')
   log('')
   log('Commands:')
-  log('  start <branch>   Start a preview for the given branch')
+  log('  start <branch> [--ttl <dur>]   Start a preview (e.g. --ttl 2h, 30m, 1h30m)')
   log('  stop <branch>    Stop a preview and delete all its data')
   log('  stop --all       Stop all running previews')
   log('  list             List running previews')
@@ -492,7 +564,7 @@ function printUsage() {
 
 // ── Main ──
 
-const [command, arg] = process.argv.slice(2)
+const [command, arg, ...flags] = process.argv.slice(2)
 
 switch (command) {
   case 'start':
@@ -500,7 +572,7 @@ switch (command) {
       error('Branch name required. Usage: ./scripts/preview start <branch>')
       process.exit(1)
     }
-    cmdStart(arg)
+    cmdStart(arg, flags)
     break
 
   case 'stop':
