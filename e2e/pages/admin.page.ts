@@ -74,4 +74,24 @@ export class AdminPage {
   async expectError(text: string) {
     await expect(this.page.getByText(text)).toBeVisible()
   }
+
+  /** Returns the href of the Enter link for a room, e.g. "#room=abc123" */
+  async getRoomUrl(name: string): Promise<string> {
+    const href = await this.roomRow(name).getByRole('link', { name: 'Enter' }).getAttribute('href')
+    return href ?? ''
+  }
+
+  /** Waits for at least one presence dot to appear in the room row. */
+  async expectPresenceDot(name: string) {
+    await expect(this.roomRow(name).locator('.w-2.h-2.rounded-full').first()).toBeVisible({
+      timeout: 8_000,
+    })
+  }
+
+  /** Waits for all presence dots to disappear from the room row. */
+  async expectNoPresenceDots(name: string) {
+    await expect(this.roomRow(name).locator('.w-2.h-2.rounded-full').first()).toBeHidden({
+      timeout: 8_000,
+    })
+  }
 }

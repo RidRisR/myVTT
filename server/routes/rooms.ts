@@ -8,36 +8,12 @@ import type { TypedServer } from '../socketTypes'
 export function roomRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
 
-  router.get('/api/rooms', async (_req, res) => {
+  router.get('/api/rooms', (_req, res) => {
     const db = getGlobalDb(dataDir)
     const rooms = toCamelAll(
       db.prepare('SELECT * FROM rooms ORDER BY created_at DESC').all() as Record<string, unknown>[],
     )
-
-    // Enrich each room with online seat colors
-    const enriched = await Promise.all(
-      rooms.map(async (room) => {
-        const roomId = room.id as string
-        try {
-          const sockets = await io.in(roomId).fetchSockets()
-          const seatIds = [...new Set(sockets.map((s) => s.data.seatId).filter(Boolean))]
-          let onlineColors: string[] = []
-          if (seatIds.length > 0) {
-            const roomDb = getRoomDb(dataDir, roomId)
-            const placeholders = seatIds.map(() => '?').join(',')
-            const seats = roomDb
-              .prepare(`SELECT color FROM seats WHERE id IN (${placeholders})`)
-              .all(...seatIds) as { color: string }[]
-            onlineColors = seats.map((s) => s.color)
-          }
-          return { ...room, onlineColors }
-        } catch {
-          return { ...room, onlineColors: [] }
-        }
-      }),
-    )
-
-    res.json(enriched)
+    res.json(rooms)
   })
 
   router.post('/api/rooms', (req, res) => {
@@ -81,7 +57,14 @@ export function roomRoutes(dataDir: string, io: TypedServer): Router {
       roomDb.prepare('UPDATE room_state SET active_scene_id = ? WHERE id = 1').run(sceneId)
     })()
 
-    res.status(201).json({ id, name, createdBy: 'anonymous', createdAt: now, ruleSystemId })
+    const newRoom = {
+      id,
+      name: name as string,
+      ruleSystemId: ruleSystemId as string,
+      createdAt: now,
+    }
+    io.to('admin').emit('room:created', newRoom)
+    res.status(201).json({ ...newRoom, createdBy: 'anonymous' })
   })
 
   router.get('/api/rooms/:roomId', (req, res) => {
@@ -105,11 +88,13 @@ export function roomRoutes(dataDir: string, io: TypedServer): Router {
       res.status(404).json({ error: 'Room not found' })
       return
     }
-    db.prepare('DELETE FROM rooms WHERE id = ?').run(req.params.roomId)
+    const deletedId = req.params.roomId
+    db.prepare('DELETE FROM rooms WHERE id = ?').run(deletedId)
     // Close cached DB handle before deleting directory
-    closeRoomDb(req.params.roomId)
-    const roomDir = safePath(dataDir, 'rooms', req.params.roomId)
+    closeRoomDb(deletedId)
+    const roomDir = safePath(dataDir, 'rooms', deletedId)
     fs.rmSync(roomDir, { recursive: true, force: true })
+    io.to('admin').emit('room:deleted', { id: deletedId })
     res.json({ ok: true })
   })
 

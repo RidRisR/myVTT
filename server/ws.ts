@@ -1,15 +1,42 @@
 // server/ws.ts — Socket.io auth middleware
 import type { TypedServer } from './socketTypes'
-import { getGlobalDb, getRoomDb } from './db'
+import { getGlobalDb, getRoomDb, toCamelAll } from './db'
+
+/** Returns online seat colors for a room by querying the room DB. Pure local SQLite, no network. */
+export async function getOnlineColors(
+  io: TypedServer,
+  dataDir: string,
+  roomId: string,
+): Promise<string[]> {
+  const sockets = await io.in(roomId).fetchSockets()
+  const seatIds = [
+    ...new Set(sockets.map((s) => s.data.seatId).filter((id): id is string => Boolean(id))),
+  ]
+  if (seatIds.length === 0) return []
+  const roomDb = getRoomDb(dataDir, roomId)
+  const placeholders = seatIds.map(() => '?').join(',')
+  const seats = roomDb
+    .prepare(`SELECT color FROM seats WHERE id IN (${placeholders})`)
+    .all(...seatIds) as { color: string }[]
+  return seats.map((s) => s.color)
+}
 
 export function setupSocketAuth(io: TypedServer, dataDir: string): void {
+  /** Push updated onlineColors for one room to all admin listeners. */
+  const emitPresenceToAdmin = async (roomId: string) => {
+    const onlineColors = await getOnlineColors(io, dataDir, roomId)
+    io.to('admin').emit('room:presence', { roomId, onlineColors })
+  }
+
   io.use((socket, next) => {
     // TODO: [S1] Implement JWT verification after identity system (doc 53)
     // Temporary: read from handshake query
-    const roomId = socket.handshake.query.roomId as string
+    const roomId = socket.handshake.query.roomId as string | undefined
 
     if (!roomId) {
-      next(new Error('roomId required'))
+      // Admin connection — no room required
+      socket.data = { roomId: '', seatId: null, role: null }
+      next()
       return
     }
 
@@ -42,10 +69,41 @@ export function setupSocketAuth(io: TypedServer, dataDir: string): void {
 
   // Handle seat auth updates after initial connection
   io.on('connection', (socket) => {
-    // Send current online seats to the newly connected socket
+    const roomId = socket.data.roomId
+
+    // Admin connection: handle join:admin and skip seat auth setup
+    if (!roomId) {
+      socket.on('join:admin', () => {
+        void (async () => {
+          await socket.join('admin')
+          const db = getGlobalDb(dataDir)
+          const rawRooms = db
+            .prepare('SELECT * FROM rooms ORDER BY created_at DESC')
+            .all() as Record<string, unknown>[]
+          const rooms = toCamelAll(rawRooms)
+          const enriched = await Promise.all(
+            rooms.map(async (room) => ({
+              ...room,
+              onlineColors: await getOnlineColors(io, dataDir, room.id as string),
+            })),
+          )
+          socket.emit(
+            'admin:snapshot',
+            enriched as {
+              id: string
+              name: string
+              ruleSystemId: string
+              createdAt: number
+              onlineColors: string[]
+            }[],
+          )
+        })()
+      })
+      return
+    }
+
+    // Send current online seats to the newly connected socket (catch-up)
     void (async () => {
-      const roomId = socket.data.roomId
-      if (!roomId) return
       const sockets = await io.in(roomId).fetchSockets()
       const onlineSeatIds = [
         ...new Set(sockets.map((s) => s.data.seatId).filter((id): id is string => Boolean(id))),
@@ -55,19 +113,19 @@ export function setupSocketAuth(io: TypedServer, dataDir: string): void {
       }
     })()
 
-    const emitOfflineIfEmpty = async (seatId: string, roomId: string) => {
-      const sockets = await io.in(roomId).fetchSockets()
+    const emitOfflineIfEmpty = async (seatId: string, rid: string) => {
+      const sockets = await io.in(rid).fetchSockets()
       const stillOnline = sockets.some((s) => s.data.seatId === seatId)
       if (!stillOnline) {
-        io.in(roomId).emit('seat:offline', { seatId })
+        io.in(rid).emit('seat:offline', { seatId })
       }
     }
 
     const bindSeat = ({ seatId }: { seatId: string }) => {
       if (!seatId || !socket.data.roomId) return
       const prevSeatId = socket.data.seatId
-      const roomId = socket.data.roomId
-      const roomDb = getRoomDb(dataDir, roomId)
+      const rid = socket.data.roomId
+      const roomDb = getRoomDb(dataDir, rid)
       const seat = roomDb.prepare('SELECT role FROM seats WHERE id = ?').get(seatId) as
         | { role: string }
         | undefined
@@ -76,26 +134,29 @@ export function setupSocketAuth(io: TypedServer, dataDir: string): void {
         socket.data.role = seat.role as 'GM' | 'PL'
         // If switching seats, check if old seat still has connections
         if (prevSeatId && prevSeatId !== seatId) {
-          void emitOfflineIfEmpty(prevSeatId, roomId)
+          void emitOfflineIfEmpty(prevSeatId, rid)
         }
-        io.in(roomId).emit('seat:online', { seatId })
+        io.in(rid).emit('seat:online', { seatId })
+        void emitPresenceToAdmin(rid)
       }
     }
     socket.on('auth:update', bindSeat)
     socket.on('seat:claim', bindSeat)
     socket.on('seat:leave', () => {
       const prevSeatId = socket.data.seatId
-      const roomId = socket.data.roomId
+      const rid = socket.data.roomId
       socket.data.seatId = null
       socket.data.role = null
-      if (prevSeatId && roomId) {
-        void emitOfflineIfEmpty(prevSeatId, roomId)
+      if (prevSeatId && rid) {
+        void emitOfflineIfEmpty(prevSeatId, rid)
+        void emitPresenceToAdmin(rid)
       }
     })
     socket.on('disconnect', () => {
-      const { seatId, roomId } = socket.data
-      if (seatId && roomId) {
-        void emitOfflineIfEmpty(seatId, roomId)
+      const { seatId, roomId: rid } = socket.data
+      if (seatId && rid) {
+        void emitOfflineIfEmpty(seatId, rid)
+        void emitPresenceToAdmin(rid)
       }
     })
   })
