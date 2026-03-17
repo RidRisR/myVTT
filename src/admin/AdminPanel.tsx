@@ -39,13 +39,6 @@ export function AdminPanel() {
 
   useEffect(() => {
     void fetchRooms()
-    // Poll every 5s to keep online presence dots up-to-date
-    const timer = setInterval(() => {
-      void fetchRooms()
-    }, 5000)
-    return () => {
-      clearInterval(timer)
-    }
   }, [fetchRooms])
 
   const handleCreate = async () => {

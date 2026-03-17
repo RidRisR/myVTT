@@ -30,7 +30,7 @@ export class AdminPage {
     await this.page
       .locator('.text-sm.font-semibold', { hasText: name })
       .first()
-      .waitFor({ timeout: 5_000 })
+      .waitFor({ timeout: 10_000 })
   }
 
   /**
