@@ -48,6 +48,7 @@
 | [server-infrastructure.md](conventions/server-infrastructure.md) | 服务端路由/中间件编写规范                        |
 | [bug-fix-workflow.md](conventions/bug-fix-workflow.md)           | Bug 修复流程（根因分析 → 回归测试 → 系统性预防） |
 | [git-workflow.md](conventions/git-workflow.md)                   | Git 分支/提交/PR 规范                            |
+| [preview-cli.md](conventions/preview-cli.md)                     | 多分支 Preview CLI 使用指南                      |
 
 ## 测试 (`testing/`)
 
