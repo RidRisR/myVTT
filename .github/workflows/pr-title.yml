@@ -28,9 +28,6 @@ jobs:
             PR title must be in English and start with a letter.
             Example: "feat: add new feature"
 
-  pr-body:
-    runs-on: ubuntu-latest
-    steps:
       - name: Check for AI-generated signatures
         env:
           BODY: ${{ github.event.pull_request.body }}
