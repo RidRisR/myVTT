@@ -31,17 +31,17 @@
     ]
   },
   "dependencies": {
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^12.8.0",
     "classic-level": "^3.0.0",
     "express": "^5.2.1",
-    "konva": "^10.2.0",
+    "konva": "^10.2.3",
     "lucide-react": "^0.577.0",
     "multer": "^2.1.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-konva": "^19.2.3",
     "socket.io": "^4.8.3",
-    "zustand": "^5.0.11"
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
