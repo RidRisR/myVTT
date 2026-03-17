@@ -141,7 +141,7 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
         degradeTokenReferences(req.roomDb!, e.id)
         req.roomDb!.prepare('DELETE FROM entities WHERE id = ?').run(e.id)
       }
-      // Clear dangling room_state reference (active_archive_id is in tactical_state, cleaned by CASCADE)
+      // Clear dangling room_state reference
       req
         .roomDb!.prepare(
           `UPDATE room_state SET

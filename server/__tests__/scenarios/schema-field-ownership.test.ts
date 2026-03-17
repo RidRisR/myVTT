@@ -44,32 +44,6 @@ describe('Schema Field Ownership', () => {
     expect((tacticalA as { tacticalMode: number }).tacticalMode).toBe(1)
   })
 
-  it('scene switch preserves per-scene activeArchiveId', async () => {
-    // Create archive on scene A, load it
-    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: sceneA })
-    const { data: archive } = await ctx.api(
-      'POST',
-      `/api/rooms/${ctx.roomId}/scenes/${sceneA}/archives`,
-      { name: 'Archive 1' },
-    )
-    const archiveId = (archive as { id: string }).id
-    await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${archiveId}/load`)
-
-    // Verify A has the archive active
-    const { data: tA1 } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
-    expect((tA1 as { activeArchiveId: string | null }).activeArchiveId).toBe(archiveId)
-
-    // Switch to B — should have null activeArchiveId
-    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: sceneB })
-    const { data: tB } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
-    expect((tB as { activeArchiveId: string | null }).activeArchiveId).toBeNull()
-
-    // Switch back to A — should still have the archive
-    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: sceneA })
-    const { data: tA2 } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
-    expect((tA2 as { activeArchiveId: string | null }).activeArchiveId).toBe(archiveId)
-  })
-
   it('new scene gets default tactical_state with tacticalMode=0', async () => {
     const { data: newScene } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
       name: 'Scene C',
@@ -79,7 +53,6 @@ describe('Schema Field Ownership', () => {
     await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: sceneC })
     const { data: tactical } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
     expect((tactical as { tacticalMode: number }).tacticalMode).toBe(0)
-    expect((tactical as { activeArchiveId: string | null }).activeArchiveId).toBeNull()
   })
 
   it('rule_system_id in rooms table', async () => {

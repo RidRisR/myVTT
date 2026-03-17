@@ -23,7 +23,6 @@ function makeTacticalInfo(overrides?: Partial<TacticalInfo>): TacticalInfo {
     roundNumber: 0,
     currentTurnTokenId: null,
     tacticalMode: 1,
-    activeArchiveId: null,
     ...overrides,
   }
 }

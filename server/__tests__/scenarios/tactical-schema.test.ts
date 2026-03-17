@@ -33,12 +33,4 @@ describe('Tactical Schema', () => {
     const state = data as { tacticalMode: number }
     expect(state.tacticalMode).toBe(0)
   })
-
-  it('tactical_state has activeArchiveId field (not activeEncounterId)', async () => {
-    const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
-    const state = data as Record<string, unknown>
-    expect('activeArchiveId' in state).toBe(true)
-    expect('activeEncounterId' in state).toBe(false)
-    expect(state.activeArchiveId).toBeNull()
-  })
 })

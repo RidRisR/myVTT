@@ -99,16 +99,7 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
 
   // DELETE /archives/:archiveId — delete archive (CASCADE handles archive_tokens)
   router.delete('/api/rooms/:roomId/archives/:archiveId', room, (req, res) => {
-    const deleteArchive = req.roomDb!.transaction(() => {
-      // Clear dangling tactical_state reference (all scenes that reference this archive)
-      req
-        .roomDb!.prepare(
-          'UPDATE tactical_state SET active_archive_id = NULL WHERE active_archive_id = ?',
-        )
-        .run(req.params.archiveId)
-      req.roomDb!.prepare('DELETE FROM archives WHERE id = ?').run(req.params.archiveId)
-    })
-    deleteArchive()
+    req.roomDb!.prepare('DELETE FROM archives WHERE id = ?').run(req.params.archiveId)
     io.to(req.roomId!).emit('archive:deleted', { id: req.params.archiveId as string })
     res.json({ ok: true })
   })
@@ -137,13 +128,17 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
 
     // 3. Get current tactical state (map settings)
     const tacticalState = db
-      .prepare('SELECT map_url, map_width, map_height, grid FROM tactical_state WHERE scene_id = ?')
+      .prepare(
+        'SELECT map_url, map_width, map_height, grid, round_number, current_turn_token_id FROM tactical_state WHERE scene_id = ?',
+      )
       .get(sceneId) as
       | {
           map_url: string | null
           map_width: number | null
           map_height: number | null
           grid: string
+          round_number: number
+          current_turn_token_id: string | null
         }
       | undefined
 
@@ -220,12 +215,14 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
       // Update archive map settings from tactical_state
       if (tacticalState) {
         db.prepare(
-          'UPDATE archives SET map_url = ?, map_width = ?, map_height = ?, grid = ? WHERE id = ?',
+          'UPDATE archives SET map_url = ?, map_width = ?, map_height = ?, grid = ?, round_number = ?, current_turn_token_id = ? WHERE id = ?',
         ).run(
           tacticalState.map_url,
           tacticalState.map_width,
           tacticalState.map_height,
           tacticalState.grid,
+          tacticalState.round_number,
+          tacticalState.current_turn_token_id,
           archiveId,
         )
       }
@@ -363,20 +360,16 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
         }
       }
 
-      // d. Update tactical_state from archive map settings
+      // d. Update tactical_state from archive (map + round state)
       db.prepare(
-        'UPDATE tactical_state SET map_url = ?, map_width = ?, map_height = ?, grid = ? WHERE scene_id = ?',
+        'UPDATE tactical_state SET map_url = ?, map_width = ?, map_height = ?, grid = ?, round_number = ?, current_turn_token_id = ? WHERE scene_id = ?',
       ).run(
         archiveRow.map_url,
         archiveRow.map_width,
         archiveRow.map_height,
         archiveRow.grid,
-        sceneId,
-      )
-
-      // e. Update tactical_state active_archive_id
-      db.prepare('UPDATE tactical_state SET active_archive_id = ? WHERE scene_id = ?').run(
-        archiveId,
+        archiveRow.round_number,
+        archiveRow.current_turn_token_id,
         sceneId,
       )
     })
@@ -399,7 +392,7 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
       io.to(req.roomId!).emit('entity:created', entity)
     }
 
-    // 7. Emit tactical:updated (replaces room:state:updated — activeArchiveId is now per-scene)
+    // 6. Emit tactical:updated with restored state
     const result = getTacticalState(db, sceneId)
     if (result) {
       io.to(req.roomId!).emit('tactical:updated', result)
