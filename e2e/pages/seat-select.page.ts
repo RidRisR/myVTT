@@ -21,6 +21,7 @@ export class SeatSelectPage {
   }
 
   async createAndJoin(name: string, role: 'GM' | 'PL') {
+    await this.heading.waitFor({ timeout: 10_000 })
     await this.createSeatButton.click()
     await this.nameInput.fill(name)
     await this.page.getByRole('button', { name: role }).click()

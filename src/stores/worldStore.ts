@@ -92,7 +92,7 @@ interface WorldState {
   // Archive actions
   archives: ArchiveRecord[]
   fetchArchives: (sceneId: string) => Promise<void>
-  createArchive: (sceneId: string, name: string) => Promise<void>
+  createArchive: (sceneId: string, name: string) => Promise<ArchiveRecord | null>
   deleteArchive: (id: string) => Promise<void>
   updateArchive: (id: string, updates: Partial<ArchiveRecord>) => Promise<void>
   duplicateArchive: (id: string) => Promise<void>
@@ -589,8 +589,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   createArchive: async (sceneId, name) => {
     const roomId = get()._roomId
-    if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/scenes/${sceneId}/archives`, { name })
+    if (!roomId) return null
+    return api.post<ArchiveRecord>(`/api/rooms/${roomId}/scenes/${sceneId}/archives`, { name })
   },
 
   deleteArchive: async (id) => {
@@ -639,7 +639,15 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   exitTactical: async () => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/tactical/exit`)
+    // Optimistically hide the tactical canvas before the round-trip
+    const prev = get().tacticalInfo
+    if (prev) set(() => ({ tacticalInfo: { ...prev, tacticalMode: 0 } }))
+    try {
+      await api.post(`/api/rooms/${roomId}/tactical/exit`)
+    } catch {
+      // Revert on failure — server Socket.io will correct on next success
+      if (prev) set(() => ({ tacticalInfo: prev }))
+    }
   },
 
   saveArchive: async (archiveId) => {

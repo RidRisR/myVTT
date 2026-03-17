@@ -46,7 +46,6 @@ export interface TacticalInfo {
   roundNumber: number
   currentTurnTokenId: string | null
   tacticalMode: number
-  activeArchiveId: string | null
 }
 
 export interface TeamTracker {
@@ -76,4 +75,6 @@ export interface ArchiveRecord {
   mapHeight: number | null
   grid: TacticalInfo['grid']
   gmOnly: boolean
+  roundNumber: number
+  currentTurnTokenId: string | null
 }

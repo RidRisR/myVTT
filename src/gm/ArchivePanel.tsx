@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { Plus, Play, Save, MoreVertical, Copy, Pencil, Trash2, Swords } from 'lucide-react'
+import { Plus, Download, Save, MoreVertical, Copy, Pencil, Trash2, Swords } from 'lucide-react'
 import { useWorldStore } from '../stores/worldStore'
 import type { ArchiveRecord } from '../stores/worldStore'
 import { selectIsTactical } from '../stores/selectors'
@@ -8,7 +8,6 @@ import { ConfirmPopover } from '../shared/ui/ConfirmPopover'
 
 export function ArchivePanel() {
   const activeSceneId = useWorldStore((s) => s.room.activeSceneId)
-  const activeArchiveId = useWorldStore((s) => s.tacticalInfo?.activeArchiveId ?? null)
   const archives = useWorldStore((s) => s.archives)
   const isTactical = useWorldStore(selectIsTactical)
   const fetchArchives = useWorldStore((s) => s.fetchArchives)
@@ -26,10 +25,12 @@ export function ArchivePanel() {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const renameInputRef = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const deleteButtonRef = useRef<HTMLButtonElement>(null)
+  const loadButtonRef = useRef<HTMLButtonElement>(null)
 
   // Fetch archives when scene changes
   useEffect(() => {
@@ -69,9 +70,13 @@ export function ArchivePanel() {
     setRenamingId(null)
   }
 
-  const handleCreate = () => {
+  const handleCreateAndSave = async () => {
     if (!activeSceneId) return
-    void createArchive(activeSceneId, `存档 ${archives.length + 1}`)
+    const archive = await createArchive(activeSceneId, `存档 ${archives.length + 1}`)
+    if (archive) {
+      await saveArchive(archive.id)
+      toast('success', '已存为新档')
+    }
   }
 
   const handleDelete = (archive: ArchiveRecord) => {
@@ -84,19 +89,23 @@ export function ArchivePanel() {
     })
   }
 
-  const handleActivate = () => {
-    if (!selectedId) return
-    void loadArchive(selectedId)
+  const handleLoad = () => {
+    if (!loadingId) return
+    void loadArchive(loadingId)
+    setLoadingId(null)
+    setSelectedId(null)
   }
 
   const handleSave = () => {
-    if (!activeArchiveId || !activeSceneId) return
-    void saveArchive(activeArchiveId)
-    toast('success', '已保存存档快照')
+    if (!selectedId || !activeSceneId) return
+    void saveArchive(selectedId)
+    setSelectedId(null)
+    toast('success', '已覆盖存档')
   }
 
   const selectedArchive = selectedId ? archives.find((e) => e.id === selectedId) : null
   const deletingArchive = deletingId ? archives.find((e) => e.id === deletingId) : null
+  const loadingArchive = loadingId ? archives.find((e) => e.id === loadingId) : null
 
   if (!activeSceneId) {
     return (
@@ -121,7 +130,6 @@ export function ArchivePanel() {
           <div className="flex flex-col gap-1">
             {sortedArchives.map((archive) => {
               const isSelected = archive.id === selectedId
-              const isActive = archive.id === activeArchiveId
               return (
                 <div
                   key={archive.id}
@@ -135,11 +143,6 @@ export function ArchivePanel() {
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    {/* Status indicator */}
-                    {isActive && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-success shrink-0 animate-pulse" />
-                    )}
-
                     {/* Name or rename input */}
                     {renamingId === archive.id ? (
                       <input
@@ -237,39 +240,44 @@ export function ArchivePanel() {
 
       {/* Bottom action bar */}
       <div className="shrink-0 border-t border-border-glass px-2 py-2 flex items-center gap-1.5">
-        {/* Create new */}
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-          title="新建存档"
-        >
-          <Plus size={12} strokeWidth={1.5} />
-          新建
-        </button>
-
-        <div className="flex-1" />
-
-        {/* Save snapshot (only when combat active with a named archive) */}
-        {isTactical && activeArchiveId && !activeArchiveId.startsWith('adhoc-') && (
+        {/* Create and save current state as new archive */}
+        {isTactical && (
           <button
-            onClick={handleSave}
-            className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-bold px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-            title="保存当前战斗状态到存档"
+            onClick={() => void handleCreateAndSave()}
+            className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
+            title="存为新档"
           >
-            <Save size={12} strokeWidth={1.5} />
-            保存
+            <Plus size={12} strokeWidth={1.5} />
+            存为新档
           </button>
         )}
 
-        {/* Activate (only when an archive is selected and not already active) */}
-        {selectedArchive && selectedId !== activeArchiveId && (
+        <div className="flex-1" />
+
+        {/* Overwrite selected archive with current state */}
+        {isTactical && selectedId && (
           <button
-            onClick={handleActivate}
-            className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"
-            title="激活存档"
+            onClick={handleSave}
+            className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-bold px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
+            title="覆盖存档"
           >
-            <Play size={10} strokeWidth={2} />
-            激活
+            <Save size={12} strokeWidth={1.5} />
+            覆盖
+          </button>
+        )}
+
+        {/* Load from selected archive (with confirmation) */}
+        {selectedArchive && (
+          <button
+            ref={loadButtonRef}
+            onClick={() => {
+              setLoadingId(selectedId)
+            }}
+            className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"
+            title="加载存档"
+          >
+            <Download size={14} strokeWidth={1.5} />
+            加载
           </button>
         )}
       </div>
@@ -279,11 +287,27 @@ export function ArchivePanel() {
         <ConfirmPopover
           anchorRef={deleteButtonRef}
           message={`删除"${deletingArchive.name}"？`}
+          confirmLabel="删除"
+          cancelLabel="取消"
           onConfirm={() => {
             handleDelete(deletingArchive)
           }}
           onCancel={() => {
             setDeletingId(null)
+          }}
+        />
+      )}
+
+      {/* Load confirmation popover */}
+      {loadingArchive && (
+        <ConfirmPopover
+          anchorRef={loadButtonRef}
+          message={`加载"${loadingArchive.name}"？当前战场将被替换。`}
+          confirmLabel="确认"
+          cancelLabel="取消"
+          onConfirm={handleLoad}
+          onCancel={() => {
+            setLoadingId(null)
           }}
         />
       )}

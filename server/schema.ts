@@ -76,7 +76,9 @@ export function initRoomSchema(db: Database.Database): void {
       map_width INTEGER,
       map_height INTEGER,
       grid TEXT DEFAULT '{}',
-      gm_only INTEGER DEFAULT 0
+      gm_only INTEGER DEFAULT 0,
+      round_number INTEGER NOT NULL DEFAULT 0,
+      current_turn_token_id TEXT
     );
 
     -- Archive tokens (normalized, replaces embedded JSON tokens in encounters)
@@ -98,7 +100,6 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS tactical_state (
       scene_id TEXT PRIMARY KEY REFERENCES scenes(id) ON DELETE CASCADE,
       tactical_mode INTEGER NOT NULL DEFAULT 0,
-      active_archive_id TEXT,
       map_url TEXT,
       map_width INTEGER,
       map_height INTEGER,

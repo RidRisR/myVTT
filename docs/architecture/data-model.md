@@ -124,16 +124,18 @@ rooms (全局)
 
 ### archives
 
-| 列         | 类型       | 说明                   |
-| ---------- | ---------- | ---------------------- |
-| id         | TEXT PK    | 存档 ID                |
-| scene_id   | TEXT FK    | → scenes.id（CASCADE） |
-| name       | TEXT       | 存档名                 |
-| map_url    | TEXT       | 战术地图 URL           |
-| map_width  | INTEGER    | 地图宽度               |
-| map_height | INTEGER    | 地图高度               |
-| grid       | TEXT(JSON) | 网格配置               |
-| gm_only    | INTEGER    | GM 专属                |
+| 列                    | 类型       | 说明                   |
+| --------------------- | ---------- | ---------------------- |
+| id                    | TEXT PK    | 存档 ID                |
+| scene_id              | TEXT FK    | → scenes.id（CASCADE） |
+| name                  | TEXT       | 存档名                 |
+| map_url               | TEXT       | 战术地图 URL           |
+| map_width             | INTEGER    | 地图宽度               |
+| map_height            | INTEGER    | 地图高度               |
+| grid                  | TEXT(JSON) | 网格配置               |
+| gm_only               | INTEGER    | GM 专属                |
+| round_number          | INTEGER    | 存档时的回合数         |
+| current_turn_token_id | TEXT       | 存档时的当前回合 Token |
 
 ### archive_tokens
 
@@ -159,7 +161,6 @@ rooms (全局)
 | --------------------- | ---------- | ---------------------- |
 | scene_id              | TEXT PK FK | → scenes.id（CASCADE） |
 | tactical_mode         | INTEGER    | 战术模式开关           |
-| active_archive_id     | TEXT       | 当前活动存档           |
 | map_url               | TEXT       | 战术地图 URL           |
 | map_width, map_height | INTEGER    | 地图尺寸               |
 | grid                  | TEXT(JSON) | 网格配置               |

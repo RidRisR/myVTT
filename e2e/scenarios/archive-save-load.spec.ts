@@ -4,9 +4,7 @@ import { SeatSelectPage } from '../pages/seat-select.page'
 import { RoomPage } from '../pages/room.page'
 
 test.describe('Archive Save & Load', () => {
-  test.skip('save tactical state to archive, delete token, then restore from archive', async ({
-    page,
-  }) => {
+  test('save-as-new captures current state, load restores it', async ({ page }) => {
     const roomName = `archive-e2e-${Date.now()}`
 
     // Setup: create room, join as GM
@@ -19,11 +17,9 @@ test.describe('Archive Save & Load', () => {
     const room = new RoomPage(page)
     await room.expectInRoom()
 
-    // Enter tactical mode
+    // Enter tactical mode + create a token
     await room.gmDock.enterCombat()
     await room.tactical.expectVisible()
-
-    // Create a token
     await room.tactical.rightClickCenter()
     await page.getByText('Create Token').click()
     await page.waitForFunction(
@@ -35,84 +31,187 @@ test.describe('Archive Save & Load', () => {
       { timeout: 10_000 },
     )
 
-    // ── Step 1: Create archive, activate, and save (1 token) ──
-
+    // ── Step 1: Save as new archive (captures 1 token) ──
     await room.gmSidebar.openArchives()
-    await page.getByTitle('新建存档').click()
+    await page.getByRole('button', { name: '存为新档' }).click()
     await expect(page.getByText('存档 1')).toBeVisible({ timeout: 5_000 })
 
-    // Select and activate the archive
-    await page.getByText('存档 1').click()
-    await page.getByTitle('激活存档').click()
-    await page.waitForFunction(
-      () => {
-        const store = (window as any).__MYVTT_STORES__?.world()
-        return store?.tacticalInfo?.activeArchiveId != null
-      },
-      null,
-      { timeout: 10_000 },
-    )
-
-    // Save current state (1 token) to the archive
-    await page.getByTitle('保存当前战斗状态到存档').click()
-    await page.waitForTimeout(500)
-
-    // Capture the archive ID for later
-    const archiveId = await page.evaluate(() => {
-      const store = (window as any).__MYVTT_STORES__?.world()
-      return store?.tacticalInfo?.activeArchiveId
-    })
-    expect(archiveId).toBeTruthy()
-
-    // ── Step 2: Delete the token (change the state) ──
-
+    // ── Step 2: Delete the token ──
     await page.evaluate(() => {
       const store = (window as any).__MYVTT_STORES__?.world()
       const tokens = store?.tacticalInfo?.tokens ?? []
-      if (tokens.length > 0) {
-        void store.deleteToken(tokens[0].id)
-      }
+      if (tokens.length > 0) void store.deleteToken(tokens[0].id)
     })
-
     await page.waitForFunction(
-      () => {
-        const store = (window as any).__MYVTT_STORES__?.world()
-        return (store?.tacticalInfo?.tokens?.length ?? 0) === 0
-      },
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 0,
       null,
       { timeout: 10_000 },
     )
 
-    // ── Step 3: Load the saved archive — should restore the 1 token ──
-    // The archive is already active, so the UI "激活" button won't appear.
-    // Call loadArchive directly via the store — tests the actual API restore path.
+    // ── Step 3: Load the archive → restore 1 token ──
+    await page.getByText('存档 1').click()
+    await expect(page.getByRole('button', { name: '加载' })).toBeVisible()
+    await page.getByRole('button', { name: '加载' }).click()
+    // Confirm the load in the popover
+    await page.getByText('确认').click()
 
-    await page.evaluate((id: string) => {
-      const store = (window as any).__MYVTT_STORES__?.world()
-      void store.loadArchive(id)
-    }, archiveId as string)
-
-    // Wait for token count to return to 1
     await page.waitForFunction(
-      () => {
-        const store = (window as any).__MYVTT_STORES__?.world()
-        return (store?.tacticalInfo?.tokens?.length ?? 0) === 1
-      },
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 1,
       null,
       { timeout: 10_000 },
     )
 
-    // Verify final state
     const finalState = await page.evaluate(() => {
       const store = (window as any).__MYVTT_STORES__?.world()
       return {
         tokenCount: store?.tacticalInfo?.tokens?.length ?? 0,
-        activeArchiveId: store?.tacticalInfo?.activeArchiveId,
         tacticalMode: store?.tacticalInfo?.tacticalMode,
       }
     })
     expect(finalState.tokenCount).toBe(1)
-    expect(finalState.activeArchiveId).toBeTruthy()
     expect(finalState.tacticalMode).toBe(1)
+  })
+
+  test('can load the same archive repeatedly', async ({ page }) => {
+    const roomName = `archive-reload-${Date.now()}`
+
+    const admin = new AdminPage(page)
+    await admin.goto()
+    await admin.createRoom(roomName)
+    await admin.enterRoom(roomName)
+    const seatSelect = new SeatSelectPage(page)
+    await seatSelect.createAndJoin('GM', 'GM')
+    const room = new RoomPage(page)
+    await room.expectInRoom()
+
+    await room.gmDock.enterCombat()
+    await room.tactical.expectVisible()
+    await room.tactical.rightClickCenter()
+    await page.getByText('Create Token').click()
+    await page.waitForFunction(
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 1,
+      null,
+      { timeout: 10_000 },
+    )
+
+    // Save as new
+    await room.gmSidebar.openArchives()
+    await page.getByRole('button', { name: '存为新档' }).click()
+    await expect(page.getByText('存档 1')).toBeVisible({ timeout: 5_000 })
+
+    // Delete token
+    await page.evaluate(() => {
+      const store = (window as any).__MYVTT_STORES__?.world()
+      void store.deleteToken(store.tacticalInfo.tokens[0].id)
+    })
+    await page.waitForFunction(
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 0,
+      null,
+      { timeout: 10_000 },
+    )
+
+    // Load first time
+    await page.getByText('存档 1').click()
+    await page.getByRole('button', { name: '加载' }).click()
+    await page.getByText('确认').click()
+    await page.waitForFunction(
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 1,
+      null,
+      { timeout: 10_000 },
+    )
+
+    // Delete token again
+    await page.evaluate(() => {
+      const store = (window as any).__MYVTT_STORES__?.world()
+      void store.deleteToken(store.tacticalInfo.tokens[0].id)
+    })
+    await page.waitForFunction(
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 0,
+      null,
+      { timeout: 10_000 },
+    )
+
+    // Load SECOND time — validates the original bug is fixed
+    await page.getByText('存档 1').click()
+    await page.getByRole('button', { name: '加载' }).click()
+    await page.getByText('确认').click()
+    await page.waitForFunction(
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 1,
+      null,
+      { timeout: 10_000 },
+    )
+
+    const tokenCount = await page.evaluate(
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length,
+    )
+    expect(tokenCount).toBe(1)
+  })
+
+  test('overwrite updates existing archive', async ({ page }) => {
+    const roomName = `archive-overwrite-${Date.now()}`
+
+    const admin = new AdminPage(page)
+    await admin.goto()
+    await admin.createRoom(roomName)
+    await admin.enterRoom(roomName)
+    const seatSelect = new SeatSelectPage(page)
+    await seatSelect.createAndJoin('GM', 'GM')
+    const room = new RoomPage(page)
+    await room.expectInRoom()
+
+    await room.gmDock.enterCombat()
+    await room.tactical.expectVisible()
+
+    // Create 1 token, save as new archive
+    await room.tactical.rightClickCenter()
+    await page.getByText('Create Token').click()
+    await page.waitForFunction(
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 1,
+      null,
+      { timeout: 10_000 },
+    )
+    await room.gmSidebar.openArchives()
+    await page.getByRole('button', { name: '存为新档' }).click()
+    await expect(page.getByText('存档 1')).toBeVisible({ timeout: 5_000 })
+
+    // Create a second token (now 2 tokens on battlefield)
+    await room.tactical.rightClickCenter()
+    await page.getByText('Create Token').click()
+    await page.waitForFunction(
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 2,
+      null,
+      { timeout: 10_000 },
+    )
+
+    // Select archive and overwrite (now archive has 2 tokens)
+    await page.getByText('存档 1').click()
+    await page.getByRole('button', { name: '覆盖' }).click()
+    await page.waitForTimeout(500)
+
+    // Delete all tokens
+    await page.evaluate(() => {
+      const store = (window as any).__MYVTT_STORES__?.world()
+      for (const t of store.tacticalInfo.tokens) void store.deleteToken(t.id)
+    })
+    await page.waitForFunction(
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 0,
+      null,
+      { timeout: 10_000 },
+    )
+
+    // Load archive — should restore 2 tokens (the overwritten version)
+    await page.getByText('存档 1').click()
+    await page.getByRole('button', { name: '加载' }).click()
+    await page.getByText('确认').click()
+    await page.waitForFunction(
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 2,
+      null,
+      { timeout: 10_000 },
+    )
+
+    const tokenCount = await page.evaluate(
+      () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length,
+    )
+    expect(tokenCount).toBe(2)
   })
 })

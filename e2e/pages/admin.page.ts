@@ -21,8 +21,12 @@ export class AdminPage {
 
   async createRoom(name: string) {
     await this.roomNameInput.fill(name)
+    const responsePromise = this.page.waitForResponse(
+      (resp) => resp.url().includes('/api/rooms') && resp.request().method() === 'POST',
+    )
     await this.createButton.click()
-    // Wait for the room name to appear in a room-name div
+    await responsePromise
+    // Optimistic update renders the room immediately after POST response
     await this.page
       .locator('.text-sm.font-semibold', { hasText: name })
       .first()
