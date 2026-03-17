@@ -269,7 +269,9 @@ export function ArchivePanel() {
         {selectedArchive && (
           <button
             ref={loadButtonRef}
-            onClick={() => { setLoadingId(selectedId); }}
+            onClick={() => {
+              setLoadingId(selectedId)
+            }}
             className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"
             title="加载存档"
           >
@@ -299,7 +301,9 @@ export function ArchivePanel() {
           anchorRef={loadButtonRef}
           message={`加载"${loadingArchive.name}"？当前战场将被替换。`}
           onConfirm={handleLoad}
-          onCancel={() => { setLoadingId(null); }}
+          onCancel={() => {
+            setLoadingId(null)
+          }}
         />
       )}
     </div>
