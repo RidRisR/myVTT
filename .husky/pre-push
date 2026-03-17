@@ -1,3 +1,7 @@
 #!/usr/bin/env sh
-npm run build
+npx prettier --check .
+tsc -b
+tsc -p server/tsconfig.json --noEmit
+npx eslint .
 npx vitest run
+npm run build
