@@ -1,4 +1,4 @@
-name: PR Title
+name: PR Lint
 
 on:
   pull_request:
@@ -27,3 +27,15 @@ jobs:
           subjectPatternError: >
             PR title must be in English and start with a letter.
             Example: "feat: add new feature"
+
+  pr-body:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for AI-generated signatures
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if echo "$BODY" | grep -qiE '(generated (with|by)|built (with|by)|created (with|by)|powered by).*(claude|copilot|gpt|chatgpt|gemini|cursor|ai)'; then
+            echo "::error::PR body contains an AI-generated signature line. Please remove it."
+            exit 1
+          fi
