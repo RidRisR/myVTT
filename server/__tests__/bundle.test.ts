@@ -125,9 +125,7 @@ describe('GET /api/rooms/:id/bundle', () => {
     const sceneId = (sceneRes.body as { id: string }).id
 
     // Set as active scene
-    await request(testApp)
-      .patch(`/api/rooms/${roomId}/state`)
-      .send({ activeSceneId: sceneId })
+    await request(testApp).patch(`/api/rooms/${roomId}/state`).send({ activeSceneId: sceneId })
 
     const res = await request(testApp).get(`/api/rooms/${roomId}/bundle`)
     const { tactical } = res.body as { tactical: Record<string, unknown> | null }

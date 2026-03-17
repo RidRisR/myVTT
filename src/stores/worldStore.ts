@@ -431,7 +431,9 @@ function registerSocketEvents(
 
   // ── Asset events ──
   socket.on('asset:created', (asset: AssetRecord) => {
-    set((s) => ({ assets: [normalizeAsset(asset as unknown as Record<string, unknown>), ...s.assets] }))
+    set((s) => ({
+      assets: [normalizeAsset(asset as unknown as Record<string, unknown>), ...s.assets],
+    }))
   })
   socket.on('asset:updated', (asset: AssetRecord) => {
     const normalized = normalizeAsset(asset as unknown as Record<string, unknown>)

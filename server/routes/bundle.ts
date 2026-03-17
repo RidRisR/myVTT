@@ -10,12 +10,12 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string) {
   const globalDb = getGlobalDb(dataDir)
   const roomRow = toCamel(
     globalDb.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId) as Record<string, unknown>,
-  ) as { id: string; name: string; ruleSystemId: string }
+  )
 
   const data = roomDb.transaction(() => {
     const stateRow = toCamel(
       roomDb.prepare('SELECT * FROM room_state WHERE id = 1').get() as Record<string, unknown>,
-    ) as { activeSceneId: string | null }
+    )
 
     const scenes = (
       roomDb.prepare('SELECT * FROM scenes ORDER BY sort_order').all() as Record<string, unknown>[]
@@ -34,9 +34,10 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string) {
     )
 
     const assets = (
-      roomDb
-        .prepare('SELECT * FROM assets ORDER BY created_at DESC')
-        .all() as Record<string, unknown>[]
+      roomDb.prepare('SELECT * FROM assets ORDER BY created_at DESC').all() as Record<
+        string,
+        unknown
+      >[]
     ).map((r) => parseJsonFields(toCamel(r), 'extra', 'tags'))
 
     const chat = (
@@ -53,15 +54,17 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string) {
     })
 
     const teamTrackers = toCamelAll(
-      roomDb
-        .prepare('SELECT * FROM team_trackers ORDER BY sort_order')
-        .all() as Record<string, unknown>[],
+      roomDb.prepare('SELECT * FROM team_trackers ORDER BY sort_order').all() as Record<
+        string,
+        unknown
+      >[],
     )
 
     const showcase = (
-      roomDb
-        .prepare('SELECT * FROM showcase_items ORDER BY sort_order')
-        .all() as Record<string, unknown>[]
+      roomDb.prepare('SELECT * FROM showcase_items ORDER BY sort_order').all() as Record<
+        string,
+        unknown
+      >[]
     ).map((r) => toBoolFields(parseJsonFields(toCamel(r), 'data'), 'pinned'))
 
     // Build sceneEntityMap: Record<sceneId, { entityId, visible }[]>
