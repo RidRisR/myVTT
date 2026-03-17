@@ -78,11 +78,11 @@ git worktree add .worktrees/feat/my-feature feat/my-feature
 
 **所有 preview 数据（SQLite 数据库、上传文件）都是临时的。** 以下任何退出方式都会自动清理：
 
-| 操作 | 容器 | 数据卷 |
-|------|------|--------|
-| Ctrl+C | 删除 | 删除 |
-| `stop <branch>` | 删除 | 删除 |
-| `stop --all` | 全部删除 | 全部删除 |
+| 操作               | 容器     | 数据卷   |
+| ------------------ | -------- | -------- |
+| Ctrl+C             | 删除     | 删除     |
+| `stop <branch>`    | 删除     | 删除     |
+| `stop --all`       | 全部删除 | 全部删除 |
 | 异常退出后 `clean` | 清理残留 | 清理残留 |
 
 不要在 preview 环境中进行需要持久化的操作。
@@ -107,6 +107,7 @@ Preview 启用 `VITE_PROXY_MODE=true`，让 Vite 代理 `/api` 和 `/socket.io` 
 ### 端口分配
 
 分支名经 CRC32 哈希得到确定性偏移量（0-99）：
+
 - Server: `4400 + offset`
 - Vite: `5100 + offset`
 

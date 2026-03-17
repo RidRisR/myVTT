@@ -60,7 +60,7 @@ function findFreePorts(branch: string): { serverPort: number; vitePort: number }
       return { serverPort, vitePort }
     }
     // Increment both ports together
-    const offset = ((serverPort - 4400 + 1) % 100)
+    const offset = (serverPort - 4400 + 1) % 100
     serverPort = 4400 + offset
     vitePort = 5100 + offset
   }
@@ -112,16 +112,18 @@ function composeExec(
   args: string[],
   env?: Record<string, string>,
 ): void {
-  execSync(
-    `docker compose -p ${project} -f "${composePath}" ${args.join(' ')}`,
-    {
-      stdio: 'inherit',
-      env: { ...process.env, ...env },
-    },
-  )
+  execSync(`docker compose -p ${project} -f "${composePath}" ${args.join(' ')}`, {
+    stdio: 'inherit',
+    env: { ...process.env, ...env },
+  })
 }
 
-function getRunningProjects(): Array<{ project: string; name: string; ports: string; status: string }> {
+function getRunningProjects(): Array<{
+  project: string
+  name: string
+  ports: string
+  status: string
+}> {
   try {
     const output = execSync(
       `docker ps --filter "name=${PREFIX}-" --format "{{.Labels}}|||{{.Names}}|||{{.Ports}}|||{{.Status}}"`,
@@ -206,10 +208,14 @@ function cmdStart(branch: string) {
 
   log('')
   log('\x1b[36m┌──────────────────────────────────────────────────┐\x1b[0m')
-  log(`\x1b[36m│\x1b[0m  ${bold('myVTT Preview')}                                  \x1b[36m│\x1b[0m`)
+  log(
+    `\x1b[36m│\x1b[0m  ${bold('myVTT Preview')}                                  \x1b[36m│\x1b[0m`,
+  )
   log(`\x1b[36m│\x1b[0m  Branch:  ${branch.padEnd(39)} \x1b[36m│\x1b[0m`)
   log(`\x1b[36m│\x1b[0m  UI:      http://localhost:${String(vitePort).padEnd(22)} \x1b[36m│\x1b[0m`)
-  log(`\x1b[36m│\x1b[0m  API:     http://localhost:${String(serverPort).padEnd(22)} \x1b[36m│\x1b[0m`)
+  log(
+    `\x1b[36m│\x1b[0m  API:     http://localhost:${String(serverPort).padEnd(22)} \x1b[36m│\x1b[0m`,
+  )
   log('\x1b[36m│\x1b[0m                                                  \x1b[36m│\x1b[0m')
   warn('│  ⚠ Data is ephemeral — deleted on stop           │')
   log('\x1b[36m│\x1b[0m  Ctrl+C to stop                                  \x1b[36m│\x1b[0m')
@@ -234,13 +240,10 @@ function cmdStart(branch: string) {
     log('')
     log(`Shutting down preview for '${branch}'...`)
     try {
-      execSync(
-        `docker compose -p ${project} -f "${composePath}" down -v --remove-orphans`,
-        {
-          stdio: 'inherit',
-          env: { ...process.env, ...envVars },
-        },
-      )
+      execSync(`docker compose -p ${project} -f "${composePath}" down -v --remove-orphans`, {
+        stdio: 'inherit',
+        env: { ...process.env, ...envVars },
+      })
     } catch {
       // Best-effort cleanup
     }
@@ -282,10 +285,9 @@ function cmdStop(branchOrFlag: string) {
     for (const entry of projects) {
       log(`Stopping ${entry.project}...`)
       try {
-        execSync(
-          `docker compose -p ${entry.project} down -v --remove-orphans`,
-          { stdio: 'inherit' },
-        )
+        execSync(`docker compose -p ${entry.project} down -v --remove-orphans`, {
+          stdio: 'inherit',
+        })
       } catch {
         // Best-effort
       }
@@ -295,10 +297,7 @@ function cmdStop(branchOrFlag: string) {
     const project = projectName(branchOrFlag)
     log(`Stopping preview for '${branchOrFlag}'...`)
     try {
-      execSync(
-        `docker compose -p ${project} down -v --remove-orphans`,
-        { stdio: 'inherit' },
-      )
+      execSync(`docker compose -p ${project} down -v --remove-orphans`, { stdio: 'inherit' })
     } catch {
       // Best-effort
     }
@@ -339,11 +338,7 @@ function cmdLogs(branch: string) {
   }
 
   const project = projectName(branch)
-  const child = spawn(
-    'docker',
-    ['compose', '-p', project, 'logs', '-f'],
-    { stdio: 'inherit' },
-  )
+  const child = spawn('docker', ['compose', '-p', project, 'logs', '-f'], { stdio: 'inherit' })
 
   process.on('SIGINT', () => {
     child.kill('SIGINT')
@@ -411,10 +406,10 @@ function cmdClean() {
 
   // Remove orphaned volumes
   try {
-    const volumes = execSync(
-      `docker volume ls --filter "name=${PREFIX}-" --format "{{.Name}}"`,
-      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
-    ).trim()
+    const volumes = execSync(`docker volume ls --filter "name=${PREFIX}-" --format "{{.Name}}"`, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim()
 
     if (volumes) {
       const names = volumes.split('\n')
