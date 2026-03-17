@@ -77,7 +77,7 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string) {
 
     // Tactical state — null when no active scene
     const tactical = stateRow.activeSceneId
-      ? getTacticalState(roomDb, stateRow.activeSceneId)
+      ? getTacticalState(roomDb, stateRow.activeSceneId as string)
       : null
 
     return {
