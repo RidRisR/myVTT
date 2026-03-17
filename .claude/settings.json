@@ -5,13 +5,45 @@
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-main-worktree.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'REMINDER: Re-read CLAUDE.md. 1) NEVER work in main worktree — use git worktree add. 2) Check Required Reading table before coding. 3) Bug fixes MUST include: root cause, regression test, systemic prevention.'"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'REMINDER: Re-read CLAUDE.md. 1) NEVER work in main worktree — use git worktree add. 2) Check Required Reading table before coding. 3) Bug fixes MUST include: root cause, regression test, systemic prevention.'"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "Review the conversation above. Did Claude fix a bug in this turn (not just add features, refactor, or answer questions — specifically fix broken behavior)?\n\nIf YES, check whether Claude performed ALL of these steps:\n1. Applied the fix\n2. Added a regression test\n3. Stated the bug category and proposed systemic prevention (a rule, lint check, type constraint, or CLAUDE.md update that prevents the entire category)\n4. Updated CLAUDE.md if the bug revealed a non-obvious pattern\n\nIf a bug was fixed but step 3 (systemic prevention reflection) is missing, return {\"ok\": false, \"reason\": \"Bug fix detected but systemic prevention reflection (step 3 of Bug Fix Workflow) was not performed. State the bug category and propose a structural guard before finishing.\"}.\n\nIf no bug was fixed, or all steps were completed, return {\"ok\": true}.",
-            "model": "claude-haiku-4"
+            "type": "command",
+            "command": "echo 'Reminder: Re-read CLAUDE.md before your next task.'"
           }
         ]
       }
