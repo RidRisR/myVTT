@@ -26,6 +26,7 @@ export function getGlobalDb(dataDir: string): Database.Database {
   if (globalDb) return globalDb
   fs.mkdirSync(dataDir, { recursive: true })
   const db = new Database(path.join(dataDir, 'global.db'))
+  db.pragma('temp_store = MEMORY')
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
   initGlobalSchema(db)
@@ -40,6 +41,7 @@ export function getRoomDb(dataDir: string, roomId: string): Database.Database {
   const roomDir = safePath(dataDir, 'rooms', roomId)
   fs.mkdirSync(roomDir, { recursive: true })
   const db = new Database(path.join(roomDir, 'room.db'))
+  db.pragma('temp_store = MEMORY')
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
   initRoomSchema(db)
