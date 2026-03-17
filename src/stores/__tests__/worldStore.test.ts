@@ -1121,8 +1121,8 @@ describe('asset mutation actions', () => {
 
     const matches = useWorldStore.getState().assets.filter((a) => a.id === 'uploaded-asset')
     expect(matches).toHaveLength(1) // exactly one — no duplicate
-    expect(matches[0]?.tags).toEqual(['tag1'])
-    expect(matches[0]?.type).toBe('image')
+    expect(matches[0]!.tags).toEqual(['tag1'])
+    expect(matches[0]!.type).toBe('image')
   })
 
   it('uploadAsset returns the normalized AssetMeta', async () => {
