@@ -21,6 +21,11 @@ export default defineConfig(({ mode }) => {
           target: `http://localhost:${env.VITE_SERVER_PORT || '4444'}`,
           changeOrigin: true,
         },
+        '/socket.io': {
+          target: `http://localhost:${env.VITE_SERVER_PORT || '4444'}`,
+          changeOrigin: true,
+          ws: true,
+        },
       },
     },
     test: {
