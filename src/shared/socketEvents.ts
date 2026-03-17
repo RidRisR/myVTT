@@ -74,6 +74,25 @@ export interface ServerToClientEvents {
   'archive:updated': (archive: ArchiveRecord) => void
   'archive:deleted': (data: { id: string }) => void
 
+  // ── Admin presence (server → admin room only) ──
+  'admin:snapshot': (
+    rooms: {
+      id: string
+      name: string
+      ruleSystemId: string
+      createdAt: number
+      onlineColors: string[]
+    }[],
+  ) => void
+  'room:presence': (data: { roomId: string; onlineColors: string[] }) => void
+  'room:created': (room: {
+    id: string
+    name: string
+    ruleSystemId: string
+    createdAt: number
+  }) => void
+  'room:deleted': (data: { id: string }) => void
+
   // ── Awareness (server injects seatId/clientId before relay) ──
   'awareness:update': (data: {
     field: string
@@ -106,6 +125,9 @@ export interface ClientToServerEvents {
   'auth:update': (data: { seatId: string }) => void
   'seat:claim': (data: { seatId: string }) => void
   'seat:leave': (data: { seatId: string }) => void
+
+  // ── Admin ──
+  'join:admin': () => void
 
   // ── Awareness (raw from client, server will inject seatId) ──
   'awareness:update': (data: { field: string; state: unknown }) => void

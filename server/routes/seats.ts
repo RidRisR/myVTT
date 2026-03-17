@@ -5,6 +5,7 @@ import type { TypedServer } from '../socketTypes'
 import type { Seat } from '../../src/shared/storeTypes'
 import { withRoom } from '../middleware'
 import { toCamel, toCamelAll } from '../db'
+import { getOnlineColors } from '../ws'
 
 export function seatRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
@@ -78,6 +79,11 @@ export function seatRoutes(dataDir: string, io: TypedServer): Router {
       >,
     )
     io.to(req.roomId!).emit('seat:updated', updated)
+    if (body.color !== undefined) {
+      void getOnlineColors(io, dataDir, req.roomId!).then((onlineColors) => {
+        io.to('admin').emit('room:presence', { roomId: req.roomId!, onlineColors })
+      })
+    }
     res.json(updated)
   })
 

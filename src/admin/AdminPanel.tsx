@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Link, Trash2, Dices } from 'lucide-react'
+import { io } from 'socket.io-client'
 import { API_BASE } from '../shared/config'
+import type { ServerToClientEvents, ClientToServerEvents } from '../shared/socketEvents'
+import type { Socket } from 'socket.io-client'
 import { getAvailablePlugins } from '../rules/registry'
 import { generateRoomName } from './randomRoomName'
 import { relativeTime } from './relativeTime'
@@ -12,6 +15,8 @@ interface RoomMeta {
   ruleSystemId?: string
   onlineColors?: string[]
 }
+
+type AdminSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
 const AVAILABLE_SYSTEMS = getAvailablePlugins()
 
@@ -26,31 +31,35 @@ export function AdminPanel() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
-  const abortRef = useRef<AbortController | null>(null)
+  useEffect(() => {
+    const socket: AdminSocket = io(API_BASE || window.location.origin)
 
-  const fetchRooms = useCallback(async () => {
-    abortRef.current?.abort()
-    const ctrl = new AbortController()
-    abortRef.current = ctrl
-    try {
-      const res = await fetch(`${API_BASE}/api/rooms`, { signal: ctrl.signal })
-      setRooms((await res.json()) as RoomMeta[])
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') return
-      setError('Failed to fetch rooms')
-    } finally {
+    // On connect (and every reconnect), request a fresh full snapshot
+    socket.on('connect', () => {
+      socket.emit('join:admin')
+    })
+
+    socket.on('admin:snapshot', (snapshot) => {
+      setRooms(snapshot)
       setLoading(false)
+    })
+
+    socket.on('room:presence', ({ roomId, onlineColors }) => {
+      setRooms((prev) => prev.map((r) => (r.id === roomId ? { ...r, onlineColors } : r)))
+    })
+
+    socket.on('room:created', (room) => {
+      setRooms((prev) => [room, ...prev])
+    })
+
+    socket.on('room:deleted', ({ id }) => {
+      setRooms((prev) => prev.filter((r) => r.id !== id))
+    })
+
+    return () => {
+      socket.disconnect()
     }
   }, [])
-
-  useEffect(() => {
-    void fetchRooms()
-    const timer = setInterval(() => void fetchRooms(), 30_000)
-    return () => {
-      clearInterval(timer)
-      abortRef.current?.abort()
-    }
-  }, [fetchRooms])
 
   const handleCreate = async () => {
     setError('')
@@ -70,11 +79,9 @@ export function AdminPanel() {
         setError(body.error ?? 'Create failed')
         return
       }
-      abortRef.current?.abort()
-      const created = (await res.json()) as RoomMeta
-      setRooms((prev) => [{ ...created, onlineColors: [] }, ...prev])
       setNewName('')
       setNewSystemId('generic')
+      // room:created socket event will update the list
     } catch {
       setError('Network error')
     }
@@ -84,7 +91,7 @@ export function AdminPanel() {
     if (!confirm(`Delete room "${roomId}"? This will permanently erase all data.`)) return
     try {
       await fetch(`${API_BASE}/api/rooms/${roomId}`, { method: 'DELETE' })
-      void fetchRooms()
+      // room:deleted socket event will update the list
     } catch {
       setError('Delete failed')
     }
