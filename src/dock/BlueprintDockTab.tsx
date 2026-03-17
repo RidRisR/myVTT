@@ -1,7 +1,7 @@
 import { useRef, useState, useMemo } from 'react'
 import { X, Plus, CircleDot } from 'lucide-react'
 import type { Blueprint } from '../shared/entityTypes'
-import { useAssetStore } from '../stores/assetStore'
+import { useWorldStore } from '../stores/worldStore'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { useToast } from '../shared/ui/useToast'
 import { TagFilterBar } from '../shared/ui/TagFilterBar'
@@ -42,11 +42,11 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
   )
   const [selectedTags, setSelectedTags] = useState<string[]>([])
 
-  // Read from asset store — derive blueprints from assets with type === 'blueprint'
-  const allAssets = useAssetStore((s) => s.assets)
-  const upload = useAssetStore((s) => s.upload)
-  const softRemove = useAssetStore((s) => s.softRemove)
-  const updateAssetMeta = useAssetStore((s) => s.update)
+  // Read from world store — derive blueprints from assets with type === 'blueprint'
+  const allAssets = useWorldStore((s) => s.assets)
+  const upload = useWorldStore((s) => s.uploadAsset)
+  const softRemove = useWorldStore((s) => s.softRemoveAsset)
+  const updateAssetMeta = useWorldStore((s) => s.updateAsset)
 
   const { toast } = useToast()
 

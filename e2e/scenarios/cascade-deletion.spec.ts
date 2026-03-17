@@ -35,9 +35,9 @@ test.describe('Cascade Deletion', () => {
     await room.gmDock.gallery.uploadImage(cascadePngPath)
     await room.gmDock.gallery.expectAssetVisible('test-cascade.png')
 
-    // Get asset URL from assetStore
+    // Get asset URL from worldStore (assets migrated from assetStore to worldStore)
     const assetUrl = await page.evaluate(() => {
-      const assets = (window as any).__MYVTT_STORES__?.asset()?.assets
+      const assets = (window as any).__MYVTT_STORES__?.world()?.assets
       const asset = assets?.find((a: any) => a.name?.includes('test-cascade'))
       return asset?.url
     })

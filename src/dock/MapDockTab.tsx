@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Plus, FolderOpen, Loader2 } from 'lucide-react'
-import { useAssetStore } from '../stores/assetStore'
+import { useWorldStore } from '../stores/worldStore'
 import type { AssetMeta } from '../shared/assetTypes'
 import { isVideoUrl } from '../shared/assetUpload'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
@@ -32,10 +32,9 @@ export function MapDockTab({
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextState | null>(null)
 
-  const allAssets = useAssetStore((s) => s.assets)
-  const loading = useAssetStore((s) => s.loading)
-  const upload = useAssetStore((s) => s.upload)
-  const softRemove = useAssetStore((s) => s.softRemove)
+  const allAssets = useWorldStore((s) => s.assets)
+  const upload = useWorldStore((s) => s.uploadAsset)
+  const softRemove = useWorldStore((s) => s.softRemoveAsset)
   const assets = useMemo(() => allAssets.filter((a) => a.type === 'image'), [allAssets])
 
   const { toast } = useToast()
@@ -105,16 +104,6 @@ export function MapDockTab({
     })
 
     return items
-  }
-
-  // Loading state
-  if (loading && assets.length === 0) {
-    return (
-      <div className="flex items-center justify-center gap-2 py-8">
-        <Loader2 size={20} strokeWidth={1.5} className="text-text-muted/40 animate-spin" />
-        <span className="text-text-muted text-sm">Loading assets…</span>
-      </div>
-    )
   }
 
   return (

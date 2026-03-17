@@ -11,6 +11,9 @@ import type { DiceSpec } from '../shared/diceUtils'
 import { api } from '../shared/api'
 import { generateTokenId } from '../shared/idUtils'
 import { defaultNPCPermissions } from '../shared/permissions'
+import type { AssetMeta } from '../shared/assetTypes'
+import { uploadAsset as uploadAssetFile } from '../shared/assetUpload'
+import { updateAsset as patchAsset, deleteAsset } from '../shared/assetApi'
 
 // ── Types (re-exported from shared/storeTypes for backward compat) ──
 
@@ -57,7 +60,7 @@ interface WorldState {
   showcasePinnedItemId: string | null
   handoutAssets: HandoutAsset[]
   teamTrackers: TeamTracker[]
-  assets: AssetRecord[]
+  assets: AssetMeta[]
 
   // Internal refs
   _socket: TypedClientSocket | null
@@ -128,6 +131,21 @@ interface WorldState {
   pinShowcaseItem: (id: string) => Promise<void>
   unpinShowcaseItem: () => void
 
+  // Asset mutation actions
+  uploadAsset: (
+    file: File,
+    meta: {
+      name?: string
+      type?: AssetMeta['type']
+      tags?: string[]
+      blueprint?: AssetMeta['blueprint']
+    },
+  ) => Promise<AssetMeta>
+  updateAsset: (assetId: string, updates: Partial<AssetMeta>) => Promise<void>
+  removeAsset: (assetId: string) => Promise<void>
+  /** Remove from UI immediately, delete from server after delay. Returns undo function. */
+  softRemoveAsset: (assetId: string, delayMs?: number) => () => void
+
   // Handout actions
   addHandoutAsset: (asset: HandoutAsset) => void
   updateHandoutAsset: (id: string, updates: Partial<HandoutAsset>) => void
@@ -187,53 +205,56 @@ function normalizeTacticalInfo(
 
 // ── Helpers ──
 
+/** Normalize raw server asset response (extra.tags/blueprint/handout) into flat AssetMeta.
+ * extra may be a JSON string (from Socket.io events) or already-parsed object (from bundle). */
+function normalizeAsset(raw: Record<string, unknown>): AssetMeta {
+  const rawExtra = raw.extra
+  const extra: Record<string, unknown> =
+    typeof rawExtra === 'string'
+      ? (JSON.parse(rawExtra) as Record<string, unknown>)
+      : ((rawExtra as Record<string, unknown> | undefined) ?? {})
+  return {
+    id: raw.id as string,
+    url: raw.url as string,
+    name: raw.name as string,
+    type: (raw.type as AssetMeta['type'] | undefined) || 'image',
+    tags: (extra.tags as string[] | undefined) || (raw.tags as string[] | undefined) || [],
+    createdAt: raw.createdAt as number,
+    ...(extra.blueprint ? { blueprint: extra.blueprint as AssetMeta['blueprint'] } : {}),
+    ...(extra.handout ? { handout: extra.handout as AssetMeta['handout'] } : {}),
+  }
+}
+
+interface BundleResponse {
+  room: { id: string; name: string; ruleSystemId: string; activeSceneId: string | null }
+  scenes: Scene[]
+  entities: Entity[]
+  sceneEntityMap: Record<string, SceneEntityEntry[]>
+  seats: unknown[]
+  assets: Record<string, unknown>[]
+  chat: ChatMessage[]
+  teamTrackers: TeamTracker[]
+  showcase: ShowcaseItem[]
+  tactical: (TacticalInfo & { tokens: unknown[] }) | null
+}
+
 async function loadAll(roomId: string) {
-  const [scenes, entitiesArr, chat, trackers, state, assets, showcase, roomInfo] =
-    await Promise.all([
-      api.get<Scene[]>(`/api/rooms/${roomId}/scenes`),
-      api.get<Entity[]>(`/api/rooms/${roomId}/entities`),
-      api.get<ChatMessage[]>(`/api/rooms/${roomId}/chat?limit=200`),
-      api.get<TeamTracker[]>(`/api/rooms/${roomId}/team-trackers`),
-      api.get<{ activeSceneId: string | null }>(`/api/rooms/${roomId}/state`),
-      api.get<AssetRecord[]>(`/api/rooms/${roomId}/assets`),
-      api.get<ShowcaseItem[]>(`/api/rooms/${roomId}/showcase`),
-      api.get<{ ruleSystemId: string }>(`/api/rooms/${roomId}`),
-    ])
+  const bundle = await api.get<BundleResponse>(`/api/rooms/${roomId}/bundle`)
 
   // Convert entity array to Record
   const entities: Record<string, Entity> = {}
-  for (const e of entitiesArr) entities[e.id] = e
-
-  // Fetch tactical state — may 404 if no active scene
-  let tacticalInfo: TacticalInfo | null = null
-  try {
-    const tacticalRaw = await api.get<TacticalInfo>(`/api/rooms/${roomId}/tactical`)
-    tacticalInfo = normalizeTacticalInfo(tacticalRaw)
-  } catch {
-    // 404 means no active scene or no tactical state — leave as null
-  }
-
-  // Build sceneEntityMap: for each scene, fetch its entity entries
-  const sceneEntityMap: Record<string, SceneEntityEntry[]> = {}
-  await Promise.all(
-    scenes.map(async (scene) => {
-      const entries = await api.get<SceneEntityEntry[]>(
-        `/api/rooms/${roomId}/scenes/${scene.id}/entities`,
-      )
-      sceneEntityMap[scene.id] = entries
-    }),
-  )
+  for (const e of bundle.entities) entities[e.id] = e
 
   return {
-    scenes,
+    room: { activeSceneId: bundle.room.activeSceneId, ruleSystemId: bundle.room.ruleSystemId },
+    scenes: bundle.scenes,
     entities,
-    chatMessages: chat,
-    tacticalInfo,
-    teamTrackers: trackers,
-    room: { ...state, ruleSystemId: roomInfo.ruleSystemId },
-    assets,
-    showcaseItems: showcase,
-    sceneEntityMap,
+    sceneEntityMap: bundle.sceneEntityMap,
+    chatMessages: bundle.chat,
+    teamTrackers: bundle.teamTrackers,
+    assets: bundle.assets.map(normalizeAsset),
+    showcaseItems: bundle.showcase,
+    tacticalInfo: bundle.tactical ? normalizeTacticalInfo(bundle.tactical) : null,
   }
 }
 
@@ -410,11 +431,14 @@ function registerSocketEvents(
 
   // ── Asset events ──
   socket.on('asset:created', (asset: AssetRecord) => {
-    set((s) => ({ assets: [asset, ...s.assets] }))
+    set((s) => ({
+      assets: [normalizeAsset(asset as unknown as Record<string, unknown>), ...s.assets],
+    }))
   })
   socket.on('asset:updated', (asset: AssetRecord) => {
+    const normalized = normalizeAsset(asset as unknown as Record<string, unknown>)
     set((s) => ({
-      assets: s.assets.map((a) => (a.id === asset.id ? asset : a)),
+      assets: s.assets.map((a) => (a.id === asset.id ? normalized : a)),
     }))
   })
   socket.on('asset:deleted', ({ id }: { id: string }) => {
@@ -866,6 +890,50 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   deleteHandoutAsset: (id) => {
     set((s) => ({ handoutAssets: s.handoutAssets.filter((a) => a.id !== id) }))
+  },
+
+  // ── Asset mutation actions ──
+
+  uploadAsset: async (file, meta) => {
+    const extra: Record<string, unknown> = { tags: meta.tags || [] }
+    if (meta.blueprint) extra.blueprint = meta.blueprint
+    const result = await uploadAssetFile(file, {
+      name: meta.name || file.name,
+      type: meta.type || 'image',
+      extra,
+    })
+    // Do NOT manually update store here — the server emits asset:created via Socket.io
+    // which the listener below handles. Adding here AND in the listener causes duplicates.
+    return normalizeAsset(result as unknown as Record<string, unknown>)
+  },
+
+  updateAsset: async (assetId, updates) => {
+    const roomId = get()._roomId
+    if (!roomId) throw new Error('No room')
+    const updated = await patchAsset(roomId, assetId, updates)
+    const normalized = normalizeAsset(updated as unknown as Record<string, unknown>)
+    set((s) => ({ assets: s.assets.map((a) => (a.id === assetId ? normalized : a)) }))
+  },
+
+  removeAsset: async (assetId) => {
+    const roomId = get()._roomId
+    if (!roomId) throw new Error('No room')
+    await deleteAsset(roomId, assetId)
+    set((s) => ({ assets: s.assets.filter((a) => a.id !== assetId) }))
+  },
+
+  softRemoveAsset: (assetId, delayMs = 5000) => {
+    const cached = get().assets.find((a) => a.id === assetId)
+    if (!cached) return () => {}
+    set((s) => ({ assets: s.assets.filter((a) => a.id !== assetId) }))
+    const timer = setTimeout(() => {
+      const { _roomId: roomId } = get()
+      if (roomId) deleteAsset(roomId, assetId).catch(() => {})
+    }, delayMs)
+    return () => {
+      clearTimeout(timer)
+      set((s) => ({ assets: [...s.assets, cached] }))
+    }
   },
 
   // ── Team tracker actions ──
