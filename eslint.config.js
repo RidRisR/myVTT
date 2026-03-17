@@ -80,6 +80,13 @@ export default defineConfig([
   },
   // Test files: vi.fn()/vi.mock() produce `any`-typed mocks, making no-unsafe-*
   // rules inherently noisy. Disable for test code; keep strict for production code.
+  //
+  // no-non-null-assertion: in tests, `arr[0]!.prop` after `expect(arr).toHaveLength(1)` is
+  // intentional fast-fail — if the assumption is wrong we want a TypeError, not a silent
+  // undefined that produces a misleading expect() failure message.
+  //
+  // no-unnecessary-condition: after a type assertion (e.g. `as AssetMeta`), optional chains
+  // are flagged as unnecessary. In tests this pattern is fine and clearer than a guard clause.
   {
     files: ['**/__tests__/**/*.ts', '**/__test-utils__/**/*.ts'],
     rules: {
@@ -89,6 +96,8 @@ export default defineConfig([
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
       '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unnecessary-condition': 'off',
     },
   },
   // E2E spec files: waitForFunction/evaluate callbacks are serialized and run in the browser

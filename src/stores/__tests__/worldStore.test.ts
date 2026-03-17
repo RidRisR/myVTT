@@ -1123,9 +1123,8 @@ describe('asset mutation actions', () => {
 
     const matches = useWorldStore.getState().assets.filter((a) => a.id === 'uploaded-asset')
     expect(matches).toHaveLength(1) // exactly one — no duplicate
-    const uploaded = matches[0] as AssetMeta
-    expect(uploaded.tags).toEqual(['tag1'])
-    expect(uploaded.type).toBe('image')
+    expect(matches[0]!.tags).toEqual(['tag1'])
+    expect(matches[0]!.type).toBe('image')
   })
 
   it('uploadAsset returns the normalized AssetMeta', async () => {
@@ -1150,9 +1149,9 @@ describe('asset mutation actions', () => {
 
     await useWorldStore.getState().updateAsset('asset-1', { name: 'Renamed Asset' })
 
-    const asset = useWorldStore.getState().assets.find((a) => a.id === 'asset-1') as AssetMeta
-    expect(asset.name).toBe('Renamed Asset')
-    expect(asset.tags).toEqual(['newtag'])
+    const asset = useWorldStore.getState().assets.find((a) => a.id === 'asset-1')
+    expect(asset?.name).toBe('Renamed Asset')
+    expect(asset?.tags).toEqual(['newtag'])
   })
 
   it('removeAsset removes asset from state', async () => {
