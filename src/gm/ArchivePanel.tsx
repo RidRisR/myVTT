@@ -75,7 +75,6 @@ export function ArchivePanel() {
     const archive = await createArchive(activeSceneId, `存档 ${archives.length + 1}`)
     if (archive) {
       await saveArchive(archive.id)
-      setSelectedId(archive.id)
       toast('success', '已存为新档')
     }
   }
@@ -94,6 +93,7 @@ export function ArchivePanel() {
     if (!loadingId) return
     void loadArchive(loadingId)
     setLoadingId(null)
+    setSelectedId(null)
   }
 
   const handleSave = () => {
