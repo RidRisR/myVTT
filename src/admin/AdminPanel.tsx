@@ -66,9 +66,10 @@ export function AdminPanel() {
         setError(body.error ?? 'Create failed')
         return
       }
+      const created = (await res.json()) as RoomMeta
+      setRooms((prev) => [{ ...created, onlineColors: [] }, ...prev])
       setNewName('')
       setNewSystemId('generic')
-      void fetchRooms()
     } catch {
       setError('Network error')
     }
