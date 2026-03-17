@@ -639,7 +639,15 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   exitTactical: async () => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/tactical/exit`)
+    // Optimistically hide the tactical canvas before the round-trip
+    const prev = get().tacticalInfo
+    if (prev) set(() => ({ tacticalInfo: { ...prev, tacticalMode: 0 } }))
+    try {
+      await api.post(`/api/rooms/${roomId}/tactical/exit`)
+    } catch {
+      // Revert on failure — server Socket.io will correct on next success
+      if (prev) set(() => ({ tacticalInfo: prev }))
+    }
   },
 
   saveArchive: async (archiveId) => {
