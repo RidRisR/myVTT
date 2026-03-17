@@ -11,10 +11,11 @@ import type {
   TeamTracker,
   AssetRecord,
   ArchiveRecord,
+  RoomMeta,
 } from './storeTypes'
 import type { Entity, MapToken } from './entityTypes'
-import type { ChatMessage } from '../chat/chatTypes'
-import type { ShowcaseItem } from '../showcase/showcaseTypes'
+import type { ChatMessage } from './chatTypes'
+import type { ShowcaseItem } from './showcaseTypes'
 
 /** Events the server emits → client listens for */
 export interface ServerToClientEvents {
@@ -75,22 +76,9 @@ export interface ServerToClientEvents {
   'archive:deleted': (data: { id: string }) => void
 
   // ── Admin presence (server → admin room only) ──
-  'admin:snapshot': (
-    rooms: {
-      id: string
-      name: string
-      ruleSystemId: string
-      createdAt: number
-      onlineColors: string[]
-    }[],
-  ) => void
+  'admin:snapshot': (rooms: RoomMeta[]) => void
   'room:presence': (data: { roomId: string; onlineColors: string[] }) => void
-  'room:created': (room: {
-    id: string
-    name: string
-    ruleSystemId: string
-    createdAt: number
-  }) => void
+  'room:created': (room: Omit<RoomMeta, 'onlineColors'>) => void
   'room:deleted': (data: { id: string }) => void
 
   // ── Awareness (server injects seatId/clientId before relay) ──

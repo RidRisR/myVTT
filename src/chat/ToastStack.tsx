@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import type { ChatMessage } from './chatTypes'
+import type { ChatMessage } from '../shared/chatTypes'
 import { MessageCard } from './MessageCard'
 
 export interface ToastItem {

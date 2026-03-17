@@ -5,8 +5,8 @@
 import { create } from 'zustand'
 import type { TypedClientSocket } from '../shared/hooks/useSocket'
 import type { Entity, MapToken, Atmosphere, SceneEntityEntry } from '../shared/entityTypes'
-import type { ShowcaseItem } from '../showcase/showcaseTypes'
-import type { ChatMessage } from '../chat/chatTypes'
+import type { ShowcaseItem } from '../shared/showcaseTypes'
+import type { ChatMessage } from '../shared/chatTypes'
 import type { DiceSpec } from '../shared/diceUtils'
 import { api } from '../shared/api'
 import { generateTokenId } from '../shared/idUtils'
@@ -25,6 +25,7 @@ export type {
   AssetRecord,
   ArchiveRecord,
 } from '../shared/storeTypes'
+import type { BundleResponse } from '../shared/bundleTypes'
 import type {
   Scene,
   RoomState,
@@ -43,7 +44,7 @@ export interface HandoutAsset {
 }
 
 // ChatMessage type re-exported from chatTypes for backward compatibility
-export type { ChatMessage } from '../chat/chatTypes'
+export type { ChatMessage } from '../shared/chatTypes'
 
 // ── Store interface ──
 
@@ -223,19 +224,6 @@ function normalizeAsset(raw: Record<string, unknown>): AssetMeta {
     ...(extra.blueprint ? { blueprint: extra.blueprint as AssetMeta['blueprint'] } : {}),
     ...(extra.handout ? { handout: extra.handout as AssetMeta['handout'] } : {}),
   }
-}
-
-interface BundleResponse {
-  room: { id: string; name: string; ruleSystemId: string; activeSceneId: string | null }
-  scenes: Scene[]
-  entities: Entity[]
-  sceneEntityMap: Record<string, SceneEntityEntry[]>
-  seats: unknown[]
-  assets: Record<string, unknown>[]
-  chat: ChatMessage[]
-  teamTrackers: TeamTracker[]
-  showcase: ShowcaseItem[]
-  tactical: (TacticalInfo & { tokens: unknown[] }) | null
 }
 
 async function loadAll(roomId: string) {

@@ -2,7 +2,7 @@ import type React from 'react'
 import type { Entity } from '../shared/entityTypes'
 import type { DiceTermResult } from '../shared/diceUtils'
 import type { TeamTracker } from '../stores/worldStore'
-import type { ChatRollMessage } from '../chat/chatTypes'
+import type { ChatRollMessage } from '../shared/chatTypes'
 
 // ── Adapter view types (shared with entityAdapters.ts) ─────────────────────
 

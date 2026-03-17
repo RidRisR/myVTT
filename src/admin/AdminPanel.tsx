@@ -3,18 +3,11 @@ import { Plus, Link, Trash2, Dices } from 'lucide-react'
 import { io } from 'socket.io-client'
 import { API_BASE } from '../shared/config'
 import type { ServerToClientEvents, ClientToServerEvents } from '../shared/socketEvents'
+import type { RoomMeta } from '../shared/storeTypes'
 import type { Socket } from 'socket.io-client'
 import { getAvailablePlugins } from '../rules/registry'
 import { generateRoomName } from './randomRoomName'
 import { relativeTime } from './relativeTime'
-
-interface RoomMeta {
-  id: string
-  name: string
-  createdAt: number
-  ruleSystemId?: string
-  onlineColors?: string[]
-}
 
 type AdminSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
@@ -187,7 +180,7 @@ export function AdminPanel() {
 
           {rooms.map((room) => {
             const colors = room.onlineColors ?? []
-            const systemLabel = SYSTEM_LABELS[room.ruleSystemId ?? 'generic'] ?? room.ruleSystemId
+            const systemLabel = SYSTEM_LABELS[room.ruleSystemId] ?? room.ruleSystemId
             return (
               <div
                 key={room.id}

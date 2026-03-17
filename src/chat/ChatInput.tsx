@@ -2,7 +2,7 @@ import { useState, useRef, useMemo } from 'react'
 import { Send } from 'lucide-react'
 import { resolveFormula, tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
 import type { DiceSpec } from '../shared/diceUtils'
-import type { ChatMessage } from './chatTypes'
+import type { ChatMessage } from '../shared/chatTypes'
 import { useRulePlugin } from '../rules/useRulePlugin'
 
 interface Suggestion {

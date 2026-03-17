@@ -2,7 +2,7 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import type { TypedServer } from '../socketTypes'
-import type { ChatMessage } from '../../src/chat/chatTypes'
+import type { ChatMessage } from '../../src/shared/chatTypes'
 import type { DiceSpec } from '../../src/shared/diceUtils'
 import { withRoom } from '../middleware'
 import { toCamel, parseJsonFields } from '../db'

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
-import type { ChatMessage } from './chatTypes'
+import type { ChatMessage } from '../shared/chatTypes'
 import type { DiceSpec } from '../shared/diceUtils'
 import type { Entity } from '../shared/entityTypes'
 import { useWorldStore } from '../stores/worldStore'

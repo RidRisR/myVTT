@@ -78,6 +78,36 @@ export default defineConfig([
       ],
     },
   },
+  // Shared boundary: src/shared/ must be self-contained — no imports from outside the directory.
+  // This prevents shared type files from silently depending on feature-directory types,
+  // which would recreate the cross-boundary leakage that src/shared/ is meant to solve.
+  // Pattern: enumerate specific feature dirs outside src/shared/ + block ../../ (escapes via subdirs).
+  // Note: ../something from src/shared/hooks/ is fine (still inside src/shared/); ../../ is not.
+  {
+    files: ['src/shared/**/*.{ts,tsx}'],
+    ignores: ['src/shared/**/__tests__/**', 'src/shared/**/__test-utils__/**', 'src/shared/hooks/**', 'src/shared/ui/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '../chat/**',
+                '../showcase/**',
+                '../stores/**',
+                '../admin/**',
+                '../rules/**',
+                '../../**',
+              ],
+              message:
+                'src/shared/ must be self-contained: no imports from outside src/shared/. Move the type into src/shared/ first.',
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Test files: vi.fn()/vi.mock() produce `any`-typed mocks, making no-unsafe-*
   // rules inherently noisy. Disable for test code; keep strict for production code.
   //
@@ -115,7 +145,8 @@ export default defineConfig([
     },
   },
   // Server: req.roomDb! and req.roomId! are guaranteed by withRoom middleware.
-  // Server boundary: server/ must not import from src/stores/ (client-only, uses DOM/window).
+  // Server boundary: server/ must not import from src/stores/ (client-only, uses DOM/window)
+  // or from src/ feature directories — only src/shared/ is allowed.
   // Shared types should live in src/shared/ or server/socketTypes.ts.
   {
     files: ['server/**/*.ts'],
@@ -129,6 +160,16 @@ export default defineConfig([
               group: ['**/src/stores/**', '**/stores/**'],
               message:
                 'Server boundary: server/ must not import from src/stores/ (client-only). Use src/shared/ for shared types.',
+            },
+            {
+              group: [
+                '**/src/chat/**',
+                '**/src/showcase/**',
+                '**/src/admin/**',
+                '**/src/rules/**',
+              ],
+              message:
+                'Server boundary: server/ may only import types from src/shared/. Move the type to src/shared/ first.',
             },
           ],
         },

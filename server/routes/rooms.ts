@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import fs from 'fs'
 import { getGlobalDb, getRoomDb, closeRoomDb, toCamel, toCamelAll, safePath } from '../db'
 import type { TypedServer } from '../socketTypes'
+import type { RoomCreateResponse } from '../../src/shared/storeTypes'
 
 export function roomRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
@@ -64,7 +65,7 @@ export function roomRoutes(dataDir: string, io: TypedServer): Router {
       createdAt: now,
     }
     io.to('admin').emit('room:created', newRoom)
-    res.status(201).json({ ...newRoom, createdBy: 'anonymous' })
+    res.status(201).json({ ...newRoom, createdBy: 'anonymous' } satisfies RoomCreateResponse)
   })
 
   router.get('/api/rooms/:roomId', (req, res) => {
