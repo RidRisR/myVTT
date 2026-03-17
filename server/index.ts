@@ -5,6 +5,7 @@ import fs from 'fs'
 import express from 'express'
 import { Server as SocketIOServer } from 'socket.io'
 import { fileURLToPath } from 'url'
+import rateLimit from 'express-rate-limit'
 import { setupSocketAuth } from './ws'
 import { setupAwareness } from './awareness'
 import type { TypedServer } from './socketTypes'
@@ -45,6 +46,9 @@ app.use((req, res, next) => {
   }
   next()
 })
+
+// Rate limiting
+app.use('/api/', rateLimit({ windowMs: 60_000, max: 300 }))
 
 // Room ID validation (structural guard)
 app.param('roomId', (_req, res, next, val: string) => {

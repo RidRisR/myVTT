@@ -2,8 +2,7 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import fs from 'fs'
-import path from 'path'
-import { getGlobalDb, getRoomDb, closeRoomDb, toCamel, toCamelAll } from '../db'
+import { getGlobalDb, getRoomDb, closeRoomDb, toCamel, toCamelAll, safePath } from '../db'
 import type { TypedServer } from '../socketTypes'
 
 export function roomRoutes(dataDir: string, io: TypedServer): Router {
@@ -109,7 +108,7 @@ export function roomRoutes(dataDir: string, io: TypedServer): Router {
     db.prepare('DELETE FROM rooms WHERE id = ?').run(req.params.roomId)
     // Close cached DB handle before deleting directory
     closeRoomDb(req.params.roomId)
-    const roomDir = path.join(dataDir, 'rooms', req.params.roomId)
+    const roomDir = safePath(dataDir, 'rooms', req.params.roomId)
     fs.rmSync(roomDir, { recursive: true, force: true })
     res.json({ ok: true })
   })

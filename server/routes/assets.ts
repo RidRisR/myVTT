@@ -7,14 +7,14 @@ import multer from 'multer'
 import type { TypedServer } from '../socketTypes'
 import type { AssetRecord } from '../../src/shared/storeTypes'
 import { withRoom } from '../middleware'
-import { toCamel, parseJsonFields } from '../db'
+import { toCamel, parseJsonFields, safePath } from '../db'
 
 export function assetRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
   const room = withRoom(dataDir)
 
   function uploadsDir(roomId: string): string {
-    const dir = path.join(dataDir, 'rooms', roomId, 'uploads')
+    const dir = safePath(dataDir, 'rooms', roomId, 'uploads')
     fs.mkdirSync(dir, { recursive: true })
     return dir
   }
@@ -96,7 +96,7 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
           .run(id, url, name, assetType, Date.now(), JSON.stringify(extra))
       } catch {
         // Atomic cleanup: DB insert failed → remove orphaned file
-        const filePath = path.join(dir, req.file.filename)
+        const filePath = safePath(dir, req.file.filename)
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
         res.status(500).json({ error: 'Failed to save asset metadata' })
         return
@@ -181,7 +181,7 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
 
     // Delete file from disk
     const filename = path.basename(row.url as string)
-    const filePath = path.join(uploadsDir(req.roomId!), filename)
+    const filePath = safePath(uploadsDir(req.roomId!), filename)
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
 
     req.roomDb!.prepare('DELETE FROM assets WHERE id = ?').run(req.params.id)
@@ -197,7 +197,7 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
       return
     }
     const filename = path.basename(req.params.filename)
-    const filePath = path.join(dataDir, 'rooms', roomId, 'uploads', filename)
+    const filePath = safePath(dataDir, 'rooms', roomId, 'uploads', filename)
     if (!fs.existsSync(filePath)) {
       res.status(404).json({ error: 'Not found' })
       return
