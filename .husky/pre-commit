@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # ── Worktree isolation guard ──
 # Compares --git-dir vs --git-common-dir to detect main repo vs worktree:
 # - Main repo: both resolve to the same path → block commit
