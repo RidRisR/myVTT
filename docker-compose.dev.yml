@@ -4,8 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - '4444:4444'
-      - '5173:5173'
+      - '${HOST_SERVER_PORT:-4444}:4444'
+      - '${HOST_VITE_PORT:-5173}:5173'
     volumes:
       - ./src:/app/src
       - ./server:/app/server
@@ -16,6 +16,8 @@ services:
     environment:
       - VITE_SERVER_PORT=4444
       - VITE_DEV_PORT=5173
+      - VITE_PROXY_MODE=${VITE_PROXY_MODE:-}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173}
 
 volumes:
   vtt-data:

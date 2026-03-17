@@ -23,6 +23,7 @@
 - Path: `.worktrees/<branch-name>` (already in `.gitignore`)
 - Each worktree has its own `.env` for port/path isolation
 - Shared functions go in `/src/shared/` to reduce cross-branch conflicts
+- To run a branch in Docker for testing, use `./scripts/preview start <branch>` — see [preview-cli.md](preview-cli.md)
 
 ## Commit Convention
 
