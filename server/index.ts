@@ -47,8 +47,14 @@ app.use((req, res, next) => {
   next()
 })
 
-// Rate limiting
-app.use('/api/', rateLimit({ windowMs: 60_000, max: 300 }))
+// Rate limiting — stricter in production, relaxed in dev/test (e2e generates burst traffic)
+app.use(
+  '/api/',
+  rateLimit({
+    windowMs: 60_000,
+    max: process.env.NODE_ENV === 'production' ? 300 : 1000,
+  }),
+)
 
 // Room ID validation (structural guard)
 app.param('roomId', (_req, res, next, val: string) => {
