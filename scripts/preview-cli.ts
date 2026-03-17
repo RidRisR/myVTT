@@ -106,18 +106,6 @@ function isDockerRunning(): boolean {
   }
 }
 
-function composeExec(
-  project: string,
-  composePath: string,
-  args: string[],
-  env?: Record<string, string>,
-): void {
-  execSync(`docker compose -p ${project} -f "${composePath}" ${args.join(' ')}`, {
-    stdio: 'inherit',
-    env: { ...process.env, ...env },
-  })
-}
-
 function getRunningProjects(): Array<{
   project: string
   name: string
@@ -137,7 +125,7 @@ function getRunningProjects(): Array<{
       .split('\n')
       .map((line) => {
         const [labels, name, ports, status] = line.split('|||')
-        const projectMatch = labels?.match(/com\.docker\.compose\.project=([^,]+)/)
+        const projectMatch = labels.match(/com\.docker\.compose\.project=([^,]+)/)
         const project = projectMatch?.[1] || ''
         return { project, name: name || '', ports: ports || '', status: status || '' }
       })
