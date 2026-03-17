@@ -57,7 +57,12 @@ export function roomRoutes(dataDir: string, io: TypedServer): Router {
       roomDb.prepare('UPDATE room_state SET active_scene_id = ? WHERE id = 1').run(sceneId)
     })()
 
-    const newRoom = { id, name, ruleSystemId, createdAt: now }
+    const newRoom = {
+      id,
+      name: name as string,
+      ruleSystemId: ruleSystemId as string,
+      createdAt: now,
+    }
     io.to('admin').emit('room:created', newRoom)
     res.status(201).json({ ...newRoom, createdBy: 'anonymous' })
   })

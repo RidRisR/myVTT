@@ -84,10 +84,19 @@ export function setupSocketAuth(io: TypedServer, dataDir: string): void {
           const enriched = await Promise.all(
             rooms.map(async (room) => ({
               ...room,
-              onlineColors: await getOnlineColors(io, dataDir, room.id),
+              onlineColors: await getOnlineColors(io, dataDir, room.id as string),
             })),
           )
-          socket.emit('admin:snapshot', enriched)
+          socket.emit(
+            'admin:snapshot',
+            enriched as {
+              id: string
+              name: string
+              ruleSystemId: string
+              createdAt: number
+              onlineColors: string[]
+            }[],
+          )
         })()
       })
       return
