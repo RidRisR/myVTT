@@ -31,21 +31,20 @@ rooms (全局)
 
 ### rooms（全局库）
 
-| 列         | 类型    | 说明    |
-| ---------- | ------- | ------- |
-| id         | TEXT PK | 房间 ID |
-| name       | TEXT    | 房间名  |
-| created_by | TEXT    | 创建者  |
-| created_at | INTEGER | 时间戳  |
+| 列             | 类型    | 说明                          |
+| -------------- | ------- | ----------------------------- |
+| id             | TEXT PK | 房间 ID                       |
+| name           | TEXT    | 房间名                        |
+| created_by     | TEXT    | 创建者                        |
+| created_at     | INTEGER | 时间戳                        |
+| rule_system_id | TEXT    | 规则系统 ID（默认 'generic'） |
 
 ### room_state（单例行，id=1）
 
-| 列              | 类型       | 说明                          |
-| --------------- | ---------- | ----------------------------- |
-| active_scene_id | TEXT       | 当前活动场景                  |
-| tactical_mode   | INTEGER    | 战术模式开关                  |
-| rule_system_id  | TEXT       | 规则系统 ID（默认 'generic'） |
-| plugin_config   | TEXT(JSON) | 插件配置                      |
+| 列              | 类型       | 说明         |
+| --------------- | ---------- | ------------ |
+| active_scene_id | TEXT       | 当前活动场景 |
+| plugin_config   | TEXT(JSON) | 插件配置     |
 
 ### seats
 
@@ -125,16 +124,18 @@ rooms (全局)
 
 ### archives
 
-| 列         | 类型       | 说明                   |
-| ---------- | ---------- | ---------------------- |
-| id         | TEXT PK    | 存档 ID                |
-| scene_id   | TEXT FK    | → scenes.id（CASCADE） |
-| name       | TEXT       | 存档名                 |
-| map_url    | TEXT       | 战术地图 URL           |
-| map_width  | INTEGER    | 地图宽度               |
-| map_height | INTEGER    | 地图高度               |
-| grid       | TEXT(JSON) | 网格配置               |
-| gm_only    | INTEGER    | GM 专属                |
+| 列                    | 类型       | 说明                   |
+| --------------------- | ---------- | ---------------------- |
+| id                    | TEXT PK    | 存档 ID                |
+| scene_id              | TEXT FK    | → scenes.id（CASCADE） |
+| name                  | TEXT       | 存档名                 |
+| map_url               | TEXT       | 战术地图 URL           |
+| map_width             | INTEGER    | 地图宽度               |
+| map_height            | INTEGER    | 地图高度               |
+| grid                  | TEXT(JSON) | 网格配置               |
+| gm_only               | INTEGER    | GM 专属                |
+| round_number          | INTEGER    | 存档时的回合数         |
+| current_turn_token_id | TEXT       | 存档时的当前回合 Token |
 
 ### archive_tokens
 
@@ -159,6 +160,7 @@ rooms (全局)
 | 列                    | 类型       | 说明                   |
 | --------------------- | ---------- | ---------------------- |
 | scene_id              | TEXT PK FK | → scenes.id（CASCADE） |
+| tactical_mode         | INTEGER    | 战术模式开关           |
 | map_url               | TEXT       | 战术地图 URL           |
 | map_width, map_height | INTEGER    | 地图尺寸               |
 | grid                  | TEXT(JSON) | 网格配置               |
