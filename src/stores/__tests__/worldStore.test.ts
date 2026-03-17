@@ -1039,16 +1039,18 @@ describe('loadAll() via bundle endpoint', () => {
 
     await useWorldStore.getState().init(ROOM_ID, socket as never)
 
-    const getCalls = vi.mocked(fetch).mock.calls.filter(
-      ([url]) => (url as string).includes('/bundle'),
-    )
+    const getCalls = vi
+      .mocked(fetch)
+      .mock.calls.filter(([url]) => (url as string).includes('/bundle'))
     expect(getCalls).toHaveLength(1)
     // Verify no individual sub-endpoint fetches happen
-    const individualCalls = vi.mocked(fetch).mock.calls.filter(([url]) =>
-      ['/scenes', '/entities', '/state', '/tactical', '/assets', '/seats'].some((s) =>
-        (url as string).endsWith(s),
-      ),
-    )
+    const individualCalls = vi
+      .mocked(fetch)
+      .mock.calls.filter(([url]) =>
+        ['/scenes', '/entities', '/state', '/tactical', '/assets', '/seats'].some((s) =>
+          (url as string).endsWith(s),
+        ),
+      )
     expect(individualCalls).toHaveLength(0)
   })
 
@@ -1081,7 +1083,7 @@ describe('loadAll() via bundle endpoint', () => {
     const socket = createMockSocket()
     await useWorldStore.getState().init(ROOM_ID, socket as never)
 
-    const assets = useWorldStore.getState().assets as AssetMeta[]
+    const assets = useWorldStore.getState().assets
     expect(assets).toHaveLength(1)
     expect(assets[0]?.tags).toEqual(['warrior', 'npc'])
     expect(assets[0]?.blueprint?.defaultSize).toBe(2)
@@ -1121,8 +1123,9 @@ describe('asset mutation actions', () => {
 
     const matches = useWorldStore.getState().assets.filter((a) => a.id === 'uploaded-asset')
     expect(matches).toHaveLength(1) // exactly one — no duplicate
-    expect(matches[0]!.tags).toEqual(['tag1'])
-    expect(matches[0]!.type).toBe('image')
+    const uploaded = matches[0] as AssetMeta
+    expect(uploaded.tags).toEqual(['tag1'])
+    expect(uploaded.type).toBe('image')
   })
 
   it('uploadAsset returns the normalized AssetMeta', async () => {
@@ -1148,8 +1151,8 @@ describe('asset mutation actions', () => {
     await useWorldStore.getState().updateAsset('asset-1', { name: 'Renamed Asset' })
 
     const asset = useWorldStore.getState().assets.find((a) => a.id === 'asset-1') as AssetMeta
-    expect(asset?.name).toBe('Renamed Asset')
-    expect(asset?.tags).toEqual(['newtag'])
+    expect(asset.name).toBe('Renamed Asset')
+    expect(asset.tags).toEqual(['newtag'])
   })
 
   it('removeAsset removes asset from state', async () => {
@@ -1177,6 +1180,6 @@ describe('asset mutation actions', () => {
 
   it('softRemoveAsset returns no-op function for unknown asset id', () => {
     const undo = useWorldStore.getState().softRemoveAsset('no-such-asset')
-    expect(() => undo()).not.toThrow()
+    expect(() => { undo(); }).not.toThrow()
   })
 })
