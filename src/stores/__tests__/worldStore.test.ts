@@ -173,6 +173,8 @@ const makeArchive = (overrides: Partial<ArchiveRecord> = {}): ArchiveRecord => (
   mapHeight: 1080,
   grid: { size: 50, snap: true, visible: true, color: '#ffffff', offsetX: 0, offsetY: 0 },
   gmOnly: false,
+  roundNumber: 0,
+  currentTurnTokenId: null,
   ...overrides,
 })
 
