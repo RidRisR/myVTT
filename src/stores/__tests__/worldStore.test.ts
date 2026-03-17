@@ -165,17 +165,24 @@ const makeShowcaseItem = (overrides: Partial<ShowcaseItem> = {}): ShowcaseItem =
 })
 
 const makeArchive = (overrides: Partial<ArchiveRecord> = {}): ArchiveRecord => ({
-  id: 'archive-1',
-  sceneId: 'scene-1',
-  name: 'Archive 1',
-  mapUrl: '/map.png',
-  mapWidth: 1920,
-  mapHeight: 1080,
-  grid: { size: 50, snap: true, visible: true, color: '#ffffff', offsetX: 0, offsetY: 0 },
-  gmOnly: false,
-  roundNumber: 0,
-  currentTurnTokenId: null,
   ...overrides,
+  id: overrides.id ?? 'archive-1',
+  sceneId: overrides.sceneId ?? 'scene-1',
+  name: overrides.name ?? 'Archive 1',
+  mapUrl: overrides.mapUrl ?? '/map.png',
+  mapWidth: overrides.mapWidth ?? 1920,
+  mapHeight: overrides.mapHeight ?? 1080,
+  grid: overrides.grid ?? {
+    size: 50,
+    snap: true,
+    visible: true,
+    color: '#ffffff',
+    offsetX: 0,
+    offsetY: 0,
+  },
+  gmOnly: overrides.gmOnly ?? false,
+  roundNumber: overrides.roundNumber ?? 0,
+  currentTurnTokenId: overrides.currentTurnTokenId ?? null,
 })
 
 // ── Reset store between tests ──

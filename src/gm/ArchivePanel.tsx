@@ -99,6 +99,7 @@ export function ArchivePanel() {
   const handleSave = () => {
     if (!selectedId || !activeSceneId) return
     void saveArchive(selectedId)
+    setSelectedId(null)
     toast('success', '已覆盖存档')
   }
 
@@ -286,6 +287,8 @@ export function ArchivePanel() {
         <ConfirmPopover
           anchorRef={deleteButtonRef}
           message={`删除"${deletingArchive.name}"？`}
+          confirmLabel="删除"
+          cancelLabel="取消"
           onConfirm={() => {
             handleDelete(deletingArchive)
           }}
@@ -300,6 +303,8 @@ export function ArchivePanel() {
         <ConfirmPopover
           anchorRef={loadButtonRef}
           message={`加载"${loadingArchive.name}"？当前战场将被替换。`}
+          confirmLabel="确认"
+          cancelLabel="取消"
           onConfirm={handleLoad}
           onCancel={() => {
             setLoadingId(null)
