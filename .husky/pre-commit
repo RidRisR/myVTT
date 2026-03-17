@@ -1,3 +1,18 @@
+#!/usr/bin/env bash
+
+# ── Branch guard (runs everywhere — main worktree, worktrees, CI) ──
+# Blocks ALL local commits on main/master. GitHub PR merges happen server-side
+# and never trigger local hooks, so this only blocks direct local commits/merges.
+BRANCH="$(git branch --show-current 2>/dev/null)"
+if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
+  echo ""
+  echo "❌ Committing directly on $BRANCH is not allowed."
+  echo "   All changes must go through a PR."
+  echo "   Create a worktree + feature branch: git worktree add .worktrees/<name> -b <branch>"
+  echo ""
+  exit 1
+fi
+
 # ── Worktree isolation guard ──
 # Compares --git-dir vs --git-common-dir to detect main repo vs worktree:
 # - Main repo: both resolve to the same path → block commit
@@ -6,17 +21,10 @@ GIT_DIR_ABS="$(cd "$(git rev-parse --git-dir)" && pwd)" || exit 0
 GIT_COMMON_DIR_ABS="$(cd "$(git rev-parse --git-common-dir)" && pwd)" || exit 0
 
 if [[ "$GIT_DIR_ABS" == "$GIT_COMMON_DIR_ABS" ]]; then
-  BRANCH="$(git branch --show-current)"
   if [[ -z "$BRANCH" ]]; then
     echo ""
     echo "❌ Committing in detached HEAD state in the main working tree is not allowed."
     echo "   Use a worktree for development work."
-    echo ""
-    exit 1
-  elif [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
-    echo ""
-    echo "❌ Committing directly on $BRANCH is not allowed."
-    echo "   Create a worktree + feature branch first."
     echo ""
     exit 1
   else
