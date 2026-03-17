@@ -1089,7 +1089,7 @@ describe('loadAll() via bundle endpoint', () => {
     expect(assets[0]?.blueprint?.defaultSize).toBe(2)
     expect(assets[0]?.type).toBe('blueprint')
     // extra field should NOT appear on AssetMeta
-    expect((assets[0] as Record<string, unknown>).extra).toBeUndefined()
+    expect((assets[0] as unknown as Record<string, unknown>).extra).toBeUndefined()
   })
 })
 
@@ -1180,6 +1180,8 @@ describe('asset mutation actions', () => {
 
   it('softRemoveAsset returns no-op function for unknown asset id', () => {
     const undo = useWorldStore.getState().softRemoveAsset('no-such-asset')
-    expect(() => { undo(); }).not.toThrow()
+    expect(() => {
+      undo()
+    }).not.toThrow()
   })
 })
