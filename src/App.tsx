@@ -5,7 +5,6 @@ import { useWorldStore } from './stores/worldStore'
 import type { HandoutAsset } from './stores/worldStore'
 import { useIdentityStore } from './stores/identityStore'
 import { useUiStore } from './stores/uiStore'
-import { useAssetStore } from './stores/assetStore'
 import {
   selectActiveScene,
   selectIsTactical,
@@ -65,7 +64,6 @@ function RoomSession({ roomId }: { roomId: string }) {
         const [worldCleanup, identityCleanup] = await Promise.all([
           initWorld(roomId, socket),
           initIdentity(roomId, socket),
-          useAssetStore.getState().init(roomId),
         ])
         if (cancelledRef.current) {
           worldCleanup()
@@ -93,7 +91,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   // Reinit on reconnect
   useEffect(() => {
     if (connectionStatus === 'connected' && !isLoading) {
-      Promise.all([reinitWorld(), useAssetStore.getState().refresh()])
+      reinitWorld()
         .then(() => {
           setInitError(null)
         })

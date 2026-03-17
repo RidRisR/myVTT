@@ -2,6 +2,23 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { EventEmitter } from 'events'
 import { useWorldStore } from '../worldStore'
 import type { Scene, TacticalInfo, TeamTracker, AssetRecord, ArchiveRecord } from '../worldStore'
+import type { AssetMeta } from '../../shared/assetTypes'
+
+// Mock assetUpload so uploadAsset doesn't call getCurrentRoomId() (which needs window.location.hash)
+vi.mock('../../shared/assetUpload', () => ({
+  uploadAsset: vi.fn(() =>
+    Promise.resolve({
+      id: 'uploaded-asset',
+      url: '/uploads/file.png',
+      name: 'file.png',
+      type: 'image',
+      createdAt: 1234567890,
+      extra: { tags: ['tag1'] },
+    }),
+  ),
+  isVideoUrl: vi.fn(() => false),
+  getMediaDimensions: vi.fn(() => Promise.resolve({ w: 100, h: 100 })),
+}))
 import type { Entity, MapToken } from '../../shared/entityTypes'
 import type { ShowcaseItem } from '../../showcase/showcaseTypes'
 import type { ChatTextMessage } from '../../chat/chatTypes'
@@ -213,21 +230,18 @@ beforeEach(() => {
 function setupInitMockResponses(overrides: Record<string, unknown> = {}) {
   const scene = makeScene()
   const defaults: Record<string, unknown> = {
-    [`/api/rooms/${ROOM_ID}/scenes`]: [scene],
-    [`/api/rooms/${ROOM_ID}/entities`]: [makeEntity()],
-    [`/api/rooms/${ROOM_ID}/chat`]: [makeChatMessage()],
-    [`/api/rooms/${ROOM_ID}/team-trackers`]: [makeTracker()],
-    [`/api/rooms/${ROOM_ID}/state`]: {
-      activeSceneId: scene.id,
+    [`/api/rooms/${ROOM_ID}/bundle`]: {
+      room: { id: ROOM_ID, name: 'Test Room', ruleSystemId: 'generic', activeSceneId: scene.id },
+      scenes: [scene],
+      entities: [makeEntity()],
+      sceneEntityMap: { [scene.id]: [{ entityId: 'entity-1', visible: true }] },
+      seats: [],
+      assets: [makeAsset()],
+      chat: [makeChatMessage()],
+      teamTrackers: [makeTracker()],
+      showcase: [makeShowcaseItem()],
+      tactical: null,
     },
-    [`/api/rooms/${ROOM_ID}`]: {
-      ruleSystemId: 'generic',
-    },
-    [`/api/rooms/${ROOM_ID}/assets`]: [makeAsset()],
-    [`/api/rooms/${ROOM_ID}/showcase`]: [makeShowcaseItem()],
-    [`/api/rooms/${ROOM_ID}/scenes/${scene.id}/entities`]: [
-      { entityId: 'entity-1', visible: true },
-    ],
   }
   Object.assign(mockResponses, defaults, overrides)
 }
@@ -645,6 +659,24 @@ describe('socket event handlers', () => {
     expect(useWorldStore.getState().assets[0]?.id).toBe('asset-2')
   })
 
+  it('asset:created with JSON-string extra (raw SQLite row) normalizes tags correctly', () => {
+    // Regression: socket events carry raw SQLite rows where extra is a JSON string,
+    // not a parsed object. normalizeAsset must handle both forms.
+    socket._trigger('asset:created', {
+      id: 'asset-str-extra',
+      url: '/uploads/x.png',
+      name: 'x.png',
+      type: 'blueprint',
+      createdAt: 1000,
+      extra: JSON.stringify({ tags: ['warrior'], blueprint: { defaultSize: 2 } }),
+    })
+
+    const added = useWorldStore.getState().assets.find((a) => a.id === 'asset-str-extra')
+    expect(added).toBeDefined()
+    expect(added?.tags).toEqual(['warrior'])
+    expect(added?.blueprint?.defaultSize).toBe(2)
+  })
+
   it('asset:updated updates matching asset', () => {
     socket._trigger('asset:updated', makeAsset({ id: 'asset-1', name: 'renamed.png' }))
 
@@ -994,5 +1026,157 @@ describe('action methods', () => {
     useWorldStore.getState().deleteHandoutAsset('h3')
 
     expect(useWorldStore.getState().handoutAssets.find((h) => h.id === 'h3')).toBeUndefined()
+  })
+})
+
+// ── 5. loadAll() bundle tests ──
+
+describe('loadAll() via bundle endpoint', () => {
+  it('makes a single fetch to /bundle', async () => {
+    setupInitMockResponses()
+    const socket = createMockSocket()
+    vi.mocked(fetch).mockClear()
+
+    await useWorldStore.getState().init(ROOM_ID, socket as never)
+
+    const getCalls = vi.mocked(fetch).mock.calls.filter(
+      ([url]) => (url as string).includes('/bundle'),
+    )
+    expect(getCalls).toHaveLength(1)
+    // Verify no individual sub-endpoint fetches happen
+    const individualCalls = vi.mocked(fetch).mock.calls.filter(([url]) =>
+      ['/scenes', '/entities', '/state', '/tactical', '/assets', '/seats'].some((s) =>
+        (url as string).endsWith(s),
+      ),
+    )
+    expect(individualCalls).toHaveLength(0)
+  })
+
+  it('assets from bundle are normalized to AssetMeta (tags extracted from extra)', async () => {
+    const scene = makeScene()
+    mockResponses[`/api/rooms/${ROOM_ID}/bundle`] = {
+      room: { id: ROOM_ID, name: 'Test Room', ruleSystemId: 'generic', activeSceneId: null },
+      scenes: [scene],
+      entities: [],
+      sceneEntityMap: {},
+      seats: [],
+      assets: [
+        {
+          id: 'a1',
+          url: '/img.png',
+          name: 'hero',
+          type: 'blueprint',
+          createdAt: 1000,
+          extra: {
+            tags: ['warrior', 'npc'],
+            blueprint: { defaultSize: 2, defaultColor: '#ff0000' },
+          },
+        },
+      ],
+      chat: [],
+      teamTrackers: [],
+      showcase: [],
+      tactical: null,
+    }
+    const socket = createMockSocket()
+    await useWorldStore.getState().init(ROOM_ID, socket as never)
+
+    const assets = useWorldStore.getState().assets as AssetMeta[]
+    expect(assets).toHaveLength(1)
+    expect(assets[0]?.tags).toEqual(['warrior', 'npc'])
+    expect(assets[0]?.blueprint?.defaultSize).toBe(2)
+    expect(assets[0]?.type).toBe('blueprint')
+    // extra field should NOT appear on AssetMeta
+    expect((assets[0] as Record<string, unknown>).extra).toBeUndefined()
+  })
+})
+
+// ── 6. Asset mutation actions ──
+
+describe('asset mutation actions', () => {
+  let socket: ReturnType<typeof createMockSocket>
+
+  beforeEach(async () => {
+    setupInitMockResponses()
+    socket = createMockSocket()
+    await useWorldStore.getState().init(ROOM_ID, socket as never)
+  })
+
+  it('uploadAsset: store is updated via asset:created socket event (no double-add)', async () => {
+    const file = new File(['data'], 'new.png', { type: 'image/png' })
+    await useWorldStore.getState().uploadAsset(file, { type: 'image', tags: ['tag1'] })
+
+    // Before socket event: upload itself no longer sets state
+    expect(useWorldStore.getState().assets.find((a) => a.id === 'uploaded-asset')).toBeUndefined()
+
+    // Server emits asset:created → store updated exactly once
+    socket._trigger('asset:created', {
+      id: 'uploaded-asset',
+      url: '/uploads/file.png',
+      name: 'file.png',
+      type: 'image',
+      createdAt: 1234567890,
+      extra: JSON.stringify({ tags: ['tag1'] }),
+    })
+
+    const matches = useWorldStore.getState().assets.filter((a) => a.id === 'uploaded-asset')
+    expect(matches).toHaveLength(1) // exactly one — no duplicate
+    expect(matches[0]?.tags).toEqual(['tag1'])
+    expect(matches[0]?.type).toBe('image')
+  })
+
+  it('uploadAsset returns the normalized AssetMeta', async () => {
+    const file = new File(['data'], 'new.png', { type: 'image/png' })
+    const result = await useWorldStore.getState().uploadAsset(file, { type: 'image' })
+
+    expect(result.id).toBe('uploaded-asset')
+    expect(result.tags).toBeDefined()
+  })
+
+  it('updateAsset replaces asset in state with normalized version', async () => {
+    const updatedRaw = {
+      id: 'asset-1',
+      url: '/uploads/img.png',
+      name: 'Renamed Asset',
+      type: 'image',
+      createdAt: Date.now(),
+      extra: { tags: ['newtag'] },
+    }
+    mockResponses[`/api/rooms/${ROOM_ID}/assets/asset-1`] = updatedRaw
+    useWorldStore.setState({ _roomId: ROOM_ID })
+
+    await useWorldStore.getState().updateAsset('asset-1', { name: 'Renamed Asset' })
+
+    const asset = useWorldStore.getState().assets.find((a) => a.id === 'asset-1') as AssetMeta
+    expect(asset?.name).toBe('Renamed Asset')
+    expect(asset?.tags).toEqual(['newtag'])
+  })
+
+  it('removeAsset removes asset from state', async () => {
+    useWorldStore.setState({ _roomId: ROOM_ID })
+    await useWorldStore.getState().removeAsset('asset-1')
+
+    expect(useWorldStore.getState().assets.find((a) => a.id === 'asset-1')).toBeUndefined()
+  })
+
+  it('softRemoveAsset removes asset from UI immediately', () => {
+    useWorldStore.setState({ _roomId: ROOM_ID })
+    useWorldStore.getState().softRemoveAsset('asset-1')
+
+    expect(useWorldStore.getState().assets.find((a) => a.id === 'asset-1')).toBeUndefined()
+  })
+
+  it('softRemoveAsset undo restores the asset', () => {
+    useWorldStore.setState({ _roomId: ROOM_ID })
+    const undo = useWorldStore.getState().softRemoveAsset('asset-1')
+
+    undo()
+
+    expect(useWorldStore.getState().assets.find((a) => a.id === 'asset-1')).toBeDefined()
+  })
+
+  it('softRemoveAsset returns no-op function for unknown asset id', () => {
+    const undo = useWorldStore.getState().softRemoveAsset('no-such-asset')
+    expect(() => undo()).not.toThrow()
   })
 })
