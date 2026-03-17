@@ -21,12 +21,21 @@ export class AdminPage {
 
   async createRoom(name: string) {
     await this.roomNameInput.fill(name)
+    const responsePromise = this.page.waitForResponse(
+      (resp) => resp.url().includes('/api/rooms') && resp.request().method() === 'POST',
+    )
     await this.createButton.click()
+    await Promise.race([
+      responsePromise,
+      this.page.waitForTimeout(10_000).then(() => {
+        throw new Error(`POST /api/rooms timed out after 10s for room "${name}"`)
+      }),
+    ])
     // Wait for the room name to appear in a room-name div
     await this.page
       .locator('.text-sm.font-semibold', { hasText: name })
       .first()
-      .waitFor({ timeout: 10_000 })
+      .waitFor({ timeout: 5_000 })
   }
 
   /**
