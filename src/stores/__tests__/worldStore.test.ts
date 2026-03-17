@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { EventEmitter } from 'events'
 import { useWorldStore } from '../worldStore'
-import type { Scene, TacticalInfo, TeamTracker, AssetRecord } from '../worldStore'
+import type { Scene, TacticalInfo, TeamTracker, AssetRecord, ArchiveRecord } from '../worldStore'
 import type { Entity, MapToken } from '../../shared/entityTypes'
 import type { ShowcaseItem } from '../../showcase/showcaseTypes'
 import type { ChatTextMessage } from '../../chat/chatTypes'
@@ -162,6 +162,18 @@ const makeShowcaseItem = (overrides: Partial<ShowcaseItem> = {}): ShowcaseItem =
   senderColor: '#fff',
   ephemeral: false,
   timestamp: Date.now(),
+  ...overrides,
+})
+
+const makeArchive = (overrides: Partial<ArchiveRecord> = {}): ArchiveRecord => ({
+  id: 'archive-1',
+  sceneId: 'scene-1',
+  name: 'Archive 1',
+  mapUrl: '/map.png',
+  mapWidth: 1920,
+  mapHeight: 1080,
+  grid: { size: 50, snap: true, visible: true, color: '#ffffff', offsetX: 0, offsetY: 0 },
+  gmOnly: false,
   ...overrides,
 })
 
@@ -338,11 +350,73 @@ describe('socket event handlers', () => {
     expect(entries.filter((e) => e.entityId === 'entity-1')).toHaveLength(1)
   })
 
+  it('scene:entity:linked defaults visible to true when omitted', () => {
+    socket._trigger('scene:entity:linked', { sceneId: 'scene-1', entityId: 'entity-new' })
+
+    const entries = useWorldStore.getState().sceneEntityMap['scene-1'] ?? []
+    const entry = entries.find((e) => e.entityId === 'entity-new')
+    expect(entry?.visible).toBe(true)
+  })
+
+  it('scene:entity:linked respects explicit visible=false', () => {
+    socket._trigger('scene:entity:linked', {
+      sceneId: 'scene-1',
+      entityId: 'entity-hidden',
+      visible: false,
+    })
+
+    const entries = useWorldStore.getState().sceneEntityMap['scene-1'] ?? []
+    const entry = entries.find((e) => e.entityId === 'entity-hidden')
+    expect(entry?.visible).toBe(false)
+  })
+
   it('scene:entity:unlinked removes entity entry from sceneEntityMap', () => {
     socket._trigger('scene:entity:unlinked', { sceneId: 'scene-1', entityId: 'entity-1' })
 
     const entries = useWorldStore.getState().sceneEntityMap['scene-1'] ?? []
     expect(entries.some((e) => e.entityId === 'entity-1')).toBe(false)
+  })
+
+  // -- scene:entity:updated (visibility toggle) --
+
+  it('scene:entity:updated toggles visible on matching entry', () => {
+    socket._trigger('scene:entity:updated', {
+      sceneId: 'scene-1',
+      entityId: 'entity-1',
+      visible: false,
+    })
+
+    const entries = useWorldStore.getState().sceneEntityMap['scene-1'] ?? []
+    const entry = entries.find((e) => e.entityId === 'entity-1')
+    expect(entry?.visible).toBe(false)
+  })
+
+  it('scene:entity:updated is no-op for unknown sceneId (no crash, no new key)', () => {
+    socket._trigger('scene:entity:updated', {
+      sceneId: 'nonexistent',
+      entityId: 'entity-1',
+      visible: false,
+    })
+
+    const after = useWorldStore.getState().sceneEntityMap
+    // Should create the key with empty mapped result, but not crash
+    expect(after['nonexistent']).toEqual([])
+  })
+
+  it('scene:entity:updated does not affect other entries in same scene', () => {
+    // Link a second entity
+    socket._trigger('scene:entity:linked', { sceneId: 'scene-1', entityId: 'entity-2' })
+
+    // Toggle visibility of entity-1 only
+    socket._trigger('scene:entity:updated', {
+      sceneId: 'scene-1',
+      entityId: 'entity-1',
+      visible: false,
+    })
+
+    const entries = useWorldStore.getState().sceneEntityMap['scene-1'] ?? []
+    expect(entries.find((e) => e.entityId === 'entity-1')?.visible).toBe(false)
+    expect(entries.find((e) => e.entityId === 'entity-2')?.visible).toBe(true)
   })
 
   // -- Entity events --
@@ -390,6 +464,25 @@ describe('socket event handlers', () => {
     const tokens = useWorldStore.getState().tacticalInfo?.tokens ?? []
     expect(tokens.find((t) => t.id === 'token-a')).toBeUndefined()
     expect(tokens.find((t) => t.id === 'token-b')).toBeDefined()
+  })
+
+  it('entity:deleted removes ALL tokens for that entity (multi-token)', () => {
+    socket._trigger(
+      'tactical:updated',
+      makeTacticalInfo({
+        tokens: [
+          makeToken({ id: 'token-a1', entityId: 'entity-1' }),
+          makeToken({ id: 'token-a2', entityId: 'entity-1' }),
+          makeToken({ id: 'token-b1', entityId: 'entity-2' }),
+        ],
+      }),
+    )
+
+    socket._trigger('entity:deleted', { id: 'entity-1' })
+
+    const tokens = useWorldStore.getState().tacticalInfo?.tokens ?? []
+    expect(tokens).toHaveLength(1)
+    expect(tokens[0]?.id).toBe('token-b1')
   })
 
   it('entity:deleted is safe when tacticalInfo is null', () => {
@@ -669,6 +762,37 @@ describe('socket event handlers', () => {
     const room = useWorldStore.getState().room
     expect(room.activeSceneId).toBe('scene-2')
     expect(room.ruleSystemId).toBe('dnd5e')
+  })
+
+  // -- Archive events --
+
+  it('archive:created adds to archives', () => {
+    const archive = makeArchive({ id: 'archive-new' })
+    socket._trigger('archive:created', archive)
+
+    const archives = useWorldStore.getState().archives
+    expect(archives.some((a) => a.id === 'archive-new')).toBe(true)
+  })
+
+  it('archive:updated updates matching archive', () => {
+    const archive = makeArchive({ id: 'archive-1' })
+    socket._trigger('archive:created', archive)
+
+    socket._trigger('archive:updated', makeArchive({ id: 'archive-1', name: 'Renamed' }))
+
+    const archives = useWorldStore.getState().archives
+    const found = archives.find((a) => a.id === 'archive-1')
+    expect(found?.name).toBe('Renamed')
+  })
+
+  it('archive:deleted removes from archives', () => {
+    const archive = makeArchive({ id: 'archive-del' })
+    socket._trigger('archive:created', archive)
+
+    socket._trigger('archive:deleted', { id: 'archive-del' })
+
+    const archives = useWorldStore.getState().archives
+    expect(archives.find((a) => a.id === 'archive-del')).toBeUndefined()
   })
 })
 

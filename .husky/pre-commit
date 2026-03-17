@@ -29,7 +29,8 @@ if [[ "$GIT_DIR_ABS" == "$GIT_COMMON_DIR_ABS" ]]; then
 fi
 
 npx lint-staged
-npx tsc --noEmit
+tsc -b
+tsc -p server/tsconfig.json --noEmit
 
 # Validate design doc structure (required sections check)
 # --diff-filter=A: only newly added files (existing docs predate this check)
