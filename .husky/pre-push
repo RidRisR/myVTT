@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 npx prettier --check .
-tsc -b
-tsc -p server/tsconfig.json --noEmit
+npx tsc -b
+npx tsc -p server/tsconfig.json --noEmit
 npx eslint .
 npx vitest run
 npm run build
