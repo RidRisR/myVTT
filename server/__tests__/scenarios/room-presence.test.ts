@@ -20,9 +20,13 @@ async function connectAdminClient(apiBase: string): Promise<ClientSocket> {
     // No query.roomId — triggers admin connection path in ws.ts
   })
   await new Promise<void>((resolve, reject) => {
-    socket.on('connect', () => { resolve(); })
+    socket.on('connect', () => {
+      resolve()
+    })
     socket.on('connect_error', reject)
-    setTimeout(() => { reject(new Error('Admin socket connect timeout')); }, 5000)
+    setTimeout(() => {
+      reject(new Error('Admin socket connect timeout'))
+    }, 5000)
   })
   return socket
 }
