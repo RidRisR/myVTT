@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { EventEmitter } from 'events'
 import { useWorldStore } from '../worldStore'
 import type { Scene, TacticalInfo, TeamTracker, AssetRecord, ArchiveRecord } from '../worldStore'
-import type { AssetMeta } from '../../shared/assetTypes'
 
 // Mock assetUpload so uploadAsset doesn't call getCurrentRoomId() (which needs window.location.hash)
 vi.mock('../../shared/assetUpload', () => ({
