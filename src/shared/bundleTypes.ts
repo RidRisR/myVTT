@@ -3,7 +3,7 @@
 // Any field addition on either side will cause a tsc -b error on the modifying side.
 
 import type { Scene, TacticalInfo, TeamTracker } from './storeTypes'
-import type { Entity, SceneEntityEntry } from './entityTypes'
+import type { Entity, SceneEntityEntry, Blueprint } from './entityTypes'
 import type { ChatMessage } from './chatTypes'
 import type { ShowcaseItem } from './showcaseTypes'
 
@@ -21,6 +21,7 @@ export interface BundleResponse {
   sceneEntityMap: Record<string, SceneEntityEntry[]>
   seats: unknown[]
   assets: Record<string, unknown>[]
+  blueprints: Blueprint[]
   chat: ChatMessage[]
   teamTrackers: TeamTracker[]
   showcase: ShowcaseItem[]
