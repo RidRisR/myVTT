@@ -83,15 +83,11 @@ export function TokenContextMenu({
                   onUpdateToken(tokenId, { width: s, height: s })
                   onClose()
                 }}
-                className="border-none cursor-pointer rounded text-xs font-bold transition-colors duration-100"
-                style={{
-                  width: 28,
-                  height: 24,
-                  background: s === currentSize ? 'rgba(212,160,85,0.3)' : 'transparent',
-                  color: s === currentSize ? '#D4A055' : '#F0E6D8',
-                  border:
-                    s === currentSize ? '1px solid rgba(212,160,85,0.5)' : '1px solid transparent',
-                }}
+                className={`w-7 h-6 border cursor-pointer rounded text-xs font-bold transition-colors duration-100 ${
+                  s === currentSize
+                    ? 'bg-accent/30 text-accent border-accent/50'
+                    : 'bg-transparent text-text-primary border-transparent'
+                }`}
               >
                 {s}
               </button>
@@ -155,12 +151,10 @@ function MenuItem({
 }) {
   return (
     <button
-      role="menuitem"
       onClick={onClick}
-      className="block w-full px-3 py-1.5 bg-transparent border-none text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover"
-      style={{
-        color: danger ? '#C04040' : '#F0E6D8',
-      }}
+      className={`block w-full px-3 py-1.5 bg-transparent border-none text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover ${
+        danger ? 'text-danger' : 'text-text-primary'
+      }`}
     >
       {label}
     </button>

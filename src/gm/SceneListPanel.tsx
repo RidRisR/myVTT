@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { X, Copy, Plus, Trash2 } from 'lucide-react'
+import { X, Pencil, Copy, Plus, Trash2 } from 'lucide-react'
+import * as Popover from '@radix-ui/react-popover'
 import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
-import { ConfirmPopover } from '../ui/ConfirmPopover'
 
 interface SceneListPanelProps {
   scenes: Scene[]
   activeSceneId: string | null
   onSelectScene: (sceneId: string) => void
+  onEditScene: (sceneId: string) => void
   onDeleteScene: (sceneId: string) => void
   onRenameScene: (sceneId: string, name: string) => void
   onDuplicateScene: (sceneId: string) => void
@@ -19,6 +20,7 @@ export function SceneListPanel({
   scenes,
   activeSceneId,
   onSelectScene,
+  onEditScene,
   onDeleteScene,
   onRenameScene,
   onDuplicateScene,
@@ -30,7 +32,6 @@ export function SceneListPanel({
   const [renameValue, setRenameValue] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const renameInputRef = useRef<HTMLInputElement>(null)
-  const deleteButtonRef = useRef<HTMLButtonElement>(null)
 
   // Click-outside-to-close
   useEffect(() => {
@@ -57,12 +58,10 @@ export function SceneListPanel({
     setRenamingId(null)
   }
 
-  const deletingScene = deletingId ? scenes.find((s) => s.id === deletingId) : null
-
   return (
     <div
       ref={panelRef}
-      className="fixed z-toast bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] flex flex-col"
+      className="fixed z-ui bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] flex flex-col"
       style={{ bottom: 56, left: 16, width: 280, maxHeight: 420 }}
       onPointerDown={(e) => {
         e.stopPropagation()
@@ -163,18 +162,47 @@ export function SceneListPanel({
                     >
                       <Copy size={12} strokeWidth={1.5} />
                     </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onEditScene(scene.id)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-white transition-all duration-fast p-1 cursor-pointer"
+                      title="Edit scene"
+                    >
+                      <Pencil size={12} strokeWidth={1.5} />
+                    </button>
                     {scenes.length > 1 && (
-                      <button
-                        ref={deletingId === scene.id ? deleteButtonRef : undefined}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeletingId(scene.id)
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-danger transition-all duration-fast p-1 cursor-pointer"
-                        title="Delete scene"
-                      >
-                        <Trash2 size={12} strokeWidth={1.5} />
-                      </button>
+                      <Popover.Root open={deletingId === scene.id} onOpenChange={(open) => { if (!open) setDeletingId(null) }}>
+                        <Popover.Anchor asChild>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeletingId(scene.id)
+                            }}
+                            className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-danger transition-all duration-fast p-1 cursor-pointer"
+                            title="Delete scene"
+                          >
+                            <Trash2 size={12} strokeWidth={1.5} />
+                          </button>
+                        </Popover.Anchor>
+                        <Popover.Portal>
+                          <Popover.Content
+                            side="top"
+                            align="center"
+                            sideOffset={8}
+                            className="bg-surface border border-border-glass rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)] px-3 py-2.5 min-w-[140px] z-popover font-sans animate-[radix-popover-in_150ms_ease-out]"
+                            onPointerDown={(e) => { e.stopPropagation() }}
+                          >
+                            <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{`Delete "${scene.name || 'Untitled'}"?`}</p>
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => { setDeletingId(null) }} className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast">Cancel</button>
+                              <button onClick={() => { setDeletingId(null); onDeleteScene(scene.id) }} className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast">Delete</button>
+                            </div>
+                            <Popover.Arrow className="fill-[rgb(var(--color-surface))]" width={12} height={6} />
+                          </Popover.Content>
+                        </Popover.Portal>
+                      </Popover.Root>
                     )}
                   </div>
                 </div>
@@ -193,20 +221,6 @@ export function SceneListPanel({
         </div>
       </div>
 
-      {/* Delete confirmation popover */}
-      {deletingScene && (
-        <ConfirmPopover
-          anchorRef={deleteButtonRef}
-          message={`Delete "${deletingScene.name || 'Untitled'}"?`}
-          onConfirm={() => {
-            onDeleteScene(deletingScene.id)
-            setDeletingId(null)
-          }}
-          onCancel={() => {
-            setDeletingId(null)
-          }}
-        />
-      )}
     </div>
   )
 }

@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { MoreVertical, Pencil, Trash2, MapPin } from 'lucide-react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import type { Entity } from '../shared/entityTypes'
-import * as Popover from '@radix-ui/react-popover'
+import { ConfirmDropdown } from '../ui/ConfirmDropdownItem'
 
 interface EntityRowProps {
   entity: Entity
@@ -24,11 +25,8 @@ export function EntityRow({
   onAddToScene,
   onUpdate,
 }: EntityRowProps) {
-  const [showMenu, setShowMenu] = useState(false)
-  const [deletingThis, setDeletingThis] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
-  const menuRef = useRef<HTMLDivElement>(null)
 
   const commitRename = () => {
     if (renameValue.trim() && renameValue.trim() !== entity.name) {
@@ -94,106 +92,52 @@ export function EntityRow({
         </div>
       </div>
 
-      {/* Menu button + Delete confirmation popover (Radix Popover) */}
-      <Popover.Root
-        open={deletingThis}
-        onOpenChange={(open) => {
-          if (!open) setDeletingThis(false)
+      {/* ⋮ menu with delete confirmation */}
+      <div
+        className="opacity-0 group-hover:opacity-100 transition-opacity duration-fast"
+        onClick={(e) => {
+          e.stopPropagation()
         }}
       >
-        <Popover.Anchor asChild>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setShowMenu(!showMenu)
-            }}
-            className="opacity-0 group-hover:opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
-          >
-            <MoreVertical size={12} strokeWidth={1.5} />
-          </button>
-        </Popover.Anchor>
-
-        {/* Dropdown menu */}
-        {showMenu && (
-          <div
-            ref={menuRef}
-            className="absolute right-1 top-full mt-0.5 z-popover bg-surface border border-border-glass rounded-md shadow-lg py-1 min-w-[120px]"
-            onPointerDown={(e) => {
-              e.stopPropagation()
-            }}
-          >
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setRenaming(true)
-                setRenameValue(entity.name)
-                setShowMenu(false)
-              }}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
-            >
-              <Pencil size={12} strokeWidth={1.5} />
-              重命名
+        <ConfirmDropdown
+          trigger={
+            <button className="text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer">
+              <MoreVertical size={12} strokeWidth={1.5} />
             </button>
-            {!isInScene && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onAddToScene()
-                  setShowMenu(false)
-                }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
-              >
-                <MapPin size={12} strokeWidth={1.5} />
-                加入场景
-              </button>
-            )}
-            <div className="border-t border-border-glass my-1" />
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setDeletingThis(true)
-                setShowMenu(false)
-              }}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-danger hover:bg-hover cursor-pointer transition-colors duration-fast"
-            >
+          }
+          confirmLabel={
+            <>
               <Trash2 size={12} strokeWidth={1.5} />
               删除
-            </button>
-          </div>
-        )}
-
-        {/* Delete confirmation popover — Radix Popover */}
-        <Popover.Portal>
-          <Popover.Content
-            side="top"
-            align="center"
-            sideOffset={8}
-            className="bg-surface border border-border-glass rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)] px-3 py-2.5 min-w-[140px] z-toast font-sans animate-[radix-popover-in_150ms_ease-out]"
-            onPointerDownOutside={() => { setDeletingThis(false); }}
+            </>
+          }
+          confirmItemClassName="flex items-center gap-2 px-3 py-1.5 text-xs text-danger hover:bg-hover cursor-pointer transition-colors duration-fast outline-none"
+          confirmMessage={`删除"${entity.name}"？`}
+          onConfirm={onDelete}
+        >
+          <DropdownMenu.Item
+            onSelect={() => {
+              setRenaming(true)
+              setRenameValue(entity.name)
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast outline-none"
           >
-            <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{`删除"${entity.name}"？`}</p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => { setDeletingThis(false); }}
-                className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setDeletingThis(false)
-                  onDelete()
-                }}
-                className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
-              >
-                Delete
-              </button>
-            </div>
-            {/* Arrow pointing down toward anchor */}
-            <Popover.Arrow className="fill-[rgb(var(--color-surface))]" width={12} height={6} />
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
+            <Pencil size={12} strokeWidth={1.5} />
+            重命名
+          </DropdownMenu.Item>
+          {!isInScene && (
+            <DropdownMenu.Item
+              onSelect={() => {
+                onAddToScene()
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast outline-none"
+            >
+              <MapPin size={12} strokeWidth={1.5} />
+              加入场景
+            </DropdownMenu.Item>
+          )}
+        </ConfirmDropdown>
+      </div>
     </div>
   )
 }

@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { Plus, Download, Save, MoreVertical, Copy, Pencil, Trash2, Swords } from 'lucide-react'
+import * as Popover from '@radix-ui/react-popover'
 import { useWorldStore } from '../stores/worldStore'
 import type { ArchiveRecord } from '../stores/worldStore'
 import { selectIsTactical } from '../stores/selectors'
 import { useToast } from '../ui/useToast'
-import { ConfirmPopover } from '../ui/ConfirmPopover'
 
 export function ArchivePanel() {
   const activeSceneId = useWorldStore((s) => s.room.activeSceneId)
@@ -29,8 +29,6 @@ export function ArchivePanel() {
 
   const renameInputRef = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-  const deleteButtonRef = useRef<HTMLButtonElement>(null)
-  const loadButtonRef = useRef<HTMLButtonElement>(null)
 
   // Fetch archives when scene changes
   useEffect(() => {
@@ -72,10 +70,10 @@ export function ArchivePanel() {
 
   const handleCreateAndSave = async () => {
     if (!activeSceneId) return
-    const archive = await createArchive(activeSceneId, `Archive ${archives.length + 1}`)
+    const archive = await createArchive(activeSceneId, `存档 ${archives.length + 1}`)
     if (archive) {
       await saveArchive(archive.id)
-      toast('success', 'Saved as new archive')
+      toast('success', '已存为新档')
     }
   }
 
@@ -84,7 +82,7 @@ export function ArchivePanel() {
     setMenuId(null)
     // Optimistic removal from local state, delete on server
     void deleteArchive(archive.id)
-    toast('undo', `Deleted "${archive.name}"`, {
+    toast('undo', `已删除"${archive.name}"`, {
       duration: 5000,
     })
   }
@@ -100,18 +98,16 @@ export function ArchivePanel() {
     if (!selectedId || !activeSceneId) return
     void saveArchive(selectedId)
     setSelectedId(null)
-    toast('success', 'Archive overwritten')
+    toast('success', '已覆盖存档')
   }
 
   const selectedArchive = selectedId ? archives.find((e) => e.id === selectedId) : null
-  const deletingArchive = deletingId ? archives.find((e) => e.id === deletingId) : null
-  const loadingArchive = loadingId ? archives.find((e) => e.id === loadingId) : null
 
   if (!activeSceneId) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs">
         <Swords size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-        <span className="opacity-50">Select a scene first</span>
+        <span className="opacity-50">请先选择场景</span>
       </div>
     )
   }
@@ -123,8 +119,8 @@ export function ArchivePanel() {
         {sortedArchives.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs py-8">
             <Swords size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-            <span className="opacity-50">No combat archives</span>
-            <span className="opacity-30 text-[10px] mt-1">Click + below to create</span>
+            <span className="opacity-50">暂无战场存档</span>
+            <span className="opacity-30 text-[10px] mt-1">点击下方「+」创建</span>
           </div>
         ) : (
           <div className="flex flex-col gap-1">
@@ -172,17 +168,36 @@ export function ArchivePanel() {
                       <span className="text-[10px] text-text-muted/50 shrink-0">🗺</span>
                     )}
 
-                    {/* Context menu button */}
-                    <button
-                      ref={deletingId === archive.id ? deleteButtonRef : undefined}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setMenuId(menuId === archive.id ? null : archive.id)
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
-                    >
-                      <MoreVertical size={12} strokeWidth={1.5} />
-                    </button>
+                    {/* Context menu button + delete confirmation popover */}
+                    <Popover.Root open={deletingId === archive.id} onOpenChange={(open) => { if (!open) setDeletingId(null) }}>
+                      <Popover.Anchor asChild>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setMenuId(menuId === archive.id ? null : archive.id)
+                          }}
+                          className="opacity-0 group-hover:opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
+                        >
+                          <MoreVertical size={12} strokeWidth={1.5} />
+                        </button>
+                      </Popover.Anchor>
+                      <Popover.Portal>
+                        <Popover.Content
+                          side="top"
+                          align="center"
+                          sideOffset={8}
+                          className="bg-surface border border-border-glass rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)] px-3 py-2.5 min-w-[140px] z-popover font-sans animate-[radix-popover-in_150ms_ease-out]"
+                          onPointerDown={(e) => { e.stopPropagation() }}
+                        >
+                          <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{`删除"${archive.name}"？`}</p>
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => { setDeletingId(null) }} className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast">取消</button>
+                            <button onClick={() => { handleDelete(archive) }} className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast">删除</button>
+                          </div>
+                          <Popover.Arrow className="fill-[rgb(var(--color-surface))]" width={12} height={6} />
+                        </Popover.Content>
+                      </Popover.Portal>
+                    </Popover.Root>
                   </div>
 
                   {/* Context menu dropdown */}
@@ -204,7 +219,7 @@ export function ArchivePanel() {
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
                       >
                         <Pencil size={12} strokeWidth={1.5} />
-                        Rename
+                        重命名
                       </button>
                       <button
                         onClick={(e) => {
@@ -215,7 +230,7 @@ export function ArchivePanel() {
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
                       >
                         <Copy size={12} strokeWidth={1.5} />
-                        Duplicate
+                        复制
                       </button>
                       <div className="border-t border-border-glass my-1" />
                       <button
@@ -227,7 +242,7 @@ export function ArchivePanel() {
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-danger hover:bg-hover cursor-pointer transition-colors duration-fast"
                       >
                         <Trash2 size={12} strokeWidth={1.5} />
-                        Delete
+                        删除
                       </button>
                     </div>
                   )}
@@ -245,10 +260,10 @@ export function ArchivePanel() {
           <button
             onClick={() => void handleCreateAndSave()}
             className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-            title="Save New"
+            title="存为新档"
           >
             <Plus size={12} strokeWidth={1.5} />
-            Save New
+            存为新档
           </button>
         )}
 
@@ -259,58 +274,48 @@ export function ArchivePanel() {
           <button
             onClick={handleSave}
             className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-bold px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-            title="Overwrite archive"
+            title="覆盖存档"
           >
             <Save size={12} strokeWidth={1.5} />
-            Overwrite
+            覆盖
           </button>
         )}
 
         {/* Load from selected archive (with confirmation) */}
         {selectedArchive && (
-          <button
-            ref={loadButtonRef}
-            onClick={() => {
-              setLoadingId(selectedId)
-            }}
-            className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"
-            title="Load archive"
-          >
-            <Download size={14} strokeWidth={1.5} />
-            Load
-          </button>
+          <Popover.Root open={loadingId === selectedId} onOpenChange={(open) => { if (!open) setLoadingId(null) }}>
+            <Popover.Anchor asChild>
+              <button
+                onClick={() => {
+                  setLoadingId(selectedId)
+                }}
+                className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"
+                title="加载存档"
+              >
+                <Download size={14} strokeWidth={1.5} />
+                加载
+              </button>
+            </Popover.Anchor>
+            <Popover.Portal>
+              <Popover.Content
+                side="top"
+                align="center"
+                sideOffset={8}
+                className="bg-surface border border-border-glass rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)] px-3 py-2.5 min-w-[140px] z-popover font-sans animate-[radix-popover-in_150ms_ease-out]"
+                onPointerDown={(e) => { e.stopPropagation() }}
+              >
+                <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{`加载"${selectedArchive.name}"？当前战场将被替换。`}</p>
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => { setLoadingId(null) }} className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast">取消</button>
+                  <button onClick={handleLoad} className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast">确认</button>
+                </div>
+                <Popover.Arrow className="fill-[rgb(var(--color-surface))]" width={12} height={6} />
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
         )}
       </div>
 
-      {/* Delete confirmation popover */}
-      {deletingArchive && (
-        <ConfirmPopover
-          anchorRef={deleteButtonRef}
-          message={`Delete "${deletingArchive.name}"?`}
-          confirmLabel="Delete"
-          cancelLabel="Cancel"
-          onConfirm={() => {
-            handleDelete(deletingArchive)
-          }}
-          onCancel={() => {
-            setDeletingId(null)
-          }}
-        />
-      )}
-
-      {/* Load confirmation popover */}
-      {loadingArchive && (
-        <ConfirmPopover
-          anchorRef={loadButtonRef}
-          message={`Load "${loadingArchive.name}"? Current battlefield will be replaced.`}
-          confirmLabel="Confirm"
-          cancelLabel="Cancel"
-          onConfirm={handleLoad}
-          onCancel={() => {
-            setLoadingId(null)
-          }}
-        />
-      )}
     </div>
   )
 }

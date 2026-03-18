@@ -27,7 +27,7 @@ export function SceneButton({
   return (
     <>
       <div
-        className="fixed bottom-3 left-4 z-toast font-sans"
+        className="fixed bottom-3 left-4 z-ui font-sans"
         onPointerDown={(e) => {
           e.stopPropagation()
         }}

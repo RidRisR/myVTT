@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
 import { Plus, FolderOpen, Loader2 } from 'lucide-react'
+import * as ContextMenu from '@radix-ui/react-context-menu'
 import { useWorldStore } from '../stores/worldStore'
 import type { AssetMeta } from '../shared/assetTypes'
 import { isVideoUrl } from '../shared/assetUpload'
-import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { useToast } from '../ui/useToast'
 
 interface MapDockTabProps {
@@ -12,12 +12,6 @@ interface MapDockTabProps {
   onSetAsBackground?: (sceneId: string, imageUrl: string) => void
   onSetAsTacticalMap?: (imageUrl: string) => void
   onShowcaseImage?: (imageUrl: string) => void
-}
-
-interface ContextState {
-  x: number
-  y: number
-  asset: AssetMeta
 }
 
 export function MapDockTab({
@@ -30,7 +24,6 @@ export function MapDockTab({
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [contextMenu, setContextMenu] = useState<ContextState | null>(null)
 
   const allAssets = useWorldStore((s) => s.assets)
   const upload = useWorldStore((s) => s.uploadAsset)
@@ -60,50 +53,6 @@ export function MapDockTab({
       duration: 5000,
       action: { label: 'Undo', onClick: undo },
     })
-  }
-
-  const handleContextMenu = (e: React.MouseEvent, asset: AssetMeta) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setContextMenu({ x: e.clientX, y: e.clientY, asset })
-  }
-
-  const buildContextMenuItems = (asset: AssetMeta): ContextMenuItem[] => {
-    const items: ContextMenuItem[] = []
-
-    if (onSetAsBackground && activeSceneId && asset.url) {
-      items.push({
-        label: 'Set as Scene Background',
-        onClick: () => {
-          onSetAsBackground(activeSceneId, asset.url)
-        },
-      })
-    }
-    if (onSetAsTacticalMap && asset.url) {
-      items.push({
-        label: 'Set as Tactical Map',
-        onClick: () => {
-          onSetAsTacticalMap(asset.url)
-        },
-      })
-    }
-    if (onShowcaseImage && asset.url) {
-      items.push({
-        label: 'Showcase to Players',
-        onClick: () => {
-          onShowcaseImage(asset.url)
-        },
-      })
-    }
-    items.push({
-      label: 'Delete',
-      onClick: () => {
-        handleDelete(asset)
-      },
-      color: 'var(--color-danger)',
-    })
-
-    return items
   }
 
   return (
@@ -136,68 +85,114 @@ export function MapDockTab({
         {assets.map((asset) => {
           const isHovered = hoveredId === asset.id
           return (
-            <div
-              key={asset.id}
-              role="button"
-              tabIndex={0}
-              className="relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-fast border-border-glass"
-              onClick={() => {
-                if (!activeSceneId || !asset.url) return
-                if (isTactical) {
-                  onSetAsTacticalMap?.(asset.url)
-                } else {
-                  onSetAsBackground?.(activeSceneId, asset.url)
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  if (!activeSceneId || !asset.url) return
-                  if (isTactical) {
-                    onSetAsTacticalMap?.(asset.url)
-                  } else {
-                    onSetAsBackground?.(activeSceneId, asset.url)
-                  }
-                }
-              }}
-              onContextMenu={(e) => {
-                handleContextMenu(e, asset)
-              }}
-              onMouseEnter={() => {
-                setHoveredId(asset.id)
-              }}
-              onMouseLeave={() => {
-                setHoveredId(null)
-              }}
-            >
-              {isVideoUrl(asset.url) ? (
-                <video
-                  src={asset.url}
-                  muted
-                  loop
-                  autoPlay
-                  playsInline
-                  className="w-full h-[70px] object-cover block"
-                  draggable={false}
-                />
-              ) : (
-                <img
-                  src={asset.url}
-                  alt={asset.name}
-                  className="w-full h-[70px] object-cover block"
-                  draggable={false}
-                />
-              )}
-              <div className="px-1.5 py-1 text-[10px] overflow-hidden text-ellipsis whitespace-nowrap bg-black/30 text-text-muted/60">
-                {asset.name || 'Untitled'}
-              </div>
+            <ContextMenu.Root key={asset.id}>
+              <ContextMenu.Trigger asChild>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-fast border-border-glass"
+                  onClick={() => {
+                    if (!activeSceneId || !asset.url) return
+                    if (isTactical) {
+                      onSetAsTacticalMap?.(asset.url)
+                    } else {
+                      onSetAsBackground?.(activeSceneId, asset.url)
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      if (!activeSceneId || !asset.url) return
+                      if (isTactical) {
+                        onSetAsTacticalMap?.(asset.url)
+                      } else {
+                        onSetAsBackground?.(activeSceneId, asset.url)
+                      }
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    setHoveredId(asset.id)
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredId(null)
+                  }}
+                >
+                  {isVideoUrl(asset.url) ? (
+                    <video
+                      src={asset.url}
+                      muted
+                      loop
+                      autoPlay
+                      playsInline
+                      className="w-full h-[70px] object-cover block"
+                      draggable={false}
+                    />
+                  ) : (
+                    <img
+                      src={asset.url}
+                      alt={asset.name}
+                      className="w-full h-[70px] object-cover block"
+                      draggable={false}
+                    />
+                  )}
+                  <div className="px-1.5 py-1 text-[10px] overflow-hidden text-ellipsis whitespace-nowrap bg-black/30 text-text-muted/60">
+                    {asset.name || 'Untitled'}
+                  </div>
 
-              {/* Hover indicator for right-click */}
-              {isHovered && (
-                <div className="absolute top-1 right-1 w-[18px] h-[18px] rounded-full bg-black/40 flex items-center justify-center text-white/50 text-[8px]">
-                  ···
+                  {/* Hover indicator for right-click */}
+                  {isHovered && (
+                    <div className="absolute top-1 right-1 w-[18px] h-[18px] rounded-full bg-black/40 flex items-center justify-center text-white/50 text-[8px]">
+                      ···
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </ContextMenu.Trigger>
+              <ContextMenu.Portal>
+                <ContextMenu.Content className="z-popover bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans animate-[radix-popover-in_150ms_ease-out]">
+                  {onSetAsBackground && activeSceneId && asset.url && (
+                    <ContextMenu.Item
+                      className="block w-full px-3.5 py-2 text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover outline-none"
+                      style={{ color: 'rgba(255,255,255,0.85)' }}
+                      onSelect={() => {
+                        onSetAsBackground(activeSceneId, asset.url)
+                      }}
+                    >
+                      Set as Scene Background
+                    </ContextMenu.Item>
+                  )}
+                  {onSetAsTacticalMap && asset.url && (
+                    <ContextMenu.Item
+                      className="block w-full px-3.5 py-2 text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover outline-none"
+                      style={{ color: 'rgba(255,255,255,0.85)' }}
+                      onSelect={() => {
+                        onSetAsTacticalMap(asset.url)
+                      }}
+                    >
+                      Set as Tactical Map
+                    </ContextMenu.Item>
+                  )}
+                  {onShowcaseImage && asset.url && (
+                    <ContextMenu.Item
+                      className="block w-full px-3.5 py-2 text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover outline-none"
+                      style={{ color: 'rgba(255,255,255,0.85)' }}
+                      onSelect={() => {
+                        onShowcaseImage(asset.url)
+                      }}
+                    >
+                      Showcase to Players
+                    </ContextMenu.Item>
+                  )}
+                  <ContextMenu.Item
+                    className="block w-full px-3.5 py-2 text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover outline-none"
+                    style={{ color: 'var(--color-danger)' }}
+                    onSelect={() => {
+                      handleDelete(asset)
+                    }}
+                  >
+                    Delete
+                  </ContextMenu.Item>
+                </ContextMenu.Content>
+              </ContextMenu.Portal>
+            </ContextMenu.Root>
           )
         })}
 
@@ -221,18 +216,6 @@ export function MapDockTab({
           )}
         </button>
       </div>
-
-      {/* Right-click context menu */}
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          items={buildContextMenuItems(contextMenu.asset)}
-          onClose={() => {
-            setContextMenu(null)
-          }}
-        />
-      )}
     </div>
   )
 }

@@ -29,7 +29,7 @@ import { SceneButton } from './gm/SceneButton'
 import { HamburgerMenu } from './layout/HamburgerMenu'
 import { PortraitBar } from './layout/PortraitBar'
 import { MyCharacterCard } from './layout/MyCharacterCard'
-import { ContextMenu } from './shared/ContextMenu'
+import * as ContextMenu from '@radix-ui/react-context-menu'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import type { ShowcaseItem } from './shared/showcaseTypes'
 import type { Entity, Atmosphere, SceneEntityEntry } from './shared/entityTypes'
@@ -153,11 +153,9 @@ function RoomSession({ roomId }: { roomId: string }) {
   // UI store
   const inspectedCharacterId = useUiStore((s) => s.inspectedCharacterId)
   const selectedTokenId = useUiStore((s) => s.selectedTokenId)
-  const bgContextMenu = useUiStore((s) => s.bgContextMenu)
   const editingHandout = useUiStore((s) => s.editingHandout)
   const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
   const setSelectedTokenId = useUiStore((s) => s.setSelectedTokenId)
-  const setBgContextMenu = useUiStore((s) => s.setBgContextMenu)
   const setEditingHandout = useUiStore((s) => s.setEditingHandout)
 
   // Sync role from seat
@@ -317,14 +315,7 @@ function RoomSession({ roomId }: { roomId: string }) {
     void addShowcaseItem(item)
   }
 
-  const handleBgContextMenu = (e: React.MouseEvent) => {
-    if (!isGM) return
-    e.preventDefault()
-    setBgContextMenu({ x: e.clientX, y: e.clientY })
-  }
-
   const handleAddNpc = () => {
-    setBgContextMenu(null)
     void useWorldStore
       .getState()
       .createEphemeralNpcInScene()
@@ -340,36 +331,56 @@ function RoomSession({ roomId }: { roomId: string }) {
   return (
     <ToastProvider>
       <div>
-        <SceneViewer scene={activeScene} blurred={isTactical} onContextMenu={handleBgContextMenu} />
-        <AmbientAudio
-          audioUrl={activeScene?.atmosphere.ambientAudioUrl}
-          volume={activeScene?.atmosphere.ambientAudioVolume ?? 0.5}
-        />
+        <ContextMenu.Root>
+          <ContextMenu.Trigger asChild disabled={!isGM}>
+            <div>
+              <SceneViewer scene={activeScene} blurred={isTactical} />
+              <AmbientAudio
+                audioUrl={activeScene?.atmosphere.ambientAudioUrl}
+                volume={activeScene?.atmosphere.ambientAudioVolume ?? 0.5}
+              />
 
-        {activeScene && (
-          <TacticalPanel
-            ref={konvaMapRef}
-            tacticalInfo={tacticalInfo}
-            tokens={tokens}
-            getEntity={getEntity}
-            mySeatId={mySeatId}
-            role={mySeat.role}
-            selectedTokenId={selectedTokenId}
-            onSelectToken={setSelectedTokenId}
-            onUpdateToken={(id, updates) => {
-              void updateToken(id, updates)
-            }}
-            onDeleteToken={(id) => {
-              void deleteToken(id)
-            }}
-            onAddToken={(token) => {
-              void addToken(token)
-            }}
-            onDropEntityOnMap={handleDropEntityOnMap}
-            onContextMenu={handleBgContextMenu}
-            visible={isTactical}
-          />
-        )}
+              {activeScene && (
+                <TacticalPanel
+                  ref={konvaMapRef}
+                  tacticalInfo={tacticalInfo}
+                  tokens={tokens}
+                  getEntity={getEntity}
+                  mySeatId={mySeatId}
+                  role={mySeat.role}
+                  selectedTokenId={selectedTokenId}
+                  onSelectToken={setSelectedTokenId}
+                  onUpdateToken={(id, updates) => {
+                    void updateToken(id, updates)
+                  }}
+                  onDeleteToken={(id) => {
+                    void deleteToken(id)
+                  }}
+                  onAddToken={(token) => {
+                    void addToken(token)
+                  }}
+                  onDropEntityOnMap={handleDropEntityOnMap}
+                  visible={isTactical}
+                />
+              )}
+            </div>
+          </ContextMenu.Trigger>
+          {isGM && (
+            <ContextMenu.Portal>
+              <ContextMenu.Content
+                className="z-popover bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans animate-[radix-popover-in_150ms_ease-out]"
+              >
+                <ContextMenu.Item
+                  onSelect={handleAddNpc}
+                  className="block w-full px-3.5 py-2 text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover outline-none"
+                  style={{ color: 'rgba(255,255,255,0.85)' }}
+                >
+                  Add NPC
+                </ContextMenu.Item>
+              </ContextMenu.Content>
+            </ContextMenu.Portal>
+          )}
+        </ContextMenu.Root>
 
         {/* Top-left: Hamburger menu */}
         <HamburgerMenu
@@ -513,17 +524,6 @@ function RoomSession({ roomId }: { roomId: string }) {
           />
         )}
 
-        {/* Background right-click context menu (GM only) */}
-        {bgContextMenu && (
-          <ContextMenu
-            x={bgContextMenu.x}
-            y={bgContextMenu.y}
-            items={[{ label: 'Add NPC', onClick: handleAddNpc }]}
-            onClose={() => {
-              setBgContextMenu(null)
-            }}
-          />
-        )}
 
         {editingHandout && (
           <HandoutEditModal

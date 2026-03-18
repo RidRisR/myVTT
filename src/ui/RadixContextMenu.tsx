@@ -10,9 +10,10 @@ interface RadixContextMenuProps {
 }
 
 /**
- * Context menu wrapper built on Radix Popover.
+ * Konva-specific context menu wrapper built on Radix Popover.
  * Uses Popover.Anchor (not Trigger) to position at arbitrary {x, y} coordinates
- * — compatible with both DOM and Konva canvas events.
+ * — designed for Konva canvas right-click events where native context menus
+ * are not available.
  *
  * The anchor is rendered via portal to document.body to avoid CSS transform
  * containment issues (e.g., parent with `-translate-x-1/2` breaking `position: fixed`).
@@ -46,10 +47,7 @@ export function RadixContextMenu({ x, y, open, onClose, children }: RadixContext
           side="bottom"
           align="start"
           sideOffset={0}
-          className="bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans animate-[radix-popover-in_150ms_ease-out]"
-          style={{ zIndex: 10001 }}
-          role="menu"
-          onPointerDownOutside={() => { onClose(); }}
+          className="z-popover bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans animate-[radix-popover-in_150ms_ease-out]"
         >
           {children}
         </Popover.Content>

@@ -61,7 +61,7 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
 
   return (
     <div
-      className="fixed top-3 z-toast pointer-events-auto"
+      className="fixed top-3 z-ui pointer-events-auto"
       style={{ right: RIGHT_PANEL_WIDTH + 24 }}
       onPointerDown={(e) => {
         e.stopPropagation()

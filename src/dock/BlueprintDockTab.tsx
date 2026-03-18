@@ -1,8 +1,8 @@
 import { useRef, useState, useMemo } from 'react'
 import { X, Plus, CircleDot } from 'lucide-react'
+import * as ContextMenu from '@radix-ui/react-context-menu'
 import type { Blueprint } from '../shared/entityTypes'
 import { useWorldStore } from '../stores/worldStore'
-import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { useToast } from '../ui/useToast'
 import { TagFilterBar } from '../ui/TagFilterBar'
 
@@ -37,9 +37,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; bpId: string } | null>(
-    null,
-  )
   const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   // Read from world store — derive blueprints from assets with type === 'blueprint'
@@ -114,12 +111,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     setEditingId(null)
   }
 
-  const handleContextMenu = (e: React.MouseEvent, bpId: string) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setContextMenu({ x: e.clientX, y: e.clientY, bpId })
-  }
-
   const [editingTagsId, setEditingTagsId] = useState<string | null>(null)
   const [tagInput, setTagInput] = useState('')
 
@@ -143,39 +134,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
       string,
       unknown
     >)
-  }
-
-  const getContextMenuItems = (bp: Blueprint): ContextMenuItem[] => {
-    const items: ContextMenuItem[] = []
-    if (isTactical) {
-      items.push({
-        label: 'Spawn on map',
-        onClick: () => {
-          onSpawnToken(bp)
-        },
-      })
-    }
-    items.push({
-      label: 'Add as featured NPC',
-      onClick: () => {
-        onAddToActive(bp)
-      },
-    })
-    items.push({
-      label: 'Edit tags',
-      onClick: () => {
-        setEditingTagsId(bp.id)
-        setTagInput('')
-      },
-    })
-    items.push({
-      label: 'Delete blueprint',
-      onClick: () => {
-        handleDelete(bp)
-      },
-      color: '#f87171',
-    })
-    return items
   }
 
   return (
@@ -223,82 +181,125 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
         {blueprints.map((bp) => {
           const isHovered = hoveredId === bp.id
           return (
-            <div
-              key={bp.id}
-              className="flex flex-col items-center gap-1 relative"
-              onMouseEnter={() => {
-                setHoveredId(bp.id)
-              }}
-              onMouseLeave={() => {
-                setHoveredId(null)
-              }}
-              onContextMenu={(e) => {
-                handleContextMenu(e, bp.id)
-              }}
-            >
-              {/* Circular token image */}
-              <div
-                onClick={() => {
-                  if (isTactical) {
-                    onSpawnToken(bp)
-                  } else {
-                    onAddToActive(bp)
-                  }
-                }}
-                className="w-14 h-14 rounded-full overflow-hidden cursor-pointer shrink-0 transition-shadow duration-fast"
-                style={{
-                  border: `3px solid ${bp.defaultColor}`,
-                  boxShadow: isHovered ? `0 0 12px ${bp.defaultColor}44` : 'none',
-                }}
-              >
-                <img
-                  src={bp.imageUrl}
-                  alt={bp.name}
-                  className="w-full h-full object-cover block"
-                  draggable={false}
-                />
-              </div>
-
-              {/* Name label (double-click to edit) */}
-              {editingId === bp.id ? (
-                <input
-                  value={editName}
-                  onChange={(e) => {
-                    setEditName(e.target.value)
+            <ContextMenu.Root key={bp.id}>
+              <ContextMenu.Trigger asChild>
+                <div
+                  className="flex flex-col items-center gap-1 relative"
+                  onMouseEnter={() => {
+                    setHoveredId(bp.id)
                   }}
-                  onBlur={commitEdit}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitEdit()
-                    if (e.key === 'Escape') setEditingId(null)
+                  onMouseLeave={() => {
+                    setHoveredId(null)
                   }}
-                  autoFocus
-                  className="w-16 text-[9px] text-center bg-surface border border-border-glass rounded text-text-primary outline-none px-1 py-0.5"
-                />
-              ) : (
-                <span
-                  onDoubleClick={() => {
-                    startEdit(bp)
-                  }}
-                  className="text-[9px] text-text-muted/60 text-center overflow-hidden text-ellipsis whitespace-nowrap max-w-[72px] cursor-default"
                 >
-                  {bp.name}
-                </span>
-              )}
+                  {/* Circular token image */}
+                  <div
+                    onClick={() => {
+                      if (isTactical) {
+                        onSpawnToken(bp)
+                      } else {
+                        onAddToActive(bp)
+                      }
+                    }}
+                    className="w-14 h-14 rounded-full overflow-hidden cursor-pointer shrink-0 transition-shadow duration-fast"
+                    style={{
+                      border: `3px solid ${bp.defaultColor}`,
+                      boxShadow: isHovered ? `0 0 12px ${bp.defaultColor}44` : 'none',
+                    }}
+                  >
+                    <img
+                      src={bp.imageUrl}
+                      alt={bp.name}
+                      className="w-full h-full object-cover block"
+                      draggable={false}
+                    />
+                  </div>
 
-              {/* Delete button on hover */}
-              {isHovered && (
-                <button
-                  aria-label="Delete blueprint"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDelete(bp)
-                  }}
-                  className="absolute -top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 border-none cursor-pointer text-danger flex items-center justify-center p-0"
-                >
-                  <X size={10} strokeWidth={2.5} />
-                </button>
-              )}
-            </div>
+                  {/* Name label (double-click to edit) */}
+                  {editingId === bp.id ? (
+                    <input
+                      value={editName}
+                      onChange={(e) => {
+                        setEditName(e.target.value)
+                      }}
+                      onBlur={commitEdit}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') commitEdit()
+                        if (e.key === 'Escape') setEditingId(null)
+                      }}
+                      autoFocus
+                      className="w-16 text-[9px] text-center bg-surface border border-border-glass rounded text-text-primary outline-none px-1 py-0.5"
+                    />
+                  ) : (
+                    <span
+                      onDoubleClick={() => {
+                        startEdit(bp)
+                      }}
+                      className="text-[9px] text-text-muted/60 text-center overflow-hidden text-ellipsis whitespace-nowrap max-w-[72px] cursor-default"
+                    >
+                      {bp.name}
+                    </span>
+                  )}
+
+                  {/* Delete button on hover */}
+                  {isHovered && (
+                    <button
+                      aria-label="Delete blueprint"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDelete(bp)
+                      }}
+                      className="absolute -top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 border-none cursor-pointer text-danger flex items-center justify-center p-0"
+                    >
+                      <X size={10} strokeWidth={2.5} />
+                    </button>
+                  )}
+                </div>
+              </ContextMenu.Trigger>
+              <ContextMenu.Portal>
+                <ContextMenu.Content className="z-popover bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans animate-[radix-popover-in_150ms_ease-out]">
+                  {isTactical && (
+                    <ContextMenu.Item
+                      className="block w-full px-3.5 py-2 text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover outline-none"
+                      style={{ color: 'rgba(255,255,255,0.85)' }}
+                      onSelect={() => {
+                        onSpawnToken(bp)
+                      }}
+                    >
+                      Spawn on map
+                    </ContextMenu.Item>
+                  )}
+                  <ContextMenu.Item
+                    className="block w-full px-3.5 py-2 text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover outline-none"
+                    style={{ color: 'rgba(255,255,255,0.85)' }}
+                    onSelect={() => {
+                      onAddToActive(bp)
+                    }}
+                  >
+                    Add as featured NPC
+                  </ContextMenu.Item>
+                  <ContextMenu.Item
+                    className="block w-full px-3.5 py-2 text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover outline-none"
+                    style={{ color: 'rgba(255,255,255,0.85)' }}
+                    onSelect={() => {
+                      setEditingTagsId(bp.id)
+                      setTagInput('')
+                    }}
+                  >
+                    Edit tags
+                  </ContextMenu.Item>
+                  <ContextMenu.Item
+                    className="block w-full px-3.5 py-2 text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover outline-none"
+                    style={{ color: '#f87171' }}
+                    onSelect={() => {
+                      handleDelete(bp)
+                    }}
+                  >
+                    Delete blueprint
+                  </ContextMenu.Item>
+                </ContextMenu.Content>
+              </ContextMenu.Portal>
+            </ContextMenu.Root>
           )
         })}
 
@@ -313,23 +314,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
           <span className="text-[9px] text-text-muted/30">Add Token</span>
         </div>
       </div>
-
-      {/* Context menu */}
-      {contextMenu &&
-        (() => {
-          const bp = blueprints.find((b) => b.id === contextMenu.bpId)
-          if (!bp) return null
-          return (
-            <ContextMenu
-              x={contextMenu.x}
-              y={contextMenu.y}
-              items={getContextMenuItems(bp)}
-              onClose={() => {
-                setContextMenu(null)
-              }}
-            />
-          )
-        })()}
 
       {/* Tag editor inline panel */}
       {editingTagsId &&
