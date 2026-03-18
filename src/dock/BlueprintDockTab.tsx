@@ -69,7 +69,8 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     try {
       const asset = await uploadAsset(file, {
         name: file.name.replace(/\.[^.]+$/, ''),
-        type: 'image',
+        mediaType: 'image',
+        tags: ['token'],
       })
       await createBlueprint({
         name: asset.name,

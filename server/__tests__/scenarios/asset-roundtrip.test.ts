@@ -19,7 +19,7 @@ describe('Asset Roundtrip Journey', () => {
     const formData = new FormData()
     const blob = new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: 'image/png' })
     formData.append('file', blob, 'test-map.png')
-    formData.append('type', 'image')
+    formData.append('mediaType', 'image')
 
     const res = await fetch(`${ctx.apiBase}/api/rooms/${ctx.roomId}/assets`, {
       method: 'POST',
@@ -29,7 +29,7 @@ describe('Asset Roundtrip Journey', () => {
     const data = (await res.json()) as Record<string, unknown>
     assetId = data.id as string
     assetUrl = data.url as string
-    expect(data.type).toBe('image')
+    expect(data.mediaType).toBe('image')
     expect(Array.isArray(data.tags)).toBe(true) // NOT a string
   })
 

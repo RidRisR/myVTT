@@ -377,12 +377,12 @@ describe('Full room lifecycle', () => {
       .post(`/api/rooms/${roomId}/assets`)
       .attach('file', fileContent, { filename: 'test.png', contentType: 'image/png' })
       .field('name', 'Test Image')
-      .field('type', 'image')
+      .field('mediaType', 'image')
     expect(uploadRes.status).toBe(201)
     expect(uploadRes.body.id).toBeTruthy()
     expect(uploadRes.body.url).toContain('/uploads/')
     expect(uploadRes.body.name).toBe('Test Image')
-    expect(uploadRes.body.type).toBe('image')
+    expect(uploadRes.body.mediaType).toBe('image')
 
     const assetUrl = uploadRes.body.url
     const assetId = uploadRes.body.id

@@ -35,12 +35,12 @@ export function getMediaDimensions(url: string): Promise<{ w: number; h: number 
 
 export async function uploadAsset(
   file: File,
-  meta?: { name?: string; type?: string; extra?: Record<string, unknown> },
+  meta?: { name?: string; mediaType?: string; extra?: Record<string, unknown> },
 ): Promise<{
   id: string
   url: string
   name: string
-  type: string
+  mediaType: string
   createdAt: number
   extra: Record<string, unknown>
 }> {
@@ -48,7 +48,7 @@ export async function uploadAsset(
   const formData = new FormData()
   formData.append('file', file)
   if (meta?.name) formData.append('name', meta.name)
-  if (meta?.type) formData.append('type', meta.type)
+  if (meta?.mediaType) formData.append('mediaType', meta.mediaType)
   if (meta?.extra) formData.append('extra', JSON.stringify(meta.extra))
 
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/assets`, {
@@ -65,7 +65,7 @@ export async function uploadAsset(
     id: string
     url: string
     name: string
-    type: string
+    mediaType: string
     createdAt: number
     extra: Record<string, unknown>
   }

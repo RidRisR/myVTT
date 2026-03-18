@@ -155,7 +155,7 @@ interface WorldState {
     file: File,
     meta: {
       name?: string
-      type?: AssetMeta['type']
+      mediaType?: AssetMeta['mediaType']
       tags?: string[]
     },
   ) => Promise<AssetMeta>
@@ -235,8 +235,8 @@ function normalizeAsset(raw: Record<string, unknown>): AssetMeta {
     id: raw.id as string,
     url: raw.url as string,
     name: raw.name as string,
-    type: (raw.type as AssetMeta['type'] | undefined) || 'image',
-    tags: (extra.tags as string[] | undefined) || (raw.tags as string[] | undefined) || [],
+    mediaType: (raw.mediaType as AssetMeta['mediaType'] | undefined) || 'image',
+    tags: (raw.tags as string[] | undefined) || [],
     createdAt: raw.createdAt as number,
     ...(extra.handout ? { handout: extra.handout as AssetMeta['handout'] } : {}),
   }
@@ -936,7 +936,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const extra: Record<string, unknown> = { tags: meta.tags || [] }
     const result = await uploadAssetFile(file, {
       name: meta.name || file.name,
-      type: meta.type || 'image',
+      mediaType: meta.mediaType || 'image',
       extra,
     })
     // Do NOT manually update store here — the server emits asset:created via Socket.io

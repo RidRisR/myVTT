@@ -21,15 +21,25 @@ export function chatRoutes(dataDir: string, io: TypedServer): Router {
     return msg as unknown as ChatMessage
   }
 
-  // Get chat history (supports incremental fetch)
+  // Get chat history (supports incremental fetch via cursor id)
   router.get('/api/rooms/:roomId/chat', room, (req, res) => {
-    const after = parseInt(req.query.after as string) || 0
+    const afterId = req.query.after as string | undefined
     const limit = Math.min(parseInt(req.query.limit as string) || 200, 1000)
-    const rows = req
-      .roomDb!.prepare(
-        'SELECT * FROM chat_messages WHERE timestamp > ? ORDER BY timestamp ASC LIMIT ?',
-      )
-      .all(after, limit) as Record<string, unknown>[]
+    let rows: Record<string, unknown>[]
+    if (afterId) {
+      // Cursor-based pagination: fetch messages inserted after the given id (by rowid order)
+      rows = req
+        .roomDb!.prepare(
+          `SELECT * FROM chat_messages
+           WHERE rowid > COALESCE((SELECT rowid FROM chat_messages WHERE id = ?), 0)
+           ORDER BY rowid ASC LIMIT ?`,
+        )
+        .all(afterId, limit) as Record<string, unknown>[]
+    } else {
+      rows = req
+        .roomDb!.prepare('SELECT * FROM chat_messages ORDER BY rowid ASC LIMIT ?')
+        .all(limit) as Record<string, unknown>[]
+    }
     res.json(rows.map(toMessage))
   })
 
