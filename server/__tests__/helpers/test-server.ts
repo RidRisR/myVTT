@@ -16,6 +16,7 @@ import { trackerRoutes } from '../../routes/trackers'
 import { showcaseRoutes } from '../../routes/showcase'
 import { stateRoutes } from '../../routes/state'
 import { assetRoutes } from '../../routes/assets'
+import { bundleRoutes } from '../../routes/bundle'
 import { blueprintRoutes } from '../../routes/blueprints'
 import { setupSocketAuth } from '../../ws'
 import { setupAwareness } from '../../awareness'
@@ -73,6 +74,7 @@ export async function setupTestRoom(roomName = 'test-room'): Promise<TestContext
   app.use(showcaseRoutes(dataDir, io))
   app.use(stateRoutes(dataDir, io))
   app.use(assetRoutes(dataDir, io))
+  app.use(bundleRoutes(dataDir, io))
   app.use(blueprintRoutes(dataDir, io))
 
   getGlobalDb(dataDir)
@@ -184,6 +186,7 @@ export async function connectSecondClient(apiBase: string, roomId: string): Prom
 
 export interface SimpleTestServer {
   baseUrl: string
+  dataDir: string
   cleanup: () => void
   api: (
     method: string,
@@ -228,6 +231,7 @@ export async function setupTestServer(): Promise<SimpleTestServer> {
   app.use(showcaseRoutes(dataDir, io))
   app.use(stateRoutes(dataDir, io))
   app.use(assetRoutes(dataDir, io))
+  app.use(bundleRoutes(dataDir, io))
   app.use(blueprintRoutes(dataDir, io))
 
   getGlobalDb(dataDir)
@@ -270,5 +274,5 @@ export async function setupTestServer(): Promise<SimpleTestServer> {
     fs.rmSync(dataDir, { recursive: true, force: true })
   }
 
-  return { baseUrl, cleanup, api }
+  return { baseUrl, dataDir, cleanup, api }
 }
