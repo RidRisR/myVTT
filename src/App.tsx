@@ -492,8 +492,8 @@ function RoomSession({ roomId }: { roomId: string }) {
             onSelectScene={(sceneId) => {
               void setActiveScene(sceneId)
             }}
-            onUpdateScene={(id, updates) => {
-              void updateScene(id, updates)
+            onRenameScene={(id, name) => {
+              void updateScene(id, { name })
             }}
             onDeleteScene={handleDeleteScene}
             onDuplicateScene={(sceneId) => {
