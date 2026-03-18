@@ -85,7 +85,12 @@ export default defineConfig([
   // Note: ../something from src/shared/hooks/ is fine (still inside src/shared/); ../../ is not.
   {
     files: ['src/shared/**/*.{ts,tsx}'],
-    ignores: ['src/shared/**/__tests__/**', 'src/shared/**/__test-utils__/**', 'src/shared/hooks/**', 'src/shared/ui/**'],
+    ignores: [
+      'src/shared/**/__tests__/**',
+      'src/shared/**/__test-utils__/**',
+      'src/shared/hooks/**',
+      'src/shared/ui/**',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -162,12 +167,7 @@ export default defineConfig([
                 'Server boundary: server/ must not import from src/stores/ (client-only). Use src/shared/ for shared types.',
             },
             {
-              group: [
-                '**/src/chat/**',
-                '**/src/showcase/**',
-                '**/src/admin/**',
-                '**/src/rules/**',
-              ],
+              group: ['**/src/chat/**', '**/src/showcase/**', '**/src/admin/**', '**/src/rules/**'],
               message:
                 'Server boundary: server/ may only import types from src/shared/. Move the type to src/shared/ first.',
             },
