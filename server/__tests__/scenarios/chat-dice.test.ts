@@ -124,14 +124,14 @@ describe('Chat & Dice Roll Journey', () => {
   // ── 6.5 Incremental fetch with ?after= ──
 
   it('6.5 incremental fetch with ?after= returns only newer messages', async () => {
-    // Send three messages with slight time separation
+    // Send three messages rapidly (may share the same millisecond timestamp)
     const { data: msg1 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
       senderId: seatId,
       senderName: 'GM',
       senderColor: '#ff6600',
       content: 'First',
     })
-    const ts1 = (msg1 as { timestamp: number }).timestamp
+    const firstId = (msg1 as { id: string }).id
 
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
       senderId: seatId,
@@ -147,14 +147,15 @@ describe('Chat & Dice Roll Journey', () => {
       content: 'Third',
     })
 
-    // Fetch with after=ts1 should exclude first message
-    const { data: afterFirst } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/chat?after=${ts1}`)
+    // Fetch with after=firstId — cursor-based, returns messages inserted after "First"
+    const { data: afterFirst } = await ctx.api(
+      'GET',
+      `/api/rooms/${ctx.roomId}/chat?after=${firstId}`,
+    )
     const afterMessages = afterFirst as { content: string }[]
-    // Messages with timestamp > ts1 (Second and Third)
-    expect(afterMessages.length).toBeGreaterThanOrEqual(2)
-    expect(afterMessages.every((m) => m.content !== 'First')).toBe(true)
-    expect(afterMessages.some((m) => m.content === 'Second')).toBe(true)
-    expect(afterMessages.some((m) => m.content === 'Third')).toBe(true)
+    expect(afterMessages).toHaveLength(2)
+    expect(afterMessages[0]!.content).toBe('Second')
+    expect(afterMessages[1]!.content).toBe('Third')
   })
 
   // ── 6.6 Limit fetch with ?limit= ──
