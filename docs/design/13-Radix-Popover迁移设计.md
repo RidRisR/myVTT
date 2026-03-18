@@ -3,7 +3,7 @@
 **开发分支**：`poc/radix-popover`
 **工作目录**：`../myVTT-radix-poc`（git worktree）
 
-迁移已完成。所有自建浮层组件已替换为 Radix UI 语义组件。
+核心迁移已完成（PR #114）。所有自建浮层组件已替换为 Radix UI 语义组件。z-index 语义修复和旧组件清理待后续 PR（见"未完成工作"章节）。
 
 ## 动机与目标
 
@@ -123,11 +123,44 @@ Konva canvas 自行管理右键事件（`e.evt.stopPropagation()`），Radix 的
 
 **测试覆盖**：`src/ui/__tests__/ConfirmDropdown.test.tsx`（7 个用例）
 
-### 4. z-index 语义修复（已完成）
+### 4. React Portal 合成事件冒泡（已修复）
+
+**问题**：`Popover.Portal` 将确认弹窗渲染到 `<body>`，DOM 层面与父组件无关。但 React 合成事件仍沿组件树冒泡：
+
+```
+Delete 按钮 → Popover.Content → Popover.Portal → Popover.Root → 场景卡片 div (onClick)
+```
+
+点击删除确认按钮会意外触发场景卡片的 `onSelectScene`，导致被删除的场景被重新选为活跃场景，服务端随后将 `activeSceneId` 置空。
+
+**根因**：这是 React `createPortal` 的基本行为，不是 Radix 特有问题。旧的 `ConfirmPopover` 也用了 `createPortal`，但碰巧渲染在可点击容器的组件树外面，所以没触发。
+
+**解决方案**：所有在可点击容器内的 `Popover.Content` 必须同时阻断 `onPointerDown` 和 `onClick` 冒泡：
+
+```tsx
+<Popover.Content
+  onPointerDown={(e) => e.stopPropagation()}
+  onClick={(e) => e.stopPropagation()}  // 关键：阻断 React 合成事件
+>
+```
+
+**规则**：凡 `Popover.Root` 位于 `onClick` 容器内部，`Popover.Content` 必须添加 `onClick stopPropagation`。
+
+### 5. Click-outside 与 Portal 的冲突（已修复）
+
+**问题**：手写的 `document.addEventListener('pointerdown')` click-outside handler 使用 `Node.contains()` 判断点击是否在面板内。Radix Portal 渲染到 `<body>`，`contains()` 返回 false，导致点击 Portal 内容被误判为"外部点击"。
+
+**解决方案**：click-outside handler 中增加 Radix Portal 检测：
+
+```ts
+if ((e.target as Element).closest('[data-radix-popper-content-wrapper]')) return
+```
+
+### 6. z-index 语义修复（已回退，待重做）
 
 **问题**：几乎所有固定 UI 元素都滥用 `z-toast`（10000），导致菜单需要 >10000 才能显示。
 
-**修复**：将所有常驻 UI 从 `z-toast` 降级为 `z-ui`（1000），共 12 个文件 18 处修改。修复后的层级：
+**目标层级**：
 
 ```
 base:     0      ← 背景
@@ -139,9 +172,13 @@ modal:    9000   ← 模态框
 toast:    10000  ← 通知提示（仅 ToastProvider）
 ```
 
+**状态**：PR #114 中尝试逐文件修改，但单独改 GmDock 导致 SceneListPanel（仍为 z-toast）遮挡 Combat 按钮，e2e 测试失败。**必须 12 个文件同时修改**，不能分批。已回退，作为后续独立 PR 处理。
+
 ## 迁移结果
 
-### 已删除组件
+### 已删除组件（待清理）
+
+以下组件已无引用，但尚未从代码库删除，待后续 cleanup PR 处理：
 
 | 文件                                | 说明                                           |
 | ----------------------------------- | ---------------------------------------------- |
@@ -165,9 +202,11 @@ toast:    10000  ← 通知提示（仅 ToastProvider）
 | `src/ui/RadixContextMenu.tsx`               | Popover (Konva 专用)   | 简化为 Konva-only wrapper                     |
 | `src/combat/TokenContextMenu.tsx`           | —                      | 移除 role 属性，修复硬编码颜色                |
 
-### z-index 修复文件
+### z-index 修复文件（已回退，待重做）
 
-PortraitBar, GmDock, AmbientAudio, SceneButton, SceneConfigPanel, SceneListPanel, MyCharacterCard, HamburgerMenu, TacticalToolbar, ChatPanel, MessageScrollArea — 共 12 文件 `z-toast` → `z-ui`
+以下 12 个文件需同时从 `z-toast` → `z-ui`（不可分批修改）：
+
+PortraitBar, GmDock, AmbientAudio, SceneButton, SceneConfigPanel, SceneListPanel, MyCharacterCard, HamburgerMenu, TacticalToolbar, ChatPanel, MessageScrollArea
 
 ## Bundle 影响
 
@@ -198,7 +237,7 @@ export { RadixContextMenu } from '../ui/RadixContextMenu'
 
 1. `Popover.Anchor` 不拦截 DOM 事件传播，不影响 Konva canvas 事件模型（POC 已验证）
 2. Radix `@floating-ui` 能正确处理所有视口边界场景
-3. `createPortal` 到 `document.body` 不会引入 React 事件冒泡问题
+3. ~~`createPortal` 到 `document.body` 不会引入 React 事件冒泡问题~~ **已证伪**：React 合成事件沿组件树冒泡，Portal 内容的 click 会冒泡到 Portal 所在的父组件树。见"已知坑 #4"
 4. `ContextMenu.Portal` / `DropdownMenu.Portal` 默认渲染到 body，绕过 CSS transform 包含块
 
 ## Edge Cases
@@ -217,3 +256,24 @@ export { RadixContextMenu } from '../ui/RadixContextMenu'
   "@radix-ui/react-dropdown-menu": "^2.1.6"
 }
 ```
+
+## 未完成工作
+
+PR #114 完成了核心迁移（Step 1/3/4/5），以下工作待后续 PR：
+
+### 必做
+
+| 项目                  | 说明                                                                         | Issue |
+| --------------------- | ---------------------------------------------------------------------------- | ----- |
+| z-index 语义修复      | 12 文件同时 `z-toast` → `z-ui`，必须原子提交                                 | —     |
+| 删除旧组件            | `ConfirmPopover.tsx`、`ContextMenu.tsx`、`global.css` 旧 keyframe            | —     |
+| RadixContextMenu 简化 | 移除 `role="menu"`、`zIndex: 10001` → `z-popover`，重命名为 KonvaContextMenu | —     |
+| TokenContextMenu 清理 | 移除 `role="menuitem"`，硬编码颜色 → Tailwind token                          | —     |
+
+### 建议做
+
+| 项目                  | 说明                                                      | Issue |
+| --------------------- | --------------------------------------------------------- | ----- |
+| Overlay 交互测试页    | `/dev/overlays` 路由 + e2e 回归测试，固化 Portal 交互陷阱 | #116  |
+| `ConfirmPopover` 封装 | 提取共享组件，内建 `stopPropagation`，消除调用方遗漏风险  | #116  |
+| `ui-patterns.md` 更新 | 添加 Radix Portal 使用规范                                | #116  |
