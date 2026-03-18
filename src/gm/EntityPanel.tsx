@@ -188,6 +188,7 @@ export function EntityPanel() {
                 <>
                   {/* Visibility toggle for scene entities */}
                   <button
+                    data-testid="toggle-visibility"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleToggleVisibility(entity, groupType === 'onStage')
@@ -240,6 +241,7 @@ export function EntityPanel() {
             className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted/40"
           />
           <input
+            data-testid="entity-search"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value)
@@ -275,6 +277,7 @@ export function EntityPanel() {
       {/* Bottom action bar */}
       <div className="shrink-0 border-t border-border-glass px-2 py-2">
         <button
+          data-testid="create-npc-btn"
           onClick={handleCreateNpc}
           className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
           title={t('entity.create_npc')}

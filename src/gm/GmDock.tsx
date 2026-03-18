@@ -240,6 +240,7 @@ export function GmDock({
       {/* Tab bar */}
       <div className="flex gap-1.5">
         <button
+          data-testid="dock-tab-gallery"
           onClick={() => {
             toggleTab('gallery')
           }}
@@ -250,6 +251,7 @@ export function GmDock({
         </button>
 
         <button
+          data-testid="dock-tab-tokens"
           onClick={() => {
             toggleTab('tokens')
           }}
@@ -260,6 +262,7 @@ export function GmDock({
         </button>
 
         <button
+          data-testid="dock-tab-characters"
           onClick={() => {
             toggleTab('characters')
           }}
@@ -270,6 +273,7 @@ export function GmDock({
         </button>
 
         <button
+          data-testid="dock-tab-handouts"
           onClick={() => {
             toggleTab('handouts')
           }}
@@ -280,6 +284,7 @@ export function GmDock({
         </button>
 
         <button
+          data-testid="dock-tab-dice"
           onClick={() => {
             toggleTab('dice')
           }}
@@ -294,6 +299,7 @@ export function GmDock({
 
         {/* Combat toggle (fixed, not a tab) */}
         <button
+          data-testid="combat-toggle"
           onClick={onToggleCombat}
           className={`flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg backdrop-blur-[8px] border border-border-glass text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-all duration-fast ${
             isTactical

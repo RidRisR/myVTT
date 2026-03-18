@@ -125,6 +125,7 @@ export function CharacterLibraryTab() {
           onClick={handleCreate}
           className="shrink-0 p-1 rounded text-text-muted hover:text-text-primary hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
           title={t('character.create')}
+          data-testid="create-character"
         >
           <Plus size={14} strokeWidth={1.5} />
         </button>
@@ -175,6 +176,7 @@ export function CharacterLibraryTab() {
                   }}
                   className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 rounded text-text-muted/40 hover:text-danger hover:bg-danger/10 cursor-pointer transition-all duration-fast"
                   title={t('character.delete_character')}
+                  data-testid="delete-character"
                 >
                   <Trash2 size={12} strokeWidth={1.5} />
                 </button>

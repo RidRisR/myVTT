@@ -85,12 +85,14 @@ export function ConfirmPopover({
         <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{message}</p>
         <div className="flex justify-end gap-2">
           <button
+            data-testid="confirm-cancel"
             onClick={onCancel}
             className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast"
           >
             {resolvedCancelLabel}
           </button>
           <button
+            data-testid="confirm-action"
             onClick={onConfirm}
             className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
           >

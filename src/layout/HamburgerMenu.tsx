@@ -238,6 +238,7 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                 setOpen(false)
                 onLeaveSeat()
               }}
+              data-testid="leave-seat"
               className="w-full px-3 py-2 bg-transparent border-none rounded-lg cursor-pointer text-xs text-danger font-medium text-left flex items-center gap-2 transition-colors duration-fast hover:bg-danger/10"
             >
               <LogOut size={14} strokeWidth={1.5} />

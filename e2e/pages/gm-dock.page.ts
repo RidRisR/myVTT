@@ -21,12 +21,12 @@ export class GmDockPage {
     this.gallery = new GalleryPage(page)
     this.blueprint = new BlueprintPage(page)
     this.characterLibrary = new CharacterLibraryPage(page)
-    this.galleryTab = page.getByRole('button', { name: 'Gallery', exact: true })
-    this.tokensTab = page.getByRole('button', { name: 'Blueprints' })
-    this.charactersTab = page.getByRole('button', { name: 'Characters' })
-    this.handoutsTab = page.getByRole('button', { name: 'Handouts' })
-    this.diceTab = page.getByRole('button', { name: 'Dice' })
-    this.combatButton = page.getByRole('button', { name: /Combat|Exit/ })
+    this.galleryTab = page.getByTestId('dock-tab-gallery')
+    this.tokensTab = page.getByTestId('dock-tab-tokens')
+    this.charactersTab = page.getByTestId('dock-tab-characters')
+    this.handoutsTab = page.getByTestId('dock-tab-handouts')
+    this.diceTab = page.getByTestId('dock-tab-dice')
+    this.combatButton = page.getByTestId('combat-toggle')
   }
 
   async expectVisible() {
@@ -59,18 +59,18 @@ export class GmDockPage {
   }
 
   async enterCombat() {
-    await this.page.getByRole('button', { name: 'Combat' }).click()
+    await this.combatButton.click()
   }
 
   async exitCombat() {
-    await this.page.getByRole('button', { name: 'Exit' }).click()
+    await this.combatButton.click()
   }
 
   async expectInCombat() {
-    await expect(this.page.getByRole('button', { name: 'Exit' })).toBeVisible()
+    await expect(this.combatButton).toHaveClass(/bg-danger/, { timeout: 5_000 })
   }
 
   async expectNotInCombat() {
-    await expect(this.page.getByRole('button', { name: 'Combat' })).toBeVisible()
+    await expect(this.combatButton).not.toHaveClass(/bg-danger/, { timeout: 5_000 })
   }
 }

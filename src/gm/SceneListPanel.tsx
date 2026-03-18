@@ -72,7 +72,9 @@ export function SceneListPanel({
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border-glass">
-        <span className="text-text-primary text-sm font-semibold">{t('scene.scenes')}</span>
+        <span className="text-text-primary text-sm font-semibold" data-testid="scene-panel-header">
+          {t('scene.scenes')}
+        </span>
         <button
           onClick={onClose}
           className="text-text-muted hover:text-text-primary transition-colors duration-fast p-0.5 cursor-pointer"
@@ -187,6 +189,7 @@ export function SceneListPanel({
           {/* Create new scene card */}
           <div
             className="h-9 rounded-lg border border-dashed border-border-glass flex items-center justify-center gap-1.5 cursor-pointer text-text-muted hover:text-text-primary hover:border-accent/30 transition-colors duration-fast"
+            data-testid="create-scene-btn"
             onClick={onCreateScene}
           >
             <Plus size={14} strokeWidth={1.5} />

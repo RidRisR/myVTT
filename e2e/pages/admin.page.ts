@@ -9,9 +9,9 @@ export class AdminPage {
 
   constructor(page: Page) {
     this.page = page
-    this.heading = page.getByRole('heading', { name: 'Room Management' })
-    this.roomNameInput = page.getByPlaceholder('Room name')
-    this.createButton = page.getByRole('button', { name: 'Create' })
+    this.heading = page.getByTestId('admin-heading')
+    this.roomNameInput = page.getByTestId('room-name-input')
+    this.createButton = page.getByTestId('create-room-btn')
   }
 
   async goto() {
@@ -48,13 +48,13 @@ export class AdminPage {
 
   async enterRoom(name: string) {
     const row = this.roomRow(name)
-    await row.getByRole('link', { name: 'Enter' }).click()
+    await row.getByTestId('enter-room').click()
   }
 
   async deleteRoom(name: string) {
     this.page.once('dialog', (dialog) => void dialog.accept())
     const row = this.roomRow(name)
-    await row.getByRole('button', { name: 'Delete' }).click()
+    await row.getByTestId('delete-room').click()
     // Wait for the room name to disappear
     await expect(this.page.locator('.text-sm.font-semibold', { hasText: name })).toBeHidden({
       timeout: 5000,
@@ -77,7 +77,7 @@ export class AdminPage {
 
   /** Returns the href of the Enter link for a room, e.g. "#room=abc123" */
   async getRoomUrl(name: string): Promise<string> {
-    const href = await this.roomRow(name).getByRole('link', { name: 'Enter' }).getAttribute('href')
+    const href = await this.roomRow(name).getByTestId('enter-room').getAttribute('href')
     return href ?? ''
   }
 

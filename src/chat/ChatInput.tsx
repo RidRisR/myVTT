@@ -260,6 +260,7 @@ export function ChatInput({
             }, 150)
           }
           placeholder={t('input_placeholder')}
+          data-testid="chat-input"
           className="flex-1 min-w-0 px-3.5 py-2.5 border-none rounded-l-[10px] text-[13px] outline-none bg-surface backdrop-blur-[8px] text-text-primary placeholder:text-text-muted shadow-[0_2px_12px_rgba(0,0,0,0.2)]"
         />
         <button

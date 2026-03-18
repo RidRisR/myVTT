@@ -297,6 +297,7 @@ export function ChatPanel({
           }}
           className="w-9 rounded-[10px] bg-surface border border-border-glass cursor-pointer transition-all duration-fast text-text-muted text-sm flex items-center justify-center backdrop-blur-[8px] shrink-0 hover:bg-hover hover:text-text-primary"
           aria-label={expanded ? t('collapse_history') : t('expand_history')}
+          data-testid="chat-toggle"
         >
           {expanded ? (
             <ChevronDown size={16} strokeWidth={1.5} />

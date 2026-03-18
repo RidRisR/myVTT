@@ -14,7 +14,7 @@ export class GalleryPage {
     const fileInput = this.page.locator('input[type="file"][accept*="image"]')
     await fileInput.setInputFiles(filePath)
     // Wait for uploading state to finish (Upload button re-appears)
-    await expect(this.page.getByRole('button', { name: 'Upload', exact: true })).toBeEnabled({
+    await expect(this.page.getByTestId('gallery-upload')).toBeEnabled({
       timeout: 15_000,
     })
   }
@@ -44,12 +44,12 @@ export class GalleryPage {
   /** Right-click asset → click "Set as Scene Background" */
   async setAsSceneBackground(name: string) {
     await this.rightClickAsset(name)
-    await this.page.getByText('Set as Scene Background').click()
+    await this.page.getByTestId('ctx-set-bg').click()
   }
 
   /** Right-click asset → click "Delete" */
   async deleteAsset(name: string) {
     await this.rightClickAsset(name)
-    await this.page.getByText('Delete', { exact: true }).click()
+    await this.page.getByTestId('ctx-delete').click()
   }
 }

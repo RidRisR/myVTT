@@ -214,6 +214,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   if (isLoading || initError) {
     return (
       <div
+        data-testid="connecting-screen"
         style={{
           display: 'flex',
           flexDirection: 'column',

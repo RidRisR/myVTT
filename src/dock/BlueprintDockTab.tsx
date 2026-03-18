@@ -152,6 +152,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     if (isTactical) {
       items.push({
         label: t('blueprint.spawn_on_map'),
+        testId: 'ctx-spawn-on-map',
         onClick: () => {
           onSpawnToken(bp)
         },
@@ -159,6 +160,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     }
     items.push({
       label: t('blueprint.add_as_npc'),
+      testId: 'ctx-add-as-npc',
       onClick: () => {
         onAddToActive(bp)
       },
@@ -172,6 +174,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     })
     items.push({
       label: t('blueprint.delete_blueprint'),
+      testId: 'ctx-delete-blueprint',
       onClick: () => {
         handleDelete(bp)
       },

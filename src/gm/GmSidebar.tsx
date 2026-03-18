@@ -37,7 +37,7 @@ export function GmSidebar() {
         <div className="w-[244px] h-[480px] bg-glass backdrop-blur-[16px] border border-border-glass border-l-0 rounded-r-none font-sans text-text-primary flex flex-col overflow-hidden">
           {/* Header */}
           <div className="px-3 py-2.5 border-b border-border-glass shrink-0">
-            <span className="text-sm font-semibold text-text-primary">
+            <span className="text-sm font-semibold text-text-primary" data-testid="sidebar-header">
               {t(TABS.find((tab) => tab.id === activeTab)?.label ?? '')}
             </span>
           </div>
@@ -58,6 +58,7 @@ export function GmSidebar() {
             return (
               <button
                 key={tab.id}
+                data-testid={`sidebar-tab-${tab.id}`}
                 onClick={() => {
                   if (isActive && !collapsed) {
                     setCollapsed(true)

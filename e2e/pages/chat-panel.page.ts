@@ -7,7 +7,7 @@ export class ChatPanelPage {
 
   constructor(page: Page) {
     this.page = page
-    this.chatInput = page.getByPlaceholder('Type a message or .r 1d20+@STR')
+    this.chatInput = page.getByTestId('chat-input')
   }
 
   async expandChat() {

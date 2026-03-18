@@ -79,6 +79,7 @@ export function MapDockTab({
     if (onSetAsBackground && activeSceneId && asset.url) {
       items.push({
         label: t('map.set_scene_bg'),
+        testId: 'ctx-set-bg',
         onClick: () => {
           onSetAsBackground(activeSceneId, asset.url)
         },
@@ -102,6 +103,7 @@ export function MapDockTab({
     }
     items.push({
       label: 'Delete',
+      testId: 'ctx-delete',
       onClick: () => {
         handleDelete(asset)
       },
@@ -211,6 +213,7 @@ export function MapDockTab({
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
+          data-testid="gallery-upload"
           className="rounded-lg border-2 border-dashed border-border-glass cursor-pointer flex flex-col items-center justify-center gap-1 text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50 bg-transparent disabled:cursor-not-allowed disabled:opacity-50 h-[94px]"
         >
           {uploading ? (

@@ -10,10 +10,10 @@ export class SeatSelectPage {
 
   constructor(page: Page) {
     this.page = page
-    this.heading = page.getByRole('heading', { name: 'Join Session' })
-    this.createSeatButton = page.getByRole('button', { name: 'Create New Seat' })
-    this.nameInput = page.getByPlaceholder('Your character name')
-    this.joinButton = page.getByRole('button', { name: 'Join' })
+    this.heading = page.getByTestId('seat-heading')
+    this.createSeatButton = page.getByTestId('create-seat-btn')
+    this.nameInput = page.getByTestId('seat-name-input')
+    this.joinButton = page.getByTestId('join-btn')
   }
 
   async expectVisible() {
@@ -44,7 +44,7 @@ export class SeatSelectPage {
     // Use locator filter (not getByRole name) because accessible name includes all child text.
     // Allow extra time for Socket.io awareness propagation between browser contexts.
     const seatButton = this.page.getByRole('button').filter({ hasText: name }).first()
-    await expect(seatButton.getByText('Online')).toBeVisible({ timeout: 10_000 })
+    await expect(seatButton.getByTestId('online-badge')).toBeVisible({ timeout: 10_000 })
   }
 
   async expectSeatAvailable(name: string) {
@@ -52,6 +52,6 @@ export class SeatSelectPage {
     const seatButton = this.page.getByRole('button').filter({ hasText: name }).first()
     await expect(seatButton).toBeVisible({ timeout: 10_000 })
     await expect(seatButton).toBeEnabled()
-    await expect(seatButton.getByText('Online')).toBeHidden()
+    await expect(seatButton.getByTestId('online-badge')).toBeHidden()
   }
 }

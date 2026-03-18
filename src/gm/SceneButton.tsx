@@ -35,6 +35,7 @@ export function SceneButton({
         }}
       >
         <button
+          data-testid="scene-dock-btn"
           onClick={() => {
             setShowSceneList(!showSceneList)
           }}

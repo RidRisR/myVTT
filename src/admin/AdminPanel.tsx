@@ -101,7 +101,9 @@ export function AdminPanel() {
     <div className="min-h-screen bg-deep text-text-primary font-sans px-6 py-10">
       <div className="max-w-[720px] mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-[22px] font-light">{t('room_management')}</h1>
+          <h1 className="text-[22px] font-light" data-testid="admin-heading">
+            {t('room_management')}
+          </h1>
           <a
             href="#"
             className="text-text-muted/40 text-xs hover:text-text-muted transition-colors duration-fast"
@@ -123,6 +125,7 @@ export function AdminPanel() {
                   setNewName(e.target.value)
                 }}
                 placeholder={t('room_name_placeholder')}
+                data-testid="room-name-input"
                 className="flex-1 px-3 py-2 border border-border-glass rounded-l-md text-[13px] bg-surface text-text-primary outline-none placeholder:text-text-muted/30"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') void handleCreate()
@@ -155,6 +158,7 @@ export function AdminPanel() {
               onClick={() => {
                 void handleCreate()
               }}
+              data-testid="create-room-btn"
               className="flex items-center gap-2 px-5 py-2 border-none rounded-md text-[13px] font-semibold cursor-pointer bg-accent text-deep transition-colors duration-fast hover:bg-accent-bold"
             >
               <Plus size={14} strokeWidth={2} />
@@ -217,6 +221,7 @@ export function AdminPanel() {
 
                 <a
                   href={`#room=${room.id}`}
+                  data-testid="enter-room"
                   className="px-4 py-1.5 rounded-md text-xs font-semibold cursor-pointer bg-accent text-deep no-underline transition-colors duration-fast hover:bg-accent-bold"
                 >
                   {t('enter', { ns: 'common' })}
@@ -226,6 +231,7 @@ export function AdminPanel() {
                   onClick={() => {
                     copyLink(room.id)
                   }}
+                  data-testid="copy-link"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs cursor-pointer bg-transparent text-text-muted/40 border border-border-glass/30 transition-colors duration-fast hover:text-text-muted/70 hover:border-border-glass/50"
                 >
                   <Link size={11} strokeWidth={1.5} />
@@ -236,6 +242,7 @@ export function AdminPanel() {
                   onClick={() => {
                     void handleDelete(room.id)
                   }}
+                  data-testid="delete-room"
                   className="flex items-center p-1.5 rounded-md text-xs cursor-pointer bg-transparent text-text-muted/25 border-none transition-colors duration-fast hover:text-danger"
                   aria-label={t('delete', { ns: 'common' })}
                 >

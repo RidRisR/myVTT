@@ -7,12 +7,12 @@ export class ScenePanelPage {
 
   constructor(page: Page) {
     this.page = page
-    this.scenesButton = page.getByRole('button', { name: 'Scenes' })
+    this.scenesButton = page.getByTestId('scene-dock-btn')
   }
 
   async openSceneList() {
     // Idempotent: if the panel header is already visible, don't toggle it off by re-clicking
-    const header = this.page.locator('.text-sm.font-semibold').filter({ hasText: 'Scenes' })
+    const header = this.page.getByTestId('scene-panel-header')
     const alreadyOpen = await header.isVisible().catch(() => false)
     if (alreadyOpen) return
     await this.scenesButton.click()
@@ -21,7 +21,7 @@ export class ScenePanelPage {
 
   async createScene() {
     // The create button is a dashed-border div, distinct from scene name spans
-    await this.page.locator('.border-dashed', { hasText: 'New Scene' }).click()
+    await this.page.getByTestId('create-scene-btn').click()
   }
 
   async selectScene(name: string) {
@@ -47,7 +47,7 @@ export class ScenePanelPage {
     await sceneCard.hover()
     await sceneCard.getByTitle('Delete scene').click()
     // Confirm deletion via ConfirmPopover (exact match avoids "Delete scene" buttons)
-    await this.page.getByRole('button', { name: 'Delete', exact: true }).click()
+    await this.page.getByTestId('confirm-action').click()
   }
 
   async expectSceneExists(name: string) {

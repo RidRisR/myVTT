@@ -248,6 +248,7 @@ export function ArchivePanel() {
         {/* Create and save current state as new archive */}
         {isTactical && (
           <button
+            data-testid="archive-save-new"
             onClick={() => void handleCreateAndSave()}
             className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
             title={t('archive.save_new')}
@@ -262,6 +263,7 @@ export function ArchivePanel() {
         {/* Overwrite selected archive with current state */}
         {isTactical && selectedId && (
           <button
+            data-testid="archive-overwrite"
             onClick={handleSave}
             className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-bold px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
             title={t('archive.overwrite_title')}
@@ -274,6 +276,7 @@ export function ArchivePanel() {
         {/* Load from selected archive (with confirmation) */}
         {selectedArchive && (
           <button
+            data-testid="archive-load"
             ref={loadButtonRef}
             onClick={() => {
               setLoadingId(selectedId)

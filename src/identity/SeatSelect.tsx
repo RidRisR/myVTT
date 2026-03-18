@@ -26,7 +26,10 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
   return (
     <div className="flex items-center justify-center h-screen font-sans bg-deep">
       <div className="bg-glass backdrop-blur-[16px] rounded-xl p-8 min-w-[360px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-border-glass">
-        <h2 className="m-0 mb-6 text-xl text-center text-text-primary font-semibold">
+        <h2
+          className="m-0 mb-6 text-xl text-center text-text-primary font-semibold"
+          data-testid="seat-heading"
+        >
           {t('join_session')}
         </h2>
 
@@ -56,7 +59,10 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                     />
                     <span className="flex-1 font-semibold text-text-primary">{seat.name}</span>
                     {isOnline && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-success/20 text-success">
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-success/20 text-success"
+                        data-testid="online-badge"
+                      >
                         {t('online', { ns: 'common' })}
                       </span>
                     )}
@@ -95,6 +101,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
             onClick={() => {
               setMode('create')
             }}
+            data-testid="create-seat-btn"
             className="w-full px-4 py-2.5 bg-accent text-deep border-none rounded-lg cursor-pointer text-sm font-semibold transition-colors duration-fast hover:bg-accent-bold"
           >
             {t('create_new')}
@@ -109,6 +116,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
               <div className="flex gap-1.5">
                 <input
                   autoFocus
+                  data-testid="seat-name-input"
                   value={name}
                   onChange={(e) => {
                     setName(e.target.value)
@@ -192,6 +200,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                   if (name.trim()) onCreate(name.trim(), role, color)
                 }}
                 disabled={!name.trim()}
+                data-testid="join-btn"
                 className={`flex-1 py-2.5 border-none rounded-lg text-sm font-semibold transition-colors duration-fast ${
                   name.trim()
                     ? 'bg-accent text-deep cursor-pointer hover:bg-accent-bold'

@@ -119,6 +119,7 @@ export function EntityRow({
           }}
         >
           <button
+            data-testid="entity-menu-rename"
             onClick={(e) => {
               e.stopPropagation()
               setRenaming(true)
@@ -145,6 +146,7 @@ export function EntityRow({
           )}
           <div className="border-t border-border-glass my-1" />
           <button
+            data-testid="entity-menu-delete"
             onClick={(e) => {
               e.stopPropagation()
               setDeletingThis(true)
