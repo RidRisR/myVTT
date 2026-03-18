@@ -120,6 +120,8 @@ interface AssetPickerProps {
 | 角色头像更换       | select | `mediaType=image` | 无           |
 | Hamburger 资产管理 | manage | 无（显示全部）    | 无           |
 
+**注**：场景背景和战术地图的图片选择保留在 Map tab 中（有专属操作），不走 AssetPicker。
+
 ### 数据流
 
 - 资产数据来自 `worldStore.assets`（已有 Socket.io 实时同步）
@@ -140,19 +142,35 @@ interface AssetPickerProps {
 
 ### 两种拖拽交互
 
+### DndContext 架构
+
+使用**单个 `DndContext`** 包裹整个 AssetPicker Dialog 内部。通过 draggable data 上的 `type` 字段区分两种拖拽交互：
+
+- `type: 'tag'` — 标签拖拽打标签
+- `type: 'asset'` — 图片网格排序
+
+`onDragEnd` 根据 `active.data.current.type` 分发到不同处理逻辑。
+
+### 手势消歧
+
+`@dnd-kit` 的 `PointerSensor` 使用 `activationConstraint: { distance: 5 }` — 移动超过 5px 才触发拖拽，否则视为点击。这同时解决：
+
+- **标签**：点击 = 筛选，拖拽超过 5px = 打标签
+- **图片卡片**：点击 = 选择（select 模式）或无操作（manage 模式），拖拽 = 排序
+- **右键**：`contextmenu` 事件不受 `PointerSensor` 影响，正常弹出 Radix ContextMenu
+
 #### 标签拖拽打标签
 
-- **拖拽源**：标签筛选栏中的 tag pill（`cursor: grab`）
-- **放置目标**：任意图片卡片
-- **视觉反馈**：拖拽时 tag pill 跟随光标；悬停目标卡片时边框变为 accent 色 + 发光
-- **释放行为**：调用 `updateAsset(assetId, { tags: [...existing, draggedTag] })`，如果标签已存在则忽略
-- 标签点击仍为筛选功能，两种交互通过手势区分
+- **拖拽源**：标签筛选栏中的 tag pill，使用 `useDraggable`，`data: { type: 'tag', tag: string }`
+- **放置目标**：任意图片卡片，使用 `useDroppable`
+- **视觉反馈**：拖拽时 tag pill 跟随光标（DragOverlay）；悬停目标卡片时边框变为 accent 色 + 发光
+- **释放行为**：调用 `worldStore.updateAsset(assetId, { tags: [...existing, draggedTag] })`，如果标签已存在则忽略
 
 #### 图片网格拖拽排序
 
-- 使用 `@dnd-kit/sortable` 的 `SortableContext` + `useSortable`
+- 使用 `@dnd-kit/sortable` 的 `SortableContext` + `useSortable`，`data: { type: 'asset', assetId: string }`
 - 拖拽时其他卡片自动让位（标准 sortable 动画）
-- 释放后调用 `PATCH /api/rooms/:roomId/assets/:id` 更新 `sort_order`
+- 释放后调用 `worldStore.reorderAssets(order)` 批量更新排序
 
 ### 后端变更
 
@@ -163,8 +181,22 @@ ALTER TABLE assets ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;
 ```
 
 - GET `/api/rooms/:roomId/assets` 查询改为 `ORDER BY sort_order ASC, created_at DESC`
-- PATCH `/api/rooms/:roomId/assets/:id` 支持 `sortOrder` 字段
-- 新增批量排序接口（可选）：`PATCH /api/rooms/:roomId/assets/reorder`，一次更新多个资产的 sort_order
+- PATCH `/api/rooms/:roomId/assets/:id` 新增 `sortOrder` 字段支持（`if (body.sortOrder !== undefined)` 映射到 `sort_order` 列）
+- 新增批量排序接口：`PATCH /api/rooms/:roomId/assets/reorder`
+  - 请求体：`{ order: [{ id: string, sortOrder: number }] }`
+  - 在单个 DB 事务中更新所有行
+  - 广播 `asset:reordered` 事件（携带完整排序列表）
+
+### 排序值分配策略
+
+使用**整数间隔法**：初始分配间隔为 1000（如 1000, 2000, 3000）。插入到两个元素之间时取中间值（如 1500）。当间隔不足（相邻值差 < 2）时，对整个列表重新分配间隔。
+
+所有现有资产初始 `sort_order = 0`，按 `created_at DESC` 排序。首次拖拽排序时，对所有可见资产批量分配初始间隔值。
+
+### 新增 worldStore actions
+
+- `reorderAssets(order: { id: string; sortOrder: number }[])` — 调用批量排序 API，更新 store 中的排序
+- 标签拖拽复用现有 `updateAsset()` action
 
 ## Dock 面板风格统一
 
@@ -214,17 +246,19 @@ ALTER TABLE assets ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;
 
 ## 文件结构
 
-| 文件                            | 职责                                  |
-| ------------------------------- | ------------------------------------- |
-| `src/ui/AssetPickerDialog.tsx`  | Dialog 外壳 + 模式逻辑                |
-| `src/ui/AssetGrid.tsx`          | 图片网格 + sortable + 上传卡片        |
-| `src/ui/AssetGridItem.tsx`      | 单个资产卡片 + 右键菜单 + drop target |
-| `src/ui/DraggableTag.tsx`       | 可拖拽的标签 pill                     |
-| `src/dock/MapDockTab.tsx`       | 改为单行圆形布局                      |
-| `src/dock/BlueprintDockTab.tsx` | 改为单行横向滚动                      |
-| `src/layout/HamburgerMenu.tsx`  | 新增资产管理入口                      |
-| `server/routes/assets.ts`       | 支持 sort_order 字段                  |
-| `server/schema.ts`              | assets 表添加 sort_order 列           |
+| 文件                                     | 职责                                  |
+| ---------------------------------------- | ------------------------------------- |
+| `src/asset-picker/AssetPickerDialog.tsx` | Dialog 外壳 + DndContext + 模式逻辑   |
+| `src/asset-picker/AssetGrid.tsx`         | 图片网格 + sortable + 上传卡片        |
+| `src/asset-picker/AssetGridItem.tsx`     | 单个资产卡片 + 右键菜单 + drop target |
+| `src/asset-picker/DraggableTag.tsx`      | 可拖拽的标签 pill                     |
+| `src/dock/MapDockTab.tsx`                | 改为单行圆形布局                      |
+| `src/dock/BlueprintDockTab.tsx`          | 改为单行横向滚动                      |
+| `src/layout/HamburgerMenu.tsx`           | 新增资产管理入口                      |
+| `server/routes/assets.ts`                | 支持 sort_order + reorder 端点        |
+| `server/schema.ts`                       | assets 表添加 sort_order 列           |
+
+AssetPicker 组件放在 `src/asset-picker/` 目录而非 `src/ui/`，因为它是一个多文件的功能模块，不是通用 UI primitive。与 `src/combat/`、`src/dock/` 的组织方式一致。
 
 ## Assumptions
 
