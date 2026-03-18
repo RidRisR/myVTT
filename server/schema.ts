@@ -146,12 +146,12 @@ export function initRoomSchema(db: Database.Database): void {
       timestamp INTEGER NOT NULL
     );
 
-    -- Assets (unified: maps, tokens, handouts, blueprints)
+    -- Assets (file management)
     CREATE TABLE IF NOT EXISTS assets (
       id TEXT PRIMARY KEY,
       url TEXT NOT NULL,
       name TEXT DEFAULT '',
-      type TEXT NOT NULL DEFAULT 'image',
+      media_type TEXT NOT NULL DEFAULT 'image',
       tags TEXT DEFAULT '[]',
       created_at INTEGER NOT NULL,
       extra TEXT DEFAULT '{}'
