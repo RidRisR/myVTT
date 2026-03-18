@@ -6,17 +6,17 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { ConfirmDropdown } from '../ConfirmDropdownItem'
 
 // Radix uses ResizeObserver internally — jsdom doesn't provide it
-globalThis.ResizeObserver ??= class {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-} as unknown as typeof ResizeObserver
+if (!globalThis.ResizeObserver) {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver
+}
 
 // Radix uses DOMRect — jsdom returns zeros, need a valid rect for positioning
-if (!Element.prototype.getBoundingClientRect) {
-  Element.prototype.getBoundingClientRect = () =>
-    ({ x: 0, y: 0, width: 100, height: 30, top: 0, right: 100, bottom: 30, left: 0, toJSON: () => {} }) as DOMRect
-}
+Element.prototype.getBoundingClientRect = () =>
+  ({ x: 0, y: 0, width: 100, height: 30, top: 0, right: 100, bottom: 30, left: 0, toJSON: () => ({}) }) as DOMRect
 
 function renderDropdown(onConfirm = vi.fn()) {
   const user = userEvent.setup()
@@ -103,9 +103,10 @@ describe('ConfirmDropdown', () => {
     const confirmButtons = screen.getAllByRole('button', { name: 'Delete' })
     const popoverDelete = confirmButtons.find(
       (btn) => btn.closest('[data-radix-popper-content-wrapper]') != null,
-    ) ?? confirmButtons[confirmButtons.length - 1]
+    )
+    expect(popoverDelete).toBeDefined()
 
-    await user.click(popoverDelete)
+    await user.click(popoverDelete!)
 
     expect(onConfirm).toHaveBeenCalledOnce()
     await waitFor(() => {
