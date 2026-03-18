@@ -106,7 +106,7 @@ export const useUiStore = create<UiState>((set) => ({
   lastMeasureTool: 'measure',
   gridConfigOpen: false,
   gmSidebarTab: 'archives',
-  gmSidebarCollapsed: false,
+  gmSidebarCollapsed: true,
 
   activePluginPanels: [],
   openPluginPanel: (panelId, entityId) => {
