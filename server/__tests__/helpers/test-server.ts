@@ -16,6 +16,7 @@ import { trackerRoutes } from '../../routes/trackers'
 import { showcaseRoutes } from '../../routes/showcase'
 import { stateRoutes } from '../../routes/state'
 import { assetRoutes } from '../../routes/assets'
+import { blueprintRoutes } from '../../routes/blueprints'
 import { setupSocketAuth } from '../../ws'
 import { setupAwareness } from '../../awareness'
 import path from 'path'
@@ -72,6 +73,7 @@ export async function setupTestRoom(roomName = 'test-room'): Promise<TestContext
   app.use(showcaseRoutes(dataDir, io))
   app.use(stateRoutes(dataDir, io))
   app.use(assetRoutes(dataDir, io))
+  app.use(blueprintRoutes(dataDir, io))
 
   getGlobalDb(dataDir)
 
