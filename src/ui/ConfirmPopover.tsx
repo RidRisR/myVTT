@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 
 interface ConfirmPopoverProps {
   /** The element the popover anchors to */
@@ -18,11 +19,14 @@ interface ConfirmPopoverProps {
 export function ConfirmPopover({
   anchorRef,
   message,
-  confirmLabel = 'Delete',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   onConfirm,
   onCancel,
 }: ConfirmPopoverProps) {
+  const { t } = useTranslation('ui')
+  const resolvedConfirmLabel = confirmLabel ?? t('delete_default')
+  const resolvedCancelLabel = cancelLabel ?? t('cancel_default')
   const popoverRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
 
@@ -84,13 +88,13 @@ export function ConfirmPopover({
             onClick={onCancel}
             className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast"
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             onClick={onConfirm}
             className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
           >
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </button>
         </div>
       </div>

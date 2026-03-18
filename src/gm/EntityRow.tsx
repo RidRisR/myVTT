@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MoreVertical, Pencil, Trash2, MapPin } from 'lucide-react'
 import type { Entity } from '../shared/entityTypes'
 import { ConfirmPopover } from '../ui/ConfirmPopover'
@@ -24,6 +25,7 @@ export function EntityRow({
   onAddToScene,
   onUpdate,
 }: EntityRowProps) {
+  const { t } = useTranslation('gm')
   const [showMenu, setShowMenu] = useState(false)
   const [deletingThis, setDeletingThis] = useState(false)
   const [renaming, setRenaming] = useState(false)
@@ -89,9 +91,9 @@ export function EntityRow({
           <div className="text-xs text-text-primary truncate">{entity.name}</div>
         )}
         <div className="flex items-center gap-1 text-[10px] text-text-muted/40">
-          {isPC && <span>PC</span>}
-          {entity.lifecycle === 'persistent' && <span>Persistent</span>}
-          {isInScene && <span className="text-accent/50">In scene</span>}
+          {isPC && <span>{t('entity.label_pc')}</span>}
+          {entity.lifecycle === 'persistent' && <span>{t('entity.label_persistent')}</span>}
+          {isInScene && <span className="text-accent/50">{t('entity.label_in_scene')}</span>}
         </div>
       </div>
 
@@ -126,7 +128,7 @@ export function EntityRow({
             className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
           >
             <Pencil size={12} strokeWidth={1.5} />
-            Rename
+            {t('entity.rename')}
           </button>
           {!isInScene && (
             <button
@@ -138,7 +140,7 @@ export function EntityRow({
               className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
             >
               <MapPin size={12} strokeWidth={1.5} />
-              Add to scene
+              {t('entity.add_to_scene')}
             </button>
           )}
           <div className="border-t border-border-glass my-1" />
@@ -160,7 +162,7 @@ export function EntityRow({
       {deletingThis && (
         <ConfirmPopover
           anchorRef={deleteRef}
-          message={`Delete "${entity.name}"?`}
+          message={t('entity.delete_confirm', { name: entity.name })}
           onConfirm={() => {
             setDeletingThis(false)
             onDelete()

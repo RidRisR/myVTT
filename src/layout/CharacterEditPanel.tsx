@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { Entity } from '../shared/entityTypes'
 import { uploadAsset } from '../shared/assetUpload'
 import {
@@ -23,13 +24,15 @@ interface CharacterEditPanelProps {
 
 type TabId = 'info' | 'resources' | 'attributes' | 'statuses' | 'notes'
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'info', label: 'INFO' },
-  { id: 'resources', label: 'RES' },
-  { id: 'attributes', label: 'ATTR' },
-  { id: 'statuses', label: 'STATUS' },
-  { id: 'notes', label: 'NOTES' },
-]
+const TAB_IDS: TabId[] = ['info', 'resources', 'attributes', 'statuses', 'notes']
+
+const TAB_I18N_KEYS: Record<TabId, string> = {
+  info: 'character.tab_info',
+  resources: 'character.tab_resources',
+  attributes: 'character.tab_attributes',
+  statuses: 'character.tab_statuses',
+  notes: 'character.tab_notes',
+}
 
 const inputStyle: React.CSSProperties = {
   padding: '5px 7px',
@@ -72,6 +75,7 @@ export function CharacterEditPanel({
   onUpdateCharacter,
   onClose,
 }: CharacterEditPanelProps) {
+  const { t } = useTranslation('layout')
   const [activeTab, setActiveTab] = useState<TabId>('info')
   const [statusInput, setStatusInput] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -208,7 +212,7 @@ export function CharacterEditPanel({
         <div
           onClick={() => fileInputRef.current?.click()}
           className="relative cursor-pointer shrink-0"
-          title="Click to change portrait"
+          title={t('character.change_portrait')}
         >
           {character.imageUrl ? (
             <img
@@ -246,7 +250,9 @@ export function CharacterEditPanel({
           </div>
         </div>
         <div className="flex-1 flex flex-col gap-1">
-          <label className="text-[9px] text-text-muted/40 uppercase tracking-wider">Name</label>
+          <label className="text-[9px] text-text-muted/40 uppercase tracking-wider">
+            {t('character.name_label')}
+          </label>
           <input
             value={character.name}
             onChange={(e) => {
@@ -260,7 +266,9 @@ export function CharacterEditPanel({
       {/* Color */}
       <div ref={colorPickerOpen === 'character' ? colorPickerRef : undefined}>
         <div className="flex items-center gap-2">
-          <label className="text-[9px] text-text-muted/40 uppercase tracking-wider">Color</label>
+          <label className="text-[9px] text-text-muted/40 uppercase tracking-wider">
+            {t('character.color_label')}
+          </label>
           <div
             onClick={() => {
               setColorPickerOpen(colorPickerOpen === 'character' ? null : 'character')
@@ -270,7 +278,7 @@ export function CharacterEditPanel({
               background: character.color,
               border: '2px solid rgba(255,255,255,0.3)',
             }}
-            title="Change color"
+            title={t('character.change_color')}
           />
         </div>
         {colorPickerOpen === 'character' && (
@@ -317,7 +325,7 @@ export function CharacterEditPanel({
                 onChange={(e) => {
                   updateResource(i, { key: e.target.value })
                 }}
-                placeholder="Name"
+                placeholder={t('character.resource_name_placeholder')}
                 style={{
                   ...inputStyle,
                   flex: 1,
@@ -377,7 +385,7 @@ export function CharacterEditPanel({
                   background: res.color,
                   border: '2px solid rgba(255,255,255,0.25)',
                 }}
-                title="Change color"
+                title={t('character.change_color')}
               />
               <button
                 onClick={() => {
@@ -461,7 +469,7 @@ export function CharacterEditPanel({
           e.currentTarget.style.color = 'rgba(255,255,255,0.35)'
         }}
       >
-        + Add resource
+        {t('character.add_resource')}
       </button>
     </div>
   )
@@ -475,7 +483,7 @@ export function CharacterEditPanel({
             onChange={(e) => {
               updateAttribute(i, { key: e.target.value })
             }}
-            placeholder="Name"
+            placeholder={t('character.attribute_name_placeholder')}
             style={{ ...inputStyle, flex: 1, fontSize: 12, padding: '5px 8px', fontWeight: 600 }}
           />
           <MiniHoldButton
@@ -536,7 +544,7 @@ export function CharacterEditPanel({
           e.currentTarget.style.color = 'rgba(255,255,255,0.35)'
         }}
       >
-        + Add attribute
+        {t('character.add_attribute')}
       </button>
     </div>
   )
@@ -570,7 +578,7 @@ export function CharacterEditPanel({
           )
         })}
         {statuses.length === 0 && (
-          <span className="text-xs text-text-muted/25 italic">No active statuses</span>
+          <span className="text-xs text-text-muted/25 italic">{t('character.no_statuses')}</span>
         )}
       </div>
       <div className="flex gap-1">
@@ -582,14 +590,14 @@ export function CharacterEditPanel({
           onKeyDown={(e) => {
             if (e.key === 'Enter') addStatus()
           }}
-          placeholder="Add status..."
+          placeholder={t('character.add_status_placeholder')}
           style={{ ...inputStyle, flex: 1, fontSize: 12, padding: '6px 10px' }}
         />
         <button
           onClick={addStatus}
           className="bg-surface border border-border-glass rounded-md cursor-pointer text-text-muted/40 text-[11px] px-3 py-1.5 transition-colors duration-fast hover:bg-hover hover:text-text-muted/70"
         >
-          Add
+          {t('add', { ns: 'common' })}
         </button>
       </div>
     </div>
@@ -602,7 +610,7 @@ export function CharacterEditPanel({
         onChange={(e) => {
           updateChar({ notes: e.target.value })
         }}
-        placeholder="Free-form notes..."
+        placeholder={t('character.notes_placeholder')}
         rows={8}
         style={{
           ...inputStyle,
@@ -643,7 +651,7 @@ export function CharacterEditPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-3.5 pt-3 pb-2 shrink-0">
         <span className="text-[11px] font-bold text-text-muted/50 uppercase tracking-wider">
-          Character
+          {t('character.title')}
         </span>
         {onClose && (
           <button
@@ -657,23 +665,23 @@ export function CharacterEditPanel({
 
       {/* Tab bar */}
       <div className="flex border-t border-border-glass border-b border-b-border-glass shrink-0">
-        {TABS.map((tab) => (
+        {TAB_IDS.map((tabId) => (
           <button
-            key={tab.id}
+            key={tabId}
             onClick={() => {
-              setActiveTab(tab.id)
+              setActiveTab(tabId)
             }}
             className={`flex-1 py-[7px] bg-transparent border-none cursor-pointer text-[8px] font-bold tracking-wider uppercase transition-colors duration-fast font-sans ${
-              activeTab === tab.id
+              activeTab === tabId
                 ? 'bg-surface/60 text-white'
                 : 'text-text-muted/35 hover:text-text-muted/60'
             }`}
             style={{
               borderBottom:
-                activeTab === tab.id ? `2px solid ${character.color}` : '2px solid transparent',
+                activeTab === tabId ? `2px solid ${character.color}` : '2px solid transparent',
             }}
           >
-            {tab.label}
+            {t(TAB_I18N_KEYS[tabId])}
           </button>
         ))}
       </div>

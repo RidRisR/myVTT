@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ShowcaseItem } from '../shared/showcaseTypes'
 
 interface FocusedCardProps {
@@ -24,6 +25,7 @@ export function FocusedCard({
   onUnpin,
   onDelete,
 }: FocusedCardProps) {
+  const { t } = useTranslation('showcase')
   const cardRef = useRef<HTMLDivElement>(null)
   const prevAnimatedId = useRef<string | null>(null)
 
@@ -78,6 +80,7 @@ export function FocusedCard({
           onPin={onPin}
           onUnpin={onUnpin}
           onDelete={onDelete}
+          t={t}
         />
       </div>
     )
@@ -128,6 +131,7 @@ export function FocusedCard({
         onPin={onPin}
         onUnpin={onUnpin}
         onDelete={onDelete}
+        t={t}
       />
     </div>
   )
@@ -142,6 +146,7 @@ function ActionButtons({
   onPin,
   onUnpin,
   onDelete,
+  t,
 }: {
   canDismiss: boolean
   canPin: boolean
@@ -151,6 +156,7 @@ function ActionButtons({
   onPin: () => void
   onUnpin: () => void
   onDelete: () => void
+  t: (key: string) => string
 }) {
   if (!canDismiss && !canPin && !canUnpin && !canDelete) return null
 
@@ -161,7 +167,7 @@ function ActionButtons({
     <div className="mt-3 flex gap-2 justify-center">
       {canDismiss && (
         <button onClick={onDismiss} className={`${btnBase} text-text-primary/70 hover:bg-hover`}>
-          Dismiss
+          {t('dismiss')}
         </button>
       )}
       {canPin && (
@@ -169,7 +175,7 @@ function ActionButtons({
           onClick={onPin}
           className={`${btnBase} border-accent/40 text-accent hover:bg-accent/10`}
         >
-          Pin
+          {t('pin')}
         </button>
       )}
       {canUnpin && (
@@ -177,7 +183,7 @@ function ActionButtons({
           onClick={onUnpin}
           className={`${btnBase} border-accent/40 text-accent hover:bg-accent/10`}
         >
-          Unpin
+          {t('unpin')}
         </button>
       )}
       {canDelete && (
@@ -185,7 +191,7 @@ function ActionButtons({
           onClick={onDelete}
           className={`${btnBase} border-danger/40 text-danger hover:bg-danger/10`}
         >
-          Delete
+          {t('delete')}
         </button>
       )}
     </div>

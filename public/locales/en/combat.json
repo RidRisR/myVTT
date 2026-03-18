@@ -1,0 +1,40 @@
+{
+  "toolbar": {
+    "select": "Select",
+    "grid": "Grid",
+    "zoom_in": "Zoom In",
+    "zoom_out": "Zoom Out",
+    "fit_window": "Fit Window",
+    "reset_center": "Reset Center"
+  },
+  "grid": {
+    "settings": "Grid Settings",
+    "cell_size": "Cell Size",
+    "offset_x": "Offset X",
+    "offset_y": "Offset Y",
+    "color": "Color"
+  },
+  "token": {
+    "copy": "Copy Token",
+    "size": "Size",
+    "show": "Show Token",
+    "hide": "Hide Token",
+    "delete": "Delete Token",
+    "create": "Create Token"
+  },
+  "measure": {
+    "cells": "{{count}} cell",
+    "cells_plural": "{{count}} cells",
+    "pixels": "{{count}} px"
+  },
+  "range": {
+    "radius": "r={{radius}} {{unit}}",
+    "length": "{{length}} {{unit}}",
+    "rect_cells": "{{width}}x{{height}} cells",
+    "rect_pixels": "{{width}}x{{height}} px"
+  },
+  "background": {
+    "loading": "Loading...",
+    "no_image": "No image"
+  }
+}

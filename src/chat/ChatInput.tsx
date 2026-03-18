@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Send } from 'lucide-react'
 import { resolveFormula, tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
 import type { DiceSpec } from '../shared/diceUtils'
@@ -40,6 +41,7 @@ export function ChatInput({
   onFocus,
   onCycleSpeaker,
 }: ChatInputProps) {
+  const { t } = useTranslation('chat')
   const plugin = useRulePlugin()
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
@@ -105,7 +107,7 @@ export function ChatInput({
     if (/@[\p{L}\p{N}_]+/u.test(formula)) {
       const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
       if ('error' in resolved) {
-        const hint = selectedTokenProps.length === 0 ? ' (try selecting a token)' : ''
+        const hint = selectedTokenProps.length === 0 ? t('resolve_hint') : ''
         setError(resolved.error + hint)
         return
       }
@@ -113,7 +115,7 @@ export function ChatInput({
     }
     const terms = tokenizeExpression(resolvedFormula ?? formula)
     if (!terms) {
-      setError('Invalid dice formula')
+      setError(t('error_invalid_dice'))
       return
     }
     const dice = toDiceSpecs(terms)
@@ -139,7 +141,7 @@ export function ChatInput({
     }
     const terms = tokenizeExpression(resolvedFormula ?? formula)
     if (!terms) {
-      setError('Invalid formula')
+      setError(t('error_invalid_formula'))
       return
     }
     const dice = toDiceSpecs(terms)
@@ -257,13 +259,13 @@ export function ChatInput({
               setShowSuggestions(false)
             }, 150)
           }
-          placeholder="Type a message or .r 1d20+@STR"
+          placeholder={t('input_placeholder')}
           className="flex-1 min-w-0 px-3.5 py-2.5 border-none rounded-l-[10px] text-[13px] outline-none bg-surface backdrop-blur-[8px] text-text-primary placeholder:text-text-muted shadow-[0_2px_12px_rgba(0,0,0,0.2)]"
         />
         <button
           onClick={handleSend}
           className="px-3.5 border-none rounded-r-[10px] text-sm cursor-pointer bg-accent text-deep font-semibold transition-colors duration-fast shrink-0 hover:bg-accent-bold flex items-center justify-center"
-          aria-label="Send"
+          aria-label={t('send')}
         >
           <Send size={16} strokeWidth={1.5} />
         </button>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CheckCircle, XCircle, AlertTriangle, Info, Undo2, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'undo'
 
@@ -46,6 +47,7 @@ const actionButtonClasses: Record<ToastType, string> = {
 }
 
 export function Toast({ toast, onDismiss }: ToastProps) {
+  const { t } = useTranslation('common')
   const [visible, setVisible] = useState(false)
   const [exiting, setExiting] = useState(false)
 
@@ -121,7 +123,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
       <button
         onClick={handleDismiss}
         className="shrink-0 rounded p-1 text-text-muted hover:text-text-primary hover:bg-hover transition-colors duration-fast motion-reduce:transition-none"
-        aria-label="Close notification"
+        aria-label={t('close')}
       >
         <X size={14} strokeWidth={2} aria-hidden="true" />
       </button>

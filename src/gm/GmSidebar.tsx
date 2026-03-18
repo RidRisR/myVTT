@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Swords, ClipboardList, ChevronRight, Image } from 'lucide-react'
 import { useUiStore } from '../stores/uiStore'
 import type { GmSidebarTab } from '../stores/uiStore'
@@ -6,12 +7,13 @@ import { EntityPanel } from './EntityPanel'
 import { SceneConfigSidebarTab } from './SceneConfigSidebarTab'
 
 const TABS: { id: GmSidebarTab; icon: typeof Swords; label: string }[] = [
-  { id: 'scene', icon: Image, label: 'Scene' },
-  { id: 'archives', icon: Swords, label: 'Archives' },
-  { id: 'entities', icon: ClipboardList, label: 'Entities' },
+  { id: 'scene', icon: Image, label: 'sidebar.scene' },
+  { id: 'archives', icon: Swords, label: 'sidebar.archives' },
+  { id: 'entities', icon: ClipboardList, label: 'sidebar.entities' },
 ]
 
 export function GmSidebar() {
+  const { t } = useTranslation('gm')
   const activeTab = useUiStore((s) => s.gmSidebarTab)
   const collapsed = useUiStore((s) => s.gmSidebarCollapsed)
   const setTab = useUiStore((s) => s.setGmSidebarTab)
@@ -36,7 +38,7 @@ export function GmSidebar() {
           {/* Header */}
           <div className="px-3 py-2.5 border-b border-border-glass shrink-0">
             <span className="text-sm font-semibold text-text-primary">
-              {TABS.find((t) => t.id === activeTab)?.label}
+              {t(TABS.find((tab) => tab.id === activeTab)?.label ?? '')}
             </span>
           </div>
 
@@ -69,8 +71,8 @@ export function GmSidebar() {
                     ? 'text-accent bg-surface/60'
                     : 'text-text-muted hover:text-text-primary'
                 }`}
-                aria-label={tab.label}
-                title={tab.label}
+                aria-label={t(tab.label)}
+                title={t(tab.label)}
               >
                 {isActive && !collapsed && (
                   <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-accent rounded-r" />
@@ -87,7 +89,7 @@ export function GmSidebar() {
                 setCollapsed(!collapsed)
               }}
               className="w-8 h-8 flex items-center justify-center text-text-muted/40 hover:text-text-muted cursor-pointer transition-colors duration-fast"
-              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
             >
               <ChevronRight
                 size={12}

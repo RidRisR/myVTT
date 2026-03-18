@@ -18,11 +18,13 @@ import { DaggerHeartCard } from './DaggerHeartCard'
 import { DHRollCard } from './ui/DHRollCard'
 import { FullCharacterSheet } from './ui/FullCharacterSheet'
 import { DHTeamPanel } from './ui/DHTeamPanel'
+import { daggerheartI18n } from './i18n'
 
 export const daggerheartPlugin: RulePlugin = {
   id: 'daggerheart',
   name: 'Daggerheart',
   sdkVersion: '1',
+  i18n: daggerheartI18n,
 
   adapters: {
     getMainResource: dhGetMainResource,

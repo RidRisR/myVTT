@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Trash2, Dices } from 'lucide-react'
 import { SEAT_COLORS, type Seat } from '../stores/identityStore'
 import { randomName } from './randomName'
@@ -12,6 +13,7 @@ interface SeatSelectProps {
 }
 
 export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }: SeatSelectProps) {
+  const { t } = useTranslation('identity')
   const [mode, setMode] = useState<'choose' | 'create'>('choose')
   const [name, setName] = useState('')
   const [role, setRole] = useState<'GM' | 'PL'>('PL')
@@ -25,13 +27,13 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
     <div className="flex items-center justify-center h-screen font-sans bg-deep">
       <div className="bg-glass backdrop-blur-[16px] rounded-xl p-8 min-w-[360px] shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-border-glass">
         <h2 className="m-0 mb-6 text-xl text-center text-text-primary font-semibold">
-          Join Session
+          {t('join_session')}
         </h2>
 
         {/* Existing seats */}
         {seats.length > 0 && mode === 'choose' && (
           <>
-            <div className="text-[13px] text-text-muted mb-2">Claim an existing seat:</div>
+            <div className="text-[13px] text-text-muted mb-2">{t('claim_existing')}</div>
             <div className="flex flex-col gap-2 mb-4">
               {seats.map((seat) => {
                 const isOnline = onlineSeatIds.has(seat.id)
@@ -72,7 +74,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                           onDelete(seat.id)
                         }}
                         className="text-text-muted/30 cursor-pointer transition-colors duration-fast hover:text-danger"
-                        title="Delete seat"
+                        title={t('seat_delete')}
                       >
                         <Trash2 size={12} strokeWidth={1.5} />
                       </span>
@@ -93,7 +95,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
             }}
             className="w-full px-4 py-2.5 bg-accent text-deep border-none rounded-lg cursor-pointer text-sm font-semibold transition-colors duration-fast hover:bg-accent-bold"
           >
-            Create New Seat
+            {t('create_new')}
           </button>
         )}
 
@@ -101,7 +103,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
         {mode === 'create' && (
           <>
             <div className="mb-3">
-              <label className="text-xs text-text-muted block mb-1">Name</label>
+              <label className="text-xs text-text-muted block mb-1">{t('seat_name')}</label>
               <div className="flex gap-1.5">
                 <input
                   autoFocus
@@ -112,7 +114,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && name.trim()) onCreate(name.trim(), role, color)
                   }}
-                  placeholder="Your character name"
+                  placeholder={t('seat_name_placeholder')}
                   className="flex-1 px-3 py-2 border border-border-glass rounded-md text-sm bg-surface text-text-primary outline-none box-border placeholder:text-text-muted/40"
                 />
                 <button
@@ -128,7 +130,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
             </div>
 
             <div className="mb-3">
-              <label className="text-xs text-text-muted block mb-1">Role</label>
+              <label className="text-xs text-text-muted block mb-1">{t('seat_role')}</label>
               <div className="flex gap-2">
                 {(['PL', 'GM'] as const).map((r) => (
                   <button
@@ -151,7 +153,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
             </div>
 
             <div className="mb-4">
-              <label className="text-xs text-text-muted block mb-1">Color</label>
+              <label className="text-xs text-text-muted block mb-1">{t('seat_color')}</label>
               <div className="flex gap-1.5 flex-wrap">
                 {SEAT_COLORS.map((c) => {
                   const taken = usedColors.includes(c)
@@ -194,7 +196,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                     : 'bg-text-muted/30 text-text-muted/50 cursor-default'
                 }`}
               >
-                Join
+                {t('seat_join')}
               </button>
             </div>
           </>

@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { Entity } from '../shared/entityTypes'
 import {
   getEntityResources,
@@ -14,6 +15,7 @@ interface CharacterDetailPanelProps {
 }
 
 export function CharacterDetailPanel({ character, isOnline, onClose }: CharacterDetailPanelProps) {
+  const { t } = useTranslation('layout')
   const resources = getEntityResources(character)
   const attributes = getEntityAttributes(character)
   const statuses = getEntityStatuses(character)
@@ -90,7 +92,7 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
           {isOnline && (
             <span className="inline-flex items-center gap-1 text-[10px] text-success font-medium tracking-normal">
               <span className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
-              Online
+              {t('online', { ns: 'common' })}
             </span>
           )}
         </div>
@@ -102,14 +104,16 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
       {resources.length > 0 && (
         <div className="mb-3.5">
           <div className="text-[10px] text-text-muted/40 font-semibold mb-2 uppercase tracking-wider">
-            Resources
+            {t('character.resources')}
           </div>
           {resources.map((res, i) => {
             const pct = res.max > 0 ? Math.min(res.current / res.max, 1) : 0
             return (
               <div key={i} className="mb-1.5">
                 <div className="flex justify-between text-[11px] mb-0.5">
-                  <span className="text-text-muted/50 font-semibold">{res.key || 'Unnamed'}</span>
+                  <span className="text-text-muted/50 font-semibold">
+                    {res.key || t('character.unnamed_resource')}
+                  </span>
                   <span className="text-white font-bold text-[10px]">
                     {res.current}/{res.max}
                   </span>
@@ -133,7 +137,7 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
       {attributes.length > 0 && (
         <div className="mb-3.5">
           <div className="text-[10px] text-text-muted/40 font-semibold mb-2 uppercase tracking-wider">
-            Attributes
+            {t('character.attributes')}
           </div>
           {attributes.map((attr, i) => (
             <div
@@ -142,7 +146,9 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
                 i % 2 === 0 ? 'bg-surface/30' : 'bg-transparent'
               }`}
             >
-              <span className="text-text-muted/50 font-semibold">{attr.key || 'Unnamed'}</span>
+              <span className="text-text-muted/50 font-semibold">
+                {attr.key || t('character.unnamed_attribute')}
+              </span>
               <span className="text-white font-bold">{attr.value}</span>
             </div>
           ))}
@@ -153,7 +159,7 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
       {statuses.length > 0 && (
         <div className="mb-3.5">
           <div className="text-[10px] text-text-muted/40 font-semibold mb-2 uppercase tracking-wider">
-            Statuses
+            {t('character.statuses')}
           </div>
           <div className="flex flex-wrap gap-[5px]">
             {statuses.map((s, i) => {
@@ -180,7 +186,7 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
       {notes && (
         <div className="mb-3.5">
           <div className="text-[10px] text-text-muted/40 font-semibold mb-2 uppercase tracking-wider">
-            Notes
+            {t('character.notes')}
           </div>
           <div className="text-xs text-text-muted/70 leading-normal px-2 py-1.5 rounded-md bg-surface/30 whitespace-pre-wrap">
             {notes}
@@ -192,7 +198,7 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
       {handouts.length > 0 && (
         <div>
           <div className="text-[10px] text-text-muted/40 font-semibold mb-2 uppercase tracking-wider">
-            Handouts
+            {t('character.handouts')}
           </div>
           {handouts.map((h) => (
             <div
@@ -205,7 +211,7 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-semibold text-text-primary overflow-hidden text-ellipsis whitespace-nowrap">
-                    {h.title || 'Untitled'}
+                    {h.title || t('character.untitled_handout')}
                   </div>
                   {h.description && (
                     <div

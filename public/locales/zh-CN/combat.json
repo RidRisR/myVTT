@@ -1,0 +1,39 @@
+{
+  "toolbar": {
+    "select": "选择",
+    "grid": "网格",
+    "zoom_in": "放大",
+    "zoom_out": "缩小",
+    "fit_window": "适应窗口",
+    "reset_center": "重置中心"
+  },
+  "grid": {
+    "settings": "网格设置",
+    "cell_size": "格子大小",
+    "offset_x": "偏移 X",
+    "offset_y": "偏移 Y",
+    "color": "颜色"
+  },
+  "token": {
+    "copy": "复制 Token",
+    "size": "大小",
+    "show": "显示 Token",
+    "hide": "隐藏 Token",
+    "delete": "删除 Token",
+    "create": "创建 Token"
+  },
+  "measure": {
+    "cells": "{{count}} 格",
+    "pixels": "{{count}} px"
+  },
+  "range": {
+    "radius": "r={{radius}} {{unit}}",
+    "length": "{{length}} {{unit}}",
+    "rect_cells": "{{width}}x{{height}} 格",
+    "rect_pixels": "{{width}}x{{height}} px"
+  },
+  "background": {
+    "loading": "加载中...",
+    "no_image": "无图片"
+  }
+}

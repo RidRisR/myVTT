@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MiniHoldButton } from './MiniHoldButton'
 
 interface ResourceBarProps {
@@ -45,6 +46,7 @@ export function ResourceBar({
   className,
   style,
 }: ResourceBarProps) {
+  const { t } = useTranslation('ui')
   const [isDragging, setIsDragging] = useState(false)
   const [localDragValue, setLocalDragValue] = useState<number | null>(null)
   const barRef = useRef<HTMLDivElement>(null)
@@ -158,7 +160,9 @@ export function ResourceBar({
           gap: 4,
         }}
       >
-        {showButtons && <MiniHoldButton label="-" onTick={handleDecrement} color="#ef4444" />}
+        {showButtons && (
+          <MiniHoldButton label={t('decrement')} onTick={handleDecrement} color="#ef4444" />
+        )}
 
         {/* Progress Bar */}
         <div
@@ -234,7 +238,9 @@ export function ResourceBar({
           )}
         </div>
 
-        {showButtons && <MiniHoldButton label="+" onTick={handleIncrement} color="#22c55e" />}
+        {showButtons && (
+          <MiniHoldButton label={t('increment')} onTick={handleIncrement} color="#22c55e" />
+        )}
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import type { TeamTracker } from '../stores/worldStore'
 import { ResourceBar } from '../ui/ResourceBar'
@@ -34,6 +35,7 @@ export function TeamMetricsTab({
   onAddTracker,
   onDeleteTracker,
 }: TeamMetricsTabProps) {
+  const { t } = useTranslation('team')
   const [addingNew, setAddingNew] = useState(false)
   const [newLabel, setNewLabel] = useState('')
   const [colorPickerOpen, setColorPickerOpen] = useState<string | null>(null)
@@ -72,18 +74,18 @@ export function TeamMetricsTab({
           gap: '10px 14px',
         }}
       >
-        {trackers.map((t) => (
+        {trackers.map((tracker) => (
           <ResourceBar
-            key={t.id}
-            label={t.label}
-            current={t.current}
-            max={t.max}
-            color={t.color}
+            key={tracker.id}
+            label={tracker.label}
+            current={tracker.current}
+            max={tracker.max}
+            color={tracker.color}
             height={8}
             valueDisplay="outside"
             draggable={isGM}
             onChange={(val: number) => {
-              onUpdateTracker(t.id, { current: val })
+              onUpdateTracker(tracker.id, { current: val })
             }}
           />
         ))}
@@ -94,26 +96,27 @@ export function TeamMetricsTab({
   // Expanded mode: full editing controls
   return (
     <div>
-      {trackers.map((t) => {
+      {trackers.map((tracker) => {
         return (
-          <div key={t.id} style={{ marginBottom: 12 }}>
+          <div key={tracker.id} style={{ marginBottom: 12 }}>
             {/* Header: name + current/max inputs + color + remove */}
             <div className="flex items-center gap-1 mb-1">
               <input
-                value={t.label}
+                value={tracker.label}
                 onChange={(e) => {
-                  onUpdateTracker(t.id, { label: e.target.value })
+                  onUpdateTracker(tracker.id, { label: e.target.value })
                 }}
-                placeholder="Name"
+                placeholder={t('tracker_name')}
                 className={`${inputCls} flex-1 text-[11px] px-1.5 py-1 font-semibold`}
               />
               <input
-                key={`cur-${t.id}-${t.current}`}
-                defaultValue={t.current}
+                key={`cur-${tracker.id}-${tracker.current}`}
+                defaultValue={tracker.current}
                 onBlur={(e) => {
                   const v = parseInt(e.target.value)
-                  if (!isNaN(v)) onUpdateTracker(t.id, { current: Math.max(0, Math.min(v, t.max)) })
-                  else e.target.value = String(t.current)
+                  if (!isNaN(v))
+                    onUpdateTracker(tracker.id, { current: Math.max(0, Math.min(v, tracker.max)) })
+                  else e.target.value = String(tracker.current)
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
@@ -122,13 +125,13 @@ export function TeamMetricsTab({
               />
               <span className="text-[10px] text-text-muted/30">/</span>
               <input
-                key={`max-${t.id}-${t.max}`}
-                defaultValue={t.max}
+                key={`max-${tracker.id}-${tracker.max}`}
+                defaultValue={tracker.max}
                 onBlur={(e) => {
                   const v = parseInt(e.target.value)
                   if (!isNaN(v) && v > 0)
-                    onUpdateTracker(t.id, { max: v, current: Math.min(t.current, v) })
-                  else e.target.value = String(t.max)
+                    onUpdateTracker(tracker.id, { max: v, current: Math.min(tracker.current, v) })
+                  else e.target.value = String(tracker.max)
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
@@ -137,15 +140,15 @@ export function TeamMetricsTab({
               />
               <div
                 onClick={() => {
-                  setColorPickerOpen(colorPickerOpen === t.id ? null : t.id)
+                  setColorPickerOpen(colorPickerOpen === tracker.id ? null : tracker.id)
                 }}
                 className="w-3.5 h-3.5 rounded-full border-2 border-text-muted/25 cursor-pointer shrink-0 transition-colors duration-fast hover:border-text-muted/50"
-                style={{ background: t.color }}
-                title="Change color"
+                style={{ background: tracker.color }}
+                title={t('change_color')}
               />
               <button
                 onClick={() => {
-                  onDeleteTracker(t.id)
+                  onDeleteTracker(tracker.id)
                 }}
                 className="bg-transparent border-none cursor-pointer text-text-muted/20 p-0.5 leading-none shrink-0 transition-colors duration-fast hover:text-danger"
               >
@@ -155,32 +158,32 @@ export function TeamMetricsTab({
 
             {/* Bar row: - draggable bar + */}
             <ResourceBar
-              current={t.current}
-              max={t.max}
-              color={t.color}
+              current={tracker.current}
+              max={tracker.max}
+              color={tracker.color}
               height={16}
               valueDisplay="inline"
               draggable
               showButtons
               onChange={(val: number) => {
-                onUpdateTracker(t.id, { current: val })
+                onUpdateTracker(tracker.id, { current: val })
               }}
             />
 
             {/* Color picker — collapsed by default */}
-            {colorPickerOpen === t.id && (
+            {colorPickerOpen === tracker.id && (
               <div ref={colorPickerRef} className="flex gap-1 mt-1.5 justify-center">
                 {COLORS.map((c) => (
                   <div
                     key={c}
                     onClick={() => {
-                      onUpdateTracker(t.id, { color: c })
+                      onUpdateTracker(tracker.id, { color: c })
                       setColorPickerOpen(null)
                     }}
                     className="w-4 h-4 rounded-full cursor-pointer transition-colors duration-fast"
                     style={{
                       background: c,
-                      border: c === t.color ? '2px solid #fff' : '2px solid transparent',
+                      border: c === tracker.color ? '2px solid #fff' : '2px solid transparent',
                     }}
                   />
                 ))}
@@ -199,7 +202,7 @@ export function TeamMetricsTab({
             }}
             className="mt-1.5 w-full py-[7px] bg-surface border border-border-glass rounded-lg cursor-pointer text-text-muted/40 text-[11px] font-semibold transition-colors duration-fast hover:bg-hover hover:text-text-muted/70"
           >
-            + Add Metric
+            {t('add_metric')}
           </button>
         ) : (
           <input
@@ -218,7 +221,7 @@ export function TeamMetricsTab({
                 setNewLabel('')
               }
             }}
-            placeholder="Metric name..."
+            placeholder={t('metric_name_placeholder')}
             className="mt-1.5 w-full py-[7px] px-2.5 bg-surface text-text-primary border border-border-glass rounded-lg outline-none text-[11px] font-semibold font-inherit box-border"
           />
         ))}

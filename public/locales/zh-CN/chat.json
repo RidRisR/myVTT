@@ -1,0 +1,15 @@
+{
+  "input_placeholder": "输入消息或 .r 1d20+@STR",
+  "send": "发送",
+  "resolve_hint": "（试试选中一个 token）",
+  "error_invalid_dice": "无效的骰子公式",
+  "error_invalid_formula": "无效的公式",
+  "speak_as": "以身份说话",
+  "collapse_history": "收起聊天记录",
+  "expand_history": "展开聊天记录",
+  "switch_speaker": "切换说话人",
+  "no_messages": "暂无消息",
+  "start_adventure": "开始冒险吧！",
+  "remove_favorite": "取消收藏",
+  "add_favorite": "添加收藏"
+}

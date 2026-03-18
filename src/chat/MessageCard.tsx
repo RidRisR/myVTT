@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Star } from 'lucide-react'
 import type { ChatMessage, ChatRollMessage } from '../shared/chatTypes'
 import { Avatar } from './Avatar'
@@ -26,6 +27,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   isFavorited = false,
   onToggleFavorite,
 }) => {
+  const { t } = useTranslation('chat')
   const [cardHover, setCardHover] = useState(false)
   const plugin = useRulePlugin()
 
@@ -101,7 +103,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           }}
           className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/40 border-none cursor-pointer flex items-center justify-center transition-colors duration-fast z-[1]"
           style={{ color: isFavorited ? '#fbbf24' : 'rgba(255,255,255,0.6)' }}
-          aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+          aria-label={isFavorited ? t('remove_favorite') : t('add_favorite')}
         >
           <Star size={14} strokeWidth={1.5} fill={isFavorited ? 'currentColor' : 'none'} />
         </button>

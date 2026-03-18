@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Copy, Plus, Trash2 } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
@@ -25,6 +26,7 @@ export function SceneListPanel({
   onCreateScene,
   onClose,
 }: SceneListPanelProps) {
+  const { t } = useTranslation('gm')
   const panelRef = useRef<HTMLDivElement>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -70,7 +72,7 @@ export function SceneListPanel({
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border-glass">
-        <span className="text-text-primary text-sm font-semibold">Scenes</span>
+        <span className="text-text-primary text-sm font-semibold">{t('scene.scenes')}</span>
         <button
           onClick={onClose}
           className="text-text-muted hover:text-text-primary transition-colors duration-fast p-0.5 cursor-pointer"
@@ -147,9 +149,9 @@ export function SceneListPanel({
                         setRenamingId(scene.id)
                         setRenameValue(scene.name || '')
                       }}
-                      title="Double-click to rename"
+                      title={t('scene.rename_hint')}
                     >
-                      {scene.name || 'Untitled'}
+                      {scene.name || t('scene.untitled')}
                     </span>
                   )}
                   <div className="flex items-center gap-0.5 shrink-0">
@@ -159,7 +161,7 @@ export function SceneListPanel({
                         onDuplicateScene(scene.id)
                       }}
                       className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-white transition-all duration-fast p-1 cursor-pointer"
-                      title="Duplicate scene"
+                      title={t('scene.duplicate')}
                     >
                       <Copy size={12} strokeWidth={1.5} />
                     </button>
@@ -171,7 +173,7 @@ export function SceneListPanel({
                           setDeletingId(scene.id)
                         }}
                         className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-danger transition-all duration-fast p-1 cursor-pointer"
-                        title="Delete scene"
+                        title={t('scene.delete')}
                       >
                         <Trash2 size={12} strokeWidth={1.5} />
                       </button>
@@ -188,7 +190,7 @@ export function SceneListPanel({
             onClick={onCreateScene}
           >
             <Plus size={14} strokeWidth={1.5} />
-            <span className="text-xs">New Scene</span>
+            <span className="text-xs">{t('scene.new_scene')}</span>
           </div>
         </div>
       </div>
@@ -197,7 +199,7 @@ export function SceneListPanel({
       {deletingScene && (
         <ConfirmPopover
           anchorRef={deleteButtonRef}
-          message={`Delete "${deletingScene.name || 'Untitled'}"?`}
+          message={t('archive.delete_confirm', { name: deletingScene.name || t('scene.untitled') })}
           onConfirm={() => {
             onDeleteScene(deletingScene.id)
             setDeletingId(null)

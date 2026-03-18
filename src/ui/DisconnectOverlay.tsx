@@ -1,10 +1,12 @@
 import { Loader } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface DisconnectOverlayProps {
   isDisconnected: boolean
 }
 
 export function DisconnectOverlay({ isDisconnected }: DisconnectOverlayProps) {
+  const { t } = useTranslation('ui')
   if (!isDisconnected) return null
 
   return (
@@ -24,8 +26,8 @@ export function DisconnectOverlay({ isDisconnected }: DisconnectOverlayProps) {
       </div>
 
       {/* Message */}
-      <h2 className="text-xl font-semibold text-text-primary mb-2">Connection lost</h2>
-      <p className="text-sm text-text-muted">Attempting to reconnect...</p>
+      <h2 className="text-xl font-semibold text-text-primary mb-2">{t('connection_lost')}</h2>
+      <p className="text-sm text-text-muted">{t('reconnecting')}</p>
     </div>
   )
 }

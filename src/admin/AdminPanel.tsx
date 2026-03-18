@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, Link, Trash2, Dices } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { io } from 'socket.io-client'
 import { API_BASE } from '../shared/config'
 import type { ServerToClientEvents, ClientToServerEvents } from '../shared/socketEvents'
@@ -18,6 +19,7 @@ const SYSTEM_LABELS: Record<string, string> = Object.fromEntries(
 )
 
 export function AdminPanel() {
+  const { t } = useTranslation(['admin', 'common'])
   const [rooms, setRooms] = useState<RoomMeta[]>([])
   const [newName, setNewName] = useState('')
   const [newSystemId, setNewSystemId] = useState('generic')
@@ -58,7 +60,7 @@ export function AdminPanel() {
     setError('')
     const name = newName.trim()
     if (!name) {
-      setError('Room name is required')
+      setError(t('room_name_required'))
       return
     }
     try {
@@ -76,17 +78,17 @@ export function AdminPanel() {
       setNewSystemId('generic')
       // room:created socket event will update the list
     } catch {
-      setError('Network error')
+      setError(t('network_error'))
     }
   }
 
   const handleDelete = async (roomId: string) => {
-    if (!confirm(`Delete room "${roomId}"? This will permanently erase all data.`)) return
+    if (!confirm(t('delete_room_confirm', { roomId }))) return
     try {
       await fetch(`${API_BASE}/api/rooms/${roomId}`, { method: 'DELETE' })
       // room:deleted socket event will update the list
     } catch {
-      setError('Delete failed')
+      setError(t('delete_failed'))
     }
   }
 
@@ -99,19 +101,19 @@ export function AdminPanel() {
     <div className="min-h-screen bg-deep text-text-primary font-sans px-6 py-10">
       <div className="max-w-[720px] mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-[22px] font-light">Room Management</h1>
+          <h1 className="text-[22px] font-light">{t('room_management')}</h1>
           <a
             href="#"
             className="text-text-muted/40 text-xs hover:text-text-muted transition-colors duration-fast"
           >
-            Back to Landing
+            {t('back_to_landing')}
           </a>
         </div>
 
         {/* Create room form */}
         <div className="bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl p-5 mb-6">
           <div className="text-[11px] font-semibold text-text-muted/40 tracking-wider uppercase mb-3">
-            Create Room
+            {t('create_room')}
           </div>
           <div className="flex gap-2 flex-wrap">
             <div className="flex flex-[1_1_200px] min-w-[140px]">
@@ -120,7 +122,7 @@ export function AdminPanel() {
                 onChange={(e) => {
                   setNewName(e.target.value)
                 }}
-                placeholder="Room name"
+                placeholder={t('room_name_placeholder')}
                 className="flex-1 px-3 py-2 border border-border-glass rounded-l-md text-[13px] bg-surface text-text-primary outline-none placeholder:text-text-muted/30"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') void handleCreate()
@@ -130,7 +132,7 @@ export function AdminPanel() {
                 onClick={() => {
                   setNewName(generateRoomName())
                 }}
-                title="Random name"
+                title={t('random_name')}
                 className="px-2.5 py-2 border border-l-0 border-border-glass rounded-r-md bg-surface text-text-muted/50 hover:text-accent transition-colors duration-fast cursor-pointer"
               >
                 <Dices size={14} strokeWidth={1.5} />
@@ -156,7 +158,7 @@ export function AdminPanel() {
               className="flex items-center gap-2 px-5 py-2 border-none rounded-md text-[13px] font-semibold cursor-pointer bg-accent text-deep transition-colors duration-fast hover:bg-accent-bold"
             >
               <Plus size={14} strokeWidth={2} />
-              Create
+              {t('create', { ns: 'common' })}
             </button>
           </div>
           {error && <div className="text-danger text-xs mt-2">{error}</div>}
@@ -166,16 +168,18 @@ export function AdminPanel() {
         <div className="bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-border-glass">
             <span className="text-[11px] font-semibold text-text-muted/40 tracking-wider uppercase">
-              Rooms ({rooms.length})
+              {t('rooms_count', { count: rooms.length })}
             </span>
           </div>
 
-          {loading && <div className="py-8 text-center text-text-muted/30">Loading...</div>}
+          {loading && (
+            <div className="py-8 text-center text-text-muted/30">
+              {t('loading', { ns: 'common' })}
+            </div>
+          )}
 
           {!loading && rooms.length === 0 && (
-            <div className="py-8 text-center text-text-muted/30 text-[13px]">
-              No rooms yet. Create one above.
-            </div>
+            <div className="py-8 text-center text-text-muted/30 text-[13px]">{t('no_rooms')}</div>
           )}
 
           {rooms.map((room) => {
@@ -215,7 +219,7 @@ export function AdminPanel() {
                   href={`#room=${room.id}`}
                   className="px-4 py-1.5 rounded-md text-xs font-semibold cursor-pointer bg-accent text-deep no-underline transition-colors duration-fast hover:bg-accent-bold"
                 >
-                  Enter
+                  {t('enter', { ns: 'common' })}
                 </a>
 
                 <button
@@ -225,7 +229,7 @@ export function AdminPanel() {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs cursor-pointer bg-transparent text-text-muted/40 border border-border-glass/30 transition-colors duration-fast hover:text-text-muted/70 hover:border-border-glass/50"
                 >
                   <Link size={11} strokeWidth={1.5} />
-                  Link
+                  {t('link', { ns: 'common' })}
                 </button>
 
                 <button
@@ -233,7 +237,7 @@ export function AdminPanel() {
                     void handleDelete(room.id)
                   }}
                   className="flex items-center p-1.5 rounded-md text-xs cursor-pointer bg-transparent text-text-muted/25 border-none transition-colors duration-fast hover:text-danger"
-                  aria-label="Delete"
+                  aria-label={t('delete', { ns: 'common' })}
                 >
                   <Trash2 size={13} strokeWidth={1.5} />
                 </button>

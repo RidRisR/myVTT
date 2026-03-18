@@ -1,0 +1,9 @@
+{
+  "title": "Team",
+  "hide_panel": "Hide panel",
+  "metrics_tab": "Metrics",
+  "tracker_name": "Name",
+  "change_color": "Change color",
+  "add_metric": "+ Add Metric",
+  "metric_name_placeholder": "Metric name..."
+}

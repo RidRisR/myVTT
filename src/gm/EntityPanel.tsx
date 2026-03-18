@@ -8,6 +8,7 @@ import { useUiStore } from '../stores/uiStore'
 import { useToast } from '../ui/useToast'
 import { generateTokenId } from '../shared/idUtils'
 import { EntityRow } from './EntityRow'
+import { useTranslation } from 'react-i18next'
 
 const EMPTY_ENTRIES: SceneEntityEntry[] = []
 const EMPTY_TACTICAL: Entity[] = []
@@ -15,6 +16,7 @@ const EMPTY_TACTICAL: Entity[] = []
 type GroupType = 'onStage' | 'backstage' | 'tactical'
 
 export function EntityPanel() {
+  const { t } = useTranslation('gm')
   const entities = useWorldStore((s) => s.entities)
   const activeSceneId = useWorldStore((s) => s.room.activeSceneId)
   const sceneEntityMap = useWorldStore((s) => s.sceneEntityMap)
@@ -96,7 +98,7 @@ export function EntityPanel() {
   const handleCreateNpc = () => {
     const newEntity: Entity = {
       id: generateTokenId(),
-      name: 'New NPC',
+      name: t('entity.default_npc_name'),
       imageUrl: '',
       color: '#3b82f6',
       width: 1,
@@ -113,7 +115,7 @@ export function EntityPanel() {
 
   const handleDelete = (entity: Entity) => {
     void deleteEntity(entity.id)
-    toast('undo', `Deleted "${entity.name}"`, { duration: 5000 })
+    toast('undo', t('entity.deleted', { name: entity.name }), { duration: 5000 })
   }
 
   const handleToggleVisibility = (entity: Entity, currentlyVisible: boolean) => {
@@ -178,7 +180,7 @@ export function EntityPanel() {
                     handlePromote(entity)
                   }}
                   className="absolute right-7 opacity-0 group-hover:opacity-100 hover:!opacity-100 text-text-muted/40 hover:text-accent p-0.5 cursor-pointer transition-opacity duration-fast"
-                  title="Promote to scene character"
+                  title={t('entity.promote_to_scene')}
                 >
                   <MapPin size={12} strokeWidth={1.5} />
                 </button>
@@ -191,7 +193,9 @@ export function EntityPanel() {
                       handleToggleVisibility(entity, groupType === 'onStage')
                     }}
                     className="absolute right-7 opacity-0 group-hover:opacity-100 hover:!opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
-                    title={groupType === 'onStage' ? 'Backstage' : 'On stage'}
+                    title={
+                      groupType === 'onStage' ? t('entity.exit_stage') : t('entity.enter_stage')
+                    }
                   >
                     {groupType === 'onStage' ? (
                       <Eye size={12} strokeWidth={1.5} />
@@ -207,7 +211,7 @@ export function EntityPanel() {
                         handleDemote(entity)
                       }}
                       className="absolute right-14 opacity-0 group-hover:opacity-100 hover:!opacity-100 text-text-muted/40 hover:text-accent p-0.5 cursor-pointer transition-opacity duration-fast"
-                      title="Demote to tactical object"
+                      title={t('entity.demote_to_tactical')}
                     >
                       <Swords size={12} strokeWidth={1.5} />
                     </button>
@@ -240,7 +244,7 @@ export function EntityPanel() {
             onChange={(e) => {
               setSearch(e.target.value)
             }}
-            placeholder="Search NPCs..."
+            placeholder={t('entity.search_placeholder')}
             className="w-full pl-6 pr-2 py-1 text-xs bg-surface/60 text-text-primary border border-border-glass rounded outline-none placeholder:text-text-muted/30"
           />
         </div>
@@ -251,19 +255,19 @@ export function EntityPanel() {
         {isEmpty && !search.trim() ? (
           <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs">
             <ClipboardList size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-            <span className="opacity-50">No NPCs</span>
-            <span className="opacity-30 text-[10px] mt-1">Click + below to create</span>
+            <span className="opacity-50">{t('entity.empty')}</span>
+            <span className="opacity-30 text-[10px] mt-1">{t('entity.empty_hint')}</span>
           </div>
         ) : onStage.length === 0 &&
           backstage.length === 0 &&
           tacticalOnlyEntities.length === 0 &&
           noResults ? (
-          <div className="text-center text-text-muted/40 text-xs py-8">No matches</div>
+          <div className="text-center text-text-muted/40 text-xs py-8">{t('entity.no_match')}</div>
         ) : (
           <>
-            {renderGroup('On Stage', '\u25CF', onStage, 'onStage')}
-            {renderGroup('Backstage', '\u25D0', backstage, 'backstage')}
-            {renderGroup('Tactical', '\u2694', tacticalOnlyEntities, 'tactical')}
+            {renderGroup(t('entity.group_on_stage'), '\u25CF', onStage, 'onStage')}
+            {renderGroup(t('entity.group_off_stage'), '\u25D0', backstage, 'backstage')}
+            {renderGroup(t('entity.group_tactical'), '\u2694', tacticalOnlyEntities, 'tactical')}
           </>
         )}
       </div>
@@ -273,10 +277,10 @@ export function EntityPanel() {
         <button
           onClick={handleCreateNpc}
           className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-          title="New NPC"
+          title={t('entity.create_npc')}
         >
           <Plus size={12} strokeWidth={1.5} />
-          New NPC
+          {t('entity.create_npc')}
         </button>
       </div>
     </div>

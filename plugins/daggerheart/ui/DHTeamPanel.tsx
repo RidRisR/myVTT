@@ -1,6 +1,7 @@
 // plugins/daggerheart/ui/DHTeamPanel.tsx
 import { Minus, Plus } from 'lucide-react'
 import type { TeamPanelProps } from '@myvtt/sdk'
+import { usePluginTranslation } from '@myvtt/sdk'
 import type { TeamTracker } from '../../../src/stores/worldStore'
 
 const FEAR_COLOR = '#dc2626'
@@ -72,6 +73,8 @@ function CounterCell({
 }
 
 export function DHTeamPanel({ trackers, onUpdate, onCreate }: TeamPanelProps) {
+  const { t } = usePluginTranslation()
+
   const fearTracker = findOrNull(trackers, 'Fear')
   const hopeTracker = findOrNull(trackers, 'Hope')
 
@@ -91,14 +94,14 @@ export function DHTeamPanel({ trackers, onUpdate, onCreate }: TeamPanelProps) {
     return null
   }
 
-  const otherTrackers = trackers.filter((t) => t.label !== 'Fear' && t.label !== 'Hope')
+  const otherTrackers = trackers.filter((tr) => tr.label !== 'Fear' && tr.label !== 'Hope')
 
   return (
     <div className="flex flex-col gap-3 font-sans text-text-primary">
       {/* Fear / Hope counters */}
       <div className="flex justify-around pt-1">
         <CounterCell
-          label="Fear"
+          label={t('team.fear')}
           value={fearTracker.current}
           max={fearTracker.max}
           color={FEAR_COLOR}
@@ -113,7 +116,7 @@ export function DHTeamPanel({ trackers, onUpdate, onCreate }: TeamPanelProps) {
         />
         <div className="w-px bg-border-glass" />
         <CounterCell
-          label="Hope"
+          label={t('team.hope')}
           value={hopeTracker.current}
           max={hopeTracker.max}
           color={HOPE_COLOR}
@@ -131,20 +134,20 @@ export function DHTeamPanel({ trackers, onUpdate, onCreate }: TeamPanelProps) {
       {/* Other team trackers (e.g. armor, supplies) */}
       {otherTrackers.length > 0 && (
         <div className="border-t border-border-glass pt-2.5 flex flex-col gap-2">
-          {otherTrackers.map((t) => {
-            const pct = t.max > 0 ? t.current / t.max : 0
+          {otherTrackers.map((tr) => {
+            const pct = tr.max > 0 ? tr.current / tr.max : 0
             return (
-              <div key={t.id}>
+              <div key={tr.id}>
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-[10px] font-semibold text-text-muted/70">{t.label}</span>
-                  <span className="text-[10px] font-bold tabular-nums" style={{ color: t.color }}>
-                    {t.current}/{t.max}
+                  <span className="text-[10px] font-semibold text-text-muted/70">{tr.label}</span>
+                  <span className="text-[10px] font-bold tabular-nums" style={{ color: tr.color }}>
+                    {tr.current}/{tr.max}
                   </span>
                 </div>
                 <div className="h-1.5 rounded-full bg-surface overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-300"
-                    style={{ width: `${pct * 100}%`, background: t.color }}
+                    style={{ width: `${pct * 100}%`, background: tr.color }}
                   />
                 </div>
               </div>

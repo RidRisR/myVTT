@@ -3,6 +3,7 @@
 // Crossfades on scene change.
 
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Volume2, VolumeX } from 'lucide-react'
 
 interface AmbientAudioProps {
@@ -13,6 +14,7 @@ interface AmbientAudioProps {
 const FADE_MS = 1200
 
 export function AmbientAudio({ audioUrl, volume }: AmbientAudioProps) {
+  const { t } = useTranslation('scene')
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const fadeRef = useRef<number>(0)
 
@@ -120,7 +122,7 @@ export function AmbientAudio({ audioUrl, volume }: AmbientAudioProps) {
           onClick={handleUnblock}
           className="rounded-lg bg-glass backdrop-blur-[12px] border border-border-glass px-3 py-2 text-xs font-medium text-accent shadow-[0_2px_12px_rgba(0,0,0,0.3)] cursor-pointer hover:bg-hover transition-colors duration-fast animate-fade-in"
         >
-          Click to play audio
+          {t('click_to_play')}
         </button>
       )}
       <button
@@ -128,7 +130,7 @@ export function AmbientAudio({ audioUrl, volume }: AmbientAudioProps) {
           setMuted((m) => !m)
         }}
         className="p-2 rounded-lg bg-glass backdrop-blur-[12px] border border-border-glass shadow-[0_2px_12px_rgba(0,0,0,0.3)] cursor-pointer hover:bg-hover transition-colors duration-fast"
-        title={muted ? 'Unmute' : 'Mute'}
+        title={muted ? t('unmute') : t('mute')}
       >
         {muted ? (
           <VolumeX size={14} strokeWidth={1.5} className="text-text-muted" />

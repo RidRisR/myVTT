@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSocket } from './hooks/useSocket'
 import { AdminPanel } from './admin/AdminPanel'
 import { useWorldStore } from './stores/worldStore'
@@ -42,6 +43,7 @@ import { PluginPanelContainer } from './layout/PluginPanelContainer'
 const EMPTY_ENTRIES: SceneEntityEntry[] = []
 
 function RoomSession({ roomId }: { roomId: string }) {
+  const { t } = useTranslation('common')
   const { socket, connectionStatus } = useSocket(roomId)
   const [isLoading, setIsLoading] = useState(true)
   const [initError, setInitError] = useState<string | null>(null)
@@ -227,7 +229,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       >
         {initError ? (
           <>
-            <div>Failed to connect: {initError}</div>
+            <div>{t('connection_failed', { error: initError })}</div>
             <button
               onClick={() => {
                 window.location.reload()
@@ -242,11 +244,11 @@ function RoomSession({ roomId }: { roomId: string }) {
                 fontSize: 14,
               }}
             >
-              Retry
+              {t('retry')}
             </button>
           </>
         ) : (
-          'Connecting to server...'
+          t('connecting')
         )}
       </div>
     )
@@ -518,7 +520,7 @@ function RoomSession({ roomId }: { roomId: string }) {
           <ContextMenu
             x={bgContextMenu.x}
             y={bgContextMenu.y}
-            items={[{ label: 'Add NPC', onClick: handleAddNpc }]}
+            items={[{ label: t('add_npc'), onClick: handleAddNpc }]}
             onClose={() => {
               setBgContextMenu(null)
             }}
@@ -557,6 +559,7 @@ function useHashRoute() {
 }
 
 export default function App() {
+  const { t } = useTranslation('common')
   const hash = useHashRoute()
 
   if (hash === '#admin') {
@@ -581,15 +584,13 @@ export default function App() {
       }}
     >
       <div style={{ textAlign: 'center', maxWidth: 400 }}>
-        <h1 style={{ fontSize: 28, marginBottom: 16, fontWeight: 300 }}>myVTT</h1>
-        <p style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
-          Please obtain a room link from the administrator.
-        </p>
+        <h1 style={{ fontSize: 28, marginBottom: 16, fontWeight: 300 }}>{t('app_title')}</h1>
+        <p style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>{t('landing_hint')}</p>
         <a
           href="#admin"
           style={{ color: '#60a5fa', fontSize: 13, marginTop: 24, display: 'inline-block' }}
         >
-          Admin Panel
+          {t('admin_panel')}
         </a>
       </div>
     </div>

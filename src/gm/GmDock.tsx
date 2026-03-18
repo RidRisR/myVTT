@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   FolderOpen,
   CircleUser,
@@ -75,6 +76,7 @@ export function GmDock({
   onSelectToken,
   onSetAsTacticalMap,
 }: GmDockProps) {
+  const { t } = useTranslation('gm')
   const activeTab = useUiStore((s) => s.gmDockTab)
   const setActiveTab = useUiStore((s) => s.setGmDockTab)
   const [collapsed, setCollapsed] = useState(false)
@@ -168,7 +170,7 @@ export function GmDock({
           className="flex items-center gap-1 rounded-lg bg-glass backdrop-blur-[12px] border border-border-glass px-3 py-1.5 text-xs text-text-muted cursor-pointer hover:bg-hover transition-colors duration-fast"
         >
           <ChevronDown size={14} strokeWidth={1.5} className="rotate-180" />
-          GM Tools
+          {t('dock.gm_tools')}
         </button>
       </div>
     )
@@ -231,7 +233,7 @@ export function GmDock({
       {activeTab === 'dice' && (
         <div className="mb-1.5 bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.4)] min-w-[300px] p-6 flex flex-col items-center gap-2">
           <Dice5 size={28} strokeWidth={1} className="text-text-muted/40" />
-          <p className="text-text-muted text-xs">Dice system coming soon</p>
+          <p className="text-text-muted text-xs">{t('dock.dice_coming_soon')}</p>
         </div>
       )}
 
@@ -244,7 +246,7 @@ export function GmDock({
           className={tabBtnClass('gallery')}
         >
           <FolderOpen size={14} strokeWidth={1.5} />
-          Gallery
+          {t('dock.gallery')}
         </button>
 
         <button
@@ -254,7 +256,7 @@ export function GmDock({
           className={tabBtnClass('tokens')}
         >
           <CircleUser size={14} strokeWidth={1.5} />
-          Blueprints
+          {t('dock.blueprints')}
         </button>
 
         <button
@@ -264,7 +266,7 @@ export function GmDock({
           className={tabBtnClass('characters')}
         >
           <Users size={14} strokeWidth={1.5} />
-          Characters
+          {t('dock.characters')}
         </button>
 
         <button
@@ -274,7 +276,7 @@ export function GmDock({
           className={tabBtnClass('handouts')}
         >
           <BookOpen size={14} strokeWidth={1.5} />
-          Handouts
+          {t('dock.handouts')}
         </button>
 
         <button
@@ -284,7 +286,7 @@ export function GmDock({
           className={tabBtnClass('dice')}
         >
           <Dice5 size={14} strokeWidth={1.5} />
-          Dice
+          {t('dock.dice')}
         </button>
 
         {/* Separator */}
@@ -300,7 +302,7 @@ export function GmDock({
           }`}
         >
           {isTactical ? <X size={14} strokeWidth={1.5} /> : <Swords size={14} strokeWidth={1.5} />}
-          {isTactical ? 'Exit' : 'Combat'}
+          {isTactical ? t('dock.combat_off') : t('dock.combat_on')}
         </button>
 
         {/* Token actions (contextual) */}
@@ -329,7 +331,7 @@ export function GmDock({
                   ) : (
                     <Eye size={14} strokeWidth={1.5} />
                   )}
-                  {isHidden ? 'Hidden' : 'Visible'}
+                  {isHidden ? t('dock.hidden') : t('dock.visible')}
                 </button>
               )
             })()}
@@ -343,7 +345,7 @@ export function GmDock({
             setActiveTab(null)
           }}
           className="flex items-center px-2 py-[7px] bg-glass backdrop-blur-[8px] border border-border-glass rounded-lg text-text-muted cursor-pointer hover:bg-hover transition-colors duration-fast"
-          title="Collapse toolbar"
+          title={t('dock.collapse')}
         >
           <ChevronDown size={14} strokeWidth={1.5} />
         </button>

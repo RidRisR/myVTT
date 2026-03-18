@@ -2,26 +2,21 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { PluginPanelProps } from '@myvtt/sdk'
+import { usePluginTranslation } from '@myvtt/sdk'
 import type { DHRuleData } from '../types'
 import { createDefaultDHEntityData } from '../templates'
 
-const ATTRS = [
-  { key: 'agility', label: '敏捷' },
-  { key: 'strength', label: '力量' },
-  { key: 'finesse', label: '精巧' },
-  { key: 'instinct', label: '本能' },
-  { key: 'presence', label: '临场' },
-  { key: 'knowledge', label: '知识' },
-] as const
+const ATTR_KEYS = ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowledge'] as const
 
 export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPanelProps) {
   const [editingName, setEditingName] = useState(false)
   const [editName, setEditName] = useState(entity?.name ?? '')
+  const { t } = usePluginTranslation()
 
   if (!entity) {
     return (
       <div className="bg-glass backdrop-blur-[16px] rounded-2xl border border-border-glass p-8 text-text-muted text-center">
-        无角色数据
+        {t('sheet.noData')}
       </div>
     )
   }
@@ -102,7 +97,7 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
         </div>
         <button
           onClick={onClose}
-          aria-label="关闭"
+          aria-label={t('sheet.close')}
           className="p-1.5 rounded-lg text-text-muted hover:bg-hover hover:text-text-primary transition-colors duration-fast"
         >
           <X size={16} strokeWidth={1.5} />
@@ -116,18 +111,18 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
           {/* Identity */}
           <div>
             <div className="text-[10px] uppercase tracking-widest text-text-muted/50 mb-2">
-              身份
+              {t('sheet.sectionIdentity')}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <IdentityField
-                label="职业"
+                label={t('sheet.class')}
                 value={d.className}
                 onChange={(v) => {
                   updateDH({ className: v })
                 }}
               />
               <IdentityField
-                label="血统"
+                label={t('sheet.ancestry')}
                 value={d.ancestry}
                 onChange={(v) => {
                   updateDH({ ancestry: v })
@@ -139,31 +134,33 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
           {/* Tier + Proficiency */}
           <div>
             <div className="text-[10px] uppercase tracking-widest text-text-muted/50 mb-2">
-              成长
+              {t('sheet.sectionGrowth')}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-text-muted/40 block mb-1">等级</label>
+                <label className="text-[10px] text-text-muted/40 block mb-1">
+                  {t('sheet.tier')}
+                </label>
                 <div className="flex gap-1">
-                  {([1, 2, 3, 4] as const).map((t) => (
+                  {([1, 2, 3, 4] as const).map((tier) => (
                     <button
-                      key={t}
+                      key={tier}
                       onClick={() => {
-                        updateDH({ tier: t })
+                        updateDH({ tier })
                       }}
                       className={`flex-1 py-1 rounded text-xs font-bold transition-colors duration-fast ${
-                        d.tier === t
+                        d.tier === tier
                           ? 'bg-accent text-white'
                           : 'bg-black/20 text-text-muted/50 hover:bg-black/40'
                       }`}
                     >
-                      {t}
+                      {tier}
                     </button>
                   ))}
                 </div>
               </div>
               <NumberField
-                label="熟练值"
+                label={t('sheet.proficiency')}
                 value={d.proficiency}
                 min={1}
                 max={6}
@@ -177,13 +174,13 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
           {/* Six Attributes */}
           <div>
             <div className="text-[10px] uppercase tracking-widest text-text-muted/50 mb-2">
-              核心属性
+              {t('sheet.sectionAttributes')}
             </div>
             <div className="grid grid-cols-3 gap-1.5">
-              {ATTRS.map(({ key, label }) => (
+              {ATTR_KEYS.map((key) => (
                 <AttrField
                   key={key}
-                  label={label}
+                  label={t(`attr.${key}`)}
                   value={d[key]}
                   onChange={(v) => {
                     updateDH({ [key]: v } as Partial<DHRuleData>)
@@ -198,11 +195,11 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
         <div className="flex flex-col gap-5">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-text-muted/50 mb-2">
-              资源
+              {t('sheet.sectionResources')}
             </div>
             <div className="flex flex-col gap-3">
               <ResourceField
-                label="生命值 HP"
+                label={t('sheet.hp')}
                 color="#ef4444"
                 current={d.hp?.current ?? 0}
                 max={d.hp?.max ?? 0}
@@ -214,7 +211,7 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
                 }}
               />
               <ResourceField
-                label="压力 Stress"
+                label={t('sheet.stress')}
                 color="#f97316"
                 current={d.stress?.current ?? 0}
                 max={d.stress?.max ?? 0}
@@ -227,7 +224,7 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
               />
               <div className="grid grid-cols-2 gap-2">
                 <NumberField
-                  label="希望 Hope"
+                  label={t('sheet.hope')}
                   value={d.hope ?? 0}
                   min={0}
                   max={99}
@@ -236,7 +233,7 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
                   }}
                 />
                 <NumberField
-                  label="护甲 Armor"
+                  label={t('sheet.armor')}
                   value={d.armor ?? 0}
                   min={0}
                   max={6}
@@ -251,14 +248,14 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
           {/* Notes */}
           <div className="flex-1">
             <div className="text-[10px] uppercase tracking-widest text-text-muted/50 mb-2">
-              备注
+              {t('sheet.sectionNotes')}
             </div>
             <textarea
               value={entity.notes}
               onChange={(e) => {
                 onUpdateEntity(entity.id, { notes: e.target.value })
               }}
-              placeholder="角色背景、笔记..."
+              placeholder={t('sheet.notesPlaceholder')}
               rows={6}
               className="w-full px-3 py-2 bg-black/20 border border-border-glass rounded-lg text-sm text-text-primary placeholder:text-text-muted/25 outline-none resize-none focus:border-accent/50 transition-colors duration-fast"
             />

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { HandoutAsset } from '../stores/worldStore'
 
 interface HandoutEditModalProps {
@@ -8,6 +9,7 @@ interface HandoutEditModalProps {
 }
 
 export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalProps) {
+  const { t } = useTranslation('dock')
   const [title, setTitle] = useState(asset.title || '')
   const [description, setDescription] = useState(asset.description || '')
   const panelRef = useRef<HTMLDivElement>(null)
@@ -66,7 +68,7 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
             onChange={(e) => {
               setTitle(e.target.value)
             }}
-            placeholder="Add title..."
+            placeholder={t('handout.add_title')}
             autoFocus
             className="w-full bg-transparent border-none outline-none text-text-primary font-sans text-center text-base font-semibold"
             style={{ textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}
@@ -76,7 +78,7 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
             onChange={(e) => {
               setDescription(e.target.value)
             }}
-            placeholder="Add description..."
+            placeholder={t('handout.add_description')}
             rows={2}
             className="w-full bg-transparent border-none outline-none text-text-primary/70 font-sans text-center text-[13px] leading-normal mt-1 resize-none"
             style={{ textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}
@@ -89,13 +91,13 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
             onClick={onClose}
             className="px-4 py-1.5 border border-border-glass rounded-md text-xs font-medium cursor-pointer font-sans bg-surface text-text-primary/70 transition-colors duration-fast hover:bg-hover"
           >
-            Cancel
+            {t('cancel', { ns: 'common' })}
           </button>
           <button
             onClick={handleSave}
             className="px-4 py-1.5 border-none rounded-md text-xs font-semibold cursor-pointer font-sans bg-accent text-deep transition-colors duration-fast hover:bg-accent-bold"
           >
-            Save
+            {t('save', { ns: 'common' })}
           </button>
         </div>
       </div>

@@ -1,0 +1,13 @@
+{
+  "room_management": "房间管理",
+  "back_to_landing": "返回首页",
+  "create_room": "创建房间",
+  "room_name_placeholder": "房间名称",
+  "random_name": "随机名称",
+  "rooms_count": "房间 ({{count}})",
+  "no_rooms": "暂无房间。在上方创建一个。",
+  "delete_room_confirm": "删除房间「{{roomId}}」？这将永久删除所有数据。",
+  "room_name_required": "房间名称不能为空",
+  "network_error": "网络错误",
+  "delete_failed": "删除失败"
+}

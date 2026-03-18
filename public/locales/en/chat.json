@@ -1,0 +1,15 @@
+{
+  "input_placeholder": "Type a message or .r 1d20+@STR",
+  "send": "Send",
+  "resolve_hint": " (try selecting a token)",
+  "error_invalid_dice": "Invalid dice formula",
+  "error_invalid_formula": "Invalid formula",
+  "speak_as": "Speak as",
+  "collapse_history": "Collapse chat history",
+  "expand_history": "Expand chat history",
+  "switch_speaker": "Switch speaker",
+  "no_messages": "No messages yet",
+  "start_adventure": "Start the adventure!",
+  "remove_favorite": "Remove from favorites",
+  "add_favorite": "Add to favorites"
+}
