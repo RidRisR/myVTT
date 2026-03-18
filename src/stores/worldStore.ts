@@ -4,7 +4,13 @@
 
 import { create } from 'zustand'
 import type { TypedClientSocket } from '../shared/socketEvents'
-import type { Entity, MapToken, Atmosphere, SceneEntityEntry } from '../shared/entityTypes'
+import type {
+  Entity,
+  MapToken,
+  Atmosphere,
+  SceneEntityEntry,
+  Blueprint,
+} from '../shared/entityTypes'
 import type { ShowcaseItem } from '../shared/showcaseTypes'
 import type { ChatMessage } from '../shared/chatTypes'
 import type { DiceSpec } from '../shared/diceUtils'
@@ -62,6 +68,7 @@ interface WorldState {
   handoutAssets: HandoutAsset[]
   teamTrackers: TeamTracker[]
   assets: AssetMeta[]
+  blueprints: Blueprint[]
 
   // Internal refs
   _socket: TypedClientSocket | null
@@ -86,6 +93,17 @@ interface WorldState {
   getSceneEntityEntries: (sceneId: string) => SceneEntityEntry[]
   toggleEntityVisibility: (sceneId: string, entityId: string, visible: boolean) => Promise<void>
   saveEntityAsBlueprint: (entity: Entity) => Promise<void>
+  createBlueprint: (data: {
+    name: string
+    imageUrl: string
+    defaults: Blueprint['defaults']
+    tags?: string[]
+  }) => Promise<Blueprint | null>
+  updateBlueprint: (
+    id: string,
+    updates: Partial<Pick<Blueprint, 'name' | 'imageUrl' | 'defaults' | 'tags'>>,
+  ) => Promise<void>
+  deleteBlueprint: (id: string) => Promise<void>
   spawnFromBlueprint: (
     sceneId: string,
     blueprintId: string,
@@ -139,7 +157,6 @@ interface WorldState {
       name?: string
       type?: AssetMeta['type']
       tags?: string[]
-      blueprint?: AssetMeta['blueprint']
     },
   ) => Promise<AssetMeta>
   updateAsset: (assetId: string, updates: Partial<AssetMeta>) => Promise<void>
@@ -221,7 +238,6 @@ function normalizeAsset(raw: Record<string, unknown>): AssetMeta {
     type: (raw.type as AssetMeta['type'] | undefined) || 'image',
     tags: (extra.tags as string[] | undefined) || (raw.tags as string[] | undefined) || [],
     createdAt: raw.createdAt as number,
-    ...(extra.blueprint ? { blueprint: extra.blueprint as AssetMeta['blueprint'] } : {}),
     ...(extra.handout ? { handout: extra.handout as AssetMeta['handout'] } : {}),
   }
 }
@@ -241,6 +257,7 @@ async function loadAll(roomId: string) {
     chatMessages: bundle.chat,
     teamTrackers: bundle.teamTrackers,
     assets: bundle.assets.map(normalizeAsset),
+    blueprints: bundle.blueprints,
     showcaseItems: bundle.showcase,
     tacticalInfo: bundle.tactical ? normalizeTacticalInfo(bundle.tactical) : null,
   }
@@ -433,6 +450,19 @@ function registerSocketEvents(
     set((s) => ({ assets: s.assets.filter((a) => a.id !== id) }))
   })
 
+  // ── Blueprint events ──
+  socket.on('blueprint:created', (bp: Blueprint) => {
+    set((s) => ({ blueprints: [bp, ...s.blueprints] }))
+  })
+  socket.on('blueprint:updated', (bp: Blueprint) => {
+    set((s) => ({
+      blueprints: s.blueprints.map((b) => (b.id === bp.id ? bp : b)),
+    }))
+  })
+  socket.on('blueprint:deleted', ({ id }: { id: string }) => {
+    set((s) => ({ blueprints: s.blueprints.filter((b) => b.id !== id) }))
+  })
+
   // ── Archive events ──
   socket.on('archive:created', (arc: ArchiveRecord) => {
     set((s) => ({ archives: [...s.archives, arc] }))
@@ -474,6 +504,9 @@ const WS_EVENTS = [
   'asset:created',
   'asset:updated',
   'asset:deleted',
+  'blueprint:created',
+  'blueprint:updated',
+  'blueprint:deleted',
   'archive:created',
   'archive:updated',
   'archive:deleted',
@@ -495,6 +528,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   handoutAssets: [],
   teamTrackers: [],
   assets: [],
+  blueprints: [],
   archives: [],
 
   // Internal refs
@@ -747,18 +781,34 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   saveEntityAsBlueprint: async (entity) => {
     const roomId = get()._roomId
     if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/assets`, {
-      url: entity.imageUrl,
+    await api.post(`/api/rooms/${roomId}/blueprints`, {
       name: entity.name,
-      type: 'blueprint',
-      extra: {
-        blueprint: {
-          defaultSize: entity.width,
-          defaultColor: entity.color,
-          defaultRuleData: entity.ruleData,
-        },
+      imageUrl: entity.imageUrl,
+      defaults: {
+        color: entity.color,
+        width: entity.width,
+        height: entity.height,
+        ruleData: entity.ruleData,
       },
     })
+  },
+
+  createBlueprint: async (data) => {
+    const roomId = get()._roomId
+    if (!roomId) return null
+    return api.post<Blueprint>(`/api/rooms/${roomId}/blueprints`, data)
+  },
+
+  updateBlueprint: async (id, updates) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.patch(`/api/rooms/${roomId}/blueprints/${id}`, updates)
+  },
+
+  deleteBlueprint: async (id) => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.delete(`/api/rooms/${roomId}/blueprints/${id}`)
   },
 
   toggleEntityVisibility: async (sceneId, entityId, visible) => {
@@ -884,7 +934,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   uploadAsset: async (file, meta) => {
     const extra: Record<string, unknown> = { tags: meta.tags || [] }
-    if (meta.blueprint) extra.blueprint = meta.blueprint
     const result = await uploadAssetFile(file, {
       name: meta.name || file.name,
       type: meta.type || 'image',
