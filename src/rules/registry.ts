@@ -7,6 +7,7 @@ import { daggerheartPlugin } from '../../plugins/daggerheart/index'
 
 function loadPluginI18n(plugin: RulePlugin): void {
   if (!plugin.i18n?.resources) return
+  if (!i18next.isInitialized) return
   for (const [lng, translations] of Object.entries(plugin.i18n.resources)) {
     i18next.addResourceBundle(lng, `plugin-${plugin.id}`, translations, true, true)
   }
