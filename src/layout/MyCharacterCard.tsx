@@ -15,7 +15,7 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
 
   return (
     <div
-      className="fixed top-1/2 left-0 -translate-y-1/2 z-ui flex pointer-events-none"
+      className="fixed top-1/2 left-0 -translate-y-1/2 z-toast flex pointer-events-none"
       onPointerDown={(e) => {
         e.stopPropagation()
       }}

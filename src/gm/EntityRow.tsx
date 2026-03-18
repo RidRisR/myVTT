@@ -108,11 +108,11 @@ export function EntityRow({
           confirmLabel={
             <>
               <Trash2 size={12} strokeWidth={1.5} />
-              删除
+              Delete
             </>
           }
           confirmItemClassName="flex items-center gap-2 px-3 py-1.5 text-xs text-danger hover:bg-hover cursor-pointer transition-colors duration-fast outline-none"
-          confirmMessage={`删除"${entity.name}"？`}
+          confirmMessage={`Delete "${entity.name}"?`}
           onConfirm={onDelete}
         >
           <DropdownMenu.Item
@@ -123,7 +123,7 @@ export function EntityRow({
             className="flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast outline-none"
           >
             <Pencil size={12} strokeWidth={1.5} />
-            重命名
+            Rename
           </DropdownMenu.Item>
           {!isInScene && (
             <DropdownMenu.Item
@@ -133,7 +133,7 @@ export function EntityRow({
               className="flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast outline-none"
             >
               <MapPin size={12} strokeWidth={1.5} />
-              加入场景
+              Add to Scene
             </DropdownMenu.Item>
           )}
         </ConfirmDropdown>

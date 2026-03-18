@@ -70,10 +70,10 @@ export function ArchivePanel() {
 
   const handleCreateAndSave = async () => {
     if (!activeSceneId) return
-    const archive = await createArchive(activeSceneId, `存档 ${archives.length + 1}`)
+    const archive = await createArchive(activeSceneId, `Archive ${archives.length + 1}`)
     if (archive) {
       await saveArchive(archive.id)
-      toast('success', '已存为新档')
+      toast('success', 'Saved as new archive')
     }
   }
 
@@ -82,7 +82,7 @@ export function ArchivePanel() {
     setMenuId(null)
     // Optimistic removal from local state, delete on server
     void deleteArchive(archive.id)
-    toast('undo', `已删除"${archive.name}"`, {
+    toast('undo', `Deleted"${archive.name}"`, {
       duration: 5000,
     })
   }
@@ -98,7 +98,7 @@ export function ArchivePanel() {
     if (!selectedId || !activeSceneId) return
     void saveArchive(selectedId)
     setSelectedId(null)
-    toast('success', '已覆盖存档')
+    toast('success', 'Archive overwritten')
   }
 
   const selectedArchive = selectedId ? archives.find((e) => e.id === selectedId) : null
@@ -107,7 +107,7 @@ export function ArchivePanel() {
     return (
       <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs">
         <Swords size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-        <span className="opacity-50">请先选择场景</span>
+        <span className="opacity-50">Select a scene first</span>
       </div>
     )
   }
@@ -119,8 +119,8 @@ export function ArchivePanel() {
         {sortedArchives.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs py-8">
             <Swords size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-            <span className="opacity-50">暂无战场存档</span>
-            <span className="opacity-30 text-[10px] mt-1">点击下方「+」创建</span>
+            <span className="opacity-50">No combat archives</span>
+            <span className="opacity-30 text-[10px] mt-1">Click + below to create</span>
           </div>
         ) : (
           <div className="flex flex-col gap-1">
@@ -195,8 +195,11 @@ export function ArchivePanel() {
                           onPointerDown={(e) => {
                             e.stopPropagation()
                           }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                          }}
                         >
-                          <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{`删除"${archive.name}"？`}</p>
+                          <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{`Delete "${archive.name}"?`}</p>
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => {
@@ -204,7 +207,7 @@ export function ArchivePanel() {
                               }}
                               className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast"
                             >
-                              取消
+                              Cancel
                             </button>
                             <button
                               onClick={() => {
@@ -212,7 +215,7 @@ export function ArchivePanel() {
                               }}
                               className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
                             >
-                              删除
+                              Delete
                             </button>
                           </div>
                           <Popover.Arrow
@@ -244,7 +247,7 @@ export function ArchivePanel() {
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
                       >
                         <Pencil size={12} strokeWidth={1.5} />
-                        重命名
+                        Rename
                       </button>
                       <button
                         onClick={(e) => {
@@ -255,7 +258,7 @@ export function ArchivePanel() {
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
                       >
                         <Copy size={12} strokeWidth={1.5} />
-                        复制
+                        Duplicate
                       </button>
                       <div className="border-t border-border-glass my-1" />
                       <button
@@ -267,7 +270,7 @@ export function ArchivePanel() {
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-danger hover:bg-hover cursor-pointer transition-colors duration-fast"
                       >
                         <Trash2 size={12} strokeWidth={1.5} />
-                        删除
+                        Delete
                       </button>
                     </div>
                   )}
@@ -285,10 +288,10 @@ export function ArchivePanel() {
           <button
             onClick={() => void handleCreateAndSave()}
             className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-            title="存为新档"
+            title="Save New"
           >
             <Plus size={12} strokeWidth={1.5} />
-            存为新档
+            Save New
           </button>
         )}
 
@@ -299,10 +302,10 @@ export function ArchivePanel() {
           <button
             onClick={handleSave}
             className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-bold px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-            title="覆盖存档"
+            title="Overwrite archive"
           >
             <Save size={12} strokeWidth={1.5} />
-            覆盖
+            Overwrite
           </button>
         )}
 
@@ -320,10 +323,10 @@ export function ArchivePanel() {
                   setLoadingId(selectedId)
                 }}
                 className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"
-                title="加载存档"
+                title="Load archive"
               >
                 <Download size={14} strokeWidth={1.5} />
-                加载
+                Load
               </button>
             </Popover.Anchor>
             <Popover.Portal>
@@ -335,8 +338,11 @@ export function ArchivePanel() {
                 onPointerDown={(e) => {
                   e.stopPropagation()
                 }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                }}
               >
-                <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{`加载"${selectedArchive.name}"？当前战场将被替换。`}</p>
+                <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{`Load "${selectedArchive.name}"? Current battlefield will be replaced.`}</p>
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => {
@@ -344,13 +350,13 @@ export function ArchivePanel() {
                     }}
                     className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast"
                   >
-                    取消
+                    Cancel
                   </button>
                   <button
                     onClick={handleLoad}
                     className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
                   >
-                    确认
+                    Confirm
                   </button>
                 </div>
                 <Popover.Arrow className="fill-[rgb(var(--color-surface))]" width={12} height={6} />

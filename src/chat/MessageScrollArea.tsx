@@ -64,12 +64,12 @@ export function MessageScrollArea({ messages, newMessageIds }: MessageScrollArea
         }
       `}</style>
       <div
-        className="z-ui"
         style={{
           position: 'fixed',
           bottom: 68,
           right: 16,
           width: RIGHT_PANEL_WIDTH,
+          zIndex: 10000,
           display: 'flex',
           flexDirection: 'column',
           pointerEvents: 'none',

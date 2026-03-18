@@ -238,7 +238,7 @@ export function PortraitBar({
   // Collapsed state: show small expand button
   if (!portraitBarVisible) {
     return (
-      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-ui pointer-events-none flex flex-col items-center">
+      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center">
         <button
           onClick={() => {
             setPortraitBarVisible(true)
@@ -254,7 +254,7 @@ export function PortraitBar({
 
   if (visibleEntities.length === 0) {
     return (
-      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-ui pointer-events-none flex flex-col items-center">
+      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center">
         <div className="flex items-center gap-1.5 bg-glass backdrop-blur-[16px] rounded-[28px] px-4 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           <Users size={14} strokeWidth={1.5} className="text-text-muted/40" />
           <span className="text-text-muted/40 text-[11px]">No characters yet</span>
@@ -548,7 +548,7 @@ export function PortraitBar({
   return (
     <div
       ref={portraitBarRef}
-      className="fixed top-3 left-1/2 -translate-x-1/2 z-ui pointer-events-none flex flex-col items-center gap-[3px]"
+      className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center gap-[3px]"
       onPointerDown={(e) => {
         e.stopPropagation()
       }}
