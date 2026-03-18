@@ -50,6 +50,7 @@ Radix's `asChild` merges props onto the child's DOM element. It silently fails i
 When composing DropdownMenu + Popover (e.g. a menu item that opens a confirm bubble), the DropdownMenu's close sequence dispatches pointer/focus events that the Popover misinterprets as dismiss signals.
 
 Use `ConfirmDropdown` from `src/ui/ConfirmDropdownItem.tsx` — it handles the timing internally:
+
 - `requestAnimationFrame` delays Popover open past DropdownMenu teardown
 - `onPointerDownOutside` / `onFocusOutside` are blocked on Popover.Content
 
@@ -59,8 +60,14 @@ Radix uses `transform` for internal positioning. Custom animations must NOT use 
 
 ```css
 @keyframes radix-popover-in {
-  from { opacity: 0; scale: 0.96; }
-  to   { opacity: 1; scale: 1; }
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
 }
 ```
 

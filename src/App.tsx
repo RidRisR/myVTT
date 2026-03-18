@@ -367,9 +367,7 @@ function RoomSession({ roomId }: { roomId: string }) {
           </ContextMenu.Trigger>
           {isGM && (
             <ContextMenu.Portal>
-              <ContextMenu.Content
-                className="z-popover bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans animate-[radix-popover-in_150ms_ease-out]"
-              >
+              <ContextMenu.Content className="z-popover bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans animate-[radix-popover-in_150ms_ease-out]">
                 <ContextMenu.Item
                   onSelect={handleAddNpc}
                   className="block w-full px-3.5 py-2 text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover outline-none"
@@ -523,7 +521,6 @@ function RoomSession({ roomId }: { roomId: string }) {
             }}
           />
         )}
-
 
         {editingHandout && (
           <HandoutEditModal

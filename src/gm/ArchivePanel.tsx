@@ -169,7 +169,12 @@ export function ArchivePanel() {
                     )}
 
                     {/* Context menu button + delete confirmation popover */}
-                    <Popover.Root open={deletingId === archive.id} onOpenChange={(open) => { if (!open) setDeletingId(null) }}>
+                    <Popover.Root
+                      open={deletingId === archive.id}
+                      onOpenChange={(open) => {
+                        if (!open) setDeletingId(null)
+                      }}
+                    >
                       <Popover.Anchor asChild>
                         <button
                           onClick={(e) => {
@@ -187,14 +192,34 @@ export function ArchivePanel() {
                           align="center"
                           sideOffset={8}
                           className="bg-surface border border-border-glass rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)] px-3 py-2.5 min-w-[140px] z-popover font-sans animate-[radix-popover-in_150ms_ease-out]"
-                          onPointerDown={(e) => { e.stopPropagation() }}
+                          onPointerDown={(e) => {
+                            e.stopPropagation()
+                          }}
                         >
                           <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{`删除"${archive.name}"？`}</p>
                           <div className="flex justify-end gap-2">
-                            <button onClick={() => { setDeletingId(null) }} className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast">取消</button>
-                            <button onClick={() => { handleDelete(archive) }} className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast">删除</button>
+                            <button
+                              onClick={() => {
+                                setDeletingId(null)
+                              }}
+                              className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast"
+                            >
+                              取消
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleDelete(archive)
+                              }}
+                              className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
+                            >
+                              删除
+                            </button>
                           </div>
-                          <Popover.Arrow className="fill-[rgb(var(--color-surface))]" width={12} height={6} />
+                          <Popover.Arrow
+                            className="fill-[rgb(var(--color-surface))]"
+                            width={12}
+                            height={6}
+                          />
                         </Popover.Content>
                       </Popover.Portal>
                     </Popover.Root>
@@ -283,7 +308,12 @@ export function ArchivePanel() {
 
         {/* Load from selected archive (with confirmation) */}
         {selectedArchive && (
-          <Popover.Root open={loadingId === selectedId} onOpenChange={(open) => { if (!open) setLoadingId(null) }}>
+          <Popover.Root
+            open={loadingId === selectedId}
+            onOpenChange={(open) => {
+              if (!open) setLoadingId(null)
+            }}
+          >
             <Popover.Anchor asChild>
               <button
                 onClick={() => {
@@ -302,12 +332,26 @@ export function ArchivePanel() {
                 align="center"
                 sideOffset={8}
                 className="bg-surface border border-border-glass rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)] px-3 py-2.5 min-w-[140px] z-popover font-sans animate-[radix-popover-in_150ms_ease-out]"
-                onPointerDown={(e) => { e.stopPropagation() }}
+                onPointerDown={(e) => {
+                  e.stopPropagation()
+                }}
               >
                 <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{`加载"${selectedArchive.name}"？当前战场将被替换。`}</p>
                 <div className="flex justify-end gap-2">
-                  <button onClick={() => { setLoadingId(null) }} className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast">取消</button>
-                  <button onClick={handleLoad} className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast">确认</button>
+                  <button
+                    onClick={() => {
+                      setLoadingId(null)
+                    }}
+                    className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleLoad}
+                    className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
+                  >
+                    确认
+                  </button>
                 </div>
                 <Popover.Arrow className="fill-[rgb(var(--color-surface))]" width={12} height={6} />
               </Popover.Content>
@@ -315,7 +359,6 @@ export function ArchivePanel() {
           </Popover.Root>
         )}
       </div>
-
     </div>
   )
 }

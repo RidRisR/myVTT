@@ -88,8 +88,14 @@ Konva canvas 自行管理右键事件（`e.evt.stopPropagation()`），Radix 的
 
 ```css
 @keyframes radix-popover-in {
-  from { opacity: 0; scale: 0.96; }
-  to { opacity: 1; scale: 1; }
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
 }
 ```
 
@@ -98,6 +104,7 @@ Konva canvas 自行管理右键事件（`e.evt.stopPropagation()`），Radix 的
 **问题**：PortraitBar 使用 `-translate-x-1/2` 居中，创建新的 CSS 包含块。
 
 **解决方案**：
+
 - DOM 右键菜单：`ContextMenu.Portal` 默认渲染到 body，不受影响
 - Konva 菜单：RadixContextMenu 的虚拟锚点通过 `createPortal` 渲染到 body
 
@@ -108,6 +115,7 @@ Konva canvas 自行管理右键事件（`e.evt.stopPropagation()`），Radix 的
 **根因**：Radix 每个原语独立管理 dismiss 生命周期，无跨原语协调机制。
 
 **解决方案**：提取 `ConfirmDropdown` 组件（`src/ui/ConfirmDropdownItem.tsx`），内置两层防护：
+
 1. `requestAnimationFrame` 延迟 Popover 打开，跳过 DropdownMenu 关闭序列
 2. `onPointerDownOutside` / `onFocusOutside` 阻止 Popover 被残余事件关闭
 
@@ -135,27 +143,27 @@ toast:    10000  ← 通知提示（仅 ToastProvider）
 
 ### 已删除组件
 
-| 文件 | 说明 |
-| ---- | ---- |
-| `src/ui/ConfirmPopover.tsx` | 109 行自建确认气泡，已被 Radix Popover 替代 |
-| `src/shared/ContextMenu.tsx` | 82 行自建右键菜单，已被 Radix ContextMenu 替代 |
-| `global.css` 中 `popover-in` 关键帧 | 旧动画，已被 `radix-popover-in` 替代 |
+| 文件                                | 说明                                           |
+| ----------------------------------- | ---------------------------------------------- |
+| `src/ui/ConfirmPopover.tsx`         | 109 行自建确认气泡，已被 Radix Popover 替代    |
+| `src/shared/ContextMenu.tsx`        | 82 行自建右键菜单，已被 Radix ContextMenu 替代 |
+| `global.css` 中 `popover-in` 关键帧 | 旧动画，已被 `radix-popover-in` 替代           |
 
 ### 迁移文件清单
 
-| 文件 | Radix 组件 | 说明 |
-| ---- | ---------- | ---- |
-| `src/ui/ConfirmDropdownItem.tsx` | DropdownMenu + Popover | **新增**：封装多原语时序修复的复合组件 |
-| `src/ui/__tests__/ConfirmDropdown.test.tsx` | — | **新增**：7 个用例覆盖完整交互契约 |
-| `src/gm/EntityRow.tsx` | ConfirmDropdown | ⋮ 下拉菜单 + 删除确认（使用 ConfirmDropdown） |
-| `src/layout/PortraitBar.tsx` | ContextMenu | 角色头像右键菜单 |
-| `src/dock/BlueprintDockTab.tsx` | ContextMenu | 蓝图右键菜单 |
-| `src/dock/MapDockTab.tsx` | ContextMenu | 地图素材右键菜单 |
-| `src/App.tsx` | ContextMenu | 背景右键添加 NPC |
-| `src/gm/SceneListPanel.tsx` | Popover | 场景删除确认 |
-| `src/gm/ArchivePanel.tsx` | Popover | 存档删除/加载确认 |
-| `src/ui/RadixContextMenu.tsx` | Popover (Konva 专用) | 简化为 Konva-only wrapper |
-| `src/combat/TokenContextMenu.tsx` | — | 移除 role 属性，修复硬编码颜色 |
+| 文件                                        | Radix 组件             | 说明                                          |
+| ------------------------------------------- | ---------------------- | --------------------------------------------- |
+| `src/ui/ConfirmDropdownItem.tsx`            | DropdownMenu + Popover | **新增**：封装多原语时序修复的复合组件        |
+| `src/ui/__tests__/ConfirmDropdown.test.tsx` | —                      | **新增**：7 个用例覆盖完整交互契约            |
+| `src/gm/EntityRow.tsx`                      | ConfirmDropdown        | ⋮ 下拉菜单 + 删除确认（使用 ConfirmDropdown） |
+| `src/layout/PortraitBar.tsx`                | ContextMenu            | 角色头像右键菜单                              |
+| `src/dock/BlueprintDockTab.tsx`             | ContextMenu            | 蓝图右键菜单                                  |
+| `src/dock/MapDockTab.tsx`                   | ContextMenu            | 地图素材右键菜单                              |
+| `src/App.tsx`                               | ContextMenu            | 背景右键添加 NPC                              |
+| `src/gm/SceneListPanel.tsx`                 | Popover                | 场景删除确认                                  |
+| `src/gm/ArchivePanel.tsx`                   | Popover                | 存档删除/加载确认                             |
+| `src/ui/RadixContextMenu.tsx`               | Popover (Konva 专用)   | 简化为 Konva-only wrapper                     |
+| `src/combat/TokenContextMenu.tsx`           | —                      | 移除 role 属性，修复硬编码颜色                |
 
 ### z-index 修复文件
 
@@ -163,11 +171,11 @@ PortraitBar, GmDock, AmbientAudio, SceneButton, SceneConfigPanel, SceneListPanel
 
 ## Bundle 影响
 
-| 阶段 | gzipped size | 增量 |
-| ---- | ------------ | ---- |
-| 迁移前 | 236.47 KB | — |
-| POC（react-popover only） | 258.26 KB | +21.79 KB |
-| 最终（三包） | 264.59 KB | +28.12 KB |
+| 阶段                      | gzipped size | 增量      |
+| ------------------------- | ------------ | --------- |
+| 迁移前                    | 236.47 KB    | —         |
+| POC（react-popover only） | 258.26 KB    | +21.79 KB |
+| 最终（三包）              | 264.59 KB    | +28.12 KB |
 
 +28 KB 超出最初 25 KB 预算约 3 KB，但换来了完整的菜单键盘导航和正确的 ARIA 语义。
 

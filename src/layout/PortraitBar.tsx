@@ -327,7 +327,13 @@ export function PortraitBar({
               {displayResources.map((res, i) => {
                 const pct = res.max > 0 ? res.current / res.max : 0
                 return (
-                  <ResourceRing key={i} index={i} pct={pct} color={res.color} size={PORTRAIT_SIZE} />
+                  <ResourceRing
+                    key={i}
+                    index={i}
+                    pct={pct}
+                    color={res.color}
+                    size={PORTRAIT_SIZE}
+                  />
                 )
               })}
             </svg>
@@ -416,13 +422,13 @@ export function PortraitBar({
         </CtxMenu.Trigger>
 
         <CtxMenu.Portal>
-          <CtxMenu.Content
-            className="z-popover bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans animate-[radix-popover-in_150ms_ease-out]"
-          >
+          <CtxMenu.Content className="z-popover bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans animate-[radix-popover-in_150ms_ease-out]">
             {mySeatId && canEdit(entity.permissions, mySeatId, role) && (
               <CtxMenu.Item
                 disabled={activeCharacterId === entity.id}
-                onSelect={() => { onSetActiveCharacter(entity.id) }}
+                onSelect={() => {
+                  onSetActiveCharacter(entity.id)
+                }}
                 className={`${menuItemClass} ${activeCharacterId === entity.id ? 'cursor-default opacity-50' : ''}`}
                 style={{ color: 'rgba(255,255,255,0.85)' }}
               >
@@ -451,7 +457,8 @@ export function PortraitBar({
                   sceneIdSet.has(entity.id) && (
                     <CtxMenu.Item
                       onSelect={() => {
-                        if (activeSceneId) void toggleEntityVisibility(activeSceneId, entity.id, false)
+                        if (activeSceneId)
+                          void toggleEntityVisibility(activeSceneId, entity.id, false)
                       }}
                       className={menuItemClass}
                       style={{ color: 'rgba(255,255,255,0.85)' }}
@@ -461,7 +468,9 @@ export function PortraitBar({
                   )}
 
                 <CtxMenu.Item
-                  onSelect={() => { void saveEntityAsBlueprint(entity) }}
+                  onSelect={() => {
+                    void saveEntityAsBlueprint(entity)
+                  }}
                   className={menuItemClass}
                   style={{ color: 'rgba(255,255,255,0.85)' }}
                 >
@@ -470,7 +479,9 @@ export function PortraitBar({
 
                 {entity.lifecycle === 'ephemeral' && (
                   <CtxMenu.Item
-                    onSelect={() => { void updateEntity(entity.id, { lifecycle: 'reusable' }) }}
+                    onSelect={() => {
+                      void updateEntity(entity.id, { lifecycle: 'reusable' })
+                    }}
                     className={menuItemClass}
                     style={{ color: 'rgba(255,255,255,0.85)' }}
                   >
@@ -480,7 +491,9 @@ export function PortraitBar({
 
                 {entity.lifecycle !== 'persistent' && (
                   <CtxMenu.Item
-                    onSelect={() => { onRemoveFromScene(entity.id) }}
+                    onSelect={() => {
+                      onRemoveFromScene(entity.id)
+                    }}
                     className={menuItemClass}
                     style={{ color: '#f87171' }}
                   >

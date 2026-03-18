@@ -173,7 +173,12 @@ export function SceneListPanel({
                       <Pencil size={12} strokeWidth={1.5} />
                     </button>
                     {scenes.length > 1 && (
-                      <Popover.Root open={deletingId === scene.id} onOpenChange={(open) => { if (!open) setDeletingId(null) }}>
+                      <Popover.Root
+                        open={deletingId === scene.id}
+                        onOpenChange={(open) => {
+                          if (!open) setDeletingId(null)
+                        }}
+                      >
                         <Popover.Anchor asChild>
                           <button
                             onClick={(e) => {
@@ -192,14 +197,35 @@ export function SceneListPanel({
                             align="center"
                             sideOffset={8}
                             className="bg-surface border border-border-glass rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)] px-3 py-2.5 min-w-[140px] z-popover font-sans animate-[radix-popover-in_150ms_ease-out]"
-                            onPointerDown={(e) => { e.stopPropagation() }}
+                            onPointerDown={(e) => {
+                              e.stopPropagation()
+                            }}
                           >
                             <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{`Delete "${scene.name || 'Untitled'}"?`}</p>
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => { setDeletingId(null) }} className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast">Cancel</button>
-                              <button onClick={() => { setDeletingId(null); onDeleteScene(scene.id) }} className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast">Delete</button>
+                              <button
+                                onClick={() => {
+                                  setDeletingId(null)
+                                }}
+                                className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setDeletingId(null)
+                                  onDeleteScene(scene.id)
+                                }}
+                                className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
+                              >
+                                Delete
+                              </button>
                             </div>
-                            <Popover.Arrow className="fill-[rgb(var(--color-surface))]" width={12} height={6} />
+                            <Popover.Arrow
+                              className="fill-[rgb(var(--color-surface))]"
+                              width={12}
+                              height={6}
+                            />
                           </Popover.Content>
                         </Popover.Portal>
                       </Popover.Root>
@@ -220,7 +246,6 @@ export function SceneListPanel({
           </div>
         </div>
       </div>
-
     </div>
   )
 }

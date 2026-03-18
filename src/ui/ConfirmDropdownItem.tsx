@@ -91,9 +91,7 @@ export function ConfirmDropdown({
           }}
           className="bg-surface border border-border-glass rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)] px-3 py-2.5 min-w-[140px] z-popover font-sans animate-[radix-popover-in_150ms_ease-out]"
         >
-          <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">
-            {confirmMessage}
-          </p>
+          <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{confirmMessage}</p>
           <div className="flex justify-end gap-2">
             <button
               onClick={() => {
@@ -113,11 +111,7 @@ export function ConfirmDropdown({
               Delete
             </button>
           </div>
-          <Popover.Arrow
-            className="fill-[rgb(var(--color-surface))]"
-            width={12}
-            height={6}
-          />
+          <Popover.Arrow className="fill-[rgb(var(--color-surface))]" width={12} height={6} />
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
