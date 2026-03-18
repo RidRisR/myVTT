@@ -64,7 +64,7 @@ export function SceneListPanel({
   return (
     <div
       ref={panelRef}
-      className="fixed z-toast bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] flex flex-col"
+      className="fixed z-ui bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] flex flex-col"
       style={{ bottom: 56, left: 16, width: 280, maxHeight: 420 }}
       onPointerDown={(e) => {
         e.stopPropagation()

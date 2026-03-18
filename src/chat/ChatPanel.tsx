@@ -251,7 +251,7 @@ export function ChatPanel({
       {showSpeakerPicker && (
         <div
           ref={speakerPickerRef}
-          className="fixed z-toast bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-y-auto p-1.5 bottom-[62px] right-[440px] w-[200px] max-h-[280px]"
+          className="fixed z-ui bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-y-auto p-1.5 bottom-[62px] right-[440px] w-[200px] max-h-[280px]"
           onPointerDown={(e) => {
             e.stopPropagation()
           }}
@@ -288,7 +288,7 @@ export function ChatPanel({
 
       {/* Chat input + buttons (always visible) */}
       <div
-        className="fixed bottom-3 right-4 z-toast flex gap-1.5 items-stretch"
+        className="fixed bottom-3 right-4 z-ui flex gap-1.5 items-stretch"
         style={{ width: RIGHT_PANEL_WIDTH }}
       >
         <button

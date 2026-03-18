@@ -158,7 +158,7 @@ export function GmDock({
   if (collapsed) {
     return (
       <div
-        className="fixed bottom-3 left-1/2 -translate-x-1/2 z-toast"
+        className="fixed bottom-3 left-1/2 -translate-x-1/2 z-ui"
         onPointerDown={(e) => {
           e.stopPropagation()
         }}
@@ -186,7 +186,7 @@ export function GmDock({
   return (
     <div
       ref={dockRef}
-      className="fixed bottom-3 left-1/2 -translate-x-1/2 z-toast flex flex-col items-center"
+      className="fixed bottom-3 left-1/2 -translate-x-1/2 z-ui flex flex-col items-center"
       onPointerDown={(e) => {
         e.stopPropagation()
       }}

@@ -72,7 +72,7 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
 
   return (
     <div
-      className="fixed top-3 left-4 z-toast font-sans"
+      className="fixed top-3 left-4 z-ui font-sans"
       onPointerDown={(e) => {
         e.stopPropagation()
       }}
@@ -98,7 +98,7 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
               setEditing(false)
             }}
           />
-          <div className="absolute top-full left-0 mt-1.5 bg-glass backdrop-blur-[16px] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.35)] border border-border-glass min-w-[220px] p-1.5 z-toast animate-fade-in">
+          <div className="absolute top-full left-0 mt-1.5 bg-glass backdrop-blur-[16px] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.35)] border border-border-glass min-w-[220px] p-1.5 z-ui animate-fade-in">
             {/* Seat profile section */}
             <div className="px-3 py-2.5">
               <div className="flex items-center gap-2.5">
