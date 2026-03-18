@@ -43,7 +43,7 @@ export function CharacterLibraryTab() {
   const handleCreate = () => {
     const newEntity: Entity = {
       id: generateTokenId(),
-      name: '新角色',
+      name: 'New Character',
       imageUrl: '',
       color: '#3b82f6',
       width: 1,
@@ -79,10 +79,10 @@ export function CharacterLibraryTab() {
       }, 5000)
       deleteTimers.current.set(id, timer)
 
-      toast('undo', `已删除"${entity.name}"`, {
+      toast('undo', `Deleted "${entity.name}"`, {
         duration: 5000,
         action: {
-          label: '撤销',
+          label: 'Undo',
           onClick: () => {
             // Cancel the pending delete
             const t = deleteTimers.current.get(id)
@@ -115,14 +115,14 @@ export function CharacterLibraryTab() {
             onChange={(e) => {
               setSearch(e.target.value)
             }}
-            placeholder="搜索角色..."
+            placeholder="Search characters..."
             className="w-full pl-6 pr-2 py-1 text-xs bg-surface/60 text-text-primary border border-border-glass rounded outline-none placeholder:text-text-muted/30"
           />
         </div>
         <button
           onClick={handleCreate}
           className="shrink-0 p-1 rounded text-text-muted hover:text-text-primary hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-          title="新建角色"
+          title="New character"
         >
           <Plus size={14} strokeWidth={1.5} />
         </button>
@@ -133,9 +133,9 @@ export function CharacterLibraryTab() {
         {libraryEntities.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs">
             <Users size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-            <span className="opacity-50">暂无保存的角色</span>
+            <span className="opacity-50">No saved characters</span>
             <span className="opacity-30 text-[10px] mt-1">
-              点击右上角「+」创建，或将NPC「保存为角色」
+              Click + to create, or save an NPC as a character
             </span>
           </div>
         ) : (
@@ -162,7 +162,7 @@ export function CharacterLibraryTab() {
                   <div className="flex-1 min-w-0">
                     <div className="text-xs text-text-primary truncate">{entity.name}</div>
                     <div className="text-[10px] text-text-muted/50">
-                      {entity.lifecycle === 'persistent' ? '持久' : '可复用'}
+                      {entity.lifecycle === 'persistent' ? 'Persistent' : 'Reusable'}
                     </div>
                   </div>
                 </button>
@@ -172,7 +172,7 @@ export function CharacterLibraryTab() {
                     handleDelete(entity)
                   }}
                   className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 rounded text-text-muted/40 hover:text-danger hover:bg-danger/10 cursor-pointer transition-all duration-fast"
-                  title="删除角色"
+                  title="Delete character"
                 >
                   <Trash2 size={12} strokeWidth={1.5} />
                 </button>

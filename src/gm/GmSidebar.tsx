@@ -5,8 +5,8 @@ import { ArchivePanel } from './ArchivePanel'
 import { EntityPanel } from './EntityPanel'
 
 const TABS: { id: GmSidebarTab; icon: typeof Swords; label: string }[] = [
-  { id: 'archives', icon: Swords, label: '存档' },
-  { id: 'entities', icon: ClipboardList, label: '实体' },
+  { id: 'archives', icon: Swords, label: 'Archives' },
+  { id: 'entities', icon: ClipboardList, label: 'Entities' },
 ]
 
 export function GmSidebar() {
@@ -84,7 +84,7 @@ export function GmSidebar() {
                 setCollapsed(!collapsed)
               }}
               className="w-8 h-8 flex items-center justify-center text-text-muted/40 hover:text-text-muted cursor-pointer transition-colors duration-fast"
-              aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               <ChevronRight
                 size={12}

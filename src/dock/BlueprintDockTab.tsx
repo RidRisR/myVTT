@@ -6,7 +6,7 @@ import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
 import { useToast } from '../ui/useToast'
 import { TagFilterBar } from '../ui/TagFilterBar'
 
-const PRESET_TAGS = ['人形', '野兽', '魔法生物', '亡灵', '物件']
+const PRESET_TAGS = ['Humanoid', 'Beast', 'Magical', 'Undead', 'Object']
 
 interface TokenDockTabProps {
   onSpawnToken: (bp: Blueprint) => void
@@ -80,9 +80,9 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
 
   const handleDelete = (bp: Blueprint) => {
     const undo = softRemove(bp.id)
-    toast('undo', `已删除蓝图"${bp.name}"`, {
+    toast('undo', `Deleted blueprint "${bp.name}"`, {
       duration: 5000,
-      action: { label: '撤销', onClick: undo },
+      action: { label: 'Undo', onClick: undo },
     })
   }
 
@@ -210,7 +210,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
       )}
 
       {blueprints.length === 0 && blueprintAssets.length > 0 && (
-        <div className="text-center text-text-muted/40 text-xs py-6">无匹配蓝图</div>
+        <div className="text-center text-text-muted/40 text-xs py-6">No matching blueprints</div>
       )}
 
       <div
@@ -349,7 +349,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-text-primary font-semibold truncate">
-                  {asset.name} — 标签
+                  {asset.name} — Tags
                 </span>
                 <button
                   onClick={() => {
@@ -379,7 +379,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                   </span>
                 ))}
                 {asset.tags.length === 0 && (
-                  <span className="text-[10px] text-text-muted/30 italic">无标签</span>
+                  <span className="text-[10px] text-text-muted/30 italic">No tags</span>
                 )}
               </div>
               {/* Add tag input */}
@@ -392,7 +392,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleAddTag(asset.id)
                   }}
-                  placeholder="添加标签..."
+                  placeholder="Add tag..."
                   className="flex-1 text-[10px] bg-glass text-text-primary border border-border-glass rounded px-1.5 py-1 outline-none placeholder:text-text-muted/30"
                   list={`tag-suggestions-${asset.id}`}
                 />
@@ -407,7 +407,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                   }}
                   className="text-[10px] text-accent px-1.5 py-1 rounded bg-accent/10 hover:bg-accent/20 cursor-pointer transition-colors duration-fast"
                 >
-                  添加
+                  Add
                 </button>
               </div>
             </div>

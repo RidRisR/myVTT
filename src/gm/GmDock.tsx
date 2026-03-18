@@ -104,7 +104,13 @@ export function GmDock({
     })
     if (!entity) return
     if (isTactical) {
-      void useWorldStore.getState().placeEntityOnMap(entity.id, 200, 200)
+      void useWorldStore
+        .getState()
+        .placeEntityOnMap(
+          entity.id,
+          Math.round(window.innerWidth / 2),
+          Math.round(window.innerHeight / 2),
+        )
     }
   }
 
@@ -118,10 +124,10 @@ export function GmDock({
     const cached = structuredClone(selectedToken)
     onDeleteToken(selectedToken.id)
     onSelectToken(null)
-    toast('undo', '已删除Token', {
+    toast('undo', 'Token deleted', {
       duration: 5000,
       action: {
-        label: '撤销',
+        label: 'Undo',
         onClick: () => {
           onAddToken(cached)
         },
@@ -239,7 +245,7 @@ export function GmDock({
           className={tabBtnClass('tokens')}
         >
           <CircleUser size={14} strokeWidth={1.5} />
-          蓝图
+          Blueprints
         </button>
 
         <button

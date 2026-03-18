@@ -56,9 +56,9 @@ export function MapDockTab({
 
   const handleDelete = (asset: AssetMeta) => {
     const undo = softRemove(asset.id)
-    toast('undo', `已删除"${asset.name || 'Untitled'}"`, {
+    toast('undo', `Deleted "${asset.name || 'Untitled'}"`, {
       duration: 5000,
-      action: { label: '撤销', onClick: undo },
+      action: { label: 'Undo', onClick: undo },
     })
   }
 
