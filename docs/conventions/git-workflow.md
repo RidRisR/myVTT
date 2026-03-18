@@ -25,6 +25,24 @@
 - Shared functions go in `/src/shared/` to reduce cross-branch conflicts
 - To run a branch in Docker for testing, use `./scripts/preview start <branch>` — see [preview-cli.md](preview-cli.md)
 
+### Worktree Setup
+
+After creating a worktree, initialize it with **npm** (never pnpm — the project uses npm):
+
+```bash
+cd .worktrees/<branch-name>
+npm ci
+```
+
+If `better-sqlite3` bindings are missing (test error: "Could not locate the bindings file"), run:
+
+```bash
+npm rebuild better-sqlite3
+```
+
+Using `pnpm install` creates an incompatible non-hoisted `.pnpm/` layout that breaks
+native module resolution and produces spurious test failures unrelated to your changes.
+
 ## Commit Convention
 
 - Format: `type: short description` (e.g. `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, `test:`)
