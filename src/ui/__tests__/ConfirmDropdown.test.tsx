@@ -6,17 +6,25 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { ConfirmDropdown } from '../ConfirmDropdownItem'
 
 // Radix uses ResizeObserver internally — jsdom doesn't provide it
-if (!globalThis.ResizeObserver) {
-  globalThis.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  } as unknown as typeof ResizeObserver
-}
+globalThis.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as unknown as typeof ResizeObserver
 
 // Radix uses DOMRect — jsdom returns zeros, need a valid rect for positioning
 Element.prototype.getBoundingClientRect = () =>
-  ({ x: 0, y: 0, width: 100, height: 30, top: 0, right: 100, bottom: 30, left: 0, toJSON: () => ({}) }) as DOMRect
+  ({
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 30,
+    top: 0,
+    right: 100,
+    bottom: 30,
+    left: 0,
+    toJSON: () => ({}),
+  }) as DOMRect
 
 function renderDropdown(onConfirm = vi.fn()) {
   const user = userEvent.setup()
@@ -99,14 +107,9 @@ describe('ConfirmDropdown', () => {
       expect(screen.getByText('Are you sure?')).toBeInTheDocument()
     })
 
-    // The confirm button inside the popover also says "Delete"
-    const confirmButtons = screen.getAllByRole('button', { name: 'Delete' })
-    const popoverDelete = confirmButtons.find(
-      (btn) => btn.closest('[data-radix-popper-content-wrapper]') != null,
-    )
-    expect(popoverDelete).toBeDefined()
-
-    await user.click(popoverDelete!)
+    // The confirm button inside the popover (not the menu item)
+    const popoverDelete = screen.getByRole('button', { name: 'Delete' })
+    await user.click(popoverDelete)
 
     expect(onConfirm).toHaveBeenCalledOnce()
     await waitFor(() => {
@@ -130,7 +133,9 @@ describe('ConfirmDropdown', () => {
 
     // The popover content should be inside a Radix popper wrapper,
     // proving it was positioned by a valid anchor (not null)
-    const popoverContent = screen.getByText('Are you sure?').closest('[data-radix-popper-content-wrapper]')
+    const popoverContent = screen
+      .getByText('Are you sure?')
+      .closest('[data-radix-popper-content-wrapper]')
     expect(popoverContent).toBeInTheDocument()
   })
 
