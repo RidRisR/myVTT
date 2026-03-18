@@ -245,7 +245,7 @@ test.describe('UX Journey Review', () => {
 
   // ─── Journey 11: Multi-client ────────────────────────────────────
   test('J11: Multi-client GM + Player', async ({ page, browser }) => {
-    const { room, roomName } = await setupGmSession(page, 'j11')
+    const { roomName } = await setupGmSession(page, 'j11')
 
     // Player in new context
     const playerContext = await browser.newContext()
