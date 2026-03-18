@@ -2,7 +2,7 @@ export interface AssetMeta {
   id: string
   url: string
   name: string
-  type: 'image' | 'handout'
+  mediaType: 'image' | 'handout'
   tags: string[]
   width?: number
   height?: number

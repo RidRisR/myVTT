@@ -26,9 +26,9 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
   router.get('/api/rooms/:roomId/assets', room, (req, res) => {
     let query = 'SELECT * FROM assets WHERE 1=1'
     const params: unknown[] = []
-    if (req.query.type) {
-      query += ' AND type = ?'
-      params.push(req.query.type)
+    if (req.query.mediaType) {
+      query += ' AND media_type = ?'
+      params.push(req.query.mediaType)
     }
     query += ' ORDER BY created_at DESC'
     const rows = req.roomDb!.prepare(query).all(...params) as Record<string, unknown>[]
@@ -82,18 +82,19 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
       const id = crypto.randomUUID()
       const url = `/api/rooms/${req.roomId}/uploads/${req.file.filename}`
       const uploadBody = req.body as Record<string, unknown>
-      const assetType = (uploadBody.type as string) || 'image'
+      const mediaType = (uploadBody.mediaType as string) || 'image'
       const name = (uploadBody.name as string) || req.file.originalname
       const extra = uploadBody.extra
         ? (JSON.parse(uploadBody.extra as string) as Record<string, unknown>)
         : {}
+      const tags = extra.tags ? JSON.stringify(extra.tags) : '[]'
 
       try {
         req
           .roomDb!.prepare(
-            'INSERT INTO assets (id, url, name, type, created_at, extra) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO assets (id, url, name, media_type, tags, created_at, extra) VALUES (?, ?, ?, ?, ?, ?, ?)',
           )
-          .run(id, url, name, assetType, Date.now(), JSON.stringify(extra))
+          .run(id, url, name, mediaType, tags, Date.now(), JSON.stringify(extra))
       } catch {
         // Atomic cleanup: DB insert failed → remove orphaned file
         const filePath = safePath(dir, req.file.filename)
@@ -127,18 +128,18 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
       updates.push('name = ?')
       params.push(body.name)
     }
-    if (body.type !== undefined) {
-      updates.push('type = ?')
-      params.push(body.type)
+    if (body.mediaType !== undefined) {
+      updates.push('media_type = ?')
+      params.push(body.mediaType)
+    }
+    if (body.tags !== undefined) {
+      updates.push('tags = ?')
+      params.push(JSON.stringify(body.tags))
     }
 
-    // Merge tags, blueprint, handout into extra JSON column
+    // Merge blueprint, handout into extra JSON column
     const currentExtra = JSON.parse((row.extra as string) || '{}') as Record<string, unknown>
     let extraChanged = false
-    if (body.tags !== undefined) {
-      currentExtra.tags = body.tags
-      extraChanged = true
-    }
     if (body.blueprint !== undefined) {
       currentExtra.blueprint = body.blueprint
       extraChanged = true

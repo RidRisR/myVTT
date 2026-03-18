@@ -9,6 +9,7 @@ import { MessageScrollArea } from './MessageScrollArea'
 import { ToastStack, type ToastItem } from './ToastStack'
 import { ChatInput } from './ChatInput'
 import { Avatar } from './Avatar'
+import * as Popover from '@radix-ui/react-popover'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 
@@ -84,8 +85,6 @@ export function ChatPanel({
   // Speaker switching
   const [speakerCharId, setSpeakerCharId] = useState<string | null>(null)
   const [showSpeakerPicker, setShowSpeakerPicker] = useState(false)
-  const speakerPickerRef = useRef<HTMLDivElement>(null)
-  const speakerBtnRef = useRef<HTMLButtonElement>(null)
 
   // Read messages from worldStore
   const messages = useWorldStore((s) => s.chatMessages)
@@ -175,20 +174,6 @@ export function ChatPanel({
     }
   }, [expanded])
 
-  // Click outside to close popups
-  useEffect(() => {
-    if (!showSpeakerPicker) return
-    const handler = (e: PointerEvent) => {
-      if (speakerPickerRef.current?.contains(e.target as Node)) return
-      if (speakerBtnRef.current?.contains(e.target as Node)) return
-      setShowSpeakerPicker(false)
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => {
-      document.removeEventListener('pointerdown', handler)
-    }
-  }, [showSpeakerPicker])
-
   const handleToastRemove = useCallback((id: string) => {
     setToastQueue((prev) => prev.filter((item) => item.message.id !== id))
   }, [])
@@ -247,48 +232,9 @@ export function ChatPanel({
         <ToastStack toastQueue={toastQueue} onRemove={handleToastRemove} />
       )}
 
-      {/* Speaker picker (floats above avatar button) */}
-      {showSpeakerPicker && (
-        <div
-          ref={speakerPickerRef}
-          className="fixed z-toast bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-y-auto p-1.5 bottom-[62px] right-[440px] w-[200px] max-h-[280px]"
-          onPointerDown={(e) => {
-            e.stopPropagation()
-          }}
-        >
-          <div className="text-[10px] text-text-muted/30 px-2.5 py-1 uppercase tracking-wider">
-            {t('speak_as')}
-          </div>
-          <SpeakerPickerItem
-            identity={seatIdentity}
-            isActive={speakerCharId === null}
-            onSelect={() => {
-              setSpeakerCharId(null)
-              setShowSpeakerPicker(false)
-            }}
-          />
-          {speakerEntities.map((e) => (
-            <SpeakerPickerItem
-              key={e.id}
-              identity={{
-                id: senderId,
-                name: e.name,
-                color: e.color,
-                portraitUrl: e.imageUrl || undefined,
-              }}
-              isActive={speakerCharId === e.id}
-              onSelect={() => {
-                setSpeakerCharId(e.id)
-                setShowSpeakerPicker(false)
-              }}
-            />
-          ))}
-        </div>
-      )}
-
       {/* Chat input + buttons (always visible) */}
       <div
-        className="fixed bottom-3 right-4 z-toast flex gap-1.5 items-stretch"
+        className="fixed bottom-3 right-4 z-ui flex gap-1.5 items-stretch"
         style={{ width: RIGHT_PANEL_WIDTH }}
       >
         <button
@@ -306,24 +252,66 @@ export function ChatPanel({
           )}
         </button>
 
-        <button
-          ref={speakerBtnRef}
-          onClick={() => {
-            setShowSpeakerPicker((v) => !v)
-          }}
-          className="w-9 h-9 rounded-[10px] bg-transparent cursor-pointer p-0 flex items-center justify-center shrink-0 transition-[border-color] duration-fast"
-          style={{
-            border: showSpeakerPicker ? '2px solid rgba(212,160,85,0.6)' : '2px solid transparent',
-          }}
-          aria-label={t('switch_speaker')}
-        >
-          <Avatar
-            portraitUrl={activeSpeaker.portraitUrl}
-            senderName={activeSpeaker.name}
-            senderColor={activeSpeaker.color}
-            size={28}
-          />
-        </button>
+        {/* Speaker picker — Radix Popover */}
+        <Popover.Root open={showSpeakerPicker} onOpenChange={setShowSpeakerPicker} modal={false}>
+          <Popover.Trigger asChild>
+            <button
+              className="w-9 h-9 rounded-[10px] bg-transparent cursor-pointer p-0 flex items-center justify-center shrink-0 transition-[border-color] duration-fast"
+              style={{
+                border: showSpeakerPicker
+                  ? '2px solid rgba(212,160,85,0.6)'
+                  : '2px solid transparent',
+              }}
+              aria-label={t('switch_speaker')}
+            >
+              <Avatar
+                portraitUrl={activeSpeaker.portraitUrl}
+                senderName={activeSpeaker.name}
+                senderColor={activeSpeaker.color}
+                size={28}
+              />
+            </button>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              side="top"
+              align="start"
+              sideOffset={6}
+              className="z-popover bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-y-auto p-1.5 w-[200px] max-h-[280px] outline-none"
+              onPointerDown={(e) => {
+                e.stopPropagation()
+              }}
+            >
+              <div className="text-[10px] text-text-muted/30 px-2.5 py-1 uppercase tracking-wider">
+                {t('speak_as')}
+              </div>
+              <SpeakerPickerItem
+                identity={seatIdentity}
+                isActive={speakerCharId === null}
+                onSelect={() => {
+                  setSpeakerCharId(null)
+                  setShowSpeakerPicker(false)
+                }}
+              />
+              {speakerEntities.map((e) => (
+                <SpeakerPickerItem
+                  key={e.id}
+                  identity={{
+                    id: senderId,
+                    name: e.name,
+                    color: e.color,
+                    portraitUrl: e.imageUrl || undefined,
+                  }}
+                  isActive={speakerCharId === e.id}
+                  onSelect={() => {
+                    setSpeakerCharId(e.id)
+                    setShowSpeakerPicker(false)
+                  }}
+                />
+              ))}
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
 
         <div className="flex-1">
           <ChatInput

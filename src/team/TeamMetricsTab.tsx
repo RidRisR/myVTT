@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import type { TeamTracker } from '../stores/worldStore'
+import { useClickOutside } from '../hooks/useClickOutside'
 import { ResourceBar } from '../ui/ResourceBar'
 
 interface TeamMetricsTabProps {
@@ -41,19 +42,11 @@ export function TeamMetricsTab({
   const [colorPickerOpen, setColorPickerOpen] = useState<string | null>(null)
   const colorPickerRef = useRef<HTMLDivElement>(null)
 
-  // Close color picker on click outside
-  useEffect(() => {
-    if (colorPickerOpen === null) return
-    const handler = (e: PointerEvent) => {
-      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
-        setColorPickerOpen(null)
-      }
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => {
-      document.removeEventListener('pointerdown', handler)
-    }
-  }, [colorPickerOpen])
+  // Close color picker on click outside (Radix Portal-aware)
+  const closeColorPicker = useCallback(() => {
+    setColorPickerOpen(null)
+  }, [])
+  useClickOutside(colorPickerRef, closeColorPicker, colorPickerOpen !== null)
 
   const commitNewTracker = (label: string) => {
     const trimmed = label.trim()

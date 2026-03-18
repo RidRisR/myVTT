@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { createPortal } from 'react-dom'
+import * as Popover from '@radix-ui/react-popover'
 import { Users, ChevronUp, Plus } from 'lucide-react'
+import * as ContextMenu from '@radix-ui/react-context-menu'
 import { useUiStore } from '../stores/uiStore'
 import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
 import type { TacticalInfo } from '../stores/worldStore'
@@ -9,7 +10,8 @@ import { useWorldStore } from '../stores/worldStore'
 import { canSee, canEdit, defaultPCPermissions } from '../shared/permissions'
 import { statusColor } from '../shared/tokenUtils'
 import { generateTokenId } from '../shared/idUtils'
-import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
+import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
+import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
 import { useRulePlugin } from '../rules/useRulePlugin'
 
@@ -115,9 +117,6 @@ export function PortraitBar({
   const plugin = useRulePlugin()
   const Card = plugin.characterUI.EntityCard
 
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entityId: string } | null>(
-    null,
-  )
   const [activeTab, setActiveTab] = useState<PortraitTabId>('characters')
 
   // Auto-switch to initiative tab when combat starts
@@ -131,26 +130,7 @@ export function PortraitBar({
   const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null)
   const [lockedRect, setLockedRect] = useState<DOMRect | null>(null)
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const popoverRef = useRef<HTMLDivElement>(null)
   const portraitBarRef = useRef<HTMLDivElement>(null)
-
-  // Click-outside to close locked popover
-  useEffect(() => {
-    if (!inspectedCharacterId) return
-    const handler = (e: PointerEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
-        !portraitBarRef.current?.contains(e.target as Node)
-      ) {
-        onInspectCharacter(null)
-      }
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => {
-      document.removeEventListener('pointerdown', handler)
-    }
-  }, [inspectedCharacterId, onInspectCharacter])
 
   // Clear hover when a portrait is locked
   useEffect(() => {
@@ -243,7 +223,7 @@ export function PortraitBar({
   // Collapsed state: show small expand button
   if (!portraitBarVisible) {
     return (
-      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center">
+      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-ui pointer-events-none flex flex-col items-center">
         <button
           onClick={() => {
             setPortraitBarVisible(true)
@@ -259,7 +239,7 @@ export function PortraitBar({
 
   if (visibleEntities.length === 0) {
     return (
-      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center">
+      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-ui pointer-events-none flex flex-col items-center">
         <div className="flex items-center gap-1.5 bg-glass backdrop-blur-[16px] rounded-[28px] px-4 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           <Users size={14} strokeWidth={1.5} className="text-text-muted/40" />
           <span className="text-text-muted/40 text-[11px]">{t('portrait.no_characters')}</span>
@@ -276,81 +256,6 @@ export function PortraitBar({
     (e) => !Object.values(e.permissions.seats).includes('owner'),
   )
   const hasSection = partyEntities.length > 0 && sceneEntities.length > 0
-
-  const handleContextMenu = (e: React.MouseEvent, entityId: string) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setContextMenu({ x: e.clientX, y: e.clientY, entityId })
-  }
-
-  const getContextMenuItems = (entity: Entity): ContextMenuItem[] => {
-    const items: ContextMenuItem[] = []
-
-    if (mySeatId && canEdit(entity.permissions, mySeatId, role)) {
-      items.push({
-        label: t('portrait.set_active'),
-        onClick: () => {
-          onSetActiveCharacter(entity.id)
-        },
-        disabled: activeCharacterId === entity.id,
-      })
-    }
-
-    items.push({
-      label: t('portrait.inspect'),
-      onClick: () => {
-        const el = portraitBarRef.current?.querySelector(
-          `[data-char-id="${entity.id}"]`,
-        ) as HTMLElement | null
-        if (el) setLockedRect(el.getBoundingClientRect())
-        onInspectCharacter(entity.id)
-      },
-    })
-
-    if (isGM) {
-      // Backstage toggle — only for entities currently visible and in scene
-      const isVisible = visibilityMap.get(entity.id) ?? true
-      if (isVisible && activeSceneId && sceneIdSet.has(entity.id)) {
-        items.push({
-          label: t('portrait.off_stage'),
-          onClick: () => {
-            if (activeSceneId) void toggleEntityVisibility(activeSceneId, entity.id, false)
-          },
-        })
-      }
-
-      // Save as blueprint
-      items.push({
-        label: t('portrait.save_as_blueprint'),
-        onClick: () => {
-          void saveEntityAsBlueprint(entity)
-        },
-      })
-
-      // Save as reusable character (only for ephemeral entities)
-      if (entity.lifecycle === 'ephemeral') {
-        items.push({
-          label: t('portrait.save_as_character'),
-          onClick: () => {
-            void updateEntity(entity.id, { lifecycle: 'reusable' })
-          },
-        })
-      }
-
-      // Remove from scene
-      if (entity.lifecycle !== 'persistent') {
-        items.push({
-          label: t('portrait.remove'),
-          onClick: () => {
-            onRemoveFromScene(entity.id)
-          },
-          color: '#f87171',
-        })
-      }
-    }
-
-    return items
-  }
 
   const renderPortrait = (entity: Entity) => {
     const isOwner = mySeatId ? canEdit(entity.permissions, mySeatId, role) : false
@@ -369,129 +274,199 @@ export function PortraitBar({
     const isPC = !!ownerSeatId
 
     return (
-      <div
-        key={entity.id}
-        data-char-id={entity.id}
-        draggable={isGM}
-        onDragStart={(e) => {
-          e.dataTransfer.setData('application/x-entity-id', entity.id)
-          e.dataTransfer.effectAllowed = 'copy'
-        }}
-        className="relative cursor-pointer transition-transform duration-fast"
-        onClick={(e) => {
-          handlePortraitClick(entity.id, e.currentTarget as HTMLElement)
-        }}
-        onContextMenu={(e) => {
-          handleContextMenu(e, entity.id)
-        }}
-        onMouseEnter={(e) => {
-          if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'
-          handlePortraitMouseEnter(entity.id, e.currentTarget as HTMLElement)
-        }}
-        onMouseLeave={(e) => {
-          if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1)'
-          handlePortraitMouseLeave()
-        }}
-        title={`${entity.name}${statuses.length > 0 ? '\n' + statuses.map((s) => s.label).join(', ') : ''}`}
-      >
-        {/* SVG ring progress */}
-        <svg
-          width={PORTRAIT_SIZE}
-          height={PORTRAIT_SIZE}
-          className="absolute top-0 left-0 pointer-events-none"
-        >
-          {displayResources.map((_, i) => (
-            <ResourceRingBg key={`bg-${i}`} index={i} size={PORTRAIT_SIZE} />
-          ))}
-          {displayResources.map((res, i) => {
-            const pct = res.max > 0 ? res.current / res.max : 0
-            return (
-              <ResourceRing key={i} index={i} pct={pct} color={res.color} size={PORTRAIT_SIZE} />
-            )
-          })}
-        </svg>
+      <ContextMenu.Root key={entity.id}>
+        <ContextMenu.Trigger asChild>
+          <div
+            data-char-id={entity.id}
+            draggable={isGM}
+            onDragStart={(e) => {
+              e.dataTransfer.setData('application/x-entity-id', entity.id)
+              e.dataTransfer.effectAllowed = 'copy'
+            }}
+            className="relative cursor-pointer transition-transform duration-fast"
+            onClick={(e) => {
+              handlePortraitClick(entity.id, e.currentTarget as HTMLElement)
+            }}
+            onMouseEnter={(e) => {
+              if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'
+              handlePortraitMouseEnter(entity.id, e.currentTarget as HTMLElement)
+            }}
+            onMouseLeave={(e) => {
+              if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1)'
+              handlePortraitMouseLeave()
+            }}
+            title={`${entity.name}${statuses.length > 0 ? '\n' + statuses.map((s) => s.label).join(', ') : ''}`}
+          >
+            {/* SVG ring progress */}
+            <svg
+              width={PORTRAIT_SIZE}
+              height={PORTRAIT_SIZE}
+              className="absolute top-0 left-0 pointer-events-none"
+            >
+              {displayResources.map((_, i) => (
+                <ResourceRingBg key={`bg-${i}`} index={i} size={PORTRAIT_SIZE} />
+              ))}
+              {displayResources.map((res, i) => {
+                const pct = res.max > 0 ? res.current / res.max : 0
+                return (
+                  <ResourceRing
+                    key={i}
+                    index={i}
+                    pct={pct}
+                    color={res.color}
+                    size={PORTRAIT_SIZE}
+                  />
+                )
+              })}
+            </svg>
 
-        {/* Portrait image */}
-        <div
-          style={{
-            width: PORTRAIT_SIZE,
-            height: PORTRAIT_SIZE,
-          }}
-          className="flex items-center justify-center"
-        >
-          {entity.imageUrl ? (
-            <img
-              src={entity.imageUrl}
-              alt={entity.name}
-              style={{
-                width: IMG_SIZE,
-                height: IMG_SIZE,
-                border: isInspected
-                  ? '2px solid #fff'
-                  : isActive
-                    ? `2px solid ${entity.color}`
-                    : '2px solid rgba(255,255,255,0.15)',
-                boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
-              }}
-              className="rounded-full object-cover block transition-[border-color,box-shadow] duration-200"
-            />
-          ) : (
+            {/* Portrait image */}
             <div
               style={{
-                width: IMG_SIZE,
-                height: IMG_SIZE,
-                background: `linear-gradient(135deg, ${entity.color}, ${entity.color}aa)`,
-                border: isInspected ? '2px solid #fff' : '2px solid rgba(255,255,255,0.15)',
-                boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
+                width: PORTRAIT_SIZE,
+                height: PORTRAIT_SIZE,
               }}
-              className="rounded-full flex items-center justify-center text-white text-sm font-bold font-sans box-border transition-[border-color,box-shadow] duration-200"
+              className="flex items-center justify-center"
             >
-              {entity.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
-
-        {/* Online indicator (PC only) */}
-        {isPC && isOnline && (
-          <div className="absolute bottom-px right-px w-2.5 h-2.5 rounded-full bg-success border-2 border-glass shadow-[0_0_6px_rgba(34,197,94,0.5)]" />
-        )}
-
-        {/* Status dots (top-right) */}
-        {statuses.length > 0 && (
-          <div className="absolute -top-px -right-0.5 flex gap-0.5">
-            {statuses.slice(0, maxStatusDots).map((s, i) => {
-              const sc = statusColor(s.label)
-              return (
-                <div
-                  key={i}
-                  className="w-[7px] h-[7px] rounded-full"
+              {entity.imageUrl ? (
+                <img
+                  src={entity.imageUrl}
+                  alt={entity.name}
                   style={{
-                    background: sc,
-                    border: '1px solid rgba(15, 15, 25, 0.85)',
-                    boxShadow: `0 0 4px ${sc}66`,
+                    width: IMG_SIZE,
+                    height: IMG_SIZE,
+                    border: isInspected
+                      ? '2px solid #fff'
+                      : isActive
+                        ? `2px solid ${entity.color}`
+                        : '2px solid rgba(255,255,255,0.15)',
+                    boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
                   }}
+                  className="rounded-full object-cover block transition-[border-color,box-shadow] duration-200"
                 />
-              )
-            })}
-            {statuses.length > maxStatusDots && (
-              <div className="text-[7px] font-bold text-text-muted/60 font-sans leading-[7px]">
-                +{statuses.length - maxStatusDots}
+              ) : (
+                <div
+                  style={{
+                    width: IMG_SIZE,
+                    height: IMG_SIZE,
+                    background: `linear-gradient(135deg, ${entity.color}, ${entity.color}aa)`,
+                    border: isInspected ? '2px solid #fff' : '2px solid rgba(255,255,255,0.15)',
+                    boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
+                  }}
+                  className="rounded-full flex items-center justify-center text-white text-sm font-bold font-sans box-border transition-[border-color,box-shadow] duration-200"
+                >
+                  {entity.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+
+            {/* Online indicator (PC only) */}
+            {isPC && isOnline && (
+              <div className="absolute bottom-px right-px w-2.5 h-2.5 rounded-full bg-success border-2 border-glass shadow-[0_0_6px_rgba(34,197,94,0.5)]" />
+            )}
+
+            {/* Status dots (top-right) */}
+            {statuses.length > 0 && (
+              <div className="absolute -top-px -right-0.5 flex gap-0.5">
+                {statuses.slice(0, maxStatusDots).map((s, i) => {
+                  const sc = statusColor(s.label)
+                  return (
+                    <div
+                      key={i}
+                      className="w-[7px] h-[7px] rounded-full"
+                      style={{
+                        background: sc,
+                        border: '1px solid rgba(15, 15, 25, 0.85)',
+                        boxShadow: `0 0 4px ${sc}66`,
+                      }}
+                    />
+                  )
+                })}
+                {statuses.length > maxStatusDots && (
+                  <div className="text-[7px] font-bold text-text-muted/60 font-sans leading-[7px]">
+                    +{statuses.length - maxStatusDots}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
-        {/* NPC indicator (small diamond) */}
-        {!isPC && (
-          <div
-            className="absolute bottom-px left-px w-2 h-2 bg-warning rounded-[1px]"
-            style={{
-              transform: 'rotate(45deg)',
-              border: '1px solid rgba(15, 15, 25, 0.85)',
+            {/* NPC indicator (small diamond) */}
+            {!isPC && (
+              <div
+                className="absolute bottom-px left-px w-2 h-2 bg-warning rounded-[1px]"
+                style={{
+                  transform: 'rotate(45deg)',
+                  border: '1px solid rgba(15, 15, 25, 0.85)',
+                }}
+              />
+            )}
+          </div>
+        </ContextMenu.Trigger>
+
+        <ContextMenuContent>
+          {mySeatId && canEdit(entity.permissions, mySeatId, role) && (
+            <ContextMenuItem
+              disabled={activeCharacterId === entity.id}
+              onSelect={() => {
+                onSetActiveCharacter(entity.id)
+              }}
+            >
+              {t('portrait.set_active')}
+            </ContextMenuItem>
+          )}
+          <ContextMenuItem
+            onSelect={() => {
+              const el = portraitBarRef.current?.querySelector(
+                `[data-char-id="${entity.id}"]`,
+              ) as HTMLElement | null
+              if (el) setLockedRect(el.getBoundingClientRect())
+              onInspectCharacter(entity.id)
             }}
-          />
-        )}
-      </div>
+          >
+            {t('portrait.inspect')}
+          </ContextMenuItem>
+          {isGM &&
+            (visibilityMap.get(entity.id) ?? true) &&
+            activeSceneId &&
+            sceneIdSet.has(entity.id) && (
+              <ContextMenuItem
+                onSelect={() => {
+                  if (activeSceneId) void toggleEntityVisibility(activeSceneId, entity.id, false)
+                }}
+              >
+                {t('portrait.off_stage')}
+              </ContextMenuItem>
+            )}
+          {isGM && (
+            <ContextMenuItem
+              onSelect={() => {
+                void saveEntityAsBlueprint(entity)
+              }}
+            >
+              {t('portrait.save_as_blueprint')}
+            </ContextMenuItem>
+          )}
+          {isGM && entity.lifecycle === 'ephemeral' && (
+            <ContextMenuItem
+              onSelect={() => {
+                void updateEntity(entity.id, { lifecycle: 'reusable' })
+              }}
+            >
+              {t('portrait.save_as_character')}
+            </ContextMenuItem>
+          )}
+          {isGM && entity.lifecycle !== 'persistent' && (
+            <ContextMenuItem
+              variant="danger"
+              onSelect={() => {
+                onRemoveFromScene(entity.id)
+              }}
+            >
+              {t('portrait.remove')}
+            </ContextMenuItem>
+          )}
+        </ContextMenuContent>
+      </ContextMenu.Root>
     )
   }
 
@@ -519,129 +494,126 @@ export function PortraitBar({
     popoverEntity && isLocked && mySeatId && canEdit(popoverEntity.permissions, mySeatId, role)
   const popoverWidth = isLocked ? (isEditable ? 320 : 260) : 220
 
-  // Calculate popover position
-  let popoverLeft = 0
-  let popoverTop = 0
-  if (rect) {
-    popoverLeft = Math.max(
-      8,
-      Math.min(window.innerWidth - popoverWidth - 8, rect.left + rect.width / 2 - popoverWidth / 2),
-    )
-    popoverTop = rect.bottom + 8
-  }
-
-  const popoverMaxHeight = rect ? `calc(100vh - ${rect.bottom + 8}px - 20px)` : '50vh'
-
   return (
-    <div
-      ref={portraitBarRef}
-      className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center gap-[3px]"
-      onPointerDown={(e) => {
-        e.stopPropagation()
-      }}
-    >
-      {/* Tab buttons + collapse */}
-      <div className="flex gap-0.5 items-center pointer-events-auto">
-        <button
-          onClick={() => {
-            setActiveTab('characters')
-          }}
-          className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
-            activeTab === 'characters'
-              ? 'text-text-primary border-b-2 border-accent'
-              : 'text-text-muted/40 border-b-2 border-transparent'
-          }`}
-        >
-          {t('portrait.characters_tab')}
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('initiative')
-          }}
-          className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
-            activeTab === 'initiative'
-              ? 'text-text-primary border-b-2 border-accent'
-              : 'text-text-muted/40 border-b-2 border-transparent'
-          }`}
-        >
-          {t('portrait.initiative_tab')}
-        </button>
-        <button
-          onClick={() => {
-            setPortraitBarVisible(false)
-          }}
-          className="ml-1 p-0.5 text-text-muted/30 hover:text-text-muted/60 bg-transparent border-none cursor-pointer transition-colors duration-fast"
-          title={t('portrait.hide_portraits')}
-        >
-          <ChevronUp size={12} strokeWidth={1.5} />
-        </button>
+    <>
+      <div
+        ref={portraitBarRef}
+        className="fixed top-3 left-1/2 -translate-x-1/2 z-ui pointer-events-none flex flex-col items-center gap-[3px]"
+        onPointerDown={(e) => {
+          e.stopPropagation()
+        }}
+      >
+        {/* Tab buttons + collapse */}
+        <div className="flex gap-0.5 items-center pointer-events-auto">
+          <button
+            onClick={() => {
+              setActiveTab('characters')
+            }}
+            className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
+              activeTab === 'characters'
+                ? 'text-text-primary border-b-2 border-accent'
+                : 'text-text-muted/40 border-b-2 border-transparent'
+            }`}
+          >
+            {t('portrait.characters_tab')}
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('initiative')
+            }}
+            className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
+              activeTab === 'initiative'
+                ? 'text-text-primary border-b-2 border-accent'
+                : 'text-text-muted/40 border-b-2 border-transparent'
+            }`}
+          >
+            {t('portrait.initiative_tab')}
+          </button>
+          <button
+            onClick={() => {
+              setPortraitBarVisible(false)
+            }}
+            className="ml-1 p-0.5 text-text-muted/30 hover:text-text-muted/60 bg-transparent border-none cursor-pointer transition-colors duration-fast"
+            title={t('portrait.hide_portraits')}
+          >
+            <ChevronUp size={12} strokeWidth={1.5} />
+          </button>
+        </div>
+
+        {/* Tab content */}
+        {activeTab === 'characters' && (
+          <div className="flex gap-1.5 items-center bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
+            {partyEntities.map(renderPortrait)}
+
+            {/* Player "create my character" slot — shown when not GM and player has no owned entity */}
+            {!isGM &&
+              mySeatId &&
+              !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
+                <button
+                  onClick={handleCreateMyCharacter}
+                  title={t('portrait.create_my_character')}
+                  className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
+                >
+                  <Plus size={16} strokeWidth={1.5} />
+                </button>
+              )}
+
+            {/* Separator between PCs and NPCs */}
+            {hasSection && <div className="w-px h-8 bg-border-glass mx-0.5" />}
+
+            {sceneEntities.map(renderPortrait)}
+          </div>
+        )}
+
+        {activeTab === 'initiative' && (
+          <div className="flex items-center gap-2 bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
+            <span className="text-xs text-text-muted/40 font-sans px-3 py-1">
+              {tacticalInfo?.tacticalMode === 1
+                ? t('portrait.round', { number: tacticalInfo.roundNumber })
+                : t('portrait.no_session')}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Tab content */}
-      {activeTab === 'characters' && (
-        <div className="flex gap-1.5 items-center bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
-          {partyEntities.map(renderPortrait)}
-
-          {/* Player "create my character" slot — shown when not GM and player has no owned entity */}
-          {!isGM &&
-            mySeatId &&
-            !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
-              <button
-                onClick={handleCreateMyCharacter}
-                title={t('portrait.create_my_character')}
-                className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
-              >
-                <Plus size={16} strokeWidth={1.5} />
-              </button>
-            )}
-
-          {/* Separator between PCs and NPCs */}
-          {hasSection && <div className="w-px h-8 bg-border-glass mx-0.5" />}
-
-          {sceneEntities.map(renderPortrait)}
-        </div>
-      )}
-
-      {activeTab === 'initiative' && (
-        <div className="flex items-center gap-2 bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
-          <span className="text-xs text-text-muted/40 font-sans px-3 py-1">
-            {tacticalInfo?.tacticalMode === 1
-              ? t('portrait.round', { number: tacticalInfo.roundNumber })
-              : t('portrait.no_session')}
-          </span>
-        </div>
-      )}
-
-      {/* Context menu — rendered via portal to avoid transform offset */}
-      {contextMenu &&
-        (() => {
-          const entity = visibleEntities.find((e) => e.id === contextMenu.entityId)
-          if (!entity) return null
-          return createPortal(
-            <ContextMenu
-              x={contextMenu.x}
-              y={contextMenu.y}
-              items={getContextMenuItems(entity)}
-              onClose={() => {
-                setContextMenu(null)
-              }}
-            />,
-            document.body,
-          )
-        })()}
-
-      {/* Entity popover — rendered via portal */}
-      {popoverEntity &&
-        rect &&
-        createPortal(
-          <div
-            ref={popoverRef}
-            style={{
-              position: 'fixed',
-              left: popoverLeft,
-              top: popoverTop,
-              zIndex: 10001,
-              maxHeight: popoverMaxHeight,
+      {/* Entity popover — Radix controlled Popover with virtual anchor.
+          Must be outside the transformed PortraitBar div (-translate-x-1/2 creates
+          a containing block that breaks position:fixed on the Anchor). */}
+      <Popover.Root
+        open={!!popoverEntity && !!rect}
+        onOpenChange={(isOpen) => {
+          if (!isOpen && inspectedCharacterId) {
+            onInspectCharacter(null)
+          }
+        }}
+        modal={false}
+      >
+        <Popover.Anchor
+          className="fixed pointer-events-none w-0 h-0"
+          style={{
+            left: rect ? rect.left + rect.width / 2 : 0,
+            top: rect ? rect.bottom : 0,
+          }}
+        />
+        <Popover.Portal>
+          <Popover.Content
+            side="bottom"
+            align="center"
+            sideOffset={8}
+            collisionPadding={8}
+            className="z-popover outline-none"
+            style={{ width: popoverWidth }}
+            onInteractOutside={(e) => {
+              // Hover popover: don't close on click-outside, mouse timers handle it
+              if (!inspectedCharacterId) {
+                e.preventDefault()
+                return
+              }
+              // Locked popover: don't close when clicking on the portrait bar
+              // (clicking another portrait should switch, not close-then-reopen)
+              if (portraitBarRef.current?.contains(e.target as Node)) {
+                e.preventDefault()
+              }
             }}
             onPointerDown={(e) => {
               e.stopPropagation()
@@ -652,38 +624,39 @@ export function PortraitBar({
             onMouseEnter={handlePopoverMouseEnter}
             onMouseLeave={handlePopoverMouseLeave}
           >
-            {isLocked ? (
-              isEditable ? (
-                // Plugin handles editing — DH uses DaggerHeartCard + openPanel('dh-full-sheet')
-                // Generic plugin uses CharacterEditPanel wrapped in GenericEntityCard
-                <Card
-                  entity={popoverEntity}
-                  onUpdate={(patch) => {
-                    onUpdateEntity(popoverEntity.id, patch)
-                  }}
-                  readonly={false}
-                />
+            {popoverEntity &&
+              (isLocked ? (
+                isEditable ? (
+                  // Plugin handles editing — DH uses DaggerHeartCard + openPanel('dh-full-sheet')
+                  // Generic plugin uses CharacterEditPanel wrapped in GenericEntityCard
+                  <Card
+                    entity={popoverEntity}
+                    onUpdate={(patch) => {
+                      onUpdateEntity(popoverEntity.id, patch)
+                    }}
+                    readonly={false}
+                  />
+                ) : (
+                  // Read-only locked view: use plugin's EntityCard for display
+                  <Card
+                    entity={popoverEntity}
+                    onUpdate={(patch) => {
+                      onUpdateEntity(popoverEntity.id, patch)
+                    }}
+                    readonly
+                  />
+                )
               ) : (
-                // Read-only locked view: use plugin's EntityCard for display
-                <Card
-                  entity={popoverEntity}
-                  onUpdate={(patch) => {
-                    onUpdateEntity(popoverEntity.id, patch)
-                  }}
-                  readonly
+                <CharacterHoverPreview
+                  character={popoverEntity}
+                  isOnline={false}
+                  editable={mySeatId ? canEdit(popoverEntity.permissions, mySeatId, role) : false}
+                  onUpdateCharacter={onUpdateEntity}
                 />
-              )
-            ) : (
-              <CharacterHoverPreview
-                character={popoverEntity}
-                isOnline={false}
-                editable={mySeatId ? canEdit(popoverEntity.permissions, mySeatId, role) : false}
-                onUpdateCharacter={onUpdateEntity}
-              />
-            )}
-          </div>,
-          document.body,
-        )}
-    </div>
+              ))}
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+    </>
   )
 }

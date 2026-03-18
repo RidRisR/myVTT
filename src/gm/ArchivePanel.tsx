@@ -1,10 +1,15 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import { Plus, Download, Save, MoreVertical, Copy, Pencil, Trash2, Swords } from 'lucide-react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import * as Popover from '@radix-ui/react-popover'
 import { useWorldStore } from '../stores/worldStore'
 import type { ArchiveRecord } from '../stores/worldStore'
 import { selectIsTactical } from '../stores/selectors'
 import { useToast } from '../ui/useToast'
-import { ConfirmPopover } from '../ui/ConfirmPopover'
+import { DropdownMenuContent } from '../ui/primitives/DropdownMenuContent'
+import { DropdownMenuItem } from '../ui/primitives/DropdownMenuItem'
+import { ConfirmDropdownItem } from '../ui/ConfirmDropdownItem'
+import { PopoverContent } from '../ui/primitives/PopoverContent'
 import { useTranslation } from 'react-i18next'
 
 export function ArchivePanel() {
@@ -23,16 +28,11 @@ export function ArchivePanel() {
   const { toast } = useToast()
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [menuId, setMenuId] = useState<string | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const renameInputRef = useRef<HTMLInputElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-  const deleteButtonRef = useRef<HTMLButtonElement>(null)
-  const loadButtonRef = useRef<HTMLButtonElement>(null)
 
   // Fetch archives when scene changes
   useEffect(() => {
@@ -45,20 +45,6 @@ export function ArchivePanel() {
   useEffect(() => {
     if (renamingId) renameInputRef.current?.focus()
   }, [renamingId])
-
-  // Close menu on click outside
-  useEffect(() => {
-    if (!menuId) return
-    const handler = (e: PointerEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuId(null)
-      }
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => {
-      document.removeEventListener('pointerdown', handler)
-    }
-  }, [menuId])
 
   const sortedArchives = useMemo(
     () => [...archives].sort((a, b) => a.name.localeCompare(b.name)),
@@ -85,8 +71,6 @@ export function ArchivePanel() {
   }
 
   const handleDelete = (archive: ArchiveRecord) => {
-    setDeletingId(null)
-    setMenuId(null)
     // Optimistic removal from local state, delete on server
     void deleteArchive(archive.id)
     toast('undo', t('archive.deleted', { name: archive.name }), {
@@ -109,7 +93,6 @@ export function ArchivePanel() {
   }
 
   const selectedArchive = selectedId ? archives.find((e) => e.id === selectedId) : null
-  const deletingArchive = deletingId ? archives.find((e) => e.id === deletingId) : null
   const loadingArchive = loadingId ? archives.find((e) => e.id === loadingId) : null
 
   if (!activeSceneId) {
@@ -177,65 +160,49 @@ export function ArchivePanel() {
                       <span className="text-[10px] text-text-muted/50 shrink-0">🗺</span>
                     )}
 
-                    {/* Context menu button */}
-                    <button
-                      ref={deletingId === archive.id ? deleteButtonRef : undefined}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setMenuId(menuId === archive.id ? null : archive.id)
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
-                    >
-                      <MoreVertical size={12} strokeWidth={1.5} />
-                    </button>
+                    {/* ⋮ Dropdown menu */}
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger asChild>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                          }}
+                          className="opacity-0 group-hover:opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
+                        >
+                          <MoreVertical size={12} strokeWidth={1.5} />
+                        </button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenuContent align="end" sideOffset={4}>
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            setRenamingId(archive.id)
+                            setRenameValue(archive.name)
+                          }}
+                        >
+                          <Pencil size={12} strokeWidth={1.5} />
+                          {t('archive.rename')}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            void duplicateArchive(archive.id)
+                          }}
+                        >
+                          <Copy size={12} strokeWidth={1.5} />
+                          {t('archive.duplicate')}
+                        </DropdownMenuItem>
+                        <DropdownMenu.Separator className="border-t border-border-glass my-1" />
+                        <ConfirmDropdownItem
+                          icon={<Trash2 size={12} strokeWidth={1.5} />}
+                          message={t('archive.delete_confirm', { name: archive.name })}
+                          onConfirm={() => {
+                            handleDelete(archive)
+                          }}
+                        >
+                          Delete
+                        </ConfirmDropdownItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu.Root>
                   </div>
-
-                  {/* Context menu dropdown */}
-                  {menuId === archive.id && (
-                    <div
-                      ref={menuRef}
-                      className="absolute right-1 top-full mt-0.5 z-popover bg-surface border border-border-glass rounded-md shadow-lg py-1 min-w-[120px]"
-                      onPointerDown={(e) => {
-                        e.stopPropagation()
-                      }}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setRenamingId(archive.id)
-                          setRenameValue(archive.name)
-                          setMenuId(null)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
-                      >
-                        <Pencil size={12} strokeWidth={1.5} />
-                        {t('archive.rename')}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          void duplicateArchive(archive.id)
-                          setMenuId(null)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
-                      >
-                        <Copy size={12} strokeWidth={1.5} />
-                        {t('archive.duplicate')}
-                      </button>
-                      <div className="border-t border-border-glass my-1" />
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeletingId(archive.id)
-                          setMenuId(null)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-danger hover:bg-hover cursor-pointer transition-colors duration-fast"
-                      >
-                        <Trash2 size={12} strokeWidth={1.5} />
-                        Delete
-                      </button>
-                    </div>
-                  )}
                 </div>
               )
             })}
@@ -275,50 +242,53 @@ export function ArchivePanel() {
 
         {/* Load from selected archive (with confirmation) */}
         {selectedArchive && (
-          <button
-            data-testid="archive-load"
-            ref={loadButtonRef}
-            onClick={() => {
-              setLoadingId(selectedId)
+          <Popover.Root
+            open={loadingId !== null}
+            onOpenChange={(open) => {
+              if (!open) setLoadingId(null)
             }}
-            className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"
-            title={t('archive.load_title')}
           >
-            <Download size={14} strokeWidth={1.5} />
-            {t('archive.load')}
-          </button>
+            <Popover.Trigger asChild>
+              <button
+                data-testid="archive-load"
+                onClick={() => {
+                  setLoadingId(selectedId)
+                }}
+                className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"
+                title={t('archive.load_title')}
+              >
+                <Download size={14} strokeWidth={1.5} />
+                {t('archive.load')}
+              </button>
+            </Popover.Trigger>
+            {loadingArchive && (
+              <PopoverContent side="top" align="center" className="min-w-[140px]">
+                <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">
+                  {t('archive.load_confirm', { name: loadingArchive.name })}
+                </p>
+                <div className="flex justify-end gap-2">
+                  <button
+                    data-testid="confirm-cancel"
+                    onClick={() => {
+                      setLoadingId(null)
+                    }}
+                    className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast"
+                  >
+                    {t('cancel', { ns: 'ui' })}
+                  </button>
+                  <button
+                    data-testid="confirm-action"
+                    onClick={handleLoad}
+                    className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
+                  >
+                    {t('confirm_default', { ns: 'ui' })}
+                  </button>
+                </div>
+              </PopoverContent>
+            )}
+          </Popover.Root>
         )}
       </div>
-
-      {/* Delete confirmation popover */}
-      {deletingArchive && (
-        <ConfirmPopover
-          anchorRef={deleteButtonRef}
-          message={t('archive.delete_confirm', { name: deletingArchive.name })}
-          confirmLabel="Delete"
-          cancelLabel="Cancel"
-          onConfirm={() => {
-            handleDelete(deletingArchive)
-          }}
-          onCancel={() => {
-            setDeletingId(null)
-          }}
-        />
-      )}
-
-      {/* Load confirmation popover */}
-      {loadingArchive && (
-        <ConfirmPopover
-          anchorRef={loadButtonRef}
-          message={t('archive.load_confirm', { name: loadingArchive.name })}
-          confirmLabel="Confirm"
-          cancelLabel="Cancel"
-          onConfirm={handleLoad}
-          onCancel={() => {
-            setLoadingId(null)
-          }}
-        />
-      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TacticalInfo } from '../../stores/worldStore'
+import { useClickOutside } from '../../hooks/useClickOutside'
 
 /** Toolbar button width + padding + gap so panel clears the toolbar pill */
 const TOOLBAR_OFFSET = 48
@@ -34,18 +35,8 @@ export function GridConfigPanel({ tacticalInfo, onUpdateGrid, onClose }: GridCon
     tacticalInfo.grid.color,
   ])
 
-  // Click outside to close
-  useEffect(() => {
-    const handlePointerDown = (e: PointerEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose()
-      }
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-    }
-  }, [onClose])
+  // Click outside to close (Radix Portal-aware)
+  useClickOutside(panelRef, onClose)
 
   const commitChange = useCallback(
     (updates: Partial<TacticalInfo['grid']>) => {

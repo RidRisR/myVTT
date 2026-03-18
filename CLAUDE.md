@@ -30,6 +30,7 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 - **zustand data flags**: Flags controlling render must be in the same `set()` call as the data (no `useState` + `useEffect` timing gaps)
 - **Socket.io**: Every client `socket.on()` MUST have a server-side `io.emit()`. New connections must receive catch-up state
 - **Express**: `res.sendFile()` MUST include `dotfiles: 'allow'`
+- **CSS containing block**: `transform`/`filter`/`will-change` on a parent makes child `position: fixed` relative to that parent, not viewport. Radix `Popover.Anchor` with `fixed` positioning must be outside any transformed container
 
 ## Reference Docs
 

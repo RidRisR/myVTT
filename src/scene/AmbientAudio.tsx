@@ -112,7 +112,7 @@ export function AmbientAudio({ audioUrl, volume }: AmbientAudioProps) {
 
   return (
     <div
-      className="fixed bottom-3 right-4 z-toast flex items-center gap-1.5 font-sans"
+      className="fixed bottom-3 right-4 z-ui flex items-center gap-1.5 font-sans"
       onPointerDown={(e) => {
         e.stopPropagation()
       }}
