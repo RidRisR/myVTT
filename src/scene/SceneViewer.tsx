@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { Image } from 'lucide-react'
+import { Image, FolderOpen } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
 import { ParticleLayer } from './ParticleLayer'
+import { useUiStore } from '../stores/uiStore'
 
 interface SceneViewerProps {
   scene: Scene | null
@@ -11,6 +12,7 @@ interface SceneViewerProps {
 }
 
 export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneViewerProps) {
+  const setGmDockTab = useUiStore((s) => s.setGmDockTab)
   const [prevUrl, setPrevUrl] = useState<string | null>(null)
   const [currentUrl, setCurrentUrl] = useState<string | null>(null)
   const [fading, setFading] = useState(false)
@@ -65,10 +67,18 @@ export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneView
         }}
       >
         {blurOverlay}
-        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+        <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
           <Image size={32} strokeWidth={1} className="text-text-muted/20" />
           {scene && <p className="text-text-muted/40 text-sm">{scene.name}</p>}
-          <p className="text-text-muted/20 text-xs">Set a background from the Gallery tab</p>
+          <button
+            onClick={() => {
+              setGmDockTab('gallery')
+            }}
+            className="flex items-center gap-1.5 text-text-muted/40 hover:text-text-muted text-xs cursor-pointer transition-colors duration-fast"
+          >
+            <FolderOpen size={14} strokeWidth={1.5} />
+            Open Gallery to set a background
+          </button>
         </div>
       </div>
     )

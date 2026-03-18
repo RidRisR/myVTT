@@ -2,28 +2,48 @@ import { useState } from 'react'
 import { Trash2, Dices } from 'lucide-react'
 import { SEAT_COLORS, type Seat } from '../stores/identityStore'
 
-const RANDOM_NAMES = [
-  'Adventurer',
-  'Wanderer',
-  'Sage',
-  'Knight',
-  'Rogue',
+export const ADJECTIVES = [
+  'Brave',
+  'Shadow',
+  'Ancient',
+  'Royal',
   'Mystic',
-  'Ranger',
-  'Bard',
-  'Paladin',
-  'Sorcerer',
-  'Druid',
-  'Monk',
-  'Cleric',
-  'Warlock',
-  'Barbarian',
+  'Iron',
+  'Storm',
+  'Silent',
+  'Crimson',
+  'Golden',
+  'Arcane',
+  'Wild',
+  'Frozen',
+  'Ember',
+  'Phantom',
 ]
 
-function randomName(): string {
-  const name = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)] as string
-  const suffix = Math.floor(Math.random() * 100)
-  return `${name}${suffix}`
+export const NOUNS = [
+  'Knight',
+  'Rogue',
+  'Ranger',
+  'Druid',
+  'Paladin',
+  'Sorcerer',
+  'Bard',
+  'Monk',
+  'Warlock',
+  'Cleric',
+  'Barbarian',
+  'Sage',
+  'Wanderer',
+  'Hunter',
+  'Warden',
+]
+
+function pick<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)] as T
+}
+
+export function randomName(): string {
+  return `${pick(ADJECTIVES)} ${pick(ADJECTIVES)} ${pick(NOUNS)}`
 }
 
 interface SeatSelectProps {

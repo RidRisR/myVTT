@@ -16,13 +16,14 @@ import type { MapToken, Entity, Blueprint, Atmosphere } from '../shared/entityTy
 import { useToast } from '../ui/useToast'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { useWorldStore } from '../stores/worldStore'
+import { useUiStore } from '../stores/uiStore'
 import { MapDockTab } from '../dock/MapDockTab'
 import { BlueprintDockTab } from '../dock/BlueprintDockTab'
 import { HandoutDockTab } from '../dock/HandoutDockTab'
 import { CharacterLibraryTab } from '../dock/CharacterLibraryTab'
 import type { HandoutAsset } from '../stores/worldStore'
 
-type TabId = 'gallery' | 'tokens' | 'characters' | 'handouts' | 'dice'
+import type { GmDockTab } from '../stores/uiStore'
 
 // Wrap tab content components with React.memo to avoid re-renders on tab switch
 const MemoMapDockTab = memo(MapDockTab)
@@ -74,10 +75,18 @@ export function GmDock({
   onSelectToken,
   onSetAsTacticalMap,
 }: GmDockProps) {
-  const [activeTab, setActiveTab] = useState<TabId | null>(null)
+  const activeTab = useUiStore((s) => s.gmDockTab)
+  const setActiveTab = useUiStore((s) => s.setGmDockTab)
   const [collapsed, setCollapsed] = useState(false)
   const dockRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+
+  // Auto-expand when a tab is set externally (e.g. from SceneViewer)
+  useEffect(() => {
+    if (activeTab !== null && collapsed) {
+      setCollapsed(false)
+    }
+  }, [activeTab, collapsed])
 
   // Click outside to collapse
   useEffect(() => {
@@ -93,8 +102,8 @@ export function GmDock({
     }
   }, [activeTab])
 
-  const toggleTab = (tab: TabId) => {
-    setActiveTab((prev) => (prev === tab ? null : tab))
+  const toggleTab = (tab: GmDockTab) => {
+    setActiveTab(activeTab === tab ? null : tab)
   }
 
   const handleSpawnFromBlueprint = async (bp: Blueprint) => {
@@ -165,7 +174,7 @@ export function GmDock({
     )
   }
 
-  const tabBtnClass = (tab: TabId) =>
+  const tabBtnClass = (tab: GmDockTab) =>
     `flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg backdrop-blur-[8px] border border-border-glass text-xs font-semibold cursor-pointer whitespace-nowrap font-sans transition-all duration-fast ${
       activeTab === tab
         ? 'bg-hover border-b-2 border-b-accent text-text-primary'
