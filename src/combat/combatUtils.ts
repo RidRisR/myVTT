@@ -37,3 +37,23 @@ export function canDragToken(role: 'GM' | 'PL', entity: Entity | null, mySeatId:
   if (!entity) return false
   return canEdit(entity.permissions, mySeatId, role)
 }
+
+export interface TokenLike {
+  id: string
+  entityId: string | null
+}
+
+/**
+ * Resolve a token ID to its associated entity.
+ * Returns [token, entity] or [null, null] if not found.
+ */
+export function resolveTokenEntity<T extends TokenLike>(
+  tokens: T[],
+  tokenId: string | undefined | null,
+  getEntity: (id: string) => Entity | null | undefined,
+): [T | null, Entity | null] {
+  if (!tokenId) return [null, null]
+  const token = tokens.find((t) => t.id === tokenId) ?? null
+  const entity = token?.entityId ? (getEntity(token.entityId) ?? null) : null
+  return [token, entity]
+}

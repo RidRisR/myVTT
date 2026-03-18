@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useToast } from '../ui/useToast'
 import { useClickOutside } from '../hooks/useClickOutside'
 import type { Entity } from '../shared/entityTypes'
 import { uploadAsset } from '../shared/assetUpload'
@@ -10,6 +11,7 @@ import {
   getEntityStatuses,
   type ResourceView,
   type AttributeView,
+  updateRuleDataField,
 } from '../shared/entityAdapters'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../ui/ResourceBar'
@@ -77,6 +79,7 @@ export function CharacterEditPanel({
   onClose,
 }: CharacterEditPanelProps) {
   const { t } = useTranslation('layout')
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState<TabId>('info')
   const [statusInput, setStatusInput] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -101,13 +104,6 @@ export function CharacterEditPanel({
   const updateChar = (updates: Partial<Entity>) => {
     onUpdateCharacter(character.id, updates)
   }
-
-  /** Wrap a ruleData sub-key update into a Partial<Entity> */
-  function updateRuleData(key: string, value: unknown): Partial<Entity> {
-    const rd = (character.ruleData ?? {}) as Record<string, unknown>
-    return { ruleData: { ...rd, [key]: value } }
-  }
-
   const resources = getEntityResources(character)
   const attributes = getEntityAttributes(character)
   const statuses = getEntityStatuses(character)
@@ -119,17 +115,21 @@ export function CharacterEditPanel({
     const existing = next[index]
     if (!existing) return
     next[index] = { ...existing, ...updates }
-    updateChar(updateRuleData('resources', next))
+    updateChar(updateRuleDataField(character, 'resources', next))
   }
   const addResource = () => {
     const color = barColorForKey(`res_${resources.length}`)
     updateChar(
-      updateRuleData('resources', [...resources, { key: '', current: 10, max: 10, color }]),
+      updateRuleDataField(character, 'resources', [
+        ...resources,
+        { key: '', current: 10, max: 10, color },
+      ]),
     )
   }
   const removeResource = (index: number) => {
     updateChar(
-      updateRuleData(
+      updateRuleDataField(
+        character,
         'resources',
         resources.filter((_, i) => i !== index),
       ),
@@ -142,14 +142,17 @@ export function CharacterEditPanel({
     const existing = next[index]
     if (!existing) return
     next[index] = { ...existing, ...updates }
-    updateChar(updateRuleData('attributes', next))
+    updateChar(updateRuleDataField(character, 'attributes', next))
   }
   const addAttribute = () => {
-    updateChar(updateRuleData('attributes', [...attributes, { key: '', value: 10 }]))
+    updateChar(
+      updateRuleDataField(character, 'attributes', [...attributes, { key: '', value: 10 }]),
+    )
   }
   const removeAttribute = (index: number) => {
     updateChar(
-      updateRuleData(
+      updateRuleDataField(
+        character,
         'attributes',
         attributes.filter((_, i) => i !== index),
       ),
@@ -160,12 +163,13 @@ export function CharacterEditPanel({
   const addStatus = () => {
     const label = statusInput.trim()
     if (!label || statuses.some((s) => s.label === label)) return
-    updateChar(updateRuleData('statuses', [...statuses, { label }]))
+    updateChar(updateRuleDataField(character, 'statuses', [...statuses, { label }]))
     setStatusInput('')
   }
   const removeStatus = (index: number) => {
     updateChar(
-      updateRuleData(
+      updateRuleDataField(
+        character,
         'statuses',
         statuses.filter((_, i) => i !== index),
       ),
@@ -182,6 +186,7 @@ export function CharacterEditPanel({
       updateChar({ imageUrl: result.url })
     } catch (err) {
       console.error('Portrait upload failed:', err)
+      toast('error', t('character.upload_failed'))
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''

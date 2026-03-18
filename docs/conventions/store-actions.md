@@ -38,3 +38,50 @@ Violation symptoms: data exists but disappears on refresh, data appears in the w
 - Use `setupTestRoom()` to create temp room + test server; call `cleanup()` to tear down
 - **Dual verification**: after each operation, assert both Store state (`getState()`) and server state (`GET` request)
 - Pure Node.js (no browser, no mocks) — use `// @vitest-environment node` pragma
+
+## Error Handling Convention
+
+Errors must be surfaced to users at the appropriate layer. Never silently swallow errors.
+
+### Layer Model
+
+| Layer                     | Responsibility               | Pattern                                               |
+| ------------------------- | ---------------------------- | ----------------------------------------------------- |
+| **API** (`shared/api.ts`) | Throw on HTTP errors         | `throw new Error(msg)` — never catch here             |
+| **Store** (`stores/*.ts`) | Propagate to caller          | Do NOT wrap in try/catch — let the component handle   |
+| **Component** (`*.tsx`)   | Show user feedback           | `try/catch` → `toast('error', msg)` + `console.error` |
+| **ErrorBoundary**         | Catch-all for render crashes | Already in place (`ui/ErrorBoundary.tsx`)             |
+
+### Rules
+
+1. **User-initiated async operations** (upload, save, delete) in components:
+
+   ```tsx
+   try {
+     await storeAction()
+   } catch (err) {
+     console.error('Context:', err)
+     toast('error', t('namespace.error_key'))
+   }
+   ```
+
+2. **Initialization errors** (room connect, data load):
+
+   ```tsx
+   catch (err) {
+     console.error('Init failed:', err)
+     setErrorState(err instanceof Error ? err.message : 'Unknown error')
+   }
+   ```
+
+   Then render an error UI instead of the normal component.
+
+3. **NEVER** use `console.error` alone without user-visible feedback.
+   The only exception is `ErrorBoundary` which logs AND renders a fallback UI.
+
+### Toast types
+
+- `'error'` — operation failed, user should retry or report
+- `'success'` — operation completed (use sparingly)
+- `'undo'` — destructive action with undo option
+- `'info'` — neutral notification

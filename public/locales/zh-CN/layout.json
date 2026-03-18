@@ -4,7 +4,8 @@
     "game_system": "游戏系统",
     "system_fixed": "建房时确定，不可更改",
     "leave_seat": "离开座位",
-    "language": "语言"
+    "language": "语言",
+    "upload_failed": "头像上传失败"
   },
   "role": {
     "game_master": "Game Master",
@@ -59,6 +60,7 @@
     "tab_notes": "笔记",
     "hover_stats": "数值",
     "hover_attr": "属性",
-    "status_placeholder": "状态..."
+    "status_placeholder": "状态...",
+    "upload_failed": "肖像上传失败"
   }
 }

@@ -6,6 +6,7 @@ import {
   getEntityAttributes,
   getEntityStatuses,
   type ResourceView,
+  updateRuleDataField,
 } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../ui/ResourceBar'
@@ -50,13 +51,6 @@ export function CharacterHoverPreview({
   const hasStats = resources.length > 0 || statuses.length > 0 || canEdit
   const hasAttr = attributes.length > 0
   const showTabs = hasStats && hasAttr
-
-  /** Wrap a ruleData sub-key update into a Partial<Entity> */
-  function updateRuleData(key: string, value: unknown): Partial<Entity> {
-    const rd = (character.ruleData ?? {}) as Record<string, unknown>
-    return { ruleData: { ...rd, [key]: value } }
-  }
-
   const updateResource = (index: number, updates: Partial<ResourceView>) => {
     if (!onUpdateCharacter) return
     // index is guaranteed valid — called from .map() over resources
@@ -68,13 +62,13 @@ export function CharacterHoverPreview({
     if (!existing) return
     const next = [...allResources]
     next[visibleIndex] = { ...existing, ...updates }
-    onUpdateCharacter(character.id, updateRuleData('resources', next))
+    onUpdateCharacter(character.id, updateRuleDataField(character, 'resources', next))
   }
 
   const removeStatus = (index: number) => {
     if (!onUpdateCharacter) return
     const next = statuses.filter((_, i) => i !== index)
-    onUpdateCharacter(character.id, updateRuleData('statuses', next))
+    onUpdateCharacter(character.id, updateRuleDataField(character, 'statuses', next))
   }
 
   const commitStatusEdit = (index: number, label: string) => {
@@ -83,7 +77,7 @@ export function CharacterHoverPreview({
     if (trimmed && trimmed !== statuses[index]?.label) {
       const next = [...statuses]
       next[index] = { label: trimmed }
-      onUpdateCharacter(character.id, updateRuleData('statuses', next))
+      onUpdateCharacter(character.id, updateRuleDataField(character, 'statuses', next))
     }
     setEditingStatusIdx(null)
   }
@@ -92,7 +86,10 @@ export function CharacterHoverPreview({
     if (!onUpdateCharacter) return
     const trimmed = label.trim()
     if (trimmed) {
-      onUpdateCharacter(character.id, updateRuleData('statuses', [...statuses, { label: trimmed }]))
+      onUpdateCharacter(
+        character.id,
+        updateRuleDataField(character, 'statuses', [...statuses, { label: trimmed }]),
+      )
     }
     setNewStatusLabel('')
     setAddingStatus(false)

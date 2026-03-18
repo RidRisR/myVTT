@@ -57,3 +57,12 @@ export function getEntityStatuses(entity: Entity | null): StatusView[] {
   const rd = entity.ruleData as Record<string, unknown> | null
   return (rd?.statuses ?? []) as StatusView[]
 }
+
+/**
+ * Build a Partial<Entity> that updates a single key inside entity.ruleData.
+ * Shared by CharacterEditPanel and CharacterHoverPreview.
+ */
+export function updateRuleDataField(entity: Entity, key: string, value: unknown): Partial<Entity> {
+  const rd = (entity.ruleData ?? {}) as Record<string, unknown>
+  return { ruleData: { ...rd, [key]: value } }
+}

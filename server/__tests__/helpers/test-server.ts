@@ -16,6 +16,7 @@ import { trackerRoutes } from '../../routes/trackers'
 import { showcaseRoutes } from '../../routes/showcase'
 import { stateRoutes } from '../../routes/state'
 import { assetRoutes } from '../../routes/assets'
+import { bundleRoutes } from '../../routes/bundle'
 import { blueprintRoutes } from '../../routes/blueprints'
 import { setupSocketAuth } from '../../ws'
 import { setupAwareness } from '../../awareness'
@@ -73,6 +74,7 @@ export async function setupTestRoom(roomName = 'test-room'): Promise<TestContext
   app.use(showcaseRoutes(dataDir, io))
   app.use(stateRoutes(dataDir, io))
   app.use(assetRoutes(dataDir, io))
+  app.use(bundleRoutes(dataDir, io))
   app.use(blueprintRoutes(dataDir, io))
 
   getGlobalDb(dataDir)
@@ -180,4 +182,97 @@ export async function connectSecondClient(apiBase: string, roomId: string): Prom
     }, 5000)
   })
   return socket
+}
+
+export interface SimpleTestServer {
+  baseUrl: string
+  dataDir: string
+  cleanup: () => void
+  api: (
+    method: string,
+    urlPath: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ) => Promise<{ status: number; data: unknown }>
+}
+
+/**
+ * Spin up a test server without creating a room or socket client.
+ * Suitable for route-level tests that only need HTTP access.
+ */
+export async function setupTestServer(): Promise<SimpleTestServer> {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'myvtt-server-test-'))
+
+  const app = express()
+  app.use(express.json())
+
+  app.param('roomId', (_req, res, next, val) => {
+    if (!/^[a-zA-Z0-9_-]{1,64}$/.test(val as string)) {
+      res.status(400).json({ error: 'Invalid room ID' })
+      return
+    }
+    next()
+  })
+
+  const server = http.createServer(app)
+  const io = new SocketIOServer(server)
+
+  setupSocketAuth(io, dataDir)
+  setupAwareness(io)
+
+  app.use(roomRoutes(dataDir, io))
+  app.use(seatRoutes(dataDir, io))
+  app.use(sceneRoutes(dataDir, io))
+  app.use(entityRoutes(dataDir, io))
+  app.use(archiveRoutes(dataDir, io))
+  app.use(tacticalRoutes(dataDir, io))
+  app.use(chatRoutes(dataDir, io))
+  app.use(trackerRoutes(dataDir, io))
+  app.use(showcaseRoutes(dataDir, io))
+  app.use(stateRoutes(dataDir, io))
+  app.use(assetRoutes(dataDir, io))
+  app.use(bundleRoutes(dataDir, io))
+  app.use(blueprintRoutes(dataDir, io))
+
+  getGlobalDb(dataDir)
+
+  const baseUrl = await new Promise<string>((resolve) => {
+    server.listen(0, () => {
+      const addr = server.address() as { port: number }
+      resolve(`http://127.0.0.1:${addr.port}`)
+    })
+  })
+
+  const api = async (
+    method: string,
+    urlPath: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ) => {
+    const res = await fetch(`${baseUrl}${urlPath}`, {
+      method,
+      headers: {
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+        ...headers,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    })
+    const text = await res.text()
+    let data: unknown
+    try {
+      data = JSON.parse(text)
+    } catch {
+      data = text
+    }
+    return { status: res.status, data }
+  }
+
+  const cleanup = () => {
+    void io.close()
+    server.close()
+    closeAllDbs()
+    fs.rmSync(dataDir, { recursive: true, force: true })
+  }
+
+  return { baseUrl, dataDir, cleanup, api }
 }

@@ -1,89 +1,29 @@
 // server/__tests__/bundle.test.ts — Integration tests for GET /api/rooms/:id/bundle
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import http from 'http'
-import express from 'express'
-import { Server as SocketIOServer } from 'socket.io'
-import request from 'supertest'
-import { getGlobalDb, getRoomDb, closeAllDbs } from '../db'
-import { roomRoutes } from '../routes/rooms'
-import { sceneRoutes } from '../routes/scenes'
-import { entityRoutes } from '../routes/entities'
-import { tacticalRoutes } from '../routes/tactical'
-import { chatRoutes } from '../routes/chat'
-import { trackerRoutes } from '../routes/trackers'
-import { showcaseRoutes } from '../routes/showcase'
-import { stateRoutes } from '../routes/state'
-import { seatRoutes } from '../routes/seats'
-import { bundleRoutes } from '../routes/bundle'
-import { blueprintRoutes } from '../routes/blueprints'
-import { setupSocketAuth } from '../ws'
-import { setupAwareness } from '../awareness'
-import path from 'path'
-import fs from 'fs'
-import os from 'os'
+import { setupTestServer, type SimpleTestServer } from './helpers/test-server'
+import { getRoomDb } from '../db'
 
-let server: http.Server
-let io: SocketIOServer
-let testApp: express.Express
-let dataDir: string
+let ctx: SimpleTestServer
 let roomId: string
 
 beforeAll(async () => {
-  dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'myvtt-bundle-test-'))
-
-  testApp = express()
-  const app = testApp
-  app.use(express.json())
-
-  app.param('roomId', (_req, res, next, val) => {
-    if (!/^[a-zA-Z0-9_-]{1,64}$/.test(val as string)) {
-      res.status(400).json({ error: 'Invalid room ID' })
-      return
-    }
-    next()
+  ctx = await setupTestServer()
+  const { data } = await ctx.api('POST', '/api/rooms', {
+    name: 'Bundle Test Room',
+    ruleSystemId: 'generic',
   })
-
-  server = http.createServer(app)
-  io = new SocketIOServer(server)
-
-  setupSocketAuth(io, dataDir)
-  setupAwareness(io)
-
-  app.use(roomRoutes(dataDir, io))
-  app.use(seatRoutes(dataDir, io))
-  app.use(sceneRoutes(dataDir, io))
-  app.use(entityRoutes(dataDir, io))
-  app.use(tacticalRoutes(dataDir, io))
-  app.use(chatRoutes(dataDir, io))
-  app.use(trackerRoutes(dataDir, io))
-  app.use(showcaseRoutes(dataDir, io))
-  app.use(stateRoutes(dataDir, io))
-  app.use(bundleRoutes(dataDir, io))
-  app.use(blueprintRoutes(dataDir, io))
-
-  getGlobalDb(dataDir)
-
-  await new Promise<void>((resolve) => server.listen(0, resolve))
-
-  // Create a test room
-  const createRes = await request(testApp)
-    .post('/api/rooms')
-    .send({ name: 'Bundle Test Room', ruleSystemId: 'generic' })
-  roomId = (createRes.body as { id: string }).id
+  roomId = (data as { id: string }).id
 })
 
 afterAll(() => {
-  void io.close()
-  server.close()
-  closeAllDbs()
-  fs.rmSync(dataDir, { recursive: true, force: true })
+  ctx.cleanup()
 })
 
 describe('GET /api/rooms/:id/bundle', () => {
   it('returns all required top-level keys', async () => {
-    const res = await request(testApp).get(`/api/rooms/${roomId}/bundle`)
-    expect(res.status).toBe(200)
-    const body = res.body as Record<string, unknown>
+    const { status, data } = await ctx.api('GET', `/api/rooms/${roomId}/bundle`)
+    expect(status).toBe(200)
+    const body = data as Record<string, unknown>
     expect(body).toHaveProperty('room')
     expect(body).toHaveProperty('scenes')
     expect(body).toHaveProperty('entities')
@@ -98,8 +38,8 @@ describe('GET /api/rooms/:id/bundle', () => {
   })
 
   it('room field includes ruleSystemId and activeSceneId', async () => {
-    const res = await request(testApp).get(`/api/rooms/${roomId}/bundle`)
-    const { room } = res.body as { room: Record<string, unknown> }
+    const { data } = await ctx.api('GET', `/api/rooms/${roomId}/bundle`)
+    const { room } = data as { room: Record<string, unknown> }
     expect(room).toHaveProperty('ruleSystemId', 'generic')
     // activeSceneId is present (rooms always initialize with a default scene)
     expect(room).toHaveProperty('activeSceneId')
@@ -108,38 +48,39 @@ describe('GET /api/rooms/:id/bundle', () => {
   it('tactical is null when no active scene', async () => {
     // Create an isolated room for this test, then directly null the active_scene_id
     // (POST /api/rooms always sets a default active scene; PATCH /state only accepts truthy values)
-    const createRes = await request(testApp)
-      .post('/api/rooms')
-      .send({ name: 'Tactical Null Test Room', ruleSystemId: 'generic' })
-    const isolatedRoomId = (createRes.body as { id: string }).id
+    const { data: createData } = await ctx.api('POST', '/api/rooms', {
+      name: 'Tactical Null Test Room',
+      ruleSystemId: 'generic',
+    })
+    const isolatedRoomId = (createData as { id: string }).id
 
-    const roomDb = getRoomDb(dataDir, isolatedRoomId)
+    const roomDb = getRoomDb(ctx.dataDir, isolatedRoomId)
     roomDb.prepare('UPDATE room_state SET active_scene_id = NULL WHERE id = 1').run()
 
-    const res = await request(testApp).get(`/api/rooms/${isolatedRoomId}/bundle`)
-    expect((res.body as { tactical: unknown }).tactical).toBeNull()
+    const { data } = await ctx.api('GET', `/api/rooms/${isolatedRoomId}/bundle`)
+    expect((data as { tactical: unknown }).tactical).toBeNull()
   })
 
   it('tactical includes tokens when active scene exists', async () => {
     // Create a scene
-    const sceneRes = await request(testApp)
-      .post(`/api/rooms/${roomId}/scenes`)
-      .send({ name: 'Scene 1' })
-    const sceneId = (sceneRes.body as { id: string }).id
+    const { data: sceneData } = await ctx.api('POST', `/api/rooms/${roomId}/scenes`, {
+      name: 'Scene 1',
+    })
+    const sceneId = (sceneData as { id: string }).id
 
     // Set as active scene
-    await request(testApp).patch(`/api/rooms/${roomId}/state`).send({ activeSceneId: sceneId })
+    await ctx.api('PATCH', `/api/rooms/${roomId}/state`, { activeSceneId: sceneId })
 
-    const res = await request(testApp).get(`/api/rooms/${roomId}/bundle`)
-    const { tactical } = res.body as { tactical: Record<string, unknown> | null }
+    const { data } = await ctx.api('GET', `/api/rooms/${roomId}/bundle`)
+    const { tactical } = data as { tactical: Record<string, unknown> | null }
     expect(tactical).not.toBeNull()
     expect(tactical).toHaveProperty('tokens')
     expect(Array.isArray(tactical!.tokens)).toBe(true)
   })
 
   it('sceneEntityMap is correctly grouped by scene_id', async () => {
-    const res = await request(testApp).get(`/api/rooms/${roomId}/bundle`)
-    const { sceneEntityMap } = res.body as {
+    const { data } = await ctx.api('GET', `/api/rooms/${roomId}/bundle`)
+    const { sceneEntityMap } = data as {
       sceneEntityMap: Record<string, unknown[]>
     }
     // All values in the map must be arrays of entity entries
@@ -154,21 +95,21 @@ describe('GET /api/rooms/:id/bundle', () => {
 
   it('assets array contains parsed extra field', async () => {
     // Bundle returns assets with parsed JSON fields (extra is object, not string)
-    const res = await request(testApp).get(`/api/rooms/${roomId}/bundle`)
-    const { assets } = res.body as { assets: Record<string, unknown>[] }
+    const { data } = await ctx.api('GET', `/api/rooms/${roomId}/bundle`)
+    const { assets } = data as { assets: Record<string, unknown>[] }
     // Even with no assets, array should exist
     expect(Array.isArray(assets)).toBe(true)
   })
 
   it('blueprints array is present and parsed', async () => {
-    const res = await request(testApp).get(`/api/rooms/${roomId}/bundle`)
-    const { blueprints } = res.body as { blueprints: unknown[] }
+    const { data } = await ctx.api('GET', `/api/rooms/${roomId}/bundle`)
+    const { blueprints } = data as { blueprints: unknown[] }
     expect(Array.isArray(blueprints)).toBe(true)
   })
 
   it('returns 400 for invalid room id (exceeds 64 chars)', async () => {
     const longId = 'a'.repeat(65)
-    const res = await request(testApp).get(`/api/rooms/${longId}/bundle`)
-    expect(res.status).toBe(400)
+    const { status } = await ctx.api('GET', `/api/rooms/${longId}/bundle`)
+    expect(status).toBe(400)
   })
 })
