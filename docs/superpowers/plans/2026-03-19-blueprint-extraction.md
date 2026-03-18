@@ -15,36 +15,39 @@
 ## 文件结构
 
 ### 新建文件
-| 文件 | 职责 |
-|------|------|
-| `server/routes/blueprints.ts` | Blueprint CRUD 路由 + Socket.io 广播 |
-| `server/__tests__/scenarios/blueprints-crud.test.ts` | Blueprint 服务端集成测试 |
+
+| 文件                                                 | 职责                                 |
+| ---------------------------------------------------- | ------------------------------------ |
+| `server/routes/blueprints.ts`                        | Blueprint CRUD 路由 + Socket.io 广播 |
+| `server/__tests__/scenarios/blueprints-crud.test.ts` | Blueprint 服务端集成测试             |
 
 ### 修改文件
-| 文件 | 改动摘要 |
-|------|---------|
-| `server/schema.ts` | 新增 blueprints 表 DDL；entities.blueprint_id 外键改指向 |
-| `server/routes/scenes.ts` | spawn 路由改读 blueprints 表 |
-| `server/routes/bundle.ts` | bundle 响应加 blueprints 数组 |
-| `server/__tests__/helpers/test-server.ts` | 注册 blueprintRoutes |
-| `src/shared/entityTypes.ts` | Blueprint 接口改用 defaults blob |
-| `src/shared/assetTypes.ts` | AssetMeta.type 移除 'blueprint'，移除 blueprint? 字段 |
-| `src/shared/bundleTypes.ts` | BundleResponse 新增 blueprints 字段 |
-| `src/shared/socketEvents.ts` | 新增 blueprint:created/updated/deleted 事件 |
-| `src/stores/worldStore.ts` | 新增 blueprints slice + 改 saveEntityAsBlueprint + socket 监听 |
-| `src/dock/BlueprintDockTab.tsx` | 数据源改为 blueprints store |
-| `src/layout/PortraitBar.tsx` | saveEntityAsBlueprint 调用适配 |
-| `server/__tests__/scenarios/spawn.test.ts` | 改用 POST /blueprints 创建蓝图 |
-| `server/__tests__/bundle.test.ts` | 验证 bundle 含 blueprints |
-| `server/__tests__/scenarios/asset-roundtrip.test.ts` | 移除 blueprint 相关断言 |
-| `server/__tests__/schema.test.ts` | 验证 blueprints 表存在 |
-| `src/stores/__tests__/worldStore.test.ts` | 移除 `type:'blueprint'` 和 `blueprint?` 字段引用 |
+
+| 文件                                                 | 改动摘要                                                       |
+| ---------------------------------------------------- | -------------------------------------------------------------- |
+| `server/schema.ts`                                   | 新增 blueprints 表 DDL；entities.blueprint_id 外键改指向       |
+| `server/routes/scenes.ts`                            | spawn 路由改读 blueprints 表                                   |
+| `server/routes/bundle.ts`                            | bundle 响应加 blueprints 数组                                  |
+| `server/__tests__/helpers/test-server.ts`            | 注册 blueprintRoutes                                           |
+| `src/shared/entityTypes.ts`                          | Blueprint 接口改用 defaults blob                               |
+| `src/shared/assetTypes.ts`                           | AssetMeta.type 移除 'blueprint'，移除 blueprint? 字段          |
+| `src/shared/bundleTypes.ts`                          | BundleResponse 新增 blueprints 字段                            |
+| `src/shared/socketEvents.ts`                         | 新增 blueprint:created/updated/deleted 事件                    |
+| `src/stores/worldStore.ts`                           | 新增 blueprints slice + 改 saveEntityAsBlueprint + socket 监听 |
+| `src/dock/BlueprintDockTab.tsx`                      | 数据源改为 blueprints store                                    |
+| `src/layout/PortraitBar.tsx`                         | saveEntityAsBlueprint 调用适配                                 |
+| `server/__tests__/scenarios/spawn.test.ts`           | 改用 POST /blueprints 创建蓝图                                 |
+| `server/__tests__/bundle.test.ts`                    | 验证 bundle 含 blueprints                                      |
+| `server/__tests__/scenarios/asset-roundtrip.test.ts` | 移除 blueprint 相关断言                                        |
+| `server/__tests__/schema.test.ts`                    | 验证 blueprints 表存在                                         |
+| `src/stores/__tests__/worldStore.test.ts`            | 移除 `type:'blueprint'` 和 `blueprint?` 字段引用               |
 
 ---
 
 ### Task 1: Schema — 新增 blueprints 表
 
 **Files:**
+
 - Modify: `server/schema.ts:60-68` (entities 表 FK) + L148 附近 (新增表)
 - Test: `server/__tests__/schema.test.ts`
 
@@ -63,11 +66,15 @@ expect(names).toContain('blueprints')
 ```typescript
 it('enforces entities.blueprint_id ON DELETE SET NULL', () => {
   initRoomSchema(db)
-  db.prepare("INSERT INTO blueprints (id, name, image_url, created_at) VALUES ('bp1', 'Goblin', '', 1)").run()
+  db.prepare(
+    "INSERT INTO blueprints (id, name, image_url, created_at) VALUES ('bp1', 'Goblin', '', 1)",
+  ).run()
   db.prepare("INSERT INTO entities (id, name, blueprint_id) VALUES ('e1', 'Goblin 1', 'bp1')").run()
 
   db.prepare("DELETE FROM blueprints WHERE id = 'bp1'").run()
-  const entity = db.prepare("SELECT blueprint_id FROM entities WHERE id = 'e1'").get() as { blueprint_id: string | null }
+  const entity = db.prepare("SELECT blueprint_id FROM entities WHERE id = 'e1'").get() as {
+    blueprint_id: string | null
+  }
   expect(entity.blueprint_id).toBeNull()
 })
 ```
@@ -126,6 +133,7 @@ git commit -m "feat: add blueprints table and blueprint_id FK"
 ### Task 2: 共享类型定义更新
 
 **Files:**
+
 - Modify: `src/shared/entityTypes.ts:42-49`
 - Modify: `src/shared/assetTypes.ts:1-19`
 - Modify: `src/shared/bundleTypes.ts:17-28`
@@ -156,6 +164,7 @@ export interface Blueprint {
 - [ ] **Step 2: Update AssetMeta type**
 
 在 `src/shared/assetTypes.ts` 中：
+
 - `type` 联合改为 `'image' | 'handout'`
 - 移除 `blueprint?` 可选字段
 
@@ -229,6 +238,7 @@ git commit -m "feat: update shared types for blueprint extraction"
 ### Task 3: Blueprint CRUD 路由
 
 **Files:**
+
 - Create: `server/routes/blueprints.ts`
 - Modify: `server/__tests__/helpers/test-server.ts` (注册路由)
 - Test: `server/__tests__/scenarios/blueprints-crud.test.ts`
@@ -475,6 +485,7 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
 - [ ] **Step 4: Register blueprint routes in test-server.ts**
 
 在 `server/__tests__/helpers/test-server.ts` 中：
+
 1. 顶部新增 import：`import { blueprintRoutes } from '../../routes/blueprints'`
 2. 在 `app.use(assetRoutes(dataDir, io))` 之后添加：`app.use(blueprintRoutes(dataDir, io))`
 
@@ -495,6 +506,7 @@ git commit -m "feat: blueprint CRUD routes with integration tests"
 ### Task 4: Spawn 路由改读 blueprints 表
 
 **Files:**
+
 - Modify: `server/routes/scenes.ts:272-345`
 - Test: `server/__tests__/scenarios/spawn.test.ts`
 
@@ -553,19 +565,19 @@ const count = req
   .get(blueprintId) as { c: number }
 const name = `${(bpRow.name as string) || 'NPC'} ${count.c + 1}`
 
-// INSERT 参数:
-.run(
-  entityId,
-  name,
-  bpRow.image_url || '',         // was: asset.url
-  defaults.color || '#888888',   // was: bp.defaultColor
-  defaults.width || 1,           // was: bp.defaultSize
-  defaults.height || 1,          // was: bp.defaultSize (now separate)
-  '',
-  JSON.stringify(defaults.ruleData || {}),
-  JSON.stringify({ default: 'observer', seats: {} }),
-  blueprintId,
-)
+  // INSERT 参数:
+  .run(
+    entityId,
+    name,
+    bpRow.image_url || '', // was: asset.url
+    defaults.color || '#888888', // was: bp.defaultColor
+    defaults.width || 1, // was: bp.defaultSize
+    defaults.height || 1, // was: bp.defaultSize (now separate)
+    '',
+    JSON.stringify(defaults.ruleData || {}),
+    JSON.stringify({ default: 'observer', seats: {} }),
+    blueprintId,
+  )
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -585,6 +597,7 @@ git commit -m "feat: spawn route reads from blueprints table"
 ### Task 5: Bundle 路由新增 blueprints
 
 **Files:**
+
 - Modify: `server/routes/bundle.ts:16-114`
 - Test: `server/__tests__/bundle.test.ts`
 
@@ -617,7 +630,10 @@ Expected: FAIL — no "blueprints" key in bundle response
 
 ```typescript
 const blueprints = (
-  roomDb.prepare('SELECT * FROM blueprints ORDER BY created_at DESC').all() as Record<string, unknown>[]
+  roomDb.prepare('SELECT * FROM blueprints ORDER BY created_at DESC').all() as Record<
+    string,
+    unknown
+  >[]
 ).map((r) => parseJsonFields(toCamel(r), 'defaults', 'tags'))
 ```
 
@@ -626,9 +642,10 @@ const blueprints = (
 **还需要在 bundle.test.ts 的 `beforeAll` 中注册 blueprintRoutes：**
 
 在 bundle.test.ts 中：
+
 1. 新增 import：`import { blueprintRoutes } from '../routes/blueprints'`
 2. 在 `app.use(bundleRoutes(dataDir, io))` 之前添加：`app.use(blueprintRoutes(dataDir, io))`
-（bundle.test.ts 使用独立 server 而非 test-server.ts helper）
+   （bundle.test.ts 使用独立 server 而非 test-server.ts helper）
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -647,11 +664,13 @@ git commit -m "feat: include blueprints in bundle response"
 ### Task 6: 注册 Blueprint 路由到主应用
 
 **Files:**
+
 - Modify: `server/index.ts:20,96`
 
 - [ ] **Step 1: 注册路由**
 
 在 `server/index.ts` 中：
+
 1. L20 附近新增 import：`import { blueprintRoutes } from './routes/blueprints'`
 2. L96（`app.use(assetRoutes(DATA_DIR, io))` 之后）新增：`app.use(blueprintRoutes(DATA_DIR, io))`
 
@@ -667,30 +686,49 @@ git commit -m "chore: register blueprint routes in server"
 ### Task 7: worldStore — blueprints slice
 
 **Files:**
+
 - Modify: `src/stores/worldStore.ts`
 
 - [ ] **Step 1: 新增 Blueprint import 和 state 字段**
 
 在 `src/stores/worldStore.ts` 顶部 import 中加入 Blueprint：
+
 ```typescript
-import type { Entity, MapToken, Atmosphere, SceneEntityEntry, Blueprint } from '../shared/entityTypes'
+import type {
+  Entity,
+  MapToken,
+  Atmosphere,
+  SceneEntityEntry,
+  Blueprint,
+} from '../shared/entityTypes'
 ```
 
 在 `WorldState` 接口中新增：
+
 ```typescript
 blueprints: Blueprint[]
 ```
 
 在 store 初始状态中新增：
+
 ```typescript
 blueprints: [],
 ```
 
 在 `WorldState` 接口中新增 actions：
+
 ```typescript
 // Blueprint actions
-createBlueprint: (data: { name: string; imageUrl: string; defaults: Blueprint['defaults']; tags?: string[] }) => Promise<Blueprint | null>
-updateBlueprint: (id: string, updates: Partial<Pick<Blueprint, 'name' | 'imageUrl' | 'defaults' | 'tags'>>) => Promise<void>
+createBlueprint: (data: {
+  name: string
+  imageUrl: string
+  defaults: Blueprint['defaults']
+  tags?: string[]
+}) => Promise<Blueprint | null>
+updateBlueprint: (
+  id: string,
+  updates: Partial<Pick<Blueprint, 'name' | 'imageUrl' | 'defaults' | 'tags'>>,
+) => Promise<void>
 deleteBlueprint: (id: string) => Promise<void>
 ```
 
@@ -792,6 +830,7 @@ git commit -m "feat: worldStore blueprints slice with CRUD and socket events"
 ### Task 8: UI 适配 — BlueprintDockTab + PortraitBar
 
 **Files:**
+
 - Modify: `src/dock/BlueprintDockTab.tsx`
 - Modify: `src/layout/PortraitBar.tsx:322-328`
 
@@ -809,10 +848,7 @@ const upload = useWorldStore((s) => s.uploadAsset)
 const softRemove = useWorldStore((s) => s.softRemoveAsset)
 const updateAssetMeta = useWorldStore((s) => s.updateAsset)
 
-const blueprintAssets = useMemo(
-  () => allAssets.filter((a) => a.type === 'blueprint'),
-  [allAssets],
-)
+const blueprintAssets = useMemo(() => allAssets.filter((a) => a.type === 'blueprint'), [allAssets])
 
 // NEW:
 const blueprints = useWorldStore((s) => s.blueprints)
@@ -876,12 +912,14 @@ git commit -m "feat: BlueprintDockTab reads from blueprints store"
 ### Task 9: 修复受影响的测试
 
 **Files:**
+
 - Modify: `server/__tests__/scenarios/asset-roundtrip.test.ts`
 - Modify: `src/stores/__tests__/worldStore.test.ts`
 
 - [ ] **Step 1: 清理 asset-roundtrip.test.ts**
 
 移除 `server/__tests__/scenarios/asset-roundtrip.test.ts` 中所有 blueprint 相关测试：
+
 - 移除 L64-158（测试 3.5 到 3.12）
 - 这些测试的功能已被 `blueprints-crud.test.ts` 取代
 
@@ -892,11 +930,13 @@ git commit -m "feat: BlueprintDockTab reads from blueprints store"
 在 `src/stores/__tests__/worldStore.test.ts` 中，有两处引用了旧的 `type: 'blueprint'` 和 `blueprint?` 字段：
 
 **L665-676 区域（asset:created with string extra 测试）：**
+
 - 将 `type: 'blueprint'` 改为 `type: 'image'`
 - 将 `extra: JSON.stringify({ tags: ['warrior'], blueprint: { defaultSize: 2 } })` 改为 `extra: JSON.stringify({ tags: ['warrior'] })`
 - 移除 `expect(added?.blueprint?.defaultSize).toBe(2)` 断言
 
 **L1066-1091 区域（normalizeAsset bundle loading 测试）：**
+
 - 将 `type: 'blueprint'` 改为 `type: 'image'`
 - 将 `extra: { tags: ['warrior', 'npc'], blueprint: { defaultSize: 2, defaultColor: '#ff0000' } }` 改为 `extra: { tags: ['warrior', 'npc'] }`
 - 移除 `expect(assets[0]?.blueprint?.defaultSize).toBe(2)` 断言
