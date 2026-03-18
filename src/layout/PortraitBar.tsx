@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import { Users, ChevronUp, Plus } from 'lucide-react'
+import * as ContextMenu from '@radix-ui/react-context-menu'
 import { useUiStore } from '../stores/uiStore'
 import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
 import type { TacticalInfo } from '../stores/worldStore'
@@ -9,7 +10,8 @@ import { useWorldStore } from '../stores/worldStore'
 import { canSee, canEdit, defaultPCPermissions } from '../shared/permissions'
 import { statusColor } from '../shared/tokenUtils'
 import { generateTokenId } from '../shared/idUtils'
-import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
+import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
+import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
 import { useRulePlugin } from '../rules/useRulePlugin'
 
@@ -115,9 +117,6 @@ export function PortraitBar({
   const plugin = useRulePlugin()
   const Card = plugin.characterUI.EntityCard
 
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entityId: string } | null>(
-    null,
-  )
   const [activeTab, setActiveTab] = useState<PortraitTabId>('characters')
 
   // Auto-switch to initiative tab when combat starts
@@ -277,81 +276,6 @@ export function PortraitBar({
   )
   const hasSection = partyEntities.length > 0 && sceneEntities.length > 0
 
-  const handleContextMenu = (e: React.MouseEvent, entityId: string) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setContextMenu({ x: e.clientX, y: e.clientY, entityId })
-  }
-
-  const getContextMenuItems = (entity: Entity): ContextMenuItem[] => {
-    const items: ContextMenuItem[] = []
-
-    if (mySeatId && canEdit(entity.permissions, mySeatId, role)) {
-      items.push({
-        label: t('portrait.set_active'),
-        onClick: () => {
-          onSetActiveCharacter(entity.id)
-        },
-        disabled: activeCharacterId === entity.id,
-      })
-    }
-
-    items.push({
-      label: t('portrait.inspect'),
-      onClick: () => {
-        const el = portraitBarRef.current?.querySelector(
-          `[data-char-id="${entity.id}"]`,
-        ) as HTMLElement | null
-        if (el) setLockedRect(el.getBoundingClientRect())
-        onInspectCharacter(entity.id)
-      },
-    })
-
-    if (isGM) {
-      // Backstage toggle — only for entities currently visible and in scene
-      const isVisible = visibilityMap.get(entity.id) ?? true
-      if (isVisible && activeSceneId && sceneIdSet.has(entity.id)) {
-        items.push({
-          label: t('portrait.off_stage'),
-          onClick: () => {
-            if (activeSceneId) void toggleEntityVisibility(activeSceneId, entity.id, false)
-          },
-        })
-      }
-
-      // Save as blueprint
-      items.push({
-        label: t('portrait.save_as_blueprint'),
-        onClick: () => {
-          void saveEntityAsBlueprint(entity)
-        },
-      })
-
-      // Save as reusable character (only for ephemeral entities)
-      if (entity.lifecycle === 'ephemeral') {
-        items.push({
-          label: t('portrait.save_as_character'),
-          onClick: () => {
-            void updateEntity(entity.id, { lifecycle: 'reusable' })
-          },
-        })
-      }
-
-      // Remove from scene
-      if (entity.lifecycle !== 'persistent') {
-        items.push({
-          label: t('portrait.remove'),
-          onClick: () => {
-            onRemoveFromScene(entity.id)
-          },
-          color: '#f87171',
-        })
-      }
-    }
-
-    return items
-  }
-
   const renderPortrait = (entity: Entity) => {
     const isOwner = mySeatId ? canEdit(entity.permissions, mySeatId, role) : false
     const isInspected = inspectedCharacterId === entity.id
@@ -369,129 +293,199 @@ export function PortraitBar({
     const isPC = !!ownerSeatId
 
     return (
-      <div
-        key={entity.id}
-        data-char-id={entity.id}
-        draggable={isGM}
-        onDragStart={(e) => {
-          e.dataTransfer.setData('application/x-entity-id', entity.id)
-          e.dataTransfer.effectAllowed = 'copy'
-        }}
-        className="relative cursor-pointer transition-transform duration-fast"
-        onClick={(e) => {
-          handlePortraitClick(entity.id, e.currentTarget as HTMLElement)
-        }}
-        onContextMenu={(e) => {
-          handleContextMenu(e, entity.id)
-        }}
-        onMouseEnter={(e) => {
-          if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'
-          handlePortraitMouseEnter(entity.id, e.currentTarget as HTMLElement)
-        }}
-        onMouseLeave={(e) => {
-          if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1)'
-          handlePortraitMouseLeave()
-        }}
-        title={`${entity.name}${statuses.length > 0 ? '\n' + statuses.map((s) => s.label).join(', ') : ''}`}
-      >
-        {/* SVG ring progress */}
-        <svg
-          width={PORTRAIT_SIZE}
-          height={PORTRAIT_SIZE}
-          className="absolute top-0 left-0 pointer-events-none"
-        >
-          {displayResources.map((_, i) => (
-            <ResourceRingBg key={`bg-${i}`} index={i} size={PORTRAIT_SIZE} />
-          ))}
-          {displayResources.map((res, i) => {
-            const pct = res.max > 0 ? res.current / res.max : 0
-            return (
-              <ResourceRing key={i} index={i} pct={pct} color={res.color} size={PORTRAIT_SIZE} />
-            )
-          })}
-        </svg>
+      <ContextMenu.Root key={entity.id}>
+        <ContextMenu.Trigger asChild>
+          <div
+            data-char-id={entity.id}
+            draggable={isGM}
+            onDragStart={(e) => {
+              e.dataTransfer.setData('application/x-entity-id', entity.id)
+              e.dataTransfer.effectAllowed = 'copy'
+            }}
+            className="relative cursor-pointer transition-transform duration-fast"
+            onClick={(e) => {
+              handlePortraitClick(entity.id, e.currentTarget as HTMLElement)
+            }}
+            onMouseEnter={(e) => {
+              if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'
+              handlePortraitMouseEnter(entity.id, e.currentTarget as HTMLElement)
+            }}
+            onMouseLeave={(e) => {
+              if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1)'
+              handlePortraitMouseLeave()
+            }}
+            title={`${entity.name}${statuses.length > 0 ? '\n' + statuses.map((s) => s.label).join(', ') : ''}`}
+          >
+            {/* SVG ring progress */}
+            <svg
+              width={PORTRAIT_SIZE}
+              height={PORTRAIT_SIZE}
+              className="absolute top-0 left-0 pointer-events-none"
+            >
+              {displayResources.map((_, i) => (
+                <ResourceRingBg key={`bg-${i}`} index={i} size={PORTRAIT_SIZE} />
+              ))}
+              {displayResources.map((res, i) => {
+                const pct = res.max > 0 ? res.current / res.max : 0
+                return (
+                  <ResourceRing
+                    key={i}
+                    index={i}
+                    pct={pct}
+                    color={res.color}
+                    size={PORTRAIT_SIZE}
+                  />
+                )
+              })}
+            </svg>
 
-        {/* Portrait image */}
-        <div
-          style={{
-            width: PORTRAIT_SIZE,
-            height: PORTRAIT_SIZE,
-          }}
-          className="flex items-center justify-center"
-        >
-          {entity.imageUrl ? (
-            <img
-              src={entity.imageUrl}
-              alt={entity.name}
-              style={{
-                width: IMG_SIZE,
-                height: IMG_SIZE,
-                border: isInspected
-                  ? '2px solid #fff'
-                  : isActive
-                    ? `2px solid ${entity.color}`
-                    : '2px solid rgba(255,255,255,0.15)',
-                boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
-              }}
-              className="rounded-full object-cover block transition-[border-color,box-shadow] duration-200"
-            />
-          ) : (
+            {/* Portrait image */}
             <div
               style={{
-                width: IMG_SIZE,
-                height: IMG_SIZE,
-                background: `linear-gradient(135deg, ${entity.color}, ${entity.color}aa)`,
-                border: isInspected ? '2px solid #fff' : '2px solid rgba(255,255,255,0.15)',
-                boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
+                width: PORTRAIT_SIZE,
+                height: PORTRAIT_SIZE,
               }}
-              className="rounded-full flex items-center justify-center text-white text-sm font-bold font-sans box-border transition-[border-color,box-shadow] duration-200"
+              className="flex items-center justify-center"
             >
-              {entity.name.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
-
-        {/* Online indicator (PC only) */}
-        {isPC && isOnline && (
-          <div className="absolute bottom-px right-px w-2.5 h-2.5 rounded-full bg-success border-2 border-glass shadow-[0_0_6px_rgba(34,197,94,0.5)]" />
-        )}
-
-        {/* Status dots (top-right) */}
-        {statuses.length > 0 && (
-          <div className="absolute -top-px -right-0.5 flex gap-0.5">
-            {statuses.slice(0, maxStatusDots).map((s, i) => {
-              const sc = statusColor(s.label)
-              return (
-                <div
-                  key={i}
-                  className="w-[7px] h-[7px] rounded-full"
+              {entity.imageUrl ? (
+                <img
+                  src={entity.imageUrl}
+                  alt={entity.name}
                   style={{
-                    background: sc,
-                    border: '1px solid rgba(15, 15, 25, 0.85)',
-                    boxShadow: `0 0 4px ${sc}66`,
+                    width: IMG_SIZE,
+                    height: IMG_SIZE,
+                    border: isInspected
+                      ? '2px solid #fff'
+                      : isActive
+                        ? `2px solid ${entity.color}`
+                        : '2px solid rgba(255,255,255,0.15)',
+                    boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
                   }}
+                  className="rounded-full object-cover block transition-[border-color,box-shadow] duration-200"
                 />
-              )
-            })}
-            {statuses.length > maxStatusDots && (
-              <div className="text-[7px] font-bold text-text-muted/60 font-sans leading-[7px]">
-                +{statuses.length - maxStatusDots}
+              ) : (
+                <div
+                  style={{
+                    width: IMG_SIZE,
+                    height: IMG_SIZE,
+                    background: `linear-gradient(135deg, ${entity.color}, ${entity.color}aa)`,
+                    border: isInspected ? '2px solid #fff' : '2px solid rgba(255,255,255,0.15)',
+                    boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
+                  }}
+                  className="rounded-full flex items-center justify-center text-white text-sm font-bold font-sans box-border transition-[border-color,box-shadow] duration-200"
+                >
+                  {entity.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+
+            {/* Online indicator (PC only) */}
+            {isPC && isOnline && (
+              <div className="absolute bottom-px right-px w-2.5 h-2.5 rounded-full bg-success border-2 border-glass shadow-[0_0_6px_rgba(34,197,94,0.5)]" />
+            )}
+
+            {/* Status dots (top-right) */}
+            {statuses.length > 0 && (
+              <div className="absolute -top-px -right-0.5 flex gap-0.5">
+                {statuses.slice(0, maxStatusDots).map((s, i) => {
+                  const sc = statusColor(s.label)
+                  return (
+                    <div
+                      key={i}
+                      className="w-[7px] h-[7px] rounded-full"
+                      style={{
+                        background: sc,
+                        border: '1px solid rgba(15, 15, 25, 0.85)',
+                        boxShadow: `0 0 4px ${sc}66`,
+                      }}
+                    />
+                  )
+                })}
+                {statuses.length > maxStatusDots && (
+                  <div className="text-[7px] font-bold text-text-muted/60 font-sans leading-[7px]">
+                    +{statuses.length - maxStatusDots}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
 
-        {/* NPC indicator (small diamond) */}
-        {!isPC && (
-          <div
-            className="absolute bottom-px left-px w-2 h-2 bg-warning rounded-[1px]"
-            style={{
-              transform: 'rotate(45deg)',
-              border: '1px solid rgba(15, 15, 25, 0.85)',
+            {/* NPC indicator (small diamond) */}
+            {!isPC && (
+              <div
+                className="absolute bottom-px left-px w-2 h-2 bg-warning rounded-[1px]"
+                style={{
+                  transform: 'rotate(45deg)',
+                  border: '1px solid rgba(15, 15, 25, 0.85)',
+                }}
+              />
+            )}
+          </div>
+        </ContextMenu.Trigger>
+
+        <ContextMenuContent>
+          {mySeatId && canEdit(entity.permissions, mySeatId, role) && (
+            <ContextMenuItem
+              disabled={activeCharacterId === entity.id}
+              onSelect={() => {
+                onSetActiveCharacter(entity.id)
+              }}
+            >
+              {t('portrait.set_active')}
+            </ContextMenuItem>
+          )}
+          <ContextMenuItem
+            onSelect={() => {
+              const el = portraitBarRef.current?.querySelector(
+                `[data-char-id="${entity.id}"]`,
+              ) as HTMLElement | null
+              if (el) setLockedRect(el.getBoundingClientRect())
+              onInspectCharacter(entity.id)
             }}
-          />
-        )}
-      </div>
+          >
+            {t('portrait.inspect')}
+          </ContextMenuItem>
+          {isGM &&
+            (visibilityMap.get(entity.id) ?? true) &&
+            activeSceneId &&
+            sceneIdSet.has(entity.id) && (
+              <ContextMenuItem
+                onSelect={() => {
+                  if (activeSceneId) void toggleEntityVisibility(activeSceneId, entity.id, false)
+                }}
+              >
+                {t('portrait.off_stage')}
+              </ContextMenuItem>
+            )}
+          {isGM && (
+            <ContextMenuItem
+              onSelect={() => {
+                void saveEntityAsBlueprint(entity)
+              }}
+            >
+              {t('portrait.save_as_blueprint')}
+            </ContextMenuItem>
+          )}
+          {isGM && entity.lifecycle === 'ephemeral' && (
+            <ContextMenuItem
+              onSelect={() => {
+                void updateEntity(entity.id, { lifecycle: 'reusable' })
+              }}
+            >
+              {t('portrait.save_as_character')}
+            </ContextMenuItem>
+          )}
+          {isGM && entity.lifecycle !== 'persistent' && (
+            <ContextMenuItem
+              variant="danger"
+              onSelect={() => {
+                onRemoveFromScene(entity.id)
+              }}
+            >
+              {t('portrait.remove')}
+            </ContextMenuItem>
+          )}
+        </ContextMenuContent>
+      </ContextMenu.Root>
     )
   }
 
@@ -611,24 +605,6 @@ export function PortraitBar({
           </span>
         </div>
       )}
-
-      {/* Context menu — rendered via portal to avoid transform offset */}
-      {contextMenu &&
-        (() => {
-          const entity = visibleEntities.find((e) => e.id === contextMenu.entityId)
-          if (!entity) return null
-          return createPortal(
-            <ContextMenu
-              x={contextMenu.x}
-              y={contextMenu.y}
-              items={getContextMenuItems(entity)}
-              onClose={() => {
-                setContextMenu(null)
-              }}
-            />,
-            document.body,
-          )
-        })()}
 
       {/* Entity popover — rendered via portal */}
       {popoverEntity &&
