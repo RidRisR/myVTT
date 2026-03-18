@@ -68,6 +68,13 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
       >[]
     ).map((r) => toBoolFields(parseJsonFields(toCamel(r), 'data'), 'pinned'))
 
+    const blueprints = (
+      roomDb.prepare('SELECT * FROM blueprints ORDER BY created_at DESC').all() as Record<
+        string,
+        unknown
+      >[]
+    ).map((r) => parseJsonFields(toCamel(r), 'defaults', 'tags'))
+
     // Build sceneEntityMap: Record<sceneId, { entityId, visible }[]>
     const sceneEntityMap: Record<string, { entityId: string; visible: boolean }[]> = {}
     for (const row of seRows) {
@@ -88,6 +95,7 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
       sceneEntityMap,
       seats,
       assets,
+      blueprints,
       chat,
       teamTrackers,
       showcase,
@@ -107,6 +115,7 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
     sceneEntityMap: data.sceneEntityMap,
     seats: data.seats,
     assets: data.assets,
+    blueprints: data.blueprints,
     chat: data.chat,
     teamTrackers: data.teamTrackers,
     showcase: data.showcase,

@@ -15,6 +15,7 @@ import { showcaseRoutes } from '../routes/showcase'
 import { stateRoutes } from '../routes/state'
 import { seatRoutes } from '../routes/seats'
 import { bundleRoutes } from '../routes/bundle'
+import { blueprintRoutes } from '../routes/blueprints'
 import { setupSocketAuth } from '../ws'
 import { setupAwareness } from '../awareness'
 import path from 'path'
@@ -58,6 +59,7 @@ beforeAll(async () => {
   app.use(showcaseRoutes(dataDir, io))
   app.use(stateRoutes(dataDir, io))
   app.use(bundleRoutes(dataDir, io))
+  app.use(blueprintRoutes(dataDir, io))
 
   getGlobalDb(dataDir)
 
@@ -92,6 +94,7 @@ describe('GET /api/rooms/:id/bundle', () => {
     expect(body).toHaveProperty('teamTrackers')
     expect(body).toHaveProperty('showcase')
     expect(body).toHaveProperty('tactical')
+    expect(body).toHaveProperty('blueprints')
   })
 
   it('room field includes ruleSystemId and activeSceneId', async () => {
@@ -155,6 +158,12 @@ describe('GET /api/rooms/:id/bundle', () => {
     const { assets } = res.body as { assets: Record<string, unknown>[] }
     // Even with no assets, array should exist
     expect(Array.isArray(assets)).toBe(true)
+  })
+
+  it('blueprints array is present and parsed', async () => {
+    const res = await request(testApp).get(`/api/rooms/${roomId}/bundle`)
+    const { blueprints } = res.body as { blueprints: unknown[] }
+    expect(Array.isArray(blueprints)).toBe(true)
   })
 
   it('returns 400 for invalid room id (exceeds 64 chars)', async () => {
