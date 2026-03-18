@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { ShowcaseItem } from '../shared/showcaseTypes'
 
 interface PeekCardProps {
@@ -6,6 +7,7 @@ interface PeekCardProps {
 }
 
 export function PeekCard({ item, onClick }: PeekCardProps) {
+  const { t } = useTranslation('showcase')
   if (item.type === 'text') {
     return (
       <div
@@ -29,7 +31,7 @@ export function PeekCard({ item, onClick }: PeekCardProps) {
       )}
       <div className="overflow-hidden">
         <div className="text-[13px] font-medium text-text-primary/80 font-sans whitespace-nowrap overflow-hidden text-ellipsis">
-          {item.title || 'Untitled'}
+          {item.title || t('untitled')}
         </div>
         <div className="text-[11px] text-text-muted/35 font-sans flex items-center gap-1">
           <span

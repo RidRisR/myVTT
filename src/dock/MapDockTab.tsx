@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, FolderOpen, Loader2 } from 'lucide-react'
 import { useWorldStore } from '../stores/worldStore'
 import type { AssetMeta } from '../shared/assetTypes'
@@ -27,6 +28,7 @@ export function MapDockTab({
   onSetAsTacticalMap,
   onShowcaseImage,
 }: MapDockTabProps) {
+  const { t } = useTranslation('dock')
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -46,9 +48,12 @@ export function MapDockTab({
     setUploading(true)
     try {
       await upload(file, { type: 'image' })
-      toast('success', `Uploaded ${file.name}`)
+      toast('success', t('map.uploaded', { name: file.name }))
     } catch (err) {
-      toast('error', `Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      toast(
+        'error',
+        t('map.upload_failed', { error: err instanceof Error ? err.message : 'Unknown error' }),
+      )
     } finally {
       setUploading(false)
     }
@@ -56,9 +61,9 @@ export function MapDockTab({
 
   const handleDelete = (asset: AssetMeta) => {
     const undo = softRemove(asset.id)
-    toast('undo', `Deleted "${asset.name || 'Untitled'}"`, {
+    toast('undo', t('map.deleted', { name: asset.name || t('map.untitled') }), {
       duration: 5000,
-      action: { label: 'Undo', onClick: undo },
+      action: { label: t('map.undo'), onClick: undo },
     })
   }
 
@@ -73,7 +78,8 @@ export function MapDockTab({
 
     if (onSetAsBackground && activeSceneId && asset.url) {
       items.push({
-        label: 'Set as Scene Background',
+        label: t('map.set_scene_bg'),
+        testId: 'ctx-set-bg',
         onClick: () => {
           onSetAsBackground(activeSceneId, asset.url)
         },
@@ -81,7 +87,7 @@ export function MapDockTab({
     }
     if (onSetAsTacticalMap && asset.url) {
       items.push({
-        label: 'Set as Tactical Map',
+        label: t('map.set_tactical_map'),
         onClick: () => {
           onSetAsTacticalMap(asset.url)
         },
@@ -89,7 +95,7 @@ export function MapDockTab({
     }
     if (onShowcaseImage && asset.url) {
       items.push({
-        label: 'Showcase to Players',
+        label: t('map.showcase'),
         onClick: () => {
           onShowcaseImage(asset.url)
         },
@@ -97,6 +103,7 @@ export function MapDockTab({
     }
     items.push({
       label: 'Delete',
+      testId: 'ctx-delete',
       onClick: () => {
         handleDelete(asset)
       },
@@ -121,8 +128,8 @@ export function MapDockTab({
       {assets.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
           <FolderOpen size={32} strokeWidth={1} className="text-text-muted/40" />
-          <p className="text-text-muted text-sm">No images yet</p>
-          <p className="text-text-muted/50 text-xs">Upload an image to get started</p>
+          <p className="text-text-muted text-sm">{t('map.no_images')}</p>
+          <p className="text-text-muted/50 text-xs">{t('map.upload_hint')}</p>
         </div>
       )}
 
@@ -188,7 +195,7 @@ export function MapDockTab({
                 />
               )}
               <div className="px-1.5 py-1 text-[10px] overflow-hidden text-ellipsis whitespace-nowrap bg-black/30 text-text-muted/60">
-                {asset.name || 'Untitled'}
+                {asset.name || t('map.untitled')}
               </div>
 
               {/* Hover indicator for right-click */}
@@ -206,17 +213,18 @@ export function MapDockTab({
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
+          data-testid="gallery-upload"
           className="rounded-lg border-2 border-dashed border-border-glass cursor-pointer flex flex-col items-center justify-center gap-1 text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50 bg-transparent disabled:cursor-not-allowed disabled:opacity-50 h-[94px]"
         >
           {uploading ? (
             <>
               <Loader2 size={20} strokeWidth={1.5} className="animate-spin" />
-              <span className="text-[10px]">Uploading…</span>
+              <span className="text-[10px]">{t('map.uploading')}</span>
             </>
           ) : (
             <>
               <Plus size={20} strokeWidth={1.5} />
-              <span className="text-[10px]">Upload</span>
+              <span className="text-[10px]">{t('map.upload')}</span>
             </>
           )}
         </button>

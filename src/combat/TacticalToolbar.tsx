@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import type { RefObject } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   MousePointer2,
   Ruler,
@@ -50,6 +51,7 @@ interface TacticalToolbarProps {
 }
 
 export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarProps) {
+  const { t } = useTranslation('combat')
   const activeTool = useUiStore((s) => s.activeTool)
   const setActiveTool = useUiStore((s) => s.setActiveTool)
   const updateTacticalGrid = useWorldStore((s) => s.updateTacticalGrid)
@@ -74,7 +76,7 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
         {/* Select tool */}
         <ToolButton
           icon={MousePointer2}
-          label="Select"
+          label={t('toolbar.select')}
           shortcut="V"
           active={activeTool === 'select'}
           onClick={() => {
@@ -91,7 +93,7 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
         {isGM && (
           <ToolButton
             icon={Grid3X3}
-            label="Grid"
+            label={t('toolbar.grid')}
             shortcut="G"
             active={gridConfigOpen}
             onClick={() => {
@@ -105,7 +107,7 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
         {/* Zoom controls group */}
         <ToolButton
           icon={ZoomIn}
-          label="Zoom In"
+          label={t('toolbar.zoom_in')}
           shortcut="+"
           onClick={() => {
             mapRef.current?.zoomIn()
@@ -113,7 +115,7 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
         />
         <ToolButton
           icon={ZoomOut}
-          label="Zoom Out"
+          label={t('toolbar.zoom_out')}
           shortcut="-"
           onClick={() => {
             mapRef.current?.zoomOut()
@@ -121,7 +123,7 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
         />
         <ToolButton
           icon={Maximize}
-          label="Fit Window"
+          label={t('toolbar.fit_window')}
           shortcut="F"
           onClick={() => {
             mapRef.current?.fitToWindow()
@@ -129,7 +131,7 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
         />
         <ToolButton
           icon={LocateFixed}
-          label="Reset Center"
+          label={t('toolbar.reset_center')}
           shortcut="0"
           onClick={() => {
             mapRef.current?.resetCenter()

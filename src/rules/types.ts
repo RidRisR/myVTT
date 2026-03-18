@@ -140,10 +140,20 @@ export interface RollCardProps {
 
 // ── RulePlugin — the main interface ────────────────────────────────────────
 
+// ── i18n types ──────────────────────────────────────────────────────────────
+
+/** Plugin-provided translations. Keys are language codes, values are flat key-value maps. */
+export interface PluginI18n {
+  resources: Record<string, Record<string, string>>
+}
+
 export interface RulePlugin {
   id: string
   name: string
   sdkVersion: '1'
+
+  // i18n translations (optional — falls back to key itself if not provided)
+  i18n?: PluginI18n
 
   // Layer 1: Adapters — read entity data for generic base UI
   adapters: {

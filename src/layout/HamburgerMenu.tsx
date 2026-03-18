@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Menu, LogOut, Sun, Moon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Menu, LogOut, Sun, Moon, Globe } from 'lucide-react'
 import { SEAT_COLORS, type Seat } from '../stores/identityStore'
 import { uploadAsset } from '../shared/assetUpload'
 import { useUiStore } from '../stores/uiStore'
@@ -13,6 +14,7 @@ interface HamburgerMenuProps {
 }
 
 export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMenuProps) {
+  const { t } = useTranslation('layout')
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
@@ -113,7 +115,7 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   className="relative cursor-pointer shrink-0"
-                  title="Click to change avatar"
+                  title={t('menu.change_avatar')}
                 >
                   {mySeat.portraitUrl ? (
                     <img
@@ -183,7 +185,7 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                       color: mySeat.role === 'GM' ? '#fbbf24' : '#60a5fa',
                     }}
                   >
-                    {mySeat.role === 'GM' ? 'Game Master' : 'Player'}
+                    {mySeat.role === 'GM' ? t('role.game_master') : t('role.player')}
                   </div>
                 </div>
               </div>
@@ -210,18 +212,20 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
 
             <ThemeToggle />
 
+            <LanguageSwitcher />
+
             {isGM && (
               <>
                 <div className="h-px bg-border-glass mx-2 my-0.5" />
                 <div className="px-3 py-2">
                   <div className="text-[10px] text-text-muted/40 uppercase tracking-wider mb-1">
-                    Game System
+                    {t('menu.game_system')}
                   </div>
                   <div className="text-xs text-text-primary font-semibold">
                     {availablePlugins.find((p) => p.id === ruleSystemId)?.name ?? ruleSystemId}
                   </div>
                   <div className="text-[10px] text-text-muted/35 mt-0.5">
-                    Set at room creation, cannot change
+                    {t('menu.system_fixed')}
                   </div>
                 </div>
               </>
@@ -234,10 +238,11 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                 setOpen(false)
                 onLeaveSeat()
               }}
+              data-testid="leave-seat"
               className="w-full px-3 py-2 bg-transparent border-none rounded-lg cursor-pointer text-xs text-danger font-medium text-left flex items-center gap-2 transition-colors duration-fast hover:bg-danger/10"
             >
               <LogOut size={14} strokeWidth={1.5} />
-              Leave Seat
+              {t('menu.leave_seat')}
             </button>
           </div>
         </>
@@ -247,6 +252,7 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
 }
 
 function ThemeToggle() {
+  const { t } = useTranslation('layout')
   const theme = useUiStore((s) => s.theme)
   const setTheme = useUiStore((s) => s.setTheme)
   const isWarm = theme === 'warm'
@@ -259,7 +265,24 @@ function ThemeToggle() {
       className="w-full px-3 py-2 bg-transparent border-none rounded-lg cursor-pointer text-xs text-text-muted font-medium text-left flex items-center gap-2 transition-colors duration-fast hover:bg-hover hover:text-text-primary"
     >
       {isWarm ? <Moon size={14} strokeWidth={1.5} /> : <Sun size={14} strokeWidth={1.5} />}
-      {isWarm ? 'Cold Arcane' : 'Warm Alchemy'}
+      {isWarm ? t('theme.cold') : t('theme.warm')}
+    </button>
+  )
+}
+
+function LanguageSwitcher() {
+  const { t, i18n } = useTranslation('layout')
+  const isZh = i18n.language.startsWith('zh')
+
+  return (
+    <button
+      onClick={() => {
+        void i18n.changeLanguage(isZh ? 'en' : 'zh-CN')
+      }}
+      className="w-full px-3 py-2 bg-transparent border-none rounded-lg cursor-pointer text-xs text-text-muted font-medium text-left flex items-center gap-2 transition-colors duration-fast hover:bg-hover hover:text-text-primary"
+    >
+      <Globe size={14} strokeWidth={1.5} />
+      {t('menu.language')}: {isZh ? '中文' : 'English'}
     </button>
   )
 }

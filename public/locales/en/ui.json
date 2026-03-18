@@ -1,0 +1,11 @@
+{
+  "confirm_default": "Confirm",
+  "cancel_default": "Cancel",
+  "delete_default": "Delete",
+  "connection_lost": "Connection lost",
+  "reconnecting": "Attempting to reconnect...",
+  "error_title": "Something went wrong",
+  "error_unexpected": "An unexpected error occurred.",
+  "decrement": "-",
+  "increment": "+"
+}

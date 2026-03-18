@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Trash2, Upload } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
 import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
@@ -24,6 +25,7 @@ export function SceneLibrary({
   onDelete,
   onSelect,
 }: SceneLibraryProps) {
+  const { t } = useTranslation('gm')
   const [uploading, setUploading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -91,7 +93,7 @@ export function SceneLibrary({
       >
         {/* Header */}
         <div className="px-5 py-4 border-b border-border-glass flex items-center justify-between">
-          <span className="font-bold text-base text-text-primary">Scene Library</span>
+          <span className="font-bold text-base text-text-primary">{t('scene_library.title')}</span>
           <button
             onClick={onClose}
             className="bg-transparent border-none cursor-pointer text-text-muted p-1 flex transition-colors duration-fast hover:text-text-primary"
@@ -158,7 +160,7 @@ export function SceneLibrary({
                         startRename(scene)
                       }}
                     >
-                      {scene.name || 'Untitled'}
+                      {scene.name || t('scene.untitled')}
                     </span>
                   )}
                   <button
@@ -167,7 +169,7 @@ export function SceneLibrary({
                       onDelete(scene.id)
                     }}
                     className="bg-transparent border-none cursor-pointer text-text-muted/30 p-0.5 leading-none transition-colors duration-fast hover:text-danger"
-                    title="Delete"
+                    title={t('delete', { ns: 'common' })}
                   >
                     <Trash2 size={12} strokeWidth={1.5} />
                   </button>
@@ -178,7 +180,7 @@ export function SceneLibrary({
 
           {scenes.length === 0 && (
             <div className="text-center py-10 text-text-muted text-[13px]">
-              No scenes yet. Upload an image to get started.
+              {t('scene_library.empty')}
             </div>
           )}
         </div>
@@ -205,7 +207,7 @@ export function SceneLibrary({
             } transition-colors duration-fast`}
           >
             <Upload size={14} strokeWidth={1.5} />
-            {uploading ? 'Uploading...' : 'Upload Scenes'}
+            {uploading ? t('scene_library.uploading') : t('scene_library.upload')}
           </button>
         </div>
       </div>

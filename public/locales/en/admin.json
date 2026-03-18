@@ -1,0 +1,13 @@
+{
+  "room_management": "Room Management",
+  "back_to_landing": "Back to Landing",
+  "create_room": "Create Room",
+  "room_name_placeholder": "Room name",
+  "random_name": "Random name",
+  "rooms_count": "Rooms ({{count}})",
+  "no_rooms": "No rooms yet. Create one above.",
+  "delete_room_confirm": "Delete room \"{{roomId}}\"? This will permanently erase all data.",
+  "room_name_required": "Room name is required",
+  "network_error": "Network error",
+  "delete_failed": "Delete failed"
+}

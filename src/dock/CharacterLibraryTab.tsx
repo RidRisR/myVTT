@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, Search, Trash2, Users } from 'lucide-react'
 import type { Entity } from '../shared/entityTypes'
 import { defaultNPCPermissions } from '../shared/permissions'
@@ -10,6 +11,7 @@ import { useToast } from '../ui/useToast'
 import { useRulePlugin } from '../rules/useRulePlugin'
 
 export function CharacterLibraryTab() {
+  const { t } = useTranslation('dock')
   const entities = useWorldStore((s) => s.entities)
   const activeSceneId = useWorldStore((s) => s.room.activeSceneId)
   const addEntity = useWorldStore((s) => s.addEntity)
@@ -43,7 +45,7 @@ export function CharacterLibraryTab() {
   const handleCreate = () => {
     const newEntity: Entity = {
       id: generateTokenId(),
-      name: 'New Character',
+      name: t('character.default_name'),
       imageUrl: '',
       color: '#3b82f6',
       width: 1,
@@ -79,14 +81,14 @@ export function CharacterLibraryTab() {
       }, 5000)
       deleteTimers.current.set(id, timer)
 
-      toast('undo', `Deleted "${entity.name}"`, {
+      toast('undo', t('character.deleted', { name: entity.name }), {
         duration: 5000,
         action: {
-          label: 'Undo',
+          label: t('character.undo'),
           onClick: () => {
             // Cancel the pending delete
-            const t = deleteTimers.current.get(id)
-            if (t) clearTimeout(t)
+            const timer = deleteTimers.current.get(id)
+            if (timer) clearTimeout(timer)
             deleteTimers.current.delete(id)
             setPendingDeletes((prev) => {
               const next = new Set(prev)
@@ -97,7 +99,7 @@ export function CharacterLibraryTab() {
         },
       })
     },
-    [deleteEntity, toast],
+    [deleteEntity, toast, t],
   )
 
   return (
@@ -115,14 +117,15 @@ export function CharacterLibraryTab() {
             onChange={(e) => {
               setSearch(e.target.value)
             }}
-            placeholder="Search characters..."
+            placeholder={t('character.search_placeholder')}
             className="w-full pl-6 pr-2 py-1 text-xs bg-surface/60 text-text-primary border border-border-glass rounded outline-none placeholder:text-text-muted/30"
           />
         </div>
         <button
           onClick={handleCreate}
           className="shrink-0 p-1 rounded text-text-muted hover:text-text-primary hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-          title="New character"
+          title={t('character.create')}
+          data-testid="create-character"
         >
           <Plus size={14} strokeWidth={1.5} />
         </button>
@@ -133,10 +136,8 @@ export function CharacterLibraryTab() {
         {libraryEntities.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs">
             <Users size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-            <span className="opacity-50">No saved characters</span>
-            <span className="opacity-30 text-[10px] mt-1">
-              Click + to create, or save an NPC as a character
-            </span>
+            <span className="opacity-50">{t('character.empty')}</span>
+            <span className="opacity-30 text-[10px] mt-1">{t('character.empty_hint')}</span>
           </div>
         ) : (
           <div className="flex flex-col gap-0.5">
@@ -162,7 +163,9 @@ export function CharacterLibraryTab() {
                   <div className="flex-1 min-w-0">
                     <div className="text-xs text-text-primary truncate">{entity.name}</div>
                     <div className="text-[10px] text-text-muted/50">
-                      {entity.lifecycle === 'persistent' ? 'Persistent' : 'Reusable'}
+                      {entity.lifecycle === 'persistent'
+                        ? t('character.persistent')
+                        : t('character.reusable')}
                     </div>
                   </div>
                 </button>
@@ -172,7 +175,8 @@ export function CharacterLibraryTab() {
                     handleDelete(entity)
                   }}
                   className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 rounded text-text-muted/40 hover:text-danger hover:bg-danger/10 cursor-pointer transition-all duration-fast"
-                  title="Delete character"
+                  title={t('character.delete_character')}
+                  data-testid="delete-character"
                 >
                   <Trash2 size={12} strokeWidth={1.5} />
                 </button>

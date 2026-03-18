@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ChatMessage } from '../shared/chatTypes'
 import type { DiceSpec } from '../shared/diceUtils'
 import type { Entity } from '../shared/entityTypes'
@@ -72,6 +73,7 @@ export function ChatPanel({
   selectedTokenProps = [],
   speakerEntities,
 }: Omit<ChatPanelProps, 'roomId'>) {
+  const { t } = useTranslation('chat')
   const [expanded, setExpanded] = useState(false)
   const [toastQueue, setToastQueue] = useState<ToastItem[]>([])
   const initialLoadRef = useRef(true)
@@ -255,7 +257,7 @@ export function ChatPanel({
           }}
         >
           <div className="text-[10px] text-text-muted/30 px-2.5 py-1 uppercase tracking-wider">
-            Speak as
+            {t('speak_as')}
           </div>
           <SpeakerPickerItem
             identity={seatIdentity}
@@ -294,7 +296,8 @@ export function ChatPanel({
             setExpanded((v) => !v)
           }}
           className="w-9 rounded-[10px] bg-surface border border-border-glass cursor-pointer transition-all duration-fast text-text-muted text-sm flex items-center justify-center backdrop-blur-[8px] shrink-0 hover:bg-hover hover:text-text-primary"
-          aria-label={expanded ? 'Collapse chat history' : 'Expand chat history'}
+          aria-label={expanded ? t('collapse_history') : t('expand_history')}
+          data-testid="chat-toggle"
         >
           {expanded ? (
             <ChevronDown size={16} strokeWidth={1.5} />
@@ -312,7 +315,7 @@ export function ChatPanel({
           style={{
             border: showSpeakerPicker ? '2px solid rgba(212,160,85,0.6)' : '2px solid transparent',
           }}
-          aria-label="Switch speaker"
+          aria-label={t('switch_speaker')}
         >
           <Avatar
             portraitUrl={activeSpeaker.portraitUrl}

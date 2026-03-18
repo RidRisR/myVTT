@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { TacticalInfo } from '../../stores/worldStore'
 
 /** Toolbar button width + padding + gap so panel clears the toolbar pill */
@@ -11,6 +12,7 @@ interface GridConfigPanelProps {
 }
 
 export function GridConfigPanel({ tacticalInfo, onUpdateGrid, onClose }: GridConfigPanelProps) {
+  const { t } = useTranslation('combat')
   const panelRef = useRef<HTMLDivElement>(null)
 
   // Local state synced from tacticalInfo props
@@ -58,9 +60,9 @@ export function GridConfigPanel({ tacticalInfo, onUpdateGrid, onClose }: GridCon
       className="absolute top-0 w-[200px] p-3 z-popover bg-glass backdrop-blur-[12px] border border-border-glass rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.5)]"
       style={{ right: TOOLBAR_OFFSET }}
     >
-      <div className="text-text-primary text-xs font-medium mb-3">Grid Settings</div>
+      <div className="text-text-primary text-xs font-medium mb-3">{t('grid.settings')}</div>
 
-      <FieldRow label="Cell Size" htmlFor="grid-cell-size">
+      <FieldRow label={t('grid.cell_size')} htmlFor="grid-cell-size">
         <NumberInput
           id="grid-cell-size"
           value={gridSize}
@@ -73,7 +75,7 @@ export function GridConfigPanel({ tacticalInfo, onUpdateGrid, onClose }: GridCon
         />
       </FieldRow>
 
-      <FieldRow label="Offset X" htmlFor="grid-offset-x">
+      <FieldRow label={t('grid.offset_x')} htmlFor="grid-offset-x">
         <NumberInput
           id="grid-offset-x"
           value={gridOffsetX}
@@ -86,7 +88,7 @@ export function GridConfigPanel({ tacticalInfo, onUpdateGrid, onClose }: GridCon
         />
       </FieldRow>
 
-      <FieldRow label="Offset Y" htmlFor="grid-offset-y">
+      <FieldRow label={t('grid.offset_y')} htmlFor="grid-offset-y">
         <NumberInput
           id="grid-offset-y"
           value={gridOffsetY}
@@ -99,7 +101,7 @@ export function GridConfigPanel({ tacticalInfo, onUpdateGrid, onClose }: GridCon
         />
       </FieldRow>
 
-      <FieldRow label="Color" htmlFor="grid-color">
+      <FieldRow label={t('grid.color')} htmlFor="grid-color">
         <input
           id="grid-color"
           type="color"

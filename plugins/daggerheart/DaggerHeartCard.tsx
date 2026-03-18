@@ -1,6 +1,6 @@
 // plugins/daggerheart/DaggerHeartCard.tsx
 import type { EntityCardProps } from '@myvtt/sdk'
-import { usePluginPanels } from '@myvtt/sdk'
+import { usePluginPanels, usePluginTranslation } from '@myvtt/sdk'
 import type { DHRuleData } from './types'
 
 const ATTRS = ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowledge'] as const
@@ -8,6 +8,7 @@ const ATTRS = ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowle
 export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
   const d = entity.ruleData ? (entity.ruleData as DHRuleData) : null
   const { openPanel } = usePluginPanels()
+  const { t } = usePluginTranslation()
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -19,12 +20,14 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
         <>
           <div className="flex gap-4 text-sm">
             <span className="text-red-500">
-              HP {d.hp?.current ?? 0}/{d.hp?.max ?? 0}
+              {t('card.hp')} {d.hp?.current ?? 0}/{d.hp?.max ?? 0}
             </span>
             <span className="text-orange-400">
-              压力 {d.stress?.current ?? 0}/{d.stress?.max ?? 0}
+              {t('card.stress')} {d.stress?.current ?? 0}/{d.stress?.max ?? 0}
             </span>
-            <span className="text-accent">希望 {d.hope ?? 0}</span>
+            <span className="text-accent">
+              {t('card.hope')} {d.hope ?? 0}
+            </span>
           </div>
           <div className="grid grid-cols-3 gap-1 text-xs">
             {ATTRS.map((k) => (
@@ -46,7 +49,7 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
           }}
           className="mt-2 w-full py-1.5 text-[11px] text-text-muted/50 bg-black/20 hover:bg-black/40 rounded-md transition-colors duration-fast"
         >
-          完整角色卡 →
+          {t('card.fullSheet')}
         </button>
       )}
     </div>

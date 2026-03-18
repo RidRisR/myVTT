@@ -1,0 +1,22 @@
+{
+  "confirm": "确认",
+  "cancel": "取消",
+  "delete": "删除",
+  "save": "保存",
+  "retry": "重试",
+  "add": "添加",
+  "back": "返回",
+  "create": "创建",
+  "enter": "进入",
+  "link": "链接",
+  "loading": "加载中...",
+  "or": "或",
+  "close": "关闭通知",
+  "online": "在线",
+  "connection_failed": "连接失败：{{error}}",
+  "connecting": "正在连接服务器...",
+  "add_npc": "添加 NPC",
+  "app_title": "myVTT",
+  "landing_hint": "请向管理员获取房间链接。",
+  "admin_panel": "管理面板"
+}

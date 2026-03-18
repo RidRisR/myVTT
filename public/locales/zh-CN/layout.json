@@ -1,0 +1,64 @@
+{
+  "menu": {
+    "change_avatar": "点击更换头像",
+    "game_system": "游戏系统",
+    "system_fixed": "建房时确定，不可更改",
+    "leave_seat": "离开座位",
+    "language": "语言"
+  },
+  "role": {
+    "game_master": "Game Master",
+    "player": "Player"
+  },
+  "theme": {
+    "cold": "Cold Arcane",
+    "warm": "Warm Alchemy"
+  },
+  "portrait": {
+    "my_character": "我的角色",
+    "portraits_label": "肖像",
+    "no_characters": "暂无角色",
+    "set_active": "设为活跃",
+    "inspect": "查看详情",
+    "off_stage": "离场",
+    "save_as_blueprint": "保存为蓝图",
+    "save_as_character": "保存为角色",
+    "remove": "移除",
+    "create_my_character": "创建我的角色",
+    "hide_portraits": "隐藏肖像",
+    "round": "第 {{number}} 轮",
+    "no_session": "无战术会话",
+    "characters_tab": "角色",
+    "initiative_tab": "先攻"
+  },
+  "character": {
+    "title": "角色",
+    "resources": "资源",
+    "attributes": "属性",
+    "statuses": "状态",
+    "notes": "笔记",
+    "handouts": "分发物",
+    "unnamed_resource": "未命名",
+    "unnamed_attribute": "未命名",
+    "untitled_handout": "未命名",
+    "change_portrait": "点击更换肖像",
+    "name_label": "名称",
+    "color_label": "颜色",
+    "change_color": "更换颜色",
+    "resource_name_placeholder": "名称",
+    "add_resource": "+ 添加资源",
+    "attribute_name_placeholder": "名称",
+    "add_attribute": "+ 添加属性",
+    "no_statuses": "无活跃状态",
+    "add_status_placeholder": "添加状态...",
+    "notes_placeholder": "自由笔记...",
+    "tab_info": "信息",
+    "tab_resources": "资源",
+    "tab_attributes": "属性",
+    "tab_statuses": "状态",
+    "tab_notes": "笔记",
+    "hover_stats": "数值",
+    "hover_attr": "属性",
+    "status_placeholder": "状态..."
+  }
+}

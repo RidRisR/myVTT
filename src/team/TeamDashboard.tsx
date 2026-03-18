@@ -5,6 +5,7 @@ import { TeamMetricsTab } from './TeamMetricsTab'
 import { useUiStore } from '../stores/uiStore'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 import { useRulePlugin } from '../rules/useRulePlugin'
+import { useTranslation } from 'react-i18next'
 
 interface TeamDashboardProps {
   roomId: string
@@ -13,9 +14,10 @@ interface TeamDashboardProps {
 
 type TabId = 'metrics'
 
-const TABS: { id: TabId; label: string }[] = [{ id: 'metrics', label: 'Metrics' }]
+const TABS: { id: TabId; labelKey: string }[] = [{ id: 'metrics', labelKey: 'metrics_tab' }]
 
 export function TeamDashboard({ isGM }: TeamDashboardProps) {
+  const { t } = useTranslation('team')
   const trackers = useWorldStore((s) => s.teamTrackers)
   const addTracker = useWorldStore((s) => s.addTeamTracker)
   const updateTracker = useWorldStore((s) => s.updateTeamTracker)
@@ -55,7 +57,7 @@ export function TeamDashboard({ isGM }: TeamDashboardProps) {
           className="flex items-center gap-1 bg-glass backdrop-blur-[12px] rounded-lg px-2.5 py-1.5 border border-border-glass text-text-muted text-[10px] cursor-pointer hover:bg-hover transition-colors duration-fast shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
         >
           <ChevronRight size={12} strokeWidth={1.5} className="rotate-180" />
-          Team
+          {t('title')}
         </button>
       </div>
     )
@@ -85,7 +87,7 @@ export function TeamDashboard({ isGM }: TeamDashboardProps) {
                   }}
                   className="flex-1 px-4 py-2.5 bg-transparent border-none cursor-pointer text-[9px] font-bold tracking-wider uppercase font-sans transition-colors duration-fast text-text-primary border-b-2 border-b-accent"
                 >
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </button>
               ))}
             </div>
@@ -112,7 +114,7 @@ export function TeamDashboard({ isGM }: TeamDashboardProps) {
                   setTeamPanelVisible(false)
                 }}
                 className="w-[36px] bg-surface/30 border-none border-l border-l-border-glass cursor-pointer text-text-muted/35 flex items-center justify-center transition-colors duration-fast hover:bg-hover hover:text-text-muted/70"
-                title="Hide panel"
+                title={t('hide_panel')}
               >
                 <ChevronRight size={12} strokeWidth={2.5} />
               </button>

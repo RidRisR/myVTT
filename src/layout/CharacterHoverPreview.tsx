@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Entity } from '../shared/entityTypes'
 import {
   getEntityResources,
@@ -26,6 +27,7 @@ export function CharacterHoverPreview({
   editable,
   onUpdateCharacter,
 }: CharacterHoverPreviewProps) {
+  const { t } = useTranslation('layout')
   // Awareness for resource drag broadcasting
   const mySeatId = useIdentityStore((s) => s.mySeatId)
   const mySeat = useIdentityStore((s) => s.getMySeat())
@@ -172,9 +174,9 @@ export function CharacterHoverPreview({
         >
           {(
             [
-              ['stats', 'Stats'],
-              ['attr', 'Attr'],
-            ] as const
+              ['stats', t('character.hover_stats')],
+              ['attr', t('character.hover_attr')],
+            ] as [Tab, string][]
           ).map(([key, label]) => (
             <button
               key={key}
@@ -209,7 +211,7 @@ export function CharacterHoverPreview({
             return (
               <ResourceBar
                 key={i}
-                label={res.key || 'Unnamed'}
+                label={res.key || t('character.unnamed_resource')}
                 current={res.current}
                 max={res.max}
                 color={res.color}
@@ -416,7 +418,7 @@ export function CharacterHoverPreview({
                       setNewStatusLabel('')
                     }
                   }}
-                  placeholder="Status..."
+                  placeholder={t('character.status_placeholder')}
                   style={{
                     padding: '2px 8px',
                     borderRadius: 10,
@@ -453,7 +455,7 @@ export function CharacterHoverPreview({
               }}
             >
               <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
-                {attr.key || 'Unnamed'}
+                {attr.key || t('character.unnamed_attribute')}
               </span>
               <span style={{ color: '#fff', fontWeight: 700 }}>{attr.value}</span>
             </div>

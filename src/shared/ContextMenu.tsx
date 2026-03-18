@@ -6,6 +6,7 @@ export interface ContextMenuItem {
   onClick: () => void
   color?: string
   disabled?: boolean
+  testId?: string
 }
 
 interface ContextMenuProps {
@@ -59,6 +60,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
       {items.map((item, i) => (
         <button
           key={i}
+          data-testid={item.testId}
           onClick={() => {
             item.onClick()
             onClose()

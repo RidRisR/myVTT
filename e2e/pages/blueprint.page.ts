@@ -47,7 +47,7 @@ export class BlueprintPage {
   /** Right-click token → "Spawn on map" (must be in tactical mode) */
   async spawnOnMap(name: string) {
     await this.rightClickToken(name)
-    await this.page.getByText('Spawn on map').click()
+    await this.page.getByTestId('ctx-spawn-on-map').click()
   }
 
   /** Hover over token → click the X delete button (aria-label="Delete blueprint") */

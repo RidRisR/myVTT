@@ -11,34 +11,28 @@ export class GmSidebarPage {
   constructor(page: Page) {
     this.page = page
     this.entityPanel = new EntityPanelPage(page)
-    this.archivesTab = page.getByRole('button', { name: 'Archives' })
-    this.entitiesTab = page.getByRole('button', { name: 'Entities' })
+    this.archivesTab = page.getByTestId('sidebar-tab-archives')
+    this.entitiesTab = page.getByTestId('sidebar-tab-entities')
   }
 
   /** Sidebar header text — only visible when the panel is expanded */
   private get panelHeader() {
-    return this.page.locator('.text-sm.font-semibold').filter({ hasText: /Archives|Entities/ })
+    return this.page.getByTestId('sidebar-header')
   }
 
   async openArchives() {
-    // Idempotent: if the archives panel header is already visible, don't toggle it off
-    const headerVisible = await this.panelHeader
-      .filter({ hasText: 'Archives' })
-      .isVisible()
-      .catch(() => false)
-    if (headerVisible) return
+    // Idempotent: if the archives tab is already active, don't toggle it off
+    const classes = (await this.archivesTab.getAttribute('class')) ?? ''
+    if (classes.includes('text-accent')) return
     await this.archivesTab.click()
-    await expect(this.panelHeader.filter({ hasText: 'Archives' })).toBeVisible()
+    await expect(this.panelHeader).toBeVisible()
   }
 
   async openEntities() {
-    const headerVisible = await this.panelHeader
-      .filter({ hasText: 'Entities' })
-      .isVisible()
-      .catch(() => false)
-    if (headerVisible) return
+    const classes = (await this.entitiesTab.getAttribute('class')) ?? ''
+    if (classes.includes('text-accent')) return
     await this.entitiesTab.click()
-    await expect(this.panelHeader.filter({ hasText: 'Entities' })).toBeVisible()
+    await expect(this.panelHeader).toBeVisible()
   }
 
   async expectVisible() {

@@ -5,6 +5,7 @@
 export type { Entity } from '../shared/entityTypes'
 export type {
   RulePlugin,
+  PluginI18n,
   ResourceView,
   StatusView,
   EntityCardProps,
@@ -28,6 +29,7 @@ export type {
 export type { DiceTermResult, DiceSpec } from '../shared/diceUtils'
 
 // ── Utility hook exports ─────────────────────────────────────────────────────
+export { usePluginTranslation } from '../i18n/pluginI18n'
 export { useHoldRepeat } from '../shared/useHoldRepeat'
 export { useAwarenessResource } from '../hooks/useAwarenessResource'
 export { usePluginPanels } from './usePluginPanels'

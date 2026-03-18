@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { Layer, Image, Text, Rect } from 'react-konva'
 import type Konva from 'konva'
+import { useTranslation } from 'react-i18next'
 import type { TacticalInfo } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
 import { useImage } from './useImage'
 
 export function BackgroundLayer({ tacticalInfo }: { tacticalInfo: TacticalInfo }) {
+  const { t } = useTranslation('combat')
   const imageUrl = tacticalInfo.mapUrl
   if (!imageUrl) return null // transparent when no tactical map image
 
@@ -26,7 +28,8 @@ export function BackgroundLayer({ tacticalInfo }: { tacticalInfo: TacticalInfo }
       url={imageUrl}
       width={tacticalInfo.mapWidth ?? 0}
       height={tacticalInfo.mapHeight ?? 0}
-      name="Combat"
+      loadingText={t('background.loading')}
+      noImageText={t('background.no_image')}
     />
   )
 }
@@ -35,12 +38,14 @@ function ImageBackground({
   url,
   width,
   height,
-  name,
+  loadingText,
+  noImageText,
 }: {
   url: string
   width: number
   height: number
-  name: string
+  loadingText: string
+  noImageText: string
 }) {
   const [img, status] = useImage(url || undefined)
 
@@ -55,7 +60,7 @@ function ImageBackground({
             x={0}
             y={height / 2 - 10}
             width={width}
-            text={url ? 'Loading...' : name || 'No image'}
+            text={url ? loadingText : noImageText}
             fontSize={16}
             fill="#666"
             fontFamily="sans-serif"

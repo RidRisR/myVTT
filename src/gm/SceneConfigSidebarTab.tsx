@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Upload, XCircle } from 'lucide-react'
 import { useWorldStore } from '../stores/worldStore'
 
 const PARTICLE_PRESETS = ['none', 'embers', 'snow', 'dust', 'rain', 'fireflies'] as const
 
 export function SceneConfigSidebarTab() {
+  const { t } = useTranslation('gm')
   const scene = useWorldStore((s) => {
     const id = s.room.activeSceneId
     return id ? (s.scenes.find((sc) => sc.id === id) ?? null) : null
@@ -17,7 +19,7 @@ export function SceneConfigSidebarTab() {
   if (!scene) {
     return (
       <div className="flex items-center justify-center h-full text-text-muted/40 text-xs">
-        No active scene
+        {t('scene.no_active')}
       </div>
     )
   }
@@ -55,7 +57,7 @@ export function SceneConfigSidebarTab() {
     <div className="p-3 flex flex-col gap-3 overflow-y-auto h-full">
       {/* Scene name */}
       <div className="flex flex-col gap-1">
-        <label className={labelClass}>Name</label>
+        <label className={labelClass}>{t('scene.name_label')}</label>
         <input
           type="text"
           defaultValue={scene.name}
@@ -68,23 +70,23 @@ export function SceneConfigSidebarTab() {
             if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
           }}
           className={inputClass}
-          placeholder="Scene name"
+          placeholder={t('scene.name_placeholder')}
         />
       </div>
 
       {/* Background (read-only) */}
       <div className="flex flex-col gap-1">
-        <label className={labelClass}>Background</label>
+        <label className={labelClass}>{t('scene.background')}</label>
         <div className="text-text-muted text-xs bg-surface rounded px-2 py-1.5 border border-border-glass truncate">
           {atmosphere.imageUrl
             ? decodeURIComponent(atmosphere.imageUrl.split('/').pop() ?? '')
-            : 'None — set via Gallery tab'}
+            : t('scene.no_image_hint')}
         </div>
       </div>
 
       {/* Particle preset */}
       <div className="flex flex-col gap-1">
-        <label className={labelClass}>Particle Effect</label>
+        <label className={labelClass}>{t('scene.particle_effect')}</label>
         <select
           value={atmosphere.particlePreset}
           onChange={(e) => {
@@ -105,7 +107,7 @@ export function SceneConfigSidebarTab() {
       {/* Ambient audio section */}
       <div className="flex flex-col gap-2">
         <span className="text-text-muted text-xs font-semibold uppercase tracking-wide">
-          Ambient Audio
+          {t('scene.ambient_audio')}
         </span>
 
         <input
@@ -128,7 +130,7 @@ export function SceneConfigSidebarTab() {
                 handleUpdate({ atmosphere: { ambientAudioUrl: '' } })
               }}
               className="text-text-muted hover:text-danger transition-colors duration-fast p-1 cursor-pointer shrink-0"
-              title="Remove audio"
+              title={t('scene.remove_audio')}
             >
               <XCircle size={14} strokeWidth={1.5} />
             </button>
@@ -140,13 +142,13 @@ export function SceneConfigSidebarTab() {
             className="flex items-center justify-center gap-1.5 w-full bg-surface text-text-muted text-xs rounded px-2 py-2 border border-dashed border-border-glass hover:border-accent hover:text-accent transition-colors duration-fast cursor-pointer disabled:opacity-50"
           >
             <Upload size={12} strokeWidth={1.5} />
-            {audioUploading ? 'Uploading...' : 'Upload audio file'}
+            {audioUploading ? t('scene.uploading_audio') : t('scene.upload_audio')}
           </button>
         )}
 
         {/* Volume slider */}
         <div className="flex items-center justify-between gap-2">
-          <label className={labelClass}>Volume</label>
+          <label className={labelClass}>{t('scene.volume')}</label>
           <div className="flex items-center gap-2 flex-1 max-w-[160px]">
             <input
               type="range"

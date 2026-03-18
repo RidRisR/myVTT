@@ -19,6 +19,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     trace: 'retain-on-failure',
+    // Force English locale so i18next detects 'en' via navigator detector
+    locale: 'en',
   },
 
   projects: [

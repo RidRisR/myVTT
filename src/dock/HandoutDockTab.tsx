@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Pencil, X, Plus, Loader, FileImage } from 'lucide-react'
 import type { HandoutAsset } from '../stores/worldStore'
 import { uploadAsset } from '../shared/assetUpload'
@@ -19,6 +20,7 @@ export function HandoutDockTab({
   onEditAsset,
   onShowcase,
 }: HandoutDockTabProps) {
+  const { t } = useTranslation('dock')
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -50,8 +52,8 @@ export function HandoutDockTab({
       {assets.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
           <FileImage size={32} strokeWidth={1} className="text-text-muted/40" />
-          <p className="text-text-muted text-sm">No handouts yet</p>
-          <p className="text-text-muted/50 text-xs">Upload images to share with your players</p>
+          <p className="text-text-muted text-sm">{t('handout.empty')}</p>
+          <p className="text-text-muted/50 text-xs">{t('handout.upload_hint')}</p>
         </div>
       )}
 

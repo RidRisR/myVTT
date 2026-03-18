@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { MapToken, Entity } from '../shared/entityTypes'
 
 interface TokenContextMenuProps {
@@ -36,6 +37,7 @@ export function TokenContextMenu({
   mapX,
   mapY,
 }: TokenContextMenuProps) {
+  const { t } = useTranslation('combat')
   const ref = useRef<HTMLDivElement>(null)
 
   // Click-outside-to-close
@@ -94,7 +96,7 @@ export function TokenContextMenu({
 
           {/* Copy Token */}
           <MenuItem
-            label="Copy Token"
+            label={t('token.copy')}
             onClick={() => {
               onCopyToken(token.id)
               onClose()
@@ -106,7 +108,7 @@ export function TokenContextMenu({
 
           {/* Size submenu — radio style */}
           <div className="px-3 py-1 text-text-muted" style={{ fontSize: 10, fontWeight: 600 }}>
-            Size
+            {t('token.size')}
           </div>
           <div className="flex gap-1 px-3 py-1">
             {SIZE_OPTIONS.map((s) => (
@@ -136,7 +138,7 @@ export function TokenContextMenu({
 
           {/* Visibility toggle — updates entity permissions since visibility lives on Entity */}
           <MenuItem
-            label={isHidden ? 'Show Token' : 'Hide Token'}
+            label={isHidden ? t('token.show') : t('token.hide')}
             onClick={() => {
               if (entity && onUpdateEntity) {
                 const newDefault = isHidden ? 'observer' : 'none'
@@ -153,7 +155,7 @@ export function TokenContextMenu({
 
           {/* Delete Token */}
           <MenuItem
-            label="Delete Token"
+            label={t('token.delete')}
             danger
             onClick={() => {
               onDeleteToken(tokenId)
@@ -164,7 +166,7 @@ export function TokenContextMenu({
       ) : (
         /* Empty space menu */
         <MenuItem
-          label="Create Token"
+          label={t('token.create')}
           onClick={() => {
             onCreateToken(mapX, mapY)
             onClose()

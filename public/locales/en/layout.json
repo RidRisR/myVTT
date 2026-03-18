@@ -1,0 +1,64 @@
+{
+  "menu": {
+    "change_avatar": "Click to change avatar",
+    "game_system": "Game System",
+    "system_fixed": "Set at room creation, cannot be changed",
+    "leave_seat": "Leave Seat",
+    "language": "Language"
+  },
+  "role": {
+    "game_master": "Game Master",
+    "player": "Player"
+  },
+  "theme": {
+    "cold": "Cold Arcane",
+    "warm": "Warm Alchemy"
+  },
+  "portrait": {
+    "my_character": "My Character",
+    "portraits_label": "Portraits",
+    "no_characters": "No characters yet",
+    "set_active": "Set as active",
+    "inspect": "Inspect",
+    "off_stage": "Off stage",
+    "save_as_blueprint": "Save as blueprint",
+    "save_as_character": "Save as character",
+    "remove": "Remove",
+    "create_my_character": "Create my character",
+    "hide_portraits": "Hide portraits",
+    "round": "Round {{number}}",
+    "no_session": "No tactical session active",
+    "characters_tab": "Characters",
+    "initiative_tab": "Initiative"
+  },
+  "character": {
+    "title": "Character",
+    "resources": "Resources",
+    "attributes": "Attributes",
+    "statuses": "Statuses",
+    "notes": "Notes",
+    "handouts": "Handouts",
+    "unnamed_resource": "Unnamed",
+    "unnamed_attribute": "Unnamed",
+    "untitled_handout": "Untitled",
+    "change_portrait": "Click to change portrait",
+    "name_label": "Name",
+    "color_label": "Color",
+    "change_color": "Change color",
+    "resource_name_placeholder": "Name",
+    "add_resource": "+ Add resource",
+    "attribute_name_placeholder": "Name",
+    "add_attribute": "+ Add attribute",
+    "no_statuses": "No active statuses",
+    "add_status_placeholder": "Add status...",
+    "notes_placeholder": "Free-form notes...",
+    "tab_info": "INFO",
+    "tab_resources": "RES",
+    "tab_attributes": "ATTR",
+    "tab_statuses": "STATUS",
+    "tab_notes": "NOTES",
+    "hover_stats": "Stats",
+    "hover_attr": "Attr",
+    "status_placeholder": "Status..."
+  }
+}

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import { Users, ChevronUp, Plus } from 'lucide-react'
 import { useUiStore } from '../stores/uiStore'
@@ -110,6 +111,7 @@ export function PortraitBar({
   const addEntity = useWorldStore((s) => s.addEntity)
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
   const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
+  const { t } = useTranslation('layout')
   const plugin = useRulePlugin()
   const Card = plugin.characterUI.EntityCard
 
@@ -204,7 +206,7 @@ export function PortraitBar({
     if (!mySeatId || !activeSceneId) return
     const newEntity: Entity = {
       id: generateTokenId(),
-      name: 'My Character',
+      name: t('portrait.my_character'),
       imageUrl: '',
       color: '#3b82f6',
       width: 1,
@@ -249,7 +251,7 @@ export function PortraitBar({
           className="pointer-events-auto flex items-center gap-1 bg-glass backdrop-blur-[12px] rounded-full px-3 py-1.5 border border-border-glass text-text-muted text-[10px] cursor-pointer hover:bg-hover transition-colors duration-fast shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
         >
           <ChevronUp size={12} strokeWidth={1.5} className="rotate-180" />
-          Portraits
+          {t('portrait.portraits_label')}
         </button>
       </div>
     )
@@ -260,7 +262,7 @@ export function PortraitBar({
       <div className="fixed top-3 left-1/2 -translate-x-1/2 z-toast pointer-events-none flex flex-col items-center">
         <div className="flex items-center gap-1.5 bg-glass backdrop-blur-[16px] rounded-[28px] px-4 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           <Users size={14} strokeWidth={1.5} className="text-text-muted/40" />
-          <span className="text-text-muted/40 text-[11px]">No characters yet</span>
+          <span className="text-text-muted/40 text-[11px]">{t('portrait.no_characters')}</span>
         </div>
       </div>
     )
@@ -286,7 +288,7 @@ export function PortraitBar({
 
     if (mySeatId && canEdit(entity.permissions, mySeatId, role)) {
       items.push({
-        label: 'Set as active',
+        label: t('portrait.set_active'),
         onClick: () => {
           onSetActiveCharacter(entity.id)
         },
@@ -295,7 +297,7 @@ export function PortraitBar({
     }
 
     items.push({
-      label: 'Inspect',
+      label: t('portrait.inspect'),
       onClick: () => {
         const el = portraitBarRef.current?.querySelector(
           `[data-char-id="${entity.id}"]`,
@@ -310,7 +312,7 @@ export function PortraitBar({
       const isVisible = visibilityMap.get(entity.id) ?? true
       if (isVisible && activeSceneId && sceneIdSet.has(entity.id)) {
         items.push({
-          label: 'Backstage',
+          label: t('portrait.off_stage'),
           onClick: () => {
             if (activeSceneId) void toggleEntityVisibility(activeSceneId, entity.id, false)
           },
@@ -319,7 +321,7 @@ export function PortraitBar({
 
       // Save as blueprint
       items.push({
-        label: 'Save as Blueprint',
+        label: t('portrait.save_as_blueprint'),
         onClick: () => {
           void saveEntityAsBlueprint(entity)
         },
@@ -328,7 +330,7 @@ export function PortraitBar({
       // Save as reusable character (only for ephemeral entities)
       if (entity.lifecycle === 'ephemeral') {
         items.push({
-          label: 'Save as Character',
+          label: t('portrait.save_as_character'),
           onClick: () => {
             void updateEntity(entity.id, { lifecycle: 'reusable' })
           },
@@ -338,7 +340,7 @@ export function PortraitBar({
       // Remove from scene
       if (entity.lifecycle !== 'persistent') {
         items.push({
-          label: 'Remove',
+          label: t('portrait.remove'),
           onClick: () => {
             onRemoveFromScene(entity.id)
           },
@@ -550,7 +552,7 @@ export function PortraitBar({
               : 'text-text-muted/40 border-b-2 border-transparent'
           }`}
         >
-          Characters
+          {t('portrait.characters_tab')}
         </button>
         <button
           onClick={() => {
@@ -562,14 +564,14 @@ export function PortraitBar({
               : 'text-text-muted/40 border-b-2 border-transparent'
           }`}
         >
-          Initiative
+          {t('portrait.initiative_tab')}
         </button>
         <button
           onClick={() => {
             setPortraitBarVisible(false)
           }}
           className="ml-1 p-0.5 text-text-muted/30 hover:text-text-muted/60 bg-transparent border-none cursor-pointer transition-colors duration-fast"
-          title="Hide portraits"
+          title={t('portrait.hide_portraits')}
         >
           <ChevronUp size={12} strokeWidth={1.5} />
         </button>
@@ -586,7 +588,7 @@ export function PortraitBar({
             !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
               <button
                 onClick={handleCreateMyCharacter}
-                title="Create My Character"
+                title={t('portrait.create_my_character')}
                 className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
               >
                 <Plus size={16} strokeWidth={1.5} />
@@ -604,8 +606,8 @@ export function PortraitBar({
         <div className="flex items-center gap-2 bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           <span className="text-xs text-text-muted/40 font-sans px-3 py-1">
             {tacticalInfo?.tacticalMode === 1
-              ? `Round ${tacticalInfo.roundNumber}`
-              : 'No tactical session active'}
+              ? t('portrait.round', { number: tacticalInfo.roundNumber })
+              : t('portrait.no_session')}
           </span>
         </div>
       )}

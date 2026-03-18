@@ -1,0 +1,11 @@
+{
+  "join_session": "Join Session",
+  "claim_existing": "Claim an existing seat:",
+  "create_new": "Create New Seat",
+  "seat_name": "Name",
+  "seat_name_placeholder": "Your character name",
+  "seat_role": "Role",
+  "seat_color": "Color",
+  "seat_join": "Join",
+  "seat_delete": "Delete seat"
+}

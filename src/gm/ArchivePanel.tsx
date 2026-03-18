@@ -5,8 +5,10 @@ import type { ArchiveRecord } from '../stores/worldStore'
 import { selectIsTactical } from '../stores/selectors'
 import { useToast } from '../ui/useToast'
 import { ConfirmPopover } from '../ui/ConfirmPopover'
+import { useTranslation } from 'react-i18next'
 
 export function ArchivePanel() {
+  const { t } = useTranslation('gm')
   const activeSceneId = useWorldStore((s) => s.room.activeSceneId)
   const archives = useWorldStore((s) => s.archives)
   const isTactical = useWorldStore(selectIsTactical)
@@ -72,10 +74,13 @@ export function ArchivePanel() {
 
   const handleCreateAndSave = async () => {
     if (!activeSceneId) return
-    const archive = await createArchive(activeSceneId, `Archive ${archives.length + 1}`)
+    const archive = await createArchive(
+      activeSceneId,
+      t('archive.default_name', { number: archives.length + 1 }),
+    )
     if (archive) {
       await saveArchive(archive.id)
-      toast('success', 'Saved as new archive')
+      toast('success', t('archive.saved_new'))
     }
   }
 
@@ -84,7 +89,7 @@ export function ArchivePanel() {
     setMenuId(null)
     // Optimistic removal from local state, delete on server
     void deleteArchive(archive.id)
-    toast('undo', `Deleted "${archive.name}"`, {
+    toast('undo', t('archive.deleted', { name: archive.name }), {
       duration: 5000,
     })
   }
@@ -100,7 +105,7 @@ export function ArchivePanel() {
     if (!selectedId || !activeSceneId) return
     void saveArchive(selectedId)
     setSelectedId(null)
-    toast('success', 'Archive overwritten')
+    toast('success', t('archive.overwritten'))
   }
 
   const selectedArchive = selectedId ? archives.find((e) => e.id === selectedId) : null
@@ -111,7 +116,7 @@ export function ArchivePanel() {
     return (
       <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs">
         <Swords size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-        <span className="opacity-50">Select a scene first</span>
+        <span className="opacity-50">{t('archive.no_scene')}</span>
       </div>
     )
   }
@@ -123,8 +128,8 @@ export function ArchivePanel() {
         {sortedArchives.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs py-8">
             <Swords size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-            <span className="opacity-50">No combat archives</span>
-            <span className="opacity-30 text-[10px] mt-1">Click + below to create</span>
+            <span className="opacity-50">{t('archive.empty')}</span>
+            <span className="opacity-30 text-[10px] mt-1">{t('archive.empty_hint')}</span>
           </div>
         ) : (
           <div className="flex flex-col gap-1">
@@ -204,7 +209,7 @@ export function ArchivePanel() {
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
                       >
                         <Pencil size={12} strokeWidth={1.5} />
-                        Rename
+                        {t('archive.rename')}
                       </button>
                       <button
                         onClick={(e) => {
@@ -215,7 +220,7 @@ export function ArchivePanel() {
                         className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
                       >
                         <Copy size={12} strokeWidth={1.5} />
-                        Duplicate
+                        {t('archive.duplicate')}
                       </button>
                       <div className="border-t border-border-glass my-1" />
                       <button
@@ -243,12 +248,13 @@ export function ArchivePanel() {
         {/* Create and save current state as new archive */}
         {isTactical && (
           <button
+            data-testid="archive-save-new"
             onClick={() => void handleCreateAndSave()}
             className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-            title="Save New"
+            title={t('archive.save_new')}
           >
             <Plus size={12} strokeWidth={1.5} />
-            Save New
+            {t('archive.save_new')}
           </button>
         )}
 
@@ -257,27 +263,29 @@ export function ArchivePanel() {
         {/* Overwrite selected archive with current state */}
         {isTactical && selectedId && (
           <button
+            data-testid="archive-overwrite"
             onClick={handleSave}
             className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-bold px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-            title="Overwrite archive"
+            title={t('archive.overwrite_title')}
           >
             <Save size={12} strokeWidth={1.5} />
-            Overwrite
+            {t('archive.overwrite')}
           </button>
         )}
 
         {/* Load from selected archive (with confirmation) */}
         {selectedArchive && (
           <button
+            data-testid="archive-load"
             ref={loadButtonRef}
             onClick={() => {
               setLoadingId(selectedId)
             }}
             className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"
-            title="Load archive"
+            title={t('archive.load_title')}
           >
             <Download size={14} strokeWidth={1.5} />
-            Load
+            {t('archive.load')}
           </button>
         )}
       </div>
@@ -286,7 +294,7 @@ export function ArchivePanel() {
       {deletingArchive && (
         <ConfirmPopover
           anchorRef={deleteButtonRef}
-          message={`Delete "${deletingArchive.name}"?`}
+          message={t('archive.delete_confirm', { name: deletingArchive.name })}
           confirmLabel="Delete"
           cancelLabel="Cancel"
           onConfirm={() => {
@@ -302,7 +310,7 @@ export function ArchivePanel() {
       {loadingArchive && (
         <ConfirmPopover
           anchorRef={loadButtonRef}
-          message={`Load "${loadingArchive.name}"? Current battlefield will be replaced.`}
+          message={t('archive.load_confirm', { name: loadingArchive.name })}
           confirmLabel="Confirm"
           cancelLabel="Cancel"
           onConfirm={handleLoad}

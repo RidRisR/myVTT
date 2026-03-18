@@ -1,0 +1,22 @@
+{
+  "confirm": "Confirm",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "save": "Save",
+  "retry": "Retry",
+  "add": "Add",
+  "back": "Back",
+  "create": "Create",
+  "enter": "Enter",
+  "link": "Link",
+  "loading": "Loading...",
+  "or": "or",
+  "close": "Close notification",
+  "online": "Online",
+  "connection_failed": "Failed to connect: {{error}}",
+  "connecting": "Connecting to server...",
+  "add_npc": "Add NPC",
+  "app_title": "myVTT",
+  "landing_hint": "Please obtain a room link from the administrator.",
+  "admin_panel": "Admin Panel"
+}

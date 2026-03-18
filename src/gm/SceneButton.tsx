@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Image } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
 import { SceneListPanel } from './SceneListPanel'
@@ -22,6 +23,7 @@ export function SceneButton({
   onCreateScene,
   onRenameScene,
 }: SceneButtonProps) {
+  const { t } = useTranslation('gm')
   const [showSceneList, setShowSceneList] = useState(false)
 
   return (
@@ -33,13 +35,14 @@ export function SceneButton({
         }}
       >
         <button
+          data-testid="scene-dock-btn"
           onClick={() => {
             setShowSceneList(!showSceneList)
           }}
           className="flex items-center gap-1.5 rounded-lg bg-glass backdrop-blur-[12px] border border-border-glass px-3.5 py-2 text-xs font-semibold text-text-primary shadow-[0_2px_12px_rgba(0,0,0,0.3)] cursor-pointer hover:bg-hover transition-colors duration-fast"
         >
           <Image size={14} strokeWidth={1.5} />
-          Scenes
+          {t('scene.scenes')}
         </button>
       </div>
 

@@ -1,11 +1,12 @@
 // plugins/daggerheart/ui/DHRollCard.tsx
 import { useMemo } from 'react'
 import type { RollCardProps } from '@myvtt/sdk'
-import { tokenizeExpression, buildCompoundResult } from '@myvtt/sdk'
+import { tokenizeExpression, buildCompoundResult, usePluginTranslation } from '@myvtt/sdk'
 import { dhEvaluateRoll, dhGetJudgmentDisplay } from '../diceSystem'
 
 export function DHRollCard({ message, renderDice }: RollCardProps) {
   const rolls = message.rolls
+  const { t } = usePluginTranslation()
 
   const total = useMemo(() => {
     const formula = message.resolvedFormula ?? message.formula
@@ -18,11 +19,11 @@ export function DHRollCard({ message, renderDice }: RollCardProps) {
 
   return renderDice(
     [
-      { color: '#fbbf24', label: '希望' },
-      { color: '#dc2626', label: '恐惧' },
+      { color: '#fbbf24', label: t('die.hope') },
+      { color: '#dc2626', label: t('die.fear') },
     ],
     display
-      ? { footer: { text: display.text, color: display.color }, totalColor: display.color }
+      ? { footer: { text: t(display.text), color: display.color }, totalColor: display.color }
       : undefined,
   )
 }

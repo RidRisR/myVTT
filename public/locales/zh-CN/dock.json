@@ -1,0 +1,56 @@
+{
+  "map": {
+    "uploaded": "已上传 {{name}}",
+    "upload_failed": "上传失败：{{error}}",
+    "deleted": "已删除「{{name}}」",
+    "undo": "撤销",
+    "set_scene_bg": "设为场景背景",
+    "set_tactical_map": "设为战术地图",
+    "showcase": "展示给玩家",
+    "no_images": "暂无图片",
+    "upload_hint": "上传一张图片开始",
+    "untitled": "未命名",
+    "uploading": "上传中…",
+    "upload": "上传"
+  },
+  "blueprint": {
+    "tag_humanoid": "人形",
+    "tag_beast": "野兽",
+    "tag_magical": "魔法生物",
+    "tag_undead": "亡灵",
+    "tag_object": "物件",
+    "spawn_on_map": "放置到地图",
+    "add_as_npc": "添加为特色NPC",
+    "edit_tags": "编辑标签",
+    "delete_blueprint": "删除蓝图",
+    "deleted": "已删除蓝图「{{name}}」",
+    "undo": "撤销",
+    "empty": "暂无 Token 蓝图",
+    "upload_hint": "上传 Token 图片来构建你的收藏",
+    "no_match": "无匹配蓝图",
+    "add_token": "添加 Token",
+    "tag_editor_title": "{{name}} — 标签",
+    "no_tags": "无标签",
+    "add_tag_placeholder": "添加标签...",
+    "add_tag": "添加"
+  },
+  "character": {
+    "default_name": "新角色",
+    "deleted": "已删除「{{name}}」",
+    "undo": "撤销",
+    "search_placeholder": "搜索角色...",
+    "create": "新建角色",
+    "empty": "暂无保存的角色",
+    "empty_hint": "点击右上角「+」创建，或将NPC「保存为角色」",
+    "persistent": "持久",
+    "reusable": "可复用",
+    "delete_character": "删除角色"
+  },
+  "handout": {
+    "empty": "暂无分发物",
+    "upload_hint": "上传图片分享给玩家",
+    "add_title": "添加标题...",
+    "add_description": "添加描述...",
+    "untitled": "未命名"
+  }
+}

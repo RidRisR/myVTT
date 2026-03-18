@@ -1,0 +1,11 @@
+{
+  "join_session": "加入会话",
+  "claim_existing": "选择一个已有座位：",
+  "create_new": "创建新座位",
+  "seat_name": "名称",
+  "seat_name_placeholder": "你的角色名",
+  "seat_role": "角色",
+  "seat_color": "颜色",
+  "seat_join": "加入",
+  "seat_delete": "删除座位"
+}

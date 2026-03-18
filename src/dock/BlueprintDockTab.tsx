@@ -1,4 +1,5 @@
 import { useRef, useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X, Plus, CircleDot } from 'lucide-react'
 import type { Blueprint } from '../shared/entityTypes'
 import { useWorldStore } from '../stores/worldStore'
@@ -32,6 +33,7 @@ function assetToBlueprint(a: {
 }
 
 export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: TokenDockTabProps) {
+  const { t } = useTranslation('dock')
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
@@ -80,9 +82,9 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
 
   const handleDelete = (bp: Blueprint) => {
     const undo = softRemove(bp.id)
-    toast('undo', `Deleted blueprint "${bp.name}"`, {
+    toast('undo', t('blueprint.deleted', { name: bp.name }), {
       duration: 5000,
-      action: { label: 'Undo', onClick: undo },
+      action: { label: t('blueprint.undo'), onClick: undo },
     })
   }
 
@@ -149,27 +151,30 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     const items: ContextMenuItem[] = []
     if (isTactical) {
       items.push({
-        label: 'Spawn on map',
+        label: t('blueprint.spawn_on_map'),
+        testId: 'ctx-spawn-on-map',
         onClick: () => {
           onSpawnToken(bp)
         },
       })
     }
     items.push({
-      label: 'Add as featured NPC',
+      label: t('blueprint.add_as_npc'),
+      testId: 'ctx-add-as-npc',
       onClick: () => {
         onAddToActive(bp)
       },
     })
     items.push({
-      label: 'Edit tags',
+      label: t('blueprint.edit_tags'),
       onClick: () => {
         setEditingTagsId(bp.id)
         setTagInput('')
       },
     })
     items.push({
-      label: 'Delete blueprint',
+      label: t('blueprint.delete_blueprint'),
+      testId: 'ctx-delete-blueprint',
       onClick: () => {
         handleDelete(bp)
       },
@@ -204,13 +209,13 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
       {blueprints.length === 0 && blueprintAssets.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
           <CircleDot size={32} strokeWidth={1} className="text-text-muted/40" />
-          <p className="text-text-muted text-sm">No token blueprints</p>
-          <p className="text-text-muted/50 text-xs">Upload token images to build your collection</p>
+          <p className="text-text-muted text-sm">{t('blueprint.empty')}</p>
+          <p className="text-text-muted/50 text-xs">{t('blueprint.upload_hint')}</p>
         </div>
       )}
 
       {blueprints.length === 0 && blueprintAssets.length > 0 && (
-        <div className="text-center text-text-muted/40 text-xs py-6">No matching blueprints</div>
+        <div className="text-center text-text-muted/40 text-xs py-6">{t('blueprint.no_match')}</div>
       )}
 
       <div
@@ -288,7 +293,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
               {/* Delete button on hover */}
               {isHovered && (
                 <button
-                  aria-label="Delete blueprint"
+                  aria-label={t('blueprint.delete_blueprint')}
                   onClick={(e) => {
                     e.stopPropagation()
                     handleDelete(bp)
@@ -310,7 +315,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
           >
             {uploading ? '...' : <Plus size={22} strokeWidth={1.5} />}
           </div>
-          <span className="text-[9px] text-text-muted/30">Add Token</span>
+          <span className="text-[9px] text-text-muted/30">{t('blueprint.add_token')}</span>
         </div>
       </div>
 
@@ -349,7 +354,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-text-primary font-semibold truncate">
-                  {asset.name} — Tags
+                  {t('blueprint.tag_editor_title', { name: asset.name })}
                 </span>
                 <button
                   onClick={() => {
@@ -379,7 +384,9 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                   </span>
                 ))}
                 {asset.tags.length === 0 && (
-                  <span className="text-[10px] text-text-muted/30 italic">No tags</span>
+                  <span className="text-[10px] text-text-muted/30 italic">
+                    {t('blueprint.no_tags')}
+                  </span>
                 )}
               </div>
               {/* Add tag input */}
@@ -392,7 +399,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleAddTag(asset.id)
                   }}
-                  placeholder="Add tag..."
+                  placeholder={t('blueprint.add_tag_placeholder')}
                   className="flex-1 text-[10px] bg-glass text-text-primary border border-border-glass rounded px-1.5 py-1 outline-none placeholder:text-text-muted/30"
                   list={`tag-suggestions-${asset.id}`}
                 />
@@ -407,7 +414,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                   }}
                   className="text-[10px] text-accent px-1.5 py-1 rounded bg-accent/10 hover:bg-accent/20 cursor-pointer transition-colors duration-fast"
                 >
-                  Add
+                  {t('blueprint.add_tag')}
                 </button>
               </div>
             </div>

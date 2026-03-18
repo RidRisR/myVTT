@@ -1,0 +1,56 @@
+{
+  "map": {
+    "uploaded": "Uploaded {{name}}",
+    "upload_failed": "Upload failed: {{error}}",
+    "deleted": "Deleted \"{{name}}\"",
+    "undo": "Undo",
+    "set_scene_bg": "Set as Scene Background",
+    "set_tactical_map": "Set as Tactical Map",
+    "showcase": "Showcase to Players",
+    "no_images": "No images yet",
+    "upload_hint": "Upload an image to get started",
+    "untitled": "Untitled",
+    "uploading": "Uploading…",
+    "upload": "Upload"
+  },
+  "blueprint": {
+    "tag_humanoid": "Humanoid",
+    "tag_beast": "Beast",
+    "tag_magical": "Magical Creature",
+    "tag_undead": "Undead",
+    "tag_object": "Object",
+    "spawn_on_map": "Spawn on map",
+    "add_as_npc": "Add as featured NPC",
+    "edit_tags": "Edit tags",
+    "delete_blueprint": "Delete blueprint",
+    "deleted": "Deleted blueprint \"{{name}}\"",
+    "undo": "Undo",
+    "empty": "No token blueprints",
+    "upload_hint": "Upload token images to build your collection",
+    "no_match": "No matching blueprints",
+    "add_token": "Add Token",
+    "tag_editor_title": "{{name}} — Tags",
+    "no_tags": "No tags",
+    "add_tag_placeholder": "Add tag...",
+    "add_tag": "Add"
+  },
+  "character": {
+    "default_name": "New Character",
+    "deleted": "Deleted \"{{name}}\"",
+    "undo": "Undo",
+    "search_placeholder": "Search characters...",
+    "create": "New character",
+    "empty": "No saved characters",
+    "empty_hint": "Click + above to create, or save an NPC as character",
+    "persistent": "Persistent",
+    "reusable": "Reusable",
+    "delete_character": "Delete character"
+  },
+  "handout": {
+    "empty": "No handouts yet",
+    "upload_hint": "Upload images to share with your players",
+    "add_title": "Add title...",
+    "add_description": "Add description...",
+    "untitled": "Untitled"
+  }
+}

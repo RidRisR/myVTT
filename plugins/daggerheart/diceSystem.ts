@@ -33,41 +33,42 @@ export function dhEvaluateRoll(rolls: number[][], total: number): JudgmentResult
 export function dhGetDieStyles(rolls: number[][]): DieStyle[] {
   if (rolls.length === 0 || (rolls[0]?.length ?? 0) < 2) return []
   return [
-    { termIndex: 0, dieIndex: 0, label: '希望', color: '#fbbf24' },
-    { termIndex: 0, dieIndex: 1, label: '恐惧', color: '#dc2626' },
+    { termIndex: 0, dieIndex: 0, label: 'die.hope', color: '#fbbf24' },
+    { termIndex: 0, dieIndex: 1, label: 'die.fear', color: '#dc2626' },
   ]
 }
 
 export function dhGetJudgmentDisplay(result: JudgmentResult): JudgmentDisplay {
   if (result.type !== 'daggerheart')
-    return { text: '未知判定', color: '#64748b', severity: 'partial' }
+    return { text: 'judgment.unknown', color: '#64748b', severity: 'partial' }
   switch (result.outcome) {
     case 'critical_success':
-      return { text: '命运临界！', color: '#a78bfa', severity: 'critical' }
+      return { text: 'judgment.critical', color: '#a78bfa', severity: 'critical' }
     case 'success_hope':
-      return { text: '乘希望而为', color: '#fbbf24', severity: 'success' }
+      return { text: 'judgment.successHope', color: '#fbbf24', severity: 'success' }
     case 'success_fear':
-      return { text: '带着恐惧成功', color: '#f97316', severity: 'partial' }
+      return { text: 'judgment.successFear', color: '#f97316', severity: 'partial' }
     case 'failure_hope':
-      return { text: '失败，但保有希望', color: '#60a5fa', severity: 'failure' }
+      return { text: 'judgment.failureHope', color: '#60a5fa', severity: 'failure' }
     case 'failure_fear':
-      return { text: '带着恐惧失败', color: '#ef4444', severity: 'fumble' }
+      return { text: 'judgment.failureFear', color: '#ef4444', severity: 'fumble' }
   }
 }
 
+const ROLL_ATTR_KEYS = [
+  'agility',
+  'strength',
+  'finesse',
+  'instinct',
+  'presence',
+  'knowledge',
+] as const
+
 export function dhGetRollActions(entity: Entity): RollAction[] {
   if (!entity.ruleData) return []
-  const attrs: [string, string][] = [
-    ['agility', '敏捷'],
-    ['strength', '力量'],
-    ['finesse', '精巧'],
-    ['instinct', '本能'],
-    ['presence', '风采'],
-    ['knowledge', '知识'],
-  ]
-  return attrs.map(([key, name]) => ({
+  return ROLL_ATTR_KEYS.map((key) => ({
     id: key,
-    name: `${name}检定`,
+    name: `roll.action.${key}`,
     formula: `2d12+@${key}`,
     targetAttributeKey: key,
   }))

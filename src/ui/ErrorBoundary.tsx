@@ -1,17 +1,20 @@
 import { Component, createElement } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
 import { AlertCircle } from 'lucide-react'
+import { withTranslation, type WithTranslation } from 'react-i18next'
 
-interface ErrorBoundaryProps {
+interface ErrorBoundaryOwnProps {
   children: ReactNode
   fallback?: (error: Error, reset: () => void) => ReactNode
 }
+
+type ErrorBoundaryProps = ErrorBoundaryOwnProps & WithTranslation
 
 interface ErrorBoundaryState {
   error: Error | null
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundaryClass extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props)
     this.state = { error: null }
@@ -31,7 +34,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   render() {
     const { error } = this.state
-    const { children, fallback } = this.props
+    const { children, fallback, t } = this.props
 
     if (error) {
       if (fallback) {
@@ -49,12 +52,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 className: 'shrink-0 text-danger',
                 'aria-hidden': true,
               })}
-              <h2 className="text-lg font-semibold text-text-primary">Something went wrong</h2>
+              <h2 className="text-lg font-semibold text-text-primary">
+                {t('error_title', { ns: 'ui' })}
+              </h2>
             </div>
 
             {/* Error message */}
             <p className="text-sm text-text-muted mb-4 break-words">
-              {error.message || 'An unexpected error occurred.'}
+              {error.message || t('error_unexpected', { ns: 'ui' })}
             </p>
 
             {/* Retry button */}
@@ -62,7 +67,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               onClick={this.handleReset}
               className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-deep transition-colors duration-fast hover:bg-accent-bold motion-reduce:transition-none"
             >
-              Retry
+              {t('retry', { ns: 'common' })}
             </button>
           </div>
         </div>
@@ -72,3 +77,5 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return children
   }
 }
+
+export const ErrorBoundary = withTranslation()(ErrorBoundaryClass)

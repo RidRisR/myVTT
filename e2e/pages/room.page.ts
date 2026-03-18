@@ -34,7 +34,7 @@ export class RoomPage {
 
   /** Wait until room is fully loaded (past "Connecting to server..." screen) */
   async waitForRoomLoaded() {
-    await expect(this.page.getByText('Connecting to server...')).toBeHidden({ timeout: 15_000 })
+    await expect(this.page.getByTestId('connecting-screen')).toBeHidden({ timeout: 15_000 })
   }
 
   /** Check that we're inside the room (not on SeatSelect or loading screen) */
@@ -45,6 +45,6 @@ export class RoomPage {
   /** Open hamburger menu and click "Leave Seat" */
   async leaveSeat() {
     await this.hamburgerMenu.click()
-    await this.page.getByRole('button', { name: 'Leave Seat' }).click()
+    await this.page.getByTestId('leave-seat').click()
   }
 }

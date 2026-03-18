@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Image, FolderOpen } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
@@ -12,6 +13,7 @@ interface SceneViewerProps {
 }
 
 export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneViewerProps) {
+  const { t } = useTranslation('scene')
   const setGmDockTab = useUiStore((s) => s.setGmDockTab)
   const [prevUrl, setPrevUrl] = useState<string | null>(null)
   const [currentUrl, setCurrentUrl] = useState<string | null>(null)
@@ -77,7 +79,7 @@ export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneView
             className="flex items-center gap-1.5 text-text-muted/40 hover:text-text-muted text-xs cursor-pointer transition-colors duration-fast"
           >
             <FolderOpen size={14} strokeWidth={1.5} />
-            Open Gallery to set a background
+            {t('open_gallery')}
           </button>
         </div>
       </div>
