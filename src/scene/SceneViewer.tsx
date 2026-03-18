@@ -51,7 +51,18 @@ export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneView
     return (
       <div
         onContextMenu={onContextMenu}
-        className="w-screen h-screen flex items-center justify-center bg-deep relative"
+        className="w-screen h-screen flex items-center justify-center relative"
+        style={{
+          backgroundColor: '#2a2420',
+          backgroundImage: [
+            'radial-gradient(ellipse at 20% 50%, rgba(70,58,42,0.5) 0%, transparent 50%)',
+            'radial-gradient(ellipse at 80% 20%, rgba(60,50,38,0.4) 0%, transparent 40%)',
+            'radial-gradient(ellipse at 50% 80%, rgba(75,62,45,0.3) 0%, transparent 45%)',
+            'radial-gradient(circle at 15% 85%, rgba(55,45,32,0.35) 0%, transparent 30%)',
+            'radial-gradient(circle at 70% 60%, rgba(80,65,48,0.2) 0%, transparent 35%)',
+            'radial-gradient(ellipse at 40% 30%, rgba(50,40,28,0.4) 0%, transparent 55%)',
+          ].join(', '),
+        }}
       >
         {blurOverlay}
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
