@@ -72,7 +72,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
         name: file.name.replace(/\.[^.]+$/, ''),
         type: 'image',
       })
-      if (!asset) return
       await createBlueprint({
         name: asset.name,
         imageUrl: asset.url,
