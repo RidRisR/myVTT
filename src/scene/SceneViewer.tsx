@@ -55,9 +55,9 @@ export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneView
       >
         {blurOverlay}
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-          <Image size={32} strokeWidth={1} className="text-text-muted/40" />
-          <p className="text-text-muted text-sm">No scene selected</p>
-          <p className="text-text-muted/50 text-xs">Upload a scene from the asset dock</p>
+          <Image size={32} strokeWidth={1} className="text-text-muted/20" />
+          {scene && <p className="text-text-muted/40 text-sm">{scene.name}</p>}
+          <p className="text-text-muted/20 text-xs">Set a background from the Gallery tab</p>
         </div>
       </div>
     )
