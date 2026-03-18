@@ -19,6 +19,16 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     trace: 'retain-on-failure',
+    // Force English locale for consistent selectors in E2E tests
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: 'http://localhost:5174',
+          localStorage: [{ name: 'i18nextLng', value: 'en' }],
+        },
+      ],
+    },
   },
 
   projects: [

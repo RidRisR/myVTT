@@ -57,7 +57,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                     <span className="flex-1 font-semibold text-text-primary">{seat.name}</span>
                     {isOnline && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-success/20 text-success">
-                        Online
+                        {t('online', { ns: 'common' })}
                       </span>
                     )}
                     <span
@@ -83,7 +83,9 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                 )
               })}
             </div>
-            <div className="text-center text-text-muted/40 text-xs my-3">or</div>
+            <div className="text-center text-text-muted/40 text-xs my-3">
+              {t('or', { ns: 'common' })}
+            </div>
           </>
         )}
 
@@ -183,7 +185,7 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
                 }}
                 className="flex-1 py-2.5 border border-border-glass rounded-lg bg-surface cursor-pointer text-sm text-text-muted transition-colors duration-fast hover:bg-hover hover:text-text-primary"
               >
-                Back
+                {t('back', { ns: 'common' })}
               </button>
               <button
                 onClick={() => {
