@@ -100,7 +100,7 @@ export function GmDock({
     return () => {
       document.removeEventListener('pointerdown', handleClickOutside)
     }
-  }, [activeTab])
+  }, [activeTab, setActiveTab])
 
   const toggleTab = (tab: GmDockTab) => {
     setActiveTab(activeTab === tab ? null : tab)
