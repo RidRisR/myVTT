@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -18,6 +18,7 @@ import type { TacticalInfo } from '../stores/worldStore'
 import { useWorldStore } from '../stores/worldStore'
 import { useUiStore, isMeasureTool, type MeasureTool } from '../stores/uiStore'
 import { GridConfigPanel } from './tools/GridConfigPanel'
+import { useClickOutside } from '../hooks/useClickOutside'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 
 const ICON_SIZE = 16
@@ -63,7 +64,7 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
 
   return (
     <div
-      className="fixed top-3 z-toast pointer-events-auto"
+      className="fixed top-3 z-ui pointer-events-auto"
       style={{ right: RIGHT_PANEL_WIDTH + 24 }}
       onPointerDown={(e) => {
         e.stopPropagation()
@@ -167,19 +168,11 @@ function MeasureSplitButton() {
   const currentDef = MEASURE_TOOLS.find((t) => t.id === lastMeasureTool) ?? MEASURE_LINE
   const isActive = isMeasureTool(activeTool)
 
-  // Close flyout on click outside
-  useEffect(() => {
-    if (!flyoutOpen) return
-    const handler = (e: PointerEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) {
-        setFlyoutOpen(false)
-      }
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => {
-      document.removeEventListener('pointerdown', handler)
-    }
-  }, [flyoutOpen])
+  // Close flyout on click outside (Radix Portal-aware)
+  const closeFlyout = useCallback(() => {
+    setFlyoutOpen(false)
+  }, [])
+  useClickOutside(containerRef, closeFlyout, flyoutOpen)
 
   // Close flyout when keyboard shortcut changes tool away from measure
   useEffect(() => {

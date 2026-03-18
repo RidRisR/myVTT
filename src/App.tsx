@@ -30,7 +30,8 @@ import { SceneButton } from './gm/SceneButton'
 import { HamburgerMenu } from './layout/HamburgerMenu'
 import { PortraitBar } from './layout/PortraitBar'
 import { MyCharacterCard } from './layout/MyCharacterCard'
-import { ContextMenu } from './shared/ContextMenu'
+import * as Popover from '@radix-ui/react-popover'
+import { PopoverContent } from './ui/primitives/PopoverContent'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import type { ShowcaseItem } from './shared/showcaseTypes'
 import type { Entity, Atmosphere, SceneEntityEntry } from './shared/entityTypes'
@@ -517,16 +518,33 @@ function RoomSession({ roomId }: { roomId: string }) {
         )}
 
         {/* Background right-click context menu (GM only) */}
-        {bgContextMenu && (
-          <ContextMenu
-            x={bgContextMenu.x}
-            y={bgContextMenu.y}
-            items={[{ label: t('add_npc'), onClick: handleAddNpc }]}
-            onClose={() => {
-              setBgContextMenu(null)
+        <Popover.Root
+          open={bgContextMenu !== null}
+          onOpenChange={(open) => {
+            if (!open) setBgContextMenu(null)
+          }}
+        >
+          <Popover.Anchor
+            className="fixed pointer-events-none w-0 h-0"
+            style={{
+              left: bgContextMenu?.x ?? 0,
+              top: bgContextMenu?.y ?? 0,
             }}
           />
-        )}
+          <PopoverContent
+            side="bottom"
+            align="start"
+            sideOffset={0}
+            className="min-w-[160px] rounded-lg bg-glass py-1 backdrop-blur-[16px] px-0"
+          >
+            <button
+              onClick={handleAddNpc}
+              className="block w-full px-3.5 py-2 bg-transparent border-none text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover text-text-primary"
+            >
+              {t('add_npc')}
+            </button>
+          </PopoverContent>
+        </Popover.Root>
 
         {editingHandout && (
           <HandoutEditModal

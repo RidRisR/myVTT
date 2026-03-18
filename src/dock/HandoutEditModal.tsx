@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import * as Dialog from '@radix-ui/react-dialog'
 import type { HandoutAsset } from '../stores/worldStore'
+import { DialogContent } from '../ui/primitives/DialogContent'
 
 interface HandoutEditModalProps {
   asset: HandoutAsset
@@ -12,31 +14,6 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
   const { t } = useTranslation('dock')
   const [title, setTitle] = useState(asset.title || '')
   const [description, setDescription] = useState(asset.description || '')
-  const panelRef = useRef<HTMLDivElement>(null)
-
-  // Click outside to close
-  useEffect(() => {
-    const handler = (e: PointerEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose()
-      }
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => {
-      document.removeEventListener('pointerdown', handler)
-    }
-  }, [onClose])
-
-  // Escape to close
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handler)
-    return () => {
-      document.removeEventListener('keydown', handler)
-    }
-  }, [onClose])
 
   const handleSave = () => {
     onSave(asset.id, {
@@ -47,13 +24,15 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
   }
 
   return (
-    <div
-      className="fixed inset-0 z-modal bg-black/70 flex items-center justify-center"
-      onPointerDown={(e) => {
-        e.stopPropagation()
+    <Dialog.Root
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
       }}
     >
-      <div ref={panelRef} className="flex flex-col items-center gap-3 max-w-[70vw]">
+      <DialogContent className="flex flex-col items-center gap-3 max-w-[70vw]">
+        <Dialog.Title className="sr-only">{t('handout.add_title')}</Dialog.Title>
+
         {/* Image — matches FocusedCard layout */}
         <img
           src={asset.imageUrl}
@@ -87,12 +66,11 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
 
         {/* Action buttons */}
         <div className="flex gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 border border-border-glass rounded-md text-xs font-medium cursor-pointer font-sans bg-surface text-text-primary/70 transition-colors duration-fast hover:bg-hover"
-          >
-            {t('cancel', { ns: 'common' })}
-          </button>
+          <Dialog.Close asChild>
+            <button className="px-4 py-1.5 border border-border-glass rounded-md text-xs font-medium cursor-pointer font-sans bg-surface text-text-primary/70 transition-colors duration-fast hover:bg-hover">
+              {t('cancel', { ns: 'common' })}
+            </button>
+          </Dialog.Close>
           <button
             onClick={handleSave}
             className="px-4 py-1.5 border-none rounded-md text-xs font-semibold cursor-pointer font-sans bg-accent text-deep transition-colors duration-fast hover:bg-accent-bold"
@@ -100,7 +78,7 @@ export function HandoutEditModal({ asset, onSave, onClose }: HandoutEditModalPro
             {t('save', { ns: 'common' })}
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog.Root>
   )
 }
