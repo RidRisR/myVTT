@@ -1,10 +1,12 @@
-import { Swords, ClipboardList, ChevronRight } from 'lucide-react'
+import { Swords, ClipboardList, ChevronRight, Image } from 'lucide-react'
 import { useUiStore } from '../stores/uiStore'
 import type { GmSidebarTab } from '../stores/uiStore'
 import { ArchivePanel } from './ArchivePanel'
 import { EntityPanel } from './EntityPanel'
+import { SceneConfigSidebarTab } from './SceneConfigSidebarTab'
 
 const TABS: { id: GmSidebarTab; icon: typeof Swords; label: string }[] = [
+  { id: 'scene', icon: Image, label: 'Scene' },
   { id: 'archives', icon: Swords, label: 'Archives' },
   { id: 'entities', icon: ClipboardList, label: 'Entities' },
 ]
@@ -40,6 +42,7 @@ export function GmSidebar() {
 
           {/* Tab content */}
           <div className="flex-1 overflow-hidden">
+            {activeTab === 'scene' && <SceneConfigSidebarTab />}
             {activeTab === 'archives' && <ArchivePanel />}
             {activeTab === 'entities' && <EntityPanel />}
           </div>

@@ -23,7 +23,7 @@ export function isMeasureTool(tool: ActiveTool): tool is MeasureTool {
   return MEASURE_TOOL_IDS.has(tool)
 }
 export type ThemeId = 'warm' | 'cold'
-export type GmSidebarTab = 'archives' | 'entities'
+export type GmSidebarTab = 'archives' | 'entities' | 'scene'
 
 export interface ActivePluginPanel {
   panelId: string
@@ -105,7 +105,7 @@ export const useUiStore = create<UiState>((set) => ({
   teamPanelVisible: false,
   lastMeasureTool: 'measure',
   gridConfigOpen: false,
-  gmSidebarTab: 'archives',
+  gmSidebarTab: 'scene',
   gmSidebarCollapsed: true,
 
   activePluginPanels: [],
