@@ -24,3 +24,13 @@ export {
 } from '@radix-ui/react-dropdown-menu'
 export { DropdownMenuContent } from './DropdownMenuContent'
 export { DropdownMenuItem } from './DropdownMenuItem'
+
+// ─── Dialog ──────────────────────────────────────────────
+export {
+  Root as DialogRoot,
+  Trigger as DialogTrigger,
+  Close as DialogClose,
+  Title as DialogTitle,
+  Description as DialogDescription,
+} from '@radix-ui/react-dialog'
+export { DialogContent } from './DialogContent'
