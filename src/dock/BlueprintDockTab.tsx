@@ -15,23 +15,6 @@ interface TokenDockTabProps {
   isTactical: boolean
 }
 
-/** Convert asset with type=blueprint into a Blueprint object */
-function assetToBlueprint(a: {
-  id: string
-  url: string
-  name: string
-  blueprint?: { defaultSize: number; defaultColor: string; defaultRuleData?: unknown }
-}): Blueprint {
-  return {
-    id: a.id,
-    name: a.name,
-    imageUrl: a.url,
-    defaultSize: a.blueprint?.defaultSize ?? 1,
-    defaultColor: a.blueprint?.defaultColor ?? '#3b82f6',
-    defaultRuleData: a.blueprint?.defaultRuleData,
-  }
-}
-
 export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: TokenDockTabProps) {
   const { t } = useTranslation('dock')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -44,48 +27,39 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
   )
   const [selectedTags, setSelectedTags] = useState<string[]>([])
 
-  // Read from world store — derive blueprints from assets with type === 'blueprint'
-  const allAssets = useWorldStore((s) => s.assets)
-  const upload = useWorldStore((s) => s.uploadAsset)
-  const softRemove = useWorldStore((s) => s.softRemoveAsset)
-  const updateAssetMeta = useWorldStore((s) => s.updateAsset)
+  // Read directly from blueprints store
+  const blueprints = useWorldStore((s) => s.blueprints)
+  const createBlueprint = useWorldStore((s) => s.createBlueprint)
+  const updateBlueprint = useWorldStore((s) => s.updateBlueprint)
+  const deleteBlueprintAction = useWorldStore((s) => s.deleteBlueprint)
+  const uploadAsset = useWorldStore((s) => s.uploadAsset)
 
   const { toast } = useToast()
-
-  const blueprintAssets = useMemo(
-    () => allAssets.filter((a) => a.type === 'blueprint'),
-    [allAssets],
-  )
 
   // Collect all used tags + merge with presets
   const availableTags = useMemo(() => {
     const used = new Set<string>()
-    for (const a of blueprintAssets) {
-      for (const t of a.tags) used.add(t)
+    for (const bp of blueprints) {
+      for (const t of bp.tags) used.add(t)
     }
     // Add presets that aren't already used
     for (const t of PRESET_TAGS) used.add(t)
     return Array.from(used)
-  }, [blueprintAssets])
+  }, [blueprints])
 
   // Filter by selected tags (AND logic)
-  const filteredAssets = useMemo(() => {
-    if (selectedTags.length === 0) return blueprintAssets
-    return blueprintAssets.filter((a) => selectedTags.every((t) => a.tags.includes(t)))
-  }, [blueprintAssets, selectedTags])
-
-  const blueprints = useMemo(() => filteredAssets.map(assetToBlueprint), [filteredAssets])
+  const filteredBlueprints = useMemo(() => {
+    if (selectedTags.length === 0) return blueprints
+    return blueprints.filter((bp) => selectedTags.every((t) => bp.tags.includes(t)))
+  }, [blueprints, selectedTags])
 
   const handleToggleTag = (tag: string) => {
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
   }
 
   const handleDelete = (bp: Blueprint) => {
-    const undo = softRemove(bp.id)
-    toast('undo', t('blueprint.deleted', { name: bp.name }), {
-      duration: 5000,
-      action: { label: t('blueprint.undo'), onClick: undo },
-    })
+    void deleteBlueprintAction(bp.id)
+    toast('info', t('blueprint.deleted', { name: bp.name }))
   }
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,10 +68,15 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     e.target.value = ''
     setUploading(true)
     try {
-      await upload(file, {
+      const asset = await uploadAsset(file, {
         name: file.name.replace(/\.[^.]+$/, ''),
-        type: 'blueprint',
-        blueprint: { defaultSize: 1, defaultColor: '#3b82f6' },
+        type: 'image',
+      })
+      if (!asset) return
+      await createBlueprint({
+        name: asset.name,
+        imageUrl: asset.url,
+        defaults: { color: '#3b82f6', width: 1, height: 1 },
       })
     } finally {
       setUploading(false)
@@ -111,7 +90,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
 
   const commitEdit = () => {
     if (editingId && editName.trim()) {
-      void updateAssetMeta(editingId, { name: editName.trim() })
+      void updateBlueprint(editingId, { name: editName.trim() })
     }
     setEditingId(null)
   }
@@ -125,26 +104,23 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
   const [editingTagsId, setEditingTagsId] = useState<string | null>(null)
   const [tagInput, setTagInput] = useState('')
 
-  const handleAddTag = (assetId: string) => {
+  const handleAddTag = (bpId: string) => {
     const tag = tagInput.trim()
     if (!tag) return
-    const asset = blueprintAssets.find((a) => a.id === assetId)
-    if (!asset) return
-    if (asset.tags.includes(tag)) {
+    const bp = blueprints.find((b) => b.id === bpId)
+    if (!bp) return
+    if (bp.tags.includes(tag)) {
       setTagInput('')
       return
     }
-    void updateAssetMeta(assetId, { tags: [...asset.tags, tag] } as Record<string, unknown>)
+    void updateBlueprint(bpId, { tags: [...bp.tags, tag] })
     setTagInput('')
   }
 
-  const handleRemoveTag = (assetId: string, tag: string) => {
-    const asset = blueprintAssets.find((a) => a.id === assetId)
-    if (!asset) return
-    void updateAssetMeta(assetId, { tags: asset.tags.filter((t) => t !== tag) } as Record<
-      string,
-      unknown
-    >)
+  const handleRemoveTag = (bpId: string, tag: string) => {
+    const bp = blueprints.find((b) => b.id === bpId)
+    if (!bp) return
+    void updateBlueprint(bpId, { tags: bp.tags.filter((t) => t !== tag) })
   }
 
   const getContextMenuItems = (bp: Blueprint): ContextMenuItem[] => {
@@ -196,7 +172,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
       />
 
       {/* Tag filter bar */}
-      {blueprintAssets.length > 0 && (
+      {blueprints.length > 0 && (
         <div className="mb-2.5">
           <TagFilterBar
             availableTags={availableTags}
@@ -206,7 +182,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
         </div>
       )}
 
-      {blueprints.length === 0 && blueprintAssets.length === 0 && (
+      {filteredBlueprints.length === 0 && blueprints.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
           <CircleDot size={32} strokeWidth={1} className="text-text-muted/40" />
           <p className="text-text-muted text-sm">{t('blueprint.empty')}</p>
@@ -214,7 +190,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
         </div>
       )}
 
-      {blueprints.length === 0 && blueprintAssets.length > 0 && (
+      {filteredBlueprints.length === 0 && blueprints.length > 0 && (
         <div className="text-center text-text-muted/40 text-xs py-6">{t('blueprint.no_match')}</div>
       )}
 
@@ -225,7 +201,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
           contentVisibility: 'auto',
         }}
       >
-        {blueprints.map((bp) => {
+        {filteredBlueprints.map((bp) => {
           const isHovered = hoveredId === bp.id
           return (
             <div
@@ -252,8 +228,8 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                 }}
                 className="w-14 h-14 rounded-full overflow-hidden cursor-pointer shrink-0 transition-shadow duration-fast"
                 style={{
-                  border: `3px solid ${bp.defaultColor}`,
-                  boxShadow: isHovered ? `0 0 12px ${bp.defaultColor}44` : 'none',
+                  border: `3px solid ${bp.defaults.color}`,
+                  boxShadow: isHovered ? `0 0 12px ${bp.defaults.color}44` : 'none',
                 }}
               >
                 <img
@@ -322,7 +298,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
       {/* Context menu */}
       {contextMenu &&
         (() => {
-          const bp = blueprints.find((b) => b.id === contextMenu.bpId)
+          const bp = filteredBlueprints.find((b) => b.id === contextMenu.bpId)
           if (!bp) return null
           return (
             <ContextMenu
@@ -339,11 +315,11 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
       {/* Tag editor inline panel */}
       {editingTagsId &&
         (() => {
-          const asset = blueprintAssets.find((a) => a.id === editingTagsId)
-          if (!asset) return null
-          // Autocomplete: existing tags not yet on this asset
+          const bp = blueprints.find((b) => b.id === editingTagsId)
+          if (!bp) return null
+          // Autocomplete: existing tags not yet on this blueprint
           const suggestions = availableTags.filter(
-            (t) => !asset.tags.includes(t) && t.includes(tagInput),
+            (t) => !bp.tags.includes(t) && t.includes(tagInput),
           )
           return (
             <div
@@ -354,7 +330,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-text-primary font-semibold truncate">
-                  {t('blueprint.tag_editor_title', { name: asset.name })}
+                  {t('blueprint.tag_editor_title', { name: bp.name })}
                 </span>
                 <button
                   onClick={() => {
@@ -367,7 +343,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
               </div>
               {/* Current tags */}
               <div className="flex flex-wrap gap-1 mb-2">
-                {asset.tags.map((tag) => (
+                {bp.tags.map((tag) => (
                   <span
                     key={tag}
                     className="inline-flex items-center gap-0.5 text-[10px] bg-accent/15 text-accent px-1.5 py-0.5 rounded-full"
@@ -375,7 +351,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                     {tag}
                     <button
                       onClick={() => {
-                        handleRemoveTag(asset.id, tag)
+                        handleRemoveTag(bp.id, tag)
                       }}
                       className="text-accent/50 hover:text-accent cursor-pointer"
                     >
@@ -383,7 +359,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                     </button>
                   </span>
                 ))}
-                {asset.tags.length === 0 && (
+                {bp.tags.length === 0 && (
                   <span className="text-[10px] text-text-muted/30 italic">
                     {t('blueprint.no_tags')}
                   </span>
@@ -397,20 +373,20 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                     setTagInput(e.target.value)
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleAddTag(asset.id)
+                    if (e.key === 'Enter') handleAddTag(bp.id)
                   }}
                   placeholder={t('blueprint.add_tag_placeholder')}
                   className="flex-1 text-[10px] bg-glass text-text-primary border border-border-glass rounded px-1.5 py-1 outline-none placeholder:text-text-muted/30"
-                  list={`tag-suggestions-${asset.id}`}
+                  list={`tag-suggestions-${bp.id}`}
                 />
-                <datalist id={`tag-suggestions-${asset.id}`}>
+                <datalist id={`tag-suggestions-${bp.id}`}>
                   {suggestions.map((s) => (
                     <option key={s} value={s} />
                   ))}
                 </datalist>
                 <button
                   onClick={() => {
-                    handleAddTag(asset.id)
+                    handleAddTag(bp.id)
                   }}
                   className="text-[10px] text-accent px-1.5 py-1 rounded bg-accent/10 hover:bg-accent/20 cursor-pointer transition-colors duration-fast"
                 >
