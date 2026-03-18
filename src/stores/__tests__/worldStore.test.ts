@@ -10,7 +10,7 @@ vi.mock('../../shared/assetUpload', () => ({
       id: 'uploaded-asset',
       url: '/uploads/file.png',
       name: 'file.png',
-      type: 'image',
+      mediaType: 'image',
       createdAt: 1234567890,
       extra: { tags: ['tag1'] },
     }),
@@ -162,7 +162,7 @@ const makeAsset = (overrides: Partial<AssetRecord> = {}): AssetRecord => ({
   id: 'asset-1',
   url: '/uploads/img.png',
   name: 'image.png',
-  type: 'image',
+  mediaType: 'image',
   createdAt: Date.now(),
   extra: {},
   ...overrides,
@@ -665,7 +665,8 @@ describe('socket event handlers', () => {
       id: 'asset-str-extra',
       url: '/uploads/x.png',
       name: 'x.png',
-      type: 'blueprint',
+      mediaType: 'image',
+      tags: ['warrior'],
       createdAt: 1000,
       extra: JSON.stringify({ tags: ['warrior'], blueprint: { defaultSize: 2 } }),
     })
@@ -1065,7 +1066,8 @@ describe('loadAll() via bundle endpoint', () => {
           id: 'a1',
           url: '/img.png',
           name: 'hero',
-          type: 'blueprint',
+          mediaType: 'image',
+          tags: ['warrior', 'npc'],
           createdAt: 1000,
           extra: {
             tags: ['warrior', 'npc'],
@@ -1084,7 +1086,7 @@ describe('loadAll() via bundle endpoint', () => {
     const assets = useWorldStore.getState().assets
     expect(assets).toHaveLength(1)
     expect(assets[0]?.tags).toEqual(['warrior', 'npc'])
-    expect(assets[0]?.type).toBe('blueprint')
+    expect(assets[0]?.mediaType).toBe('image')
     // extra field should NOT appear on AssetMeta
     expect((assets[0] as unknown as Record<string, unknown>).extra).toBeUndefined()
   })
@@ -1103,7 +1105,7 @@ describe('asset mutation actions', () => {
 
   it('uploadAsset: store is updated via asset:created socket event (no double-add)', async () => {
     const file = new File(['data'], 'new.png', { type: 'image/png' })
-    await useWorldStore.getState().uploadAsset(file, { type: 'image', tags: ['tag1'] })
+    await useWorldStore.getState().uploadAsset(file, { mediaType: 'image', tags: ['tag1'] })
 
     // Before socket event: upload itself no longer sets state
     expect(useWorldStore.getState().assets.find((a) => a.id === 'uploaded-asset')).toBeUndefined()
@@ -1113,7 +1115,8 @@ describe('asset mutation actions', () => {
       id: 'uploaded-asset',
       url: '/uploads/file.png',
       name: 'file.png',
-      type: 'image',
+      mediaType: 'image',
+      tags: ['tag1'],
       createdAt: 1234567890,
       extra: JSON.stringify({ tags: ['tag1'] }),
     })
@@ -1121,12 +1124,12 @@ describe('asset mutation actions', () => {
     const matches = useWorldStore.getState().assets.filter((a) => a.id === 'uploaded-asset')
     expect(matches).toHaveLength(1) // exactly one — no duplicate
     expect(matches[0]!.tags).toEqual(['tag1'])
-    expect(matches[0]!.type).toBe('image')
+    expect(matches[0]!.mediaType).toBe('image')
   })
 
   it('uploadAsset returns the normalized AssetMeta', async () => {
     const file = new File(['data'], 'new.png', { type: 'image/png' })
-    const result = await useWorldStore.getState().uploadAsset(file, { type: 'image' })
+    const result = await useWorldStore.getState().uploadAsset(file, { mediaType: 'image' })
 
     expect(result.id).toBe('uploaded-asset')
     expect(result.tags).toBeDefined()
@@ -1137,7 +1140,8 @@ describe('asset mutation actions', () => {
       id: 'asset-1',
       url: '/uploads/img.png',
       name: 'Renamed Asset',
-      type: 'image',
+      mediaType: 'image',
+      tags: ['newtag'],
       createdAt: Date.now(),
       extra: { tags: ['newtag'] },
     }
