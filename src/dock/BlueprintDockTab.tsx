@@ -1,9 +1,11 @@
 import { useRef, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Plus, CircleDot } from 'lucide-react'
+import * as ContextMenu from '@radix-ui/react-context-menu'
 import type { Blueprint } from '../shared/entityTypes'
 import { useWorldStore } from '../stores/worldStore'
-import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
+import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
+import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { useToast } from '../ui/useToast'
 import { TagFilterBar } from '../ui/TagFilterBar'
 
@@ -22,9 +24,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; bpId: string } | null>(
-    null,
-  )
   const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   // Read directly from blueprints store
@@ -94,12 +93,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     setEditingId(null)
   }
 
-  const handleContextMenu = (e: React.MouseEvent, bpId: string) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setContextMenu({ x: e.clientX, y: e.clientY, bpId })
-  }
-
   const [editingTagsId, setEditingTagsId] = useState<string | null>(null)
   const [tagInput, setTagInput] = useState('')
 
@@ -120,42 +113,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     const bp = blueprints.find((b) => b.id === bpId)
     if (!bp) return
     void updateBlueprint(bpId, { tags: bp.tags.filter((t) => t !== tag) })
-  }
-
-  const getContextMenuItems = (bp: Blueprint): ContextMenuItem[] => {
-    const items: ContextMenuItem[] = []
-    if (isTactical) {
-      items.push({
-        label: t('blueprint.spawn_on_map'),
-        testId: 'ctx-spawn-on-map',
-        onClick: () => {
-          onSpawnToken(bp)
-        },
-      })
-    }
-    items.push({
-      label: t('blueprint.add_as_npc'),
-      testId: 'ctx-add-as-npc',
-      onClick: () => {
-        onAddToActive(bp)
-      },
-    })
-    items.push({
-      label: t('blueprint.edit_tags'),
-      onClick: () => {
-        setEditingTagsId(bp.id)
-        setTagInput('')
-      },
-    })
-    items.push({
-      label: t('blueprint.delete_blueprint'),
-      testId: 'ctx-delete-blueprint',
-      onClick: () => {
-        handleDelete(bp)
-      },
-      color: '#f87171',
-    })
-    return items
   }
 
   return (
@@ -203,82 +160,120 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
         {filteredBlueprints.map((bp) => {
           const isHovered = hoveredId === bp.id
           return (
-            <div
-              key={bp.id}
-              className="flex flex-col items-center gap-1 relative"
-              onMouseEnter={() => {
-                setHoveredId(bp.id)
-              }}
-              onMouseLeave={() => {
-                setHoveredId(null)
-              }}
-              onContextMenu={(e) => {
-                handleContextMenu(e, bp.id)
-              }}
-            >
-              {/* Circular token image */}
-              <div
-                onClick={() => {
-                  if (isTactical) {
-                    onSpawnToken(bp)
-                  } else {
-                    onAddToActive(bp)
-                  }
-                }}
-                className="w-14 h-14 rounded-full overflow-hidden cursor-pointer shrink-0 transition-shadow duration-fast"
-                style={{
-                  border: `3px solid ${bp.defaults.color}`,
-                  boxShadow: isHovered ? `0 0 12px ${bp.defaults.color}44` : 'none',
-                }}
-              >
-                <img
-                  src={bp.imageUrl}
-                  alt={bp.name}
-                  className="w-full h-full object-cover block"
-                  draggable={false}
-                />
-              </div>
-
-              {/* Name label (double-click to edit) */}
-              {editingId === bp.id ? (
-                <input
-                  value={editName}
-                  onChange={(e) => {
-                    setEditName(e.target.value)
+            <ContextMenu.Root key={bp.id}>
+              <ContextMenu.Trigger asChild>
+                <div
+                  className="flex flex-col items-center gap-1 relative"
+                  onMouseEnter={() => {
+                    setHoveredId(bp.id)
                   }}
-                  onBlur={commitEdit}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitEdit()
-                    if (e.key === 'Escape') setEditingId(null)
+                  onMouseLeave={() => {
+                    setHoveredId(null)
                   }}
-                  autoFocus
-                  className="w-16 text-[9px] text-center bg-surface border border-border-glass rounded text-text-primary outline-none px-1 py-0.5"
-                />
-              ) : (
-                <span
-                  onDoubleClick={() => {
-                    startEdit(bp)
-                  }}
-                  className="text-[9px] text-text-muted/60 text-center overflow-hidden text-ellipsis whitespace-nowrap max-w-[72px] cursor-default"
                 >
-                  {bp.name}
-                </span>
-              )}
+                  {/* Circular token image */}
+                  <div
+                    onClick={() => {
+                      if (isTactical) {
+                        onSpawnToken(bp)
+                      } else {
+                        onAddToActive(bp)
+                      }
+                    }}
+                    className="w-14 h-14 rounded-full overflow-hidden cursor-pointer shrink-0 transition-shadow duration-fast"
+                    style={{
+                      border: `3px solid ${bp.defaults.color}`,
+                      boxShadow: isHovered ? `0 0 12px ${bp.defaults.color}44` : 'none',
+                    }}
+                  >
+                    <img
+                      src={bp.imageUrl}
+                      alt={bp.name}
+                      className="w-full h-full object-cover block"
+                      draggable={false}
+                    />
+                  </div>
 
-              {/* Delete button on hover */}
-              {isHovered && (
-                <button
-                  aria-label={t('blueprint.delete_blueprint')}
-                  onClick={(e) => {
-                    e.stopPropagation()
+                  {/* Name label (double-click to edit) */}
+                  {editingId === bp.id ? (
+                    <input
+                      value={editName}
+                      onChange={(e) => {
+                        setEditName(e.target.value)
+                      }}
+                      onBlur={commitEdit}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') commitEdit()
+                        if (e.key === 'Escape') setEditingId(null)
+                      }}
+                      autoFocus
+                      className="w-16 text-[9px] text-center bg-surface border border-border-glass rounded text-text-primary outline-none px-1 py-0.5"
+                    />
+                  ) : (
+                    <span
+                      onDoubleClick={() => {
+                        startEdit(bp)
+                      }}
+                      className="text-[9px] text-text-muted/60 text-center overflow-hidden text-ellipsis whitespace-nowrap max-w-[72px] cursor-default"
+                    >
+                      {bp.name}
+                    </span>
+                  )}
+
+                  {/* Delete button on hover */}
+                  {isHovered && (
+                    <button
+                      aria-label={t('blueprint.delete_blueprint')}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDelete(bp)
+                      }}
+                      className="absolute -top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 border-none cursor-pointer text-danger flex items-center justify-center p-0"
+                    >
+                      <X size={10} strokeWidth={2.5} />
+                    </button>
+                  )}
+                </div>
+              </ContextMenu.Trigger>
+
+              <ContextMenuContent>
+                {isTactical && (
+                  <ContextMenuItem
+                    data-testid="ctx-spawn-on-map"
+                    onSelect={() => {
+                      onSpawnToken(bp)
+                    }}
+                  >
+                    {t('blueprint.spawn_on_map')}
+                  </ContextMenuItem>
+                )}
+                <ContextMenuItem
+                  data-testid="ctx-add-as-npc"
+                  onSelect={() => {
+                    onAddToActive(bp)
+                  }}
+                >
+                  {t('blueprint.add_as_npc')}
+                </ContextMenuItem>
+                <ContextMenuItem
+                  onSelect={() => {
+                    setEditingTagsId(bp.id)
+                    setTagInput('')
+                  }}
+                >
+                  {t('blueprint.edit_tags')}
+                </ContextMenuItem>
+                <ContextMenuItem
+                  data-testid="ctx-delete-blueprint"
+                  variant="danger"
+                  onSelect={() => {
                     handleDelete(bp)
                   }}
-                  className="absolute -top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 border-none cursor-pointer text-danger flex items-center justify-center p-0"
                 >
-                  <X size={10} strokeWidth={2.5} />
-                </button>
-              )}
-            </div>
+                  {t('blueprint.delete_blueprint')}
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu.Root>
           )
         })}
 
@@ -293,23 +288,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
           <span className="text-[9px] text-text-muted/30">{t('blueprint.add_token')}</span>
         </div>
       </div>
-
-      {/* Context menu */}
-      {contextMenu &&
-        (() => {
-          const bp = filteredBlueprints.find((b) => b.id === contextMenu.bpId)
-          if (!bp) return null
-          return (
-            <ContextMenu
-              x={contextMenu.x}
-              y={contextMenu.y}
-              items={getContextMenuItems(bp)}
-              onClose={() => {
-                setContextMenu(null)
-              }}
-            />
-          )
-        })()}
 
       {/* Tag editor inline panel */}
       {editingTagsId &&
