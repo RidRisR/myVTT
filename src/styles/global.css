@@ -70,18 +70,6 @@
   }
 }
 
-/* Confirm popover entrance */
-@keyframes popover-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -100%) scale(0.95) translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -100%) scale(1) translateY(0);
-  }
-}
-
 /* Radix overlay entrance — only opacity + scale, NO translate (conflicts with Radix positioning) */
 @keyframes radix-popover-in {
   from {
