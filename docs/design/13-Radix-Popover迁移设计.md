@@ -5,7 +5,40 @@
 
 阶段一 POC 已完成并提交。后续阶段二、三的开发直接在此分支上继续，完成后提交 PR 合入 main。
 
-## 背景
+## 动机与目标
+
+项目即将开放插件系统（rule-plugin-system），插件需要与主系统保持一致的 UI 行为和视觉风格。当前浮层组件（弹窗、菜单、确认气泡）全部自建，存在两个核心问题：
+
+1. **重复且不完整**：三套组件各自实现 portal / 定位 / 关闭逻辑，但都缺少无障碍支持（ARIA 属性、焦点管理、键盘导航），且 ConfirmPopover 不处理视口碰撞
+2. **无法安全导出给插件**：自建组件的行为边界不明确（如 click-outside 监听在复杂布局下可能误触），直接导出给插件使用会带来难以排查的 bug
+
+引入成熟的 headless UI 库统一浮层行为，让基座和插件共享同一套经过社区验证的底层能力。
+
+### 预期收益
+
+- **减少 ~200 行** 重复的底层逻辑（portal、getBoundingClientRect、pointerdown/keydown 监听）
+- **自动获得无障碍能力**：ARIA role、焦点陷阱、键盘导航，无需手写
+- **视口碰撞检测**：Radix 内置 @floating-ui，自动处理边界翻转，不再溢出屏幕
+- **插件 SDK 导出基础**：迁移后的组件行为边界清晰，可安全导出给插件复用
+
+## 为什么选择 Radix UI
+
+评估了三类方案：
+
+| 方案            | 代表库                    | 优点                                 | 缺点                                                     |
+| --------------- | ------------------------- | ------------------------------------ | -------------------------------------------------------- |
+| 全功能组件库    | Ant Design, MUI, Mantine  | 开箱即用，功能齐全                   | 自带样式系统，与项目 Tailwind + design token 体系冲突    |
+| headless 行为库 | **Radix UI**, Headless UI | 只管行为和无障碍，样式完全由项目控制 | 需要自己写样式（但我们已有完整的设计系统，这反而是优势） |
+| 保持自建        | 现有代码                  | 无新依赖                             | 持续维护成本高，无障碍缺失，插件导出困难                 |
+
+选择 Radix UI 的理由：
+
+1. **headless 架构**：不引入任何样式，与项目现有的 Tailwind + Alchemy RPG 设计系统零冲突
+2. **按组件拆包**：只安装 `@radix-ui/react-popover` 一个包（+21.79 KB gzipped），不需要引入整个库
+3. **Popover.Anchor 模式**：提供纯定位锚点（不拦截事件），这是与 Konva canvas 事件模型兼容的关键——Konva 自行处理右键事件，Radix 只负责在指定坐标弹出内容
+4. **社区生态成熟**：shadcn/ui 等流行方案都基于 Radix，长期维护有保障
+
+## 现状
 
 项目当前有三套自建浮层组件，各自实现 portal、定位、click-outside、Escape 关闭：
 
@@ -21,6 +54,15 @@
 2. 无 ARIA 属性、无焦点管理、无键盘导航
 3. ConfirmPopover 不处理视口边界碰撞（popover 可能溢出屏幕）
 4. z-index 使用不规范（详见下文"z-index 层级问题"）
+
+## 约束
+
+1. **样式归属**：Radix 只管行为，所有视觉样式仍通过 Tailwind utility class + 项目 design token 实现，不引入任何 Radix 主题或外部 CSS
+2. **Konva 事件模型不可侵入**：Radix 组件不得拦截或修改 Konva canvas 的事件传播链（`e.evt.stopPropagation()`、`e.cancelBubble`）。必须使用 `Popover.Anchor`（纯定位），禁止在 canvas 区域使用 `Popover.Trigger`（会拦截点击）
+3. **增量迁移**：逐组件替换，每个调用点独立可验证。不做一次性大规模重写，避免引入回归
+4. **Bundle 预算**：总 gzipped 增量不超过 25 KB。当前实测 +21.79 KB（含 @floating-ui），在预算内
+5. **不改变外部 API**：迁移是内部实现替换，组件对外的 props 接口和使用方式保持一致（如 RadixContextMenu 仍接受 `{x, y, open, onClose, children}`）
+6. **z-index 遵循语义分层**：迁移后所有浮层必须使用项目定义的语义 z-index（`z-popover: 5000`），不得使用硬编码魔法数字。当前 `10001` 是临时方案，需配合 z-index 修复一并解决
 
 ## POC 验证结论
 
