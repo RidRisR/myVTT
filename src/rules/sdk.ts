@@ -33,5 +33,5 @@ export { useAwarenessResource } from '../shared/hooks/useAwarenessResource'
 export { usePluginPanels } from './usePluginPanels'
 
 export { tokenizeExpression, buildCompoundResult } from '../shared/diceUtils'
-export type { ChatRollMessage } from '../chat/chatTypes'
+export type { ChatRollMessage } from '../shared/chatTypes'
 export type { RollCardProps } from './types'

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import { MessageSquare } from 'lucide-react'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
-import type { ChatMessage } from './chatTypes'
+import type { ChatMessage } from '../shared/chatTypes'
 import { MessageCard } from './MessageCard'
 
 interface MessageScrollAreaProps {

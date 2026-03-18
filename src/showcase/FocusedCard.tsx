@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { ShowcaseItem } from './showcaseTypes'
+import type { ShowcaseItem } from '../shared/showcaseTypes'
 
 interface FocusedCardProps {
   item: ShowcaseItem

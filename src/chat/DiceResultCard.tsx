@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import type { ChatRollMessage } from './chatTypes'
+import type { ChatRollMessage } from '../shared/chatTypes'
 import type { DieConfig } from '../rules/types'
 import { DiceReel } from './DiceReel'
 import { calcTotalAnimDuration, SPIN_DURATION, STOP_INTERVAL } from './diceAnimUtils'

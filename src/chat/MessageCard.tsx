@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { Star } from 'lucide-react'
-import type { ChatMessage, ChatRollMessage } from './chatTypes'
+import type { ChatMessage, ChatRollMessage } from '../shared/chatTypes'
 import { Avatar } from './Avatar'
 import { DiceResultCard, DiceAnimContent } from './DiceResultCard'
 import { useRulePlugin } from '../rules/useRulePlugin'

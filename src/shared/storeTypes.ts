@@ -78,3 +78,23 @@ export interface ArchiveRecord {
   roundNumber: number
   currentTurnTokenId: string | null
 }
+
+// ── Admin / Room types ──
+
+/** Shape of a room as used in admin panel listings and socket events. */
+export interface RoomMeta {
+  id: string
+  name: string
+  ruleSystemId: string
+  createdAt: number
+  onlineColors?: string[] // optional: lazily populated via room:presence events
+}
+
+/** REST response body for POST /api/rooms */
+export interface RoomCreateResponse {
+  id: string
+  name: string
+  ruleSystemId: string
+  createdAt: number
+  createdBy: string
+}

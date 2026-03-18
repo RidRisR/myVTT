@@ -2,7 +2,7 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import type { TypedServer } from '../socketTypes'
-import type { ShowcaseItem } from '../../src/showcase/showcaseTypes'
+import type { ShowcaseItem } from '../../src/shared/showcaseTypes'
 import { withRoom } from '../middleware'
 import { toCamel, toBoolFields, parseJsonFields } from '../db'
 

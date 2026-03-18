@@ -19,8 +19,8 @@ vi.mock('../../shared/assetUpload', () => ({
   getMediaDimensions: vi.fn(() => Promise.resolve({ w: 100, h: 100 })),
 }))
 import type { Entity, MapToken } from '../../shared/entityTypes'
-import type { ShowcaseItem } from '../../showcase/showcaseTypes'
-import type { ChatTextMessage } from '../../chat/chatTypes'
+import type { ShowcaseItem } from '../../shared/showcaseTypes'
+import type { ChatTextMessage } from '../../shared/chatTypes'
 
 // ── Mock fetch globally (api.ts uses fetch internally) ──
 

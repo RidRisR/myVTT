@@ -5,8 +5,9 @@ import { withRoom } from '../middleware'
 import { getGlobalDb, toCamel, toCamelAll, parseJsonFields, toBoolFields } from '../db'
 import { getTacticalState } from './tactical'
 import type Database from 'better-sqlite3'
+import type { BundleResponse } from '../../src/shared/bundleTypes'
 
-function getBundle(dataDir: string, roomDb: Database.Database, roomId: string) {
+function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): BundleResponse {
   const globalDb = getGlobalDb(dataDir)
   const roomRow = toCamel(
     globalDb.prepare('SELECT * FROM rooms WHERE id = ?').get(roomId) as Record<string, unknown>,
@@ -110,7 +111,7 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string) {
     teamTrackers: data.teamTrackers,
     showcase: data.showcase,
     tactical: data.tactical,
-  }
+  } as unknown as BundleResponse
 }
 
 export function bundleRoutes(dataDir: string, _io: TypedServer): Router {

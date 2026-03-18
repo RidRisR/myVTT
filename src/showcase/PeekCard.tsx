@@ -1,4 +1,4 @@
-import type { ShowcaseItem } from './showcaseTypes'
+import type { ShowcaseItem } from '../shared/showcaseTypes'
 
 interface PeekCardProps {
   item: ShowcaseItem
