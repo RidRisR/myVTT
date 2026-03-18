@@ -3,8 +3,8 @@ import { Plus, Download, Save, MoreVertical, Copy, Pencil, Trash2, Swords } from
 import { useWorldStore } from '../stores/worldStore'
 import type { ArchiveRecord } from '../stores/worldStore'
 import { selectIsTactical } from '../stores/selectors'
-import { useToast } from '../shared/ui/useToast'
-import { ConfirmPopover } from '../shared/ui/ConfirmPopover'
+import { useToast } from '../ui/useToast'
+import { ConfirmPopover } from '../ui/ConfirmPopover'
 
 export function ArchivePanel() {
   const activeSceneId = useWorldStore((s) => s.room.activeSceneId)

@@ -10,10 +10,10 @@ import {
   type AttributeView,
 } from '../shared/entityAdapters'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
-import { ResourceBar } from '../shared/ui/ResourceBar'
-import { MiniHoldButton } from '../shared/ui/MiniHoldButton'
+import { ResourceBar } from '../ui/ResourceBar'
+import { MiniHoldButton } from '../ui/MiniHoldButton'
 import { useIdentityStore } from '../stores/identityStore'
-import { useAwarenessResource, getRemoteEdit } from '../shared/hooks/useAwarenessResource'
+import { useAwarenessResource, getRemoteEdit } from '../hooks/useAwarenessResource'
 
 interface CharacterEditPanelProps {
   character: Entity

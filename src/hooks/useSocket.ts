@@ -1,13 +1,10 @@
-// src/shared/hooks/useSocket.ts — Socket.io connection hook
+// src/hooks/useSocket.ts — Socket.io connection hook
 import { useEffect, useState, useRef } from 'react'
-import { io, type Socket } from 'socket.io-client'
-import type { ServerToClientEvents, ClientToServerEvents } from '../socketEvents'
-import { API_BASE } from '../config'
+import { io } from 'socket.io-client'
+import type { TypedClientSocket, ConnectionStatus } from '../shared/socketEvents'
+import { API_BASE } from '../shared/config'
 
-/** Typed client socket — enforces event name + payload consistency */
-export type TypedClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>
-
-export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
+export type { TypedClientSocket, ConnectionStatus } from '../shared/socketEvents'
 
 export function useSocket(roomId: string) {
   const [socket, setSocket] = useState<TypedClientSocket | null>(null)

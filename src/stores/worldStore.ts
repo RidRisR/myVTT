@@ -3,7 +3,7 @@
 // All actions send REST requests; store updates come ONLY via WS events.
 
 import { create } from 'zustand'
-import type { TypedClientSocket } from '../shared/hooks/useSocket'
+import type { TypedClientSocket } from '../shared/socketEvents'
 import type { Entity, MapToken, Atmosphere, SceneEntityEntry } from '../shared/entityTypes'
 import type { ShowcaseItem } from '../shared/showcaseTypes'
 import type { ChatMessage } from '../shared/chatTypes'

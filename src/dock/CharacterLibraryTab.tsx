@@ -6,7 +6,7 @@ import { generateTokenId } from '../shared/idUtils'
 import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
 import { useUiStore } from '../stores/uiStore'
-import { useToast } from '../shared/ui/useToast'
+import { useToast } from '../ui/useToast'
 import { useRulePlugin } from '../rules/useRulePlugin'
 
 export function CharacterLibraryTab() {

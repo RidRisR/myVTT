@@ -69,10 +69,10 @@
 
 ## 复用清单
 
-| 基座组件           | 路径                               | 插件可复用    |
-| ------------------ | ---------------------------------- | ------------- |
-| `rollCompound()`   | `src/shared/diceUtils.ts`          | 掷骰核心      |
-| `resolveFormula()` | `src/shared/diceUtils.ts`          | @变量替换     |
-| `ResourceBar`      | `src/shared/ui/ResourceBar.tsx`    | 角色卡资源条  |
-| `MiniHoldButton`   | `src/shared/ui/MiniHoldButton.tsx` | 长按按钮      |
-| `useHoldRepeat`    | `src/shared/useHoldRepeat.ts`      | 长按加速 hook |
+| 基座组件           | 路径                          | 插件可复用    |
+| ------------------ | ----------------------------- | ------------- |
+| `rollCompound()`   | `src/shared/diceUtils.ts`     | 掷骰核心      |
+| `resolveFormula()` | `src/shared/diceUtils.ts`     | @变量替换     |
+| `ResourceBar`      | `src/ui/ResourceBar.tsx`      | 角色卡资源条  |
+| `MiniHoldButton`   | `src/ui/MiniHoldButton.tsx`   | 长按按钮      |
+| `useHoldRepeat`    | `src/shared/useHoldRepeat.ts` | 长按加速 hook |

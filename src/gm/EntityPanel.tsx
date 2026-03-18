@@ -5,7 +5,7 @@ import { defaultNPCPermissions } from '../shared/permissions'
 import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
 import { useUiStore } from '../stores/uiStore'
-import { useToast } from '../shared/ui/useToast'
+import { useToast } from '../ui/useToast'
 import { generateTokenId } from '../shared/idUtils'
 import { EntityRow } from './EntityRow'
 

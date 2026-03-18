@@ -1,8 +1,8 @@
-// src/shared/hooks/useAwarenessResource.ts
+// src/hooks/useAwarenessResource.ts
 // Broadcasts resource-drag state via Socket.io and listens for remote drags.
 
 import { useState, useCallback, useEffect } from 'react'
-import { useWorldStore } from '../../stores/worldStore'
+import { useWorldStore } from '../stores/worldStore'
 
 export interface AwarenessResourceState {
   entityId: string

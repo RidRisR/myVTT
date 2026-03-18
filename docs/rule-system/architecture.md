@@ -34,7 +34,7 @@ myVTT 提供通用骨架（场景、实体、Token、权限、聊天），规则
 | **战术地图**   | Grid、Token 拖拽、缩放平移                           | `src/combat/`                   |
 | **场景显示**   | 全屏氛围图、场景切换                                 | `src/scene/`                    |
 | **UI 容器**    | 侧边栏框架、弹出面板、浮动 UI 定位                   | `src/gm/`, `src/identity/`      |
-| **共享组件库** | ResourceBar、MiniHoldButton、useHoldRepeat           | `src/shared/ui/`                |
+| **共享组件库** | ResourceBar、MiniHoldButton、useHoldRepeat           | `src/ui/`                       |
 | **身份系统**   | 座位认领、在线状态、头像栏                           | `src/identity/`                 |
 
 ### 规则提供（通过 RulePlugin 接口）

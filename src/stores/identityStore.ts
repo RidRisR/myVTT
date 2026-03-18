@@ -3,7 +3,7 @@
 // REST API for seat CRUD; Socket.io events for real-time updates.
 
 import { create } from 'zustand'
-import type { TypedClientSocket } from '../shared/hooks/useSocket'
+import type { TypedClientSocket } from '../shared/socketEvents'
 import { api } from '../shared/api'
 
 export type { Seat } from '../shared/storeTypes'

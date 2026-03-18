@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { EventEmitter } from 'events'
 import { useAwarenessResource, getRemoteEdit } from '../useAwarenessResource'
-import { useWorldStore } from '../../../stores/worldStore'
+import { useWorldStore } from '../../stores/worldStore'
 
 // ── Mock socket factory ──
 
@@ -26,7 +26,7 @@ type MockSocket = ReturnType<typeof makeMockSocket>
 
 let mockSocket: MockSocket | null = null
 
-vi.mock('../../../stores/worldStore', () => ({
+vi.mock('../../stores/worldStore', () => ({
   useWorldStore: vi.fn((selector: (s: Record<string, unknown>) => unknown) =>
     selector({ _socket: mockSocket }),
   ),
