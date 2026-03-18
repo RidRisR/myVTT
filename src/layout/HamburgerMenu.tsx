@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Menu, LogOut, Sun, Moon, Globe } from 'lucide-react'
+import * as Popover from '@radix-ui/react-popover'
 import { SEAT_COLORS, type Seat } from '../stores/identityStore'
 import { uploadAsset } from '../shared/assetUpload'
 import { useUiStore } from '../stores/uiStore'
 import { useWorldStore } from '../stores/worldStore'
 import { getAvailablePlugins } from '../rules/registry'
+import { PopoverContent } from '../ui/primitives/PopoverContent'
 
 interface HamburgerMenuProps {
   mySeat: Seat
@@ -28,24 +30,6 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
   useEffect(() => {
     setEditName(mySeat.name)
   }, [mySeat.name])
-
-  useEffect(() => {
-    if (!open) return
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (editing) {
-          setEditing(false)
-          setEditName(mySeat.name)
-        } else {
-          setOpen(false)
-        }
-      }
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => {
-      window.removeEventListener('keydown', handleKey)
-    }
-  }, [open, editing, mySeat.name])
 
   const handlePortraitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -77,176 +61,184 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
         e.stopPropagation()
       }}
     >
-      <button
-        data-testid="hamburger-menu"
-        onClick={() => {
-          setOpen(!open)
+      <Popover.Root
+        open={open}
+        onOpenChange={(isOpen) => {
+          setOpen(isOpen)
+          if (!isOpen) setEditing(false)
         }}
-        className={`p-2 rounded-lg backdrop-blur-[16px] border border-border-glass cursor-pointer shadow-[0_2px_12px_rgba(0,0,0,0.25)] flex items-center transition-colors duration-fast ${
-          open ? 'bg-surface' : 'bg-glass hover:bg-surface'
-        }`}
       >
-        <Menu size={16} strokeWidth={1.5} className="text-text-muted" />
-      </button>
+        <Popover.Trigger asChild>
+          <button
+            data-testid="hamburger-menu"
+            className={`p-2 rounded-lg backdrop-blur-[16px] border border-border-glass cursor-pointer shadow-[0_2px_12px_rgba(0,0,0,0.25)] flex items-center transition-colors duration-fast ${
+              open ? 'bg-surface' : 'bg-glass hover:bg-surface'
+            }`}
+          >
+            <Menu size={16} strokeWidth={1.5} className="text-text-muted" />
+          </button>
+        </Popover.Trigger>
 
-      {open && (
-        <>
-          <div
-            className="fixed inset-0 -z-[1]"
-            onClick={() => {
-              setOpen(false)
+        <PopoverContent
+          side="bottom"
+          align="start"
+          sideOffset={6}
+          onEscapeKeyDown={(e) => {
+            if (editing) {
+              e.preventDefault()
               setEditing(false)
-            }}
-          />
-          <div className="absolute top-full left-0 mt-1.5 bg-glass backdrop-blur-[16px] rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.35)] border border-border-glass min-w-[220px] p-1.5 z-ui animate-fade-in">
-            {/* Seat profile section */}
-            <div className="px-3 py-2.5">
-              <div className="flex items-center gap-2.5">
-                {/* Portrait — clickable to upload */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    void handlePortraitUpload(e)
-                  }}
-                />
+              setEditName(mySeat.name)
+            }
+          }}
+          className="min-w-[220px] p-1.5 rounded-xl bg-glass backdrop-blur-[16px] px-0"
+        >
+          {/* Seat profile section */}
+          <div className="px-3 py-2.5">
+            <div className="flex items-center gap-2.5">
+              {/* Portrait — clickable to upload */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  void handlePortraitUpload(e)
+                }}
+              />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="relative cursor-pointer shrink-0"
+                title={t('menu.change_avatar')}
+              >
+                {mySeat.portraitUrl ? (
+                  <img
+                    src={mySeat.portraitUrl}
+                    alt=""
+                    className="w-9 h-9 rounded-full object-cover block"
+                    style={{ border: `2px solid ${mySeat.color}` }}
+                  />
+                ) : (
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                    style={{ background: mySeat.color }}
+                  >
+                    {mySeat.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {/* Hover overlay */}
                 <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="relative cursor-pointer shrink-0"
-                  title={t('menu.change_avatar')}
+                  className="absolute inset-0 rounded-full flex items-center justify-center transition-colors duration-fast text-[9px] text-white"
+                  style={{
+                    background: uploading ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0.4)'
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0)'
+                  }}
                 >
-                  {mySeat.portraitUrl ? (
-                    <img
-                      src={mySeat.portraitUrl}
-                      alt=""
-                      className="w-9 h-9 rounded-full object-cover block"
-                      style={{ border: `2px solid ${mySeat.color}` }}
-                    />
-                  ) : (
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                      style={{ background: mySeat.color }}
-                    >
-                      {mySeat.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  {/* Hover overlay */}
-                  <div
-                    className="absolute inset-0 rounded-full flex items-center justify-center transition-colors duration-fast text-[9px] text-white"
-                    style={{
-                      background: uploading ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0)',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0.4)'
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0)'
-                    }}
-                  >
-                    {uploading ? '...' : ''}
-                  </div>
-                </div>
-
-                {/* Name + role */}
-                <div className="flex-1 min-w-0">
-                  {editing ? (
-                    <input
-                      autoFocus
-                      value={editName}
-                      onChange={(e) => {
-                        setEditName(e.target.value)
-                      }}
-                      onBlur={handleSaveName}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveName()
-                        if (e.key === 'Escape') {
-                          setEditing(false)
-                          setEditName(mySeat.name)
-                        }
-                      }}
-                      className="w-full px-1.5 py-0.5 border border-border-glass rounded-md text-[13px] font-semibold bg-surface text-text-primary outline-none"
-                    />
-                  ) : (
-                    <div
-                      onClick={() => {
-                        setEditing(true)
-                      }}
-                      className="font-semibold text-[13px] text-text-primary overflow-hidden text-ellipsis whitespace-nowrap cursor-text"
-                      title="Click to rename"
-                    >
-                      {mySeat.name}
-                    </div>
-                  )}
-                  <div
-                    className="text-[10px] font-medium mt-px"
-                    style={{
-                      color: mySeat.role === 'GM' ? '#fbbf24' : '#60a5fa',
-                    }}
-                  >
-                    {mySeat.role === 'GM' ? t('role.game_master') : t('role.player')}
-                  </div>
+                  {uploading ? '...' : ''}
                 </div>
               </div>
 
-              {/* Color picker */}
-              <div className="flex gap-1.5 mt-2.5 flex-wrap">
-                {SEAT_COLORS.map((c) => (
-                  <div
-                    key={c}
-                    onClick={() => {
-                      onUpdateSeat(mySeat.id, { color: c })
+              {/* Name + role */}
+              <div className="flex-1 min-w-0">
+                {editing ? (
+                  <input
+                    autoFocus
+                    value={editName}
+                    onChange={(e) => {
+                      setEditName(e.target.value)
                     }}
-                    className="w-[18px] h-[18px] rounded-full cursor-pointer transition-[border-color] duration-fast"
-                    style={{
-                      background: c,
-                      border: c === mySeat.color ? '2px solid #fff' : '2px solid transparent',
+                    onBlur={handleSaveName}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveName()
+                      if (e.key === 'Escape') {
+                        setEditing(false)
+                        setEditName(mySeat.name)
+                      }
                     }}
+                    className="w-full px-1.5 py-0.5 border border-border-glass rounded-md text-[13px] font-semibold bg-surface text-text-primary outline-none"
                   />
-                ))}
+                ) : (
+                  <div
+                    onClick={() => {
+                      setEditing(true)
+                    }}
+                    className="font-semibold text-[13px] text-text-primary overflow-hidden text-ellipsis whitespace-nowrap cursor-text"
+                    title="Click to rename"
+                  >
+                    {mySeat.name}
+                  </div>
+                )}
+                <div
+                  className="text-[10px] font-medium mt-px"
+                  style={{
+                    color: mySeat.role === 'GM' ? '#fbbf24' : '#60a5fa',
+                  }}
+                >
+                  {mySeat.role === 'GM' ? t('role.game_master') : t('role.player')}
+                </div>
               </div>
             </div>
 
-            <div className="h-px bg-border-glass mx-2 my-0.5" />
-
-            <ThemeToggle />
-
-            <LanguageSwitcher />
-
-            {isGM && (
-              <>
-                <div className="h-px bg-border-glass mx-2 my-0.5" />
-                <div className="px-3 py-2">
-                  <div className="text-[10px] text-text-muted/40 uppercase tracking-wider mb-1">
-                    {t('menu.game_system')}
-                  </div>
-                  <div className="text-xs text-text-primary font-semibold">
-                    {availablePlugins.find((p) => p.id === ruleSystemId)?.name ?? ruleSystemId}
-                  </div>
-                  <div className="text-[10px] text-text-muted/35 mt-0.5">
-                    {t('menu.system_fixed')}
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="h-px bg-border-glass mx-2 my-0.5" />
-
-            <button
-              onClick={() => {
-                setOpen(false)
-                onLeaveSeat()
-              }}
-              data-testid="leave-seat"
-              className="w-full px-3 py-2 bg-transparent border-none rounded-lg cursor-pointer text-xs text-danger font-medium text-left flex items-center gap-2 transition-colors duration-fast hover:bg-danger/10"
-            >
-              <LogOut size={14} strokeWidth={1.5} />
-              {t('menu.leave_seat')}
-            </button>
+            {/* Color picker */}
+            <div className="flex gap-1.5 mt-2.5 flex-wrap">
+              {SEAT_COLORS.map((c) => (
+                <div
+                  key={c}
+                  onClick={() => {
+                    onUpdateSeat(mySeat.id, { color: c })
+                  }}
+                  className="w-[18px] h-[18px] rounded-full cursor-pointer transition-[border-color] duration-fast"
+                  style={{
+                    background: c,
+                    border: c === mySeat.color ? '2px solid #fff' : '2px solid transparent',
+                  }}
+                />
+              ))}
+            </div>
           </div>
-        </>
-      )}
+
+          <div className="h-px bg-border-glass mx-2 my-0.5" />
+
+          <ThemeToggle />
+
+          <LanguageSwitcher />
+
+          {isGM && (
+            <>
+              <div className="h-px bg-border-glass mx-2 my-0.5" />
+              <div className="px-3 py-2">
+                <div className="text-[10px] text-text-muted/40 uppercase tracking-wider mb-1">
+                  {t('menu.game_system')}
+                </div>
+                <div className="text-xs text-text-primary font-semibold">
+                  {availablePlugins.find((p) => p.id === ruleSystemId)?.name ?? ruleSystemId}
+                </div>
+                <div className="text-[10px] text-text-muted/35 mt-0.5">
+                  {t('menu.system_fixed')}
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="h-px bg-border-glass mx-2 my-0.5" />
+
+          <button
+            onClick={() => {
+              setOpen(false)
+              onLeaveSeat()
+            }}
+            data-testid="leave-seat"
+            className="w-full px-3 py-2 bg-transparent border-none rounded-lg cursor-pointer text-xs text-danger font-medium text-left flex items-center gap-2 transition-colors duration-fast hover:bg-danger/10"
+          >
+            <LogOut size={14} strokeWidth={1.5} />
+            {t('menu.leave_seat')}
+          </button>
+        </PopoverContent>
+      </Popover.Root>
     </div>
   )
 }
