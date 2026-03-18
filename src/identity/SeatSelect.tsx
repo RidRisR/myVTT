@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Dices } from 'lucide-react'
 import { SEAT_COLORS, type Seat } from '../stores/identityStore'
+import { randomName } from './randomName'
 
 interface SeatSelectProps {
   seats: Seat[]
@@ -101,18 +102,29 @@ export function SeatSelect({ seats, onlineSeatIds, onClaim, onCreate, onDelete }
           <>
             <div className="mb-3">
               <label className="text-xs text-text-muted block mb-1">Name</label>
-              <input
-                autoFocus
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && name.trim()) onCreate(name.trim(), role, color)
-                }}
-                placeholder="Your character name"
-                className="w-full px-3 py-2 border border-border-glass rounded-md text-sm bg-surface text-text-primary outline-none box-border placeholder:text-text-muted/40"
-              />
+              <div className="flex gap-1.5">
+                <input
+                  autoFocus
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && name.trim()) onCreate(name.trim(), role, color)
+                  }}
+                  placeholder="Your character name"
+                  className="flex-1 px-3 py-2 border border-border-glass rounded-md text-sm bg-surface text-text-primary outline-none box-border placeholder:text-text-muted/40"
+                />
+                <button
+                  onClick={() => {
+                    setName(randomName())
+                  }}
+                  className="px-2 py-2 border border-border-glass rounded-md bg-surface text-text-muted hover:text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
+                  title="Random name"
+                >
+                  <Dices size={16} strokeWidth={1.5} />
+                </button>
+              </div>
             </div>
 
             <div className="mb-3">

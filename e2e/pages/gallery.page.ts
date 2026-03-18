@@ -14,7 +14,9 @@ export class GalleryPage {
     const fileInput = this.page.locator('input[type="file"][accept*="image"]')
     await fileInput.setInputFiles(filePath)
     // Wait for uploading state to finish (Upload button re-appears)
-    await expect(this.page.getByRole('button', { name: 'Upload' })).toBeEnabled({ timeout: 15_000 })
+    await expect(this.page.getByRole('button', { name: 'Upload', exact: true })).toBeEnabled({
+      timeout: 15_000,
+    })
   }
 
   /** Assert an asset with the given name is visible in the Gallery grid */

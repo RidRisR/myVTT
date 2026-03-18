@@ -33,8 +33,8 @@ test.describe('Archive Save & Load', () => {
 
     // ── Step 1: Save as new archive (captures 1 token) ──
     await room.gmSidebar.openArchives()
-    await page.getByRole('button', { name: '存为新档' }).click()
-    await expect(page.getByText('存档 1')).toBeVisible({ timeout: 5_000 })
+    await page.getByRole('button', { name: 'Save New' }).click()
+    await expect(page.getByText('Archive 1')).toBeVisible({ timeout: 5_000 })
 
     // ── Step 2: Delete the token ──
     await page.evaluate(() => {
@@ -49,11 +49,11 @@ test.describe('Archive Save & Load', () => {
     )
 
     // ── Step 3: Load the archive → restore 1 token ──
-    await page.getByText('存档 1').click()
-    await expect(page.getByRole('button', { name: '加载' })).toBeVisible()
-    await page.getByRole('button', { name: '加载' }).click()
+    await page.getByText('Archive 1').click()
+    await expect(page.getByRole('button', { name: 'Load' })).toBeVisible()
+    await page.getByRole('button', { name: 'Load' }).click()
     // Confirm the load in the popover
-    await page.getByText('确认').click()
+    await page.getByText('Confirm').click()
 
     await page.waitForFunction(
       () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 1,
@@ -96,8 +96,8 @@ test.describe('Archive Save & Load', () => {
 
     // Save as new
     await room.gmSidebar.openArchives()
-    await page.getByRole('button', { name: '存为新档' }).click()
-    await expect(page.getByText('存档 1')).toBeVisible({ timeout: 5_000 })
+    await page.getByRole('button', { name: 'Save New' }).click()
+    await expect(page.getByText('Archive 1')).toBeVisible({ timeout: 5_000 })
 
     // Delete token
     await page.evaluate(() => {
@@ -111,9 +111,9 @@ test.describe('Archive Save & Load', () => {
     )
 
     // Load first time
-    await page.getByText('存档 1').click()
-    await page.getByRole('button', { name: '加载' }).click()
-    await page.getByText('确认').click()
+    await page.getByText('Archive 1').click()
+    await page.getByRole('button', { name: 'Load' }).click()
+    await page.getByText('Confirm').click()
     await page.waitForFunction(
       () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 1,
       null,
@@ -132,9 +132,9 @@ test.describe('Archive Save & Load', () => {
     )
 
     // Load SECOND time — validates the original bug is fixed
-    await page.getByText('存档 1').click()
-    await page.getByRole('button', { name: '加载' }).click()
-    await page.getByText('确认').click()
+    await page.getByText('Archive 1').click()
+    await page.getByRole('button', { name: 'Load' }).click()
+    await page.getByText('Confirm').click()
     await page.waitForFunction(
       () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 1,
       null,
@@ -171,8 +171,8 @@ test.describe('Archive Save & Load', () => {
       { timeout: 10_000 },
     )
     await room.gmSidebar.openArchives()
-    await page.getByRole('button', { name: '存为新档' }).click()
-    await expect(page.getByText('存档 1')).toBeVisible({ timeout: 5_000 })
+    await page.getByRole('button', { name: 'Save New' }).click()
+    await expect(page.getByText('Archive 1')).toBeVisible({ timeout: 5_000 })
 
     // Create a second token (now 2 tokens on battlefield)
     await room.tactical.rightClickCenter()
@@ -184,8 +184,8 @@ test.describe('Archive Save & Load', () => {
     )
 
     // Select archive and overwrite (now archive has 2 tokens)
-    await page.getByText('存档 1').click()
-    await page.getByRole('button', { name: '覆盖' }).click()
+    await page.getByText('Archive 1').click()
+    await page.getByRole('button', { name: 'Overwrite' }).click()
     await page.waitForTimeout(500)
 
     // Delete all tokens
@@ -200,9 +200,9 @@ test.describe('Archive Save & Load', () => {
     )
 
     // Load archive — should restore 2 tokens (the overwritten version)
-    await page.getByText('存档 1').click()
-    await page.getByRole('button', { name: '加载' }).click()
-    await page.getByText('确认').click()
+    await page.getByText('Archive 1').click()
+    await page.getByRole('button', { name: 'Load' }).click()
+    await page.getByText('Confirm').click()
     await page.waitForFunction(
       () => (window as any).__MYVTT_STORES__?.world()?.tacticalInfo?.tokens?.length === 2,
       null,

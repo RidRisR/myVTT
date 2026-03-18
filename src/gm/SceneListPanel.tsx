@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { X, Pencil, Copy, Plus, Trash2 } from 'lucide-react'
+import { X, Copy, Plus, Trash2 } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
 import { ConfirmPopover } from '../ui/ConfirmPopover'
@@ -8,7 +8,6 @@ interface SceneListPanelProps {
   scenes: Scene[]
   activeSceneId: string | null
   onSelectScene: (sceneId: string) => void
-  onEditScene: (sceneId: string) => void
   onDeleteScene: (sceneId: string) => void
   onRenameScene: (sceneId: string, name: string) => void
   onDuplicateScene: (sceneId: string) => void
@@ -20,7 +19,6 @@ export function SceneListPanel({
   scenes,
   activeSceneId,
   onSelectScene,
-  onEditScene,
   onDeleteScene,
   onRenameScene,
   onDuplicateScene,
@@ -164,16 +162,6 @@ export function SceneListPanel({
                       title="Duplicate scene"
                     >
                       <Copy size={12} strokeWidth={1.5} />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onEditScene(scene.id)
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-white transition-all duration-fast p-1 cursor-pointer"
-                      title="Edit scene"
-                    >
-                      <Pencil size={12} strokeWidth={1.5} />
                     </button>
                     {scenes.length > 1 && (
                       <button

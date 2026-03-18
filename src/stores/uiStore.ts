@@ -22,8 +22,9 @@ const MEASURE_TOOL_IDS: ReadonlySet<string> = new Set([
 export function isMeasureTool(tool: ActiveTool): tool is MeasureTool {
   return MEASURE_TOOL_IDS.has(tool)
 }
+export type GmDockTab = 'gallery' | 'tokens' | 'characters' | 'handouts' | 'dice'
 export type ThemeId = 'warm' | 'cold'
-export type GmSidebarTab = 'archives' | 'entities'
+export type GmSidebarTab = 'archives' | 'entities' | 'scene'
 
 export interface ActivePluginPanel {
   panelId: string
@@ -73,6 +74,10 @@ interface UiState {
   gmSidebarTab: GmSidebarTab
   gmSidebarCollapsed: boolean
 
+  // GM dock
+  gmDockTab: GmDockTab | null
+  setGmDockTab: (tab: GmDockTab | null) => void
+
   // Plugin panel portal
   activePluginPanels: ActivePluginPanel[]
   openPluginPanel: (panelId: string, entityId?: string) => void
@@ -102,11 +107,15 @@ export const useUiStore = create<UiState>((set) => ({
   gmViewAsPlayer: false,
   theme: getStoredTheme(),
   portraitBarVisible: true,
-  teamPanelVisible: true,
+  teamPanelVisible: false,
   lastMeasureTool: 'measure',
   gridConfigOpen: false,
-  gmSidebarTab: 'archives',
-  gmSidebarCollapsed: false,
+  gmSidebarTab: 'scene',
+  gmSidebarCollapsed: true,
+  gmDockTab: null,
+  setGmDockTab: (tab) => {
+    set({ gmDockTab: tab })
+  },
 
   activePluginPanels: [],
   openPluginPanel: (panelId, entityId) => {

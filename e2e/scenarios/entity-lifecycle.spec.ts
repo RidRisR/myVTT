@@ -22,11 +22,11 @@ test.describe('Entity Lifecycle', () => {
     // GM opens Characters tab and creates a character
     await gmRoom.gmDock.openTab('characters')
     await gmRoom.gmDock.characterLibrary.createCharacter()
-    await gmRoom.gmDock.characterLibrary.expectCharacterVisible('新角色')
+    await gmRoom.gmDock.characterLibrary.expectCharacterVisible('New Character')
 
     // GM opens Entities tab and renames the character
     await gmRoom.gmSidebar.openEntities()
-    await gmRoom.gmSidebar.entityPanel.renameEntity('新角色', 'Goblin Scout')
+    await gmRoom.gmSidebar.entityPanel.renameEntity('New Character', 'Goblin Scout')
     await gmRoom.gmSidebar.entityPanel.expectEntityVisible('Goblin Scout')
 
     // --- Player Setup ---
@@ -72,16 +72,16 @@ test.describe('Entity Lifecycle', () => {
     // Create a character via Characters tab
     await room.gmDock.openTab('characters')
     await room.gmDock.characterLibrary.createCharacter()
-    await room.gmDock.characterLibrary.expectCharacterVisible('新角色')
+    await room.gmDock.characterLibrary.expectCharacterVisible('New Character')
 
     // Open Entities tab
     await room.gmSidebar.openEntities()
 
     // Assert entity is visible in the panel
-    await room.gmSidebar.entityPanel.expectEntityVisible('新角色')
+    await room.gmSidebar.entityPanel.expectEntityVisible('New Character')
 
     // Toggle visibility (remove from scene)
-    await room.gmSidebar.entityPanel.toggleVisibility('新角色')
+    await room.gmSidebar.entityPanel.toggleVisibility('New Character')
 
     // Verify sceneEntityMap entry has visible=false
     await page.waitForFunction(

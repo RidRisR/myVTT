@@ -96,7 +96,7 @@ export function EntityPanel() {
   const handleCreateNpc = () => {
     const newEntity: Entity = {
       id: generateTokenId(),
-      name: '新NPC',
+      name: 'New NPC',
       imageUrl: '',
       color: '#3b82f6',
       width: 1,
@@ -113,7 +113,7 @@ export function EntityPanel() {
 
   const handleDelete = (entity: Entity) => {
     void deleteEntity(entity.id)
-    toast('undo', `已删除"${entity.name}"`, { duration: 5000 })
+    toast('undo', `Deleted "${entity.name}"`, { duration: 5000 })
   }
 
   const handleToggleVisibility = (entity: Entity, currentlyVisible: boolean) => {
@@ -178,7 +178,7 @@ export function EntityPanel() {
                     handlePromote(entity)
                   }}
                   className="absolute right-7 opacity-0 group-hover:opacity-100 hover:!opacity-100 text-text-muted/40 hover:text-accent p-0.5 cursor-pointer transition-opacity duration-fast"
-                  title="升级为场景角色"
+                  title="Promote to scene character"
                 >
                   <MapPin size={12} strokeWidth={1.5} />
                 </button>
@@ -191,7 +191,7 @@ export function EntityPanel() {
                       handleToggleVisibility(entity, groupType === 'onStage')
                     }}
                     className="absolute right-7 opacity-0 group-hover:opacity-100 hover:!opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
-                    title={groupType === 'onStage' ? '离场' : '上场'}
+                    title={groupType === 'onStage' ? 'Backstage' : 'On stage'}
                   >
                     {groupType === 'onStage' ? (
                       <Eye size={12} strokeWidth={1.5} />
@@ -207,7 +207,7 @@ export function EntityPanel() {
                         handleDemote(entity)
                       }}
                       className="absolute right-14 opacity-0 group-hover:opacity-100 hover:!opacity-100 text-text-muted/40 hover:text-accent p-0.5 cursor-pointer transition-opacity duration-fast"
-                      title="降级为战术对象"
+                      title="Demote to tactical object"
                     >
                       <Swords size={12} strokeWidth={1.5} />
                     </button>
@@ -240,7 +240,7 @@ export function EntityPanel() {
             onChange={(e) => {
               setSearch(e.target.value)
             }}
-            placeholder="搜索NPC..."
+            placeholder="Search NPCs..."
             className="w-full pl-6 pr-2 py-1 text-xs bg-surface/60 text-text-primary border border-border-glass rounded outline-none placeholder:text-text-muted/30"
           />
         </div>
@@ -251,19 +251,19 @@ export function EntityPanel() {
         {isEmpty && !search.trim() ? (
           <div className="flex flex-col items-center justify-center h-full text-text-muted text-xs">
             <ClipboardList size={24} strokeWidth={1.5} className="mb-2 opacity-30" />
-            <span className="opacity-50">暂无NPC</span>
-            <span className="opacity-30 text-[10px] mt-1">点击下方「+」创建</span>
+            <span className="opacity-50">No NPCs</span>
+            <span className="opacity-30 text-[10px] mt-1">Click + below to create</span>
           </div>
         ) : onStage.length === 0 &&
           backstage.length === 0 &&
           tacticalOnlyEntities.length === 0 &&
           noResults ? (
-          <div className="text-center text-text-muted/40 text-xs py-8">无匹配结果</div>
+          <div className="text-center text-text-muted/40 text-xs py-8">No matches</div>
         ) : (
           <>
-            {renderGroup('在场', '\u25CF', onStage, 'onStage')}
-            {renderGroup('离场', '\u25D0', backstage, 'backstage')}
-            {renderGroup('战术对象', '\u2694', tacticalOnlyEntities, 'tactical')}
+            {renderGroup('On Stage', '\u25CF', onStage, 'onStage')}
+            {renderGroup('Backstage', '\u25D0', backstage, 'backstage')}
+            {renderGroup('Tactical', '\u2694', tacticalOnlyEntities, 'tactical')}
           </>
         )}
       </div>
@@ -273,10 +273,10 @@ export function EntityPanel() {
         <button
           onClick={handleCreateNpc}
           className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-          title="新建NPC"
+          title="New NPC"
         >
           <Plus size={12} strokeWidth={1.5} />
-          新建NPC
+          New NPC
         </button>
       </div>
     </div>

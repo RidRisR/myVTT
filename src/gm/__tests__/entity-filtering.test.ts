@@ -180,9 +180,9 @@ describe('groupEntities', () => {
 
 describe('filterByTags (AND logic)', () => {
   const items = [
-    { id: 'a', tags: ['人形', '亡灵'] },
-    { id: 'b', tags: ['野兽'] },
-    { id: 'c', tags: ['人形', '魔法生物'] },
+    { id: 'a', tags: ['Humanoid', 'Undead'] },
+    { id: 'b', tags: ['Beast'] },
+    { id: 'c', tags: ['Humanoid', 'Magical'] },
     { id: 'd', tags: [] },
   ]
 
@@ -191,24 +191,24 @@ describe('filterByTags (AND logic)', () => {
   })
 
   it('filters by single tag', () => {
-    const result = filterByTags(items, ['人形'])
+    const result = filterByTags(items, ['Humanoid'])
     expect(result).toHaveLength(2)
     expect(result.map((i) => i.id)).toEqual(['a', 'c'])
   })
 
   it('AND logic — all selected tags must match', () => {
-    const result = filterByTags(items, ['人形', '亡灵'])
+    const result = filterByTags(items, ['Humanoid', 'Undead'])
     expect(result).toHaveLength(1)
     expect(result[0]?.id).toBe('a')
   })
 
   it('returns empty when no items match all tags', () => {
-    const result = filterByTags(items, ['人形', '野兽'])
+    const result = filterByTags(items, ['Humanoid', 'Beast'])
     expect(result).toHaveLength(0)
   })
 
   it('excludes items with no tags when filtering', () => {
-    const result = filterByTags(items, ['野兽'])
+    const result = filterByTags(items, ['Beast'])
     expect(result).toHaveLength(1)
     expect(result[0]?.id).toBe('b')
   })

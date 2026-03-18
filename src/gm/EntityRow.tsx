@@ -90,8 +90,8 @@ export function EntityRow({
         )}
         <div className="flex items-center gap-1 text-[10px] text-text-muted/40">
           {isPC && <span>PC</span>}
-          {entity.lifecycle === 'persistent' && <span>常驻</span>}
-          {isInScene && <span className="text-accent/50">在场景中</span>}
+          {entity.lifecycle === 'persistent' && <span>Persistent</span>}
+          {isInScene && <span className="text-accent/50">In scene</span>}
         </div>
       </div>
 
@@ -126,7 +126,7 @@ export function EntityRow({
             className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
           >
             <Pencil size={12} strokeWidth={1.5} />
-            重命名
+            Rename
           </button>
           {!isInScene && (
             <button
@@ -138,7 +138,7 @@ export function EntityRow({
               className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
             >
               <MapPin size={12} strokeWidth={1.5} />
-              加入场景
+              Add to scene
             </button>
           )}
           <div className="border-t border-border-glass my-1" />
@@ -151,7 +151,7 @@ export function EntityRow({
             className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-danger hover:bg-hover cursor-pointer transition-colors duration-fast"
           >
             <Trash2 size={12} strokeWidth={1.5} />
-            删除
+            Delete
           </button>
         </div>
       )}
@@ -160,7 +160,7 @@ export function EntityRow({
       {deletingThis && (
         <ConfirmPopover
           anchorRef={deleteRef}
-          message={`删除"${entity.name}"？`}
+          message={`Delete "${entity.name}"?`}
           onConfirm={() => {
             setDeletingThis(false)
             onDelete()

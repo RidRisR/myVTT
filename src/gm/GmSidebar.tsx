@@ -1,12 +1,14 @@
-import { Swords, ClipboardList, ChevronRight } from 'lucide-react'
+import { Swords, ClipboardList, ChevronRight, Image } from 'lucide-react'
 import { useUiStore } from '../stores/uiStore'
 import type { GmSidebarTab } from '../stores/uiStore'
 import { ArchivePanel } from './ArchivePanel'
 import { EntityPanel } from './EntityPanel'
+import { SceneConfigSidebarTab } from './SceneConfigSidebarTab'
 
 const TABS: { id: GmSidebarTab; icon: typeof Swords; label: string }[] = [
-  { id: 'archives', icon: Swords, label: '存档' },
-  { id: 'entities', icon: ClipboardList, label: '实体' },
+  { id: 'scene', icon: Image, label: 'Scene' },
+  { id: 'archives', icon: Swords, label: 'Archives' },
+  { id: 'entities', icon: ClipboardList, label: 'Entities' },
 ]
 
 export function GmSidebar() {
@@ -40,6 +42,7 @@ export function GmSidebar() {
 
           {/* Tab content */}
           <div className="flex-1 overflow-hidden">
+            {activeTab === 'scene' && <SceneConfigSidebarTab />}
             {activeTab === 'archives' && <ArchivePanel />}
             {activeTab === 'entities' && <EntityPanel />}
           </div>
@@ -84,7 +87,7 @@ export function GmSidebar() {
                 setCollapsed(!collapsed)
               }}
               className="w-8 h-8 flex items-center justify-center text-text-muted/40 hover:text-text-muted cursor-pointer transition-colors duration-fast"
-              aria-label={collapsed ? '展开侧边栏' : '收起侧边栏'}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               <ChevronRight
                 size={12}

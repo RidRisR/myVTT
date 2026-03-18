@@ -204,7 +204,7 @@ export function PortraitBar({
     if (!mySeatId || !activeSceneId) return
     const newEntity: Entity = {
       id: generateTokenId(),
-      name: '我的角色',
+      name: 'My Character',
       imageUrl: '',
       color: '#3b82f6',
       width: 1,
@@ -310,7 +310,7 @@ export function PortraitBar({
       const isVisible = visibilityMap.get(entity.id) ?? true
       if (isVisible && activeSceneId && sceneIdSet.has(entity.id)) {
         items.push({
-          label: '离场',
+          label: 'Backstage',
           onClick: () => {
             if (activeSceneId) void toggleEntityVisibility(activeSceneId, entity.id, false)
           },
@@ -319,7 +319,7 @@ export function PortraitBar({
 
       // Save as blueprint
       items.push({
-        label: '保存为蓝图',
+        label: 'Save as Blueprint',
         onClick: () => {
           void saveEntityAsBlueprint(entity)
         },
@@ -328,7 +328,7 @@ export function PortraitBar({
       // Save as reusable character (only for ephemeral entities)
       if (entity.lifecycle === 'ephemeral') {
         items.push({
-          label: '保存为角色',
+          label: 'Save as Character',
           onClick: () => {
             void updateEntity(entity.id, { lifecycle: 'reusable' })
           },
@@ -338,7 +338,7 @@ export function PortraitBar({
       // Remove from scene
       if (entity.lifecycle !== 'persistent') {
         items.push({
-          label: '移除',
+          label: 'Remove',
           onClick: () => {
             onRemoveFromScene(entity.id)
           },
@@ -586,7 +586,7 @@ export function PortraitBar({
             !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
               <button
                 onClick={handleCreateMyCharacter}
-                title="创建我的角色"
+                title="Create My Character"
                 className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
               >
                 <Plus size={16} strokeWidth={1.5} />
