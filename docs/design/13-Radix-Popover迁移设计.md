@@ -1,9 +1,8 @@
 # 13 — Radix 浮层统一迁移设计
 
-**开发分支**：`poc/radix-popover`
-**工作目录**：`../myVTT-radix-poc`（git worktree）
+**状态**：设计完成，代码未合入（POC 分支 `poc/radix-popover` 已关闭并删除）
 
-核心迁移已完成（PR #114）。所有自建浮层组件已替换为 Radix UI 语义组件。z-index 语义修复和旧组件清理待后续 PR（见"未完成工作"章节）。
+本文档记录 Radix 浮层迁移的设计研究、架构方案和 POC 中发现的坑。所有代码变更未合入 main，后续实现需从零开始，但可参考本文档的方案和已知坑。
 
 ## 动机与目标
 
@@ -174,37 +173,42 @@ toast:    10000  ← 通知提示（仅 ToastProvider）
 
 **状态**：PR #114 中尝试逐文件修改，但单独改 GmDock 导致 SceneListPanel（仍为 z-toast）遮挡 Combat 按钮，e2e 测试失败。**必须 12 个文件同时修改**，不能分批。已回退，作为后续独立 PR 处理。
 
-## 迁移结果
+## 实现计划
 
-### 已删除组件（待清理）
+POC 分支（`poc/radix-popover`，PR #114）已关闭并删除，**所有代码变更未合入 main**。以下是 POC 中验证过的完整迁移清单，后续实现时参考。
 
-以下组件已无引用，但尚未从代码库删除，待后续 cleanup PR 处理：
+### 需要新增的文件
 
-| 文件                                | 说明                                           |
-| ----------------------------------- | ---------------------------------------------- |
-| `src/ui/ConfirmPopover.tsx`         | 109 行自建确认气泡，已被 Radix Popover 替代    |
-| `src/shared/ContextMenu.tsx`        | 82 行自建右键菜单，已被 Radix ContextMenu 替代 |
-| `global.css` 中 `popover-in` 关键帧 | 旧动画，已被 `radix-popover-in` 替代           |
+| 文件                                        | Radix 组件             | 说明                         |
+| ------------------------------------------- | ---------------------- | ---------------------------- |
+| `src/ui/ConfirmDropdownItem.tsx`            | DropdownMenu + Popover | 封装多原语时序修复的复合组件 |
+| `src/ui/__tests__/ConfirmDropdown.test.tsx` | —                      | 覆盖完整交互契约的测试       |
 
-### 迁移文件清单
+### 需要修改的文件
 
-| 文件                                        | Radix 组件             | 说明                                          |
-| ------------------------------------------- | ---------------------- | --------------------------------------------- |
-| `src/ui/ConfirmDropdownItem.tsx`            | DropdownMenu + Popover | **新增**：封装多原语时序修复的复合组件        |
-| `src/ui/__tests__/ConfirmDropdown.test.tsx` | —                      | **新增**：7 个用例覆盖完整交互契约            |
-| `src/gm/EntityRow.tsx`                      | ConfirmDropdown        | ⋮ 下拉菜单 + 删除确认（使用 ConfirmDropdown） |
-| `src/layout/PortraitBar.tsx`                | ContextMenu            | 角色头像右键菜单                              |
-| `src/dock/BlueprintDockTab.tsx`             | ContextMenu            | 蓝图右键菜单                                  |
-| `src/dock/MapDockTab.tsx`                   | ContextMenu            | 地图素材右键菜单                              |
-| `src/App.tsx`                               | ContextMenu            | 背景右键添加 NPC                              |
-| `src/gm/SceneListPanel.tsx`                 | Popover                | 场景删除确认                                  |
-| `src/gm/ArchivePanel.tsx`                   | Popover                | 存档删除/加载确认                             |
-| `src/ui/RadixContextMenu.tsx`               | Popover (Konva 专用)   | 简化为 Konva-only wrapper                     |
-| `src/combat/TokenContextMenu.tsx`           | —                      | 移除 role 属性，修复硬编码颜色                |
+| 文件                              | Radix 组件           | 说明                                          |
+| --------------------------------- | -------------------- | --------------------------------------------- |
+| `src/gm/EntityRow.tsx`            | ConfirmDropdown      | ⋮ 下拉菜单 + 删除确认（使用 ConfirmDropdown） |
+| `src/layout/PortraitBar.tsx`      | ContextMenu          | 角色头像右键菜单                              |
+| `src/dock/BlueprintDockTab.tsx`   | ContextMenu          | 蓝图右键菜单                                  |
+| `src/dock/MapDockTab.tsx`         | ContextMenu          | 地图素材右键菜单                              |
+| `src/App.tsx`                     | ContextMenu          | 背景右键添加 NPC                              |
+| `src/gm/SceneListPanel.tsx`       | Popover              | 场景删除确认                                  |
+| `src/gm/ArchivePanel.tsx`         | Popover              | 存档删除/加载确认                             |
+| `src/ui/RadixContextMenu.tsx`     | Popover (Konva 专用) | 简化为 Konva-only wrapper                     |
+| `src/combat/TokenContextMenu.tsx` | —                    | 移除 role 属性，修复硬编码颜色                |
 
-### z-index 修复文件（已回退，待重做）
+### 需要删除的文件
 
-以下 12 个文件需同时从 `z-toast` → `z-ui`（不可分批修改）：
+| 文件                                | 说明               |
+| ----------------------------------- | ------------------ |
+| `src/ui/ConfirmPopover.tsx`         | 109 行自建确认气泡 |
+| `src/shared/ContextMenu.tsx`        | 82 行自建右键菜单  |
+| `global.css` 中 `popover-in` 关键帧 | 旧动画关键帧       |
+
+### z-index 语义修复
+
+以下 12 个文件需同时从 `z-toast` → `z-ui`（不可分批修改，必须原子提交）：
 
 PortraitBar, GmDock, AmbientAudio, SceneButton, SceneConfigPanel, SceneListPanel, MyCharacterCard, HamburgerMenu, TacticalToolbar, ChatPanel, MessageScrollArea
 
@@ -257,23 +261,18 @@ export { RadixContextMenu } from '../ui/RadixContextMenu'
 }
 ```
 
-## 未完成工作
+## 相关 PR / Issue
 
-PR #114 完成了核心迁移（Step 1/3/4/5），以下工作待后续 PR：
+| 编号 | 标题                                                                | 状态   | 说明                          |
+| ---- | ------------------------------------------------------------------- | ------ | ----------------------------- |
+| #114 | feat: replace self-built overlays with Radix UI semantic components | 已关闭 | POC 代码，因合并冲突过多放弃  |
+| #116 | Overlay interaction test page                                       | Open   | 浮层交互测试页 + e2e 回归测试 |
+| #117 | docs: add Radix overlay migration design document                   | Open   | 本设计文档的 PR               |
 
-### 必做
-
-| 项目                  | 说明                                                                         | Issue |
-| --------------------- | ---------------------------------------------------------------------------- | ----- |
-| z-index 语义修复      | 12 文件同时 `z-toast` → `z-ui`，必须原子提交                                 | —     |
-| 删除旧组件            | `ConfirmPopover.tsx`、`ContextMenu.tsx`、`global.css` 旧 keyframe            | —     |
-| RadixContextMenu 简化 | 移除 `role="menu"`、`zIndex: 10001` → `z-popover`，重命名为 KonvaContextMenu | —     |
-| TokenContextMenu 清理 | 移除 `role="menuitem"`，硬编码颜色 → Tailwind token                          | —     |
-
-### 建议做
+## 建议的后续工作
 
 | 项目                  | 说明                                                      | Issue |
 | --------------------- | --------------------------------------------------------- | ----- |
 | Overlay 交互测试页    | `/dev/overlays` 路由 + e2e 回归测试，固化 Portal 交互陷阱 | #116  |
-| `ConfirmPopover` 封装 | 提取共享组件，内建 `stopPropagation`，消除调用方遗漏风险  | #116  |
-| `ui-patterns.md` 更新 | 添加 Radix Portal 使用规范                                | #116  |
+| `ConfirmPopover` 封装 | 提取共享组件，内建 `stopPropagation`，消除调用方遗漏风险  | —     |
+| `ui-patterns.md` 更新 | 添加 Radix Portal 使用规范                                | —     |
