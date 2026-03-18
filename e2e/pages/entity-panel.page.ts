@@ -47,7 +47,7 @@ export class EntityPanelPage {
   async toggleVisibility(name: string) {
     const row = this.entityRow(name)
     await row.hover()
-    const eyeButton = row.locator('button[title="Backstage"], button[title="On stage"]').first()
+    const eyeButton = row.locator('button[title="Exit stage"], button[title="Enter stage"]').first()
     await eyeButton.click()
   }
 

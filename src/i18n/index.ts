@@ -12,7 +12,7 @@ void i18next
     supportedLngs: ['zh-CN', 'en'],
     nonExplicitSupportedLngs: true,
     defaultNS: 'common',
-    ns: ['common'],
+    ns: ['common', 'ui', 'gm', 'combat', 'dock', 'chat', 'layout', 'identity'],
     backend: {
       loadPath: '/locales/{{lng}}/{{ns}}.json',
     },
