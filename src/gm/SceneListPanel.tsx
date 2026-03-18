@@ -36,7 +36,7 @@ export function SceneListPanel({
     const handler = (e: PointerEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
         // Radix Popover.Portal renders to body — don't treat portal clicks as "outside"
-        if ((e.target as Element).closest?.('[data-radix-popper-content-wrapper]')) return
+        if ((e.target as Element).closest('[data-radix-popper-content-wrapper]')) return
         onClose()
       }
     }
