@@ -102,7 +102,7 @@ export const useUiStore = create<UiState>((set) => ({
   gmViewAsPlayer: false,
   theme: getStoredTheme(),
   portraitBarVisible: true,
-  teamPanelVisible: true,
+  teamPanelVisible: false,
   lastMeasureTool: 'measure',
   gridConfigOpen: false,
   gmSidebarTab: 'archives',

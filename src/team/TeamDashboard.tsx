@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useWorldStore } from '../stores/worldStore'
 import { TeamMetricsTab } from './TeamMetricsTab'
@@ -24,6 +24,15 @@ export function TeamDashboard({ isGM }: TeamDashboardProps) {
   const [expanded, setExpanded] = useState(false)
   const teamPanelVisible = useUiStore((s) => s.teamPanelVisible)
   const setTeamPanelVisible = useUiStore((s) => s.setTeamPanelVisible)
+
+  const prevTrackerCount = useRef(trackers.length)
+  useEffect(() => {
+    if (prevTrackerCount.current === 0 && trackers.length > 0) {
+      setTeamPanelVisible(true)
+    }
+    prevTrackerCount.current = trackers.length
+  }, [trackers.length, setTeamPanelVisible])
+
   const plugin = useRulePlugin()
   const PluginTeamPanel = plugin.surfaces?.teamPanel
 
