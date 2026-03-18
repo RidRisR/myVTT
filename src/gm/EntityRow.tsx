@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { MoreVertical, Pencil, Trash2, MapPin } from 'lucide-react'
 import type { Entity } from '../shared/entityTypes'
-import { ConfirmPopover } from '../ui/ConfirmPopover'
+import * as Popover from '@radix-ui/react-popover'
 
 interface EntityRowProps {
   entity: Entity
@@ -28,7 +28,6 @@ export function EntityRow({
   const [deletingThis, setDeletingThis] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
-  const deleteRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const commitRename = () => {
@@ -90,86 +89,111 @@ export function EntityRow({
         )}
         <div className="flex items-center gap-1 text-[10px] text-text-muted/40">
           {isPC && <span>PC</span>}
-          {entity.lifecycle === 'persistent' && <span>Persistent</span>}
-          {isInScene && <span className="text-accent/50">In scene</span>}
+          {entity.lifecycle === 'persistent' && <span>常驻</span>}
+          {isInScene && <span className="text-accent/50">在场景中</span>}
         </div>
       </div>
 
-      {/* Menu button */}
-      <button
-        ref={deletingThis ? deleteRef : undefined}
-        onClick={(e) => {
-          e.stopPropagation()
-          setShowMenu(!showMenu)
+      {/* Menu button + Delete confirmation popover (Radix Popover) */}
+      <Popover.Root
+        open={deletingThis}
+        onOpenChange={(open) => {
+          if (!open) setDeletingThis(false)
         }}
-        className="opacity-0 group-hover:opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
       >
-        <MoreVertical size={12} strokeWidth={1.5} />
-      </button>
-
-      {/* Dropdown menu */}
-      {showMenu && (
-        <div
-          ref={menuRef}
-          className="absolute right-1 top-full mt-0.5 z-popover bg-surface border border-border-glass rounded-md shadow-lg py-1 min-w-[120px]"
-          onPointerDown={(e) => {
-            e.stopPropagation()
-          }}
-        >
+        <Popover.Anchor asChild>
           <button
             onClick={(e) => {
               e.stopPropagation()
-              setRenaming(true)
-              setRenameValue(entity.name)
-              setShowMenu(false)
+              setShowMenu(!showMenu)
             }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
+            className="opacity-0 group-hover:opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
           >
-            <Pencil size={12} strokeWidth={1.5} />
-            Rename
+            <MoreVertical size={12} strokeWidth={1.5} />
           </button>
-          {!isInScene && (
+        </Popover.Anchor>
+
+        {/* Dropdown menu */}
+        {showMenu && (
+          <div
+            ref={menuRef}
+            className="absolute right-1 top-full mt-0.5 z-popover bg-surface border border-border-glass rounded-md shadow-lg py-1 min-w-[120px]"
+            onPointerDown={(e) => {
+              e.stopPropagation()
+            }}
+          >
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onAddToScene()
+                setRenaming(true)
+                setRenameValue(entity.name)
                 setShowMenu(false)
               }}
               className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
             >
-              <MapPin size={12} strokeWidth={1.5} />
-              Add to scene
+              <Pencil size={12} strokeWidth={1.5} />
+              重命名
             </button>
-          )}
-          <div className="border-t border-border-glass my-1" />
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setDeletingThis(true)
-              setShowMenu(false)
-            }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-danger hover:bg-hover cursor-pointer transition-colors duration-fast"
-          >
-            <Trash2 size={12} strokeWidth={1.5} />
-            Delete
-          </button>
-        </div>
-      )}
+            {!isInScene && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onAddToScene()
+                  setShowMenu(false)
+                }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
+              >
+                <MapPin size={12} strokeWidth={1.5} />
+                加入场景
+              </button>
+            )}
+            <div className="border-t border-border-glass my-1" />
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setDeletingThis(true)
+                setShowMenu(false)
+              }}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-danger hover:bg-hover cursor-pointer transition-colors duration-fast"
+            >
+              <Trash2 size={12} strokeWidth={1.5} />
+              删除
+            </button>
+          </div>
+        )}
 
-      {/* Delete confirmation popover */}
-      {deletingThis && (
-        <ConfirmPopover
-          anchorRef={deleteRef}
-          message={`Delete "${entity.name}"?`}
-          onConfirm={() => {
-            setDeletingThis(false)
-            onDelete()
-          }}
-          onCancel={() => {
-            setDeletingThis(false)
-          }}
-        />
-      )}
+        {/* Delete confirmation popover — Radix Popover */}
+        <Popover.Portal>
+          <Popover.Content
+            side="top"
+            align="center"
+            sideOffset={8}
+            className="bg-surface border border-border-glass rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.5)] px-3 py-2.5 min-w-[140px] z-toast font-sans animate-[radix-popover-in_150ms_ease-out]"
+            onPointerDownOutside={() => { setDeletingThis(false); }}
+          >
+            <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">{`删除"${entity.name}"？`}</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setDeletingThis(false); }}
+                className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setDeletingThis(false)
+                  onDelete()
+                }}
+                className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
+              >
+                Delete
+              </button>
+            </div>
+            {/* Arrow pointing down toward anchor */}
+            <Popover.Arrow className="fill-[rgb(var(--color-surface))]" width={12} height={6} />
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
     </div>
   )
 }

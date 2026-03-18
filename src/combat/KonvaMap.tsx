@@ -9,6 +9,7 @@ import { KonvaGrid } from './KonvaGrid'
 import { KonvaTokenLayer } from './KonvaTokenLayer'
 import type { TokenContextMenuEvent, TokenHoverEvent } from './KonvaTokenLayer'
 import { TokenContextMenu } from './TokenContextMenu'
+import { RadixContextMenu } from '../ui/RadixContextMenu'
 import { TokenTooltip } from './TokenTooltip'
 import { MeasureTool } from './tools/MeasureTool'
 import { RangeTemplate } from './tools/RangeTemplate'
@@ -385,24 +386,29 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
         </Stage>
       )}
 
-      {/* Context menu — HTML overlay */}
-      {contextMenu && (
-        <TokenContextMenu
-          x={contextMenu.screenX}
-          y={contextMenu.screenY}
-          tokenId={contextMenu.tokenId}
-          token={contextMenuToken}
-          entity={contextMenuEntity}
-          role={role}
-          onClose={handleCloseContextMenu}
-          onDeleteToken={handleDeleteToken}
-          onUpdateToken={onUpdateToken}
-          onCreateToken={handleCreateToken}
-          onCopyToken={handleCopyToken}
-          mapX={contextMenu.mapX}
-          mapY={contextMenu.mapY}
-        />
-      )}
+      {/* Context menu — Radix Popover wrapper with Konva-compatible Anchor */}
+      <RadixContextMenu
+        x={contextMenu?.screenX ?? 0}
+        y={contextMenu?.screenY ?? 0}
+        open={!!contextMenu}
+        onClose={handleCloseContextMenu}
+      >
+        {contextMenu && (
+          <TokenContextMenu
+            tokenId={contextMenu.tokenId}
+            token={contextMenuToken}
+            entity={contextMenuEntity}
+            role={role}
+            onClose={handleCloseContextMenu}
+            onDeleteToken={handleDeleteToken}
+            onUpdateToken={onUpdateToken}
+            onCreateToken={handleCreateToken}
+            onCopyToken={handleCopyToken}
+            mapX={contextMenu.mapX}
+            mapY={contextMenu.mapY}
+          />
+        )}
+      </RadixContextMenu>
 
       {/* Tooltip — HTML overlay */}
       {tooltipState && tooltipToken && (

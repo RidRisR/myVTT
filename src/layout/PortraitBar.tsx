@@ -8,7 +8,7 @@ import { useWorldStore } from '../stores/worldStore'
 import { canSee, canEdit, defaultPCPermissions } from '../shared/permissions'
 import { statusColor } from '../shared/tokenUtils'
 import { generateTokenId } from '../shared/idUtils'
-import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
+import { RadixContextMenu } from '../ui/RadixContextMenu'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
 import { useRulePlugin } from '../rules/useRulePlugin'
 
@@ -204,7 +204,7 @@ export function PortraitBar({
     if (!mySeatId || !activeSceneId) return
     const newEntity: Entity = {
       id: generateTokenId(),
-      name: 'My Character',
+      name: '我的角色',
       imageUrl: '',
       color: '#3b82f6',
       width: 1,
@@ -281,73 +281,105 @@ export function PortraitBar({
     setContextMenu({ x: e.clientX, y: e.clientY, entityId })
   }
 
-  const getContextMenuItems = (entity: Entity): ContextMenuItem[] => {
-    const items: ContextMenuItem[] = []
+  const renderContextMenuItems = (entity: Entity) => {
+    const closeMenu = () => { setContextMenu(null); }
+    const menuItemClass =
+      'block w-full px-3.5 py-2 bg-transparent border-none text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover'
 
-    if (mySeatId && canEdit(entity.permissions, mySeatId, role)) {
-      items.push({
-        label: 'Set as active',
-        onClick: () => {
-          onSetActiveCharacter(entity.id)
-        },
-        disabled: activeCharacterId === entity.id,
-      })
-    }
+    return (
+      <>
+        {mySeatId && canEdit(entity.permissions, mySeatId, role) && (
+          <button
+            role="menuitem"
+            disabled={activeCharacterId === entity.id}
+            onClick={() => {
+              onSetActiveCharacter(entity.id)
+              closeMenu()
+            }}
+            className={`${menuItemClass} ${activeCharacterId === entity.id ? 'cursor-default opacity-50' : ''}`}
+            style={{ color: 'rgba(255,255,255,0.85)' }}
+          >
+            Set as active
+          </button>
+        )}
 
-    items.push({
-      label: 'Inspect',
-      onClick: () => {
-        const el = portraitBarRef.current?.querySelector(
-          `[data-char-id="${entity.id}"]`,
-        ) as HTMLElement | null
-        if (el) setLockedRect(el.getBoundingClientRect())
-        onInspectCharacter(entity.id)
-      },
-    })
+        <button
+          role="menuitem"
+          onClick={() => {
+            const el = portraitBarRef.current?.querySelector(
+              `[data-char-id="${entity.id}"]`,
+            ) as HTMLElement | null
+            if (el) setLockedRect(el.getBoundingClientRect())
+            onInspectCharacter(entity.id)
+            closeMenu()
+          }}
+          className={menuItemClass}
+          style={{ color: 'rgba(255,255,255,0.85)' }}
+        >
+          Inspect
+        </button>
 
-    if (isGM) {
-      // Backstage toggle — only for entities currently visible and in scene
-      const isVisible = visibilityMap.get(entity.id) ?? true
-      if (isVisible && activeSceneId && sceneIdSet.has(entity.id)) {
-        items.push({
-          label: 'Backstage',
-          onClick: () => {
-            if (activeSceneId) void toggleEntityVisibility(activeSceneId, entity.id, false)
-          },
-        })
-      }
+        {isGM && (
+          <>
+            {(visibilityMap.get(entity.id) ?? true) &&
+              activeSceneId &&
+              sceneIdSet.has(entity.id) && (
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    if (activeSceneId) void toggleEntityVisibility(activeSceneId, entity.id, false)
+                    closeMenu()
+                  }}
+                  className={menuItemClass}
+                  style={{ color: 'rgba(255,255,255,0.85)' }}
+                >
+                  离场
+                </button>
+              )}
 
-      // Save as blueprint
-      items.push({
-        label: 'Save as Blueprint',
-        onClick: () => {
-          void saveEntityAsBlueprint(entity)
-        },
-      })
+            <button
+              role="menuitem"
+              onClick={() => {
+                void saveEntityAsBlueprint(entity)
+                closeMenu()
+              }}
+              className={menuItemClass}
+              style={{ color: 'rgba(255,255,255,0.85)' }}
+            >
+              保存为蓝图
+            </button>
 
-      // Save as reusable character (only for ephemeral entities)
-      if (entity.lifecycle === 'ephemeral') {
-        items.push({
-          label: 'Save as Character',
-          onClick: () => {
-            void updateEntity(entity.id, { lifecycle: 'reusable' })
-          },
-        })
-      }
+            {entity.lifecycle === 'ephemeral' && (
+              <button
+                role="menuitem"
+                onClick={() => {
+                  void updateEntity(entity.id, { lifecycle: 'reusable' })
+                  closeMenu()
+                }}
+                className={menuItemClass}
+                style={{ color: 'rgba(255,255,255,0.85)' }}
+              >
+                保存为角色
+              </button>
+            )}
 
-      // Remove from scene
-      if (entity.lifecycle !== 'persistent') {
-        items.push({
-          label: 'Remove',
-          onClick: () => {
-            onRemoveFromScene(entity.id)
-          },
-          color: '#f87171',
-        })
-      }
-    }
-
-    return items
+            {entity.lifecycle !== 'persistent' && (
+              <button
+                role="menuitem"
+                onClick={() => {
+                  onRemoveFromScene(entity.id)
+                  closeMenu()
+                }}
+                className={menuItemClass}
+                style={{ color: '#f87171' }}
+              >
+                移除
+              </button>
+            )}
+          </>
+        )}
+      </>
+    )
   }
 
   const renderPortrait = (entity: Entity) => {
@@ -586,7 +618,7 @@ export function PortraitBar({
             !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
               <button
                 onClick={handleCreateMyCharacter}
-                title="Create My Character"
+                title="创建我的角色"
                 className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
               >
                 <Plus size={16} strokeWidth={1.5} />
@@ -610,23 +642,22 @@ export function PortraitBar({
         </div>
       )}
 
-      {/* Context menu — rendered via portal to avoid transform offset */}
-      {contextMenu &&
-        (() => {
-          const entity = visibleEntities.find((e) => e.id === contextMenu.entityId)
-          if (!entity) return null
-          return createPortal(
-            <ContextMenu
-              x={contextMenu.x}
-              y={contextMenu.y}
-              items={getContextMenuItems(entity)}
-              onClose={() => {
-                setContextMenu(null)
-              }}
-            />,
-            document.body,
-          )
-        })()}
+      {/* Context menu — Radix Popover wrapper (portal handled internally) */}
+      {(() => {
+        const entity = contextMenu
+          ? visibleEntities.find((e) => e.id === contextMenu.entityId)
+          : null
+        return (
+          <RadixContextMenu
+            x={contextMenu?.x ?? 0}
+            y={contextMenu?.y ?? 0}
+            open={!!contextMenu && !!entity}
+            onClose={() => { setContextMenu(null); }}
+          >
+            {entity && renderContextMenuItems(entity)}
+          </RadixContextMenu>
+        )
+      })()}
 
       {/* Entity popover — rendered via portal */}
       {popoverEntity &&

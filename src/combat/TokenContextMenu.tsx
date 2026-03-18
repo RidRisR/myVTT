@@ -1,9 +1,6 @@
-import { useEffect, useRef } from 'react'
 import type { MapToken, Entity } from '../shared/entityTypes'
 
 interface TokenContextMenuProps {
-  x: number
-  y: number
   tokenId: string | null
   token: MapToken | null
   entity: Entity | null
@@ -20,9 +17,11 @@ interface TokenContextMenuProps {
 
 const SIZE_OPTIONS = [1, 2, 3, 4] as const
 
+/**
+ * Token context menu content — positioning and dismiss logic
+ * are handled by the parent RadixContextMenu wrapper.
+ */
 export function TokenContextMenu({
-  x,
-  y,
   tokenId,
   token,
   entity,
@@ -36,32 +35,6 @@ export function TokenContextMenu({
   mapX,
   mapY,
 }: TokenContextMenuProps) {
-  const ref = useRef<HTMLDivElement>(null)
-
-  // Click-outside-to-close
-  useEffect(() => {
-    const handlePointerDown = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose()
-      }
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-    }
-  }, [onClose])
-
-  // Escape key to close
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [onClose])
-
   // PL: don't show context menu
   if (role !== 'GM') return null
 
@@ -72,12 +45,6 @@ export function TokenContextMenu({
 
   return (
     <div
-      ref={ref}
-      className="fixed z-popover bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] py-1 min-w-[160px] font-sans"
-      style={{ left: x, top: y }}
-      onPointerDown={(e) => {
-        e.stopPropagation()
-      }}
       onContextMenu={(e) => {
         e.preventDefault()
       }}
@@ -188,6 +155,7 @@ function MenuItem({
 }) {
   return (
     <button
+      role="menuitem"
       onClick={onClick}
       className="block w-full px-3 py-1.5 bg-transparent border-none text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover"
       style={{
