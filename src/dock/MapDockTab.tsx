@@ -32,7 +32,10 @@ export function MapDockTab({
   const allAssets = useWorldStore((s) => s.assets)
   const upload = useWorldStore((s) => s.uploadAsset)
   const softRemove = useWorldStore((s) => s.softRemoveAsset)
-  const assets = useMemo(() => allAssets.filter((a) => a.type === 'image'), [allAssets])
+  const assets = useMemo(
+    () => allAssets.filter((a) => a.mediaType === 'image' && a.tags.includes('map')),
+    [allAssets],
+  )
 
   const { toast } = useToast()
 
@@ -42,7 +45,7 @@ export function MapDockTab({
     e.target.value = ''
     setUploading(true)
     try {
-      await upload(file, { type: 'image' })
+      await upload(file, { mediaType: 'image', tags: ['map'] })
       toast('success', t('map.uploaded', { name: file.name }))
     } catch (err) {
       toast(
