@@ -9,7 +9,7 @@ export class CharacterLibraryPage {
   }
 
   async createCharacter() {
-    await this.page.locator('button[title="新建角色"]').click()
+    await this.page.locator('button[title="New character"]').click()
   }
 
   async expectCharacterVisible(name: string) {
@@ -27,7 +27,7 @@ export class CharacterLibraryPage {
   async deleteCharacter(name: string) {
     const row = this.page.locator('button').filter({ hasText: name })
     await row.hover()
-    await this.page.locator('button[title="删除角色"]').click()
+    await this.page.locator('button[title="Delete character"]').click()
   }
 
   async inspectCharacter(name: string) {

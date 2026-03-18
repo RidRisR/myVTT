@@ -99,7 +99,7 @@ test.describe('Asset Management', () => {
     await gmRoom.gmDock.enterCombat()
     await gmRoom.tactical.expectVisible()
 
-    // Step 2: Open Blueprint tab (蓝图)
+    // Step 2: Open Blueprint tab (Blueprints)
     await gmRoom.gmDock.openTab('tokens')
 
     // Step 3: Upload test-token.png (pass expected name for upload-complete wait)
