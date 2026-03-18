@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useClickOutside } from '../hooks/useClickOutside'
 import type { Entity } from '../shared/entityTypes'
 import { uploadAsset } from '../shared/assetUpload'
 import {
@@ -91,19 +92,11 @@ export function CharacterEditPanel({
     mySeat?.color ?? null,
   )
 
-  // Close color picker on click outside
-  useEffect(() => {
-    if (colorPickerOpen === null) return
-    const handler = (e: PointerEvent) => {
-      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
-        setColorPickerOpen(null)
-      }
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => {
-      document.removeEventListener('pointerdown', handler)
-    }
-  }, [colorPickerOpen])
+  // Close color picker on click outside (Radix Portal-aware)
+  const closeColorPicker = useCallback(() => {
+    setColorPickerOpen(null)
+  }, [])
+  useClickOutside(colorPickerRef, closeColorPicker, colorPickerOpen !== null)
 
   const updateChar = (updates: Partial<Entity>) => {
     onUpdateCharacter(character.id, updates)
