@@ -1,8 +1,11 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MoreVertical, Pencil, Trash2, MapPin } from 'lucide-react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import type { Entity } from '../shared/entityTypes'
-import { ConfirmPopover } from '../ui/ConfirmPopover'
+import { DropdownMenuContent } from '../ui/primitives/DropdownMenuContent'
+import { DropdownMenuItem } from '../ui/primitives/DropdownMenuItem'
+import { ConfirmDropdownItem } from '../ui/ConfirmDropdownItem'
 
 interface EntityRowProps {
   entity: Entity
@@ -26,12 +29,8 @@ export function EntityRow({
   onUpdate,
 }: EntityRowProps) {
   const { t } = useTranslation('gm')
-  const [showMenu, setShowMenu] = useState(false)
-  const [deletingThis, setDeletingThis] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
-  const deleteRef = useRef<HTMLButtonElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
 
   const commitRename = () => {
     if (renameValue.trim() && renameValue.trim() !== entity.name) {
@@ -97,83 +96,50 @@ export function EntityRow({
         </div>
       </div>
 
-      {/* Menu button */}
-      <button
-        ref={deletingThis ? deleteRef : undefined}
-        onClick={(e) => {
-          e.stopPropagation()
-          setShowMenu(!showMenu)
-        }}
-        className="opacity-0 group-hover:opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
-      >
-        <MoreVertical size={12} strokeWidth={1.5} />
-      </button>
-
-      {/* Dropdown menu */}
-      {showMenu && (
-        <div
-          ref={menuRef}
-          className="absolute right-1 top-full mt-0.5 z-popover bg-surface border border-border-glass rounded-md shadow-lg py-1 min-w-[120px]"
-          onPointerDown={(e) => {
-            e.stopPropagation()
-          }}
-        >
+      {/* ⋮ Menu */}
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger asChild>
           <button
-            data-testid="entity-menu-rename"
             onClick={(e) => {
               e.stopPropagation()
+            }}
+            className="opacity-0 group-hover:opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
+          >
+            <MoreVertical size={12} strokeWidth={1.5} />
+          </button>
+        </DropdownMenu.Trigger>
+
+        <DropdownMenuContent align="end" sideOffset={4}>
+          <DropdownMenuItem
+            data-testid="entity-menu-rename"
+            onSelect={() => {
               setRenaming(true)
               setRenameValue(entity.name)
-              setShowMenu(false)
             }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
           >
             <Pencil size={12} strokeWidth={1.5} />
             {t('entity.rename')}
-          </button>
+          </DropdownMenuItem>
+
           {!isInScene && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onAddToScene()
-                setShowMenu(false)
-              }}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-hover cursor-pointer transition-colors duration-fast"
-            >
+            <DropdownMenuItem onSelect={() => { onAddToScene(); }}>
               <MapPin size={12} strokeWidth={1.5} />
               {t('entity.add_to_scene')}
-            </button>
+            </DropdownMenuItem>
           )}
-          <div className="border-t border-border-glass my-1" />
-          <button
-            data-testid="entity-menu-delete"
-            onClick={(e) => {
-              e.stopPropagation()
-              setDeletingThis(true)
-              setShowMenu(false)
-            }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-danger hover:bg-hover cursor-pointer transition-colors duration-fast"
-          >
-            <Trash2 size={12} strokeWidth={1.5} />
-            Delete
-          </button>
-        </div>
-      )}
 
-      {/* Delete confirmation popover */}
-      {deletingThis && (
-        <ConfirmPopover
-          anchorRef={deleteRef}
-          message={t('entity.delete_confirm', { name: entity.name })}
-          onConfirm={() => {
-            setDeletingThis(false)
-            onDelete()
-          }}
-          onCancel={() => {
-            setDeletingThis(false)
-          }}
-        />
-      )}
+          <DropdownMenu.Separator className="border-t border-border-glass my-1" />
+
+          <ConfirmDropdownItem
+            data-testid="entity-menu-delete"
+            icon={<Trash2 size={12} strokeWidth={1.5} />}
+            message={t('entity.delete_confirm', { name: entity.name })}
+            onConfirm={onDelete}
+          >
+            Delete
+          </ConfirmDropdownItem>
+        </DropdownMenuContent>
+      </DropdownMenu.Root>
     </div>
   )
 }
