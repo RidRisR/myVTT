@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { createPortal } from 'react-dom'
+import * as Popover from '@radix-ui/react-popover'
 import { Users, ChevronUp, Plus } from 'lucide-react'
 import * as ContextMenu from '@radix-ui/react-context-menu'
 import { useUiStore } from '../stores/uiStore'
@@ -130,26 +130,7 @@ export function PortraitBar({
   const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null)
   const [lockedRect, setLockedRect] = useState<DOMRect | null>(null)
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const popoverRef = useRef<HTMLDivElement>(null)
   const portraitBarRef = useRef<HTMLDivElement>(null)
-
-  // Click-outside to close locked popover
-  useEffect(() => {
-    if (!inspectedCharacterId) return
-    const handler = (e: PointerEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
-        !portraitBarRef.current?.contains(e.target as Node)
-      ) {
-        onInspectCharacter(null)
-      }
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => {
-      document.removeEventListener('pointerdown', handler)
-    }
-  }, [inspectedCharacterId, onInspectCharacter])
 
   // Clear hover when a portrait is locked
   useEffect(() => {
@@ -513,19 +494,6 @@ export function PortraitBar({
     popoverEntity && isLocked && mySeatId && canEdit(popoverEntity.permissions, mySeatId, role)
   const popoverWidth = isLocked ? (isEditable ? 320 : 260) : 220
 
-  // Calculate popover position
-  let popoverLeft = 0
-  let popoverTop = 0
-  if (rect) {
-    popoverLeft = Math.max(
-      8,
-      Math.min(window.innerWidth - popoverWidth - 8, rect.left + rect.width / 2 - popoverWidth / 2),
-    )
-    popoverTop = rect.bottom + 8
-  }
-
-  const popoverMaxHeight = rect ? `calc(100vh - ${rect.bottom + 8}px - 20px)` : '50vh'
-
   return (
     <div
       ref={portraitBarRef}
@@ -606,18 +574,42 @@ export function PortraitBar({
         </div>
       )}
 
-      {/* Entity popover — rendered via portal */}
-      {popoverEntity &&
-        rect &&
-        createPortal(
-          <div
-            ref={popoverRef}
-            style={{
-              position: 'fixed',
-              left: popoverLeft,
-              top: popoverTop,
-              zIndex: 10001,
-              maxHeight: popoverMaxHeight,
+      {/* Entity popover — Radix controlled Popover with virtual anchor */}
+      <Popover.Root
+        open={!!popoverEntity && !!rect}
+        onOpenChange={(isOpen) => {
+          if (!isOpen && inspectedCharacterId) {
+            onInspectCharacter(null)
+          }
+        }}
+        modal={false}
+      >
+        <Popover.Anchor
+          className="fixed pointer-events-none w-0 h-0"
+          style={{
+            left: rect ? rect.left + rect.width / 2 : 0,
+            top: rect ? rect.bottom : 0,
+          }}
+        />
+        <Popover.Portal>
+          <Popover.Content
+            side="bottom"
+            align="center"
+            sideOffset={8}
+            collisionPadding={8}
+            className="z-popover outline-none"
+            style={{ width: popoverWidth }}
+            onInteractOutside={(e) => {
+              // Hover popover: don't close on click-outside, mouse timers handle it
+              if (!inspectedCharacterId) {
+                e.preventDefault()
+                return
+              }
+              // Locked popover: don't close when clicking on the portrait bar
+              // (clicking another portrait should switch, not close-then-reopen)
+              if (portraitBarRef.current?.contains(e.target as Node)) {
+                e.preventDefault()
+              }
             }}
             onPointerDown={(e) => {
               e.stopPropagation()
@@ -628,38 +620,39 @@ export function PortraitBar({
             onMouseEnter={handlePopoverMouseEnter}
             onMouseLeave={handlePopoverMouseLeave}
           >
-            {isLocked ? (
-              isEditable ? (
-                // Plugin handles editing — DH uses DaggerHeartCard + openPanel('dh-full-sheet')
-                // Generic plugin uses CharacterEditPanel wrapped in GenericEntityCard
-                <Card
-                  entity={popoverEntity}
-                  onUpdate={(patch) => {
-                    onUpdateEntity(popoverEntity.id, patch)
-                  }}
-                  readonly={false}
-                />
+            {popoverEntity &&
+              (isLocked ? (
+                isEditable ? (
+                  // Plugin handles editing — DH uses DaggerHeartCard + openPanel('dh-full-sheet')
+                  // Generic plugin uses CharacterEditPanel wrapped in GenericEntityCard
+                  <Card
+                    entity={popoverEntity}
+                    onUpdate={(patch) => {
+                      onUpdateEntity(popoverEntity.id, patch)
+                    }}
+                    readonly={false}
+                  />
+                ) : (
+                  // Read-only locked view: use plugin's EntityCard for display
+                  <Card
+                    entity={popoverEntity}
+                    onUpdate={(patch) => {
+                      onUpdateEntity(popoverEntity.id, patch)
+                    }}
+                    readonly
+                  />
+                )
               ) : (
-                // Read-only locked view: use plugin's EntityCard for display
-                <Card
-                  entity={popoverEntity}
-                  onUpdate={(patch) => {
-                    onUpdateEntity(popoverEntity.id, patch)
-                  }}
-                  readonly
+                <CharacterHoverPreview
+                  character={popoverEntity}
+                  isOnline={false}
+                  editable={mySeatId ? canEdit(popoverEntity.permissions, mySeatId, role) : false}
+                  onUpdateCharacter={onUpdateEntity}
                 />
-              )
-            ) : (
-              <CharacterHoverPreview
-                character={popoverEntity}
-                isOnline={false}
-                editable={mySeatId ? canEdit(popoverEntity.permissions, mySeatId, role) : false}
-                onUpdateCharacter={onUpdateEntity}
-              />
-            )}
-          </div>,
-          document.body,
-        )}
+              ))}
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
     </div>
   )
 }
