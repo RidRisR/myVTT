@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MapToken, Entity } from '../shared/entityTypes'
+import { useClickOutside } from '../hooks/useClickOutside'
 
 interface TokenContextMenuProps {
   x: number
@@ -40,18 +41,8 @@ export function TokenContextMenu({
   const { t } = useTranslation('combat')
   const ref = useRef<HTMLDivElement>(null)
 
-  // Click-outside-to-close
-  useEffect(() => {
-    const handlePointerDown = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose()
-      }
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-    }
-  }, [onClose])
+  // Click-outside-to-close (Radix Portal-aware)
+  useClickOutside(ref, onClose)
 
   // Escape key to close
   useEffect(() => {
@@ -87,10 +78,7 @@ export function TokenContextMenu({
       {isTokenMenu ? (
         <>
           {/* Header: token name */}
-          <div
-            className="px-3 py-1.5 text-text-muted text-xs font-medium border-b border-border-glass mb-1"
-            style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-          >
+          <div className="px-3 py-1.5 text-text-muted text-xs font-medium border-b border-border-glass mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
             {tokenName}
           </div>
 
@@ -107,7 +95,7 @@ export function TokenContextMenu({
           <div className="border-t border-border-glass my-1" />
 
           {/* Size submenu — radio style */}
-          <div className="px-3 py-1 text-text-muted" style={{ fontSize: 10, fontWeight: 600 }}>
+          <div className="px-3 py-1 text-text-muted text-[10px] font-semibold">
             {t('token.size')}
           </div>
           <div className="flex gap-1 px-3 py-1">
@@ -118,15 +106,11 @@ export function TokenContextMenu({
                   onUpdateToken(tokenId, { width: s, height: s })
                   onClose()
                 }}
-                className="border-none cursor-pointer rounded text-xs font-bold transition-colors duration-100"
-                style={{
-                  width: 28,
-                  height: 24,
-                  background: s === currentSize ? 'rgba(212,160,85,0.3)' : 'transparent',
-                  color: s === currentSize ? '#D4A055' : '#F0E6D8',
-                  border:
-                    s === currentSize ? '1px solid rgba(212,160,85,0.5)' : '1px solid transparent',
-                }}
+                className={`w-7 h-6 border cursor-pointer rounded text-xs font-bold transition-colors duration-100 ${
+                  s === currentSize
+                    ? 'bg-accent/30 text-accent border-accent/50'
+                    : 'bg-transparent text-text-primary border-transparent'
+                }`}
               >
                 {s}
               </button>
@@ -191,10 +175,9 @@ function MenuItem({
   return (
     <button
       onClick={onClick}
-      className="block w-full px-3 py-1.5 bg-transparent border-none text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover"
-      style={{
-        color: danger ? '#C04040' : '#F0E6D8',
-      }}
+      className={`block w-full px-3 py-1.5 bg-transparent border-none text-xs font-medium text-left font-sans transition-colors duration-100 cursor-pointer hover:bg-hover ${
+        danger ? 'text-danger' : 'text-text-primary'
+      }`}
     >
       {label}
     </button>

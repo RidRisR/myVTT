@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   FolderOpen,
@@ -18,6 +18,7 @@ import { useToast } from '../ui/useToast'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { useWorldStore } from '../stores/worldStore'
 import { useUiStore } from '../stores/uiStore'
+import { useClickOutside } from '../hooks/useClickOutside'
 import { MapDockTab } from '../dock/MapDockTab'
 import { BlueprintDockTab } from '../dock/BlueprintDockTab'
 import { HandoutDockTab } from '../dock/HandoutDockTab'
@@ -90,19 +91,11 @@ export function GmDock({
     }
   }, [activeTab, collapsed])
 
-  // Click outside to collapse
-  useEffect(() => {
-    if (activeTab === null) return
-    const handleClickOutside = (e: PointerEvent) => {
-      if (dockRef.current && !dockRef.current.contains(e.target as Node)) {
-        setActiveTab(null)
-      }
-    }
-    document.addEventListener('pointerdown', handleClickOutside)
-    return () => {
-      document.removeEventListener('pointerdown', handleClickOutside)
-    }
-  }, [activeTab, setActiveTab])
+  // Click outside to collapse (Radix Portal-aware)
+  const handleClickOutside = useCallback(() => {
+    setActiveTab(null)
+  }, [setActiveTab])
+  useClickOutside(dockRef, handleClickOutside, activeTab !== null)
 
   const toggleTab = (tab: GmDockTab) => {
     setActiveTab(activeTab === tab ? null : tab)

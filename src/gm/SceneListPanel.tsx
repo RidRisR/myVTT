@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Copy, Plus, Trash2 } from 'lucide-react'
+import * as Popover from '@radix-ui/react-popover'
 import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
-import { ConfirmPopover } from '../ui/ConfirmPopover'
+import { PopoverContent } from '../ui/primitives/PopoverContent'
+import { useClickOutside } from '../hooks/useClickOutside'
 
 interface SceneListPanelProps {
   scenes: Scene[]
@@ -32,20 +34,9 @@ export function SceneListPanel({
   const [renameValue, setRenameValue] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const renameInputRef = useRef<HTMLInputElement>(null)
-  const deleteButtonRef = useRef<HTMLButtonElement>(null)
 
-  // Click-outside-to-close
-  useEffect(() => {
-    const handler = (e: PointerEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose()
-      }
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => {
-      document.removeEventListener('pointerdown', handler)
-    }
-  }, [onClose])
+  // Click-outside-to-close (Radix Portal-aware)
+  useClickOutside(panelRef, onClose)
 
   // Auto-focus rename input
   useEffect(() => {
@@ -58,8 +49,6 @@ export function SceneListPanel({
     }
     setRenamingId(null)
   }
-
-  const deletingScene = deletingId ? scenes.find((s) => s.id === deletingId) : null
 
   return (
     <div
@@ -168,17 +157,53 @@ export function SceneListPanel({
                       <Copy size={12} strokeWidth={1.5} />
                     </button>
                     {scenes.length > 1 && (
-                      <button
-                        ref={deletingId === scene.id ? deleteButtonRef : undefined}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeletingId(scene.id)
+                      <Popover.Root
+                        open={deletingId === scene.id}
+                        onOpenChange={(open) => {
+                          if (!open) setDeletingId(null)
                         }}
-                        className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-danger transition-all duration-fast p-1 cursor-pointer"
-                        title={t('scene.delete')}
                       >
-                        <Trash2 size={12} strokeWidth={1.5} />
-                      </button>
+                        <Popover.Trigger asChild>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeletingId(scene.id)
+                            }}
+                            className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-danger transition-all duration-fast p-1 cursor-pointer"
+                            title={t('scene.delete')}
+                          >
+                            <Trash2 size={12} strokeWidth={1.5} />
+                          </button>
+                        </Popover.Trigger>
+                        <PopoverContent side="top" align="center" className="min-w-[140px]">
+                          <p className="text-xs text-text-primary mb-2.5 whitespace-nowrap">
+                            {t('archive.delete_confirm', {
+                              name: scene.name || t('scene.untitled'),
+                            })}
+                          </p>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              data-testid="confirm-cancel"
+                              onClick={() => {
+                                setDeletingId(null)
+                              }}
+                              className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast"
+                            >
+                              {t('cancel', { ns: 'ui' })}
+                            </button>
+                            <button
+                              data-testid="confirm-action"
+                              onClick={() => {
+                                onDeleteScene(scene.id)
+                                setDeletingId(null)
+                              }}
+                              className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
+                            >
+                              {t('delete_default', { ns: 'ui' })}
+                            </button>
+                          </div>
+                        </PopoverContent>
+                      </Popover.Root>
                     )}
                   </div>
                 </div>
@@ -197,21 +222,6 @@ export function SceneListPanel({
           </div>
         </div>
       </div>
-
-      {/* Delete confirmation popover */}
-      {deletingScene && (
-        <ConfirmPopover
-          anchorRef={deleteButtonRef}
-          message={t('archive.delete_confirm', { name: deletingScene.name || t('scene.untitled') })}
-          onConfirm={() => {
-            onDeleteScene(deletingScene.id)
-            setDeletingId(null)
-          }}
-          onCancel={() => {
-            setDeletingId(null)
-          }}
-        />
-      )}
     </div>
   )
 }
