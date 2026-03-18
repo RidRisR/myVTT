@@ -1,77 +1,15 @@
 // server/__tests__/routes-missing.test.ts — Tests for newly implemented endpoints
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import http from 'http'
-import express from 'express'
-import { Server as SocketIOServer } from 'socket.io'
-import { getGlobalDb, closeAllDbs } from '../db'
-import { roomRoutes } from '../routes/rooms'
-import { seatRoutes } from '../routes/seats'
-import { sceneRoutes } from '../routes/scenes'
-import { entityRoutes } from '../routes/entities'
-import { archiveRoutes } from '../routes/archives'
-import { tacticalRoutes } from '../routes/tactical'
-import { chatRoutes } from '../routes/chat'
-import { trackerRoutes } from '../routes/trackers'
-import { showcaseRoutes } from '../routes/showcase'
-import { stateRoutes } from '../routes/state'
-import { setupSocketAuth } from '../ws'
-import { setupAwareness } from '../awareness'
-import path from 'path'
-import fs from 'fs'
-import os from 'os'
+import { setupTestServer, type SimpleTestServer } from './helpers/test-server'
 
-let server: http.Server
-let io: SocketIOServer
-let baseUrl: string
-let dataDir: string
+let ctx: SimpleTestServer
 
 beforeAll(async () => {
-  dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'myvtt-missing-test-'))
-
-  const app = express()
-  app.use(express.json())
-
-  app.param('roomId', (_req, res, next, val) => {
-    if (!/^[a-zA-Z0-9_-]{1,64}$/.test(val as string)) {
-      res.status(400).json({ error: 'Invalid room ID' })
-      return
-    }
-    next()
-  })
-
-  server = http.createServer(app)
-  io = new SocketIOServer(server)
-
-  setupSocketAuth(io, dataDir)
-  setupAwareness(io)
-
-  app.use(roomRoutes(dataDir, io))
-  app.use(seatRoutes(dataDir, io))
-  app.use(sceneRoutes(dataDir, io))
-  app.use(entityRoutes(dataDir, io))
-  app.use(archiveRoutes(dataDir, io))
-  app.use(tacticalRoutes(dataDir, io))
-  app.use(chatRoutes(dataDir, io))
-  app.use(trackerRoutes(dataDir, io))
-  app.use(showcaseRoutes(dataDir, io))
-  app.use(stateRoutes(dataDir, io))
-
-  getGlobalDb(dataDir)
-
-  await new Promise<void>((resolve) => {
-    server.listen(0, () => {
-      const addr = server.address() as { port: number }
-      baseUrl = `http://127.0.0.1:${addr.port}`
-      resolve()
-    })
-  })
+  ctx = await setupTestServer()
 })
 
 afterAll(() => {
-  void io.close()
-  server.close()
-  closeAllDbs()
-  fs.rmSync(dataDir, { recursive: true, force: true })
+  ctx.cleanup()
 })
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
@@ -80,13 +18,8 @@ async function api<T = Record<string, unknown>>(
   urlPath: string,
   body?: unknown,
 ): Promise<{ status: number; data: T }> {
-  const res = await fetch(`${baseUrl}${urlPath}`, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  })
-  const data = (await res.json()) as T
-  return { status: res.status, data }
+  const result = await ctx.api(method, urlPath, body)
+  return result as { status: number; data: T }
 }
 
 async function createRoom(name = 'Missing Endpoint Room') {

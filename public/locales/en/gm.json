@@ -29,7 +29,8 @@
     "uploading_audio": "Uploading...",
     "volume": "Volume",
     "delete_confirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
-    "untitled": "Untitled"
+    "untitled": "Untitled",
+    "upload_failed": "Upload failed"
   },
   "archive": {
     "no_scene": "Please select a scene first",

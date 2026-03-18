@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
+import { ToastProvider } from '../../ui/ToastProvider'
 import { getRulePlugin, getAvailablePlugins, registerPlugin } from '../registry'
 import { makeEntity } from '../../__test-utils__/fixtures'
 
@@ -130,7 +131,11 @@ describe.each(allPluginIds)('%s plugin — EntityCard render safety', (pluginId)
   for (const { label, ruleData } of edgeCases) {
     it(`does not crash with ${label}`, () => {
       expect(() =>
-        render(<EntityCard entity={makeEntity({ ruleData })} onUpdate={vi.fn()} readonly />),
+        render(
+          <ToastProvider>
+            <EntityCard entity={makeEntity({ ruleData })} onUpdate={vi.fn()} readonly />
+          </ToastProvider>,
+        ),
       ).not.toThrow()
     })
   }

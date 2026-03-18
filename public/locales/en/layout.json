@@ -4,7 +4,8 @@
     "game_system": "Game System",
     "system_fixed": "Set at room creation, cannot be changed",
     "leave_seat": "Leave Seat",
-    "language": "Language"
+    "language": "Language",
+    "upload_failed": "Portrait upload failed"
   },
   "role": {
     "game_master": "Game Master",
@@ -59,6 +60,7 @@
     "tab_notes": "NOTES",
     "hover_stats": "Stats",
     "hover_attr": "Attr",
-    "status_placeholder": "Status..."
+    "status_placeholder": "Status...",
+    "upload_failed": "Portrait upload failed"
   }
 }

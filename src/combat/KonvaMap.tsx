@@ -12,7 +12,7 @@ import { TokenContextMenu } from './TokenContextMenu'
 import { TokenTooltip } from './TokenTooltip'
 import { MeasureTool } from './tools/MeasureTool'
 import { RangeTemplate } from './tools/RangeTemplate'
-import { snapToGrid } from './combatUtils'
+import { snapToGrid, resolveTokenEntity } from './combatUtils'
 import { useToast } from '../ui/useToast'
 import { useCameraControls } from './hooks/useCameraControls'
 import { useTokenAwareness } from './hooks/useTokenAwareness'
@@ -275,17 +275,13 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     [tokens, onDeleteToken, onAddToken, toast],
   )
 
-  // Resolve context menu token + entity
-  const contextMenuToken = contextMenu?.tokenId
-    ? (tokens.find((t) => t.id === contextMenu.tokenId) ?? null)
-    : null
-  const contextMenuEntity = contextMenuToken?.entityId ? getEntity(contextMenuToken.entityId) : null
-
-  // Resolve tooltip token + entity
-  const tooltipToken = tooltipState
-    ? (tokens.find((t) => t.id === tooltipState.tokenId) ?? null)
-    : null
-  const tooltipEntity = tooltipToken?.entityId ? getEntity(tooltipToken.entityId) : null
+  // Resolve token + entity for context menu and tooltip
+  const [contextMenuToken, contextMenuEntity] = resolveTokenEntity(
+    tokens,
+    contextMenu?.tokenId,
+    getEntity,
+  )
+  const [tooltipToken, tooltipEntity] = resolveTokenEntity(tokens, tooltipState?.tokenId, getEntity)
 
   // No tacticalInfo state (no active scene)
   if (!tacticalInfo) {

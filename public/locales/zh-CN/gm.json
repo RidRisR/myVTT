@@ -29,7 +29,8 @@
     "uploading_audio": "上传中...",
     "volume": "音量",
     "delete_confirm": "确定要删除「{{name}}」吗？此操作不可撤销。",
-    "untitled": "未命名"
+    "untitled": "未命名",
+    "upload_failed": "上传失败"
   },
   "archive": {
     "no_scene": "请先选择场景",

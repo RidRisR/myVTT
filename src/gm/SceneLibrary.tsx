@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useToast } from '../ui/useToast'
 import { X, Trash2, Upload } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
 import { uploadAsset, getMediaDimensions, isVideoUrl } from '../shared/assetUpload'
@@ -26,6 +27,7 @@ export function SceneLibrary({
   onSelect,
 }: SceneLibraryProps) {
   const { t } = useTranslation('gm')
+  const { toast } = useToast()
   const [uploading, setUploading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -59,6 +61,7 @@ export function SceneLibrary({
       }
     } catch (err) {
       console.error('Upload failed:', err)
+      toast('error', t('scene.upload_failed'))
     } finally {
       setUploading(false)
     }

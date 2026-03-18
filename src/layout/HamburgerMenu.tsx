@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useToast } from '../ui/useToast'
 import { Menu, LogOut, Sun, Moon, Globe } from 'lucide-react'
 import { SEAT_COLORS, type Seat } from '../stores/identityStore'
 import { uploadAsset } from '../shared/assetUpload'
@@ -15,6 +16,7 @@ interface HamburgerMenuProps {
 
 export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMenuProps) {
   const { t } = useTranslation('layout')
+  const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
@@ -56,6 +58,7 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
       onUpdateSeat(mySeat.id, { portraitUrl: result.url })
     } catch (err) {
       console.error('Portrait upload failed:', err)
+      toast('error', t('menu.upload_failed'))
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
