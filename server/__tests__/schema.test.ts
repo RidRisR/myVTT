@@ -61,6 +61,7 @@ describe('initRoomSchema', () => {
     expect(names).toContain('assets')
     expect(names).toContain('team_trackers')
     expect(names).toContain('showcase_items')
+    expect(names).toContain('blueprints')
   })
 
   it('initializes singleton rows', () => {
@@ -73,6 +74,22 @@ describe('initRoomSchema', () => {
     expect(roomState.active_scene_id).toBeNull()
     // tactical_mode now lives in tactical_state (per-scene), not room_state
     expect(roomState.plugin_config).toBe('{}')
+  })
+
+  it('enforces entities.blueprint_id ON DELETE SET NULL', () => {
+    initRoomSchema(db)
+    db.prepare(
+      "INSERT INTO blueprints (id, name, image_url, created_at) VALUES ('bp1', 'Goblin', '', 1)",
+    ).run()
+    db.prepare(
+      "INSERT INTO entities (id, name, blueprint_id) VALUES ('e1', 'Goblin 1', 'bp1')",
+    ).run()
+
+    db.prepare("DELETE FROM blueprints WHERE id = 'bp1'").run()
+    const entity = db.prepare("SELECT blueprint_id FROM entities WHERE id = 'e1'").get() as {
+      blueprint_id: string | null
+    }
+    expect(entity.blueprint_id).toBeNull()
   })
 
   it('enforces scene_entities foreign key cascade', () => {

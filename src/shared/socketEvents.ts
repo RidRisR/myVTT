@@ -14,7 +14,7 @@ import type {
   ArchiveRecord,
   RoomMeta,
 } from './storeTypes'
-import type { Entity, MapToken } from './entityTypes'
+import type { Entity, MapToken, Blueprint } from './entityTypes'
 import type { ChatMessage } from './chatTypes'
 import type { ShowcaseItem } from './showcaseTypes'
 
@@ -75,6 +75,11 @@ export interface ServerToClientEvents {
   'asset:created': (asset: AssetRecord) => void
   'asset:updated': (asset: AssetRecord) => void
   'asset:deleted': (data: { id: string }) => void
+
+  // ── Blueprints ──
+  'blueprint:created': (blueprint: Blueprint) => void
+  'blueprint:updated': (blueprint: Blueprint) => void
+  'blueprint:deleted': (data: { id: string }) => void
 
   // ── Archives ──
   'archive:created': (archive: ArchiveRecord) => void

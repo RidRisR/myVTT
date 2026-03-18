@@ -43,9 +43,14 @@ export interface Blueprint {
   id: string
   name: string
   imageUrl: string
-  defaultSize: number
-  defaultColor: string
-  defaultRuleData?: unknown
+  tags: string[]
+  defaults: {
+    color: string
+    width: number
+    height: number
+    ruleData?: unknown
+  }
+  createdAt: number
 }
 
 export interface Atmosphere {

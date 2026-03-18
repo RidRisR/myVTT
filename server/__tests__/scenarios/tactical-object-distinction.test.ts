@@ -50,25 +50,15 @@ describe('Tactical Object vs Scene Entity distinction', () => {
     let blueprintId: string
 
     beforeAll(async () => {
-      // Create a blueprint asset
-      const formData = new FormData()
-      const blob = new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: 'image/png' })
-      formData.append('file', blob, 'skeleton.png')
-      formData.append('name', 'Skeleton')
-      formData.append('type', 'blueprint')
-      formData.append(
-        'extra',
-        JSON.stringify({
-          blueprint: { defaultSize: 1, defaultColor: '#888888', defaultRuleData: {} },
-        }),
-      )
-
-      const res = await fetch(`${ctx.apiBase}/api/rooms/${ctx.roomId}/assets`, {
-        method: 'POST',
-        body: formData,
+      // Create a blueprint via the blueprints endpoint
+      const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/blueprints`, {
+        name: 'Skeleton',
+        imageUrl: '',
+        defaults: { color: '#888888', width: 1, height: 1, ruleData: {} },
+        tags: [],
       })
-      expect(res.status).toBe(201)
-      blueprintId = ((await res.json()) as { id: string }).id
+      expect(status).toBe(201)
+      blueprintId = (data as { id: string }).id
     })
 
     it('spawn with tacticalOnly=true does NOT create scene_entity_entry', async () => {

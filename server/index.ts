@@ -18,6 +18,7 @@ import { archiveRoutes } from './routes/archives'
 import { tacticalRoutes } from './routes/tactical'
 import { chatRoutes } from './routes/chat'
 import { assetRoutes } from './routes/assets'
+import { blueprintRoutes } from './routes/blueprints'
 import { trackerRoutes } from './routes/trackers'
 import { showcaseRoutes } from './routes/showcase'
 import { stateRoutes } from './routes/state'
@@ -94,6 +95,7 @@ app.use(archiveRoutes(DATA_DIR, io))
 app.use(tacticalRoutes(DATA_DIR, io))
 app.use(chatRoutes(DATA_DIR, io))
 app.use(assetRoutes(DATA_DIR, io))
+app.use(blueprintRoutes(DATA_DIR, io))
 app.use(trackerRoutes(DATA_DIR, io))
 app.use(showcaseRoutes(DATA_DIR, io))
 app.use(stateRoutes(DATA_DIR, io))

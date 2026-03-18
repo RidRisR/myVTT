@@ -276,20 +276,19 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
       return
     }
 
-    const asset = req
-      .roomDb!.prepare("SELECT * FROM assets WHERE id = ? AND type = 'blueprint'")
-      .get(blueprintId) as Record<string, unknown> | undefined
-    if (!asset) {
+    const bpRow = req.roomDb!.prepare('SELECT * FROM blueprints WHERE id = ?').get(blueprintId) as
+      | Record<string, unknown>
+      | undefined
+    if (!bpRow) {
       res.status(404).json({ error: 'Blueprint not found' })
       return
     }
-    const extra = JSON.parse((asset.extra as string) || '{}') as Record<string, unknown>
-    const bp = (extra.blueprint || {}) as Record<string, unknown>
+    const defaults = JSON.parse((bpRow.defaults as string) || '{}') as Record<string, unknown>
 
     const count = req
       .roomDb!.prepare('SELECT COUNT(*) as c FROM entities WHERE blueprint_id = ?')
       .get(blueprintId) as { c: number }
-    const name = `${(asset.name as string) || 'NPC'} ${count.c + 1}`
+    const name = `${(bpRow.name as string) || 'NPC'} ${count.c + 1}`
 
     const entityId = 'e-' + crypto.randomUUID().slice(0, 8)
 
@@ -302,12 +301,12 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
         .run(
           entityId,
           name,
-          asset.url || '',
-          bp.defaultColor || '#888888',
-          bp.defaultSize || 1,
-          bp.defaultSize || 1,
+          bpRow.image_url || '',
+          defaults.color || '#888888',
+          defaults.width || 1,
+          defaults.height || 1,
           '',
-          JSON.stringify(bp.defaultRuleData || {}),
+          JSON.stringify(defaults.ruleData || {}),
           JSON.stringify({ default: 'observer', seats: {} }),
           blueprintId,
         )

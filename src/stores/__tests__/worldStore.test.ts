@@ -673,7 +673,6 @@ describe('socket event handlers', () => {
     const added = useWorldStore.getState().assets.find((a) => a.id === 'asset-str-extra')
     expect(added).toBeDefined()
     expect(added?.tags).toEqual(['warrior'])
-    expect(added?.blueprint?.defaultSize).toBe(2)
   })
 
   it('asset:updated updates matching asset', () => {
@@ -1085,7 +1084,6 @@ describe('loadAll() via bundle endpoint', () => {
     const assets = useWorldStore.getState().assets
     expect(assets).toHaveLength(1)
     expect(assets[0]?.tags).toEqual(['warrior', 'npc'])
-    expect(assets[0]?.blueprint?.defaultSize).toBe(2)
     expect(assets[0]?.type).toBe('blueprint')
     // extra field should NOT appear on AssetMeta
     expect((assets[0] as unknown as Record<string, unknown>).extra).toBeUndefined()

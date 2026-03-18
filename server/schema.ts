@@ -44,6 +44,16 @@ export function initRoomSchema(db: Database.Database): void {
       atmosphere TEXT DEFAULT '{}'
     );
 
+    -- Blueprints (entity template factory)
+    CREATE TABLE IF NOT EXISTS blueprints (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL DEFAULT '',
+      image_url TEXT DEFAULT '',
+      tags TEXT DEFAULT '[]',
+      defaults TEXT DEFAULT '{}',
+      created_at INTEGER NOT NULL
+    );
+
     -- Entities
     CREATE TABLE IF NOT EXISTS entities (
       id TEXT PRIMARY KEY,
@@ -56,7 +66,7 @@ export function initRoomSchema(db: Database.Database): void {
       rule_data TEXT DEFAULT '{}',
       permissions TEXT DEFAULT '{"default":"none","seats":{}}',
       lifecycle TEXT DEFAULT 'ephemeral' CHECK(lifecycle IN ('ephemeral','reusable','persistent')),
-      blueprint_id TEXT
+      blueprint_id TEXT REFERENCES blueprints(id) ON DELETE SET NULL
     );
 
     -- Scene-Entity many-to-many
@@ -174,5 +184,6 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_tactical_tokens_scene ON tactical_tokens(scene_id);
     CREATE INDEX IF NOT EXISTS idx_tactical_tokens_entity ON tactical_tokens(entity_id);
     CREATE INDEX IF NOT EXISTS idx_archive_tokens_archive ON archive_tokens(archive_id);
+    CREATE INDEX IF NOT EXISTS idx_blueprints_created ON blueprints(created_at);
   `)
 }

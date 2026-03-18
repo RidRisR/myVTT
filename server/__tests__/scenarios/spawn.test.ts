@@ -22,27 +22,14 @@ describe('Spawn from Blueprint Journey', () => {
     sceneId = (data as { id: string }).id
   })
 
-  it('creates a blueprint asset', async () => {
-    // Asset creation requires multipart/form-data (multer)
-    const formData = new FormData()
-    const blob = new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: 'image/png' })
-    formData.append('file', blob, 'goblin.png')
-    formData.append('name', '\u54E5\u5E03\u6797')
-    formData.append('type', 'blueprint')
-    formData.append(
-      'extra',
-      JSON.stringify({
-        blueprint: { defaultSize: 1, defaultColor: '#22c55e', defaultRuleData: {} },
-      }),
-    )
-
-    const res = await fetch(`${ctx.apiBase}/api/rooms/${ctx.roomId}/assets`, {
-      method: 'POST',
-      body: formData,
+  it('creates a blueprint', async () => {
+    const { data, status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/blueprints`, {
+      name: '哥布林',
+      imageUrl: '/uploads/goblin.png',
+      defaults: { color: '#22c55e', width: 1, height: 1, ruleData: {} },
     })
-    expect(res.status).toBe(201)
-    const data = (await res.json()) as Record<string, unknown>
-    blueprintId = data.id as string
+    expect(status).toBe(201)
+    blueprintId = (data as { id: string }).id
   })
 
   it('spawns entity from blueprint', async () => {

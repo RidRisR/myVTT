@@ -35,8 +35,9 @@ export function makeBlueprint(overrides?: Partial<Blueprint>): Blueprint {
     id: 'bp-1',
     name: 'Goblin',
     imageUrl: '',
-    defaultSize: 1,
-    defaultColor: '#22c55e',
+    tags: [],
+    defaults: { color: '#22c55e', width: 1, height: 1 },
+    createdAt: 0,
     ...overrides,
   }
 }
