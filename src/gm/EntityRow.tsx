@@ -122,7 +122,11 @@ export function EntityRow({
           </DropdownMenuItem>
 
           {!isInScene && (
-            <DropdownMenuItem onSelect={() => { onAddToScene(); }}>
+            <DropdownMenuItem
+              onSelect={() => {
+                onAddToScene()
+              }}
+            >
               <MapPin size={12} strokeWidth={1.5} />
               {t('entity.add_to_scene')}
             </DropdownMenuItem>

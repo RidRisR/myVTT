@@ -100,8 +100,12 @@ export function ConfirmDropdownItem({
           align="center"
           sideOffset={8}
           // Block residual pointer/focus events from DropdownMenu close sequence
-          onPointerDownOutside={(e) => { e.preventDefault(); }}
-          onFocusOutside={(e) => { e.preventDefault(); }}
+          onPointerDownOutside={(e) => {
+            e.preventDefault()
+          }}
+          onFocusOutside={(e) => {
+            e.preventDefault()
+          }}
           onEscapeKeyDown={handleCancel}
           className="min-w-[140px]"
         >
