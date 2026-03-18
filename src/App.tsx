@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { useSocket } from './shared/hooks/useSocket'
+import { useSocket } from './hooks/useSocket'
 import { AdminPanel } from './admin/AdminPanel'
 import { useWorldStore } from './stores/worldStore'
 import type { HandoutAsset } from './stores/worldStore'
@@ -36,7 +36,7 @@ import type { Entity, Atmosphere, SceneEntityEntry } from './shared/entityTypes'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
-import { ToastProvider } from './shared/ui/ToastProvider'
+import { ToastProvider } from './ui/ToastProvider'
 import { PluginPanelContainer } from './layout/PluginPanelContainer'
 
 const EMPTY_ENTRIES: SceneEntityEntry[] = []

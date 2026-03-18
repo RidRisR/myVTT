@@ -3,6 +3,7 @@
 // Adding a new socket event? Define it here first. This prevents "dangling listener" bugs
 // where one side registers an event the other side never emits.
 
+import type { Socket } from 'socket.io-client'
 import type {
   Seat,
   Scene,
@@ -16,6 +17,11 @@ import type {
 import type { Entity, MapToken } from './entityTypes'
 import type { ChatMessage } from './chatTypes'
 import type { ShowcaseItem } from './showcaseTypes'
+
+/** Typed client socket — enforces event name + payload consistency */
+export type TypedClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>
+
+export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected'
 
 /** Events the server emits → client listens for */
 export interface ServerToClientEvents {

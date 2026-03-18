@@ -29,7 +29,7 @@ export type { DiceTermResult, DiceSpec } from '../shared/diceUtils'
 
 // ── Utility hook exports ─────────────────────────────────────────────────────
 export { useHoldRepeat } from '../shared/useHoldRepeat'
-export { useAwarenessResource } from '../shared/hooks/useAwarenessResource'
+export { useAwarenessResource } from '../hooks/useAwarenessResource'
 export { usePluginPanels } from './usePluginPanels'
 
 export { tokenizeExpression, buildCompoundResult } from '../shared/diceUtils'

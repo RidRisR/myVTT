@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { X, Pencil, Copy, Plus, Trash2 } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
 import { isVideoUrl } from '../shared/assetUpload'
-import { ConfirmPopover } from '../shared/ui/ConfirmPopover'
+import { ConfirmPopover } from '../ui/ConfirmPopover'
 
 interface SceneListPanelProps {
   scenes: Scene[]

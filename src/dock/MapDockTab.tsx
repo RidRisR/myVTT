@@ -4,7 +4,7 @@ import { useWorldStore } from '../stores/worldStore'
 import type { AssetMeta } from '../shared/assetTypes'
 import { isVideoUrl } from '../shared/assetUpload'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
-import { useToast } from '../shared/ui/useToast'
+import { useToast } from '../ui/useToast'
 
 interface MapDockTabProps {
   activeSceneId: string | null

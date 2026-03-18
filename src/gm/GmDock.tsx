@@ -13,7 +13,7 @@ import {
   Users,
 } from 'lucide-react'
 import type { MapToken, Entity, Blueprint, Atmosphere } from '../shared/entityTypes'
-import { useToast } from '../shared/ui/useToast'
+import { useToast } from '../ui/useToast'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { useWorldStore } from '../stores/worldStore'
 import { MapDockTab } from '../dock/MapDockTab'

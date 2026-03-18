@@ -3,7 +3,7 @@ import { X, Trash2, Upload, XCircle } from 'lucide-react'
 import type { Scene } from '../stores/worldStore'
 import { useWorldStore } from '../stores/worldStore'
 import type { Atmosphere } from '../shared/entityTypes'
-import { ConfirmDialog } from '../shared/ui/ConfirmDialog'
+import { ConfirmDialog } from '../ui/ConfirmDialog'
 import { uploadAsset } from '../shared/assetUpload'
 
 interface SceneConfigPanelProps {

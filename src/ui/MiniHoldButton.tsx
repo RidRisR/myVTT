@@ -1,4 +1,4 @@
-import { useHoldRepeat } from '../useHoldRepeat'
+import { useHoldRepeat } from '../shared/useHoldRepeat'
 
 interface MiniHoldButtonProps {
   label: string

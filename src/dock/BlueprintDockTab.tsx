@@ -3,8 +3,8 @@ import { X, Plus, CircleDot } from 'lucide-react'
 import type { Blueprint } from '../shared/entityTypes'
 import { useWorldStore } from '../stores/worldStore'
 import { ContextMenu, type ContextMenuItem } from '../shared/ContextMenu'
-import { useToast } from '../shared/ui/useToast'
-import { TagFilterBar } from '../shared/ui/TagFilterBar'
+import { useToast } from '../ui/useToast'
+import { TagFilterBar } from '../ui/TagFilterBar'
 
 const PRESET_TAGS = ['人形', '野兽', '魔法生物', '亡灵', '物件']
 

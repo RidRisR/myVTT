@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { MoreVertical, Pencil, Trash2, MapPin } from 'lucide-react'
 import type { Entity } from '../shared/entityTypes'
-import { ConfirmPopover } from '../shared/ui/ConfirmPopover'
+import { ConfirmPopover } from '../ui/ConfirmPopover'
 
 interface EntityRowProps {
   entity: Entity

@@ -82,15 +82,9 @@ export default defineConfig([
   // This prevents shared type files from silently depending on feature-directory types,
   // which would recreate the cross-boundary leakage that src/shared/ is meant to solve.
   // Pattern: enumerate specific feature dirs outside src/shared/ + block ../../ (escapes via subdirs).
-  // Note: ../something from src/shared/hooks/ is fine (still inside src/shared/); ../../ is not.
   {
     files: ['src/shared/**/*.{ts,tsx}'],
-    ignores: [
-      'src/shared/**/__tests__/**',
-      'src/shared/**/__test-utils__/**',
-      'src/shared/hooks/**',
-      'src/shared/ui/**',
-    ],
+    ignores: ['src/shared/**/__tests__/**', 'src/shared/**/__test-utils__/**'],
     rules: {
       'no-restricted-imports': [
         'error',

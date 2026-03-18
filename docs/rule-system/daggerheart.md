@@ -234,7 +234,7 @@ getModifierOptions(): ModifierOption[] {
 
 - 组件位于 `src/rules/daggerheart/DaggerheartCard.tsx`
 - 接收 `EntityCardProps`，通过 `onUpdate` 回调更新 Entity
-- 引用基座组件：`import { ResourceBar } from '../../shared/ui/ResourceBar'`
+- 引用基座组件：`import { ResourceBar } from '../../ui/ResourceBar'`
 - 不包含任何掷骰/判定逻辑，只触发 `onRollAction` 回调
 
 ## 4. Phase 2 预留：目标攻击

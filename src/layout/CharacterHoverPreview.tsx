@@ -7,9 +7,9 @@ import {
   type ResourceView,
 } from '../shared/entityAdapters'
 import { statusColor } from '../shared/tokenUtils'
-import { ResourceBar } from '../shared/ui/ResourceBar'
+import { ResourceBar } from '../ui/ResourceBar'
 import { useIdentityStore } from '../stores/identityStore'
-import { useAwarenessResource, getRemoteEdit } from '../shared/hooks/useAwarenessResource'
+import { useAwarenessResource, getRemoteEdit } from '../hooks/useAwarenessResource'
 
 interface CharacterHoverPreviewProps {
   character: Entity

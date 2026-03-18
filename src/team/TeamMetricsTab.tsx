@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { X } from 'lucide-react'
 import type { TeamTracker } from '../stores/worldStore'
-import { ResourceBar } from '../shared/ui/ResourceBar'
+import { ResourceBar } from '../ui/ResourceBar'
 
 interface TeamMetricsTabProps {
   trackers: TeamTracker[]
