@@ -10,6 +10,7 @@ void i18next
   .init({
     fallbackLng: 'zh-CN',
     supportedLngs: ['zh-CN', 'en'],
+    nonExplicitSupportedLngs: true,
     defaultNS: 'common',
     ns: ['common'],
     backend: {
