@@ -57,12 +57,11 @@ base(0) → tactical(100) → ui(1000) → popover(5000) → overlay(8000) → m
 
 ### 4. 事件隔离：stopPropagation 策略
 
-项目的 Radix wrapper（`PopoverContent`、`ContextMenuContent`）已内置 `stopPropagation`：
+`PopoverContent` 内置了 `stopPropagation`（`onClick` 和 `onPointerDown`），防止点击冒泡到父级 handler。
 
-- `onClick` → `e.stopPropagation()` — 防止点击冒泡到父级 click handler
-- `onPointerDown` → `e.stopPropagation()` — 防止触发父级的 `useClickOutside`
+`ContextMenuContent` **没有**内置 `stopPropagation`——它依赖 Radix 内部的 dismissal 机制管理关闭行为。这意味着 ContextMenu 的事件隔离由 Radix 自身处理，而不是通过我们的 wrapper。
 
-`useClickOutside` hook（`src/hooks/useClickOutside.ts`）自动检测 `[data-radix-popper-content-wrapper]`，将 Radix Portal 内的点击视为"内部点击"，不触发关闭。
+两者共同依赖的安全网：`useClickOutside` hook（`src/hooks/useClickOutside.ts`）自动检测 `[data-radix-popper-content-wrapper]`，将 Radix Portal 内的点击视为"内部点击"，不触发面板关闭。
 
 ## 陷阱清单
 

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import * as ContextMenu from '@radix-ui/react-context-menu'
 import { PopoverContent } from '../ui/primitives/PopoverContent'
@@ -22,6 +22,13 @@ import { useClickOutside } from '../hooks/useClickOutside'
 
 export default function PatternFloatingPanelOverlay() {
   const [open, setOpen] = useState(false)
+
+  // PATTERN: Stable callback reference for child components. Without this,
+  // useClickOutside in FloatingPanel would re-register its document listener
+  // on every parent render because the inline arrow creates a new reference.
+  const handleClose = useCallback(() => {
+    setOpen(false)
+  }, [])
 
   return (
     <div>
@@ -47,13 +54,7 @@ export default function PatternFloatingPanelOverlay() {
         Open Panel
       </button>
 
-      {open && (
-        <FloatingPanel
-          onClose={() => {
-            setOpen(false)
-          }}
-        />
-      )}
+      {open && <FloatingPanel onClose={handleClose} />}
     </div>
   )
 }
@@ -67,38 +68,55 @@ function FloatingPanel({ onClose }: { onClose: () => void }) {
   // If we used `transform: translate(...)` for positioning, any child with
   // `position: fixed` (like Radix Portal content) would be positioned relative
   // to this panel instead of the viewport.
-  const [pos, setPos] = useState({ x: 200, y: 120 })
+  //
+  // posRef tracks the authoritative position (read by the drag handler),
+  // while pos state drives React re-renders. This keeps handleDragStart
+  // stable (no dependency on pos) and avoids re-creating the callback
+  // on every drag frame.
+  const posRef = useRef({ x: 200, y: 120 })
+  const [pos, setPos] = useState(posRef.current)
   const panelRef = useRef<HTMLDivElement>(null)
+  const dragCleanupRef = useRef<(() => void) | null>(null)
 
   // PATTERN: Radix Portal-aware click-outside. Without this, clicking on a
   // Radix Popover (which renders in a Portal outside our DOM tree) would
   // incorrectly close the panel.
   useClickOutside(panelRef, onClose, true)
 
-  // PATTERN: Inline drag handler using pointermove/pointerup on document.
-  // This avoids depending on usePanelDrag or any external drag library.
-  const handleDragStart = useCallback(
-    (e: React.PointerEvent) => {
-      // Don't drag when clicking interactive elements inside the handle
-      if ((e.target as HTMLElement).closest('button, input, [data-radix-popper-content-wrapper]')) {
-        return
-      }
-      e.preventDefault()
-      const startX = e.clientX - pos.x
-      const startY = e.clientY - pos.y
+  // PATTERN: Clean up drag listeners on unmount. If useClickOutside triggers
+  // onClose while the user is mid-drag, the component unmounts and orphaned
+  // pointermove/pointerup listeners would leak on document.
+  useEffect(() => {
+    return () => {
+      dragCleanupRef.current?.()
+    }
+  }, [])
 
-      const onMove = (ev: PointerEvent) => {
-        setPos({ x: ev.clientX - startX, y: ev.clientY - startY })
-      }
-      const onUp = () => {
-        document.removeEventListener('pointermove', onMove)
-        document.removeEventListener('pointerup', onUp)
-      }
-      document.addEventListener('pointermove', onMove)
-      document.addEventListener('pointerup', onUp)
-    },
-    [pos.x, pos.y],
-  )
+  // PATTERN: Stable drag handler — no dependencies, reads position from ref.
+  const handleDragStart = useCallback((e: React.PointerEvent) => {
+    // Don't drag when clicking interactive elements inside the handle
+    if ((e.target as HTMLElement).closest('button, input, [data-radix-popper-content-wrapper]')) {
+      return
+    }
+    // Prevent text selection during drag
+    e.preventDefault()
+    const startX = e.clientX - posRef.current.x
+    const startY = e.clientY - posRef.current.y
+
+    const onMove = (ev: PointerEvent) => {
+      const next = { x: ev.clientX - startX, y: ev.clientY - startY }
+      posRef.current = next
+      setPos(next)
+    }
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+      dragCleanupRef.current = null
+    }
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+    dragCleanupRef.current = onUp
+  }, [])
 
   return (
     <div
@@ -195,7 +213,7 @@ function FloatingPanel({ onClose }: { onClose: () => void }) {
           </p>
           <p>
             <span className="text-accent font-medium">z-ui &lt; z-popover</span> — panel at 1000,
-            overlays at 5000. Same stacking context → numeric value wins, not DOM order
+            overlays at 5000. Same stacking context, numeric value wins, not DOM order
           </p>
         </div>
       </div>
