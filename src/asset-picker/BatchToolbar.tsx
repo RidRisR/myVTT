@@ -135,7 +135,10 @@ export function BatchToolbar({
           allKnownTags={allKnownTags}
           onTagsChange={(tags) => void handleAddTags(tags)}
         >
-          <button className="flex items-center gap-1 px-2 py-1 text-[11px] rounded bg-glass text-text-muted hover:text-text-primary transition-colors cursor-pointer">
+          <button
+            disabled={loading}
+            className={`flex items-center gap-1 px-2 py-1 text-[11px] rounded bg-glass text-text-muted hover:text-text-primary transition-colors cursor-pointer ${loading ? 'pointer-events-none opacity-50' : ''}`}
+          >
             <Plus size={12} strokeWidth={1.5} />
             {t('asset.batch_add_tags', 'Add Tags')}
           </button>
@@ -147,7 +150,10 @@ export function BatchToolbar({
           allKnownTags={allKnownTags}
           onTagsChange={(tags) => void handleRemoveTags(tags)}
         >
-          <button className="flex items-center gap-1 px-2 py-1 text-[11px] rounded bg-glass text-text-muted hover:text-text-primary transition-colors cursor-pointer">
+          <button
+            disabled={loading}
+            className={`flex items-center gap-1 px-2 py-1 text-[11px] rounded bg-glass text-text-muted hover:text-text-primary transition-colors cursor-pointer ${loading ? 'pointer-events-none opacity-50' : ''}`}
+          >
             <Minus size={12} strokeWidth={1.5} />
             {t('asset.batch_remove_tags', 'Remove Tags')}
           </button>
@@ -156,7 +162,8 @@ export function BatchToolbar({
         {/* Delete */}
         <button
           onClick={() => void handleDelete()}
-          className="flex items-center gap-1 px-2 py-1 text-[11px] rounded bg-glass text-danger hover:text-danger/80 transition-colors cursor-pointer"
+          disabled={loading}
+          className={`flex items-center gap-1 px-2 py-1 text-[11px] rounded bg-glass text-danger hover:text-danger/80 transition-colors cursor-pointer ${loading ? 'pointer-events-none opacity-50' : ''}`}
         >
           <Trash2 size={12} strokeWidth={1.5} />
           {t('asset.batch_delete', 'Delete')}

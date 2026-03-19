@@ -6,9 +6,7 @@ import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { TagEditorPopover } from '../ui/TagEditorPopover'
-import type { AssetMeta } from '../shared/assetTypes'
-
-const AUTO_TAGS = ['map', 'token', 'portrait']
+import { AUTO_TAGS, type AssetMeta } from '../shared/assetTypes'
 
 interface AssetGridItemProps {
   asset: AssetMeta

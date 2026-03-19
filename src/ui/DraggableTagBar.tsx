@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { DraggableTag } from '../asset-picker/DraggableTag'
 
 interface DraggableTagBarProps {
@@ -7,6 +8,7 @@ interface DraggableTagBarProps {
 }
 
 export function DraggableTagBar({ tags, selectedTags, onToggleTag }: DraggableTagBarProps) {
+  const { t } = useTranslation('dock')
   if (tags.length === 0) return null
 
   return (
@@ -16,7 +18,7 @@ export function DraggableTagBar({ tags, selectedTags, onToggleTag }: DraggableTa
           className="px-2 py-0.5 text-[10px] rounded-full bg-accent text-white"
           onClick={() => { selectedTags.forEach(onToggleTag); }}
         >
-          Clear
+          {t('asset.clear_tags', 'Clear')}
         </button>
       )}
       {tags.map((tag) => (

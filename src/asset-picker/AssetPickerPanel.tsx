@@ -18,9 +18,7 @@ import { CategoryTabs } from '../ui/CategoryTabs'
 import { DraggableTagBar } from '../ui/DraggableTagBar'
 import { AssetGrid } from './AssetGrid'
 import { BatchToolbar } from './BatchToolbar'
-import type { AssetMeta } from '../shared/assetTypes'
-
-const AUTO_TAGS = ['map', 'token', 'portrait']
+import { AUTO_TAGS, type AssetMeta } from '../shared/assetTypes'
 const REORDER_GAP = 1000
 
 const CATEGORIES = [
@@ -77,7 +75,8 @@ export function AssetPickerPanel({
   }, [onOpenChange])
 
   // Click outside to close
-  useClickOutside(panelRef, close, open)
+  const activeDrag = draggedTag !== null || draggedAsset !== null
+  useClickOutside(panelRef, close, open && !activeDrag)
 
   // Reset position on open
   useEffect(() => {
@@ -94,6 +93,7 @@ export function AssetPickerPanel({
     if (!open) return
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if ((e.target as Element)?.closest?.('[data-radix-popper-content-wrapper]')) return
         if (isMultiSelect) {
           setSelection(new Set())
         } else {

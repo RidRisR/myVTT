@@ -220,8 +220,7 @@ export function AssetGrid({
       <SortableContext items={sortableIds} strategy={rectSortingStrategy}>
         <div
           ref={gridRef}
-          className="relative grid gap-3 max-h-[320px] overflow-y-auto p-1"
-          style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}
+          className="relative grid grid-cols-4 gap-3 max-h-[320px] overflow-y-auto p-1"
           onPointerDown={handleGridPointerDown}
           onPointerMove={handleGridPointerMove}
           onPointerUp={handleGridPointerUp}

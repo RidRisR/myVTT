@@ -3,15 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Loader2, FolderOpen } from 'lucide-react'
 import * as ContextMenu from '@radix-ui/react-context-menu'
 import { useWorldStore } from '../stores/worldStore'
-import type { AssetMeta } from '../shared/assetTypes'
+import { AUTO_TAGS, type AssetMeta } from '../shared/assetTypes'
 import { isVideoUrl } from '../shared/assetUpload'
 import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { useToast } from '../ui/useToast'
 import { TagFilterBar } from '../ui/TagFilterBar'
 import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
-
-const AUTO_TAGS = ['map', 'token', 'portrait']
 
 interface MapDockTabProps {
   activeSceneId: string | null

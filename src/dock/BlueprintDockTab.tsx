@@ -10,8 +10,7 @@ import { useToast } from '../ui/useToast'
 import { TagFilterBar } from '../ui/TagFilterBar'
 import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
 import { TagEditorPopover } from '../ui/TagEditorPopover'
-
-const AUTO_TAGS = ['map', 'token', 'portrait']
+import { AUTO_TAGS } from '../shared/assetTypes'
 
 interface TokenDockTabProps {
   onSpawnToken: (bp: Blueprint) => void

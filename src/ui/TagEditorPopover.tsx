@@ -2,8 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { X } from 'lucide-react'
 import { PopoverContent } from './primitives/PopoverContent'
-
-const AUTO_TAGS = ['map', 'token', 'portrait']
+import { AUTO_TAGS } from '../shared/assetTypes'
 
 interface TagEditorPopoverProps {
   tags: string[]

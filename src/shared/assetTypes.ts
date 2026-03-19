@@ -1,3 +1,5 @@
+export const AUTO_TAGS = ['map', 'token', 'portrait'] as const
+
 export interface AssetMeta {
   id: string
   url: string
