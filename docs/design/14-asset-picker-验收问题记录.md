@@ -1,0 +1,89 @@
+# AssetPicker 验收问题记录
+
+Phase 3（AssetPicker + Dock 统一）手动验收过程中发现的问题及修复记录。
+
+## 已修复问题
+
+### 1. 空状态布局错乱
+
+**现象**：Maps 面板空状态时 "No images yet" 文字和上传按钮错位挤在一行；Blueprints 面板空状态时出现大块 "No token blueprints / Upload token images..." 占据过多空间。
+**修复**：移除空状态文字提示，保留 "+" 上传按钮作为唯一入口。两个面板统一为：标签过滤栏 + 圆形缩略图列表 + 上传按钮。
+
+### 2. Radix Dialog aria-describedby 警告
+
+**现象**：打开 AssetPicker 对话框时控制台出现 `Missing Description or aria-describedby` 警告。
+**修复**：在 DialogContent 原语中添加 `aria-describedby={undefined}` 显式抑制。
+
+### 3. 对话框叠加过暗
+
+**现象**：AssetPicker 对话框使用标准暗色遮罩，叠加在已经较暗的 VTT 界面上导致画面几乎全黑。
+**修复**：添加 `noOverlay` prop 到 DialogContent，AssetPicker 使用无遮罩模式。
+
+### 4. 对话框背景透明
+
+**现象**：去除遮罩后对话框没有可见背景色，内容无法和背景区分。
+**修复**：添加 `bg-surface border border-border-glass rounded-xl p-5 shadow-xl` 给对话框实体背景。
+
+### 5. 拖动对话框时跳变（transform 覆盖）
+
+**现象**：拖动对话框标题栏时，对话框瞬间跳到左上方。
+**根因**：`useDraggable` 设置 `style.transform` 覆盖了 Tailwind 的 `-translate-x-1/2 -translate-y-1/2` 居中 transform，导致居中偏移丢失。
+**临时修复**：改用 `style.left`/`style.top` 调整位置。
+**系统性修复**：见问题 #7。
+
+### 6. 拖动标签时跳变（CSS containing block）
+
+**现象**：在 AssetPicker 内拖动标签时，标签预览出现位置跳变。
+**根因**：DialogContent 的 `transform: translate(-50%, -50%)` 居中方式创建了 CSS containing block，导致 @dnd-kit DragOverlay 的 `position: fixed` 相对于对话框而非视口，坐标系不匹配。
+**临时修复**：`createPortal(DragOverlay, document.body)` + `zIndex={9100}`。
+**系统性修复**：见问题 #7。
+
+### 7. DialogContent 系统性重构（根因修复）
+
+**问题**：问题 #5 和 #6 的 patch-on-patch 方案（portal + z-index hack）不够优雅。
+**系统性修复**：重构 DialogContent 居中方式：
+
+- **之前**：`left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2`（transform 居中）
+- **之后**：`fixed inset-0 flex items-center justify-center pointer-events-none`（flex 居中）+ 内层 `pointer-events-auto` div
+- 消除了所有 `transform`，不再创建 containing block
+- @dnd-kit DragOverlay 无需 portal 或手动 z-index
+- useDraggable 改用 `position: relative` + `left`/`top`（不创建 fixed 子元素的 containing block）
+- 更新 CLAUDE.md Architecture Gotchas 记录两条新规则
+
+### 8. 图片排序回弹
+
+**现象**：拖动图片排序后，放下鼠标图片回到原位。
+**根因**：
+
+1. AssetGridItem 同时注册 `useSortable`（id=`asset.id`）和 `useDroppable`（id=`drop-${asset.id}`），@dnd-kit 可能解析 `over` 为 droppable，导致 `over.id = "drop-xxx"`，`filteredAssets.findIndex` 返回 -1，整个 reorder 被静默跳过。
+2. `reorderAssets` 等待 API 响应后才更新 store，@dnd-kit 动画结束时 UI 已回到旧数组顺序。
+   **修复**：
+3. 统一用 `overData.assetId` 解析真实资产 ID，兼容 sortable 和 droppable 两种 over 目标。
+4. 添加乐观更新：先在本地更新 `sortOrder` 并重排数组，再发 API 请求。
+
+### 9. 拖拽图片时幽灵图不跟随鼠标
+
+**现象**：拖动图片排序时，被拖动的图片不跟随光标移动。
+**根因**：DragOverlay 组件存在于 DndContext 树中，@dnd-kit 检测到后全局切换到 overlay 模式——不再通过 `useSortable` 的 transform 移动原始元素。但 DragOverlay 只渲染了 tag 预览，asset 拖拽时渲染 `null`。
+**修复**：在 `handleDragStart` 中也追踪被拖拽的 asset，DragOverlay 同时处理 tag 和 asset 两种拖拽预览。
+
+## 待修复问题
+
+（后续验收中发现的问题将追加在此处）
+
+## Assumptions
+
+- DialogContent flex 居中方案兼容所有现有对话框使用场景（目前只有 2 个使用点）
+- `pointer-events-none` 在 Content 层不影响 Radix 焦点陷阱和键盘事件处理
+- @dnd-kit DragOverlay 在无 transform 容器内的 `position: fixed` 正确相对于视口
+
+## Edge Cases
+
+- 对话框拖拽后再次打开应重置位置（通过 `resetPosition` + `useEffect` 实现）
+- 双重 droppable 注册（useSortable + useDroppable）需要通过 `overData.assetId` 而非 `over.id` 解析
+- 乐观更新的排序结果可能被 API 响应覆盖（正确行为：API 响应是权威源）
+
+## 相关 Issue
+
+- [#135](https://github.com/RidRisR/myVTT/issues/135) — 防抖和乐观更新审计
+- [#136](https://github.com/RidRisR/myVTT/issues/136) — PortraitBar transform 居中重构
