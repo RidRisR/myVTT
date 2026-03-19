@@ -30,7 +30,7 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
       query += ' AND media_type = ?'
       params.push(req.query.mediaType)
     }
-    query += ' ORDER BY created_at DESC'
+    query += ' ORDER BY sort_order ASC, created_at DESC'
     const rows = req.roomDb!.prepare(query).all(...params) as Record<string, unknown>[]
     res.json(rows.map(toAsset))
   })
@@ -135,6 +135,10 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
     if (body.tags !== undefined) {
       updates.push('tags = ?')
       params.push(JSON.stringify(body.tags))
+    }
+    if (body.sortOrder !== undefined) {
+      updates.push('sort_order = ?')
+      params.push(body.sortOrder)
     }
 
     // Merge blueprint, handout into extra JSON column
