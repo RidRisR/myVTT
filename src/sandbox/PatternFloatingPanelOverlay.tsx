@@ -103,10 +103,12 @@ function FloatingPanel({ onClose }: { onClose: () => void }) {
   return (
     <div
       ref={panelRef}
-      // PATTERN: z-overlay (8000) for the panel itself.
-      // Radix overlays inside use z-popover (5000) but render via Portal to
-      // <body>, so their later DOM order ensures they appear above this panel.
-      className="fixed z-overlay w-80 rounded-xl border border-border-glass bg-surface shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+      // PATTERN: z-ui (1000) for the panel — MUST be lower than z-popover (5000).
+      // Both the panel and Radix overlays render in the root stacking context
+      // (panel via fixed positioning, overlays via Portal to <body>). When both
+      // have explicit z-index in the same context, the numeric value decides
+      // layering — DOM order is irrelevant. Panel < popover = correct stacking.
+      className="fixed z-ui w-80 rounded-xl border border-border-glass bg-surface shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
       style={{ left: pos.x, top: pos.y }}
     >
       {/* Drag handle */}
@@ -192,8 +194,8 @@ function FloatingPanel({ onClose }: { onClose: () => void }) {
             (won&apos;t close when clicking Popover/ContextMenu)
           </p>
           <p>
-            <span className="text-accent font-medium">z-overlay vs z-popover</span> — panel at 8000,
-            overlays at 5000 but visually on top via DOM order
+            <span className="text-accent font-medium">z-ui &lt; z-popover</span> — panel at 1000,
+            overlays at 5000. Same stacking context → numeric value wins, not DOM order
           </p>
         </div>
       </div>
