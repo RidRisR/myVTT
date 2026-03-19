@@ -4,13 +4,13 @@ interface TagFilterBarProps {
   /** Currently selected tags for filtering */
   selectedTags: string[]
   onToggleTag: (tag: string) => void
+  /** Optional trailing content (e.g. asset manager button) */
+  trailing?: React.ReactNode
 }
 
-export function TagFilterBar({ availableTags, selectedTags, onToggleTag }: TagFilterBarProps) {
-  if (availableTags.length === 0) return null
-
+export function TagFilterBar({ availableTags, selectedTags, onToggleTag, trailing }: TagFilterBarProps) {
   return (
-    <div className="flex flex-wrap gap-1 px-1">
+    <div className="flex flex-wrap gap-1 px-1 items-center">
       {availableTags.map((tag) => {
         const isSelected = selectedTags.includes(tag)
         return (
@@ -29,6 +29,7 @@ export function TagFilterBar({ availableTags, selectedTags, onToggleTag }: TagFi
           </button>
         )
       })}
+      {trailing}
     </div>
   )
 }
