@@ -91,7 +91,9 @@ export function AssetGrid({
             <AssetGridItem
               key={asset.id}
               asset={asset}
-              onClick={() => { handleClick(asset); }}
+              onClick={() => {
+                handleClick(asset)
+              }}
               onRename={onRename}
               onEditTags={onEditTags}
               onDelete={onDelete}

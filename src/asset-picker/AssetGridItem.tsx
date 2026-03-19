@@ -80,13 +80,26 @@ export function AssetGridItem({
       </ContextMenu.Trigger>
 
       <ContextMenuContent>
-        <ContextMenuItem onSelect={() => { onRename(asset.id); }}>
+        <ContextMenuItem
+          onSelect={() => {
+            onRename(asset.id)
+          }}
+        >
           {t('asset.rename', 'Rename')}
         </ContextMenuItem>
-        <ContextMenuItem onSelect={() => { onEditTags(asset.id); }}>
+        <ContextMenuItem
+          onSelect={() => {
+            onEditTags(asset.id)
+          }}
+        >
           {t('asset.edit_tags', 'Edit Tags')}
         </ContextMenuItem>
-        <ContextMenuItem variant="danger" onSelect={() => { onDelete(asset.id); }}>
+        <ContextMenuItem
+          variant="danger"
+          onSelect={() => {
+            onDelete(asset.id)
+          }}
+        >
           {t('asset.delete', 'Delete')}
         </ContextMenuItem>
       </ContextMenuContent>

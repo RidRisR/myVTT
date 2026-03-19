@@ -179,7 +179,9 @@ export function CharacterEditPanel({
       {/* Portrait + name */}
       <div className="flex items-center gap-3">
         <div
-          onClick={() => { setPickerOpen(true); }}
+          onClick={() => {
+            setPickerOpen(true)
+          }}
           className="relative cursor-pointer shrink-0"
           title={t('character.change_portrait')}
         >
