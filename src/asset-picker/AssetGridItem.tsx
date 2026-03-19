@@ -1,9 +1,9 @@
-import { useDroppable } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import * as ContextMenu from '@radix-ui/react-context-menu'
 import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
+import { Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { TagEditorPopover } from '../ui/TagEditorPopover'
 import type { AssetMeta } from '../shared/assetTypes'
@@ -12,15 +12,16 @@ const AUTO_TAGS = ['map', 'token', 'portrait']
 
 interface AssetGridItemProps {
   asset: AssetMeta
-  onClick?: () => void
+  onClick?: (e: React.MouseEvent) => void
   onRename: (id: string) => void
   onEditTags: (id: string) => void
   onDelete: (id: string) => void
-  // Tag editor integration
   isEditingTags?: boolean
   allKnownTags?: string[]
   onTagsChange?: (tags: string[]) => void
   onEditTagsClose?: () => void
+  isMultiSelect: boolean
+  isSelected: boolean
 }
 
 export function AssetGridItem({
@@ -33,23 +34,15 @@ export function AssetGridItem({
   allKnownTags,
   onTagsChange,
   onEditTagsClose,
+  isMultiSelect,
+  isSelected,
 }: AssetGridItemProps) {
   const { t } = useTranslation('dock')
-  const { isOver: isTagOver, setNodeRef: setDropRef } = useDroppable({
-    id: `drop-${asset.id}`,
-    data: { type: 'asset-drop-target', assetId: asset.id },
-  })
-  const {
-    attributes,
-    listeners,
-    setNodeRef: setSortRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: asset.id,
-    data: { type: 'asset', assetId: asset.id },
-  })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } =
+    useSortable({
+      id: asset.id,
+      data: { type: 'asset', assetId: asset.id },
+    })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -61,10 +54,8 @@ export function AssetGridItem({
     <ContextMenu.Root modal={false}>
       <ContextMenu.Trigger asChild>
         <div
-          ref={(node) => {
-            setSortRef(node)
-            setDropRef(node)
-          }}
+          ref={setNodeRef}
+          data-asset-id={asset.id}
           style={style}
           className="flex flex-col items-center gap-1 cursor-pointer group"
           onClick={onClick}
@@ -73,9 +64,11 @@ export function AssetGridItem({
         >
           <div
             className={`relative w-24 h-24 rounded-lg overflow-hidden transition-all duration-fast ${
-              isTagOver
+              isOver
                 ? 'ring-2 ring-accent shadow-[0_0_12px_rgba(99,102,241,0.3)]'
-                : 'border-2 border-transparent hover:scale-[1.03]'
+                : isSelected
+                  ? 'ring-2 ring-accent'
+                  : 'border-2 border-transparent hover:scale-[1.03]'
             }`}
           >
             <img
@@ -84,8 +77,21 @@ export function AssetGridItem({
               className="w-full h-full object-cover block"
               draggable={false}
             />
+
+            {/* Multi-select checkbox */}
+            {isMultiSelect && (
+              <div
+                className={`absolute top-1 right-1 w-5 h-5 rounded flex items-center justify-center transition-colors ${
+                  isSelected ? 'bg-accent text-white' : 'bg-black/40 border border-white/40'
+                }`}
+              >
+                {isSelected && <Check size={12} strokeWidth={2.5} />}
+              </div>
+            )}
+
+            {/* Hover tag strip */}
             {(() => {
-              const userTags = asset.tags.filter((t) => !AUTO_TAGS.includes(t))
+              const userTags = asset.tags.filter((tag) => !AUTO_TAGS.includes(tag))
               if (userTags.length === 0) return null
               const visible = userTags.slice(0, 3)
               const extra = userTags.length - visible.length
