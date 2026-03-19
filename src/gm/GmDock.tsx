@@ -187,7 +187,7 @@ export function GmDock({
       {/* Expanded content area */}
       {activeTab !== null && activeTab !== 'dice' && (
         <div className="mb-1.5 bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_8px_32px_rgba(0,0,0,0.4)] min-w-[400px] max-h-[220px] overflow-y-auto p-3">
-          {activeTab === 'gallery' && (
+          {activeTab === 'maps' && (
             <MemoMapDockTab
               activeSceneId={activeSceneId}
               isTactical={isTactical}
@@ -233,14 +233,14 @@ export function GmDock({
       {/* Tab bar */}
       <div className="flex gap-1.5">
         <button
-          data-testid="dock-tab-gallery"
+          data-testid="dock-tab-maps"
           onClick={() => {
-            toggleTab('gallery')
+            toggleTab('maps')
           }}
-          className={tabBtnClass('gallery')}
+          className={tabBtnClass('maps')}
         >
           <FolderOpen size={14} strokeWidth={1.5} />
-          {t('dock.gallery')}
+          {t('dock.maps')}
         </button>
 
         <button

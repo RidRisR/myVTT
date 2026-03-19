@@ -22,7 +22,7 @@ const MEASURE_TOOL_IDS: ReadonlySet<string> = new Set([
 export function isMeasureTool(tool: ActiveTool): tool is MeasureTool {
   return MEASURE_TOOL_IDS.has(tool)
 }
-export type GmDockTab = 'gallery' | 'tokens' | 'characters' | 'handouts' | 'dice'
+export type GmDockTab = 'maps' | 'tokens' | 'characters' | 'handouts' | 'dice'
 export type ThemeId = 'warm' | 'cold'
 export type GmSidebarTab = 'archives' | 'entities' | 'scene'
 

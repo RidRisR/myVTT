@@ -74,7 +74,7 @@ export function SceneViewer({ scene, blurred = false, onContextMenu }: SceneView
           {scene && <p className="text-text-muted/40 text-sm">{scene.name}</p>}
           <button
             onClick={() => {
-              setGmDockTab('gallery')
+              setGmDockTab('maps')
             }}
             className="flex items-center gap-1.5 text-text-muted/40 hover:text-text-muted text-xs cursor-pointer transition-colors duration-fast"
           >
