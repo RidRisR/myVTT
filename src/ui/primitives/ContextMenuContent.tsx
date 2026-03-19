@@ -13,7 +13,7 @@ export const ContextMenuContent = forwardRef<HTMLDivElement, ContextMenuContentP
       <ContextMenu.Content
         ref={ref}
         className={[
-          'z-popover min-w-[160px] rounded-lg border border-border-glass bg-glass py-1 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-[16px]',
+          'z-context min-w-[160px] rounded-lg border border-border-glass bg-glass py-1 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-[16px]',
           'animate-[radix-popover-in_150ms_ease-out]',
           className,
         ]

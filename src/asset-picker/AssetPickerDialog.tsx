@@ -160,8 +160,13 @@ export function AssetPickerDialog({
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <DialogContent ref={targetRef} noOverlay className="max-w-[560px] w-[90vw] bg-surface border border-border-glass rounded-xl p-5 shadow-xl">
+    <Dialog.Root open={open} onOpenChange={onOpenChange} modal={false}>
+      <DialogContent
+        ref={targetRef}
+        noOverlay
+        onInteractOutside={(e) => { e.preventDefault(); }}
+        className="max-w-[560px] w-[90vw] bg-surface border border-border-glass rounded-xl p-5 shadow-xl"
+      >
         {/* Header — drag handle */}
         <div
           className="flex items-center justify-between mb-4 cursor-grab active:cursor-grabbing select-none"

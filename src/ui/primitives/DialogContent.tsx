@@ -11,7 +11,6 @@ type DialogContentProps = ComponentPropsWithoutRef<typeof Dialog.Content> & {
  * Built-in protections:
  * - Portal rendering (escapes CSS containment blocks)
  * - Overlay with backdrop blur (unless noOverlay)
- * - stopPropagation on onPointerDown (prevents bubbling to canvas)
  * - Default z-modal layer and entrance animation
  * - Focus trap and ARIA role="dialog"
  *
@@ -31,17 +30,11 @@ export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
       >
         <div
           ref={ref}
-          className={[
-            'pointer-events-auto animate-[radix-popover-in_150ms_ease-out]',
-            className,
-          ]
+          className={['pointer-events-auto animate-[radix-popover-in_150ms_ease-out]', className]
             .filter(Boolean)
             .join(' ')}
           style={style}
-          onPointerDown={(e) => {
-            e.stopPropagation()
-            onPointerDown?.(e)
-          }}
+          onPointerDown={onPointerDown}
         >
           {children}
         </div>
