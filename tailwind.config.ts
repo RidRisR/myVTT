@@ -26,6 +26,7 @@ export default {
         popover: '5000',
         overlay: '8000',
         modal: '9000',
+        context: '9500',
         toast: '10000',
       },
       transitionDuration: {

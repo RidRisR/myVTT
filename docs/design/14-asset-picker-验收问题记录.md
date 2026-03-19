@@ -67,6 +67,22 @@ Phase 3（AssetPicker + Dock 统一）手动验收过程中发现的问题及修
 **根因**：DragOverlay 组件存在于 DndContext 树中，@dnd-kit 检测到后全局切换到 overlay 模式——不再通过 `useSortable` 的 transform 移动原始元素。但 DragOverlay 只渲染了 tag 预览，asset 拖拽时渲染 `null`。
 **修复**：在 `handleDragStart` 中也追踪被拖拽的 asset，DragOverlay 同时处理 tag 和 asset 两种拖拽预览。
 
+### 10. 右键上下文菜单在对话框内不可用
+
+**现象**：在 AssetPicker 对话框内右击图片，上下文菜单不出现（或出现后不可交互）。
+**根因**：Radix Dialog 默认为 `modal` 模式，`DialogContentModal` 向 `DismissableLayer` 传递 `disableOutsidePointerEvents: true`。这会对 Dialog.Content 之外的所有 DOM 元素设置 `pointer-events: none`。由于 `ContextMenu.Portal` 在 `document.body` 层级渲染（在 Dialog.Portal 之外），其内容被标记为不可交互。即使 `z-context`(9500) 在数值上高于 `z-modal`(9000)，菜单也无法响应指针事件。
+**修复**：三层问题需同时解决：
+
+1. **指针事件层**：`Dialog.Root` 设置 `modal={false}`，移除 Dialog 的 `disableOutsidePointerEvents`
+2. **视觉层级层**：新增 `z-context`(9500) > `z-modal`(9000)，ContextMenuContent 使用 `z-context` class
+3. **菜单关闭层**：`ContextMenu.Root` 设置 `modal={false}`，移除 ContextMenu 自身的 `disableOutsidePointerEvents`（否则 body 上 `pointer-events: none` 阻止外部点击产生事件）
+4. **外部交互层**：DialogContent 移除 `stopPropagation()`（阻止了 DismissableLayer 的 document 级 pointerdown 监听），`onInteractOutside={(e) => e.preventDefault()}` 防止点击外部时关闭对话框
+
+### 11. 标签系统不完整
+
+**现象**：界面只显示系统预置标签（autoTags），不显示用户自定义标签，也不显示每张图片上已有的标签。标签系统形同虚设。
+**状态**：待讨论方案。
+
 ## 待修复问题
 
 （后续验收中发现的问题将追加在此处）
@@ -74,7 +90,7 @@ Phase 3（AssetPicker + Dock 统一）手动验收过程中发现的问题及修
 ## Assumptions
 
 - DialogContent flex 居中方案兼容所有现有对话框使用场景（目前只有 2 个使用点）
-- `pointer-events-none` 在 Content 层不影响 Radix 焦点陷阱和键盘事件处理
+- AssetPicker 使用非模态 Dialog（`modal={false}`），不锁定焦点也不阻止外部交互，Context menu 等 Portal 组件可正常工作
 - @dnd-kit DragOverlay 在无 transform 容器内的 `position: fixed` 正确相对于视口
 
 ## Edge Cases

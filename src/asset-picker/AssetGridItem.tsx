@@ -46,7 +46,7 @@ export function AssetGridItem({
   }
 
   return (
-    <ContextMenu.Root>
+    <ContextMenu.Root modal={false}>
       <ContextMenu.Trigger asChild>
         <div
           ref={(node) => {
