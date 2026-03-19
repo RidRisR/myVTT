@@ -164,7 +164,9 @@ export function AssetPickerDialog({
           {/* Tag filter + search */}
           <div className="flex gap-1.5 mb-3 items-center overflow-x-auto">
             <button
-              onClick={() => { setSelectedTags([]); }}
+              onClick={() => {
+                setSelectedTags([])
+              }}
               className={`px-3 py-1 rounded-full text-[11px] whitespace-nowrap transition-colors duration-fast cursor-pointer ${
                 selectedTags.length === 0
                   ? 'bg-accent text-white'
@@ -178,18 +180,20 @@ export function AssetPickerDialog({
                 key={tag}
                 tag={tag}
                 selected={selectedTags.includes(tag)}
-                onClick={() =>
-                  { setSelectedTags((prev) =>
+                onClick={() => {
+                  setSelectedTags((prev) =>
                     prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-                  ); }
-                }
+                  )
+                }}
               />
             ))}
             <div className="flex-1" />
             <input
               type="text"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); }}
+              onChange={(e) => {
+                setSearch(e.target.value)
+              }}
               placeholder={t('asset.search', 'Search...')}
               className="bg-glass border border-border-glass rounded-md px-2.5 py-1 text-[11px] text-text-primary placeholder:text-text-muted/30 outline-none w-32"
             />
