@@ -15,6 +15,8 @@ interface TagFilterBarProps {
   /** Currently active category, or null/undefined for "All" */
   activeCategory?: string | null
   onCategoryChange?: (category: string | null) => void
+  /** Optional trailing content for the category tab row (e.g. search box) */
+  categoryTrailing?: React.ReactNode
 }
 
 export function TagFilterBar({
@@ -25,6 +27,7 @@ export function TagFilterBar({
   categories,
   activeCategory,
   onCategoryChange,
+  categoryTrailing,
 }: TagFilterBarProps) {
   const { t } = useTranslation('dock')
 
@@ -32,9 +35,11 @@ export function TagFilterBar({
     <div className="flex flex-col gap-1.5">
       {/* Top layer: category tabs (only if categories provided) */}
       {categories && categories.length > 0 && onCategoryChange && (
-        <div className="flex gap-3 border-b border-border-glass/20 px-1">
+        <div className="flex items-center gap-3 border-b border-border-glass/20 px-1">
           <button
-            onClick={() => { onCategoryChange(null); }}
+            onClick={() => {
+              onCategoryChange(null)
+            }}
             className={`text-[11px] pb-1.5 cursor-pointer transition-colors duration-fast ${
               activeCategory === null
                 ? 'text-text-primary border-b-2 border-accent -mb-px'
@@ -46,7 +51,9 @@ export function TagFilterBar({
           {categories.map((cat) => (
             <button
               key={cat}
-              onClick={() => { onCategoryChange(cat); }}
+              onClick={() => {
+                onCategoryChange(cat)
+              }}
               className={`text-[11px] pb-1.5 cursor-pointer transition-colors duration-fast capitalize ${
                 activeCategory === cat
                   ? 'text-text-primary border-b-2 border-accent -mb-px'
@@ -56,6 +63,12 @@ export function TagFilterBar({
               {t(`asset.category_${cat}`, `${cat}s`)}
             </button>
           ))}
+          {categoryTrailing && (
+            <>
+              <div className="flex-1" />
+              {categoryTrailing}
+            </>
+          )}
         </div>
       )}
 
@@ -77,7 +90,9 @@ export function TagFilterBar({
           return (
             <button
               key={tag}
-              onClick={() => { onToggleTag(tag); }}
+              onClick={() => {
+                onToggleTag(tag)
+              }}
               className={`text-[10px] px-2 py-0.5 rounded-full cursor-pointer transition-colors duration-fast ${
                 isSelected
                   ? 'bg-accent/20 text-accent border border-accent/30'

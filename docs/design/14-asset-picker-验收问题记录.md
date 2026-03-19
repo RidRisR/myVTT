@@ -83,6 +83,43 @@ Phase 3（AssetPicker + Dock 统一）手动验收过程中发现的问题及修
 **现象**：界面只显示系统预置标签（autoTags），不显示用户自定义标签，也不显示每张图片上已有的标签。标签系统形同虚设。
 **状态**：待讨论方案。
 
+### 12. Category tabs 和搜索框不在同一行
+
+**现象**：AssetPicker 对话框中，category tabs（All / Maps / Tokens）和搜索框分属两行，与设计稿不符。
+**根因**：搜索框在独立的 `<div>` 中渲染，位于 `TagFilterBar` 上方，两者是兄弟元素无法共享一行。
+**修复**：
+
+1. TagFilterBar 新增 `categoryTrailing` 插槽 prop，在 category tab 行尾部渲染（flex spacer 推到右侧）
+2. AssetPickerDialog 将搜索框传入 `categoryTrailing`，移除独立搜索 div
+3. 同时简化逻辑：categories 在所有模式下始终显示，移除 `mode === 'manage'` 条件判断
+
+### 13. X 关闭按钮被拖拽劫持无法点击
+
+**现象**：AssetPicker 对话框标题栏的 X 关闭按钮点击无反应，无法关闭对话框。
+**根因**：`useDraggable` hook 在 `handlePointerDown` 中用 `e.target.tagName === 'BUTTON'` 判断是否跳过拖拽。但 Lucide `<X />` 图标渲染为 `<svg><path/></svg>`，点击图标时 `e.target` 是 `<svg>` 或 `<path>`，tagName 不匹配 `'BUTTON'`，导致拖拽 handler 捕获了 pointer 事件，阻止了 Dialog.Close 的 click 触发。
+**修复**：将 `tagName` 直接比较改为 `target.closest('button, input, a, [role="button"]')` 向上查找祖先元素，确保点击按钮内部任何子元素（包括 SVG 图标）时都能正确跳过拖拽。
+**系统性预防**：此模式适用于所有 drag handle 内嵌交互元素的场景，`closest()` 比 `tagName` 更健壮。
+
+### 14. TagEditorPopover 在 Dialog 内不可见
+
+**现象**：AssetPicker 对话框内右键 → Edit Tags，Popover 状态为 open 但完全不可见。
+**根因**：三层问题叠加：
+
+1. **z-index 层级**：PopoverContent 默认 `z-popover`(5000)，低于 Dialog 的 `z-modal`(9000)。Popover.Portal 渲染在 `document.body`，不继承 Dialog 的 z-index 上下文，导致 Popover 被 Dialog 完全遮挡。
+2. **Tailwind class 冲突**：传入 `className="z-context"` 无效，因为 PopoverContent 内部已有 `z-popover`，两个 z-index class 共存时 Tailwind 按 CSS 生成顺序决定优先级，`z-popover` 可能胜出。
+3. **Popover.Trigger 点击切换**：最初使用 `Popover.Trigger asChild` 包裹 grid item，ContextMenu 关闭后焦点回到 Trigger 可能触发 toggle 导致 Popover 立即关闭。
+   **修复**：
+4. `Popover.Trigger` → `Popover.Anchor`（只定位，不响应点击切换）
+5. `!z-context` (Tailwind `!important` modifier) 强制覆盖 `z-popover`
+6. 移除 `asChild`，让 Anchor 渲染自己的 wrapper 元素确保 ref 可达
+   **系统性预防**：Dialog 内使用 Popover 时必须提升 z-index 到 `z-context` 以上；使用 Anchor（定位）而非 Trigger（切换）处理程序化打开。
+
+### 15. TagFilterBar 和 DraggableTag 行重复显示 tag pills
+
+**现象**：AssetPicker 对话框内出现三层结构：category tabs、TagFilterBar pills、DraggableTag pills，后两层显示相同的标签。
+**根因**：TagFilterBar 自带 tag pills 行（用于 dock 面板的筛选场景），同时 AssetPickerDialog 有独立的 DraggableTag 行（支持拖拽标签到图片）。两者在 AssetPickerDialog 中同时渲染。
+**修复**：在 AssetPickerDialog 中传入 `availableTags={[]}` 给 TagFilterBar，使其只渲染 category tabs + search 行，tag pills 完全由 DraggableTag 行承担（保留拖拽功能）。
+
 ## 待修复问题
 
 （后续验收中发现的问题将追加在此处）
