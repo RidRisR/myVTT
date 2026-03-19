@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { X, Plus, CircleDot } from 'lucide-react'
 import * as ContextMenu from '@radix-ui/react-context-menu'
@@ -8,6 +8,7 @@ import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { useToast } from '../ui/useToast'
 import { TagFilterBar } from '../ui/TagFilterBar'
+import { AssetPickerDialog } from '../asset-picker/AssetPickerDialog'
 
 const PRESET_TAGS = ['Humanoid', 'Beast', 'Magical', 'Undead', 'Object']
 
@@ -19,8 +20,7 @@ interface TokenDockTabProps {
 
 export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: TokenDockTabProps) {
   const { t } = useTranslation('dock')
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [uploading, setUploading] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -31,7 +31,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
   const createBlueprint = useWorldStore((s) => s.createBlueprint)
   const updateBlueprint = useWorldStore((s) => s.updateBlueprint)
   const deleteBlueprintAction = useWorldStore((s) => s.deleteBlueprint)
-  const uploadAsset = useWorldStore((s) => s.uploadAsset)
 
   const { toast } = useToast()
 
@@ -59,27 +58,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
   const handleDelete = (bp: Blueprint) => {
     void deleteBlueprintAction(bp.id)
     toast('info', t('blueprint.deleted', { name: bp.name }))
-  }
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''
-    setUploading(true)
-    try {
-      const asset = await uploadAsset(file, {
-        name: file.name.replace(/\.[^.]+$/, ''),
-        mediaType: 'image',
-        tags: ['token'],
-      })
-      await createBlueprint({
-        name: asset.name,
-        imageUrl: asset.url,
-        defaults: { color: '#3b82f6', width: 1, height: 1 },
-      })
-    } finally {
-      setUploading(false)
-    }
   }
 
   const startEdit = (bp: Blueprint) => {
@@ -118,13 +96,18 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
 
   return (
     <div>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => {
-          void handleUpload(e)
+      <AssetPickerDialog
+        mode="select"
+        filter={{ mediaType: 'image' }}
+        autoTags={['token']}
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onSelect={(asset) => {
+          void createBlueprint({
+            name: asset.name,
+            imageUrl: asset.url,
+            defaults: { color: '#3b82f6', width: 1, height: 1 },
+          })
         }}
       />
 
@@ -152,10 +135,11 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
       )}
 
       <div
-        className="grid gap-2.5"
         style={{
-          gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))',
-          contentVisibility: 'auto',
+          display: 'flex',
+          overflowX: 'auto',
+          gap: '12px',
+          paddingBottom: '4px',
         }}
       >
         {filteredBlueprints.map((bp) => {
@@ -281,10 +265,12 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
         {/* Upload card */}
         <div className="flex flex-col items-center gap-1">
           <div
-            onClick={() => fileRef.current?.click()}
+            onClick={() => {
+              setPickerOpen(true)
+            }}
             className="w-14 h-14 rounded-full border-2 border-dashed border-border-glass cursor-pointer flex items-center justify-center text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50"
           >
-            {uploading ? '...' : <Plus size={22} strokeWidth={1.5} />}
+            <Plus size={22} strokeWidth={1.5} />
           </div>
           <span className="text-[9px] text-text-muted/30">{t('blueprint.add_token')}</span>
         </div>
