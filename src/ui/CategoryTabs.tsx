@@ -19,7 +19,9 @@ export function CategoryTabs({ categories, active, onSelect, trailing }: Categor
             ? 'text-text-primary border-b-2 border-accent'
             : 'text-text-muted hover:text-text-primary'
         }`}
-        onClick={() => { onSelect(null); }}
+        onClick={() => {
+          onSelect(null)
+        }}
       >
         {t('asset.category_all', 'All')}
       </button>
@@ -31,7 +33,9 @@ export function CategoryTabs({ categories, active, onSelect, trailing }: Categor
               ? 'text-text-primary border-b-2 border-accent'
               : 'text-text-muted hover:text-text-primary'
           }`}
-          onClick={() => { onSelect(cat.key); }}
+          onClick={() => {
+            onSelect(cat.key)
+          }}
         >
           {cat.label}
         </button>

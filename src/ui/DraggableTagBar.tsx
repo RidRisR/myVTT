@@ -16,7 +16,9 @@ export function DraggableTagBar({ tags, selectedTags, onToggleTag }: DraggableTa
       {selectedTags.length > 0 && (
         <button
           className="px-2 py-0.5 text-[10px] rounded-full bg-accent text-white"
-          onClick={() => { selectedTags.forEach(onToggleTag); }}
+          onClick={() => {
+            selectedTags.forEach(onToggleTag)
+          }}
         >
           {t('asset.clear_tags', 'Clear')}
         </button>
@@ -26,7 +28,9 @@ export function DraggableTagBar({ tags, selectedTags, onToggleTag }: DraggableTa
           key={tag}
           tag={tag}
           selected={selectedTags.includes(tag)}
-          onClick={() => { onToggleTag(tag); }}
+          onClick={() => {
+            onToggleTag(tag)
+          }}
         />
       ))}
     </div>

@@ -18,10 +18,7 @@ import { api } from '../shared/api'
 import { generateTokenId } from '../shared/idUtils'
 import { defaultNPCPermissions } from '../shared/permissions'
 import type { AssetMeta } from '../shared/assetTypes'
-import {
-  uploadAsset as uploadAssetFile,
-  uploadBlueprintFromFile,
-} from '../shared/assetUpload'
+import { uploadAsset as uploadAssetFile, uploadBlueprintFromFile } from '../shared/assetUpload'
 import {
   updateAsset as patchAsset,
   deleteAsset,
