@@ -6,6 +6,7 @@ import fs from 'fs'
 import multer from 'multer'
 import type { TypedServer } from '../socketTypes'
 import type { Blueprint } from '../../src/shared/entityTypes'
+import type { AssetRecord } from '../../src/shared/storeTypes'
 import { withRoom } from '../middleware'
 import { toCamel, parseJsonFields, safePath } from '../db'
 
@@ -35,19 +36,10 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
     const storage = multer.diskStorage({
       destination: dir,
       filename: (_r, file, cb) => {
-        cb(
-          null,
-          `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase() || '.bin'}`,
-        )
+        cb(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase() || '.bin'}`)
       },
     })
-    const allowedMimes = [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'image/svg+xml',
-    ]
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']
     const upload = multer({
       storage,
       limits: { fileSize: 200 * 1024 * 1024 },
@@ -101,7 +93,7 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
         transaction()
       } catch {
         // Cleanup uploaded file on DB failure
-        const filePath = safePath(dir, req.file!.filename)
+        const filePath = safePath(dir, req.file.filename)
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
         res.status(500).json({ error: 'Failed to create blueprint' })
         return
@@ -116,7 +108,7 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
         ),
         'extra',
         'tags',
-      ) as unknown as Record<string, unknown>
+      ) as unknown as AssetRecord
       const bp = toBlueprint(
         req.roomDb!.prepare('SELECT * FROM blueprints WHERE id = ?').get(blueprintId) as Record<
           string,
