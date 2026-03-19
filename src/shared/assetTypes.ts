@@ -4,6 +4,7 @@ export interface AssetMeta {
   name: string
   mediaType: 'image' | 'handout'
   tags: string[]
+  sortOrder: number
   width?: number
   height?: number
   createdAt: number
