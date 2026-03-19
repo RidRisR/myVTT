@@ -11,6 +11,8 @@ import { useToast } from '../ui/useToast'
 import { TagFilterBar } from '../ui/TagFilterBar'
 import { AssetPickerDialog } from '../asset-picker/AssetPickerDialog'
 
+const MAP_PRESET_TAGS = ['battle', 'world', 'dungeon', 'interior']
+
 interface MapDockTabProps {
   activeSceneId: string | null
   isTactical: boolean
@@ -41,8 +43,6 @@ export function MapDockTab({
     [allAssets],
   )
 
-  const MAP_PRESET_TAGS = ['battle', 'world', 'dungeon', 'interior']
-
   const availableTags = useMemo(() => {
     const used = new Set<string>()
     for (const a of assets) {
@@ -50,7 +50,7 @@ export function MapDockTab({
     }
     for (const t of MAP_PRESET_TAGS) used.add(t)
     return Array.from(used)
-  }, [assets, MAP_PRESET_TAGS])
+  }, [assets])
 
   const filteredAssets = useMemo(() => {
     if (selectedTags.length === 0) return assets
@@ -87,11 +87,7 @@ export function MapDockTab({
 
   return (
     <div>
-      <AssetPickerDialog
-        mode="manage"
-        open={managerOpen}
-        onOpenChange={setManagerOpen}
-      />
+      <AssetPickerDialog mode="manage" open={managerOpen} onOpenChange={setManagerOpen} />
 
       <input
         ref={fileRef}
@@ -108,12 +104,14 @@ export function MapDockTab({
         <TagFilterBar
           availableTags={availableTags}
           selectedTags={selectedTags}
-          onToggleTag={(tag) => setSelectedTags((prev) =>
-            prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-          )}
+          onToggleTag={(tag) =>
+            { setSelectedTags((prev) =>
+              prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+            ); }
+          }
           trailing={
             <button
-              onClick={() => setManagerOpen(true)}
+              onClick={() => { setManagerOpen(true); }}
               className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer text-text-muted/40 hover:text-text-muted/60 border border-border-glass/30 transition-colors duration-fast ml-auto"
               title={t('map.manage_assets')}
             >
