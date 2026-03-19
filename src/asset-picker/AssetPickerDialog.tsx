@@ -108,7 +108,7 @@ export function AssetPickerDialog({
     const overData = over.data.current
 
     // Resolve the real asset ID — over might be a sortable or a droppable
-    const overAssetId = (overData?.assetId as string) ?? (over.id as string)
+    const overAssetId = ((overData?.assetId as string | undefined) ?? over.id) as string
 
     // Tag drop onto asset
     if (activeData?.type === 'tag' && overAssetId) {

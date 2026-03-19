@@ -116,7 +116,7 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
         ),
         'extra',
         'tags',
-      )
+      ) as unknown as Record<string, unknown>
       const bp = toBlueprint(
         req.roomDb!.prepare('SELECT * FROM blueprints WHERE id = ?').get(blueprintId) as Record<
           string,

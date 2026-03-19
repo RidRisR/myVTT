@@ -12,7 +12,6 @@ afterAll(async () => {
 })
 
 describe('Blueprint from-upload (atomic)', () => {
-  let blueprintId: string
   let imageUrl: string
 
   it('uploads file and creates asset + blueprint atomically', async () => {
@@ -29,8 +28,8 @@ describe('Blueprint from-upload (atomic)', () => {
     })
     expect(res.status).toBe(201)
     const bp = (await res.json()) as Record<string, unknown>
-    blueprintId = bp.id as string
     imageUrl = bp.imageUrl as string
+    expect(bp.id).toBeTruthy()
     expect(bp.name).toBe('Goblin')
     expect(bp.tags).toEqual(['Beast'])
     expect(bp.defaults).toEqual({ color: '#ff0000', width: 1, height: 1 })

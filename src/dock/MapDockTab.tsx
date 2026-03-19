@@ -50,7 +50,7 @@ export function MapDockTab({
     }
     for (const t of MAP_PRESET_TAGS) used.add(t)
     return Array.from(used)
-  }, [assets])
+  }, [assets, MAP_PRESET_TAGS])
 
   const filteredAssets = useMemo(() => {
     if (selectedTags.length === 0) return assets

@@ -998,7 +998,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const orderMap = new Map(order.map((o) => [o.id, o.sortOrder]))
     set((s) => {
       const updated = s.assets.map((a) =>
-        orderMap.has(a.id) ? { ...a, sortOrder: orderMap.get(a.id)! } : a,
+        orderMap.has(a.id) ? { ...a, sortOrder: orderMap.get(a.id) ?? a.sortOrder } : a,
       )
       updated.sort((a, b) => a.sortOrder - b.sortOrder)
       return { assets: updated }
