@@ -93,7 +93,7 @@ export function AssetPickerPanel({
     if (!open) return
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if ((e.target as Element)?.closest?.('[data-radix-popper-content-wrapper]')) return
+        if ((e.target as Element).closest('[data-radix-popper-content-wrapper]')) return
         if (isMultiSelect) {
           setSelection(new Set())
         } else {

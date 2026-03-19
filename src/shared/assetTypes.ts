@@ -1,4 +1,4 @@
-export const AUTO_TAGS = ['map', 'token', 'portrait'] as const
+export const AUTO_TAGS: readonly string[] = ['map', 'token', 'portrait']
 
 export interface AssetMeta {
   id: string
