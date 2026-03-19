@@ -75,6 +75,7 @@ export interface ServerToClientEvents {
   'asset:created': (asset: AssetRecord) => void
   'asset:updated': (asset: AssetRecord) => void
   'asset:deleted': (data: { id: string }) => void
+  'asset:reordered': (assets: AssetRecord[]) => void
 
   // ── Blueprints ──
   'blueprint:created': (blueprint: Blueprint) => void

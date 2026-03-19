@@ -163,6 +163,7 @@ const makeAsset = (overrides: Partial<AssetRecord> = {}): AssetRecord => ({
   url: '/uploads/img.png',
   name: 'image.png',
   mediaType: 'image',
+  sortOrder: 0,
   createdAt: Date.now(),
   extra: {},
   ...overrides,
