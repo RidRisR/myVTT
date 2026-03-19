@@ -77,8 +77,8 @@ export function TagEditorPopover({
 
   return (
     <Popover.Root open={open} onOpenChange={handleOpenChange}>
-      <Popover.Trigger asChild>{children}</Popover.Trigger>
-      <PopoverContent className="w-64 p-3" sideOffset={8}>
+      <Popover.Anchor>{children}</Popover.Anchor>
+      <PopoverContent className="!z-context w-64 p-3" sideOffset={8}>
         {/* Current tags as pills */}
         <div className="flex flex-wrap gap-1 mb-2 min-h-[24px]">
           {userTags.length === 0 && (

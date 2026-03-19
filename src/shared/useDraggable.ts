@@ -34,9 +34,9 @@ export function useDraggable(): {
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     // Only primary button
     if (e.button !== 0) return
-    // Don't drag if clicking interactive elements inside handle
-    const tag = (e.target as HTMLElement).tagName
-    if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'A') return
+    // Don't drag if clicking interactive elements (or their children) inside handle
+    const target = e.target as HTMLElement
+    if (target.closest('button, input, a, [role="button"]')) return
 
     e.preventDefault()
     const el = e.currentTarget as HTMLElement

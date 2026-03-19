@@ -203,36 +203,29 @@ export function AssetPickerDialog({
         </div>
 
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          {/* Search bar */}
-          <div className="flex items-center mb-2">
-            <div className="flex-1" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value)
-              }}
-              placeholder={t('asset.search', 'Search...')}
-              className="bg-glass border border-border-glass rounded-md px-2.5 py-1 text-[11px] text-text-primary placeholder:text-text-muted/30 outline-none w-32"
-            />
-          </div>
-
-          {/* Tag filter bar */}
+          {/* Tag filter bar — tabs always visible, search in tab row */}
           <div className="mb-3">
             <TagFilterBar
-              categories={mode === 'manage' && !filter?.mediaType ? ['map', 'token'] : undefined}
+              categories={['map', 'token']}
               activeCategory={activeCategory}
               onCategoryChange={(cat) => {
                 setActiveCategory(cat)
                 setSelectedTags([])
               }}
-              availableTags={availableTags}
-              selectedTags={selectedTags}
-              onToggleTag={(tag) =>
-                { setSelectedTags((prev) =>
-                  prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-                ); }
+              categoryTrailing={
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value)
+                  }}
+                  placeholder={t('asset.search', 'Search...')}
+                  className="bg-glass border border-border-glass rounded-md px-2.5 py-1 text-[11px] text-text-primary placeholder:text-text-muted/30 outline-none w-32"
+                />
               }
+              availableTags={[]}
+              selectedTags={[]}
+              onToggleTag={() => {}}
             />
           </div>
 
@@ -243,11 +236,11 @@ export function AssetPickerDialog({
                 key={tag}
                 tag={tag}
                 selected={selectedTags.includes(tag)}
-                onClick={() =>
-                  { setSelectedTags((prev) =>
+                onClick={() => {
+                  setSelectedTags((prev) =>
                     prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-                  ); }
-                }
+                  )
+                }}
               />
             ))}
           </div>
