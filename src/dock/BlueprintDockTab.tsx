@@ -9,8 +9,9 @@ import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { useToast } from '../ui/useToast'
 import { TagFilterBar } from '../ui/TagFilterBar'
 import { AssetPickerDialog } from '../asset-picker/AssetPickerDialog'
+import { TagEditorPopover } from '../ui/TagEditorPopover'
 
-const PRESET_TAGS = ['Humanoid', 'Beast', 'Magical', 'Undead', 'Object']
+const AUTO_TAGS = ['map', 'token', 'portrait']
 
 interface TokenDockTabProps {
   onSpawnToken: (bp: Blueprint) => void
@@ -49,22 +50,29 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
       })
       toast('success', t('blueprint.uploaded', { name: file.name }))
     } catch (err) {
-      toast('error', t('blueprint.upload_failed', { error: err instanceof Error ? err.message : 'Unknown error' }))
+      toast(
+        'error',
+        t('blueprint.upload_failed', {
+          error: err instanceof Error ? err.message : 'Unknown error',
+        }),
+      )
     } finally {
       setUploading(false)
     }
   }
 
-  // Collect all used tags + merge with presets
+  // Collect all used tags, excluding auto-tags
   const availableTags = useMemo(() => {
     const used = new Set<string>()
     for (const bp of blueprints) {
-      for (const t of bp.tags) used.add(t)
+      for (const t of bp.tags) {
+        if (!AUTO_TAGS.includes(t)) used.add(t)
+      }
     }
-    // Add presets that aren't already used
-    for (const t of PRESET_TAGS) used.add(t)
-    return Array.from(used)
+    return Array.from(used).sort()
   }, [blueprints])
+
+  const allKnownTags = availableTags
 
   // Filter by selected tags (AND logic)
   const filteredBlueprints = useMemo(() => {
@@ -94,41 +102,19 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
   }
 
   const [editingTagsId, setEditingTagsId] = useState<string | null>(null)
-  const [tagInput, setTagInput] = useState('')
-
-  const handleAddTag = (bpId: string) => {
-    const tag = tagInput.trim()
-    if (!tag) return
-    const bp = blueprints.find((b) => b.id === bpId)
-    if (!bp) return
-    if (bp.tags.includes(tag)) {
-      setTagInput('')
-      return
-    }
-    void updateBlueprint(bpId, { tags: [...bp.tags, tag] })
-    setTagInput('')
-  }
-
-  const handleRemoveTag = (bpId: string, tag: string) => {
-    const bp = blueprints.find((b) => b.id === bpId)
-    if (!bp) return
-    void updateBlueprint(bpId, { tags: bp.tags.filter((t) => t !== tag) })
-  }
 
   return (
     <div>
-      <AssetPickerDialog
-        mode="manage"
-        open={managerOpen}
-        onOpenChange={setManagerOpen}
-      />
+      <AssetPickerDialog mode="manage" open={managerOpen} onOpenChange={setManagerOpen} />
 
       <input
         ref={fileRef}
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => { void handleUpload(e) }}
+        onChange={(e) => {
+          void handleUpload(e)
+        }}
       />
 
       {/* Tag filter bar — always visible */}
@@ -139,7 +125,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
           onToggleTag={handleToggleTag}
           trailing={
             <button
-              onClick={() => setManagerOpen(true)}
+              onClick={() => { setManagerOpen(true); }}
               className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer text-text-muted/40 hover:text-text-muted/60 border border-border-glass/30 transition-colors duration-fast ml-auto"
               title={t('blueprint.manage_assets')}
             >
@@ -163,7 +149,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
       >
         {filteredBlueprints.map((bp) => {
           const isHovered = hoveredId === bp.id
-          return (
+          const bpContent = (
             <ContextMenu.Root key={bp.id}>
               <ContextMenu.Trigger asChild>
                 <div
@@ -262,7 +248,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                 <ContextMenuItem
                   onSelect={() => {
                     setEditingTagsId(bp.id)
-                    setTagInput('')
                   }}
                 >
                   {t('blueprint.edit_tags')}
@@ -279,6 +264,27 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
               </ContextMenuContent>
             </ContextMenu.Root>
           )
+
+          if (editingTagsId === bp.id) {
+            return (
+              <TagEditorPopover
+                key={bp.id}
+                tags={bp.tags}
+                allKnownTags={allKnownTags}
+                onTagsChange={(tags) => {
+                  void updateBlueprint(bp.id, { tags })
+                }}
+                defaultOpen
+                onOpenChange={(open) => {
+                  if (!open) setEditingTagsId(null)
+                }}
+              >
+                {bpContent}
+              </TagEditorPopover>
+            )
+          }
+
+          return bpContent
         })}
 
         {/* Upload card */}
@@ -300,91 +306,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
           </span>
         </div>
       </div>
-
-      {/* Tag editor inline panel */}
-      {editingTagsId &&
-        (() => {
-          const bp = blueprints.find((b) => b.id === editingTagsId)
-          if (!bp) return null
-          // Autocomplete: existing tags not yet on this blueprint
-          const suggestions = availableTags.filter(
-            (t) => !bp.tags.includes(t) && t.includes(tagInput),
-          )
-          return (
-            <div
-              className="mt-3 p-2.5 bg-surface border border-border-glass rounded-lg"
-              onPointerDown={(e) => {
-                e.stopPropagation()
-              }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-text-primary font-semibold truncate">
-                  {t('blueprint.tag_editor_title', { name: bp.name })}
-                </span>
-                <button
-                  onClick={() => {
-                    setEditingTagsId(null)
-                  }}
-                  className="text-text-muted/40 hover:text-text-primary cursor-pointer"
-                >
-                  <X size={12} strokeWidth={2} />
-                </button>
-              </div>
-              {/* Current tags */}
-              <div className="flex flex-wrap gap-1 mb-2">
-                {bp.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-0.5 text-[10px] bg-accent/15 text-accent px-1.5 py-0.5 rounded-full"
-                  >
-                    {tag}
-                    <button
-                      onClick={() => {
-                        handleRemoveTag(bp.id, tag)
-                      }}
-                      className="text-accent/50 hover:text-accent cursor-pointer"
-                    >
-                      <X size={8} strokeWidth={2.5} />
-                    </button>
-                  </span>
-                ))}
-                {bp.tags.length === 0 && (
-                  <span className="text-[10px] text-text-muted/30 italic">
-                    {t('blueprint.no_tags')}
-                  </span>
-                )}
-              </div>
-              {/* Add tag input */}
-              <div className="flex gap-1">
-                <input
-                  value={tagInput}
-                  onChange={(e) => {
-                    setTagInput(e.target.value)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleAddTag(bp.id)
-                  }}
-                  placeholder={t('blueprint.add_tag_placeholder')}
-                  className="flex-1 text-[10px] bg-glass text-text-primary border border-border-glass rounded px-1.5 py-1 outline-none placeholder:text-text-muted/30"
-                  list={`tag-suggestions-${bp.id}`}
-                />
-                <datalist id={`tag-suggestions-${bp.id}`}>
-                  {suggestions.map((s) => (
-                    <option key={s} value={s} />
-                  ))}
-                </datalist>
-                <button
-                  onClick={() => {
-                    handleAddTag(bp.id)
-                  }}
-                  className="text-[10px] text-accent px-1.5 py-1 rounded bg-accent/10 hover:bg-accent/20 cursor-pointer transition-colors duration-fast"
-                >
-                  {t('blueprint.add_tag')}
-                </button>
-              </div>
-            </div>
-          )
-        })()}
     </div>
   )
 }
