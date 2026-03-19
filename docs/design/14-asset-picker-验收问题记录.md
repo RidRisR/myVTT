@@ -140,3 +140,220 @@ Phase 3（AssetPicker + Dock 统一）手动验收过程中发现的问题及修
 
 - [#135](https://github.com/RidRisR/myVTT/issues/135) — 防抖和乐观更新审计
 - [#136](https://github.com/RidRisR/myVTT/issues/136) — PortraitBar transform 居中重构
+
+---
+
+## 复盘：15 个 Bug 的系统性分析
+
+### 根因模式分类
+
+将 15 个 bug 按技术根因归类，呈现 5 个集群：
+
+#### 模式 A：Radix Portal + z-index 隔离（#6, #10, #14）
+
+| Bug | 本质                                                                           |
+| --- | ------------------------------------------------------------------------------ |
+| #6  | DragOverlay `position: fixed` 在 transform 容器内失效                          |
+| #10 | ContextMenu.Portal 渲染在 Dialog.Portal 外，被 `pointer-events: none` 阻断     |
+| #14 | Popover.Portal 的 `z-popover(5000)` 低于 Dialog 的 `z-modal(9000)`，被完全遮挡 |
+
+**共同根因**：Radix UI 的每个 overlay 组件都通过 Portal 渲染到 `document.body`，脱离了父组件的 z-index 上下文。当 Dialog 里嵌套 ContextMenu 或 Popover 时，Portal 之间互相不知道对方的存在，z-index、pointer-events、focus trap 三层机制各自独立运作，产生冲突。
+
+**为什么反复出现**：单独测试每个组件时都正常，只有在嵌套组合时才暴露——单元测试和单组件开发阶段不会发现。Radix 的 `modal` 模式是全有或全无的——没有「只锁定 Dialog 背后、但允许 Dialog 内的 Portal 交互」这种中间状态。
+
+#### 模式 B：CSS 副作用链（#3 → #4 → #5 → #7）
+
+四个 bug 形成因果链：
+
+```
+#3 遮罩太暗 → 去掉遮罩
+    → #4 背景透明 → 加背景色
+        → #5 transform 居中 + useDraggable 冲突 → 改用 left/top
+            → #7 意识到 transform 是所有问题的根源 → 系统性重构为 flex 居中
+```
+
+**为什么反复出现**：每次修复都是对前一个修复的补丁，而不是退一步审视整体设计。`transform` 居中方式在 CLAUDE.md 的 Architecture Gotchas 中已有记录（CSS containing block），但在实现 DialogContent 时没有被考虑到。
+
+#### 模式 C：@dnd-kit 行为假设错误（#8, #9）
+
+| Bug | 错误假设                                                                 |
+| --- | ------------------------------------------------------------------------ |
+| #8  | 假设 `over.id` 始终是 sortable ID，忽略了 droppable 也会成为 `over` 目标 |
+| #9  | 假设 DragOverlay 只影响 tag 拖拽，不知道它会全局切换拖拽渲染模式         |
+
+**为什么出现**：@dnd-kit 的 sortable + droppable 双重注册是非典型用法，官方文档没有明确说明 `over` 的解析优先级。DragOverlay 的全局模式切换是隐式行为——只要组件存在于 DOM 树中（即使渲染 null），就会改变所有拖拽项的行为。
+
+**技术选型反思**：拖拽排序本身不少见，问题在于「排序 + 标签拖放」两种拖拽共存于同一个元素。每个 AssetGridItem 既是 sortable（可排序）又是标签的 droppable（放置目标），同一个 DOM 元素上注册了 `useSortable` + `useDroppable` 两个 hook。这是从需求侧分别实现两个独立功能，没有意识到它们在同一个元素上会产生交互冲突。
+
+**更好的方案**：
+
+- **方案 A**：分离拖拽系统——排序用 @dnd-kit sortable（标准用法），标签打标用原生 HTML drag-and-drop 或 pointer event + `elementFromPoint`，两套系统完全独立
+- **方案 B**：统一为一个 DndContext，通过 `active.data.current.type` 区分「排序」和「打标」，图片只注册 `useSortable`（自带 droppable 能力），不额外注册 `useDroppable`，消除 `over.id` 歧义
+
+**判断标准**：当需要在同一个 DOM 元素上注册同一个库的两个独立 hook 时，这是一个需要停下来调研的信号——库的作者很可能没有设计这种组合。
+
+#### 模式 D：布局/视觉不匹配（#1, #4, #12, #15）
+
+| Bug | 本质                                         |
+| --- | -------------------------------------------- |
+| #1  | 空状态文字和按钮挤在一行                     |
+| #4  | 去遮罩后背景透明                             |
+| #12 | 搜索框和 tabs 分属两行                       |
+| #15 | TagFilterBar pills + DraggableTag pills 重复 |
+
+**为什么出现**：
+
+- #1：开发时只测试了「有数据」场景，没有测试空状态。空状态下的 flex 布局行为和有内容时不同
+- #4：去遮罩后对话框没有可见背景色，是对 CSS 层叠效果的预见不足
+- #12：TagFilterBar API 设计没有预留行尾插槽（`categoryTrailing`），搜索框只能作为兄弟元素渲染。多消费场景的组件应预留插槽 props
+- #15：TagFilterBar 同时承担了「category tabs」和「tag pills」两个职责，而 AssetPickerDialog 只需要前者（pills 由 DraggableTag 行承担）。这是「一个组件做了太多事」的信号——如果拆分为 `CategoryTabs` 和 `TagPills` 两个组件，#15 不会发生
+
+#### 模式 E：DOM 事件委托假设（#13）
+
+`e.target.tagName === 'BUTTON'` 对 SVG 图标子元素无效。经典的浅层 DOM 假设 bug。
+
+#### 独立问题（#2, #11）
+
+- #2（aria-describedby 警告）：Radix Dialog 要求 `Dialog.Content` 内有 `Dialog.Description` 或手动设置 `aria-describedby`，否则打印控制台警告。对 Radix 原语的创建契约不熟悉——每次引入新的 Radix 原语包裹层时，应检查其必需子组件和 accessibility 要求
+- #11（标签系统不完整）：功能缺失而非 bug。MVP 阶段的功能裁剪没有留下清晰的「未完成」标记，导致验收时被当作 bug 发现。未完成功能应在文档中显式标注
+
+### 数据总结
+
+| 根因模式               | Bug 数量          | 占比 | 可预防性                      |
+| ---------------------- | ----------------- | ---- | ----------------------------- |
+| A: Portal z-index 隔离 | 3 (#6,#10,#14)    | 20%  | 高——加入检查清单后可预见      |
+| B: CSS 副作用链        | 4 (#3,#4,#5,#7)   | 27%  | 中——需要逐步验证打断补丁链    |
+| C: 库隐式行为          | 2 (#8,#9)         | 13%  | 低——需要深入了解库源码        |
+| D: 布局不匹配          | 4 (#1,#4,#12,#15) | 27%  | 高——组件 API 设计时考虑插槽   |
+| E: DOM 假设            | 1 (#13)           | 7%   | 高——用 closest() 替代 tagName |
+| 独立                   | 1 (#2)            | 7%   | 低——Radix 文档细节            |
+
+### 更高层面的问题
+
+#### 1. Dialog 是错误的容器选择
+
+15 个 bug 中有 **9 个**（#3, #4, #5, #6, #7, #10, #13, #14, #15）直接或间接来自于用 Radix Dialog 作为 AssetPicker 的容器。
+
+Radix Dialog 的设计意图是：弹出一个需要用户注意力的模态窗口，完成一个简单交互（确认、填写表单），然后关闭。它不是为了承载一个内嵌多层 overlay + 拖拽的迷你应用而设计的。
+
+AssetPickerDialog 需要同时组合：Dialog、DndContext（sortable + droppable + DragOverlay）、ContextMenu、Popover、useDraggable——这超过了 Radix Dialog 的设计承载能力。当你发现需要 `modal={false}` + `!z-context` + 移除 `stopPropagation` + `onInteractOutside={e.preventDefault()}` 这种组合时，说明你已经在对抗框架的设计意图。
+
+**理想方案**：使用自定义浮动面板（`position: fixed` + `useDraggable` + `left/top` 定位），不涉及 Portal、modal、transform，内层的 ContextMenu/Popover Portal 可以正常工作。
+
+```
+当前方案（Radix Dialog）问题链：
+  Dialog Portal → 创建隔离上下文
+    → modal 模式 → pointer-events: none 阻断内层 Portal
+    → transform 居中 → 创建 containing block → 破坏 fixed 定位
+    → z-modal(9000) → 遮挡 z-popover(5000) 的 Portal
+
+自定义浮动面板：
+  position: fixed + left/top → 无 Portal、无 modal、无 transform
+    → 内层 ContextMenu/Popover Portal 正常工作
+    → z-index 层级自然继承
+    → 9 个 bug 直接消失
+```
+
+#### 2. 从 UI 库组件目录出发 vs 从需求出发
+
+错误的思维过程：「需要浮动窗口」→「Radix 有 Dialog」→「用 Dialog」
+
+正确的思维过程：「需要浮动窗口，内嵌拖拽 + 右键菜单 + 弹出编辑器」→「这比 Dialog 的设计意图复杂得多」→「用自定义面板，只在内部使用 Radix 子组件」
+
+#### 3. Patch-on-patch 修复模式
+
+#3→#4→#5→#7 反映出修 bug 时倾向于最小改动，而不是先问「为什么这里需要 transform？」。缺少「修了第二个相关 bug 时，应该停下来审视是否存在共同根因」的习惯。
+
+#### 4. 验收集中在最后而非逐步进行
+
+15 个 bug 全部在最终手动验收时发现。如果每个 task 完成后就在 Docker 预览中验证，模式 B 的因果链可以在 #3 就被识别和系统性解决。
+
+#### 5. 同一元素双 hook 注册的选型盲区
+
+#8 和 #9 来自于把「排序」和「标签拖放」当作两个独立需求分别实现，没有意识到它们共享同一个 DOM 元素时 @dnd-kit 的 hook 会互相干扰。需求分析时应识别出「同一元素承担多重拖拽角色」这种非标准场景，并在选型阶段做专门调研。
+
+#### 6. 测试体系的结构性盲区
+
+15 个 bug 中只有 1 个（#2 aria-describedby 警告）能被现有自动化测试可靠发现，3 个可以部分发现，11 个完全不可能。
+
+| 测试体系能覆盖的     | 测试体系不能覆盖的                   |
+| -------------------- | ------------------------------------ |
+| 元素是否存在         | 元素是否对齐、是否溢出、间距是否正确 |
+| 事件是否触发         | 拖拽时幽灵图是否跟随鼠标             |
+| 回调参数是否正确     | Popover 在 Dialog 内是否可见         |
+| 组件单独渲染是否正确 | 组件嵌套组合后是否工作               |
+
+**核心问题**：当前 TDD 流程对数据流和业务逻辑有效，但对 UI 视觉正确性基本无效。这不是 TDD 的问题——TDD 本来就不是为 CSS 布局和组件组合副作用设计的。对于 UI 密集型工作，自动化测试需要被「视觉验证清单 + 逐步验证」补充。
+
+**可测试性分析**：
+
+| Bug                 | 能被逻辑测试发现？ | 原因                                |
+| ------------------- | ------------------ | ----------------------------------- |
+| #1 空状态布局       | 否                 | CSS 布局问题                        |
+| #2 aria-describedby | **是**             | 控制台警告可断言                    |
+| #3 遮罩过暗         | 否                 | 视觉问题                            |
+| #4 背景透明         | 否                 | CSS 问题                            |
+| #5 拖动跳变         | 否                 | 运行时 transform 冲突               |
+| #6 标签拖动跳变     | 否                 | CSS containing block                |
+| #7 系统重构         | —                  | 不是 bug                            |
+| #8 排序回弹         | 部分               | 可测 onDragEnd 逻辑，不可测视觉回弹 |
+| #9 幽灵图不跟随     | 否                 | DragOverlay 渲染行为                |
+| #10 右键菜单不可用  | 否                 | pointer-events 阻断                 |
+| #11 标签不完整      | —                  | 功能缺失                            |
+| #12 不在同一行      | 否                 | CSS 布局                            |
+| #13 X 按钮不可点    | 部分               | 需模拟完整 pointer 序列             |
+| #14 Popover 不可见  | 否                 | z-index + Portal 组合               |
+| #15 重复 pills      | 部分               | 可断言渲染数量，但需集成测试        |
+
+### 系统化预防措施
+
+#### 预防 1：容器选择原则
+
+当一个浮动 UI 需要内嵌 2 个以上 Radix overlay 类型（Popover、ContextMenu、DropdownMenu）或拖拽系统时，不要用 Radix Dialog 作为容器。改用自定义浮动面板（`position: fixed` + `useDraggable`），只在内部使用 Radix 的子组件。
+
+#### 预防 2：集成上下文检查清单
+
+在计划阶段，如果一个组件需要嵌套多个 overlay/拖拽系统，计划中必须包含「集成上下文」章节，明确列出：
+
+- 这个组件里有哪些 Portal 渲染？
+- 它们的 z-index 层级关系是什么？
+- 有没有 `modal` 模式会设置 `pointer-events: none`？
+- 有没有 `transform`/`filter`/`will-change` 会创建 containing block？
+- 同一个元素上是否注册了同一个库的多个 hook？
+
+#### 预防 3：逐步验证 + 视觉验证清单
+
+每个涉及 UI 的 task 完成后，应在 Docker 预览中做一次快速视觉验证，打断 patch-on-patch 链。
+
+UI 组件必须验证的关键状态（自动化测试无法覆盖）：
+
+- **数据边界**：空状态、少量数据、大量数据（滚动）
+- **组合上下文**：组件在 Dialog/Popover 内是否正常工作
+- **交互链路**：拖拽→放下→反馈、右键→菜单→操作→结果
+- **层级关系**：overlay 之间的 z-index 和 pointer-events 是否正确
+
+#### 预防 4：CLAUDE.md Architecture Gotchas 补充
+
+- Radix overlay 嵌套规则（Dialog 内使用 Popover/ContextMenu 时的 modal、z-index、Anchor 要求）
+- Tailwind z-index 覆盖必须用 `!` modifier
+- Drag handle 内用 `closest()` 而非 `tagName`
+- @dnd-kit DragOverlay 的全局模式切换效应
+- 同一元素上注册同一库的多个 hook 前需专门调研交互行为
+
+#### 预防 5：组件 API 扩展性
+
+- 当一个组件会被多个不同上下文使用时，API 设计应预留插槽 props（`leading`/`trailing`/`children`）
+- 单一职责——如果一个组件同时管理两种不同的 UI 关注点（如 tabs + pills），考虑拆分
+- 引入新 Radix 原语包裹层时检查其必需子组件和 accessibility 契约
+
+#### 预防 6：功能裁剪显式标注
+
+MVP 阶段有意裁剪的功能必须在代码或文档中显式标注「Phase N 再做」，避免在验收时被当作 bug 发现。
+
+### TODO
+
+- [ ] 将 AssetPickerDialog 从 Radix Dialog 迁移到自定义浮动面板（GitHub Issue 追踪）
+- [ ] CLAUDE.md Architecture Gotchas 补充预防 4 的规则
+- [ ] 评估 PortraitBar 是否有同样的 Dialog 容器问题（#136）
+- [ ] 评估 @dnd-kit sortable + droppable 双重注册是否重构为方案 A 或 B
+- [ ] `ui-patterns.md` Overlay Components 表格增加「必需 props/子组件」列
