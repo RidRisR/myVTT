@@ -7,6 +7,8 @@ import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { useTranslation } from 'react-i18next'
 import type { AssetMeta } from '../shared/assetTypes'
 
+const AUTO_TAGS = ['map', 'token', 'portrait']
+
 interface AssetGridItemProps {
   asset: AssetMeta
   onClick?: () => void
@@ -54,13 +56,13 @@ export function AssetGridItem({
             setDropRef(node)
           }}
           style={style}
-          className="flex flex-col items-center gap-1 cursor-pointer"
+          className="flex flex-col items-center gap-1 cursor-pointer group"
           onClick={onClick}
           {...attributes}
           {...listeners}
         >
           <div
-            className={`w-24 h-24 rounded-lg overflow-hidden transition-all duration-fast ${
+            className={`relative w-24 h-24 rounded-lg overflow-hidden transition-all duration-fast ${
               isTagOver
                 ? 'ring-2 ring-accent shadow-[0_0_12px_rgba(99,102,241,0.3)]'
                 : 'border-2 border-transparent hover:scale-[1.03]'
@@ -72,6 +74,29 @@ export function AssetGridItem({
               className="w-full h-full object-cover block"
               draggable={false}
             />
+            {(() => {
+              const userTags = asset.tags.filter((t) => !AUTO_TAGS.includes(t))
+              if (userTags.length === 0) return null
+              const visible = userTags.slice(0, 3)
+              const extra = userTags.length - visible.length
+              return (
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent pt-3 pb-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-fast pointer-events-none">
+                  <div className="flex gap-0.5 justify-center flex-wrap">
+                    {visible.map((tag) => (
+                      <span
+                        key={tag}
+                        className="text-[8px] bg-white/20 text-white px-1 py-px rounded-full leading-tight"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                    {extra > 0 && (
+                      <span className="text-[8px] text-white/60 leading-tight">+{extra}</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
           <span className="text-[10px] text-text-muted/60 text-center overflow-hidden text-ellipsis whitespace-nowrap max-w-[96px]">
             {asset.name}
