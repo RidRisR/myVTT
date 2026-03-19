@@ -118,7 +118,7 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
       res.status(400).json({ error: 'order must be an array' })
       return
     }
-    for (const item of order) {
+    for (const item of order as Record<string, unknown>[]) {
       if (typeof item.id !== 'string' || typeof item.sortOrder !== 'number') {
         res.status(400).json({ error: 'Each item must have string id and number sortOrder' })
         return
