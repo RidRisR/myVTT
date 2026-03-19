@@ -111,6 +111,30 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
     })
   })
 
+  router.patch('/api/rooms/:roomId/assets/reorder', room, (req, res) => {
+    const body = req.body as Record<string, unknown>
+    const order = body.order
+    if (!Array.isArray(order)) {
+      res.status(400).json({ error: 'order must be an array' })
+      return
+    }
+
+    const stmt = req.roomDb!.prepare('UPDATE assets SET sort_order = ? WHERE id = ?')
+    const transaction = req.roomDb!.transaction((items: { id: string; sortOrder: number }[]) => {
+      for (const item of items) {
+        stmt.run(item.sortOrder, item.id)
+      }
+    })
+    transaction(order as { id: string; sortOrder: number }[])
+
+    const rows = req
+      .roomDb!.prepare('SELECT * FROM assets ORDER BY sort_order ASC, created_at DESC')
+      .all() as Record<string, unknown>[]
+    const assets = rows.map(toAsset)
+    io.to(req.roomId!).emit('asset:reordered', assets)
+    res.json(assets)
+  })
+
   router.patch('/api/rooms/:roomId/assets/:id', room, (req, res) => {
     const row = req.roomDb!.prepare('SELECT * FROM assets WHERE id = ?').get(req.params.id) as
       | Record<string, unknown>
