@@ -13,7 +13,7 @@ import {
 import { arrayMove } from '@dnd-kit/sortable'
 import { X } from 'lucide-react'
 import { DialogContent } from '../ui/primitives/DialogContent'
-import { useDraggable } from '../shared/useDraggable'
+import { usePanelDrag } from '../shared/usePanelDrag'
 import { useWorldStore } from '../stores/worldStore'
 import { DraggableTag } from './DraggableTag'
 import { AssetGrid } from './AssetGrid'
@@ -51,7 +51,7 @@ export function AssetPickerDialog({
   const [draggedAsset, setDraggedAsset] = useState<AssetMeta | null>(null)
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [editTagsAssetId, setEditTagsAssetId] = useState<string | null>(null)
-  const { targetRef, handlePointerDown: onDragHandleDown, resetPosition } = useDraggable()
+  const { targetRef, handlePointerDown: onDragHandleDown, resetPosition } = usePanelDrag()
 
   // Reset drag position when dialog opens
   useEffect(() => {

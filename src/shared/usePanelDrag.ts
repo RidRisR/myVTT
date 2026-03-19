@@ -6,7 +6,7 @@ import { useRef, useCallback, type RefObject } from 'react'
  * (which would break position:fixed children like @dnd-kit DragOverlay).
  * Direct DOM manipulation avoids re-renders on every pointer move.
  */
-export function useDraggable(): {
+export function usePanelDrag(): {
   targetRef: RefObject<HTMLDivElement | null>
   handlePointerDown: (e: React.PointerEvent) => void
   resetPosition: () => void
