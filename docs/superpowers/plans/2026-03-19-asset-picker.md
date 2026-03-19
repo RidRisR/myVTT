@@ -124,44 +124,61 @@ git commit -m "feat: add sort_order column to assets table"
 Create `server/__tests__/scenarios/asset-reorder.test.ts`:
 
 ```typescript
+// @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createTestEnv } from '../testEnv'
+import { setupTestRoom, type TestContext } from '../helpers/test-server'
+
+let ctx: TestContext
+
+beforeAll(async () => {
+  ctx = await setupTestRoom('asset-reorder-test')
+})
+afterAll(async () => {
+  await ctx.cleanup()
+})
+
+/** Upload a minimal test asset via multipart FormData (matches existing pattern) */
+async function uploadTestAsset(name: string): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', new Blob(['test'], { type: 'image/png' }), `${name}.png`)
+  formData.append('mediaType', 'image')
+  const res = await fetch(`${ctx.apiBase}/api/rooms/${ctx.roomId}/assets`, {
+    method: 'POST',
+    body: formData,
+  })
+  const data = (await res.json()) as { id: string }
+  return data.id
+}
 
 describe('Asset reorder', () => {
-  let env: ReturnType<typeof createTestEnv> extends Promise<infer T> ? T : never
-  let assets: { id: string }[]
+  let assetIds: string[]
 
   beforeAll(async () => {
-    env = await createTestEnv()
-    // Upload 3 test assets
-    assets = []
+    assetIds = []
     for (let i = 0; i < 3; i++) {
-      const res = await env.uploadAsset(`test${i}.png`)
-      assets.push(await res.json())
+      assetIds.push(await uploadTestAsset(`test${i}`))
     }
   })
 
-  afterAll(() => env?.cleanup())
-
   it('should batch reorder assets', async () => {
     const order = [
-      { id: assets[2].id, sortOrder: 1000 },
-      { id: assets[0].id, sortOrder: 2000 },
-      { id: assets[1].id, sortOrder: 3000 },
+      { id: assetIds[2], sortOrder: 1000 },
+      { id: assetIds[0], sortOrder: 2000 },
+      { id: assetIds[1], sortOrder: 3000 },
     ]
-    const res = await env.api('PATCH', `/api/rooms/${env.roomId}/assets/reorder`, { order })
+    const res = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/assets/reorder`, { order })
     expect(res.status).toBe(200)
 
     // Verify order
-    const listRes = await env.api('GET', `/api/rooms/${env.roomId}/assets`)
-    const list = await listRes.json()
-    expect(list[0].id).toBe(assets[2].id)
-    expect(list[1].id).toBe(assets[0].id)
-    expect(list[2].id).toBe(assets[1].id)
+    const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/assets`)
+    const list = data as { id: string }[]
+    expect(list[0].id).toBe(assetIds[2])
+    expect(list[1].id).toBe(assetIds[0])
+    expect(list[2].id).toBe(assetIds[1])
   })
 
   it('should return 400 for invalid order payload', async () => {
-    const res = await env.api('PATCH', `/api/rooms/${env.roomId}/assets/reorder`, { order: 'bad' })
+    const res = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/assets/reorder`, { order: 'bad' })
     expect(res.status).toBe(400)
   })
 })
@@ -291,7 +308,7 @@ In `src/stores/worldStore.ts`, add the action interface (after removeAsset):
 reorderAssets: (order: { id: string; sortOrder: number }[]) => Promise<void>
 ```
 
-Add the implementation (after softRemoveAsset implementation):
+Add the implementation (after softRemoveAsset implementation). Import the API helper with an alias to avoid name clash: `import { reorderAssets as reorderAssetsApi } from '../shared/assetApi'`:
 
 ```typescript
 reorderAssets: async (order) => {
@@ -986,7 +1003,11 @@ In `public/locales/zh-CN/dock.json`:
 
 - [ ] **Step 2: Rename Gallery tab label**
 
-In the parent component that renders the tab label (check `src/gm/GmDock.tsx`), change the tab label from `t('dock.gallery')` to `t('dock.maps')`. Update the `data-testid` from `dock-tab-gallery` to `dock-tab-maps` (or keep for backward compat).
+In `src/gm/GmDock.tsx` (around line 236-243), change:
+
+- Tab label: `t('dock.gallery')` → `t('dock.maps')`
+- `data-testid`: `dock-tab-gallery` → `dock-tab-maps`
+- Internal tab ID: `'gallery'` → `'maps'` (update `toggleTab('gallery')`, `tabBtnClass('gallery')`, and the `activeTab === 'gallery'` conditional)
 
 - [ ] **Step 3: Rewrite MapDockTab layout to single-row circular**
 
