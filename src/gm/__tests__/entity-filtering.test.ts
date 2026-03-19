@@ -213,3 +213,71 @@ describe('filterByTags (AND logic)', () => {
     expect(result[0]?.id).toBe('b')
   })
 })
+
+describe('auto-tag exclusion from user tags', () => {
+  const AUTO_TAGS = ['map', 'token', 'portrait']
+
+  function collectUserTags(items: { tags: string[] }[]): string[] {
+    const tags = new Set<string>()
+    for (const item of items) {
+      for (const tag of item.tags) {
+        if (!AUTO_TAGS.includes(tag)) tags.add(tag)
+      }
+    }
+    return Array.from(tags).sort()
+  }
+
+  it('excludes auto-tags from collected set', () => {
+    const items = [
+      { tags: ['map', 'battle', 'forest'] },
+      { tags: ['token', 'Humanoid'] },
+      { tags: ['portrait', 'npc'] },
+    ]
+    const result = collectUserTags(items)
+    expect(result).toEqual(['Humanoid', 'battle', 'forest', 'npc'])
+    expect(result).not.toContain('map')
+    expect(result).not.toContain('token')
+    expect(result).not.toContain('portrait')
+  })
+
+  it('returns empty when only auto-tags present', () => {
+    const items = [{ tags: ['map'] }, { tags: ['token'] }]
+    expect(collectUserTags(items)).toEqual([])
+  })
+
+  it('returns sorted unique tags', () => {
+    const items = [{ tags: ['map', 'forest', 'cave'] }, { tags: ['map', 'forest', 'dungeon'] }]
+    expect(collectUserTags(items)).toEqual(['cave', 'dungeon', 'forest'])
+  })
+})
+
+describe('category-based filtering', () => {
+  const items = [
+    { id: 'a', tags: ['map', 'battle'] },
+    { id: 'b', tags: ['map', 'forest'] },
+    { id: 'c', tags: ['token', 'Humanoid'] },
+    { id: 'd', tags: ['token', 'Beast'] },
+    { id: 'e', tags: ['battle'] },
+  ]
+
+  function filterByCategory(items: { id: string; tags: string[] }[], category: string | null) {
+    if (!category) return items
+    return items.filter((item) => item.tags.includes(category))
+  }
+
+  it('returns all items when category is null', () => {
+    expect(filterByCategory(items, null)).toHaveLength(5)
+  })
+
+  it('filters by map category', () => {
+    const result = filterByCategory(items, 'map')
+    expect(result).toHaveLength(2)
+    expect(result.map((i) => i.id)).toEqual(['a', 'b'])
+  })
+
+  it('filters by token category', () => {
+    const result = filterByCategory(items, 'token')
+    expect(result).toHaveLength(2)
+    expect(result.map((i) => i.id)).toEqual(['c', 'd'])
+  })
+})
