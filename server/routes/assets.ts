@@ -118,6 +118,12 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
       res.status(400).json({ error: 'order must be an array' })
       return
     }
+    for (const item of order) {
+      if (typeof item.id !== 'string' || typeof item.sortOrder !== 'number') {
+        res.status(400).json({ error: 'Each item must have string id and number sortOrder' })
+        return
+      }
+    }
 
     const stmt = req.roomDb!.prepare('UPDATE assets SET sort_order = ? WHERE id = ?')
     const transaction = req.roomDb!.transaction((items: { id: string; sortOrder: number }[]) => {
