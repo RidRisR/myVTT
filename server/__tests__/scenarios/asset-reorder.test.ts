@@ -46,9 +46,9 @@ describe('Asset reorder', () => {
     // Verify order
     const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/assets`)
     const list = data as { id: string }[]
-    expect(list[0].id).toBe(assetIds[2])
-    expect(list[1].id).toBe(assetIds[0])
-    expect(list[2].id).toBe(assetIds[1])
+    expect(list[0]!.id).toBe(assetIds[2])
+    expect(list[1]!.id).toBe(assetIds[0])
+    expect(list[2]!.id).toBe(assetIds[1])
   })
 
   it('should return 400 for invalid order payload', async () => {
