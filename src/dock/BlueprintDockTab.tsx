@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { X, Plus, CircleDot } from 'lucide-react'
+import { X, Plus, Loader2, FolderOpen } from 'lucide-react'
 import * as ContextMenu from '@radix-ui/react-context-menu'
 import type { Blueprint } from '../shared/entityTypes'
 import { useWorldStore } from '../stores/worldStore'
@@ -20,7 +20,9 @@ interface TokenDockTabProps {
 
 export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: TokenDockTabProps) {
   const { t } = useTranslation('dock')
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+  const [managerOpen, setManagerOpen] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -28,11 +30,30 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
 
   // Read directly from blueprints store
   const blueprints = useWorldStore((s) => s.blueprints)
-  const createBlueprint = useWorldStore((s) => s.createBlueprint)
   const updateBlueprint = useWorldStore((s) => s.updateBlueprint)
   const deleteBlueprintAction = useWorldStore((s) => s.deleteBlueprint)
+  const uploadAndCreateBlueprint = useWorldStore((s) => s.uploadAndCreateBlueprint)
 
   const { toast } = useToast()
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setUploading(true)
+    try {
+      await uploadAndCreateBlueprint(file, {
+        name: file.name,
+        tags: ['token'],
+        defaults: { color: '#3b82f6', width: 1, height: 1 },
+      })
+      toast('success', t('blueprint.uploaded', { name: file.name }))
+    } catch (err) {
+      toast('error', t('blueprint.upload_failed', { error: err instanceof Error ? err.message : 'Unknown error' }))
+    } finally {
+      setUploading(false)
+    }
+  }
 
   // Collect all used tags + merge with presets
   const availableTags = useMemo(() => {
@@ -97,38 +118,36 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
   return (
     <div>
       <AssetPickerDialog
-        mode="select"
-        filter={{ mediaType: 'image' }}
-        autoTags={['token']}
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
-        onSelect={(asset) => {
-          void createBlueprint({
-            name: asset.name,
-            imageUrl: asset.url,
-            defaults: { color: '#3b82f6', width: 1, height: 1 },
-          })
-        }}
+        mode="manage"
+        open={managerOpen}
+        onOpenChange={setManagerOpen}
       />
 
-      {/* Tag filter bar */}
-      {blueprints.length > 0 && (
-        <div className="mb-2.5">
-          <TagFilterBar
-            availableTags={availableTags}
-            selectedTags={selectedTags}
-            onToggleTag={handleToggleTag}
-          />
-        </div>
-      )}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => { void handleUpload(e) }}
+      />
 
-      {filteredBlueprints.length === 0 && blueprints.length === 0 && (
-        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-          <CircleDot size={32} strokeWidth={1} className="text-text-muted/40" />
-          <p className="text-text-muted text-sm">{t('blueprint.empty')}</p>
-          <p className="text-text-muted/50 text-xs">{t('blueprint.upload_hint')}</p>
-        </div>
-      )}
+      {/* Tag filter bar — always visible */}
+      <div className="mb-2.5">
+        <TagFilterBar
+          availableTags={availableTags}
+          selectedTags={selectedTags}
+          onToggleTag={handleToggleTag}
+          trailing={
+            <button
+              onClick={() => setManagerOpen(true)}
+              className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer text-text-muted/40 hover:text-text-muted/60 border border-border-glass/30 transition-colors duration-fast ml-auto"
+              title={t('blueprint.manage_assets')}
+            >
+              <FolderOpen size={12} strokeWidth={1.5} />
+            </button>
+          }
+        />
+      </div>
 
       {filteredBlueprints.length === 0 && blueprints.length > 0 && (
         <div className="text-center text-text-muted/40 text-xs py-6">{t('blueprint.no_match')}</div>
@@ -264,15 +283,21 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
 
         {/* Upload card */}
         <div className="flex flex-col items-center gap-1">
-          <div
-            onClick={() => {
-              setPickerOpen(true)
-            }}
-            className="w-14 h-14 rounded-full border-2 border-dashed border-border-glass cursor-pointer flex items-center justify-center text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50"
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="w-14 h-14 rounded-full border-2 border-dashed border-border-glass cursor-pointer flex items-center justify-center text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50 bg-transparent disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Plus size={22} strokeWidth={1.5} />
-          </div>
-          <span className="text-[9px] text-text-muted/30">{t('blueprint.add_token')}</span>
+            {uploading ? (
+              <Loader2 size={18} strokeWidth={1.5} className="animate-spin" />
+            ) : (
+              <Plus size={22} strokeWidth={1.5} />
+            )}
+          </button>
+          <span className="text-[9px] text-text-muted/30">
+            {uploading ? t('blueprint.uploading') : t('blueprint.add_token')}
+          </span>
         </div>
       </div>
 

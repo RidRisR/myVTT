@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, FolderOpen, Loader2 } from 'lucide-react'
+import { Plus, Loader2, FolderOpen } from 'lucide-react'
 import * as ContextMenu from '@radix-ui/react-context-menu'
 import { useWorldStore } from '../stores/worldStore'
 import type { AssetMeta } from '../shared/assetTypes'
@@ -8,6 +8,8 @@ import { isVideoUrl } from '../shared/assetUpload'
 import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { useToast } from '../ui/useToast'
+import { TagFilterBar } from '../ui/TagFilterBar'
+import { AssetPickerDialog } from '../asset-picker/AssetPickerDialog'
 
 interface MapDockTabProps {
   activeSceneId: string | null
@@ -28,6 +30,8 @@ export function MapDockTab({
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [managerOpen, setManagerOpen] = useState(false)
 
   const allAssets = useWorldStore((s) => s.assets)
   const upload = useWorldStore((s) => s.uploadAsset)
@@ -36,6 +40,22 @@ export function MapDockTab({
     () => allAssets.filter((a) => a.mediaType === 'image' && a.tags.includes('map')),
     [allAssets],
   )
+
+  const MAP_PRESET_TAGS = ['battle', 'world', 'dungeon', 'interior']
+
+  const availableTags = useMemo(() => {
+    const used = new Set<string>()
+    for (const a of assets) {
+      for (const t of a.tags) if (t !== 'map') used.add(t)
+    }
+    for (const t of MAP_PRESET_TAGS) used.add(t)
+    return Array.from(used)
+  }, [assets])
+
+  const filteredAssets = useMemo(() => {
+    if (selectedTags.length === 0) return assets
+    return assets.filter((a) => selectedTags.every((t) => a.tags.includes(t)))
+  }, [assets, selectedTags])
 
   const { toast } = useToast()
 
@@ -67,6 +87,12 @@ export function MapDockTab({
 
   return (
     <div>
+      <AssetPickerDialog
+        mode="manage"
+        open={managerOpen}
+        onOpenChange={setManagerOpen}
+      />
+
       <input
         ref={fileRef}
         type="file"
@@ -77,8 +103,28 @@ export function MapDockTab({
         }}
       />
 
+      {/* Tag filter bar — always visible */}
+      <div className="mb-2.5">
+        <TagFilterBar
+          availableTags={availableTags}
+          selectedTags={selectedTags}
+          onToggleTag={(tag) => setSelectedTags((prev) =>
+            prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+          )}
+          trailing={
+            <button
+              onClick={() => setManagerOpen(true)}
+              className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer text-text-muted/40 hover:text-text-muted/60 border border-border-glass/30 transition-colors duration-fast ml-auto"
+              title={t('map.manage_assets')}
+            >
+              <FolderOpen size={12} strokeWidth={1.5} />
+            </button>
+          }
+        />
+      </div>
+
       <div className="flex overflow-x-auto gap-3 pb-1" style={{ scrollbarWidth: 'none' }}>
-        {assets.map((asset) => {
+        {filteredAssets.map((asset) => {
           const isHovered = hoveredId === asset.id
           return (
             <ContextMenu.Root key={asset.id}>
@@ -182,13 +228,6 @@ export function MapDockTab({
             </ContextMenu.Root>
           )
         })}
-
-        {assets.length === 0 && (
-          <div className="flex items-center gap-2 py-2 text-text-muted/40">
-            <FolderOpen size={20} strokeWidth={1} />
-            <span className="text-xs">{t('map.no_images')}</span>
-          </div>
-        )}
 
         {/* Upload card */}
         <div className="flex flex-col items-center gap-1 flex-shrink-0">

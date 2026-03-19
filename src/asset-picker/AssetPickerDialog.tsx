@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import * as Dialog from '@radix-ui/react-dialog'
 import {
@@ -13,6 +13,7 @@ import {
 import { arrayMove } from '@dnd-kit/sortable'
 import { X } from 'lucide-react'
 import { DialogContent } from '../ui/primitives/DialogContent'
+import { useDraggable } from '../shared/useDraggable'
 import { useWorldStore } from '../stores/worldStore'
 import { DraggableTag } from './DraggableTag'
 import { AssetGrid } from './AssetGrid'
@@ -44,6 +45,13 @@ export function AssetPickerDialog({
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [search, setSearch] = useState('')
   const [draggedTag, setDraggedTag] = useState<string | null>(null)
+  const [draggedAsset, setDraggedAsset] = useState<AssetMeta | null>(null)
+  const { targetRef, handlePointerDown: onDragHandleDown, resetPosition } = useDraggable()
+
+  // Reset drag position when dialog opens
+  useEffect(() => {
+    if (open) resetPosition()
+  }, [open, resetPosition])
 
   // Filter assets
   const filteredAssets = useMemo(() => {
@@ -84,32 +92,38 @@ export function AssetPickerDialog({
     const data = event.active.data.current
     if (data?.type === 'tag') {
       setDraggedTag(data.tag as string)
+    } else if (data?.type === 'asset') {
+      const asset = allAssets.find((a) => a.id === (data.assetId as string))
+      if (asset) setDraggedAsset(asset)
     }
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
     setDraggedTag(null)
+    setDraggedAsset(null)
     const { active, over } = event
     if (!over) return
 
     const activeData = active.data.current
     const overData = over.data.current
 
+    // Resolve the real asset ID — over might be a sortable or a droppable
+    const overAssetId = (overData?.assetId as string) ?? (over.id as string)
+
     // Tag drop onto asset
-    if (activeData?.type === 'tag' && overData?.type === 'asset-drop-target') {
+    if (activeData?.type === 'tag' && overAssetId) {
       const tag = activeData.tag as string
-      const assetId = overData.assetId as string
-      const asset = allAssets.find((a) => a.id === assetId)
+      const asset = allAssets.find((a) => a.id === overAssetId)
       if (asset && !asset.tags.includes(tag)) {
-        void updateAsset(assetId, { tags: [...asset.tags, tag] })
+        void updateAsset(overAssetId, { tags: [...asset.tags, tag] })
       }
       return
     }
 
     // Sortable reorder
-    if (activeData?.type === 'asset' && active.id !== over.id) {
+    if (activeData?.type === 'asset' && active.id !== overAssetId) {
       const oldIndex = filteredAssets.findIndex((a) => a.id === active.id)
-      const newIndex = filteredAssets.findIndex((a) => a.id === over.id)
+      const newIndex = filteredAssets.findIndex((a) => a.id === overAssetId)
       if (oldIndex !== -1 && newIndex !== -1) {
         const reordered = arrayMove(filteredAssets, oldIndex, newIndex)
         const GAP = 1000
@@ -147,9 +161,12 @@ export function AssetPickerDialog({
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[560px] w-[90vw]">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
+      <DialogContent ref={targetRef} noOverlay className="max-w-[560px] w-[90vw] bg-surface border border-border-glass rounded-xl p-5 shadow-xl">
+        {/* Header — drag handle */}
+        <div
+          className="flex items-center justify-between mb-4 cursor-grab active:cursor-grabbing select-none"
+          onPointerDown={onDragHandleDown}
+        >
           <Dialog.Title className="text-base font-semibold text-text-primary">
             {mode === 'select'
               ? t('asset.select_title', 'Select Image')
@@ -210,12 +227,21 @@ export function AssetPickerDialog({
             onDelete={handleDelete}
           />
 
-          {/* Drag overlay for tags */}
+          {/* Drag overlay for tags and assets */}
           <DragOverlay>
             {draggedTag ? (
               <span className="px-3 py-1 rounded-full text-[11px] bg-accent text-white shadow-lg">
                 {draggedTag}
               </span>
+            ) : draggedAsset ? (
+              <div className="w-24 h-24 rounded-lg overflow-hidden shadow-xl opacity-80">
+                <img
+                  src={draggedAsset.url}
+                  alt={draggedAsset.name}
+                  className="w-full h-full object-cover block"
+                  draggable={false}
+                />
+              </div>
             ) : null}
           </DragOverlay>
         </DndContext>

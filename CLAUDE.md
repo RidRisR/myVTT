@@ -30,7 +30,8 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 - **zustand data flags**: Flags controlling render must be in the same `set()` call as the data (no `useState` + `useEffect` timing gaps)
 - **Socket.io**: Every client `socket.on()` MUST have a server-side `io.emit()`. New connections must receive catch-up state
 - **Express**: `res.sendFile()` MUST include `dotfiles: 'allow'`
-- **CSS containing block**: `transform`/`filter`/`will-change` on a parent makes child `position: fixed` relative to that parent, not viewport. Radix `Popover.Anchor` with `fixed` positioning must be outside any transformed container
+- **CSS containing block**: `transform`/`filter`/`will-change` on a parent makes child `position: fixed` relative to that parent, not viewport. Radix `Popover.Anchor` with `fixed` positioning must be outside any transformed container. DialogContent uses flex centering (no transform) to avoid this — do NOT add transform-based centering back
+- **Tailwind transform vs imperative DOM**: Never set `style.transform` on elements using Tailwind transform utilities (`-translate-*`, `rotate-*`, `scale-*`) — Tailwind composes all transforms into one `transform` property via CSS vars, and inline `style.transform` wipes them all. For programmatic positioning, use `position: relative` + `left`/`top` (does not create containing block for fixed children)
 
 ## Reference Docs
 

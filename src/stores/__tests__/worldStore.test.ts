@@ -15,6 +15,16 @@ vi.mock('../../shared/assetUpload', () => ({
       extra: { tags: ['tag1'] },
     }),
   ),
+  uploadBlueprintFromFile: vi.fn(() =>
+    Promise.resolve({
+      id: 'bp-from-upload',
+      name: 'Goblin',
+      imageUrl: '/uploads/goblin.png',
+      tags: ['token'],
+      defaults: { color: '#3b82f6', width: 1, height: 1 },
+      createdAt: 1234567890,
+    }),
+  ),
   isVideoUrl: vi.fn(() => false),
   getMediaDimensions: vi.fn(() => Promise.resolve({ w: 100, h: 100 })),
 }))
@@ -1184,5 +1194,35 @@ describe('asset mutation actions', () => {
     expect(() => {
       undo()
     }).not.toThrow()
+  })
+})
+
+// ── uploadAndCreateBlueprint ──
+
+describe('uploadAndCreateBlueprint', () => {
+  it('calls uploadBlueprintFromFile and returns blueprint data', async () => {
+    useWorldStore.setState({ _roomId: ROOM_ID })
+    const file = new File(['fake'], 'goblin.png', { type: 'image/png' })
+
+    const result = await useWorldStore.getState().uploadAndCreateBlueprint(file, {
+      name: 'Goblin',
+      tags: ['token'],
+      defaults: { color: '#ff0000', width: 1, height: 1 },
+    })
+
+    expect(result).toBeDefined()
+    expect(result!.id).toBe('bp-from-upload')
+    expect(result!.name).toBe('Goblin')
+    expect(result!.imageUrl).toBe('/uploads/goblin.png')
+  })
+
+  it('does not duplicate blueprints in store (relies on socket events)', async () => {
+    useWorldStore.setState({ _roomId: ROOM_ID, blueprints: [] })
+    const file = new File(['fake'], 'goblin.png', { type: 'image/png' })
+
+    await useWorldStore.getState().uploadAndCreateBlueprint(file)
+
+    // Store should NOT have the blueprint yet — it comes via socket event
+    expect(useWorldStore.getState().blueprints).toHaveLength(0)
   })
 })
