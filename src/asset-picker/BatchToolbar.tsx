@@ -36,7 +36,9 @@ export function BatchToolbar({
     if (!firstAsset) return []
     const first = new Set(firstAsset.tags)
     for (let i = 1; i < selectedAssets.length; i++) {
-      const tags = new Set(selectedAssets[i]!.tags)
+      const asset = selectedAssets[i]
+      if (!asset) continue
+      const tags = new Set(asset.tags)
       for (const tag of first) {
         if (!tags.has(tag)) first.delete(tag)
       }
@@ -95,16 +97,12 @@ export function BatchToolbar({
   }
 
   const handleDelete = async () => {
-    const confirmed = confirm(
-      t('asset.batch_delete_confirm', `Delete ${selection.size} items?`),
-    )
+    const confirmed = confirm(t('asset.batch_delete_confirm', `Delete ${selection.size} items?`))
     if (!confirmed) return
 
     setLoading(true)
     try {
-      const results = await Promise.allSettled(
-        Array.from(selection).map((id) => removeAsset(id)),
-      )
+      const results = await Promise.allSettled(Array.from(selection).map((id) => removeAsset(id)))
       const failures = results.filter((r) => r.status === 'rejected')
       if (failures.length > 0) {
         console.error('Batch delete failures:', failures)
@@ -124,7 +122,10 @@ export function BatchToolbar({
       {loading && <Loader2 size={14} strokeWidth={1.5} className="animate-spin text-text-muted" />}
 
       <span className="text-xs text-text-muted">
-        {t('asset.batch_selected', { count: selection.size, defaultValue: `Selected ${selection.size} items` })}
+        {t('asset.batch_selected', {
+          count: selection.size,
+          defaultValue: `Selected ${selection.size} items`,
+        })}
       </span>
 
       <div className="ml-auto flex items-center gap-1.5">
