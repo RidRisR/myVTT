@@ -456,7 +456,9 @@ function registerSocketEvents(
     set((s) => ({ assets: s.assets.filter((a) => a.id !== id) }))
   })
   socket.on('asset:reordered', (assets) => {
-    set({ assets: assets.map((a) => normalizeAsset(a as unknown as Record<string, unknown>)) })
+    set(() => ({
+      assets: assets.map((a) => normalizeAsset(a as unknown as Record<string, unknown>)),
+    }))
   })
 
   // ── Blueprint events ──
