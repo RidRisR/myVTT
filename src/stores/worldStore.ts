@@ -456,7 +456,7 @@ function registerSocketEvents(
     set((s) => ({ assets: s.assets.filter((a) => a.id !== id) }))
   })
   socket.on('asset:reordered', (assets) => {
-    set({ assets })
+    set({ assets: assets.map((a) => normalizeAsset(a as unknown as Record<string, unknown>)) })
   })
 
   // ── Blueprint events ──
@@ -985,7 +985,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   reorderAssets: async (order) => {
     const result = await reorderAssetsApi(order)
-    set({ assets: result })
+    set({ assets: result.map((a) => normalizeAsset(a as unknown as Record<string, unknown>)) })
   },
 
   // ── Team tracker actions ──
