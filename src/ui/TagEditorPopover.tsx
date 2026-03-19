@@ -50,6 +50,7 @@ export function TagEditorPopover({
   const showCreateOption = useMemo(() => {
     const q = input.trim()
     if (!q) return false
+    if (AUTO_TAGS.some((t) => t.toLowerCase() === q.toLowerCase())) return false
     return !allKnownTags.some((t) => t.toLowerCase() === q.toLowerCase())
   }, [input, allKnownTags])
 
@@ -68,7 +69,9 @@ export function TagEditorPopover({
   useEffect(() => {
     if (open) {
       const timer = setTimeout(() => inputRef.current?.focus(), 50)
-      return () => { clearTimeout(timer); }
+      return () => {
+        clearTimeout(timer)
+      }
     }
   }, [open])
 
@@ -88,7 +91,9 @@ export function TagEditorPopover({
             >
               {tag}
               <button
-                onClick={() => { removeTag(tag); }}
+                onClick={() => {
+                  removeTag(tag)
+                }}
                 className="text-accent/50 hover:text-accent cursor-pointer"
               >
                 <X size={8} strokeWidth={2.5} />
@@ -101,7 +106,9 @@ export function TagEditorPopover({
         <input
           ref={inputRef}
           value={input}
-          onChange={(e) => { setInput(e.target.value); }}
+          onChange={(e) => {
+            setInput(e.target.value)
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && input.trim()) {
               addTag(input.trim())
@@ -117,7 +124,9 @@ export function TagEditorPopover({
             {suggestions.slice(0, 8).map((tag) => (
               <button
                 key={tag}
-                onClick={() => { addTag(tag); }}
+                onClick={() => {
+                  addTag(tag)
+                }}
                 className="w-full text-left text-[11px] px-2 py-1 rounded hover:bg-glass text-text-muted hover:text-text-primary cursor-pointer transition-colors duration-fast"
               >
                 {tag}
@@ -125,7 +134,9 @@ export function TagEditorPopover({
             ))}
             {showCreateOption && (
               <button
-                onClick={() => { addTag(input.trim()); }}
+                onClick={() => {
+                  addTag(input.trim())
+                }}
                 className="w-full text-left text-[11px] px-2 py-1 rounded hover:bg-glass text-accent cursor-pointer transition-colors duration-fast"
               >
                 + Create &quot;{input.trim()}&quot;
