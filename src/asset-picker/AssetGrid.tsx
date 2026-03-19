@@ -14,6 +14,10 @@ interface AssetGridProps {
   onRename: (id: string) => void
   onEditTags: (id: string) => void
   onDelete: (id: string) => void
+  editTagsAssetId?: string | null
+  allKnownTags?: string[]
+  onTagsChange?: (id: string, tags: string[]) => void
+  onEditTagsClose?: () => void
 }
 
 export function AssetGrid({
@@ -24,6 +28,10 @@ export function AssetGrid({
   onRename,
   onEditTags,
   onDelete,
+  editTagsAssetId,
+  allKnownTags,
+  onTagsChange,
+  onEditTagsClose,
 }: AssetGridProps) {
   const { t } = useTranslation('dock')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -97,6 +105,12 @@ export function AssetGrid({
               onRename={onRename}
               onEditTags={onEditTags}
               onDelete={onDelete}
+              isEditingTags={editTagsAssetId === asset.id}
+              allKnownTags={allKnownTags}
+              onTagsChange={(tags) => {
+                onTagsChange?.(asset.id, tags)
+              }}
+              onEditTagsClose={onEditTagsClose}
             />
           ))}
         </div>

@@ -17,7 +17,10 @@ import { useDraggable } from '../shared/useDraggable'
 import { useWorldStore } from '../stores/worldStore'
 import { DraggableTag } from './DraggableTag'
 import { AssetGrid } from './AssetGrid'
+import { TagFilterBar } from '../ui/TagFilterBar'
 import type { AssetMeta } from '../shared/assetTypes'
+
+const AUTO_TAGS = ['map', 'token', 'portrait']
 
 interface AssetPickerProps {
   open: boolean
@@ -46,6 +49,8 @@ export function AssetPickerDialog({
   const [search, setSearch] = useState('')
   const [draggedTag, setDraggedTag] = useState<string | null>(null)
   const [draggedAsset, setDraggedAsset] = useState<AssetMeta | null>(null)
+  const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [editTagsAssetId, setEditTagsAssetId] = useState<string | null>(null)
   const { targetRef, handlePointerDown: onDragHandleDown, resetPosition } = useDraggable()
 
   // Reset drag position when dialog opens
@@ -59,6 +64,9 @@ export function AssetPickerDialog({
     if (filter?.mediaType) {
       result = result.filter((a) => a.mediaType === filter.mediaType)
     }
+    if (activeCategory) {
+      result = result.filter((a) => a.tags.includes(activeCategory))
+    }
     if (selectedTags.length > 0) {
       result = result.filter((a) => selectedTags.every((t) => a.tags.includes(t)))
     }
@@ -67,15 +75,34 @@ export function AssetPickerDialog({
       result = result.filter((a) => a.name.toLowerCase().includes(q))
     }
     return result
-  }, [allAssets, filter, selectedTags, search])
+  }, [allAssets, filter, activeCategory, selectedTags, search])
 
   // Collect available tags
   const availableTags = useMemo(() => {
+    let base = allAssets
+    if (filter?.mediaType) {
+      base = base.filter((a) => a.mediaType === filter.mediaType)
+    }
+    if (activeCategory) {
+      base = base.filter((a) => a.tags.includes(activeCategory))
+    }
+    const tags = new Set<string>()
+    for (const a of base) {
+      for (const tag of a.tags) {
+        if (!AUTO_TAGS.includes(tag)) tags.add(tag)
+      }
+    }
+    return Array.from(tags).sort()
+  }, [allAssets, filter, activeCategory])
+
+  const allKnownTags = useMemo(() => {
     const tags = new Set<string>()
     for (const a of allAssets) {
-      for (const tag of a.tags) tags.add(tag)
+      for (const tag of a.tags) {
+        if (!AUTO_TAGS.includes(tag)) tags.add(tag)
+      }
     }
-    return Array.from(tags)
+    return Array.from(tags).sort()
   }, [allAssets])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -147,16 +174,7 @@ export function AssetPickerDialog({
   }
 
   const handleEditTags = (id: string) => {
-    const asset = allAssets.find((a) => a.id === id)
-    if (!asset) return
-    const input = prompt(t('asset.tags_prompt', 'Tags (comma separated):'), asset.tags.join(', '))
-    if (input !== null) {
-      const tags = input
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
-      void updateAsset(id, { tags })
-    }
+    setEditTagsAssetId(id)
   }
 
   return (
@@ -164,7 +182,9 @@ export function AssetPickerDialog({
       <DialogContent
         ref={targetRef}
         noOverlay
-        onInteractOutside={(e) => { e.preventDefault(); }}
+        onInteractOutside={(e) => {
+          e.preventDefault()
+        }}
         className="max-w-[560px] w-[90vw] bg-surface border border-border-glass rounded-xl p-5 shadow-xl"
       >
         {/* Header — drag handle */}
@@ -183,32 +203,8 @@ export function AssetPickerDialog({
         </div>
 
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          {/* Tag filter + search */}
-          <div className="flex gap-1.5 mb-3 items-center overflow-x-auto">
-            <button
-              onClick={() => {
-                setSelectedTags([])
-              }}
-              className={`px-3 py-1 rounded-full text-[11px] whitespace-nowrap transition-colors duration-fast cursor-pointer ${
-                selectedTags.length === 0
-                  ? 'bg-accent text-white'
-                  : 'bg-glass text-text-muted hover:text-text-primary'
-              }`}
-            >
-              {t('asset.all', 'All')}
-            </button>
-            {availableTags.map((tag) => (
-              <DraggableTag
-                key={tag}
-                tag={tag}
-                selected={selectedTags.includes(tag)}
-                onClick={() => {
-                  setSelectedTags((prev) =>
-                    prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-                  )
-                }}
-              />
-            ))}
+          {/* Search bar */}
+          <div className="flex items-center mb-2">
             <div className="flex-1" />
             <input
               type="text"
@@ -221,6 +217,41 @@ export function AssetPickerDialog({
             />
           </div>
 
+          {/* Tag filter bar */}
+          <div className="mb-3">
+            <TagFilterBar
+              categories={mode === 'manage' && !filter?.mediaType ? ['map', 'token'] : undefined}
+              activeCategory={activeCategory}
+              onCategoryChange={(cat) => {
+                setActiveCategory(cat)
+                setSelectedTags([])
+              }}
+              availableTags={availableTags}
+              selectedTags={selectedTags}
+              onToggleTag={(tag) =>
+                { setSelectedTags((prev) =>
+                  prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+                ); }
+              }
+            />
+          </div>
+
+          {/* Draggable tag pills for drag-to-asset (inside DndContext) */}
+          <div className="flex gap-1.5 mb-3 items-center overflow-x-auto">
+            {availableTags.map((tag) => (
+              <DraggableTag
+                key={tag}
+                tag={tag}
+                selected={selectedTags.includes(tag)}
+                onClick={() =>
+                  { setSelectedTags((prev) =>
+                    prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+                  ); }
+                }
+              />
+            ))}
+          </div>
+
           {/* Grid */}
           <AssetGrid
             assets={filteredAssets}
@@ -230,6 +261,14 @@ export function AssetPickerDialog({
             onRename={handleRename}
             onEditTags={handleEditTags}
             onDelete={handleDelete}
+            editTagsAssetId={editTagsAssetId}
+            allKnownTags={allKnownTags}
+            onTagsChange={(id, tags) => {
+              void updateAsset(id, { tags })
+            }}
+            onEditTagsClose={() => {
+              setEditTagsAssetId(null)
+            }}
           />
 
           {/* Drag overlay for tags and assets */}

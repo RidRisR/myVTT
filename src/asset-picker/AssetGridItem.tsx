@@ -5,6 +5,7 @@ import * as ContextMenu from '@radix-ui/react-context-menu'
 import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { useTranslation } from 'react-i18next'
+import { TagEditorPopover } from '../ui/TagEditorPopover'
 import type { AssetMeta } from '../shared/assetTypes'
 
 const AUTO_TAGS = ['map', 'token', 'portrait']
@@ -15,6 +16,11 @@ interface AssetGridItemProps {
   onRename: (id: string) => void
   onEditTags: (id: string) => void
   onDelete: (id: string) => void
+  // Tag editor integration
+  isEditingTags?: boolean
+  allKnownTags?: string[]
+  onTagsChange?: (tags: string[]) => void
+  onEditTagsClose?: () => void
 }
 
 export function AssetGridItem({
@@ -23,6 +29,10 @@ export function AssetGridItem({
   onRename,
   onEditTags,
   onDelete,
+  isEditingTags,
+  allKnownTags,
+  onTagsChange,
+  onEditTagsClose,
 }: AssetGridItemProps) {
   const { t } = useTranslation('dock')
   const { isOver: isTagOver, setNodeRef: setDropRef } = useDroppable({
@@ -47,7 +57,7 @@ export function AssetGridItem({
     opacity: isDragging ? 0.5 : 1,
   }
 
-  return (
+  const content = (
     <ContextMenu.Root modal={false}>
       <ContextMenu.Trigger asChild>
         <div
@@ -130,4 +140,22 @@ export function AssetGridItem({
       </ContextMenuContent>
     </ContextMenu.Root>
   )
+
+  if (isEditingTags && allKnownTags && onTagsChange) {
+    return (
+      <TagEditorPopover
+        tags={asset.tags}
+        allKnownTags={allKnownTags}
+        onTagsChange={onTagsChange}
+        defaultOpen
+        onOpenChange={(open) => {
+          if (!open) onEditTagsClose?.()
+        }}
+      >
+        {content}
+      </TagEditorPopover>
+    )
+  }
+
+  return content
 }
