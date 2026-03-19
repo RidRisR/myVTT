@@ -9,7 +9,7 @@ import { useUiStore } from '../stores/uiStore'
 import { useWorldStore } from '../stores/worldStore'
 import { getAvailablePlugins } from '../rules/registry'
 import { PopoverContent } from '../ui/primitives/PopoverContent'
-import { AssetPickerDialog } from '../asset-picker/AssetPickerDialog'
+import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
 
 interface HamburgerMenuProps {
   mySeat: Seat
@@ -257,7 +257,7 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
         </PopoverContent>
       </Popover.Root>
 
-      <AssetPickerDialog mode="manage" open={assetPickerOpen} onOpenChange={setAssetPickerOpen} />
+      <AssetPickerPanel mode="manage" open={assetPickerOpen} onOpenChange={setAssetPickerOpen} />
     </div>
   )
 }

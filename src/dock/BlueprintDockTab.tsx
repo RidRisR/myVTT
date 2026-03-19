@@ -8,7 +8,7 @@ import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { useToast } from '../ui/useToast'
 import { TagFilterBar } from '../ui/TagFilterBar'
-import { AssetPickerDialog } from '../asset-picker/AssetPickerDialog'
+import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
 import { TagEditorPopover } from '../ui/TagEditorPopover'
 
 const AUTO_TAGS = ['map', 'token', 'portrait']
@@ -105,7 +105,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
 
   return (
     <div>
-      <AssetPickerDialog mode="manage" open={managerOpen} onOpenChange={setManagerOpen} />
+      <AssetPickerPanel mode="manage" open={managerOpen} onOpenChange={setManagerOpen} />
 
       <input
         ref={fileRef}
@@ -125,7 +125,9 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
           onToggleTag={handleToggleTag}
           trailing={
             <button
-              onClick={() => { setManagerOpen(true); }}
+              onClick={() => {
+                setManagerOpen(true)
+              }}
               className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer text-text-muted/40 hover:text-text-muted/60 border border-border-glass/30 transition-colors duration-fast ml-auto"
               title={t('blueprint.manage_assets')}
             >

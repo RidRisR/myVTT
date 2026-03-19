@@ -9,7 +9,7 @@ import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { useToast } from '../ui/useToast'
 import { TagFilterBar } from '../ui/TagFilterBar'
-import { AssetPickerDialog } from '../asset-picker/AssetPickerDialog'
+import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
 
 const AUTO_TAGS = ['map', 'token', 'portrait']
 
@@ -88,7 +88,7 @@ export function MapDockTab({
 
   return (
     <div>
-      <AssetPickerDialog mode="manage" open={managerOpen} onOpenChange={setManagerOpen} />
+      <AssetPickerPanel mode="manage" open={managerOpen} onOpenChange={setManagerOpen} />
 
       <input
         ref={fileRef}

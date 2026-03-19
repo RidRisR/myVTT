@@ -3,7 +3,7 @@ import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useClickOutside } from '../hooks/useClickOutside'
 import type { Entity } from '../shared/entityTypes'
-import { AssetPickerDialog } from '../asset-picker/AssetPickerDialog'
+import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
 import {
   getEntityResources,
   getEntityAttributes,
@@ -602,7 +602,7 @@ export function CharacterEditPanel({
 
   return (
     <>
-      <AssetPickerDialog
+      <AssetPickerPanel
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         mode="select"
