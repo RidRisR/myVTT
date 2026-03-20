@@ -46,6 +46,27 @@ All overlays (popovers, context menus, dropdown menus, dialogs) use Radix UI hea
 
 **Animation constraint**: Only `opacity` + `scale` in `radix-popover-in` keyframes — no `translate` (conflicts with Radix transform-based positioning).
 
+## Floating Panels
+
+Floating panels (draggable, non-modal overlays like AssetPickerPanel) MUST follow the sandbox `PatternFloatingPanelOverlay` pattern:
+
+| Requirement                           | Implementation                                           | Why                                                                 |
+| ------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------- |
+| Escape ancestor containing blocks     | `createPortal(jsx, document.body)`                       | `transform`/`backdrop-filter` on ancestors break `position: fixed`  |
+| Position via state, not CSS centering | `position: fixed` + `style={{ left, top }}`              | `inset-0 m-auto` centering conflicts with drag repositioning        |
+| Stable drag handler                   | `posRef` (mutable) + `pos` (state), `useCallback(…, [])` | Zero-dependency callback avoids re-creation on every frame          |
+| Drag events on document               | `document.addEventListener('pointermove/pointerup')`     | Not `setPointerCapture` — avoids pointer-event conflicts with Radix |
+| z-index below popover                 | `z-ui` (1000)                                            | Panel must not occlude Radix overlays (`z-popover` = 5000)          |
+| Cleanup on unmount                    | `dragCleanupRef` pattern                                 | Prevent leaked listeners if panel unmounts mid-drag                 |
+
+**Reference implementation**: `src/shared/usePanelDrag.ts`
+
+**Prohibited patterns**:
+
+- `inset-0 m-auto` for centering — breaks on drag start (position jump)
+- `position: relative` + left/top for drag — triggers layout reflow every frame (janky)
+- Inline render inside transformed ancestors — `fixed` becomes relative to ancestor, not viewport
+
 ## Product Design Principles
 
 1. **轻备团优先** — minimal GM preparation overhead

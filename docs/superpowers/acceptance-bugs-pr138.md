@@ -74,8 +74,46 @@ const effectiveAutoTags = useMemo(() => {
 
 ---
 
+## Bug 4 遗留：ALL 标签上传无分类
+
+**现象**: 从汉堡菜单打开资产库，在 ALL 标签下上传图片，图片只出现在 ALL，Maps/Tokens 都看不到。
+
+**根因**: `effectiveAutoTags` 在 `activeCategory` 为 null（ALL tab）时返回 `undefined`，upload 路径 `tags: undefined` → store fallback → `[]`。
+
+**根因层次分析**:
+
+1. **Schema 层** — `tags: string[]` 同时承载"内容分类"（map/token，互斥、系统赋值）和"用户标签"（forest/battle，非互斥、用户管理）。分类是可选的、隐式的，导致上传时合法地产出无分类资产。
+2. **UI 层** — ALL tab 是"查看过滤器"（显示所有分类），不是"操作上下文"（分类目标）。上传按钮在 ALL tab 可用，创造了"无分类上下文"的操作路径。`effectiveAutoTags` 从 UI 状态反推业务语义，在 ALL tab 上语义断裂。
+3. **类型系统层** — `autoTags?: string[]` 允许 `undefined` 一路静默传递，没有任何环节强制处理"没有分类"的情况。
+
+**状态**: 推迟到 #137（tag system schema redesign）解决。跟踪 issue: #140。
+
+---
+
 ## 系统性预防
 
-**根因分析**: 4 个 bug 中 3 个（Bug 1/2/3）源于未遵循已建立的 sandbox 模式。sandbox `PatternFloatingPanelOverlay` 文档和参考实现明确规定了 `createPortal` + `fixed + left/top` + `z-ui` 的正确模式，但初始实现偏离了这个模式。
+### Bug 1/2/3：已有正确模式但未遵循（纪律问题）
 
-**预防措施**: `ui-design-checklist` skill 的容器选择步骤现在会引导开发者参考 sandbox 模式文档，确保浮层面板遵循已验证的架构模式。
+**根因分析**: 3 个 bug 源于未遵循已建立的 sandbox `PatternFloatingPanelOverlay` 模式。文档和参考实现明确规定了 `createPortal` + `fixed + left/top` + `z-ui` 的正确模式，但初始实现偏离。
+
+**预防措施**:
+
+| 措施                                                          | 作用                                                                         |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `ui-design-checklist` skill 容器选择步骤引导查阅 sandbox 模式 | 设计阶段拦截                                                                 |
+| `usePanelDrag` hook 提取为可复用模块                          | 下次直接 import，不重写                                                      |
+| `ui-patterns.md` 新增 Floating Panels convention              | 文档化禁止模式（`inset-0 m-auto`、`position: relative` 拖拽、inline render） |
+
+### Bug 4：schema 设计缺陷导致合法代码产生错误结果（架构问题）
+
+**预防措施**:
+
+| 措施                                                    | 作用                           |
+| ------------------------------------------------------- | ------------------------------ |
+| #137 schema redesign：`category` 为 `NOT NULL` 枚举字段 | 从数据层消灭"无分类资产"的可能 |
+| 上传 API 的 category 参数标记为 required                | 编译期强制调用者提供分类       |
+| UI 原则：操作需要的上下文缺失时，禁用操作或提示补全     | 在交互层阻断无效路径           |
+
+### 核心教训
+
+> **view state ≠ action context**：当一个"过滤视图"和"操作上下文"共用同一个状态时，过滤视图的合法值（null = 全部）在操作语义下可能是非法的（null = 无分类）。预防方式是在类型层面区分"筛选条件"和"操作参数"，或在 schema 层面让必填字段不可能缺失。
