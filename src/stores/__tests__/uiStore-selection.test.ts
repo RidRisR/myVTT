@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import '../../combat/tools/registerBuiltinTools'
 import { useUiStore } from '../uiStore'
+import type { Entity } from '../../shared/entityTypes'
+import type { TargetInfo } from '../../rules/types'
 
 beforeEach(() => {
   useUiStore.setState({
@@ -120,6 +122,14 @@ describe('toolPersist', () => {
 // ── Action targeting state machine ──
 
 describe('targeting state machine', () => {
+  const mockEntity = { id: 'e1', name: 'Fighter' } as Entity
+
+  const makeTarget = (tokenId: string, index: number): TargetInfo => ({
+    tokenId,
+    entity: { id: `entity-${tokenId}`, name: `Entity ${tokenId}` } as Entity,
+    index,
+  })
+
   const mockAction = {
     id: 'attack',
     label: 'Attack',
@@ -127,14 +137,13 @@ describe('targeting state machine', () => {
     targeting: { mode: 'single' as const, count: 2 },
     onExecute: vi.fn(),
   }
-  const mockActor = { id: 'e1', name: 'Fighter' } as any
 
   beforeEach(() => {
     mockAction.onExecute.mockClear()
   })
 
   it('startTargeting sets request and switches to action-targeting tool', () => {
-    useUiStore.getState().startTargeting(mockAction, mockActor)
+    useUiStore.getState().startTargeting(mockAction, mockEntity)
     const s = useUiStore.getState()
     expect(s.activeTargetingRequest).not.toBeNull()
     expect(s.activeTargetingRequest?.action.id).toBe('attack')
@@ -144,28 +153,28 @@ describe('targeting state machine', () => {
   })
 
   it('addTargetingTarget collects targets until count reached', () => {
-    useUiStore.getState().startTargeting(mockAction, mockActor)
+    useUiStore.getState().startTargeting(mockAction, mockEntity)
+
+    const target1 = makeTarget('tk1', 0)
+    const target2 = makeTarget('tk2', 1)
 
     // First target — not enough yet
-    useUiStore.getState().addTargetingTarget({ entityId: 'target1', tokenId: 'tk1' })
+    useUiStore.getState().addTargetingTarget(target1)
     let s = useUiStore.getState()
     expect(s.activeTargetingRequest?.collectedTargets).toHaveLength(1)
     expect(s.activeTool).toBe('action-targeting') // still targeting
 
     // Second target — count reached, should execute and return to select
-    useUiStore.getState().addTargetingTarget({ entityId: 'target2', tokenId: 'tk2' })
+    useUiStore.getState().addTargetingTarget(target2)
     s = useUiStore.getState()
     expect(s.activeTargetingRequest).toBeNull()
     expect(s.activeTool).toBe('select')
     expect(mockAction.onExecute).toHaveBeenCalledOnce()
-    expect(mockAction.onExecute).toHaveBeenCalledWith(mockActor, [
-      { entityId: 'target1', tokenId: 'tk1' },
-      { entityId: 'target2', tokenId: 'tk2' },
-    ])
+    expect(mockAction.onExecute).toHaveBeenCalledWith(mockEntity, [target1, target2])
   })
 
   it('cancelTargeting clears request and returns to select', () => {
-    useUiStore.getState().startTargeting(mockAction, mockActor)
+    useUiStore.getState().startTargeting(mockAction, mockEntity)
     useUiStore.getState().cancelTargeting()
     const s = useUiStore.getState()
     expect(s.activeTargetingRequest).toBeNull()
@@ -174,10 +183,7 @@ describe('targeting state machine', () => {
   })
 
   it('addTargetingTarget is no-op when no active request', () => {
-    useUiStore.getState().addTargetingTarget({ entityId: 'x', tokenId: 'y' })
+    useUiStore.getState().addTargetingTarget(makeTarget('x', 0))
     expect(useUiStore.getState().activeTargetingRequest).toBeNull()
   })
 })
-
-// Import vi for mock
-import { vi } from 'vitest'
