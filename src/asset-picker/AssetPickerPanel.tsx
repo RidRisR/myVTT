@@ -124,12 +124,9 @@ export function AssetPickerPanel({
   // All known tags across ALL assets
   const allKnownTags = useMemo(() => collectUserTags(allAssets), [allAssets])
 
-  // Effective auto-tags: prop > activeCategory
-  // In manage mode, use current category tab as upload tag
-  const effectiveAutoTags = useMemo(() => {
-    if (autoTags) return autoTags
-    return [activeCategory]
-  }, [autoTags, activeCategory])
+  // Auto-tags for upload: only use explicit prop (e.g. ['portrait'] for character picker)
+  // Category is handled separately via the `category` column, not as a tag
+  const effectiveAutoTags = useMemo(() => autoTags ?? [], [autoTags])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 

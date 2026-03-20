@@ -59,7 +59,7 @@ export function AssetGrid({
         name: file.name.replace(/\.[^.]+$/, ''),
         mediaType: 'image',
         category,
-        tags: autoTags,
+        tags: autoTags?.length ? autoTags : undefined,
       })
       if (mode === 'select' && onSelect) {
         onSelect(asset)
