@@ -932,6 +932,14 @@ describe('action methods', () => {
     expect(method).toBe('POST')
   })
 
+  it('clearTactical calls POST /api/rooms/{roomId}/tactical/clear', async () => {
+    await useWorldStore.getState().clearTactical()
+
+    const { url, method } = getLastFetchCall()
+    expect(url).toContain(`/api/rooms/${ROOM_ID}/tactical/clear`)
+    expect(method).toBe('POST')
+  })
+
   // ── Regression: C1 — addScene sends body.id ──
   it('addScene sends client ID in request body', async () => {
     await useWorldStore.getState().addScene('my-scene-id', 'Test', {

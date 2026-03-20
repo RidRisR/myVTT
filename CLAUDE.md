@@ -33,6 +33,7 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 - **Express**: `res.sendFile()` MUST include `dotfiles: 'allow'`
 - **CSS containing block**: `transform`/`filter`/`will-change` on a parent makes child `position: fixed` relative to that parent, not viewport. Radix `Popover.Anchor` with `fixed` positioning must be outside any transformed container. DialogContent uses flex centering (no transform) to avoid this — do NOT add transform-based centering back
 - **Tailwind transform vs imperative DOM**: Never set `style.transform` on elements using Tailwind transform utilities (`-translate-*`, `rotate-*`, `scale-*`) — Tailwind composes all transforms into one `transform` property via CSS vars, and inline `style.transform` wipes them all. For programmatic positioning, use `position: relative` + `left`/`top` (does not create containing block for fixed children)
+- **Container stopPropagation vs Radix dismiss**: Never put `onPointerDown` + `stopPropagation` on a container div that has Radix overlays (DropdownMenu, Popover) inside — it blocks events from reaching `document`, breaking Radix's DismissableLayer. Use CSS `pointer-events: none/auto` for panel-canvas isolation instead. `stopPropagation` is only correct on specific interactive elements (buttons, inputs)
 
 ## Reference Docs
 

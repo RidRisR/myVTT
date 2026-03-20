@@ -86,9 +86,36 @@ base(0) → tactical(100) → ui(1000) → popover(5000) → overlay(8000) → m
 
 ### 5. 事件隔离：stopPropagation 策略
 
-`PopoverContent` 内置了 `stopPropagation`（`onClick` 和 `onPointerDown`），防止点击冒泡到父级 handler。
+**核心原则：只在交互级使用 stopPropagation，禁止在容器级使用。**
 
-`ContextMenuContent` **没有**内置 `stopPropagation`——它依赖 Radix 内部的 dismissal 机制管理关闭行为。这意味着 ContextMenu 的事件隔离由 Radix 自身处理，而不是通过我们的 wrapper。
+Radix 的 `DismissableLayer`（DropdownMenu、Popover、ContextMenu 共用）依赖 `document` 级别的 `pointerdown` 监听来检测"外部点击"并关闭 overlay。如果容器级 `stopPropagation` 阻断了事件冒泡到 `document`，**所有嵌套的 Radix overlay 都无法通过外部点击关闭**。
+
+```tsx
+// ❌ 容器级 stopPropagation — 阻断 Radix dismiss，DropdownMenu/Popover 无法关闭
+<div onPointerDown={(e) => { e.stopPropagation() }}>
+  <DropdownMenu.Root>...</DropdownMenu.Root>  {/* 点击面板其他区域无法关闭 */}
+</div>
+
+// ✅ 交互级 stopPropagation — 只在特定按钮/输入框上阻止父级 handler
+<div>
+  <button onClick={(e) => { e.stopPropagation() }}>Edit</button>  {/* 防止触发行的 onClick */}
+  <DropdownMenu.Root>...</DropdownMenu.Root>  {/* 正常关闭 */}
+</div>
+```
+
+**面板与 canvas 的隔离不需要 stopPropagation：**
+
+固定定位面板（sidebar、dock、toolbar）和 Konva canvas 是 DOM 树的**兄弟子树**——事件只沿祖先链冒泡，永远不会从一个兄弟冒泡到另一个兄弟。CSS `pointer-events: none`（容器）+ `pointer-events: auto`（内容）已经足够实现隔离。
+
+**三种 stopPropagation 的正确使用层级：**
+
+| 层级               | 示例                                | 目的                                    | 对 Radix 的影响                |
+| ------------------ | ----------------------------------- | --------------------------------------- | ------------------------------ |
+| Radix wrapper 内置 | `PopoverContent` 的 `onPointerDown` | 防止 Popover 内的点击冒泡到父级 handler | 无影响（在 Portal 内部）       |
+| 交互级             | 按钮、输入框的 `onClick`            | 防止触发父级行/卡片的 click handler     | 无影响（精确隔离）             |
+| ~~容器级~~         | ~~面板外层 div 的 `onPointerDown`~~ | ~~防止 canvas 交互~~                    | **破坏所有嵌套 Radix overlay** |
+
+`ContextMenuContent` **没有**内置 `stopPropagation`——它依赖 Radix 内部的 dismissal 机制管理关闭行为。
 
 两者共同依赖的安全网：`useClickOutside` hook（`src/hooks/useClickOutside.ts`）自动检测 `[data-radix-popper-content-wrapper]`，将 Radix Portal 内的点击视为"内部点击"，不触发面板关闭。
 
@@ -104,6 +131,7 @@ base(0) → tactical(100) → ui(1000) → popover(5000) → overlay(8000) → m
 | PopoverContent 有 stopPropagation，ContextMenuContent 没有 | `src/ui/primitives/PopoverContent.tsx:29,33` vs `ContextMenuContent.tsx`（无 stopPropagation） | 文档记录，非代码实现                                                                     |
 | 高频 handler 用 ref 持有可变状态，callback 零依赖          | React 性能最佳实践（避免每帧重建闭包）                                                         | `PatternFloatingPanelOverlay.tsx:L107` `posRef` + `L127` `useCallback(…, [])`            |
 | 组件卸载时清理 document 事件监听                           | React useEffect cleanup 规范                                                                   | `PatternFloatingPanelOverlay.tsx:L110` `dragCleanupRef` + `L119-123` cleanup effect      |
+| 禁止容器级 stopPropagation（阻断 Radix dismiss）           | Radix DismissableLayer 依赖 document 级 pointerdown                                            | 文档记录：面板与 canvas 隔离用 CSS `pointer-events`，不用 stopPropagation                |
 
 ## 陷阱清单
 
@@ -113,6 +141,7 @@ base(0) → tactical(100) → ui(1000) → popover(5000) → overlay(8000) → m
 4. **不要手写 click-outside 逻辑** — 用 `useClickOutside`，它已处理 Radix Portal
 5. **不要在 Radix wrapper 之外直接用 `@radix-ui/*`** — 会丢失内置的 stopPropagation 保护
 6. **不要给浮层加 `will-change: transform`** — 同样会创建 containing block
+7. **不要在包含 Radix overlay 的容器上加 `onPointerDown` + `stopPropagation`** — 阻断 `document` 级事件冒泡，导致 DropdownMenu/Popover/ContextMenu 无法通过外部点击关闭。面板与 canvas 的隔离应用 CSS `pointer-events: none/auto`
 
 ## 适用场景
 

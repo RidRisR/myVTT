@@ -1,5 +1,15 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { Plus, Download, Save, MoreVertical, Copy, Pencil, Trash2, Swords } from 'lucide-react'
+import {
+  Plus,
+  Download,
+  Save,
+  MoreVertical,
+  Copy,
+  Pencil,
+  Trash2,
+  Swords,
+  Eraser,
+} from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import * as Popover from '@radix-ui/react-popover'
 import { useWorldStore } from '../stores/worldStore'
@@ -24,6 +34,7 @@ export function ArchivePanel() {
   const duplicateArchive = useWorldStore((s) => s.duplicateArchive)
   const loadArchive = useWorldStore((s) => s.loadArchive)
   const saveArchive = useWorldStore((s) => s.saveArchive)
+  const clearTactical = useWorldStore((s) => s.clearTactical)
 
   const { toast } = useToast()
 
@@ -31,6 +42,7 @@ export function ArchivePanel() {
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
 
   const renameInputRef = useRef<HTMLInputElement>(null)
 
@@ -85,6 +97,17 @@ export function ArchivePanel() {
     setSelectedId(null)
   }
 
+  const handleClearTactical = async () => {
+    setClearConfirmOpen(false)
+    try {
+      await clearTactical()
+      toast('success', t('archive.clear_map'))
+    } catch (err) {
+      console.error('Clear tactical failed:', err)
+      toast('error', t('archive.clear_map'))
+    }
+  }
+
   const handleSave = () => {
     if (!selectedId || !activeSceneId) return
     void saveArchive(selectedId)
@@ -115,7 +138,7 @@ export function ArchivePanel() {
             <span className="opacity-30 text-[10px] mt-1">{t('archive.empty_hint')}</span>
           </div>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5 p-1.5">
             {sortedArchives.map((archive) => {
               const isSelected = archive.id === selectedId
               return (
@@ -124,84 +147,94 @@ export function ArchivePanel() {
                   onClick={() => {
                     setSelectedId(isSelected ? null : archive.id)
                   }}
-                  className={`relative rounded-md px-2.5 py-2 cursor-pointer transition-colors duration-fast group ${
+                  className={`relative rounded-lg overflow-hidden cursor-pointer transition-all duration-fast group ${
                     isSelected
-                      ? 'bg-accent/15 border border-accent/30'
-                      : 'hover:bg-surface/60 border border-transparent'
+                      ? 'ring-2 ring-accent'
+                      : 'ring-1 ring-border-glass hover:ring-accent/40'
                   }`}
+                  style={
+                    archive.mapUrl
+                      ? {
+                          backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.25), rgba(0,0,0,0.7)), url(${archive.mapUrl})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                        }
+                      : undefined
+                  }
                 >
-                  <div className="flex items-center gap-2">
-                    {/* Name or rename input */}
-                    {renamingId === archive.id ? (
-                      <input
-                        ref={renameInputRef}
-                        value={renameValue}
-                        onChange={(e) => {
-                          setRenameValue(e.target.value)
-                        }}
-                        onBlur={commitRename}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') commitRename()
-                          if (e.key === 'Escape') setRenamingId(null)
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                        }}
-                        className="flex-1 text-xs bg-surface text-text-primary border border-border-glass rounded px-1.5 py-0.5 outline-none min-w-0"
-                      />
-                    ) : (
-                      <span className="flex-1 text-xs text-text-primary truncate">
-                        {archive.name}
-                      </span>
-                    )}
-
-                    {/* Meta info */}
-                    {archive.mapUrl && (
-                      <span className="text-[10px] text-text-muted/50 shrink-0">🗺</span>
-                    )}
-
-                    {/* ⋮ Dropdown menu */}
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger asChild>
-                        <button
+                  <div
+                    className={`px-2.5 py-2 min-h-[64px] flex flex-col justify-end ${archive.mapUrl ? '' : 'bg-surface/40'}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {/* Name or rename input */}
+                      {renamingId === archive.id ? (
+                        <input
+                          ref={renameInputRef}
+                          value={renameValue}
+                          onChange={(e) => {
+                            setRenameValue(e.target.value)
+                          }}
+                          onBlur={commitRename}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') commitRename()
+                            if (e.key === 'Escape') setRenamingId(null)
+                          }}
                           onClick={(e) => {
                             e.stopPropagation()
                           }}
-                          className="opacity-0 group-hover:opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
+                          className="flex-1 text-xs bg-surface text-text-primary border border-border-glass rounded px-1.5 py-0.5 outline-none min-w-0"
+                        />
+                      ) : (
+                        <span
+                          className={`flex-1 text-xs truncate ${archive.mapUrl ? 'text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-text-primary'}`}
                         >
-                          <MoreVertical size={12} strokeWidth={1.5} />
-                        </button>
-                      </DropdownMenu.Trigger>
-                      <DropdownMenuContent align="end" sideOffset={4}>
-                        <DropdownMenuItem
-                          onSelect={() => {
-                            setRenamingId(archive.id)
-                            setRenameValue(archive.name)
-                          }}
-                        >
-                          <Pencil size={12} strokeWidth={1.5} />
-                          {t('archive.rename')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => {
-                            void duplicateArchive(archive.id)
-                          }}
-                        >
-                          <Copy size={12} strokeWidth={1.5} />
-                          {t('archive.duplicate')}
-                        </DropdownMenuItem>
-                        <DropdownMenu.Separator className="border-t border-border-glass my-1" />
-                        <ConfirmDropdownItem
-                          icon={<Trash2 size={12} strokeWidth={1.5} />}
-                          message={t('archive.delete_confirm', { name: archive.name })}
-                          onConfirm={() => {
-                            handleDelete(archive)
-                          }}
-                        >
-                          Delete
-                        </ConfirmDropdownItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu.Root>
+                          {archive.name}
+                        </span>
+                      )}
+
+                      {/* ⋮ Dropdown menu */}
+                      <DropdownMenu.Root>
+                        <DropdownMenu.Trigger asChild>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                            }}
+                            className="opacity-0 group-hover:opacity-100 text-text-muted/40 hover:text-text-primary p-0.5 cursor-pointer transition-opacity duration-fast"
+                          >
+                            <MoreVertical size={12} strokeWidth={1.5} />
+                          </button>
+                        </DropdownMenu.Trigger>
+                        <DropdownMenuContent align="end" sideOffset={4}>
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              setRenamingId(archive.id)
+                              setRenameValue(archive.name)
+                            }}
+                          >
+                            <Pencil size={12} strokeWidth={1.5} />
+                            {t('archive.rename')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              void duplicateArchive(archive.id)
+                            }}
+                          >
+                            <Copy size={12} strokeWidth={1.5} />
+                            {t('archive.duplicate')}
+                          </DropdownMenuItem>
+                          <DropdownMenu.Separator className="border-t border-border-glass my-1" />
+                          <ConfirmDropdownItem
+                            icon={<Trash2 size={12} strokeWidth={1.5} />}
+                            message={t('archive.delete_confirm', { name: archive.name })}
+                            onConfirm={() => {
+                              handleDelete(archive)
+                            }}
+                          >
+                            Delete
+                          </ConfirmDropdownItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu.Root>
+                    </div>
                   </div>
                 </div>
               )
@@ -217,13 +250,45 @@ export function ArchivePanel() {
           <button
             data-testid="archive-save-new"
             onClick={() => void handleCreateAndSave()}
-            className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
+            className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
             title={t('archive.save_new')}
           >
-            <Plus size={12} strokeWidth={1.5} />
-            {t('archive.save_new')}
+            <Plus size={14} strokeWidth={1.5} />
           </button>
         )}
+
+        <Popover.Root open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
+          <Popover.Trigger asChild>
+            <button
+              data-testid="archive-clear-map"
+              className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
+              title={t('archive.clear_map')}
+            >
+              <Eraser size={14} strokeWidth={1.5} />
+            </button>
+          </Popover.Trigger>
+          <PopoverContent side="top" align="center" className="min-w-[140px]">
+            <p className="text-xs text-text-primary mb-2.5">{t('archive.clear_map_confirm')}</p>
+            <div className="flex justify-end gap-2">
+              <button
+                data-testid="confirm-cancel"
+                onClick={() => {
+                  setClearConfirmOpen(false)
+                }}
+                className="text-[11px] text-text-muted px-2 py-1 rounded hover:bg-hover cursor-pointer transition-colors duration-fast"
+              >
+                {t('cancel', { ns: 'ui' })}
+              </button>
+              <button
+                data-testid="confirm-action"
+                onClick={() => void handleClearTactical()}
+                className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
+              >
+                {t('confirm_default', { ns: 'ui' })}
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover.Root>
 
         <div className="flex-1" />
 
@@ -232,11 +297,10 @@ export function ArchivePanel() {
           <button
             data-testid="archive-overwrite"
             onClick={handleSave}
-            className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-bold px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
+            className="w-7 h-7 flex items-center justify-center text-accent hover:text-accent-bold rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
             title={t('archive.overwrite_title')}
           >
-            <Save size={12} strokeWidth={1.5} />
-            {t('archive.overwrite')}
+            <Save size={14} strokeWidth={1.5} />
           </button>
         )}
 
@@ -257,7 +321,7 @@ export function ArchivePanel() {
                 className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"
                 title={t('archive.load_title')}
               >
-                <Download size={14} strokeWidth={1.5} />
+                <Download size={12} strokeWidth={1.5} />
                 {t('archive.load')}
               </button>
             </Popover.Trigger>
@@ -279,7 +343,7 @@ export function ArchivePanel() {
                   <button
                     data-testid="confirm-action"
                     onClick={handleLoad}
-                    className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
+                    className="text-[11px] text-white bg-accent px-2.5 py-1 rounded hover:bg-accent-bold cursor-pointer transition-colors duration-fast"
                   >
                     {t('confirm_default', { ns: 'ui' })}
                   </button>

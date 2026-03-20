@@ -128,6 +128,7 @@ interface WorldState {
   enterTactical: () => Promise<void>
   loadArchive: (archiveId: string) => Promise<void>
   exitTactical: () => Promise<void>
+  clearTactical: () => Promise<void>
   saveArchive: (archiveId: string) => Promise<void>
   updateTacticalGrid: (updates: Partial<TacticalInfo['grid']>) => Promise<void>
   setTacticalMapUrl: (mapUrl: string, width: number, height: number) => Promise<void>
@@ -732,6 +733,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       // Revert on failure — server Socket.io will correct on next success
       if (prev) set(() => ({ tacticalInfo: prev }))
     }
+  },
+
+  clearTactical: async () => {
+    const roomId = get()._roomId
+    if (!roomId) return
+    await api.post(`/api/rooms/${roomId}/tactical/clear`)
   },
 
   saveArchive: async (archiveId) => {
