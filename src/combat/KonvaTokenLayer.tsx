@@ -83,6 +83,9 @@ export function KonvaTokenLayer({
     color: string
   } | null>(null)
 
+  // Batch drag: track sibling token start positions when dragging a selected group
+  const siblingStartRef = useRef<{ tokenId: string; startX: number; startY: number }[]>([])
+
   // When GM is previewing as player, use 'PL' for visibility checks
   const effectiveRole = gmViewAsPlayer && role === 'GM' ? 'PL' : role
 
@@ -111,8 +114,26 @@ export function KonvaTokenLayer({
       // Clear tooltip on drag start
       clearHoverTimer()
       onTokenHover?.(null)
+
+      // Batch drag: record sibling start positions for all other selected tokens
+      if (selectedTokenIds.length > 1 && selectedTokenIds.includes(tokenId)) {
+        const layer = node.getLayer()
+        siblingStartRef.current = selectedTokenIds
+          .filter((id) => id !== tokenId)
+          .map((id) => {
+            const siblings = layer?.find(`.token-${id}`)
+            const sibling = siblings?.[0]
+            return {
+              tokenId: id,
+              startX: sibling?.x() ?? 0,
+              startY: sibling?.y() ?? 0,
+            }
+          })
+      } else {
+        siblingStartRef.current = []
+      }
     },
-    [clearHoverTimer, onTokenHover],
+    [clearHoverTimer, onTokenHover, selectedTokenIds],
   )
 
   const handleDragMove = useCallback(
@@ -134,6 +155,17 @@ export function KonvaTokenLayer({
       // Broadcast position for real-time awareness
       if (draggingTokenIdRef.current) {
         onTokenDragMove?.(draggingTokenIdRef.current, node.x(), node.y())
+      }
+
+      // Batch drag: move sibling selected tokens by the same delta
+      const layer = node.getLayer()
+      for (const sib of siblingStartRef.current) {
+        const siblings = layer?.find(`.token-${sib.tokenId}`)
+        const sibNode = siblings?.[0]
+        if (sibNode) {
+          sibNode.x(sib.startX + dx)
+          sibNode.y(sib.startY + dy)
+        }
       }
 
       // Show ghost token at snap position (only when gridSnap is enabled)
@@ -191,11 +223,39 @@ export function KonvaTokenLayer({
           )
           finalX = snapped.x
           finalY = snapped.y
-          // Also snap the Konva node position so it visually settles
           node.x(finalX)
           node.y(finalY)
         }
         onUpdateToken(tokenId, { x: finalX, y: finalY })
+
+        // Batch drag: persist sibling positions
+        const dx = finalX - (dragStartPosRef.current?.x ?? finalX)
+        const dy = finalY - (dragStartPosRef.current?.y ?? finalY)
+        const layer = node.getLayer()
+        for (const sib of siblingStartRef.current) {
+          let sibX = sib.startX + dx
+          let sibY = sib.startY + dy
+          if (tacticalInfo.grid.snap) {
+            const snapped = snapToGrid(
+              sibX,
+              sibY,
+              tacticalInfo.grid.size,
+              tacticalInfo.grid.offsetX,
+              tacticalInfo.grid.offsetY,
+            )
+            sibX = snapped.x
+            sibY = snapped.y
+          }
+          // Snap the Konva node visually
+          const siblings = layer?.find(`.token-${sib.tokenId}`)
+          const sibNode = siblings?.[0]
+          if (sibNode) {
+            sibNode.x(sibX)
+            sibNode.y(sibY)
+          }
+          onUpdateToken(sib.tokenId, { x: sibX, y: sibY })
+        }
+        siblingStartRef.current = []
       } else {
         // It was a click, not a drag — restore original position
         const startPos = dragStartPosRef.current
@@ -203,6 +263,17 @@ export function KonvaTokenLayer({
           node.x(startPos.x)
           node.y(startPos.y)
         }
+        // Restore siblings too
+        const layer = node.getLayer()
+        for (const sib of siblingStartRef.current) {
+          const siblings = layer?.find(`.token-${sib.tokenId}`)
+          const sibNode = siblings?.[0]
+          if (sibNode) {
+            sibNode.x(sib.startX)
+            sibNode.y(sib.startY)
+          }
+        }
+        siblingStartRef.current = []
       }
       dragStartPosRef.current = null
       onTokenDragEnd?.()

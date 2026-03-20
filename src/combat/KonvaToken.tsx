@@ -63,6 +63,7 @@ export function KonvaToken({
 
   return (
     <Group
+      name={`token-${token.id}`}
       x={token.x}
       y={token.y}
       draggable={canDrag}
