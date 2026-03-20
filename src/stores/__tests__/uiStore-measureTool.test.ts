@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useUiStore, isMeasureTool, type ActiveTool, type MeasureTool } from '../uiStore'
+import '../../combat/tools/registerBuiltinTools'
+import { useUiStore, isMeasureTool } from '../uiStore'
 
 beforeEach(() => {
   // Reset store to initial state
@@ -16,7 +17,7 @@ describe('isMeasureTool', () => {
     expect(isMeasureTool('select')).toBe(false)
   })
 
-  it.each<ActiveTool>(['measure', 'range-circle', 'range-cone', 'range-rect'])(
+  it.each(['measure', 'range-circle', 'range-cone', 'range-rect'])(
     'returns true for %s',
     (tool) => {
       expect(isMeasureTool(tool)).toBe(true)
@@ -48,8 +49,8 @@ describe('lastMeasureTool tracking via setActiveTool', () => {
   })
 
   it('tracks the most recent measure tool across multiple switches', () => {
-    const sequence: ActiveTool[] = ['measure', 'range-rect', 'select', 'range-circle', 'select']
-    const expectedLast: MeasureTool[] = [
+    const sequence: string[] = ['measure', 'range-rect', 'select', 'range-circle', 'select']
+    const expectedLast: string[] = [
       'measure',
       'range-rect',
       'range-rect',
@@ -65,7 +66,7 @@ describe('lastMeasureTool tracking via setActiveTool', () => {
 
   it('atomically updates activeTool and lastMeasureTool in the same set() call', () => {
     // Verify no intermediate state where activeTool and lastMeasureTool are inconsistent
-    const snapshots: { activeTool: ActiveTool; lastMeasureTool: MeasureTool }[] = []
+    const snapshots: { activeTool: string; lastMeasureTool: string }[] = []
     const unsub = useUiStore.subscribe((state) => {
       snapshots.push({
         activeTool: state.activeTool,

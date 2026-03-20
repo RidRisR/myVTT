@@ -3,24 +3,17 @@
 
 import { create } from 'zustand'
 import type { HandoutAsset } from './worldStore'
+import { toolRegistry } from '../combat/tools/toolRegistry'
+import { BuiltinToolId } from '../combat/tools/builtinToolIds'
 
 interface ContextMenuState {
   x: number
   y: number
 }
 
-export type ActiveTool = 'select' | 'measure' | 'range-circle' | 'range-cone' | 'range-rect'
-export type MeasureTool = Exclude<ActiveTool, 'select'>
-
-const MEASURE_TOOL_IDS: ReadonlySet<string> = new Set([
-  'measure',
-  'range-circle',
-  'range-cone',
-  'range-rect',
-])
-
-export function isMeasureTool(tool: ActiveTool): tool is MeasureTool {
-  return MEASURE_TOOL_IDS.has(tool)
+// Requires registerBuiltinTools to have run (imported by TacticalToolbar).
+export function isMeasureTool(tool: string): boolean {
+  return toolRegistry.get(tool)?.category === 'measurement'
 }
 export type GmDockTab = 'maps' | 'tokens' | 'characters' | 'handouts' | 'dice'
 export type ThemeId = 'warm' | 'cold'
@@ -58,7 +51,7 @@ interface UiState {
   selectedTokenId: string | null
   bgContextMenu: ContextMenuState | null
   editingHandout: HandoutAsset | null
-  activeTool: ActiveTool
+  activeTool: string
   gmViewAsPlayer: boolean
   theme: ThemeId
 
@@ -67,7 +60,7 @@ interface UiState {
   teamPanelVisible: boolean
 
   // Tactical toolbar
-  lastMeasureTool: MeasureTool
+  lastMeasureTool: string
   gridConfigOpen: boolean
 
   // GM sidebar
@@ -87,7 +80,7 @@ interface UiState {
   setSelectedTokenId: (id: string | null) => void
   setBgContextMenu: (menu: ContextMenuState | null) => void
   setEditingHandout: (asset: HandoutAsset | null) => void
-  setActiveTool: (tool: ActiveTool) => void
+  setActiveTool: (tool: string) => void
   setGmViewAsPlayer: (val: boolean) => void
   setTheme: (theme: ThemeId) => void
   setPortraitBarVisible: (visible: boolean) => void
@@ -103,12 +96,12 @@ export const useUiStore = create<UiState>((set) => ({
   selectedTokenId: null,
   bgContextMenu: null,
   editingHandout: null,
-  activeTool: 'select',
+  activeTool: BuiltinToolId.Select,
   gmViewAsPlayer: false,
   theme: getStoredTheme(),
   portraitBarVisible: true,
   teamPanelVisible: false,
-  lastMeasureTool: 'measure',
+  lastMeasureTool: BuiltinToolId.Measure,
   gridConfigOpen: false,
   gmSidebarTab: 'scene',
   gmSidebarCollapsed: true,
@@ -145,6 +138,10 @@ export const useUiStore = create<UiState>((set) => ({
     set({ editingHandout: asset })
   },
   setActiveTool: (tool) => {
+    if (!toolRegistry.has(tool)) {
+      console.warn(`Unknown tool "${tool}", ignoring`)
+      return
+    }
     set(isMeasureTool(tool) ? { activeTool: tool, lastMeasureTool: tool } : { activeTool: tool })
   },
   setGmViewAsPlayer: (val) => {

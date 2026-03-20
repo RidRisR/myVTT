@@ -18,6 +18,7 @@ import { useCameraControls } from './hooks/useCameraControls'
 import { useTokenAwareness } from './hooks/useTokenAwareness'
 import { useEntityDrop } from './hooks/useEntityDrop'
 import { BackgroundLayer } from './BackgroundLayer'
+import { BuiltinToolId } from './tools/builtinToolIds'
 
 interface ContextMenuState {
   screenX: number
@@ -75,7 +76,7 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
 
   // Active tool from UI store
   const activeTool = useUiStore((s) => s.activeTool)
-  const isSelectMode = activeTool === 'select'
+  const isSelectMode = activeTool === BuiltinToolId.Select
 
   // Camera controls (zoom, pan)
   const {
@@ -371,7 +372,7 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
 
           {/* Measurement tool layer — above tokens */}
           <MeasureTool
-            active={activeTool === 'measure'}
+            active={activeTool === BuiltinToolId.Measure}
             tacticalInfo={tacticalInfo}
             stageRef={stageRef}
           />

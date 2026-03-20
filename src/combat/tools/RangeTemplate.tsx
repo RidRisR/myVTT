@@ -1,8 +1,8 @@
+import { BuiltinToolId } from './builtinToolIds'
 import { useState, useEffect, useRef } from 'react'
 import { Layer, Circle, Wedge, Rect, Line, Text, Group, Rect as BgRect } from 'react-konva'
 import type Konva from 'konva'
 import type { TacticalInfo } from '../../stores/worldStore'
-import type { ActiveTool } from '../../stores/uiStore'
 
 interface Point {
   x: number
@@ -17,7 +17,7 @@ interface RangeShape {
 }
 
 interface RangeTemplateProps {
-  activeTool: ActiveTool
+  activeTool: string
   tacticalInfo: TacticalInfo
   stageRef: React.RefObject<Konva.Stage | null>
 }
@@ -30,10 +30,10 @@ const LABEL_FONT_SIZE = 12
 const LABEL_PADDING = 3
 const LABEL_BG_COLOR = 'rgba(20, 15, 12, 0.88)'
 
-function getRangeMode(tool: ActiveTool): 'circle' | 'cone' | 'rect' | null {
-  if (tool === 'range-circle') return 'circle'
-  if (tool === 'range-cone') return 'cone'
-  if (tool === 'range-rect') return 'rect'
+function getRangeMode(tool: string): 'circle' | 'cone' | 'rect' | null {
+  if (tool === BuiltinToolId.RangeCircle) return 'circle'
+  if (tool === BuiltinToolId.RangeCone) return 'cone'
+  if (tool === BuiltinToolId.RangeRect) return 'rect'
   return null
 }
 

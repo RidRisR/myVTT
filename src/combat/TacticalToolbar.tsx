@@ -1,49 +1,20 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  MousePointer2,
-  Ruler,
-  Circle,
-  Triangle,
-  RectangleHorizontal,
-  Grid3X3,
-  ZoomIn,
-  ZoomOut,
-  Maximize,
-  LocateFixed,
-} from 'lucide-react'
+import { ZoomIn, ZoomOut, Maximize, LocateFixed } from 'lucide-react'
 import type { KonvaMapHandle } from './KonvaMap'
 import type { TacticalInfo } from '../stores/worldStore'
 import { useWorldStore } from '../stores/worldStore'
-import { useUiStore, isMeasureTool, type MeasureTool } from '../stores/uiStore'
+import { useUiStore, isMeasureTool } from '../stores/uiStore'
+import { toolRegistry } from './tools/toolRegistry'
+import { BuiltinToolId } from './tools/builtinToolIds'
+import './tools/registerBuiltinTools'
 import { GridConfigPanel } from './tools/GridConfigPanel'
 import { useClickOutside } from '../hooks/useClickOutside'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 
 const ICON_SIZE = 16
 const ICON_STROKE = 1.5
-
-interface MeasureToolDef {
-  id: MeasureTool
-  icon: React.ElementType
-  label: string
-  shortcut: string
-}
-
-const MEASURE_LINE: MeasureToolDef = {
-  id: 'measure',
-  icon: Ruler,
-  label: 'Measure',
-  shortcut: 'M',
-}
-
-const MEASURE_TOOLS: MeasureToolDef[] = [
-  MEASURE_LINE,
-  { id: 'range-circle', icon: Circle, label: 'Circle', shortcut: '1' },
-  { id: 'range-cone', icon: Triangle, label: 'Cone', shortcut: '2' },
-  { id: 'range-rect', icon: RectangleHorizontal, label: 'Rectangle', shortcut: '3' },
-]
 
 interface TacticalToolbarProps {
   mapRef: RefObject<KonvaMapHandle | null>
@@ -75,15 +46,22 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
     >
       <div className="bg-glass backdrop-blur-[16px] rounded-xl border border-border-glass shadow-[0_4px_20px_rgba(0,0,0,0.3)] p-1.5 flex flex-col gap-0.5">
         {/* Select tool */}
-        <ToolButton
-          icon={MousePointer2}
-          label={t('toolbar.select')}
-          shortcut="V"
-          active={activeTool === 'select'}
-          onClick={() => {
-            setActiveTool('select')
-          }}
-        />
+        {(() => {
+          const selectDef = toolRegistry.get(BuiltinToolId.Select)
+          if (!selectDef) return null
+          const SelectIcon = selectDef.icon
+          return (
+            <ToolButton
+              icon={SelectIcon}
+              label={t(selectDef.label)}
+              shortcut={selectDef.shortcut ?? 'V'}
+              active={activeTool === BuiltinToolId.Select}
+              onClick={() => {
+                setActiveTool(BuiltinToolId.Select)
+              }}
+            />
+          )
+        })()}
 
         {/* Measure split button */}
         <MeasureSplitButton />
@@ -91,17 +69,23 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
         <Divider />
 
         {/* Canvas controls group */}
-        {isGM && (
-          <ToolButton
-            icon={Grid3X3}
-            label={t('toolbar.grid')}
-            shortcut="G"
-            active={gridConfigOpen}
-            onClick={() => {
-              toggleGridConfig()
-            }}
-          />
-        )}
+        {isGM &&
+          (() => {
+            const gridDef = toolRegistry.get(BuiltinToolId.GridConfig)
+            if (!gridDef) return null
+            const GridIcon = gridDef.icon
+            return (
+              <ToolButton
+                icon={GridIcon}
+                label={t(gridDef.label)}
+                shortcut={gridDef.shortcut ?? 'G'}
+                active={gridConfigOpen}
+                onClick={() => {
+                  toggleGridConfig()
+                }}
+              />
+            )
+          })()}
 
         <Divider />
 
@@ -164,8 +148,11 @@ function MeasureSplitButton() {
   const setActiveTool = useUiStore((s) => s.setActiveTool)
   const [flyoutOpen, setFlyoutOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const { t } = useTranslation('combat')
 
-  const currentDef = MEASURE_TOOLS.find((t) => t.id === lastMeasureTool) ?? MEASURE_LINE
+  const measureTools = // Registry is static — compute once
+    useMemo(() => toolRegistry.getByCategory('measurement'), [])
+  const currentDef = toolRegistry.get(lastMeasureTool) ?? measureTools[0]
   const isActive = isMeasureTool(activeTool)
 
   // Close flyout on click outside (Radix Portal-aware)
@@ -181,6 +168,7 @@ function MeasureSplitButton() {
     }
   }, [activeTool, flyoutOpen])
 
+  if (!currentDef) return null
   const Icon = currentDef.icon
 
   return (
@@ -190,8 +178,8 @@ function MeasureSplitButton() {
           setActiveTool(lastMeasureTool)
           setFlyoutOpen((prev) => !prev)
         }}
-        title={`${currentDef.label} (${currentDef.shortcut})`}
-        aria-label={currentDef.label}
+        title={`${t(currentDef.label)} (${currentDef.shortcut ?? ''})`}
+        aria-label={t(currentDef.label)}
         className={`relative w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors duration-fast border ${
           isActive
             ? 'bg-accent/15 text-accent border-accent/25'
@@ -213,12 +201,12 @@ function MeasureSplitButton() {
       {/* Flyout panel — expands to the left */}
       {flyoutOpen && (
         <div className="absolute right-full top-0 mr-1.5 bg-glass backdrop-blur-[16px] rounded-lg border border-border-glass shadow-[0_4px_20px_rgba(0,0,0,0.3)] p-1 flex flex-col gap-0.5">
-          {MEASURE_TOOLS.map((tool) => (
+          {measureTools.map((tool) => (
             <ToolButton
               key={tool.id}
               icon={tool.icon}
-              label={tool.label}
-              shortcut={tool.shortcut}
+              label={t(tool.label)}
+              shortcut={tool.shortcut ?? ''}
               active={activeTool === tool.id}
               onClick={() => {
                 setActiveTool(tool.id)
