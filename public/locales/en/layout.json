@@ -30,7 +30,9 @@
     "round": "Round {{number}}",
     "no_session": "No tactical session active",
     "characters_tab": "Characters",
-    "initiative_tab": "Initiative"
+    "initiative_tab": "Initiative",
+    "pin_card": "Pin card",
+    "close_card": "Close card"
   },
   "character": {
     "title": "Character",

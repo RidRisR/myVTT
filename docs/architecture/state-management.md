@@ -76,7 +76,7 @@ Socket.io events ───────┘ (real-time updates)
 
 纯客户端状态，不与服务端同步。
 
-**状态**：`inspectedCharacterId`, `selectedTokenId`, `bgContextMenu`, `activeTool`, `gmViewAsPlayer`, `theme`, `portraitBarVisible`, `teamPanelVisible`, `gmSidebarTab`, `gmSidebarCollapsed`
+**状态**：`openCardId`, `pinnedCards`, `selectedTokenId`, `bgContextMenu`, `activeTool`, `gmViewAsPlayer`, `theme`, `portraitBarVisible`, `teamPanelVisible`, `gmSidebarTab`, `gmSidebarCollapsed`
 
 ## 初始化流程
 

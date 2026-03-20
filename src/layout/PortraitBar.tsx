@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import * as Popover from '@radix-ui/react-popover'
-import { Users, ChevronUp, Plus } from 'lucide-react'
+import { Users, ChevronUp, Plus, Pin, X } from 'lucide-react'
 import * as ContextMenu from '@radix-ui/react-context-menu'
 import { useUiStore } from '../stores/uiStore'
 import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
@@ -12,6 +11,7 @@ import { statusColor } from '../shared/tokenUtils'
 import { generateTokenId } from '../shared/idUtils'
 import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
+import { FloatingCard } from '../ui/primitives/FloatingCard'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
 import { useRulePlugin } from '../rules/useRulePlugin'
 
@@ -26,9 +26,7 @@ interface PortraitBarProps {
   role: 'GM' | 'PL'
   isGM: boolean
   onlineSeatIds: Set<string>
-  inspectedCharacterId: string | null
   activeCharacterId: string | null
-  onInspectCharacter: (charId: string | null) => void
   onSetActiveCharacter: (charId: string) => void
   onRemoveFromScene: (entityId: string) => void
   onUpdateEntity: (id: string, updates: Partial<Entity>) => void
@@ -96,9 +94,7 @@ export function PortraitBar({
   role,
   isGM,
   onlineSeatIds,
-  inspectedCharacterId,
   activeCharacterId,
-  onInspectCharacter,
   onSetActiveCharacter,
   onRemoveFromScene,
   onUpdateEntity,
@@ -112,7 +108,16 @@ export function PortraitBar({
   const updateEntity = useWorldStore((s) => s.updateEntity)
   const addEntity = useWorldStore((s) => s.addEntity)
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
-  const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
+
+  // Card state from uiStore
+  const openCardId = useUiStore((s) => s.openCardId)
+  const pinnedCards = useUiStore((s) => s.pinnedCards)
+  const openCard = useUiStore((s) => s.openCard)
+  const closeCard = useUiStore((s) => s.closeCard)
+  const pinCard = useUiStore((s) => s.pinCard)
+  const closePinnedCard = useUiStore((s) => s.closePinnedCard)
+  const updatePinnedCardPosition = useUiStore((s) => s.updatePinnedCardPosition)
+
   const { t } = useTranslation('layout')
   const plugin = useRulePlugin()
   const Card = plugin.characterUI.EntityCard
@@ -128,57 +133,61 @@ export function PortraitBar({
   // Hover state
   const [hoveredCharId, setHoveredCharId] = useState<string | null>(null)
   const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null)
-  const [lockedRect, setLockedRect] = useState<DOMRect | null>(null)
+  // lockedRect is a ref (not state) to avoid React/zustand batching gap:
+  // zustand's set() triggers a synchronous re-render that may race ahead of
+  // a pending useState update, causing lockedRect to appear null when
+  // openCardId is already set.
+  const lockedRectRef = useRef<DOMRect | null>(null)
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const portraitBarRef = useRef<HTMLDivElement>(null)
 
-  // Clear hover when a portrait is locked
+  // Clear hover when a card is opened
   useEffect(() => {
-    if (inspectedCharacterId) {
+    if (openCardId) {
       setHoveredCharId(null)
       clearTimeout(hoverTimeoutRef.current)
     }
-  }, [inspectedCharacterId])
+  }, [openCardId])
 
   const handlePortraitMouseEnter = useCallback(
     (entityId: string, el: HTMLElement) => {
-      if (inspectedCharacterId) return // don't show hover when locked
+      if (openCardId === entityId) return // entity's card is already open, skip hover
       clearTimeout(hoverTimeoutRef.current)
       setHoveredCharId(entityId)
       setHoveredRect(el.getBoundingClientRect())
     },
-    [inspectedCharacterId],
+    [openCardId],
   )
 
   const handlePortraitMouseLeave = useCallback(() => {
-    if (inspectedCharacterId) return
     hoverTimeoutRef.current = setTimeout(() => {
       setHoveredCharId(null)
     }, 200)
-  }, [inspectedCharacterId])
+  }, [])
 
   const handlePopoverMouseEnter = useCallback(() => {
     clearTimeout(hoverTimeoutRef.current)
   }, [])
 
   const handlePopoverMouseLeave = useCallback(() => {
-    if (!inspectedCharacterId) {
-      hoverTimeoutRef.current = setTimeout(() => {
-        setHoveredCharId(null)
-      }, 200)
-    }
-  }, [inspectedCharacterId])
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredCharId(null)
+    }, 200)
+  }, [])
 
   const handlePortraitClick = useCallback(
     (entityId: string, el: HTMLElement) => {
-      if (inspectedCharacterId === entityId) {
-        onInspectCharacter(null)
+      // Already pinned — ignore (don't create second card)
+      if (pinnedCards.some((p) => p.entityId === entityId)) return
+      if (openCardId === entityId) {
+        lockedRectRef.current = null
+        closeCard()
       } else {
-        setLockedRect(el.getBoundingClientRect())
-        onInspectCharacter(entityId)
+        lockedRectRef.current = el.getBoundingClientRect()
+        openCard(entityId)
       }
     },
-    [inspectedCharacterId, onInspectCharacter],
+    [openCardId, pinnedCards, openCard, closeCard],
   )
 
   // Player: create their own persistent PC and add to current scene
@@ -198,7 +207,7 @@ export function PortraitBar({
     }
     void addEntity(newEntity)
     void addEntityToScene(activeSceneId, newEntity.id, true)
-    setInspectedCharacterId(newEntity.id)
+    openCard(newEntity.id)
   }
 
   // Build a map of entityId → visible from scene entries
@@ -259,7 +268,8 @@ export function PortraitBar({
 
   const renderPortrait = (entity: Entity) => {
     const isOwner = mySeatId ? canEdit(entity.permissions, mySeatId, role) : false
-    const isInspected = inspectedCharacterId === entity.id
+    const isInspected =
+      openCardId === entity.id || pinnedCards.some((p) => p.entityId === entity.id)
     const isActive = activeCharacterId === entity.id
 
     const resources = plugin.adapters.getPortraitResources(entity).filter((r) => r.max > 0)
@@ -417,8 +427,8 @@ export function PortraitBar({
               const el = portraitBarRef.current?.querySelector(
                 `[data-char-id="${entity.id}"]`,
               ) as HTMLElement | null
-              if (el) setLockedRect(el.getBoundingClientRect())
-              onInspectCharacter(entity.id)
+              lockedRectRef.current = el ? el.getBoundingClientRect() : null
+              openCard(entity.id)
             }}
           >
             {t('portrait.inspect')}
@@ -468,29 +478,33 @@ export function PortraitBar({
     )
   }
 
-  // Determine which entity to show in popover
-  const popoverCharId = inspectedCharacterId ?? hoveredCharId
-  const isLocked = !!inspectedCharacterId
-  // Locked inspector searches all entities (including backstage / non-scene).
-  // Hover only searches visibleEntities (entity must be visible to have a portrait to hover).
-  const popoverEntity = popoverCharId
-    ? isLocked
-      ? (entities.find((e) => e.id === popoverCharId) ??
-        visibleEntities.find((e) => e.id === popoverCharId))
-      : visibleEntities.find((e) => e.id === popoverCharId)
+  // --- Card entity resolution ---
+  // Open card entity: search all entities (including backstage)
+  const openCardEntity = openCardId
+    ? (entities.find((e) => e.id === openCardId) ??
+      visibleEntities.find((e) => e.id === openCardId))
     : null
 
-  // Resolve rect: use lockedRect/hoveredRect, fallback to querying the portrait element
-  let rect = isLocked ? lockedRect : hoveredRect
-  if (!rect && isLocked && popoverCharId && portraitBarRef.current) {
-    const el = portraitBarRef.current.querySelector(`[data-char-id="${popoverCharId}"]`)
-    if (el) rect = el.getBoundingClientRect()
+  // Hover entity: only search visible entities
+  const hoveredEntity = hoveredCharId ? visibleEntities.find((e) => e.id === hoveredCharId) : null
+
+  // Resolve lockedRect fallback for open card
+  let openCardRect = lockedRectRef.current
+  if (!openCardRect && openCardId && portraitBarRef.current) {
+    const el = portraitBarRef.current.querySelector(`[data-char-id="${openCardId}"]`)
+    if (el) openCardRect = el.getBoundingClientRect()
   }
 
-  // Determine if the inspected entity is editable
-  const isEditable =
-    popoverEntity && isLocked && mySeatId && canEdit(popoverEntity.permissions, mySeatId, role)
-  const popoverWidth = isLocked ? (isEditable ? 320 : 260) : 220
+  // Determine if the open card entity is editable
+  const openCardEditable =
+    openCardEntity && mySeatId && canEdit(openCardEntity.permissions, mySeatId, role)
+  const openCardWidth = openCardEditable ? 320 : 260
+
+  // Should hover preview show? Per issue state table:
+  // - No card open → show hover
+  // - Open card (unpinned) for same entity → no hover
+  // - Pinned card exists for entity → show hover (reminder)
+  const showHover = hoveredCharId && hoveredEntity && hoveredRect && hoveredCharId !== openCardId
 
   return (
     <div
@@ -569,86 +583,104 @@ export function PortraitBar({
         </div>
       )}
 
-      {/* Entity popover — Radix controlled Popover with virtual anchor */}
-      <Popover.Root
-        open={!!popoverEntity && !!rect}
-        onOpenChange={(isOpen) => {
-          if (!isOpen && inspectedCharacterId) {
-            onInspectCharacter(null)
-          }
-        }}
-        modal={false}
-      >
-        <Popover.Anchor
-          key={popoverCharId}
-          className="fixed pointer-events-none w-0 h-0"
-          style={{
-            left: rect ? rect.left + rect.width / 2 : 0,
-            top: rect ? rect.bottom : 0,
+      {/* 1. Hover preview card */}
+      {showHover && (
+        <FloatingCard
+          mode="anchored"
+          anchor={hoveredRect}
+          dismissOn="mouseleave"
+          onClose={() => {
+            setHoveredCharId(null)
           }}
-        />
-        <Popover.Portal>
-          <Popover.Content
-            side="bottom"
-            align="center"
-            sideOffset={8}
-            collisionPadding={8}
-            className="z-popover"
-            style={{ width: popoverWidth, outline: 'none' }}
-            onInteractOutside={(e) => {
-              // Hover popover: don't close on click-outside, mouse timers handle it
-              if (!inspectedCharacterId) {
-                e.preventDefault()
-                return
-              }
-              // Locked popover: don't close when clicking on the portrait bar
-              // (clicking another portrait should switch, not close-then-reopen)
-              if (portraitBarRef.current?.contains(e.target as Node)) {
-                e.preventDefault()
-              }
+          onMouseEnter={handlePopoverMouseEnter}
+          onMouseLeave={handlePopoverMouseLeave}
+          width={220}
+        >
+          <CharacterHoverPreview
+            character={hoveredEntity}
+            isOnline={false}
+            editable={mySeatId ? canEdit(hoveredEntity.permissions, mySeatId, role) : false}
+            onUpdateCharacter={onUpdateEntity}
+          />
+        </FloatingCard>
+      )}
+
+      {/* 2. Open card (unpinned, anchored below portrait) */}
+      {openCardId && openCardEntity && openCardRect && (
+        <FloatingCard
+          mode="anchored"
+          anchor={openCardRect}
+          dismissOn="clickoutside"
+          onClose={closeCard}
+          width={openCardWidth}
+        >
+          <div className="relative">
+            <button
+              onClick={() => {
+                pinCard(openCardId, {
+                  x: openCardRect.left + openCardRect.width / 2 - openCardWidth / 2,
+                  y: openCardRect.bottom + 8,
+                })
+              }}
+              className="absolute top-1.5 right-1.5 z-10 p-1 text-text-muted/40 hover:text-accent bg-transparent border-none cursor-pointer transition-colors duration-fast"
+              title={t('portrait.pin_card')}
+            >
+              <Pin size={12} strokeWidth={1.5} />
+            </button>
+            <Card
+              entity={openCardEntity}
+              onUpdate={(patch) => {
+                onUpdateEntity(openCardEntity.id, patch)
+              }}
+              readonly={!openCardEditable}
+            />
+          </div>
+        </FloatingCard>
+      )}
+
+      {/* 3. Pinned cards (floating, draggable) */}
+      {pinnedCards.map((pc) => {
+        const entity =
+          entities.find((e) => e.id === pc.entityId) ??
+          visibleEntities.find((e) => e.id === pc.entityId)
+        if (!entity) return null
+        const editable = mySeatId ? canEdit(entity.permissions, mySeatId, role) : false
+        return (
+          <FloatingCard
+            key={pc.entityId}
+            mode="floating"
+            position={pc.position}
+            draggable
+            dismissOn="manual"
+            onClose={() => {
+              closePinnedCard(pc.entityId)
             }}
-            onPointerDown={(e) => {
-              e.stopPropagation()
+            onDragEnd={(pos) => {
+              updatePinnedCardPosition(pc.entityId, pos)
             }}
-            onWheel={(e) => {
-              e.stopPropagation()
-            }}
-            onMouseEnter={handlePopoverMouseEnter}
-            onMouseLeave={handlePopoverMouseLeave}
+            width={320}
           >
-            {popoverEntity &&
-              (isLocked ? (
-                isEditable ? (
-                  // Plugin handles editing — DH uses DaggerHeartCard + openPanel('dh-full-sheet')
-                  // Generic plugin uses CharacterEditPanel wrapped in GenericEntityCard
-                  <Card
-                    entity={popoverEntity}
-                    onUpdate={(patch) => {
-                      onUpdateEntity(popoverEntity.id, patch)
-                    }}
-                    readonly={false}
-                  />
-                ) : (
-                  // Read-only locked view: use plugin's EntityCard for display
-                  <Card
-                    entity={popoverEntity}
-                    onUpdate={(patch) => {
-                      onUpdateEntity(popoverEntity.id, patch)
-                    }}
-                    readonly
-                  />
-                )
-              ) : (
-                <CharacterHoverPreview
-                  character={popoverEntity}
-                  isOnline={false}
-                  editable={mySeatId ? canEdit(popoverEntity.permissions, mySeatId, role) : false}
-                  onUpdateCharacter={onUpdateEntity}
-                />
-              ))}
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
+            <div className="relative">
+              <button
+                onClick={() => {
+                  closePinnedCard(pc.entityId)
+                }}
+                className="absolute top-1.5 right-1.5 z-10 p-1 text-text-muted/40 hover:text-danger bg-transparent border-none cursor-pointer transition-colors duration-fast"
+                title={t('portrait.close_card')}
+              >
+                <X size={12} strokeWidth={1.5} />
+              </button>
+              <Card
+                entity={entity}
+                onUpdate={(patch) => {
+                  onUpdateEntity(entity.id, patch)
+                }}
+                readonly={!editable}
+              />
+            </div>
+          </FloatingCard>
+        )
+      })}
     </div>
   )
 }
