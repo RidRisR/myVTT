@@ -223,7 +223,7 @@ export function PortraitBar({
   // Collapsed state: show small expand button
   if (!portraitBarVisible) {
     return (
-      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-ui pointer-events-none flex flex-col items-center">
+      <div className="fixed top-3 inset-x-0 z-ui pointer-events-none flex flex-col items-center">
         <button
           onClick={() => {
             setPortraitBarVisible(true)
@@ -239,7 +239,7 @@ export function PortraitBar({
 
   if (visibleEntities.length === 0) {
     return (
-      <div className="fixed top-3 left-1/2 -translate-x-1/2 z-ui pointer-events-none flex flex-col items-center">
+      <div className="fixed top-3 inset-x-0 z-ui pointer-events-none flex flex-col items-center">
         <div className="flex items-center gap-1.5 bg-glass backdrop-blur-[16px] rounded-[28px] px-4 py-2 shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
           <Users size={14} strokeWidth={1.5} className="text-text-muted/40" />
           <span className="text-text-muted/40 text-[11px]">{t('portrait.no_characters')}</span>
@@ -283,16 +283,14 @@ export function PortraitBar({
               e.dataTransfer.setData('application/x-entity-id', entity.id)
               e.dataTransfer.effectAllowed = 'copy'
             }}
-            className="relative cursor-pointer transition-transform duration-fast"
+            className={`relative cursor-pointer transition-transform duration-fast ${!isOwner ? 'hover:scale-[1.08]' : ''}`}
             onClick={(e) => {
               handlePortraitClick(entity.id, e.currentTarget as HTMLElement)
             }}
             onMouseEnter={(e) => {
-              if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1.08)'
               handlePortraitMouseEnter(entity.id, e.currentTarget as HTMLElement)
             }}
-            onMouseLeave={(e) => {
-              if (!isOwner) (e.currentTarget as HTMLElement).style.transform = 'scale(1)'
+            onMouseLeave={() => {
               handlePortraitMouseLeave()
             }}
             title={`${entity.name}${statuses.length > 0 ? '\n' + statuses.map((s) => s.label).join(', ') : ''}`}
@@ -495,90 +493,83 @@ export function PortraitBar({
   const popoverWidth = isLocked ? (isEditable ? 320 : 260) : 220
 
   return (
-    <>
-      <div
-        ref={portraitBarRef}
-        className="fixed top-3 left-1/2 -translate-x-1/2 z-ui pointer-events-none flex flex-col items-center gap-[3px]"
-        onPointerDown={(e) => {
-          e.stopPropagation()
-        }}
-      >
-        {/* Tab buttons + collapse */}
-        <div className="flex gap-0.5 items-center pointer-events-auto">
-          <button
-            onClick={() => {
-              setActiveTab('characters')
-            }}
-            className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
-              activeTab === 'characters'
-                ? 'text-text-primary border-b-2 border-accent'
-                : 'text-text-muted/40 border-b-2 border-transparent'
-            }`}
-          >
-            {t('portrait.characters_tab')}
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('initiative')
-            }}
-            className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
-              activeTab === 'initiative'
-                ? 'text-text-primary border-b-2 border-accent'
-                : 'text-text-muted/40 border-b-2 border-transparent'
-            }`}
-          >
-            {t('portrait.initiative_tab')}
-          </button>
-          <button
-            onClick={() => {
-              setPortraitBarVisible(false)
-            }}
-            className="ml-1 p-0.5 text-text-muted/30 hover:text-text-muted/60 bg-transparent border-none cursor-pointer transition-colors duration-fast"
-            title={t('portrait.hide_portraits')}
-          >
-            <ChevronUp size={12} strokeWidth={1.5} />
-          </button>
-        </div>
-
-        {/* Tab content */}
-        {activeTab === 'characters' && (
-          <div className="flex gap-1.5 items-center bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
-            {partyEntities.map(renderPortrait)}
-
-            {/* Player "create my character" slot — shown when not GM and player has no owned entity */}
-            {!isGM &&
-              mySeatId &&
-              !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
-                <button
-                  onClick={handleCreateMyCharacter}
-                  title={t('portrait.create_my_character')}
-                  className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
-                >
-                  <Plus size={16} strokeWidth={1.5} />
-                </button>
-              )}
-
-            {/* Separator between PCs and NPCs */}
-            {hasSection && <div className="w-px h-8 bg-border-glass mx-0.5" />}
-
-            {sceneEntities.map(renderPortrait)}
-          </div>
-        )}
-
-        {activeTab === 'initiative' && (
-          <div className="flex items-center gap-2 bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
-            <span className="text-xs text-text-muted/40 font-sans px-3 py-1">
-              {tacticalInfo?.tacticalMode === 1
-                ? t('portrait.round', { number: tacticalInfo.roundNumber })
-                : t('portrait.no_session')}
-            </span>
-          </div>
-        )}
+    <div
+      ref={portraitBarRef}
+      className="fixed top-3 inset-x-0 z-ui pointer-events-none flex flex-col items-center gap-[3px]"
+    >
+      {/* Tab buttons + collapse */}
+      <div className="flex gap-0.5 items-center pointer-events-auto">
+        <button
+          onClick={() => {
+            setActiveTab('characters')
+          }}
+          className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
+            activeTab === 'characters'
+              ? 'text-text-primary border-b-2 border-accent'
+              : 'text-text-muted/40 border-b-2 border-transparent'
+          }`}
+        >
+          {t('portrait.characters_tab')}
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('initiative')
+          }}
+          className={`px-2.5 py-[3px] text-[10px] font-semibold font-sans bg-transparent border-none cursor-pointer transition-[color,border-color] duration-fast ${
+            activeTab === 'initiative'
+              ? 'text-text-primary border-b-2 border-accent'
+              : 'text-text-muted/40 border-b-2 border-transparent'
+          }`}
+        >
+          {t('portrait.initiative_tab')}
+        </button>
+        <button
+          onClick={() => {
+            setPortraitBarVisible(false)
+          }}
+          className="ml-1 p-0.5 text-text-muted/30 hover:text-text-muted/60 bg-transparent border-none cursor-pointer transition-colors duration-fast"
+          title={t('portrait.hide_portraits')}
+        >
+          <ChevronUp size={12} strokeWidth={1.5} />
+        </button>
       </div>
 
-      {/* Entity popover — Radix controlled Popover with virtual anchor.
-          Must be outside the transformed PortraitBar div (-translate-x-1/2 creates
-          a containing block that breaks position:fixed on the Anchor). */}
+      {/* Tab content */}
+      {activeTab === 'characters' && (
+        <div className="flex gap-1.5 items-center bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
+          {partyEntities.map(renderPortrait)}
+
+          {/* Player "create my character" slot — shown when not GM and player has no owned entity */}
+          {!isGM &&
+            mySeatId &&
+            !partyEntities.some((e) => e.permissions.seats[mySeatId] === 'owner') && (
+              <button
+                onClick={handleCreateMyCharacter}
+                title={t('portrait.create_my_character')}
+                className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-border-glass/40 flex items-center justify-center text-text-muted/30 hover:border-accent/60 hover:text-accent/60 hover:bg-accent/5 transition-colors duration-fast flex-shrink-0"
+              >
+                <Plus size={16} strokeWidth={1.5} />
+              </button>
+            )}
+
+          {/* Separator between PCs and NPCs */}
+          {hasSection && <div className="w-px h-8 bg-border-glass mx-0.5" />}
+
+          {sceneEntities.map(renderPortrait)}
+        </div>
+      )}
+
+      {activeTab === 'initiative' && (
+        <div className="flex items-center gap-2 bg-glass backdrop-blur-[16px] rounded-[28px] px-2.5 py-[5px] shadow-[0_4px_20px_rgba(0,0,0,0.25)] border border-border-glass pointer-events-auto">
+          <span className="text-xs text-text-muted/40 font-sans px-3 py-1">
+            {tacticalInfo?.tacticalMode === 1
+              ? t('portrait.round', { number: tacticalInfo.roundNumber })
+              : t('portrait.no_session')}
+          </span>
+        </div>
+      )}
+
+      {/* Entity popover — Radix controlled Popover with virtual anchor */}
       <Popover.Root
         open={!!popoverEntity && !!rect}
         onOpenChange={(isOpen) => {
@@ -589,6 +580,7 @@ export function PortraitBar({
         modal={false}
       >
         <Popover.Anchor
+          key={popoverCharId}
           className="fixed pointer-events-none w-0 h-0"
           style={{
             left: rect ? rect.left + rect.width / 2 : 0,
@@ -601,8 +593,8 @@ export function PortraitBar({
             align="center"
             sideOffset={8}
             collisionPadding={8}
-            className="z-popover outline-none"
-            style={{ width: popoverWidth }}
+            className="z-popover"
+            style={{ width: popoverWidth, outline: 'none' }}
             onInteractOutside={(e) => {
               // Hover popover: don't close on click-outside, mouse timers handle it
               if (!inspectedCharacterId) {
@@ -657,6 +649,6 @@ export function PortraitBar({
           </Popover.Content>
         </Popover.Portal>
       </Popover.Root>
-    </>
+    </div>
   )
 }
