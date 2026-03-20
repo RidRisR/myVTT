@@ -52,7 +52,7 @@ export function AssetPickerPanel({
   const [search, setSearch] = useState('')
   const [draggedTag, setDraggedTag] = useState<string | null>(null)
   const [draggedAsset, setDraggedAsset] = useState<AssetMeta | null>(null)
-  const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [activeCategory, setActiveCategory] = useState<string>('map')
   const [selection, setSelection] = useState<Set<string>>(new Set())
 
   // Panel drag — fixed + left/top, no transform (avoids CSS containing block)
@@ -124,12 +124,11 @@ export function AssetPickerPanel({
   // All known tags across ALL assets
   const allKnownTags = useMemo(() => collectUserTags(allAssets), [allAssets])
 
-  // Effective auto-tags: prop > activeCategory > undefined
+  // Effective auto-tags: prop > activeCategory
   // In manage mode, use current category tab as upload tag
   const effectiveAutoTags = useMemo(() => {
     if (autoTags) return autoTags
-    if (activeCategory) return [activeCategory]
-    return undefined
+    return [activeCategory]
   }, [autoTags, activeCategory])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -218,7 +217,7 @@ export function AssetPickerPanel({
             <CategoryTabs
               categories={CATEGORIES}
               active={activeCategory}
-              onSelect={(cat) => {
+              onSelect={(cat: string) => {
                 setActiveCategory(cat)
                 setSelectedTags([])
               }}
@@ -253,6 +252,7 @@ export function AssetPickerPanel({
           <AssetGrid
             assets={filteredAssets}
             mode={mode}
+            category={activeCategory}
             autoTags={effectiveAutoTags}
             onSelect={handleSelect}
             selection={selection}

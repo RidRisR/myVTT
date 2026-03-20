@@ -20,6 +20,7 @@ function makeAsset(overrides: Partial<AssetMeta> = {}): AssetMeta {
     url: '/img/a1.png',
     name: 'Asset 1',
     mediaType: 'image',
+    category: 'map',
     tags: [],
     sortOrder: 1000,
     createdAt: Date.now(),
@@ -103,10 +104,34 @@ describe('computeTagsAfterRemoval', () => {
 
 describe('filterAssets', () => {
   const assets = [
-    makeAsset({ id: '1', name: 'Dragon Map', mediaType: 'image', tags: ['map', 'fantasy'] }),
-    makeAsset({ id: '2', name: 'Goblin Token', mediaType: 'image', tags: ['token', 'fantasy'] }),
-    makeAsset({ id: '3', name: 'Rules Doc', mediaType: 'handout', tags: ['rules'] }),
-    makeAsset({ id: '4', name: 'Cave Map', mediaType: 'image', tags: ['map', 'dark', 'fantasy'] }),
+    makeAsset({
+      id: '1',
+      name: 'Dragon Map',
+      mediaType: 'image',
+      category: 'map',
+      tags: ['fantasy'],
+    }),
+    makeAsset({
+      id: '2',
+      name: 'Goblin Token',
+      mediaType: 'image',
+      category: 'token',
+      tags: ['fantasy'],
+    }),
+    makeAsset({
+      id: '3',
+      name: 'Rules Doc',
+      mediaType: 'handout',
+      category: 'map',
+      tags: ['rules'],
+    }),
+    makeAsset({
+      id: '4',
+      name: 'Cave Map',
+      mediaType: 'image',
+      category: 'map',
+      tags: ['dark', 'fantasy'],
+    }),
   ]
 
   it('returns all with empty options', () => {
@@ -119,10 +144,16 @@ describe('filterAssets', () => {
     expect(result[0]!.id).toBe('3')
   })
 
-  it('filters by category (tag inclusion)', () => {
+  it('filters by category (category field)', () => {
     const result = filterAssets(assets, { category: 'map' })
-    expect(result).toHaveLength(2)
-    expect(result.map((a) => a.id)).toEqual(['1', '4'])
+    expect(result).toHaveLength(3)
+    expect(result.map((a) => a.id)).toEqual(['1', '3', '4'])
+  })
+
+  it('filters by token category', () => {
+    const result = filterAssets(assets, { category: 'token' })
+    expect(result).toHaveLength(1)
+    expect(result[0]!.id).toBe('2')
   })
 
   it('selectedTags uses AND semantics', () => {
@@ -154,6 +185,12 @@ describe('filterAssets', () => {
     expect(result[0]!.id).toBe('4')
   })
 
+  it('token category only returns token assets', () => {
+    const result = filterAssets(assets, { mediaType: 'image', category: 'token' })
+    expect(result).toHaveLength(1)
+    expect(result[0]!.id).toBe('2')
+  })
+
   it('empty search string does not filter', () => {
     expect(filterAssets(assets, { search: '   ' })).toEqual(assets)
   })
@@ -164,16 +201,13 @@ describe('filterAssets', () => {
 })
 
 describe('collectUserTags', () => {
-  it('excludes AUTO_TAGS (map, token, portrait)', () => {
+  it('returns all tags (no exclusions)', () => {
     const assets = [
-      makeAsset({ tags: ['map', 'fantasy', 'dark'] }),
-      makeAsset({ id: 'a2', tags: ['token', 'goblin'] }),
-      makeAsset({ id: 'a3', tags: ['portrait', 'npc'] }),
+      makeAsset({ tags: ['fantasy', 'dark'] }),
+      makeAsset({ id: 'a2', tags: ['goblin'] }),
+      makeAsset({ id: 'a3', tags: ['npc'] }),
     ]
     const result = collectUserTags(assets)
-    expect(result).not.toContain('map')
-    expect(result).not.toContain('token')
-    expect(result).not.toContain('portrait')
     expect(result).toEqual(['dark', 'fantasy', 'goblin', 'npc'])
   })
 
@@ -259,15 +293,20 @@ describe('computeReorder', () => {
 // =============================================
 
 describe('filterUserTags', () => {
-  it('removes AUTO_TAGS', () => {
-    expect(filterUserTags(['map', 'token', 'portrait', 'custom'])).toEqual(['custom'])
+  it('returns all tags unchanged (no AUTO_TAGS concept)', () => {
+    expect(filterUserTags(['map', 'token', 'portrait', 'custom'])).toEqual([
+      'map',
+      'token',
+      'portrait',
+      'custom',
+    ])
   })
 
-  it('returns [] for only auto tags', () => {
-    expect(filterUserTags(['map', 'token'])).toEqual([])
+  it('returns [] for empty input', () => {
+    expect(filterUserTags([])).toEqual([])
   })
 
-  it('returns all for no auto tags', () => {
+  it('returns all for any tags', () => {
     expect(filterUserTags(['a', 'b'])).toEqual(['a', 'b'])
   })
 })
@@ -275,12 +314,10 @@ describe('filterUserTags', () => {
 describe('computeSuggestions', () => {
   const knownTags = ['map', 'token', 'fantasy', 'dark', 'forest']
 
-  it('excludes AUTO_TAGS and current tags', () => {
+  it('excludes current tags, returns all others', () => {
     const result = computeSuggestions(knownTags, ['fantasy'], '')
-    expect(result).not.toContain('map')
-    expect(result).not.toContain('token')
     expect(result).not.toContain('fantasy')
-    expect(result).toEqual(['dark', 'forest'])
+    expect(result).toEqual(['map', 'token', 'dark', 'forest'])
   })
 
   it('filters by input (case-insensitive)', () => {
@@ -288,13 +325,13 @@ describe('computeSuggestions', () => {
     expect(result).toEqual(['fantasy'])
   })
 
-  it('returns all non-auto non-current when input is empty', () => {
+  it('returns all non-current when input is empty', () => {
     const result = computeSuggestions(knownTags, [], '')
-    expect(result).toEqual(['fantasy', 'dark', 'forest'])
+    expect(result).toEqual(['map', 'token', 'fantasy', 'dark', 'forest'])
   })
 
-  it('returns [] when all tags are excluded', () => {
-    const result = computeSuggestions(['map', 'token'], [], '')
+  it('returns [] when all tags are current tags', () => {
+    const result = computeSuggestions(['a', 'b'], ['a', 'b'], '')
     expect(result).toEqual([])
   })
 })
@@ -315,10 +352,9 @@ describe('shouldShowCreateOption', () => {
     expect(shouldShowCreateOption('DARK', knownTags)).toBe(false)
   })
 
-  it('returns false when input is an AUTO_TAG', () => {
-    expect(shouldShowCreateOption('map', [])).toBe(false)
-    expect(shouldShowCreateOption('Token', [])).toBe(false)
-    expect(shouldShowCreateOption('PORTRAIT', [])).toBe(false)
+  it('returns true when input is not a known tag (map/token are now creatable)', () => {
+    expect(shouldShowCreateOption('map', [])).toBe(true)
+    expect(shouldShowCreateOption('newcategory', [])).toBe(true)
   })
 
   it('returns true for genuinely new tag', () => {

@@ -17,7 +17,7 @@ import type { DiceSpec } from '../shared/diceUtils'
 import { api } from '../shared/api'
 import { generateTokenId } from '../shared/idUtils'
 import { defaultNPCPermissions } from '../shared/permissions'
-import type { AssetMeta } from '../shared/assetTypes'
+import type { AssetMeta, TagMeta } from '../shared/assetTypes'
 import { uploadAsset as uploadAssetFile, uploadBlueprintFromFile } from '../shared/assetUpload'
 import {
   updateAsset as patchAsset,
@@ -73,6 +73,7 @@ interface WorldState {
   teamTrackers: TeamTracker[]
   assets: AssetMeta[]
   blueprints: Blueprint[]
+  tags: TagMeta[]
 
   // Internal refs
   _socket: TypedClientSocket | null
@@ -160,6 +161,7 @@ interface WorldState {
     meta: {
       name?: string
       mediaType?: AssetMeta['mediaType']
+      category?: string
       tags?: string[]
     },
   ) => Promise<AssetMeta>
@@ -246,6 +248,7 @@ function normalizeAsset(raw: Record<string, unknown>): AssetMeta {
     url: raw.url as string,
     name: raw.name as string,
     mediaType: (raw.mediaType as AssetMeta['mediaType'] | undefined) || 'image',
+    category: (raw.category as AssetMeta['category'] | undefined) || 'map',
     tags: (raw.tags as string[] | undefined) || [],
     sortOrder: (raw.sortOrder as number | undefined) ?? 0,
     createdAt: raw.createdAt as number,
@@ -269,6 +272,7 @@ async function loadAll(roomId: string) {
     teamTrackers: bundle.teamTrackers,
     assets: bundle.assets.map(normalizeAsset),
     blueprints: bundle.blueprints,
+    tags: bundle.tags,
     showcaseItems: bundle.showcase,
     tacticalInfo: bundle.tactical ? normalizeTacticalInfo(bundle.tactical) : null,
   }
@@ -479,6 +483,19 @@ function registerSocketEvents(
     set((s) => ({ blueprints: s.blueprints.filter((b) => b.id !== id) }))
   })
 
+  // ── Tag events ──
+  socket.on('tag:created', (tag) => {
+    set((s) => ({ tags: [...s.tags, tag] }))
+  })
+  socket.on('tag:updated', (tag) => {
+    set((s) => ({
+      tags: s.tags.map((t) => (t.id === (tag).id ? (tag) : t)),
+    }))
+  })
+  socket.on('tag:deleted', ({ id }: { id: string }) => {
+    set((s) => ({ tags: s.tags.filter((t) => t.id !== id) }))
+  })
+
   // ── Archive events ──
   socket.on('archive:created', (arc: ArchiveRecord) => {
     set((s) => ({ archives: [...s.archives, arc] }))
@@ -527,6 +544,9 @@ const WS_EVENTS = [
   'archive:created',
   'archive:updated',
   'archive:deleted',
+  'tag:created',
+  'tag:updated',
+  'tag:deleted',
 ] as const
 
 // ── Store creation ──
@@ -546,6 +566,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   teamTrackers: [],
   assets: [],
   blueprints: [],
+  tags: [],
   archives: [],
 
   // Internal refs
@@ -950,11 +971,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   // ── Asset mutation actions ──
 
   uploadAsset: async (file, meta) => {
-    const extra: Record<string, unknown> = { tags: meta.tags || [] }
     const result = await uploadAssetFile(file, {
       name: meta.name || file.name,
       mediaType: meta.mediaType || 'image',
-      extra,
+      category: meta.category,
+      tags: meta.tags,
     })
     // Do NOT manually update store here — the server emits asset:created via Socket.io
     // which the listener below handles. Adding here AND in the listener causes duplicates.
@@ -1066,6 +1087,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       handoutAssets: [],
       teamTrackers: [],
       assets: [],
+      tags: [],
       archives: [],
     })
   },

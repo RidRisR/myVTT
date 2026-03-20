@@ -12,9 +12,9 @@ interface TagFilterBarProps {
   // ── Category tab layer (optional) ──
   /** Category options, e.g. ['map', 'token']. Omit to hide category tabs. */
   categories?: string[]
-  /** Currently active category, or null/undefined for "All" */
-  activeCategory?: string | null
-  onCategoryChange?: (category: string | null) => void
+  /** Currently active category */
+  activeCategory?: string
+  onCategoryChange?: (category: string) => void
   /** Optional trailing content for the category tab row (e.g. search box) */
   categoryTrailing?: React.ReactNode
 }
@@ -36,18 +36,6 @@ export function TagFilterBar({
       {/* Top layer: category tabs (only if categories provided) */}
       {categories && categories.length > 0 && onCategoryChange && (
         <div className="flex items-center gap-3 border-b border-border-glass/20 px-1">
-          <button
-            onClick={() => {
-              onCategoryChange(null)
-            }}
-            className={`text-[11px] pb-1.5 cursor-pointer transition-colors duration-fast ${
-              activeCategory === null
-                ? 'text-text-primary border-b-2 border-accent -mb-px'
-                : 'text-text-muted/50 hover:text-text-muted/70'
-            }`}
-          >
-            {t('asset.all', 'All')}
-          </button>
           {categories.map((cat) => (
             <button
               key={cat}

@@ -6,7 +6,7 @@ import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { TagEditorPopover } from '../ui/TagEditorPopover'
-import { AUTO_TAGS, type AssetMeta } from '../shared/assetTypes'
+import type { AssetMeta } from '../shared/assetTypes'
 
 interface AssetGridItemProps {
   asset: AssetMeta
@@ -89,7 +89,7 @@ export function AssetGridItem({
 
             {/* Hover tag strip */}
             {(() => {
-              const userTags = asset.tags.filter((tag) => !AUTO_TAGS.includes(tag))
+              const userTags = asset.tags
               if (userTags.length === 0) return null
               const visible = userTags.slice(0, 3)
               const extra = userTags.length - visible.length
