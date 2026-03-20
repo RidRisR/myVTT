@@ -183,7 +183,7 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
 
     if (body.tags !== undefined) {
       const tagNames = Array.isArray(body.tags) ? (body.tags as string[]) : []
-      syncTags(req.roomDb!, 'blueprint_tags', 'blueprint_id', req.params.id, tagNames)
+      syncTags(req.roomDb!, 'blueprint_tags', 'blueprint_id', req.params.id as string, tagNames)
     }
 
     const updated = toBlueprintWithTags(

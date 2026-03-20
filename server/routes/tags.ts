@@ -170,7 +170,7 @@ export function tagRoutes(dataDir: string, io: TypedServer): Router {
 
     req.roomDb!.prepare('DELETE FROM tags WHERE id = ?').run(req.params.id)
 
-    io.to(req.roomId!).emit('tag:deleted', { id: req.params.id })
+    io.to(req.roomId!).emit('tag:deleted', { id: req.params.id as string })
 
     // Broadcast updated entities after tag removal (CASCADE has already deleted junction rows)
     for (const row of affectedAssets) {
