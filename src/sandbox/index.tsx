@@ -15,6 +15,12 @@ const PATTERNS: PatternEntry[] = [
     component: lazy(() => import('./PatternFloatingPanelOverlay')),
   },
   {
+    key: 'floating-card',
+    title: 'FloatingCard',
+    description: 'Anchored/floating/hover card with pin and drag support',
+    component: lazy(() => import('./PatternFloatingCard')),
+  },
+  {
     key: 'multi-type-dnd',
     title: 'MultiType DnD',
     description: 'Single DndContext with tag drag + item sortable + batch drop',

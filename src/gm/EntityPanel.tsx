@@ -29,7 +29,7 @@ export function EntityPanel() {
   const toggleEntityVisibility = useWorldStore((s) => s.toggleEntityVisibility)
   const seats = useIdentityStore((s) => s.seats)
   const onlineSeatIds = useIdentityStore((s) => s.onlineSeatIds)
-  const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
+  const openCard = useUiStore((s) => s.openCard)
   const { toast } = useToast()
 
   const [search, setSearch] = useState('')
@@ -110,7 +110,7 @@ export function EntityPanel() {
     }
     void addEntity(newEntity)
     if (activeSceneId) void addEntityToScene(activeSceneId, newEntity.id, false)
-    setInspectedCharacterId(newEntity.id)
+    openCard(newEntity.id)
   }
 
   const handleDelete = (entity: Entity) => {
@@ -160,7 +160,7 @@ export function EntityPanel() {
                 isOnline={getOnlineStatus(entity)}
                 isInScene={sceneEntityIds.includes(entity.id)}
                 onSelect={() => {
-                  setInspectedCharacterId(entity.id)
+                  openCard(entity.id)
                 }}
                 onDelete={() => {
                   handleDelete(entity)

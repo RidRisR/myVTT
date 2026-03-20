@@ -30,7 +30,9 @@
     "round": "第 {{number}} 轮",
     "no_session": "无战术会话",
     "characters_tab": "角色",
-    "initiative_tab": "先攻"
+    "initiative_tab": "先攻",
+    "pin_card": "钉住卡片",
+    "close_card": "关闭卡片"
   },
   "character": {
     "title": "角色",
