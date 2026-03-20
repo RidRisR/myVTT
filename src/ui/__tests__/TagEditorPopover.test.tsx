@@ -73,12 +73,7 @@ describe('TagEditorPopover', () => {
   it('does not add auto-tags', () => {
     const onTagsChange = vi.fn()
     render(
-      <TagEditorPopover
-        tags={[]}
-        allKnownTags={[]}
-        onTagsChange={onTagsChange}
-        defaultOpen
-      >
+      <TagEditorPopover tags={[]} allKnownTags={[]} onTagsChange={onTagsChange} defaultOpen>
         <button>trigger</button>
       </TagEditorPopover>,
     )
@@ -90,12 +85,7 @@ describe('TagEditorPopover', () => {
 
   it('shows "No tags" when no user tags exist', () => {
     render(
-      <TagEditorPopover
-        tags={['map']}
-        allKnownTags={[]}
-        onTagsChange={vi.fn()}
-        defaultOpen
-      >
+      <TagEditorPopover tags={['map']} allKnownTags={[]} onTagsChange={vi.fn()} defaultOpen>
         <button>trigger</button>
       </TagEditorPopover>,
     )

@@ -19,12 +19,7 @@ import { DraggableTagBar } from '../ui/DraggableTagBar'
 import { AssetGrid } from './AssetGrid'
 import { BatchToolbar } from './BatchToolbar'
 import { type AssetMeta } from '../shared/assetTypes'
-import {
-  filterAssets,
-  collectUserTags,
-  resolveTagDrop,
-  computeReorder,
-} from './assetPickerUtils'
+import { filterAssets, collectUserTags, resolveTagDrop, computeReorder } from './assetPickerUtils'
 
 const CATEGORIES = [
   { key: 'map', label: 'Maps' },

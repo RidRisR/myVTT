@@ -50,18 +50,12 @@ describe('computeCommonTags', () => {
   })
 
   it('returns [] when tags are completely different', () => {
-    const assets = [
-      makeAsset({ tags: ['a', 'b'] }),
-      makeAsset({ id: 'a2', tags: ['c', 'd'] }),
-    ]
+    const assets = [makeAsset({ tags: ['a', 'b'] }), makeAsset({ id: 'a2', tags: ['c', 'd'] })]
     expect(computeCommonTags(assets)).toEqual([])
   })
 
   it('returns [] when one asset has empty tags', () => {
-    const assets = [
-      makeAsset({ tags: ['a', 'b'] }),
-      makeAsset({ id: 'a2', tags: [] }),
-    ]
+    const assets = [makeAsset({ tags: ['a', 'b'] }), makeAsset({ id: 'a2', tags: [] })]
     expect(computeCommonTags(assets)).toEqual([])
   })
 
@@ -184,10 +178,7 @@ describe('collectUserTags', () => {
   })
 
   it('returns sorted, deduplicated tags', () => {
-    const assets = [
-      makeAsset({ tags: ['b', 'a'] }),
-      makeAsset({ id: 'a2', tags: ['a', 'c'] }),
-    ]
+    const assets = [makeAsset({ tags: ['b', 'a'] }), makeAsset({ id: 'a2', tags: ['a', 'c'] })]
     expect(collectUserTags(assets)).toEqual(['a', 'b', 'c'])
   })
 
