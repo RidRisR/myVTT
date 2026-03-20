@@ -6,6 +6,7 @@ import { getGlobalDb, toCamel, toCamelAll, parseJsonFields, toBoolFields } from 
 import { getTacticalState } from './tactical'
 import type Database from 'better-sqlite3'
 import type { BundleResponse } from '../../src/shared/bundleTypes'
+import { getTagNames, getAllTags } from '../tagHelpers'
 
 function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): BundleResponse {
   const globalDb = getGlobalDb(dataDir)
@@ -35,11 +36,14 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
     )
 
     const assets = (
-      roomDb.prepare('SELECT * FROM assets ORDER BY created_at DESC').all() as Record<
-        string,
-        unknown
-      >[]
-    ).map((r) => parseJsonFields(toCamel(r), 'extra', 'tags'))
+      roomDb
+        .prepare('SELECT * FROM assets ORDER BY sort_order ASC, created_at DESC')
+        .all() as Record<string, unknown>[]
+    ).map((r) => {
+      const base = parseJsonFields(toCamel(r), 'extra')
+      base.tags = getTagNames(roomDb, 'asset_tags', 'asset_id', r.id as string)
+      return base
+    })
 
     const chat = (
       roomDb
@@ -73,7 +77,13 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
         string,
         unknown
       >[]
-    ).map((r) => parseJsonFields(toCamel(r), 'defaults', 'tags'))
+    ).map((r) => {
+      const base = parseJsonFields(toCamel(r), 'defaults')
+      base.tags = getTagNames(roomDb, 'blueprint_tags', 'blueprint_id', r.id as string)
+      return base
+    })
+
+    const allTags = getAllTags(roomDb)
 
     // Build sceneEntityMap: Record<sceneId, { entityId, visible }[]>
     const sceneEntityMap: Record<string, { entityId: string; visible: boolean }[]> = {}
@@ -100,6 +110,7 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
       teamTrackers,
       showcase,
       tactical,
+      tags: allTags,
     }
   })()
 
@@ -120,6 +131,7 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
     teamTrackers: data.teamTrackers,
     showcase: data.showcase,
     tactical: data.tactical,
+    tags: data.tags,
   } as unknown as BundleResponse
 }
 

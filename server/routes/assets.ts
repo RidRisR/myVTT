@@ -7,7 +7,10 @@ import multer from 'multer'
 import type { TypedServer } from '../socketTypes'
 import type { AssetRecord } from '../../src/shared/storeTypes'
 import { withRoom } from '../middleware'
-import { toCamel, parseJsonFields, safePath } from '../db'
+import { safePath } from '../db'
+import { syncTags, toAssetWithTags } from '../tagHelpers'
+
+const VALID_CATEGORIES = ['map', 'token'] as const
 
 export function assetRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
@@ -19,10 +22,6 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
     return dir
   }
 
-  function toAsset(row: Record<string, unknown>): AssetRecord {
-    return parseJsonFields(toCamel(row), 'extra', 'tags') as unknown as AssetRecord
-  }
-
   router.get('/api/rooms/:roomId/assets', room, (req, res) => {
     let query = 'SELECT * FROM assets WHERE 1=1'
     const params: unknown[] = []
@@ -30,9 +29,13 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
       query += ' AND media_type = ?'
       params.push(req.query.mediaType)
     }
+    if (req.query.category) {
+      query += ' AND category = ?'
+      params.push(req.query.category)
+    }
     query += ' ORDER BY sort_order ASC, created_at DESC'
     const rows = req.roomDb!.prepare(query).all(...params) as Record<string, unknown>[]
-    res.json(rows.map(toAsset))
+    res.json(rows.map((row) => toAssetWithTags(req.roomDb!, row)))
   })
 
   router.post('/api/rooms/:roomId/assets', room, (req, res) => {
@@ -84,17 +87,28 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
       const uploadBody = req.body as Record<string, unknown>
       const mediaType = (uploadBody.mediaType as string) || 'image'
       const name = (uploadBody.name as string) || req.file.originalname
+      const rawCategory = (uploadBody.category as string) || 'map'
+      const category = VALID_CATEGORIES.includes(rawCategory as (typeof VALID_CATEGORIES)[number])
+        ? rawCategory
+        : 'map'
       const extra = uploadBody.extra
         ? (JSON.parse(uploadBody.extra as string) as Record<string, unknown>)
         : {}
-      const tags = extra.tags ? JSON.stringify(extra.tags) : '[]'
+      // Extract tags from FormData or extra, then strip from extra before storing
+      const tagNames: string[] = Array.isArray(uploadBody.tags)
+        ? (uploadBody.tags as string[])
+        : Array.isArray(extra.tags)
+          ? (extra.tags as string[])
+          : []
+      delete extra.tags
 
       try {
         req
           .roomDb!.prepare(
-            'INSERT INTO assets (id, url, name, media_type, tags, created_at, extra) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO assets (id, url, name, media_type, category, created_at, extra) VALUES (?, ?, ?, ?, ?, ?, ?)',
           )
-          .run(id, url, name, mediaType, tags, Date.now(), JSON.stringify(extra))
+          .run(id, url, name, mediaType, category, Date.now(), JSON.stringify(extra))
+        syncTags(req.roomDb!, 'asset_tags', 'asset_id', id, tagNames)
       } catch {
         // Atomic cleanup: DB insert failed → remove orphaned file
         const filePath = safePath(dir, req.file.filename)
@@ -103,9 +117,10 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
         return
       }
 
-      const asset = toAsset(
+      const asset = toAssetWithTags(
+        req.roomDb!,
         req.roomDb!.prepare('SELECT * FROM assets WHERE id = ?').get(id) as Record<string, unknown>,
-      )
+      ) as unknown as AssetRecord
       io.to(req.roomId!).emit('asset:created', asset)
       res.status(201).json(asset)
     })
@@ -136,7 +151,7 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
     const rows = req
       .roomDb!.prepare('SELECT * FROM assets ORDER BY sort_order ASC, created_at DESC')
       .all() as Record<string, unknown>[]
-    const assets = rows.map(toAsset)
+    const assets = rows.map((row) => toAssetWithTags(req.roomDb!, row)) as unknown as AssetRecord[]
     io.to(req.roomId!).emit('asset:reordered', assets)
     res.json(assets)
   })
@@ -162,9 +177,14 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
       updates.push('media_type = ?')
       params.push(body.mediaType)
     }
-    if (body.tags !== undefined) {
-      updates.push('tags = ?')
-      params.push(JSON.stringify(body.tags))
+    if (body.category !== undefined) {
+      const rawCategory = body.category as string
+      if (!VALID_CATEGORIES.includes(rawCategory as (typeof VALID_CATEGORIES)[number])) {
+        res.status(400).json({ error: `category must be one of: ${VALID_CATEGORIES.join(', ')}` })
+        return
+      }
+      updates.push('category = ?')
+      params.push(rawCategory)
     }
     if (body.sortOrder !== undefined) {
       updates.push('sort_order = ?')
@@ -187,20 +207,28 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
       params.push(JSON.stringify(currentExtra))
     }
 
-    if (updates.length === 0) {
-      res.json(toAsset(row))
+    if (updates.length === 0 && body.tags === undefined) {
+      res.json(toAssetWithTags(req.roomDb!, row))
       return
     }
 
-    params.push(req.params.id)
-    req.roomDb!.prepare(`UPDATE assets SET ${updates.join(', ')} WHERE id = ?`).run(...params)
+    if (updates.length > 0) {
+      params.push(req.params.id)
+      req.roomDb!.prepare(`UPDATE assets SET ${updates.join(', ')} WHERE id = ?`).run(...params)
+    }
 
-    const updated = toAsset(
+    if (body.tags !== undefined) {
+      const tagNames = Array.isArray(body.tags) ? (body.tags as string[]) : []
+      syncTags(req.roomDb!, 'asset_tags', 'asset_id', req.params.id, tagNames)
+    }
+
+    const updated = toAssetWithTags(
+      req.roomDb!,
       req.roomDb!.prepare('SELECT * FROM assets WHERE id = ?').get(req.params.id) as Record<
         string,
         unknown
       >,
-    )
+    ) as unknown as AssetRecord
     io.to(req.roomId!).emit('asset:updated', updated)
     res.json(updated)
   })

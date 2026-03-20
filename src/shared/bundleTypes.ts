@@ -6,6 +6,7 @@ import type { Scene, TacticalInfo, TeamTracker } from './storeTypes'
 import type { Entity, SceneEntityEntry, Blueprint } from './entityTypes'
 import type { ChatMessage } from './chatTypes'
 import type { ShowcaseItem } from './showcaseTypes'
+import type { TagMeta } from './assetTypes'
 
 export interface BundleRoomInfo {
   id: string
@@ -26,4 +27,5 @@ export interface BundleResponse {
   teamTrackers: TeamTracker[]
   showcase: ShowcaseItem[]
   tactical: (TacticalInfo & { tokens: unknown[] }) | null
+  tags: TagMeta[]
 }
