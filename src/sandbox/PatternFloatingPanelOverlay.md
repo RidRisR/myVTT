@@ -63,6 +63,18 @@ base(0) → tactical(100) → ui(1000) → popover(5000) → overlay(8000) → m
 
 两者共同依赖的安全网：`useClickOutside` hook（`src/hooks/useClickOutside.ts`）自动检测 `[data-radix-popper-content-wrapper]`，将 Radix Portal 内的点击视为"内部点击"，不触发面板关闭。
 
+## 约束清单
+
+| 设计规则                                                   | 来源                                                                                           | 代码                                                                                     |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 浮层用 `fixed + left/top` 定位，不用 `transform`           | `CLAUDE.md:33` CSS containing block gotcha                                                     | `PatternFloatingPanelOverlay.tsx:L130` `style={{ left, top }}`                           |
+| 面板 z-index 必须低于 z-popover                            | `docs/conventions/ui-patterns.md:10` z-index Scale                                             | `PatternFloatingPanelOverlay.tsx:L129` `z-ui` (1000 < 5000)                              |
+| 嵌套 overlay 用项目 wrapper，不直接用 `@radix-ui/*`        | `docs/conventions/ui-patterns.md:36` Radix wrappers 表                                         | `PatternFloatingPanelOverlay.tsx:L157` `<PopoverContent>`, `L177` `<ContextMenuContent>` |
+| click-outside 必须感知 Radix Portal                        | `src/hooks/useClickOutside.ts:24` `data-radix-popper-content-wrapper` 检测                     | `PatternFloatingPanelOverlay.tsx:L84` `useClickOutside(panelRef, onClose, true)`         |
+| PopoverContent 有 stopPropagation，ContextMenuContent 没有 | `src/ui/primitives/PopoverContent.tsx:29,33` vs `ContextMenuContent.tsx`（无 stopPropagation） | 文档记录，非代码实现                                                                     |
+| 高频 handler 用 ref 持有可变状态，callback 零依赖          | React 性能最佳实践（避免每帧重建闭包）                                                         | `PatternFloatingPanelOverlay.tsx:L76` `posRef` + `L96` `useCallback(…, [])`              |
+| 组件卸载时清理 document 事件监听                           | React useEffect cleanup 规范                                                                   | `PatternFloatingPanelOverlay.tsx:L79` `dragCleanupRef` + `L89-93` cleanup effect         |
+
 ## 陷阱清单
 
 1. **不要在浮层上用 `transform` 做定位或动画** — 会破坏所有子级的 fixed 定位
