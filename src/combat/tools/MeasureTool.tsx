@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Layer, Line, Rect, Text, Group } from 'react-konva'
 import type Konva from 'konva'
 import type { TacticalInfo } from '../../stores/worldStore'
+import type { ToolLayerProps } from './types'
 
 interface Point {
   x: number
@@ -12,12 +13,6 @@ interface Measurement {
   start: Point
   end: Point
   distance: string
-}
-
-interface MeasureToolProps {
-  active: boolean
-  tacticalInfo: TacticalInfo
-  stageRef: React.RefObject<Konva.Stage | null>
 }
 
 const MEASURE_COLOR = '#D4A055'
@@ -38,7 +33,8 @@ function calcDistance(start: Point, end: Point, tacticalInfo: TacticalInfo): str
   return `${Math.round(pixelDist)} px`
 }
 
-export function MeasureTool({ active, tacticalInfo, stageRef }: MeasureToolProps) {
+/** Canvas layer for the Measure tool. Only rendered when the tool is active (via ActiveToolCanvas). */
+export function MeasureToolCanvas({ tacticalInfo, stageRef, onComplete }: ToolLayerProps) {
   const [drawing, setDrawing] = useState<{ start: Point; end: Point } | null>(null)
   const [persisted, setPersisted] = useState<Measurement[]>([])
   const isDrawingRef = useRef(false)
@@ -67,17 +63,8 @@ export function MeasureTool({ active, tacticalInfo, stageRef }: MeasureToolProps
     }
   }, [])
 
-  // Clear drawing state when tool is deactivated
-  useEffect(() => {
-    if (!active) {
-      setDrawing(null)
-      isDrawingRef.current = false
-    }
-  }, [active])
-
   // Attach Stage mouse event handlers
   useEffect(() => {
-    if (!active) return
     const stage = stageRef.current
     if (!stage) return
 
@@ -119,9 +106,12 @@ export function MeasureTool({ active, tacticalInfo, stageRef }: MeasureToolProps
       setDrawing((prev) => {
         if (!prev) return null
         if (shiftRef.current) {
-          // Persist the measurement
+          // Persist the measurement (Shift held — do NOT call onComplete)
           const distance = calcDistance(prev.start, prev.end, tacticalInfo)
           setPersisted((arr) => [...arr, { start: prev.start, end: prev.end, distance }])
+        } else {
+          // Measurement complete without Shift — signal one-shot completion
+          onComplete?.()
         }
         return null
       })
@@ -136,10 +126,7 @@ export function MeasureTool({ active, tacticalInfo, stageRef }: MeasureToolProps
       stage.off('mousemove.measure')
       stage.off('mouseup.measure')
     }
-  }, [active, tacticalInfo, stageRef])
-
-  // Nothing to render if tool is inactive and no persisted measurements
-  if (!active && persisted.length === 0) return null
+  }, [tacticalInfo, stageRef, onComplete])
 
   const currentDistance = drawing ? calcDistance(drawing.start, drawing.end, tacticalInfo) : ''
 

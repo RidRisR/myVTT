@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MapToken, Entity } from '../shared/entityTypes'
+import type { ContextMenuContext } from '../rules/types'
+import { useRulePlugin } from '../rules/useRulePlugin'
 import { useClickOutside } from '../hooks/useClickOutside'
 
 interface TokenContextMenuProps {
@@ -10,6 +12,7 @@ interface TokenContextMenuProps {
   token: MapToken | null
   entity: Entity | null
   role: 'GM' | 'PL'
+  selectedTokenIds: string[]
   onClose: () => void
   onDeleteToken: (id: string) => void
   onUpdateToken: (id: string, updates: Partial<MapToken>) => void
@@ -29,6 +32,7 @@ export function TokenContextMenu({
   token,
   entity,
   role,
+  selectedTokenIds,
   onClose,
   onDeleteToken,
   onUpdateToken,
@@ -40,6 +44,7 @@ export function TokenContextMenu({
 }: TokenContextMenuProps) {
   const { t } = useTranslation('combat')
   const ref = useRef<HTMLDivElement>(null)
+  const plugin = useRulePlugin()
 
   // Click-outside-to-close (Radix Portal-aware)
   useClickOutside(ref, onClose)
@@ -55,9 +60,30 @@ export function TokenContextMenu({
     }
   }, [onClose])
 
-  // PL: don't show context menu
-  if (role !== 'GM') return null
+  // Get plugin-provided context menu items
+  const pluginItems = useMemo(() => {
+    if (!plugin.surfaces?.getContextMenuItems) return []
+    const menuCtx: ContextMenuContext = {
+      tokenId,
+      entity,
+      role,
+      selectedTokenIds,
+      mapX,
+      mapY,
+    }
+    return plugin.surfaces.getContextMenuItems(menuCtx)
+  }, [plugin, tokenId, entity, role, selectedTokenIds, mapX, mapY])
 
+  // Filter plugin items by role
+  const visiblePluginItems = useMemo(
+    () => (role === 'GM' ? pluginItems : pluginItems.filter((item) => item.gmOnly !== true)),
+    [pluginItems, role],
+  )
+
+  // PL: only show if there are plugin items
+  if (role !== 'GM' && visiblePluginItems.length === 0) return null
+
+  const isGM = role === 'GM'
   const isTokenMenu = tokenId !== null && token !== null
   const isHidden = token ? (entity?.permissions.default ?? 'observer') === 'none' : false
   const currentSize = token?.width ?? 1
@@ -75,7 +101,8 @@ export function TokenContextMenu({
         e.preventDefault()
       }}
     >
-      {isTokenMenu ? (
+      {/* Builtin items — GM only */}
+      {isGM && isTokenMenu && (
         <>
           {/* Header: token name */}
           <div className="px-3 py-1.5 text-text-muted text-xs font-medium border-b border-border-glass mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
@@ -137,9 +164,13 @@ export function TokenContextMenu({
           {/* Separator */}
           <div className="border-t border-border-glass my-1" />
 
-          {/* Delete Token */}
+          {/* Delete Token(s) */}
           <MenuItem
-            label={t('token.delete')}
+            label={
+              selectedTokenIds.includes(tokenId) && selectedTokenIds.length > 1
+                ? t('token.delete_n', { count: selectedTokenIds.length })
+                : t('token.delete')
+            }
             danger
             onClick={() => {
               onDeleteToken(tokenId)
@@ -147,8 +178,10 @@ export function TokenContextMenu({
             }}
           />
         </>
-      ) : (
-        /* Empty space menu */
+      )}
+
+      {/* Empty space: Create Token — GM only */}
+      {isGM && !isTokenMenu && (
         <MenuItem
           label={t('token.create')}
           onClick={() => {
@@ -156,6 +189,26 @@ export function TokenContextMenu({
             onClose()
           }}
         />
+      )}
+
+      {/* Plugin-provided items */}
+      {visiblePluginItems.length > 0 && (
+        <>
+          {isGM && <div className="border-t border-border-glass my-1" />}
+          {visiblePluginItems.map((item) => (
+            <div key={item.id}>
+              {item.separator === 'before' && <div className="border-t border-border-glass my-1" />}
+              <MenuItem
+                label={item.label}
+                danger={item.danger}
+                onClick={() => {
+                  item.onClick()
+                  onClose()
+                }}
+              />
+            </div>
+          ))}
+        </>
       )}
     </div>
   )

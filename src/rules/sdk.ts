@@ -25,6 +25,13 @@ export type {
   DaggerheartOutcome,
   DieConfig,
   RenderDiceOptions,
+  TokenAction,
+  TokenActionContext,
+  TargetingRequest,
+  TargetInfo,
+  ContextMenuItem,
+  ContextMenuContext,
+  KeyBinding,
 } from './types'
 export type { DiceTermResult, DiceSpec } from '../shared/diceUtils'
 
@@ -37,3 +44,6 @@ export { usePluginPanels } from './usePluginPanels'
 export { tokenizeExpression, buildCompoundResult } from '../shared/diceUtils'
 export type { ChatRollMessage } from '../shared/chatTypes'
 export type { RollCardProps } from './types'
+
+// ── Tool types for plugin map integration ───────────────────────────────────
+export type { ToolDefinition, ToolCategory, ToolLayerProps } from '../combat/tools/types'

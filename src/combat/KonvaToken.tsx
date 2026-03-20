@@ -9,11 +9,11 @@ interface KonvaTokenProps {
   token: MapTokenType
   entity: Entity | null
   pixelSize: number
-  selected: boolean
+  selectionState: 'primary' | 'secondary' | 'none'
   isHidden: boolean
   canDrag: boolean
   stageScale: number
-  onSelect: (tokenId: string) => void
+  onSelect: (tokenId: string, shiftKey: boolean) => void
   onDragStart: (e: Konva.KonvaEventObject<DragEvent>, tokenId: string) => void
   onDragMove: (e: Konva.KonvaEventObject<DragEvent>, tokenId: string) => void
   onDragEnd: (e: Konva.KonvaEventObject<DragEvent>, tokenId: string) => void
@@ -26,7 +26,7 @@ export function KonvaToken({
   token,
   entity,
   pixelSize,
-  selected,
+  selectionState,
   isHidden,
   canDrag,
   stageScale,
@@ -63,17 +63,18 @@ export function KonvaToken({
 
   return (
     <Group
+      name={`token-${token.id}`}
       x={token.x}
       y={token.y}
       draggable={canDrag}
       opacity={isHidden ? 0.5 : 1}
       onClick={(e) => {
         e.cancelBubble = true
-        onSelect(token.id)
+        onSelect(token.id, e.evt.shiftKey)
       }}
       onTap={(e) => {
         e.cancelBubble = true
-        onSelect(token.id)
+        onSelect(token.id, false)
       }}
       onDragStart={(e) => {
         onDragStart(e, token.id)
@@ -133,12 +134,13 @@ export function KonvaToken({
         x={radius}
         y={radius}
         radius={radius}
-        stroke={selected ? '#fff' : color}
+        stroke={selectionState !== 'none' ? '#fff' : color}
         strokeWidth={3}
+        opacity={selectionState === 'secondary' ? 0.6 : 1}
         dash={isHidden ? [6, 4] : undefined}
-        shadowColor={selected ? color : undefined}
-        shadowBlur={selected ? 16 : 0}
-        shadowEnabled={selected}
+        shadowColor={selectionState === 'primary' ? color : undefined}
+        shadowBlur={selectionState === 'primary' ? 16 : 0}
+        shadowEnabled={selectionState === 'primary'}
         listening={false}
       />
 

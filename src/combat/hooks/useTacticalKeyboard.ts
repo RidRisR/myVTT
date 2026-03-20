@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import type { RefObject } from 'react'
 import { useUiStore } from '../../stores/uiStore'
+import { toolRegistry } from '../tools/toolRegistry'
+import { BuiltinToolId } from '../tools/builtinToolIds'
 import type { KonvaMapHandle } from '../KonvaMap'
 
 interface UseTacticalKeyboardParams {
@@ -21,50 +23,51 @@ export function useTacticalKeyboard({ mapRef, enabled }: UseTacticalKeyboardPara
       const tag = (e.target as HTMLElement).tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
 
-      switch (e.key.toLowerCase()) {
-        case 'v':
-          setActiveTool('select')
-          break
-        case 'm':
-          setActiveTool('measure')
-          break
-        case '1':
-          setActiveTool('range-circle')
-          break
-        case '2':
-          setActiveTool('range-cone')
-          break
-        case '3':
-          setActiveTool('range-rect')
-          break
-        case 'g':
-          toggleGridConfig()
-          break
+      const key = e.key.toLowerCase()
+
+      // Non-tool shortcuts (camera controls, escape)
+      switch (key) {
         case '=':
         case '+':
           mapRef.current?.zoomIn()
-          break
+          e.preventDefault()
+          return
         case '-':
           mapRef.current?.zoomOut()
-          break
+          e.preventDefault()
+          return
         case 'f':
           mapRef.current?.fitToWindow()
-          break
+          e.preventDefault()
+          return
         case '0':
           mapRef.current?.resetCenter()
-          break
+          e.preventDefault()
+          return
         case 'escape':
           // Close grid panel if open, otherwise reset to select tool
           if (useUiStore.getState().gridConfigOpen) {
             setGridConfigOpen(false)
           } else {
-            setActiveTool('select')
+            setActiveTool(BuiltinToolId.Select)
           }
-          break
-        default:
-          return // Don't prevent default for unhandled keys
+          e.preventDefault()
+          return
       }
-      e.preventDefault()
+
+      // Match registered tool shortcuts
+      for (const tool of toolRegistry.getAll()) {
+        if (tool.shortcut && tool.shortcut.toLowerCase() === key) {
+          // GridConfig tool toggles the config panel instead of activating as a tool
+          if (tool.id === BuiltinToolId.GridConfig) {
+            toggleGridConfig()
+          } else {
+            setActiveTool(tool.id)
+          }
+          e.preventDefault()
+          return
+        }
+      }
     }
 
     document.addEventListener('keydown', handleKeyDown)

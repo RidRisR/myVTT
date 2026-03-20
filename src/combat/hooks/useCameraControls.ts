@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import type Konva from 'konva'
 import type { TacticalInfo } from '../../stores/worldStore'
 
@@ -14,12 +14,15 @@ interface UseCameraControlsParams {
 interface UseCameraControlsReturn {
   stageScale: number
   stagePos: { x: number; y: number }
+  isPanning: boolean
   handleWheel: (e: Konva.KonvaEventObject<WheelEvent>) => void
   handleFitToWindow: () => void
   handleResetCenter: () => void
   handleZoomIn: () => void
   handleZoomOut: () => void
-  handleDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => void
+  startPan: (screenX: number, screenY: number) => void
+  updatePan: (screenX: number, screenY: number) => void
+  endPan: () => void
 }
 
 export function useCameraControls({
@@ -28,6 +31,10 @@ export function useCameraControls({
 }: UseCameraControlsParams): UseCameraControlsReturn {
   const [stageScale, setStageScale] = useState(1)
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 })
+  const [isPanning, setIsPanning] = useState(false)
+
+  // Track last screen position for delta-based pan
+  const lastPanPosRef = useRef<{ x: number; y: number } | null>(null)
 
   // Wheel zoom toward mouse pointer
   const handleWheel = useCallback((e: Konva.KonvaEventObject<WheelEvent>) => {
@@ -117,22 +124,44 @@ export function useCameraControls({
     })
   }, [containerSize])
 
-  // Handle stage drag end to update position state
-  const handleDragEnd = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
-    // Only handle stage-level drags, not token drags
-    const stage = e.target.getStage()
-    if (e.target !== stage) return
-    setStagePos({ x: stage.x(), y: stage.y() })
+  // Right-click pan: record start position in screen space
+  const startPan = useCallback((screenX: number, screenY: number) => {
+    lastPanPosRef.current = { x: screenX, y: screenY }
+    setIsPanning(true)
+  }, [])
+
+  // Update pan by screen-space delta (no need to account for scale)
+  const updatePan = useCallback((screenX: number, screenY: number) => {
+    const last = lastPanPosRef.current
+    if (!last) return
+
+    const dx = screenX - last.x
+    const dy = screenY - last.y
+    lastPanPosRef.current = { x: screenX, y: screenY }
+
+    setStagePos((prev) => ({
+      x: prev.x + dx,
+      y: prev.y + dy,
+    }))
+  }, [])
+
+  // End pan
+  const endPan = useCallback(() => {
+    lastPanPosRef.current = null
+    setIsPanning(false)
   }, [])
 
   return {
     stageScale,
     stagePos,
+    isPanning,
     handleWheel,
     handleFitToWindow,
     handleResetCenter,
     handleZoomIn,
     handleZoomOut,
-    handleDragEnd,
+    startPan,
+    updatePan,
+    endPan,
   }
 }

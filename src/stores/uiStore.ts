@@ -3,24 +3,19 @@
 
 import { create } from 'zustand'
 import type { HandoutAsset } from './worldStore'
+import type { TokenAction, TargetInfo } from '../rules/types'
+import type { Entity } from '../shared/entityTypes'
+import { toolRegistry } from '../combat/tools/toolRegistry'
+import { BuiltinToolId } from '../combat/tools/builtinToolIds'
 
 interface ContextMenuState {
   x: number
   y: number
 }
 
-export type ActiveTool = 'select' | 'measure' | 'range-circle' | 'range-cone' | 'range-rect'
-export type MeasureTool = Exclude<ActiveTool, 'select'>
-
-const MEASURE_TOOL_IDS: ReadonlySet<string> = new Set([
-  'measure',
-  'range-circle',
-  'range-cone',
-  'range-rect',
-])
-
-export function isMeasureTool(tool: ActiveTool): tool is MeasureTool {
-  return MEASURE_TOOL_IDS.has(tool)
+// Requires registerBuiltinTools to have run (imported by TacticalToolbar).
+export function isMeasureTool(tool: string): boolean {
+  return toolRegistry.get(tool)?.category === 'measurement'
 }
 export type GmDockTab = 'maps' | 'tokens' | 'characters' | 'handouts' | 'dice'
 export type ThemeId = 'warm' | 'cold'
@@ -60,15 +55,18 @@ function applyTheme(theme: ThemeId) {
 // Apply stored theme immediately on module load
 applyTheme(getStoredTheme())
 
+const EMPTY_SELECTION: string[] = []
+
 interface UiState {
   // Character card state (multi-card with pin support)
   openCardId: string | null // Current unpinned anchored card (max 1)
   pinnedCards: PinnedCard[] // Pinned floating cards (multiple allowed)
 
-  selectedTokenId: string | null
+  selectedTokenIds: string[]
+  primarySelectedTokenId: string | null
   bgContextMenu: ContextMenuState | null
   editingHandout: HandoutAsset | null
-  activeTool: ActiveTool
+  activeTool: string
   gmViewAsPlayer: boolean
   theme: ThemeId
 
@@ -77,7 +75,8 @@ interface UiState {
   teamPanelVisible: boolean
 
   // Tactical toolbar
-  lastMeasureTool: MeasureTool
+  lastMeasureTool: string
+  toolPersist: boolean
   gridConfigOpen: boolean
 
   // GM sidebar
@@ -101,32 +100,52 @@ interface UiState {
   updatePinnedCardPosition: (entityId: string, position: { x: number; y: number }) => void
   closePinnedCard: (entityId: string) => void
 
-  setSelectedTokenId: (id: string | null) => void
+  // Multi-select token methods
+  setSelectedTokenIds: (ids: string[]) => void
+  setPrimarySelectedTokenId: (id: string | null) => void
+  addToSelection: (id: string) => void
+  removeFromSelection: (id: string) => void
+  toggleSelection: (id: string) => void
+  clearSelection: () => void
+  selectToken: (id: string) => void
   setBgContextMenu: (menu: ContextMenuState | null) => void
   setEditingHandout: (asset: HandoutAsset | null) => void
-  setActiveTool: (tool: ActiveTool) => void
+  setActiveTool: (tool: string) => void
   setGmViewAsPlayer: (val: boolean) => void
   setTheme: (theme: ThemeId) => void
   setPortraitBarVisible: (visible: boolean) => void
   setTeamPanelVisible: (visible: boolean) => void
   setGridConfigOpen: (open: boolean) => void
   toggleGridConfig: () => void
+  toggleToolPersist: () => void
   setGmSidebarTab: (tab: GmSidebarTab) => void
   setGmSidebarCollapsed: (collapsed: boolean) => void
+
+  // Action targeting
+  activeTargetingRequest: {
+    action: TokenAction
+    actor: Entity
+    collectedTargets: TargetInfo[]
+  } | null
+  startTargeting: (action: TokenAction, actor: Entity) => void
+  addTargetingTarget: (target: TargetInfo) => void
+  cancelTargeting: () => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
   openCardId: null,
   pinnedCards: EMPTY_PINNED,
-  selectedTokenId: null,
+  selectedTokenIds: EMPTY_SELECTION,
+  primarySelectedTokenId: null,
   bgContextMenu: null,
   editingHandout: null,
-  activeTool: 'select',
+  activeTool: BuiltinToolId.Select,
   gmViewAsPlayer: false,
   theme: getStoredTheme(),
   portraitBarVisible: true,
   teamPanelVisible: false,
-  lastMeasureTool: 'measure',
+  lastMeasureTool: BuiltinToolId.Measure,
+  toolPersist: false,
   gridConfigOpen: false,
   gmSidebarTab: 'scene',
   gmSidebarCollapsed: true,
@@ -185,8 +204,44 @@ export const useUiStore = create<UiState>((set) => ({
       pinnedCards: s.pinnedCards.filter((p) => p.entityId !== entityId),
     }))
   },
-  setSelectedTokenId: (id) => {
-    set({ selectedTokenId: id })
+  setSelectedTokenIds: (ids) => {
+    set({ selectedTokenIds: ids.length === 0 ? EMPTY_SELECTION : ids })
+  },
+  setPrimarySelectedTokenId: (id) => {
+    set({ primarySelectedTokenId: id })
+  },
+  addToSelection: (id) => {
+    set((s) => {
+      if (s.selectedTokenIds.includes(id)) return s
+      return { selectedTokenIds: [...s.selectedTokenIds, id] }
+    })
+  },
+  removeFromSelection: (id) => {
+    set((s) => {
+      const next = s.selectedTokenIds.filter((x) => x !== id)
+      return {
+        selectedTokenIds: next.length === 0 ? EMPTY_SELECTION : next,
+        primarySelectedTokenId: s.primarySelectedTokenId === id ? null : s.primarySelectedTokenId,
+      }
+    })
+  },
+  toggleSelection: (id) => {
+    set((s) => {
+      if (s.selectedTokenIds.includes(id)) {
+        const next = s.selectedTokenIds.filter((x) => x !== id)
+        return {
+          selectedTokenIds: next.length === 0 ? EMPTY_SELECTION : next,
+          primarySelectedTokenId: s.primarySelectedTokenId === id ? null : s.primarySelectedTokenId,
+        }
+      }
+      return { selectedTokenIds: [...s.selectedTokenIds, id] }
+    })
+  },
+  clearSelection: () => {
+    set({ selectedTokenIds: EMPTY_SELECTION, primarySelectedTokenId: null })
+  },
+  selectToken: (id) => {
+    set({ selectedTokenIds: [id], primarySelectedTokenId: id })
   },
   setBgContextMenu: (menu) => {
     set({ bgContextMenu: menu })
@@ -195,6 +250,10 @@ export const useUiStore = create<UiState>((set) => ({
     set({ editingHandout: asset })
   },
   setActiveTool: (tool) => {
+    if (!toolRegistry.has(tool)) {
+      console.warn(`Unknown tool "${tool}", ignoring`)
+      return
+    }
     set(isMeasureTool(tool) ? { activeTool: tool, lastMeasureTool: tool } : { activeTool: tool })
   },
   setGmViewAsPlayer: (val) => {
@@ -216,10 +275,46 @@ export const useUiStore = create<UiState>((set) => ({
   toggleGridConfig: () => {
     set((s) => ({ gridConfigOpen: !s.gridConfigOpen }))
   },
+  toggleToolPersist: () => {
+    set((s) => ({ toolPersist: !s.toolPersist }))
+  },
   setGmSidebarTab: (tab) => {
     set({ gmSidebarTab: tab })
   },
   setGmSidebarCollapsed: (collapsed) => {
     set({ gmSidebarCollapsed: collapsed })
+  },
+
+  activeTargetingRequest: null,
+  startTargeting: (action, actor) => {
+    set({
+      activeTargetingRequest: { action, actor, collectedTargets: [] },
+      activeTool: BuiltinToolId.ActionTargeting,
+    })
+  },
+  addTargetingTarget: (target) => {
+    set((s) => {
+      if (!s.activeTargetingRequest) return s
+      const req = s.activeTargetingRequest
+      const next = [...req.collectedTargets, target]
+      const needed = req.action.targeting?.count ?? 1
+      if (next.length >= needed) {
+        // Execute the action and return to select
+        req.action.onExecute(req.actor, next)
+        return {
+          activeTargetingRequest: null,
+          activeTool: BuiltinToolId.Select,
+        }
+      }
+      return {
+        activeTargetingRequest: { ...req, collectedTargets: next },
+      }
+    })
+  },
+  cancelTargeting: () => {
+    set({
+      activeTargetingRequest: null,
+      activeTool: BuiltinToolId.Select,
+    })
   },
 }))

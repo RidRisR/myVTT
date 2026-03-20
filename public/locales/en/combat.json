@@ -5,7 +5,9 @@
     "zoom_in": "Zoom In",
     "zoom_out": "Zoom Out",
     "fit_window": "Fit Window",
-    "reset_center": "Reset Center"
+    "reset_center": "Reset Center",
+    "persist_on": "Tool pinned (stays active)",
+    "persist_off": "Pin tool (prevent auto-switch)"
   },
   "grid": {
     "settings": "Grid Settings",
@@ -20,6 +22,7 @@
     "show": "Show Token",
     "hide": "Hide Token",
     "delete": "Delete Token",
+    "delete_n": "Delete {{count}} Tokens",
     "create": "Create Token"
   },
   "measure": {

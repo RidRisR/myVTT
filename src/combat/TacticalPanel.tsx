@@ -14,8 +14,12 @@ interface TacticalPanelProps {
   getEntity: (id: string) => Entity | null
   mySeatId: string
   role: 'GM' | 'PL'
-  selectedTokenId: string | null
-  onSelectToken: (id: string | null) => void
+  selectedTokenIds: string[]
+  primarySelectedTokenId: string | null
+  onSelectToken: (id: string) => void
+  onToggleSelection: (id: string) => void
+  onClearSelection: () => void
+  onSetSelectedTokenIds: (ids: string[]) => void
   onUpdateToken: (id: string, updates: Partial<MapToken>) => void
   onDeleteToken: (id: string) => void
   onAddToken: (token: MapToken) => void
@@ -31,8 +35,12 @@ export const TacticalPanel = forwardRef<KonvaMapHandle, TacticalPanelProps>(func
     getEntity,
     mySeatId,
     role,
-    selectedTokenId,
+    selectedTokenIds,
+    primarySelectedTokenId,
     onSelectToken,
+    onToggleSelection,
+    onClearSelection,
+    onSetSelectedTokenIds,
     onUpdateToken,
     onDeleteToken,
     onAddToken,
@@ -68,8 +76,12 @@ export const TacticalPanel = forwardRef<KonvaMapHandle, TacticalPanelProps>(func
         getEntity={getEntity}
         mySeatId={mySeatId}
         role={role}
-        selectedTokenId={selectedTokenId}
+        selectedTokenIds={selectedTokenIds}
+        primarySelectedTokenId={primarySelectedTokenId}
         onSelectToken={onSelectToken}
+        onToggleSelection={onToggleSelection}
+        onClearSelection={onClearSelection}
+        onSetSelectedTokenIds={onSetSelectedTokenIds}
         onUpdateToken={onUpdateToken}
         onDeleteToken={onDeleteToken}
         onAddToken={onAddToken}

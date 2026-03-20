@@ -3,6 +3,7 @@ import type { Entity } from '../shared/entityTypes'
 import type { DiceTermResult } from '../shared/diceUtils'
 import type { TeamTracker } from '../stores/worldStore'
 import type { ChatRollMessage } from '../shared/chatTypes'
+import type { ToolDefinition } from '../combat/tools/types'
 
 // ── Adapter view types (shared with entityAdapters.ts) ─────────────────────
 
@@ -138,6 +139,66 @@ export interface RollCardProps {
   renderDice: (configs?: DieConfig[], options?: RenderDiceOptions) => React.ReactNode
 }
 
+// ── Map integration types ──────────────────────────────────────────────────
+
+export interface TokenActionContext {
+  selectedTokenIds: string[]
+  selectedEntities: Entity[]
+  primaryTokenId: string | null
+  primaryEntity: Entity | null
+  role: 'GM' | 'PL'
+}
+
+export interface TargetingRequest {
+  mode: 'single' | 'multiple' | 'sequential'
+  count?: number
+  filter?: 'enemy' | 'ally' | 'any'
+  labels?: string[]
+}
+
+export interface TargetInfo {
+  tokenId: string
+  entity: Entity
+  index: number
+  label?: string
+}
+
+export interface TokenAction {
+  id: string
+  label: string
+  icon?: React.ComponentType
+  targeting?: TargetingRequest
+  onExecute: (actor: Entity, targets: TargetInfo[]) => void
+  disabled?: boolean
+  tooltip?: string
+}
+
+export interface ContextMenuContext {
+  tokenId: string | null
+  entity: Entity | null
+  role: 'GM' | 'PL'
+  selectedTokenIds: string[]
+  mapX: number
+  mapY: number
+}
+
+export interface ContextMenuItem {
+  id: string
+  label: string
+  icon?: React.ComponentType
+  onClick: () => void
+  gmOnly?: boolean
+  danger?: boolean
+  separator?: 'before' | 'after'
+}
+
+export interface KeyBinding {
+  key: string
+  label: string
+  action: () => void
+  when?: 'always' | 'token-selected'
+}
+
 // ── RulePlugin — the main interface ────────────────────────────────────────
 
 // ── i18n types ──────────────────────────────────────────────────────────────
@@ -191,7 +252,13 @@ export interface RulePlugin {
     dockTabs?: DockTabDef[]
     gmTabs?: GMTabDef[]
     teamPanel?: React.ComponentType<TeamPanelProps>
-    rollCardRenderers?: Record<string, React.ComponentType<RollCardProps>> // NEW
+    rollCardRenderers?: Record<string, React.ComponentType<RollCardProps>>
+
+    // ── map integration ──
+    tools?: ToolDefinition[]
+    getTokenActions?: (ctx: TokenActionContext) => TokenAction[]
+    getContextMenuItems?: (ctx: ContextMenuContext) => ContextMenuItem[]
+    keyBindings?: KeyBinding[]
   }
 
   // Layer 6: Declarative element hiding (optional)
