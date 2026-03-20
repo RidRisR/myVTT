@@ -160,11 +160,15 @@ function RoomSession({ roomId }: { roomId: string }) {
 
   // UI store
   const inspectedCharacterId = useUiStore((s) => s.inspectedCharacterId)
-  const selectedTokenId = useUiStore((s) => s.selectedTokenId)
+  const selectedTokenIds = useUiStore((s) => s.selectedTokenIds)
+  const primarySelectedTokenId = useUiStore((s) => s.primarySelectedTokenId)
   const bgContextMenu = useUiStore((s) => s.bgContextMenu)
   const editingHandout = useUiStore((s) => s.editingHandout)
   const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
-  const setSelectedTokenId = useUiStore((s) => s.setSelectedTokenId)
+  const selectToken = useUiStore((s) => s.selectToken)
+  const clearSelection = useUiStore((s) => s.clearSelection)
+  const toggleSelection = useUiStore((s) => s.toggleSelection)
+  const setSelectedTokenIds = useUiStore((s) => s.setSelectedTokenIds)
   const setBgContextMenu = useUiStore((s) => s.setBgContextMenu)
   const setEditingHandout = useUiStore((s) => s.setEditingHandout)
 
@@ -193,7 +197,9 @@ function RoomSession({ roomId }: { roomId: string }) {
   }
 
   const activeEntity = getEntity(mySeat?.activeCharacterId ?? null)
-  const selectedToken = isTactical ? (tokens.find((t) => t.id === selectedTokenId) ?? null) : null
+  const selectedToken = isTactical
+    ? (tokens.find((t) => t.id === primarySelectedTokenId) ?? null)
+    : null
   const selectedTokenEntity = selectedToken?.entityId ? getEntity(selectedToken.entityId) : null
 
   const seatProperties = deriveSeatProperties(activeEntity, selectedTokenEntity)
@@ -363,8 +369,12 @@ function RoomSession({ roomId }: { roomId: string }) {
             getEntity={getEntity}
             mySeatId={mySeatId}
             role={mySeat.role}
-            selectedTokenId={selectedTokenId}
-            onSelectToken={setSelectedTokenId}
+            selectedTokenIds={selectedTokenIds}
+            primarySelectedTokenId={primarySelectedTokenId}
+            onSelectToken={selectToken}
+            onToggleSelection={toggleSelection}
+            onClearSelection={clearSelection}
+            onSetSelectedTokenIds={setSelectedTokenIds}
             onUpdateToken={(id, updates) => {
               void updateToken(id, updates)
             }}
@@ -478,7 +488,10 @@ function RoomSession({ roomId }: { roomId: string }) {
             onDeleteToken={(id) => {
               void deleteToken(id)
             }}
-            onSelectToken={setSelectedTokenId}
+            onSelectToken={(id) => {
+              if (id === null) clearSelection()
+              else selectToken(id)
+            }}
             handoutAssets={handoutAssets}
             onAddHandoutAsset={addHandoutAsset}
             onEditHandoutAsset={setEditingHandout}

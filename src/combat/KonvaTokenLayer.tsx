@@ -28,8 +28,10 @@ interface KonvaTokenLayerProps {
   tacticalInfo: TacticalInfo
   role: 'GM' | 'PL'
   mySeatId: string
-  selectedTokenId: string | null
-  onSelectToken: (id: string | null) => void
+  selectedTokenIds: string[]
+  primarySelectedTokenId: string | null
+  onSelectToken: (id: string) => void
+  onToggleSelection: (id: string) => void
   onUpdateToken: (id: string, updates: Partial<MapTokenType>) => void
   stageScale: number
   stagePos: { x: number; y: number }
@@ -51,8 +53,10 @@ export function KonvaTokenLayer({
   tacticalInfo,
   role,
   mySeatId,
-  selectedTokenId,
+  selectedTokenIds,
+  primarySelectedTokenId,
   onSelectToken,
+  onToggleSelection,
   onUpdateToken,
   stageScale,
   stagePos,
@@ -214,12 +218,16 @@ export function KonvaTokenLayer({
   )
 
   const handleSelect = useCallback(
-    (tokenId: string) => {
+    (tokenId: string, shiftKey: boolean) => {
       // If the drag just ended, don't toggle selection
       if (didDragRef.current) return
-      onSelectToken(selectedTokenId === tokenId ? null : tokenId)
+      if (shiftKey) {
+        onToggleSelection(tokenId)
+      } else {
+        onSelectToken(tokenId)
+      }
     },
-    [selectedTokenId, onSelectToken],
+    [onSelectToken, onToggleSelection],
   )
 
   const handleContextMenu = useCallback(
@@ -300,13 +308,20 @@ export function KonvaTokenLayer({
           : undefined
         const displayToken = remoteDrag ? { ...token, x: remoteDrag.x, y: remoteDrag.y } : token
 
+        const selectionState: 'primary' | 'secondary' | 'none' =
+          token.id === primarySelectedTokenId
+            ? 'primary'
+            : selectedTokenIds.includes(token.id)
+              ? 'secondary'
+              : 'none'
+
         return (
           <KonvaToken
             key={token.id}
             token={displayToken}
             entity={entity}
             pixelSize={token.width * tacticalInfo.grid.size}
-            selected={token.id === selectedTokenId}
+            selectionState={selectionState}
             isHidden={isHidden}
             canDrag={canDrag}
             stageScale={stageScale}

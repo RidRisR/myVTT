@@ -46,9 +46,12 @@ function applyTheme(theme: ThemeId) {
 // Apply stored theme immediately on module load
 applyTheme(getStoredTheme())
 
+const EMPTY_SELECTION: string[] = []
+
 interface UiState {
   inspectedCharacterId: string | null
-  selectedTokenId: string | null
+  selectedTokenIds: string[]
+  primarySelectedTokenId: string | null
   bgContextMenu: ContextMenuState | null
   editingHandout: HandoutAsset | null
   activeTool: string
@@ -77,7 +80,14 @@ interface UiState {
   closePluginPanel: (panelId: string) => void
 
   setInspectedCharacterId: (id: string | null) => void
-  setSelectedTokenId: (id: string | null) => void
+  // Multi-select token methods
+  setSelectedTokenIds: (ids: string[]) => void
+  setPrimarySelectedTokenId: (id: string | null) => void
+  addToSelection: (id: string) => void
+  removeFromSelection: (id: string) => void
+  toggleSelection: (id: string) => void
+  clearSelection: () => void
+  selectToken: (id: string) => void
   setBgContextMenu: (menu: ContextMenuState | null) => void
   setEditingHandout: (asset: HandoutAsset | null) => void
   setActiveTool: (tool: string) => void
@@ -93,7 +103,8 @@ interface UiState {
 
 export const useUiStore = create<UiState>((set) => ({
   inspectedCharacterId: null,
-  selectedTokenId: null,
+  selectedTokenIds: EMPTY_SELECTION,
+  primarySelectedTokenId: null,
   bgContextMenu: null,
   editingHandout: null,
   activeTool: BuiltinToolId.Select,
@@ -128,8 +139,44 @@ export const useUiStore = create<UiState>((set) => ({
   setInspectedCharacterId: (id) => {
     set({ inspectedCharacterId: id })
   },
-  setSelectedTokenId: (id) => {
-    set({ selectedTokenId: id })
+  setSelectedTokenIds: (ids) => {
+    set({ selectedTokenIds: ids.length === 0 ? EMPTY_SELECTION : ids })
+  },
+  setPrimarySelectedTokenId: (id) => {
+    set({ primarySelectedTokenId: id })
+  },
+  addToSelection: (id) => {
+    set((s) => {
+      if (s.selectedTokenIds.includes(id)) return s
+      return { selectedTokenIds: [...s.selectedTokenIds, id] }
+    })
+  },
+  removeFromSelection: (id) => {
+    set((s) => {
+      const next = s.selectedTokenIds.filter((x) => x !== id)
+      return {
+        selectedTokenIds: next.length === 0 ? EMPTY_SELECTION : next,
+        primarySelectedTokenId: s.primarySelectedTokenId === id ? null : s.primarySelectedTokenId,
+      }
+    })
+  },
+  toggleSelection: (id) => {
+    set((s) => {
+      if (s.selectedTokenIds.includes(id)) {
+        const next = s.selectedTokenIds.filter((x) => x !== id)
+        return {
+          selectedTokenIds: next.length === 0 ? EMPTY_SELECTION : next,
+          primarySelectedTokenId: s.primarySelectedTokenId === id ? null : s.primarySelectedTokenId,
+        }
+      }
+      return { selectedTokenIds: [...s.selectedTokenIds, id] }
+    })
+  },
+  clearSelection: () => {
+    set({ selectedTokenIds: EMPTY_SELECTION, primarySelectedTokenId: null })
+  },
+  selectToken: (id) => {
+    set({ selectedTokenIds: [id], primarySelectedTokenId: id })
   },
   setBgContextMenu: (menu) => {
     set({ bgContextMenu: menu })

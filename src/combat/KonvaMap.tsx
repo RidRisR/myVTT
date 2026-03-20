@@ -35,14 +35,29 @@ export interface KonvaMapHandle {
   resetCenter: () => void
 }
 
+interface MarqueeState {
+  startMapX: number
+  startMapY: number
+  endMapX: number
+  endMapY: number
+  startScreenX: number
+  startScreenY: number
+  endScreenX: number
+  endScreenY: number
+}
+
 interface KonvaMapProps {
   tacticalInfo: TacticalInfo | null
   tokens: MapToken[]
   getEntity: (id: string) => Entity | null
   mySeatId: string
   role: 'GM' | 'PL'
-  selectedTokenId: string | null
-  onSelectToken: (id: string | null) => void
+  selectedTokenIds: string[]
+  primarySelectedTokenId: string | null
+  onSelectToken: (id: string) => void
+  onToggleSelection: (id: string) => void
+  onClearSelection: () => void
+  onSetSelectedTokenIds: (ids: string[]) => void
   onUpdateToken: (id: string, updates: Partial<MapToken>) => void
   onDeleteToken: (id: string) => void
   onAddToken: (token: MapToken) => void
@@ -57,8 +72,12 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     getEntity,
     mySeatId,
     role,
-    selectedTokenId,
+    selectedTokenIds,
+    primarySelectedTokenId,
     onSelectToken,
+    onToggleSelection,
+    onClearSelection,
+    onSetSelectedTokenIds,
     onUpdateToken,
     onDeleteToken,
     onAddToken,
@@ -76,6 +95,9 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
 
   // Active tool from UI store
   const activeTool = useUiStore((s) => s.activeTool)
+
+  // Token layer listening: only interactive when active tool is 'interaction' category
+  const tokenLayerListening = toolRegistry.get(activeTool)?.category === 'interaction'
 
   // Camera controls (zoom, pan)
   const {
@@ -163,6 +185,50 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     }
   }, [])
 
+  // Marquee selection state
+  const [marquee, setMarquee] = useState<MarqueeState | null>(null)
+  const marqueeStartRef = useRef<{
+    mapX: number
+    mapY: number
+    screenX: number
+    screenY: number
+  } | null>(null)
+
+  // Delete key: batch delete all selected tokens
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedTokenIds.length === 0) return
+        // Save all selected tokens for undo
+        const selectedTokens = tokens.filter((t) => selectedTokenIds.includes(t.id))
+        if (selectedTokens.length === 0) return
+        for (const t of selectedTokens) {
+          onDeleteToken(t.id)
+        }
+        onClearSelection()
+        const count = selectedTokens.length
+        toast('undo', count === 1 ? 'Token deleted' : `${count} tokens deleted`, {
+          duration: 5000,
+          action: {
+            label: 'Undo',
+            onClick: () => {
+              for (const t of selectedTokens) {
+                onAddToken(t)
+              }
+            },
+          },
+        })
+        e.preventDefault()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [selectedTokenIds, tokens, onDeleteToken, onAddToken, onClearSelection, toast])
+
   // Click on empty space to deselect
   const handleStageClick = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
@@ -171,11 +237,11 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
       const stage = target.getStage()
       const isStage = target === stage
       const isLayer = target.nodeType === 'Layer'
-      if ((isStage || isLayer) && selectedTokenId) {
-        onSelectToken(null)
+      if ((isStage || isLayer) && selectedTokenIds.length > 0) {
+        onClearSelection()
       }
     },
-    [selectedTokenId, onSelectToken],
+    [selectedTokenIds.length, onClearSelection],
   )
 
   // Token context menu handler from KonvaTokenLayer
@@ -205,32 +271,74 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     setContextMenu(null)
   }, [])
 
-  // Unified mouse event handlers for right-click pan state machine
-  const handleStageMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (isPanGesture(e.evt)) {
-      // Right button: start tracking for pan
-      rightButtonDownRef.current = true
-      rightButtonStartRef.current = { x: e.evt.clientX, y: e.evt.clientY }
-      isPanningRef.current = false
-    }
-    // Left button: let Konva handle normally (token clicks bubble up)
-  }, [])
+  // Unified mouse event handlers for right-click pan state machine + left-drag marquee
+  const handleStageMouseDown = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (isPanGesture(e.evt)) {
+        // Right button: start tracking for pan
+        rightButtonDownRef.current = true
+        rightButtonStartRef.current = { x: e.evt.clientX, y: e.evt.clientY }
+        isPanningRef.current = false
+        return
+      }
+      // Left button on empty space in select mode: start marquee
+      if (e.evt.button === 0 && tokenLayerListening) {
+        const target = e.target
+        const stage = target.getStage()
+        const isStage = target === stage
+        const isLayer = target.nodeType === 'Layer'
+        if (isStage || isLayer) {
+          const pointer = stage?.getRelativePointerPosition()
+          if (pointer) {
+            marqueeStartRef.current = {
+              mapX: pointer.x,
+              mapY: pointer.y,
+              screenX: e.evt.clientX,
+              screenY: e.evt.clientY,
+            }
+          }
+        }
+      }
+    },
+    [tokenLayerListening],
+  )
 
   const handleStageMouseMove = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (!rightButtonDownRef.current || !rightButtonStartRef.current) return
+      // Right-click pan
+      if (rightButtonDownRef.current && rightButtonStartRef.current) {
+        const startPos = rightButtonStartRef.current
 
-      const startPos = rightButtonStartRef.current
-
-      if (!isPanningRef.current) {
-        // Check if we've moved beyond threshold to enter pan mode
-        if (isDragBeyondThreshold(startPos.x, startPos.y, e.evt.clientX, e.evt.clientY)) {
-          isPanningRef.current = true
-          startPan(e.evt.clientX, e.evt.clientY)
+        if (!isPanningRef.current) {
+          if (isDragBeyondThreshold(startPos.x, startPos.y, e.evt.clientX, e.evt.clientY)) {
+            isPanningRef.current = true
+            startPan(e.evt.clientX, e.evt.clientY)
+          }
+        } else {
+          updatePan(e.evt.clientX, e.evt.clientY)
         }
-      } else {
-        // Already panning — update
-        updatePan(e.evt.clientX, e.evt.clientY)
+        return
+      }
+
+      // Left-drag marquee
+      if (marqueeStartRef.current) {
+        const start = marqueeStartRef.current
+        if (isDragBeyondThreshold(start.screenX, start.screenY, e.evt.clientX, e.evt.clientY)) {
+          const stage = e.target.getStage()
+          const pointer = stage?.getRelativePointerPosition()
+          if (pointer) {
+            setMarquee({
+              startMapX: start.mapX,
+              startMapY: start.mapY,
+              endMapX: pointer.x,
+              endMapY: pointer.y,
+              startScreenX: start.screenX,
+              startScreenY: start.screenY,
+              endScreenX: e.evt.clientX,
+              endScreenY: e.evt.clientY,
+            })
+          }
+        }
       }
     },
     [startPan, updatePan],
@@ -238,6 +346,36 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
 
   const handleStageMouseUp = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
+      // Left button up: finish marquee if active
+      if (e.evt.button === 0 && marqueeStartRef.current) {
+        if (marquee) {
+          // Determine which tokens are inside the marquee rect (map coords)
+          const minX = Math.min(marquee.startMapX, marquee.endMapX)
+          const maxX = Math.max(marquee.startMapX, marquee.endMapX)
+          const minY = Math.min(marquee.startMapY, marquee.endMapY)
+          const maxY = Math.max(marquee.startMapY, marquee.endMapY)
+
+          const insideIds = tokens
+            .filter((t) => {
+              // Use token center for hit test
+              const pixelSize = t.width * (tacticalInfo?.grid.size ?? 70)
+              const cx = t.x + pixelSize / 2
+              const cy = t.y + pixelSize / 2
+              return cx >= minX && cx <= maxX && cy >= minY && cy <= maxY
+            })
+            .map((t) => t.id)
+
+          if (insideIds.length > 0) {
+            onSetSelectedTokenIds(insideIds)
+          } else {
+            onClearSelection()
+          }
+          setMarquee(null)
+        }
+        marqueeStartRef.current = null
+        return
+      }
+
       if (!isPanGesture(e.evt)) return
       if (!rightButtonDownRef.current) return
 
@@ -276,7 +414,15 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
       rightButtonStartRef.current = null
       isPanningRef.current = false
     },
-    [endPan, role],
+    [
+      endPan,
+      role,
+      marquee,
+      tokens,
+      tacticalInfo?.grid.size,
+      onSetSelectedTokenIds,
+      onClearSelection,
+    ],
   )
 
   // Prevent browser context menu on the container
@@ -311,23 +457,31 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     void useWorldStore.getState().duplicateToken(tokenId)
   }, [])
 
-  // Undo-able token deletion
+  // Undo-able token deletion (context menu — deletes all selected if target is selected)
   const handleDeleteToken = useCallback(
     (tokenId: string) => {
-      const token = tokens.find((t) => t.id === tokenId)
-      if (!token) return
-      onDeleteToken(tokenId)
-      toast('undo', 'Token deleted', {
+      // If the target token is in the selection, batch-delete all selected tokens
+      const idsToDelete = selectedTokenIds.includes(tokenId) ? selectedTokenIds : [tokenId]
+      const tokensToDelete = tokens.filter((t) => idsToDelete.includes(t.id))
+      if (tokensToDelete.length === 0) return
+      for (const t of tokensToDelete) {
+        onDeleteToken(t.id)
+      }
+      onClearSelection()
+      const count = tokensToDelete.length
+      toast('undo', count === 1 ? 'Token deleted' : `${count} tokens deleted`, {
         duration: 5000,
         action: {
           label: 'Undo',
           onClick: () => {
-            onAddToken(token)
+            for (const t of tokensToDelete) {
+              onAddToken(t)
+            }
           },
         },
       })
     },
-    [tokens, onDeleteToken, onAddToken, toast],
+    [tokens, selectedTokenIds, onDeleteToken, onAddToken, onClearSelection, toast],
   )
 
   // Resolve token + entity for context menu and tooltip
@@ -337,9 +491,6 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     getEntity,
   )
   const [tooltipToken, tooltipEntity] = resolveTokenEntity(tokens, tooltipState?.tokenId, getEntity)
-
-  // Token layer listening: only interactive when active tool is 'interaction' category
-  const tokenLayerListening = toolRegistry.get(activeTool)?.category === 'interaction'
 
   // No tacticalInfo state (no active scene)
   if (!tacticalInfo) {
@@ -416,8 +567,10 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
             tacticalInfo={tacticalInfo}
             role={role}
             mySeatId={mySeatId}
-            selectedTokenId={selectedTokenId}
+            selectedTokenIds={selectedTokenIds}
+            primarySelectedTokenId={primarySelectedTokenId}
             onSelectToken={onSelectToken}
+            onToggleSelection={onToggleSelection}
             onUpdateToken={onUpdateToken}
             stageScale={stageScale}
             stagePos={stagePos}
@@ -451,6 +604,7 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
           token={contextMenuToken}
           entity={contextMenuEntity}
           role={role}
+          selectedTokenIds={selectedTokenIds}
           onClose={handleCloseContextMenu}
           onDeleteToken={handleDeleteToken}
           onUpdateToken={onUpdateToken}
@@ -468,6 +622,23 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
           entity={tooltipEntity}
           screenX={tooltipState.screenX}
           screenY={tooltipState.screenY}
+        />
+      )}
+
+      {/* Marquee selection overlay */}
+      {marquee && (
+        <div
+          style={{
+            position: 'fixed',
+            left: Math.min(marquee.startScreenX, marquee.endScreenX),
+            top: Math.min(marquee.startScreenY, marquee.endScreenY),
+            width: Math.abs(marquee.endScreenX - marquee.startScreenX),
+            height: Math.abs(marquee.endScreenY - marquee.startScreenY),
+            border: '1px dashed rgba(255, 255, 255, 0.8)',
+            backgroundColor: 'rgba(100, 149, 237, 0.15)',
+            pointerEvents: 'none',
+            zIndex: 50,
+          }}
         />
       )}
     </div>

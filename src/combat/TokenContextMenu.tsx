@@ -10,6 +10,7 @@ interface TokenContextMenuProps {
   token: MapToken | null
   entity: Entity | null
   role: 'GM' | 'PL'
+  selectedTokenIds: string[]
   onClose: () => void
   onDeleteToken: (id: string) => void
   onUpdateToken: (id: string, updates: Partial<MapToken>) => void
@@ -29,6 +30,7 @@ export function TokenContextMenu({
   token,
   entity,
   role,
+  selectedTokenIds,
   onClose,
   onDeleteToken,
   onUpdateToken,
@@ -137,9 +139,13 @@ export function TokenContextMenu({
           {/* Separator */}
           <div className="border-t border-border-glass my-1" />
 
-          {/* Delete Token */}
+          {/* Delete Token(s) */}
           <MenuItem
-            label={t('token.delete')}
+            label={
+              selectedTokenIds.includes(tokenId) && selectedTokenIds.length > 1
+                ? t('token.delete_n', { count: selectedTokenIds.length })
+                : t('token.delete')
+            }
             danger
             onClick={() => {
               onDeleteToken(tokenId)

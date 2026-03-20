@@ -20,6 +20,7 @@
     "show": "Show Token",
     "hide": "Hide Token",
     "delete": "Delete Token",
+    "delete_n": "Delete {{count}} Tokens",
     "create": "Create Token"
   },
   "measure": {

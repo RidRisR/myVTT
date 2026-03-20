@@ -20,6 +20,7 @@
     "show": "显示 Token",
     "hide": "隐藏 Token",
     "delete": "删除 Token",
+    "delete_n": "删除 {{count}} 个 Token",
     "create": "创建 Token"
   },
   "measure": {
