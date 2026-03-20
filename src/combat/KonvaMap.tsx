@@ -19,6 +19,7 @@ import { useEntityDrop } from './hooks/useEntityDrop'
 import { BackgroundLayer } from './BackgroundLayer'
 import { toolRegistry } from './tools/toolRegistry'
 import { isPanGesture, isDragBeyondThreshold } from './hooks/useCanvasGestures'
+import { SelectionActionBar } from './SelectionActionBar'
 
 interface ContextMenuState {
   screenX: number
@@ -641,6 +642,19 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
           }}
         />
       )}
+
+      {/* Selection action bar — plugin-provided token actions */}
+      <SelectionActionBar
+        tokens={tokens}
+        selectedTokenIds={selectedTokenIds}
+        primarySelectedTokenId={primarySelectedTokenId}
+        getEntity={getEntity}
+        role={role}
+        stageScale={stageScale}
+        stagePos={stagePos}
+        containerOffset={containerOffsetRef.current}
+        gridSize={tacticalInfo.grid.size}
+      />
     </div>
   )
 })
