@@ -111,7 +111,7 @@ export default function PatternFloatingCard() {
           <div className="p-3">
             <p className="text-xs text-text-primary font-medium">Hover Preview</p>
             <p className="text-[10px] text-muted mt-1">
-              Closes on mouse leave. Uses anchored mode with clickoutside=off.
+              Closes on mouse leave. Uses anchored mode with dismissOn=&quot;mouseleave&quot;.
             </p>
           </div>
         </FloatingCard>
@@ -169,7 +169,7 @@ export default function PatternFloatingCard() {
               </button>
             </div>
             <p className="text-[10px] text-muted">
-              Drag the handle at top. Does not close on click outside.
+              Drag any non-interactive area. Does not close on click outside.
             </p>
           </div>
         </FloatingCard>

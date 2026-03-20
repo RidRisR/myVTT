@@ -27,21 +27,25 @@ export interface FloatingCardProps {
 }
 
 const SIDE_OFFSET = 8
+const COLLISION_PADDING = 8
+const DEFAULT_WIDTH = 260
 
 /**
  * Compute left/top for anchored mode: centered below the anchor DOMRect.
  * Clamps to viewport edges with collision padding.
  */
 function anchoredPosition(anchor: DOMRect, width: number) {
-  const PADDING = 8
   let left = anchor.left + anchor.width / 2 - width / 2
-  const top = anchor.bottom + SIDE_OFFSET
+  let top = anchor.bottom + SIDE_OFFSET
 
   // Clamp horizontal
-  if (left < PADDING) left = PADDING
-  if (left + width > window.innerWidth - PADDING) {
-    left = window.innerWidth - PADDING - width
+  if (left < COLLISION_PADDING) left = COLLISION_PADDING
+  if (left + width > window.innerWidth - COLLISION_PADDING) {
+    left = window.innerWidth - COLLISION_PADDING - width
   }
+
+  // Clamp vertical
+  if (top < COLLISION_PADDING) top = COLLISION_PADDING
 
   return { x: left, y: top }
 }
@@ -75,7 +79,7 @@ export function FloatingCard({
   // Compute initial position based on mode
   const initialPos =
     mode === 'anchored' && anchor
-      ? anchoredPosition(anchor, width ?? 260)
+      ? anchoredPosition(anchor, width ?? DEFAULT_WIDTH)
       : (position ?? { x: 100, y: 100 })
 
   // posRef holds authoritative position (read by drag handler).
@@ -86,7 +90,7 @@ export function FloatingCard({
   // Update position when anchor changes (anchored mode only, when not dragging)
   useEffect(() => {
     if (mode === 'anchored' && anchor && !dragCleanupRef.current) {
-      const next = anchoredPosition(anchor, width ?? 260)
+      const next = anchoredPosition(anchor, width ?? DEFAULT_WIDTH)
       posRef.current = next
       setPos(next)
     }
@@ -161,7 +165,7 @@ export function FloatingCard({
       style={{
         left: pos.x,
         top: pos.y,
-        width: width ?? undefined,
+        width,
       }}
       onClick={(e) => {
         e.stopPropagation()
@@ -175,7 +179,7 @@ export function FloatingCard({
         e.stopPropagation()
       }}
       onMouseEnter={onMouseEnter}
-      onMouseLeave={dismissOn === 'mouseleave' ? onMouseLeave : undefined}
+      onMouseLeave={onMouseLeave}
     >
       {children}
     </div>
