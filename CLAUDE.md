@@ -17,6 +17,7 @@ React + Socket.io + SQLite VTT with dual-mode: Scene (atmosphere) + Tactical (co
 | Adding or modifying server routes / middleware       | [server-infrastructure.md](docs/conventions/server-infrastructure.md) |
 | Creating branches, committing, or opening PRs        | [git-workflow.md](docs/conventions/git-workflow.md)                   |
 | Working on UI components or styling                  | [ui-patterns.md](docs/conventions/ui-patterns.md)                     |
+| Creating or editing sandbox patterns                 | [sandbox-authoring.md](docs/conventions/sandbox-authoring.md)         |
 
 ## ⚠️ Bug Fix Discipline
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { lazy, Suspense, useEffect, useState, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSocket } from './hooks/useSocket'
 import { AdminPanel } from './admin/AdminPanel'
@@ -40,6 +40,11 @@ import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './ui/ToastProvider'
 import { PluginPanelContainer } from './layout/PluginPanelContainer'
+
+// DEV-only: Sandbox pattern library. Vite replaces import.meta.env.DEV with
+// false in production builds, making the lazy import dead code that Rollup
+// eliminates entirely (along with the whole src/sandbox/ directory).
+const SandboxRoot = import.meta.env.DEV ? lazy(() => import('./sandbox/index')) : () => null
 
 const EMPTY_ENTRIES: SceneEntityEntry[] = []
 
@@ -583,6 +588,20 @@ export default function App() {
 
   if (hash === '#admin') {
     return <AdminPanel />
+  }
+
+  if (import.meta.env.DEV && hash === '#sandbox') {
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-screen items-center justify-center bg-deep text-muted">
+            Loading sandbox...
+          </div>
+        }
+      >
+        <SandboxRoot />
+      </Suspense>
+    )
   }
 
   const roomMatch = hash.match(/^#room=([a-zA-Z0-9_-]+)$/)
