@@ -49,11 +49,17 @@ native module resolution and produces spurious test failures unrelated to your c
 - English only, no Chinese or other non-ASCII characters
 - No `Co-Authored-By` lines or AI generation disclaimers
 
+## Issue Linking
+
+- Every PR that resolves an issue **must** include `Closes #N` in the PR body (the template has a dedicated section)
+- GitHub will auto-close the linked issue when the PR is squash-merged into main
+- Use `Closes` (not `Fixes` or `Resolves`) for consistency
+
 ## Merge Flow
 
 ```bash
-# Create PR
-gh pr create --title "feat: add feature X" --body "..."
+# Create PR (include "Closes #N" in the body)
+gh pr create --title "feat: add feature X" --body "Closes #123"
 
 # Merge only after user confirms (squash only)
 gh pr merge --squash

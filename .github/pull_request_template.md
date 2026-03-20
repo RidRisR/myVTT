@@ -2,6 +2,12 @@
 
 <!-- Brief description of the change -->
 
+## Closes
+
+<!-- Link related issues so they auto-close on merge. Delete this section if no related issue. -->
+
+- Closes #
+
 ## API / Type Contract Changes
 
 <!-- Remove this section if not applicable -->
