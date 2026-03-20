@@ -5,6 +5,7 @@ import { useWorldStore } from '../stores/worldStore'
 import { useToast } from '../ui/useToast'
 import { TagEditorPopover } from '../ui/TagEditorPopover'
 import type { AssetMeta } from '../shared/assetTypes'
+import { computeCommonTags, computeTagsToAdd, computeTagsAfterRemoval } from './assetPickerUtils'
 
 interface BatchToolbarProps {
   selection: Set<string>
@@ -31,20 +32,7 @@ export function BatchToolbar({
   )
 
   // Tags common to ALL selected assets (for remove display)
-  const commonTags = useMemo(() => {
-    const firstAsset = selectedAssets[0]
-    if (!firstAsset) return []
-    const first = new Set(firstAsset.tags)
-    for (let i = 1; i < selectedAssets.length; i++) {
-      const asset = selectedAssets[i]
-      if (!asset) continue
-      const tags = new Set(asset.tags)
-      for (const tag of first) {
-        if (!tags.has(tag)) first.delete(tag)
-      }
-    }
-    return Array.from(first)
-  }, [selectedAssets])
+  const commonTags = useMemo(() => computeCommonTags(selectedAssets), [selectedAssets])
 
   const handleAddTags = async (newTags: string[]) => {
     // Find tags that were added compared to empty initial state
@@ -52,7 +40,7 @@ export function BatchToolbar({
     try {
       const results = await Promise.allSettled(
         selectedAssets.map((asset) => {
-          const tagsToAdd = newTags.filter((tag) => !asset.tags.includes(tag))
+          const tagsToAdd = computeTagsToAdd(asset.tags, newTags)
           if (tagsToAdd.length === 0) return Promise.resolve()
           return updateAsset(asset.id, { tags: [...asset.tags, ...tagsToAdd] })
         }),
@@ -79,8 +67,8 @@ export function BatchToolbar({
     try {
       const results = await Promise.allSettled(
         selectedAssets.map((asset) => {
-          const newTags = asset.tags.filter((tag) => !removedTags.includes(tag))
-          return updateAsset(asset.id, { tags: newTags })
+          const remaining = computeTagsAfterRemoval(asset.tags, removedTags)
+          return updateAsset(asset.id, { tags: remaining })
         }),
       )
       const failures = results.filter((r) => r.status === 'rejected')

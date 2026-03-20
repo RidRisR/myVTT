@@ -10,7 +10,6 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import { arrayMove } from '@dnd-kit/sortable'
 import { X } from 'lucide-react'
 import { usePanelDrag } from '../shared/usePanelDrag'
 import { useClickOutside } from '../hooks/useClickOutside'
@@ -19,8 +18,13 @@ import { CategoryTabs } from '../ui/CategoryTabs'
 import { DraggableTagBar } from '../ui/DraggableTagBar'
 import { AssetGrid } from './AssetGrid'
 import { BatchToolbar } from './BatchToolbar'
-import { AUTO_TAGS, type AssetMeta } from '../shared/assetTypes'
-const REORDER_GAP = 1000
+import { type AssetMeta } from '../shared/assetTypes'
+import {
+  filterAssets,
+  collectUserTags,
+  resolveTagDrop,
+  computeReorder,
+} from './assetPickerUtils'
 
 const CATEGORIES = [
   { key: 'map', label: 'Maps' },
@@ -105,52 +109,25 @@ export function AssetPickerPanel({
   }, [open, isMultiSelect, close])
 
   // Filter assets
-  const filteredAssets = useMemo(() => {
-    let result = allAssets
-    if (filter?.mediaType) {
-      result = result.filter((a) => a.mediaType === filter.mediaType)
-    }
-    if (activeCategory) {
-      result = result.filter((a) => a.tags.includes(activeCategory))
-    }
-    if (selectedTags.length > 0) {
-      result = result.filter((a) => selectedTags.every((tag) => a.tags.includes(tag)))
-    }
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      result = result.filter((a) => a.name.toLowerCase().includes(q))
-    }
-    return result
-  }, [allAssets, filter, activeCategory, selectedTags, search])
+  const filteredAssets = useMemo(
+    () =>
+      filterAssets(allAssets, {
+        mediaType: filter?.mediaType,
+        category: activeCategory,
+        selectedTags,
+        search,
+      }),
+    [allAssets, filter, activeCategory, selectedTags, search],
+  )
 
   // Available tags: from assets matching mediaType + category filter (excludes auto-tags)
   const availableTags = useMemo(() => {
-    let base = allAssets
-    if (filter?.mediaType) {
-      base = base.filter((a) => a.mediaType === filter.mediaType)
-    }
-    if (activeCategory) {
-      base = base.filter((a) => a.tags.includes(activeCategory))
-    }
-    const tags = new Set<string>()
-    for (const a of base) {
-      for (const tag of a.tags) {
-        if (!AUTO_TAGS.includes(tag)) tags.add(tag)
-      }
-    }
-    return Array.from(tags).sort()
+    const base = filterAssets(allAssets, { mediaType: filter?.mediaType, category: activeCategory })
+    return collectUserTags(base)
   }, [allAssets, filter, activeCategory])
 
   // All known tags across ALL assets
-  const allKnownTags = useMemo(() => {
-    const tags = new Set<string>()
-    for (const a of allAssets) {
-      for (const tag of a.tags) {
-        if (!AUTO_TAGS.includes(tag)) tags.add(tag)
-      }
-    }
-    return Array.from(tags).sort()
-  }, [allAssets])
+  const allKnownTags = useMemo(() => collectUserTags(allAssets), [allAssets])
 
   // Effective auto-tags: prop > activeCategory > undefined
   // In manage mode, use current category tab as upload tag
@@ -193,24 +170,17 @@ export function AssetPickerPanel({
     // Tag drop onto asset
     if (activeData?.type === 'tag' && overAssetId) {
       const tag = activeData.tag as string
-      // If the target is in selection, add tag to ALL selected assets
-      const targetIds = selection.has(overAssetId) ? Array.from(selection) : [overAssetId]
-      for (const id of targetIds) {
-        const asset = allAssets.find((a) => a.id === id)
-        if (asset && !asset.tags.includes(tag)) {
-          void updateAsset(id, { tags: [...asset.tags, tag] })
-        }
+      const updates = resolveTagDrop(allAssets, overAssetId, tag, selection)
+      for (const u of updates) {
+        void updateAsset(u.id, { tags: u.tags })
       }
       return
     }
 
     // Sortable reorder
     if (activeData?.type === 'asset' && active.id !== overAssetId) {
-      const oldIndex = filteredAssets.findIndex((a) => a.id === active.id)
-      const newIndex = filteredAssets.findIndex((a) => a.id === overAssetId)
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const reordered = arrayMove(filteredAssets, oldIndex, newIndex)
-        const order = reordered.map((a, i) => ({ id: a.id, sortOrder: (i + 1) * REORDER_GAP }))
+      const order = computeReorder(filteredAssets, active.id as string, overAssetId)
+      if (order.length > 0) {
         void reorderAssets(order)
       }
     }

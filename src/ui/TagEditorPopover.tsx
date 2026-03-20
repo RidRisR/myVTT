@@ -3,6 +3,11 @@ import * as Popover from '@radix-ui/react-popover'
 import { X } from 'lucide-react'
 import { PopoverContent } from './primitives/PopoverContent'
 import { AUTO_TAGS } from '../shared/assetTypes'
+import {
+  filterUserTags,
+  computeSuggestions,
+  shouldShowCreateOption,
+} from '../asset-picker/assetPickerUtils'
 
 interface TagEditorPopoverProps {
   tags: string[]
@@ -34,24 +39,19 @@ export function TagEditorPopover({
   }
 
   // Filter out auto-tags from display and editing
-  const userTags = useMemo(() => tags.filter((t) => !AUTO_TAGS.includes(t)), [tags])
+  const userTags = useMemo(() => filterUserTags(tags), [tags])
   const autoTagsOnItem = useMemo(() => tags.filter((t) => AUTO_TAGS.includes(t)), [tags])
 
   // Suggestions: known tags not already on this item, matching input, excluding auto-tags
-  const suggestions = useMemo(() => {
-    const q = input.trim().toLowerCase()
-    return allKnownTags
-      .filter((t) => !AUTO_TAGS.includes(t))
-      .filter((t) => !tags.includes(t))
-      .filter((t) => !q || t.toLowerCase().includes(q))
-  }, [allKnownTags, tags, input])
+  const suggestions = useMemo(
+    () => computeSuggestions(allKnownTags, tags, input),
+    [allKnownTags, tags, input],
+  )
 
-  const showCreateOption = useMemo(() => {
-    const q = input.trim()
-    if (!q) return false
-    if (AUTO_TAGS.some((t) => t.toLowerCase() === q.toLowerCase())) return false
-    return !allKnownTags.some((t) => t.toLowerCase() === q.toLowerCase())
-  }, [input, allKnownTags])
+  const showCreateOption = useMemo(
+    () => shouldShowCreateOption(input, allKnownTags),
+    [input, allKnownTags],
+  )
 
   const addTag = (tag: string) => {
     const trimmed = tag.trim()
