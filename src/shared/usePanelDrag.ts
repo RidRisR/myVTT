@@ -1,62 +1,76 @@
-import { useRef, useCallback, type RefObject } from 'react'
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 
 /**
- * Makes a flex-centered element draggable by a handle.
- * Uses position:relative + left/top to avoid creating a CSS containing block
- * (which would break position:fixed children like @dnd-kit DragOverlay).
- * Direct DOM manipulation avoids re-renders on every pointer move.
+ * Makes a fixed-positioned panel draggable by a handle.
+ * Uses position:fixed + left/top (no transform) to avoid creating a CSS
+ * containing block that would break child fixed positioning (e.g. Radix Portals).
+ *
+ * Pattern: posRef holds mutable position (read by drag handler),
+ * pos state drives React re-renders. This keeps handleDragStart stable
+ * (zero dependencies) and avoids re-creating the callback on every frame.
+ *
+ * Reference: PatternFloatingPanelOverlay.tsx
  */
-export function usePanelDrag(): {
-  targetRef: RefObject<HTMLDivElement | null>
-  handlePointerDown: (e: React.PointerEvent) => void
-  resetPosition: () => void
+export function usePanelDrag(initial = { x: 0, y: 0 }): {
+  panelRef: React.RefObject<HTMLDivElement | null>
+  pos: { x: number; y: number }
+  setPos: Dispatch<SetStateAction<{ x: number; y: number }>>
+  handleDragStart: (e: React.PointerEvent) => void
 } {
-  const targetRef = useRef<HTMLDivElement | null>(null)
-  const offset = useRef({ x: 0, y: 0 })
-  const start = useRef({ x: 0, y: 0 })
+  const panelRef = useRef<HTMLDivElement | null>(null)
+  const posRef = useRef(initial)
+  const [pos, setPos] = useState(initial)
+  const dragCleanupRef = useRef<(() => void) | null>(null)
 
-  const applyOffset = () => {
-    if (!targetRef.current) return
-    targetRef.current.style.position = 'relative'
-    targetRef.current.style.left = `${offset.current.x}px`
-    targetRef.current.style.top = `${offset.current.y}px`
-  }
+  // Keep posRef in sync with state (for external setPos calls like centering on open)
+  const wrappedSetPos: Dispatch<SetStateAction<{ x: number; y: number }>> = useCallback(
+    (action) => {
+      setPos((prev) => {
+        const next = typeof action === 'function' ? action(prev) : action
+        posRef.current = next
+        return next
+      })
+    },
+    [],
+  )
 
-  const resetPosition = useCallback(() => {
-    offset.current = { x: 0, y: 0 }
-    if (targetRef.current) {
-      targetRef.current.style.position = ''
-      targetRef.current.style.left = ''
-      targetRef.current.style.top = ''
+  // Clean up drag listeners on unmount
+  useEffect(() => {
+    return () => {
+      dragCleanupRef.current?.()
     }
   }, [])
 
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    // Only primary button
+  // Stable drag handler — no dependencies, reads position from ref
+  const handleDragStart = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return
-    // Don't drag if clicking interactive elements (or their children) inside handle
-    const target = e.target as HTMLElement
-    if (target.closest('button, input, a, [role="button"]')) return
-
+    // Don't drag when clicking interactive elements inside the handle
+    if (
+      (e.target as HTMLElement).closest(
+        'button, input, a, [role="button"], [data-radix-popper-content-wrapper]',
+      )
+    ) {
+      return
+    }
     e.preventDefault()
-    const el = e.currentTarget as HTMLElement
-    el.setPointerCapture(e.pointerId)
 
-    start.current = { x: e.clientX - offset.current.x, y: e.clientY - offset.current.y }
+    const startX = e.clientX - posRef.current.x
+    const startY = e.clientY - posRef.current.y
 
     const onMove = (ev: PointerEvent) => {
-      offset.current = { x: ev.clientX - start.current.x, y: ev.clientY - start.current.y }
-      applyOffset()
+      const next = { x: ev.clientX - startX, y: ev.clientY - startY }
+      posRef.current = next
+      setPos(next)
     }
-
     const onUp = () => {
-      el.removeEventListener('pointermove', onMove)
-      el.removeEventListener('pointerup', onUp)
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
+      dragCleanupRef.current = null
     }
-
-    el.addEventListener('pointermove', onMove)
-    el.addEventListener('pointerup', onUp)
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
+    dragCleanupRef.current = onUp
   }, [])
 
-  return { targetRef, handlePointerDown, resetPosition }
+  return { panelRef, pos, setPos: wrappedSetPos, handleDragStart }
 }

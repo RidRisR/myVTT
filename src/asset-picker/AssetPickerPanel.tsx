@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
   DndContext,
@@ -55,33 +56,29 @@ export function AssetPickerPanel({
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [selection, setSelection] = useState<Set<string>>(new Set())
 
-  const panelRef = useRef<HTMLDivElement | null>(null)
-  const { targetRef, handlePointerDown: onDragHandleDown, resetPosition } = usePanelDrag()
+  // Panel drag — fixed + left/top, no transform (avoids CSS containing block)
+  const { panelRef, pos, setPos, handleDragStart: onDragHandleDown } = usePanelDrag()
 
   const isMultiSelect = selection.size > 0
-
-  // Combined ref setter for panel element
-  const setPanelRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      panelRef.current = node
-      targetRef.current = node
-    },
-    [targetRef],
-  )
 
   // Close handler
   const close = useCallback(() => {
     onOpenChange(false)
   }, [onOpenChange])
 
-  // Click outside to close
+  // Click outside to close (disabled during drag)
   const activeDrag = draggedTag !== null || draggedAsset !== null
   useClickOutside(panelRef, close, open && !activeDrag)
 
-  // Reset position on open
+  // Center panel on open
   useEffect(() => {
-    if (open) resetPosition()
-  }, [open, resetPosition])
+    if (open) {
+      setPos({
+        x: Math.round((window.innerWidth - 560) / 2),
+        y: Math.round((window.innerHeight - 500) / 2),
+      })
+    }
+  }, [open, setPos])
 
   // Clear selection when mode or open changes
   useEffect(() => {
@@ -155,6 +152,14 @@ export function AssetPickerPanel({
     return Array.from(tags).sort()
   }, [allAssets])
 
+  // Effective auto-tags: prop > activeCategory > undefined
+  // In manage mode, use current category tab as upload tag
+  const effectiveAutoTags = useMemo(() => {
+    if (autoTags) return autoTags
+    if (activeCategory) return [activeCategory]
+    return undefined
+  }, [autoTags, activeCategory])
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   const handleSelect = useCallback(
@@ -217,10 +222,13 @@ export function AssetPickerPanel({
 
   if (!open) return null
 
-  return (
+  // Render via Portal to escape ancestor containing blocks
+  // (transform/backdrop-filter on MyCharacterCard, HamburgerMenu, etc.)
+  return createPortal(
     <div
-      ref={setPanelRef}
-      className="fixed inset-0 m-auto w-[90vw] max-w-[560px] h-fit max-h-[80vh] z-panel bg-surface border border-border-glass rounded-xl shadow-xl flex flex-col"
+      ref={panelRef}
+      className="fixed z-ui w-[90vw] max-w-[560px] max-h-[80vh] bg-surface border border-border-glass rounded-xl shadow-xl flex flex-col"
+      style={{ left: pos.x, top: pos.y }}
     >
       {/* Title bar — drag handle */}
       <div
@@ -280,7 +288,7 @@ export function AssetPickerPanel({
           <AssetGrid
             assets={filteredAssets}
             mode={mode}
-            autoTags={autoTags}
+            autoTags={effectiveAutoTags}
             onSelect={handleSelect}
             selection={selection}
             onSelectionChange={handleSelectionChange}
@@ -319,6 +327,7 @@ export function AssetPickerPanel({
           }}
         />
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }
