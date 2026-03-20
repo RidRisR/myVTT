@@ -20,12 +20,7 @@ export function GmSidebar() {
   const setCollapsed = useUiStore((s) => s.setGmSidebarCollapsed)
 
   return (
-    <div
-      className="fixed top-1/2 left-0 -translate-y-1/2 z-ui flex pointer-events-none"
-      onPointerDown={(e) => {
-        e.stopPropagation()
-      }}
-    >
+    <div className="fixed top-1/2 left-0 -translate-y-1/2 z-ui flex pointer-events-none">
       <div
         className="flex pointer-events-auto"
         style={{
