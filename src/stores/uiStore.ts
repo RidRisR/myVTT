@@ -3,6 +3,8 @@
 
 import { create } from 'zustand'
 import type { HandoutAsset } from './worldStore'
+import type { TokenAction, TargetInfo } from '../rules/types'
+import type { Entity } from '../shared/entityTypes'
 import { toolRegistry } from '../combat/tools/toolRegistry'
 import { BuiltinToolId } from '../combat/tools/builtinToolIds'
 
@@ -99,6 +101,16 @@ interface UiState {
   toggleGridConfig: () => void
   setGmSidebarTab: (tab: GmSidebarTab) => void
   setGmSidebarCollapsed: (collapsed: boolean) => void
+
+  // Action targeting
+  activeTargetingRequest: {
+    action: TokenAction
+    actor: Entity
+    collectedTargets: TargetInfo[]
+  } | null
+  startTargeting: (action: TokenAction, actor: Entity) => void
+  addTargetingTarget: (target: TargetInfo) => void
+  cancelTargeting: () => void
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -215,5 +227,38 @@ export const useUiStore = create<UiState>((set) => ({
   },
   setGmSidebarCollapsed: (collapsed) => {
     set({ gmSidebarCollapsed: collapsed })
+  },
+
+  activeTargetingRequest: null,
+  startTargeting: (action, actor) => {
+    set({
+      activeTargetingRequest: { action, actor, collectedTargets: [] },
+      activeTool: BuiltinToolId.ActionTargeting,
+    })
+  },
+  addTargetingTarget: (target) => {
+    set((s) => {
+      if (!s.activeTargetingRequest) return s
+      const req = s.activeTargetingRequest
+      const next = [...req.collectedTargets, target]
+      const needed = req.action.targeting?.count ?? 1
+      if (next.length >= needed) {
+        // Execute the action and return to select
+        req.action.onExecute(req.actor, next)
+        return {
+          activeTargetingRequest: null,
+          activeTool: BuiltinToolId.Select,
+        }
+      }
+      return {
+        activeTargetingRequest: { ...req, collectedTargets: next },
+      }
+    })
+  },
+  cancelTargeting: () => {
+    set({
+      activeTargetingRequest: null,
+      activeTool: BuiltinToolId.Select,
+    })
   },
 }))

@@ -8,6 +8,7 @@ export const BuiltinToolId = {
   RangeCone: 'range-cone',
   RangeRect: 'range-rect',
   GridConfig: 'grid-config',
+  ActionTargeting: 'action-targeting',
 } as const
 
 export type BuiltinToolId = (typeof BuiltinToolId)[keyof typeof BuiltinToolId]

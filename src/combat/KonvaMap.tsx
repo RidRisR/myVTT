@@ -96,6 +96,9 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
 
   // Active tool from UI store
   const activeTool = useUiStore((s) => s.activeTool)
+  const activeTargetingRequest = useUiStore((s) => s.activeTargetingRequest)
+  const addTargetingTarget = useUiStore((s) => s.addTargetingTarget)
+  const cancelTargeting = useUiStore((s) => s.cancelTargeting)
 
   // Token layer listening: only interactive when active tool is 'interaction' category
   const tokenLayerListening = toolRegistry.get(activeTool)?.category === 'interaction'
@@ -195,11 +198,39 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     screenY: number
   } | null>(null)
 
-  // Delete key: batch delete all selected tokens
+  // Action targeting: intercept token clicks
+  const isTargeting = activeTargetingRequest !== null
+
+  const handleTargetToken = useCallback(
+    (tokenId: string) => {
+      if (!activeTargetingRequest) return
+      const token = tokens.find((t) => t.id === tokenId)
+      if (!token) return
+      const entity = getEntity(token.entityId)
+      if (!entity) return
+
+      const targetIndex = activeTargetingRequest.collectedTargets.length
+      const labels = activeTargetingRequest.action.targeting?.labels
+      addTargetingTarget({
+        tokenId,
+        entity,
+        index: targetIndex,
+        label: labels?.[targetIndex],
+      })
+    },
+    [activeTargetingRequest, tokens, getEntity, addTargetingTarget],
+  )
+
+  // Delete key: batch delete all selected tokens; Escape cancels targeting
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.key === 'Escape' && activeTargetingRequest) {
+        cancelTargeting()
+        e.preventDefault()
+        return
+      }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedTokenIds.length === 0) return
         // Save all selected tokens for undo
@@ -228,7 +259,16 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [selectedTokenIds, tokens, onDeleteToken, onAddToken, onClearSelection, toast])
+  }, [
+    selectedTokenIds,
+    tokens,
+    onDeleteToken,
+    onAddToken,
+    onClearSelection,
+    toast,
+    activeTargetingRequest,
+    cancelTargeting,
+  ])
 
   // Click on empty space to deselect
   const handleStageClick = useCallback(
@@ -380,6 +420,15 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
       if (!isPanGesture(e.evt)) return
       if (!rightButtonDownRef.current) return
 
+      if (!isPanningRef.current && activeTargetingRequest) {
+        cancelTargeting()
+        // Reset state
+        rightButtonDownRef.current = false
+        rightButtonStartRef.current = null
+        isPanningRef.current = false
+        return
+      }
+
       if (isPanningRef.current) {
         // Was panning — end pan
         endPan()
@@ -423,6 +472,8 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
       tacticalInfo?.grid.size,
       onSetSelectedTokenIds,
       onClearSelection,
+      activeTargetingRequest,
+      cancelTargeting,
     ],
   )
 
@@ -524,6 +575,7 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
         overflow: 'hidden',
         background: 'transparent',
         position: 'relative',
+        cursor: isTargeting ? 'crosshair' : undefined,
       }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -570,8 +622,8 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
             mySeatId={mySeatId}
             selectedTokenIds={selectedTokenIds}
             primarySelectedTokenId={primarySelectedTokenId}
-            onSelectToken={onSelectToken}
-            onToggleSelection={onToggleSelection}
+            onSelectToken={isTargeting ? handleTargetToken : onSelectToken}
+            onToggleSelection={isTargeting ? handleTargetToken : onToggleSelection}
             onUpdateToken={onUpdateToken}
             stageScale={stageScale}
             stagePos={stagePos}
@@ -641,6 +693,22 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
             zIndex: 50,
           }}
         />
+      )}
+
+      {/* Targeting mode prompt bar */}
+      {activeTargetingRequest && (
+        <div
+          className="fixed z-ui left-1/2 top-4 bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_4px_24px_rgba(0,0,0,0.5)] px-4 py-2 pointer-events-auto"
+          style={{ transform: 'translateX(-50%)' }}
+        >
+          <span className="text-text-primary text-sm font-medium">
+            {activeTargetingRequest.action.targeting?.labels?.[
+              activeTargetingRequest.collectedTargets.length
+            ] ??
+              `Select target ${activeTargetingRequest.collectedTargets.length + 1}/${activeTargetingRequest.action.targeting?.count ?? 1}`}
+          </span>
+          <span className="text-text-muted text-xs ml-3">Right-click to cancel</span>
+        </div>
       )}
 
       {/* Selection action bar — plugin-provided token actions */}

@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type { MapToken, Entity } from '../shared/entityTypes'
 import type { TokenActionContext } from '../rules/types'
 import { useRulePlugin } from '../rules/useRulePlugin'
+import { useUiStore } from '../stores/uiStore'
 
 interface SelectionActionBarProps {
   tokens: MapToken[]
@@ -27,6 +28,7 @@ export function SelectionActionBar({
   gridSize,
 }: SelectionActionBarProps) {
   const plugin = useRulePlugin()
+  const startTargeting = useUiStore((s) => s.startTargeting)
 
   const actions = useMemo(() => {
     if (selectedTokenIds.length === 0 || !primarySelectedTokenId) return []
@@ -98,9 +100,9 @@ export function SelectionActionBar({
             onClick={() => {
               if (isDisabled) return
               if (action.targeting) {
-                console.warn(
-                  `[SelectionActionBar] Action "${action.id}" requires targeting — not yet implemented (PR 6)`,
-                )
+                if (primaryEntity) {
+                  startTargeting(action, primaryEntity)
+                }
                 return
               }
               if (primaryEntity) {

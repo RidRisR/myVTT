@@ -1,7 +1,15 @@
 // Register all builtin tools at app startup.
 // This module must be imported once (side-effect) before any tool rendering.
 
-import { MousePointer2, Ruler, Circle, Triangle, RectangleHorizontal, Grid3X3 } from 'lucide-react'
+import {
+  MousePointer2,
+  Ruler,
+  Circle,
+  Triangle,
+  RectangleHorizontal,
+  Grid3X3,
+  Crosshair,
+} from 'lucide-react'
 import { toolRegistry } from './toolRegistry'
 import { BuiltinToolId } from './builtinToolIds'
 import { MeasureToolCanvas } from './MeasureTool'
@@ -65,6 +73,15 @@ toolRegistry.register({
   shortcut: 'G',
   gmOnly: true,
   defaultMode: 'persistent',
+})
+
+toolRegistry.register({
+  id: BuiltinToolId.ActionTargeting,
+  category: 'interaction',
+  icon: Crosshair,
+  label: 'toolbar.targeting',
+  defaultMode: 'persistent',
+  // Internal tool — no shortcut, not shown in toolbar
 })
 
 // ── Register plugin-provided tools ──────────────────────────────────────────
