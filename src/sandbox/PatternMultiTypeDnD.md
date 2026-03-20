@@ -46,15 +46,16 @@ const targetIds = selection.has(overItemId) ? Array.from(selection) : [overItemI
 
 ## 约束清单
 
-| 设计规则                                     | 来源                                          | 代码                                                                      |
-| -------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------- |
-| 单 DndContext 包裹所有类型                   | `AssetPickerPanel.tsx:250` 生产验证           | `PatternMultiTypeDnD.tsx:L185` `<DndContext>`                             |
-| `PointerSensor` + `distance: 5`              | `AssetPickerPanel.tsx:163`                    | `PatternMultiTypeDnD.tsx:L102` `activationConstraint: { distance: 5 }`    |
-| `data.type` 区分拖拽类型                     | `DraggableTag.tsx:12`, `AssetGridItem.tsx:42` | `PatternMultiTypeDnD.tsx:L251` `type: 'tag'`, `L287` `type: 'item'`       |
-| 单 DragOverlay 按类型渲染                    | `AssetPickerPanel.tsx:300-314`                | `PatternMultiTypeDnD.tsx:L211-223` `draggedTag ? ... : draggedItem ? ...` |
-| `useSortable` 双重角色（排序 + drop target） | `AssetGridItem.tsx:39-43`                     | `PatternMultiTypeDnD.tsx:L285-287` `useSortable` + `isOver`               |
-| 批量 drop 通过 `selection.has` 判断          | `AssetPickerPanel.tsx:196-203`                | `PatternMultiTypeDnD.tsx:L140` `selection.has(overItemId)`                |
-| Tailwind design tokens                       | `docs/conventions/ui-patterns.md:1-8`         | 全文件无 inline color，使用 `bg-accent`, `text-muted` 等                  |
+| 设计规则                                      | 来源                                          | 代码                                                                      |
+| --------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------- |
+| 单 DndContext 包裹所有类型                    | `AssetPickerPanel.tsx:250` 生产验证           | `PatternMultiTypeDnD.tsx:L189` `<DndContext>`                             |
+| `PointerSensor` + `distance: 5`               | `AssetPickerPanel.tsx:163`                    | `PatternMultiTypeDnD.tsx:L103` `activationConstraint: { distance: 5 }`    |
+| `data.type` 区分拖拽类型                      | `DraggableTag.tsx:12`, `AssetGridItem.tsx:42` | `PatternMultiTypeDnD.tsx:L255` `type: 'tag'`, `L291` `type: 'item'`       |
+| 单 DragOverlay 按类型渲染                     | `AssetPickerPanel.tsx:300-314`                | `PatternMultiTypeDnD.tsx:L212-226` `draggedTag ? ... : draggedItem ? ...` |
+| `useSortable` 双重角色（排序 + drop target）  | `AssetGridItem.tsx:39-43`                     | `PatternMultiTypeDnD.tsx:L289-291` `useSortable` + `isOver`               |
+| 批量 drop 通过 `selection.has` 判断           | `AssetPickerPanel.tsx:196-203`                | `PatternMultiTypeDnD.tsx:L141` `selection.has(overItemId)`                |
+| 不参与渲染的可变值用 `useRef` 而非 `useState` | React 闭包陷阱（PR #141 code review 发现）    | `PatternMultiTypeDnD.tsx:L88` `logCounterRef = useRef(0)`                 |
+| Tailwind design tokens                        | `docs/conventions/ui-patterns.md:1-8`         | 全文件无 inline color，使用 `bg-accent`, `text-muted` 等                  |
 
 ## 陷阱清单
 
@@ -77,6 +78,10 @@ const targetIds = selection.has(overItemId) ? Array.from(selection) : [overItemI
 5. **必须设置 `distance` 约束** — 否则所有 click 都被 PointerSensor 拦截为 drag。
    - ❌ `useSensor(PointerSensor)` → click 事件丢失
    - ✅ `useSensor(PointerSensor, { activationConstraint: { distance: 5 } })`
+
+6. **不要在 `useCallback` 中混用函数式更新器和闭包直接读取同一 state** — `setX(prev => prev + 1)` 能拿到最新值，但同一回调中直接读 `x` 是渲染时快照，会导致值差一。不参与渲染的可变值应使用 `useRef`。
+   - ❌ `const [counter, setCounter] = useState(0)` + `useCallback(() => { setCounter(c => c+1); setLog(prev => [{ id: counter+1 }]) }, [counter])` → `counter` 是旧值，且每次递增都重建回调
+   - ✅ `const counterRef = useRef(0)` + `useCallback(() => { counterRef.current += 1; setLog(prev => [{ id: counterRef.current }]) }, [])` → 始终读最新值，零依赖不重建
 
 ## 适用场景
 

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -85,17 +85,18 @@ function MultiTypeDnDDemo() {
   const [draggedTag, setDraggedTag] = useState<string | null>(null)
   const [draggedItem, setDraggedItem] = useState<Item | null>(null)
   const [log, setLog] = useState<LogEntry[]>([])
-  const [logCounter, setLogCounter] = useState(0)
+  const logCounterRef = useRef(0)
 
   const sortableIds = useMemo(() => items.map((i) => i.id), [items])
 
-  const addLog = useCallback(
-    (text: string) => {
-      setLogCounter((c) => c + 1)
-      setLog((prev) => [{ id: logCounter + 1, text }, ...prev].slice(0, 5))
-    },
-    [logCounter],
-  )
+  // PATTERN: useRef for mutable values that don't participate in rendering.
+  // useState would cause stale closures when read inside useCallback — the
+  // functional updater (setX(prev => ...)) sees latest state, but a direct
+  // read of `x` captures the render-time snapshot.
+  const addLog = useCallback((text: string) => {
+    logCounterRef.current += 1
+    setLog((prev) => [{ id: logCounterRef.current, text }, ...prev].slice(0, 5))
+  }, [])
 
   // PATTERN: PointerSensor with distance constraint prevents click/drag confusion.
   // Without this, every click would be interpreted as a drag start.
