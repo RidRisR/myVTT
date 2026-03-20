@@ -593,8 +593,8 @@ export function PortraitBar({
             align="center"
             sideOffset={8}
             collisionPadding={8}
-            className="z-popover outline-none"
-            style={{ width: popoverWidth }}
+            className="z-popover"
+            style={{ width: popoverWidth, outline: 'none' }}
             onInteractOutside={(e) => {
               // Hover popover: don't close on click-outside, mouse timers handle it
               if (!inspectedCharacterId) {
