@@ -51,9 +51,12 @@ native module resolution and produces spurious test failures unrelated to your c
 
 ## Issue Linking
 
-- Every PR that resolves an issue **must** include `Closes #N` in the PR body (the template has a dedicated section)
-- GitHub will auto-close the linked issue when the PR is squash-merged into main
+- Every PR **must** reference at least one issue in its body
+- Use `Closes #N` when the PR fully resolves an issue (GitHub auto-closes it on merge)
+- Use `Part of #N` when the PR is incremental progress toward a larger issue
+- For large issues: split into sub-issues with a tracking issue using task lists, or use `Part of` for intermediate PRs
 - Use `Closes` (not `Fixes` or `Resolves`) for consistency
+- CI enforces this — PRs without `Closes #N` or `Part of #N` will fail the check
 
 ## Merge Flow
 

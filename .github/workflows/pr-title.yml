@@ -36,3 +36,14 @@ jobs:
             echo "::error::PR body contains an AI-generated signature line. Please remove it."
             exit 1
           fi
+
+      - name: Check issue linking
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if echo "$BODY" | grep -qiE '(closes|part of) #[0-9]+'; then
+            echo "Issue reference found."
+          else
+            echo "::error::PR body must reference an issue. Use 'Closes #N' to auto-close, or 'Part of #N' for incremental progress."
+            exit 1
+          fi

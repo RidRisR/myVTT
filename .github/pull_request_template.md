@@ -2,9 +2,10 @@
 
 <!-- Brief description of the change -->
 
-## Closes
+## Related Issues
 
-<!-- Link related issues so they auto-close on merge. Delete this section if no related issue. -->
+<!-- Every PR must link at least one issue (CI enforced).
+     Use "Closes #N" to auto-close on merge, or "Part of #N" for incremental progress. -->
 
 - Closes #
 
