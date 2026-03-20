@@ -262,9 +262,6 @@ export function ArchivePanel() {
           <Popover.Trigger asChild>
             <button
               data-testid="archive-clear-map"
-              onClick={() => {
-                setClearConfirmOpen(true)
-              }}
               className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
               title={t('archive.clear_map')}
             >
