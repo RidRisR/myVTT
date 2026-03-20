@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ZoomIn, ZoomOut, Maximize, LocateFixed } from 'lucide-react'
+import { ZoomIn, ZoomOut, Maximize, LocateFixed, Pin, PinOff } from 'lucide-react'
 import type { KonvaMapHandle } from './KonvaMap'
 import type { TacticalInfo } from '../stores/worldStore'
 import { useWorldStore } from '../stores/worldStore'
@@ -26,6 +26,8 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
   const { t } = useTranslation('combat')
   const activeTool = useUiStore((s) => s.activeTool)
   const setActiveTool = useUiStore((s) => s.setActiveTool)
+  const toolPersist = useUiStore((s) => s.toolPersist)
+  const toggleToolPersist = useUiStore((s) => s.toggleToolPersist)
   const updateTacticalGrid = useWorldStore((s) => s.updateTacticalGrid)
   const gridConfigOpen = useUiStore((s) => s.gridConfigOpen)
   const toggleGridConfig = useUiStore((s) => s.toggleGridConfig)
@@ -65,6 +67,17 @@ export function TacticalToolbar({ mapRef, role, tacticalInfo }: TacticalToolbarP
 
         {/* Measure split button */}
         <MeasureSplitButton />
+
+        {/* Persist toggle — only shown when a one-shot tool is active */}
+        {toolRegistry.get(activeTool)?.defaultMode === 'one-shot' && (
+          <ToolButton
+            icon={toolPersist ? Pin : PinOff}
+            label={toolPersist ? t('toolbar.persist_on') : t('toolbar.persist_off')}
+            shortcut=""
+            active={toolPersist}
+            onClick={toggleToolPersist}
+          />
+        )}
 
         <Divider />
 

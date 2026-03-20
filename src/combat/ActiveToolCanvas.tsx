@@ -8,12 +8,13 @@ type ActiveToolCanvasProps = Omit<ToolLayerProps, 'onComplete'>
 export function ActiveToolCanvas(props: ActiveToolCanvasProps) {
   const activeTool = useUiStore((s) => s.activeTool)
   const setActiveTool = useUiStore((s) => s.setActiveTool)
+  const toolPersist = useUiStore((s) => s.toolPersist)
   const toolDef = toolRegistry.get(activeTool)
 
   if (!toolDef?.CanvasLayer) return null
 
   const handleComplete = () => {
-    if (toolDef.defaultMode === 'one-shot') {
+    if (toolDef.defaultMode === 'one-shot' && !toolPersist) {
       setActiveTool(BuiltinToolId.Select)
     }
   }

@@ -5,7 +5,9 @@
     "zoom_in": "放大",
     "zoom_out": "缩小",
     "fit_window": "适应窗口",
-    "reset_center": "重置中心"
+    "reset_center": "重置中心",
+    "persist_on": "工具已固定（保持激活）",
+    "persist_off": "固定工具（防止自动切换）"
   },
   "grid": {
     "settings": "网格设置",

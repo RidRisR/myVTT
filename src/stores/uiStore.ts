@@ -66,6 +66,7 @@ interface UiState {
 
   // Tactical toolbar
   lastMeasureTool: string
+  toolPersist: boolean
   gridConfigOpen: boolean
 
   // GM sidebar
@@ -99,6 +100,7 @@ interface UiState {
   setTeamPanelVisible: (visible: boolean) => void
   setGridConfigOpen: (open: boolean) => void
   toggleGridConfig: () => void
+  toggleToolPersist: () => void
   setGmSidebarTab: (tab: GmSidebarTab) => void
   setGmSidebarCollapsed: (collapsed: boolean) => void
 
@@ -125,6 +127,7 @@ export const useUiStore = create<UiState>((set) => ({
   portraitBarVisible: true,
   teamPanelVisible: false,
   lastMeasureTool: BuiltinToolId.Measure,
+  toolPersist: false,
   gridConfigOpen: false,
   gmSidebarTab: 'scene',
   gmSidebarCollapsed: true,
@@ -221,6 +224,9 @@ export const useUiStore = create<UiState>((set) => ({
   },
   toggleGridConfig: () => {
     set((s) => ({ gridConfigOpen: !s.gridConfigOpen }))
+  },
+  toggleToolPersist: () => {
+    set((s) => ({ toolPersist: !s.toolPersist }))
   },
   setGmSidebarTab: (tab) => {
     set({ gmSidebarTab: tab })
