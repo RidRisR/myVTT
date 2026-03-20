@@ -62,6 +62,29 @@ interface OpenParamDef {
 - 可被整体替换（`commands.replace()`）
 - 所有命令执行自动被基座记录和广播
 
+**命令替换（`commands.replace()`）：**
+
+```typescript
+// 完全替换一个已注册的命令
+commands.replace<DamageInput, DamageOutput>('dh:damage', {
+  // 替换命令可以声明自己的 openParams（不继承原命令的）
+  openParams: {
+    damageMultiplier: { type: 'number', default: 1 },
+    armorPenetration: { type: 'number', default: 0 },
+  },
+  async execute(ctx, input, openParams) {
+    // 全新的实现
+  },
+})
+```
+
+**替换语义：**
+
+- 同一命令 ID 只能有一个替换者，多个替换 → 冲突，GM 选择
+- 替换命令的 `openParams` 独立于原命令（替换者自己声明开放什么）
+- 已有的 Proposal 如果目标 paramName 在新命令中不存在 → 基座警告并忽略该提议
+- 引用该命令的 Flow 步骤自动使用替换后的实现（通过 commandId 查找）
+
 **示例：**
 
 ```typescript
@@ -89,8 +112,13 @@ commands.register<DamageInput, DamageOutput>('dh:damage', {
 interface ProposalDef<TInput> {
   commandId: string
   paramName: string
-  // 根据命令的输入计算提议值
-  resolve(input: TInput): unknown
+  // 根据命令的输入和当前事务上下文计算提议值
+  resolve(ctx: ReadonlyActionContext, input: TInput): unknown
+}
+
+// Proposal 的 resolve 只能读取实体状态，不能写入
+interface ReadonlyActionContext {
+  getEntity(id: string): Entity // 可读取事务中的脏数据
 }
 ```
 
@@ -104,7 +132,7 @@ interface ProposalDef<TInput> {
 
 ```typescript
 // 扩展插件：条件追踪器
-proposals.register<DamageInput>('dh:damage', 'damageMultiplier', (input) => {
+proposals.register<DamageInput>('dh:damage', 'damageMultiplier', (ctx, input) => {
   const target = ctx.getEntity(input.targetId)
   if (hasCondition(target, 'vulnerable')) return 2
   return 1 // 无修改，使用默认值
@@ -124,7 +152,8 @@ interface FlowDef {
 interface FlowStep {
   id: string // 步骤标识（用于 insert/remove/replace）
   commandId: string // 关联的命令
-  // TBD: 步骤间数据映射
+  // 从累加器中提取本步骤的输入
+  mapInput?: (acc: FlowAccumulator) => unknown
 }
 ```
 
@@ -136,6 +165,26 @@ interface FlowStep {
 - 扩展插件可以 `insertAfter`、`insertBefore`、`remove`、`replace` Flow 中的步骤
 - 基座提供基本的类型检查（步骤间输入输出能衔接），不保证语义正确
 - 修改后果由修改者（扩展插件）负责
+
+**步骤间数据传递——累加器模型：**
+
+Flow 执行器维护一个 `FlowAccumulator` 对象，每个步骤执行后将输出合并到累加器中：
+
+```typescript
+interface FlowAccumulator {
+  [stepId: string]: unknown // 每个步骤的输出，以 step.id 为 key
+}
+```
+
+执行流程：
+
+1. Flow 执行开始，创建空累加器 `acc = {}`
+2. 第一个步骤的输入为 Flow 的启动参数（由调用者提供）
+3. 每个步骤执行后，输出存入 `acc[step.id]`
+4. 后续步骤通过 `mapInput` 函数从累加器中提取需要的数据
+5. 若步骤未定义 `mapInput`，默认将前一步的输出作为本步输入
+
+这种模型的好处：步骤间的数据依赖是显式的，新插入的步骤可以读取任意前序步骤的输出。
 
 **示例：**
 
@@ -181,7 +230,7 @@ interface ActionContext {
   roll(formula: string): Promise<RollResult>
   announce(content: string): void
 
-  // 执行其他命令（在同一事务内）
+  // 执行其他命令（在同一事务内，最大嵌套深度 16）
   exec<TInput, TOutput>(commandId: string, input: TInput): Promise<TOutput>
 }
 ```
@@ -206,7 +255,7 @@ interface ActionContext {
 
 ## 三、广播系统
 
-系统级能力：每条命令执行后自动记录并广播。
+系统级能力：命令执行记录在 Transaction commit 成功后批量广播。
 
 ```typescript
 interface CommandLog {
@@ -276,6 +325,16 @@ broadcasts.on('commandExecuted', (log) => {
 - 服务端掷骰
 
 **基座不知道 HP、伤害、条件等任何规则概念。**
+
+**插件加载生命周期：**
+
+```
+1. 基座初始化（Command 注册表、Flow 执行器、Transaction 管理就绪）
+2. 规则系统加载 → commands.register() / flows.register()
+3. 扩展插件加载 → proposals.register() / flows.insertAfter() / broadcasts.on()
+```
+
+三层按顺序加载，确保扩展插件注册 Proposal 时目标命令已存在。若扩展插件引用不存在的 commandId → 基座报错。
 
 ---
 
@@ -355,16 +414,38 @@ commands.register<DeathCheckInput, void>('dh:death-check', {
 
 flows.register('dh:attack', [
   { id: 'roll', commandId: 'dh:roll' },
-  { id: 'check', commandId: 'dh:check' },
-  { id: 'calc-damage', commandId: 'dh:calc-damage' },
-  { id: 'apply-damage', commandId: 'dh:apply-damage' },
-  { id: 'death-check', commandId: 'dh:death-check' },
+  {
+    id: 'check',
+    commandId: 'dh:check',
+    mapInput: (acc) => ({ rollResult: acc.roll, dc: acc._init.dc }),
+  },
+  {
+    id: 'calc-damage',
+    commandId: 'dh:calc-damage',
+    mapInput: (acc) => ({
+      rollResult: acc.roll,
+      attackAttribute: acc._init.attackAttribute,
+    }),
+  },
+  {
+    id: 'apply-damage',
+    commandId: 'dh:apply-damage',
+    mapInput: (acc) => ({
+      targetId: acc._init.targetId,
+      damage: acc['calc-damage'].finalDamage,
+    }),
+  },
+  {
+    id: 'death-check',
+    commandId: 'dh:death-check',
+    mapInput: (acc) => ({ targetId: acc._init.targetId }),
+  },
 ])
 
 // ── 扩展插件 ──
 
 // 条件插件：易伤翻倍
-proposals.register('dh:calc-damage', 'damageMultiplier', (input) => {
+proposals.register('dh:calc-damage', 'damageMultiplier', (ctx, input) => {
   const target = ctx.getEntity(input.targetId)
   if (hasCondition(target, 'vulnerable')) return 2
   return 1
@@ -411,19 +492,18 @@ flows.insertAfter('dh:attack', 'apply-damage', {
 
 ## Edge Cases
 
-- 命令执行中抛出异常 → Transaction 中断，已收集的 mutation 全部丢弃（回滚）
+- 命令执行中抛出异常 → Transaction 中断，已收集的 mutation 全部丢弃（回滚）。`ctx.roll()` 的结果不可回滚（服务端已执行），但不会持久化。`ctx.announce()` 的消息缓冲在事务中，仅在 commit 成功后发送
 - 扩展插件删除 Flow 中的关键步骤导致后续步骤输入缺失 → 基座类型检查报错 or 运行时报错，扩展插件负责
 - 同一事务中 ctx.getEntity() 读到脏数据（之前步骤的 mutate 结果）→ 这是设计意图，允许链式计算
+- `ctx.exec()` 嵌套深度超过 16 → 基座抛出 MaxDepthExceeded 异常，事务回滚。这是防御性限制，正常 TTRPG 链不会触及此上限
 
 ## 待细化
 
-1. Flow 步骤间的数据传递机制（前一步输出 → 后一步输入的映射规则）
-2. openParams 的 resolve 函数能拿到什么上下文（只有命令输入？还是也有事务中的实体状态？）
-3. Transaction commit 失败时的处理策略
-4. UI 层扩展的具体设计（PluginSlot 的 props 协议）
-5. VTTPlugin 接口如何改造以适配 Command + Flow 模型
-6. 现有 RulePlugin → 新模型的渐进迁移路径
-7. 基座的命令注册表是全局的还是 per-room 的？（规则系统按 ruleSystemId 切换）
+1. Transaction commit 失败时的处理策略
+2. UI 层扩展的具体设计（PluginSlot 的 props 协议）
+3. VTTPlugin 接口如何改造以适配 Command + Flow 模型
+4. 现有 RulePlugin → 新模型的渐进迁移路径
+5. 基座的命令注册表是全局的还是 per-room 的？（规则系统按 ruleSystemId 切换）
 
 ---
 
