@@ -11,7 +11,8 @@
     "upload_hint": "Upload an image to get started",
     "untitled": "Untitled",
     "uploading": "Uploading…",
-    "upload": "Upload"
+    "upload": "Upload",
+    "manage_assets": "Manage Assets"
   },
   "blueprint": {
     "tag_humanoid": "Humanoid",
@@ -32,7 +33,11 @@
     "tag_editor_title": "{{name}} — Tags",
     "no_tags": "No tags",
     "add_tag_placeholder": "Add tag...",
-    "add_tag": "Add"
+    "add_tag": "Add",
+    "manage_assets": "Manage Assets",
+    "uploaded": "Created blueprint \"{{name}}\"",
+    "upload_failed": "Upload failed: {{error}}",
+    "uploading": "Uploading…"
   },
   "character": {
     "default_name": "New Character",
@@ -52,5 +57,7 @@
     "add_title": "Add title...",
     "add_description": "Add description...",
     "untitled": "Untitled"
-  }
+  },
+  "asset_library": "Asset Library",
+  "maps": "Maps"
 }

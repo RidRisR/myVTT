@@ -1,10 +1,9 @@
 import { useState, useRef, useCallback } from 'react'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useToast } from '../ui/useToast'
 import { useClickOutside } from '../hooks/useClickOutside'
 import type { Entity } from '../shared/entityTypes'
-import { uploadAsset } from '../shared/assetUpload'
+import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
 import {
   getEntityResources,
   getEntityAttributes,
@@ -79,13 +78,11 @@ export function CharacterEditPanel({
   onClose,
 }: CharacterEditPanelProps) {
   const { t } = useTranslation('layout')
-  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState<TabId>('info')
   const [statusInput, setStatusInput] = useState('')
-  const [uploading, setUploading] = useState(false)
   const [colorPickerOpen, setColorPickerOpen] = useState<'character' | number | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
   const colorPickerRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Awareness for resource drag broadcasting
   const mySeatId = useIdentityStore((s) => s.mySeatId)
@@ -176,39 +173,15 @@ export function CharacterEditPanel({
     )
   }
 
-  /* -- Portrait upload -- */
-  const handlePortraitUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    try {
-      const result = await uploadAsset(file)
-      updateChar({ imageUrl: result.url })
-    } catch (err) {
-      console.error('Portrait upload failed:', err)
-      toast('error', t('character.upload_failed'))
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
-
   /* -- Tab renderers -- */
   const renderInfo = () => (
     <div className="flex flex-col gap-2.5">
       {/* Portrait + name */}
       <div className="flex items-center gap-3">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            void handlePortraitUpload(e)
-          }}
-        />
         <div
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => {
+            setPickerOpen(true)
+          }}
           className="relative cursor-pointer shrink-0"
           title={t('character.change_portrait')}
         >
@@ -231,21 +204,17 @@ export function CharacterEditPanel({
               {character.name.charAt(0).toUpperCase()}
             </div>
           )}
-          {/* Upload overlay */}
+          {/* Hover overlay */}
           <div
             className="absolute inset-0 rounded-full flex items-center justify-center transition-colors duration-fast text-[10px] text-white font-semibold"
-            style={{
-              background: uploading ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0)',
-            }}
+            style={{ background: 'rgba(0,0,0,0)' }}
             onMouseEnter={(e) => {
-              if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0.5)'
+              e.currentTarget.style.background = 'rgba(0,0,0,0.5)'
             }}
             onMouseLeave={(e) => {
-              if (!uploading) e.currentTarget.style.background = 'rgba(0,0,0,0)'
+              e.currentTarget.style.background = 'rgba(0,0,0,0)'
             }}
-          >
-            {uploading ? '...' : ''}
-          </div>
+          />
         </div>
         <div className="flex-1 flex flex-col gap-1">
           <label className="text-[9px] text-text-muted/40 uppercase tracking-wider">
@@ -632,60 +601,72 @@ export function CharacterEditPanel({
   }
 
   return (
-    <div
-      className="bg-glass backdrop-blur-[16px] rounded-[14px] shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-border-glass font-sans text-text-primary flex flex-col"
-      style={{
-        width: 320,
-        maxHeight: 'inherit',
-        boxSizing: 'border-box',
-      }}
-      onPointerDown={(e) => {
-        e.stopPropagation()
-      }}
-      onWheel={(e) => {
-        e.stopPropagation()
-      }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-3.5 pt-3 pb-2 shrink-0">
-        <span className="text-[11px] font-bold text-text-muted/50 uppercase tracking-wider">
-          {t('character.title')}
-        </span>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="bg-transparent border-none cursor-pointer text-text-muted/30 p-0.5 leading-none transition-colors duration-fast hover:text-text-muted/70"
-          >
-            <X size={16} strokeWidth={1.5} />
-          </button>
-        )}
-      </div>
+    <>
+      <AssetPickerPanel
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        mode="select"
+        filter={{ mediaType: 'image' }}
+        autoTags={['portrait']}
+        onSelect={(asset) => {
+          updateChar({ imageUrl: asset.url })
+        }}
+      />
+      <div
+        className="bg-glass backdrop-blur-[16px] rounded-[14px] shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-border-glass font-sans text-text-primary flex flex-col"
+        style={{
+          width: 320,
+          maxHeight: 'inherit',
+          boxSizing: 'border-box',
+        }}
+        onPointerDown={(e) => {
+          e.stopPropagation()
+        }}
+        onWheel={(e) => {
+          e.stopPropagation()
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-3.5 pt-3 pb-2 shrink-0">
+          <span className="text-[11px] font-bold text-text-muted/50 uppercase tracking-wider">
+            {t('character.title')}
+          </span>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="bg-transparent border-none cursor-pointer text-text-muted/30 p-0.5 leading-none transition-colors duration-fast hover:text-text-muted/70"
+            >
+              <X size={16} strokeWidth={1.5} />
+            </button>
+          )}
+        </div>
 
-      {/* Tab bar */}
-      <div className="flex border-t border-border-glass border-b border-b-border-glass shrink-0">
-        {TAB_IDS.map((tabId) => (
-          <button
-            key={tabId}
-            onClick={() => {
-              setActiveTab(tabId)
-            }}
-            className={`flex-1 py-[7px] bg-transparent border-none cursor-pointer text-[8px] font-bold tracking-wider uppercase transition-colors duration-fast font-sans ${
-              activeTab === tabId
-                ? 'bg-surface/60 text-white'
-                : 'text-text-muted/35 hover:text-text-muted/60'
-            }`}
-            style={{
-              borderBottom:
-                activeTab === tabId ? `2px solid ${character.color}` : '2px solid transparent',
-            }}
-          >
-            {t(TAB_I18N_KEYS[tabId])}
-          </button>
-        ))}
-      </div>
+        {/* Tab bar */}
+        <div className="flex border-t border-border-glass border-b border-b-border-glass shrink-0">
+          {TAB_IDS.map((tabId) => (
+            <button
+              key={tabId}
+              onClick={() => {
+                setActiveTab(tabId)
+              }}
+              className={`flex-1 py-[7px] bg-transparent border-none cursor-pointer text-[8px] font-bold tracking-wider uppercase transition-colors duration-fast font-sans ${
+                activeTab === tabId
+                  ? 'bg-surface/60 text-white'
+                  : 'text-text-muted/35 hover:text-text-muted/60'
+              }`}
+              style={{
+                borderBottom:
+                  activeTab === tabId ? `2px solid ${character.color}` : '2px solid transparent',
+              }}
+            >
+              {t(TAB_I18N_KEYS[tabId])}
+            </button>
+          ))}
+        </div>
 
-      {/* Tab content */}
-      <div className="px-3.5 py-3 overflow-y-auto flex-1 min-h-0">{tabContent[activeTab]()}</div>
-    </div>
+        {/* Tab content */}
+        <div className="px-3.5 py-3 overflow-y-auto flex-1 min-h-0">{tabContent[activeTab]()}</div>
+      </div>
+    </>
   )
 }

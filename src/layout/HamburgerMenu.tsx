@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '../ui/useToast'
-import { Menu, LogOut, Sun, Moon, Globe } from 'lucide-react'
+import { Menu, LogOut, Sun, Moon, Globe, Library } from 'lucide-react'
 import * as Popover from '@radix-ui/react-popover'
 import { SEAT_COLORS, type Seat } from '../stores/identityStore'
 import { uploadAsset } from '../shared/assetUpload'
@@ -9,6 +9,7 @@ import { useUiStore } from '../stores/uiStore'
 import { useWorldStore } from '../stores/worldStore'
 import { getAvailablePlugins } from '../rules/registry'
 import { PopoverContent } from '../ui/primitives/PopoverContent'
+import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
 
 interface HamburgerMenuProps {
   mySeat: Seat
@@ -18,9 +19,11 @@ interface HamburgerMenuProps {
 
 export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMenuProps) {
   const { t } = useTranslation('layout')
+  const { t: tDock } = useTranslation('dock')
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [assetPickerOpen, setAssetPickerOpen] = useState(false)
   const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
   const availablePlugins = useMemo(() => getAvailablePlugins(), [])
   const isGM = mySeat.role === 'GM'
@@ -213,6 +216,17 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
           {isGM && (
             <>
               <div className="h-px bg-border-glass mx-2 my-0.5" />
+              <button
+                onClick={() => {
+                  setOpen(false)
+                  setAssetPickerOpen(true)
+                }}
+                className="w-full px-3 py-2 bg-transparent border-none rounded-lg cursor-pointer text-xs text-text-muted font-medium text-left flex items-center gap-2 transition-colors duration-fast hover:bg-hover hover:text-text-primary"
+              >
+                <Library size={14} strokeWidth={1.5} />
+                {tDock('asset_library')}
+              </button>
+              <div className="h-px bg-border-glass mx-2 my-0.5" />
               <div className="px-3 py-2">
                 <div className="text-[10px] text-text-muted/40 uppercase tracking-wider mb-1">
                   {t('menu.game_system')}
@@ -242,6 +256,8 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
           </button>
         </PopoverContent>
       </Popover.Root>
+
+      <AssetPickerPanel mode="manage" open={assetPickerOpen} onOpenChange={setAssetPickerOpen} />
     </div>
   )
 }

@@ -36,3 +36,17 @@ export async function deleteAsset(roomId: string, assetId: string): Promise<void
   })
   if (!res.ok) throw new Error(`deleteAsset failed: ${res.status}`)
 }
+
+export async function reorderAssets(
+  order: { id: string; sortOrder: number }[],
+): Promise<AssetMeta[]> {
+  const roomId = getCurrentRoomId()
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/assets/reorder`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ order }),
+  })
+  if (!res.ok) throw new Error(`Reorder failed: ${res.statusText}`)
+  return (await res.json()) as AssetMeta[]
+}

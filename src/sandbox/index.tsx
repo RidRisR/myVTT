@@ -14,6 +14,12 @@ const PATTERNS: PatternEntry[] = [
     description: 'Non-modal floating panel with nested Radix Popover and ContextMenu',
     component: lazy(() => import('./PatternFloatingPanelOverlay')),
   },
+  {
+    key: 'multi-type-dnd',
+    title: 'MultiType DnD',
+    description: 'Single DndContext with tag drag + item sortable + batch drop',
+    component: lazy(() => import('./PatternMultiTypeDnD')),
+  },
 ]
 
 export default function SandboxRoot() {

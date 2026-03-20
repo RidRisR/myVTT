@@ -40,6 +40,7 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./src/__test-utils__/setup.ts'],
       coverage: {
         provider: 'v8',
+        exclude: ['src/sandbox/**'],
         thresholds: {
           statements: 70,
           branches: 55,

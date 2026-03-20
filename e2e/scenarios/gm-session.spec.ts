@@ -49,7 +49,7 @@ test.describe('GM Session Journey', () => {
     await room.gmDock.expectVisible()
 
     // 8. Open GM Dock tabs
-    await room.gmDock.openTab('gallery')
+    await room.gmDock.openTab('maps')
     await page.waitForTimeout(200)
     await room.gmDock.openTab('characters')
     await page.waitForTimeout(200)

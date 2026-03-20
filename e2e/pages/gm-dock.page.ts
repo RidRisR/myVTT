@@ -9,7 +9,7 @@ export class GmDockPage {
   readonly gallery: GalleryPage
   readonly blueprint: BlueprintPage
   readonly characterLibrary: CharacterLibraryPage
-  readonly galleryTab: Locator
+  readonly mapsTab: Locator
   readonly tokensTab: Locator
   readonly charactersTab: Locator
   readonly handoutsTab: Locator
@@ -21,7 +21,7 @@ export class GmDockPage {
     this.gallery = new GalleryPage(page)
     this.blueprint = new BlueprintPage(page)
     this.characterLibrary = new CharacterLibraryPage(page)
-    this.galleryTab = page.getByTestId('dock-tab-gallery')
+    this.mapsTab = page.getByTestId('dock-tab-maps')
     this.tokensTab = page.getByTestId('dock-tab-tokens')
     this.charactersTab = page.getByTestId('dock-tab-characters')
     this.handoutsTab = page.getByTestId('dock-tab-handouts')
@@ -30,16 +30,16 @@ export class GmDockPage {
   }
 
   async expectVisible() {
-    await expect(this.galleryTab).toBeVisible()
+    await expect(this.mapsTab).toBeVisible()
   }
 
   async expectNotVisible() {
-    await expect(this.galleryTab).toBeHidden()
+    await expect(this.mapsTab).toBeHidden()
   }
 
-  async openTab(tab: 'gallery' | 'tokens' | 'characters' | 'handouts' | 'dice') {
+  async openTab(tab: 'maps' | 'tokens' | 'characters' | 'handouts' | 'dice') {
     const tabMap = {
-      gallery: this.galleryTab,
+      maps: this.mapsTab,
       tokens: this.tokensTab,
       characters: this.charactersTab,
       handouts: this.handoutsTab,
