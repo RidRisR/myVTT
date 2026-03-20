@@ -477,9 +477,10 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     ],
   )
 
-  // Prevent browser context menu on the container
+  // Prevent browser context menu and stop bubbling to App-level handler
   const handleContainerContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
+    e.stopPropagation()
   }, [])
 
   // Create token on empty space — spawns an ephemeral entity + tactical token
