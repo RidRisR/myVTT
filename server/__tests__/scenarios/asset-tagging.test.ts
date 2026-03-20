@@ -77,4 +77,45 @@ describe('Asset Tagging (category + junction table)', () => {
     expect(names).toContain('forest')
     expect(names).toContain('dungeon')
   })
+
+  it('PATCH rejects invalid category', async () => {
+    const { status, data } = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/assets/${assetId}`, {
+      category: 'invalid',
+    })
+    expect(status).toBe(400)
+    expect((data as Record<string, unknown>).error).toContain('category')
+  })
+
+  it('PATCH tags is idempotent', async () => {
+    const tags = ['forest', 'dungeon']
+    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/assets/${assetId}`, { tags })
+    const { data } = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/assets/${assetId}`, { tags })
+    expect((data as Record<string, unknown>).tags).toEqual(expect.arrayContaining(tags))
+    expect((data as Record<string, unknown>).tags).toHaveLength(tags.length)
+  })
+
+  it('DELETE asset cleans up junction rows', async () => {
+    // Upload a fresh asset with tags
+    const formData = new FormData()
+    formData.append('file', new Blob(['test'], { type: 'image/png' }), 'temp.png')
+    formData.append('mediaType', 'image')
+    formData.append('tags', JSON.stringify(['cascade-test']))
+
+    const res = await fetch(`${ctx.apiBase}/api/rooms/${ctx.roomId}/assets`, {
+      method: 'POST',
+      body: formData,
+    })
+    const asset = (await res.json()) as Record<string, unknown>
+    const tempId = asset.id as string
+    expect(asset.tags).toEqual(['cascade-test'])
+
+    // Delete the asset
+    const { status } = await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/assets/${tempId}`)
+    expect(status).toBe(200)
+
+    // Tag itself should still exist (only junction row removed)
+    const { data: allTags } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tags`)
+    const tagNames = (allTags as Record<string, unknown>[]).map((t) => t.name)
+    expect(tagNames).toContain('cascade-test')
+  })
 })
