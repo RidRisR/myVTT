@@ -489,7 +489,7 @@ function registerSocketEvents(
   })
   socket.on('tag:updated', (tag) => {
     set((s) => ({
-      tags: s.tags.map((t) => (t.id === (tag).id ? (tag) : t)),
+      tags: s.tags.map((t) => (t.id === tag.id ? tag : t)),
     }))
   })
   socket.on('tag:deleted', ({ id }: { id: string }) => {
