@@ -49,11 +49,20 @@ native module resolution and produces spurious test failures unrelated to your c
 - English only, no Chinese or other non-ASCII characters
 - No `Co-Authored-By` lines or AI generation disclaimers
 
+## Issue Linking
+
+- Every PR **must** reference at least one issue in its body
+- Use `Closes #N` when the PR fully resolves an issue (GitHub auto-closes it on merge)
+- Use `Part of #N` when the PR is incremental progress toward a larger issue
+- For large issues: split into sub-issues with a tracking issue using task lists, or use `Part of` for intermediate PRs
+- Use `Closes` (not `Fixes` or `Resolves`) for consistency
+- CI enforces this — PRs without `Closes #N` or `Part of #N` will fail the check
+
 ## Merge Flow
 
 ```bash
-# Create PR
-gh pr create --title "feat: add feature X" --body "..."
+# Create PR (include "Closes #N" in the body)
+gh pr create --title "feat: add feature X" --body "Closes #123"
 
 # Merge only after user confirms (squash only)
 gh pr merge --squash
