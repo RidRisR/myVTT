@@ -138,7 +138,7 @@ export function ArchivePanel() {
             <span className="opacity-30 text-[10px] mt-1">{t('archive.empty_hint')}</span>
           </div>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5 p-1.5">
             {sortedArchives.map((archive) => {
               const isSelected = archive.id === selectedId
               return (
@@ -163,7 +163,7 @@ export function ArchivePanel() {
                   }
                 >
                   <div
-                    className={`px-2.5 py-2 ${archive.mapUrl ? 'min-h-[56px] flex flex-col justify-end' : 'bg-surface/40'}`}
+                    className={`px-2.5 py-2 min-h-[64px] flex flex-col justify-end ${archive.mapUrl ? '' : 'bg-surface/40'}`}
                   >
                     <div className="flex items-center gap-2">
                       {/* Name or rename input */}
@@ -250,11 +250,10 @@ export function ArchivePanel() {
           <button
             data-testid="archive-save-new"
             onClick={() => void handleCreateAndSave()}
-            className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
+            className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
             title={t('archive.save_new')}
           >
-            <Plus size={12} strokeWidth={1.5} />
-            {t('archive.save_new')}
+            <Plus size={14} strokeWidth={1.5} />
           </button>
         )}
 
@@ -262,11 +261,10 @@ export function ArchivePanel() {
           <Popover.Trigger asChild>
             <button
               data-testid="archive-clear-map"
-              className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
+              className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
               title={t('archive.clear_map')}
             >
-              <Eraser size={12} strokeWidth={1.5} />
-              {t('archive.clear_map')}
+              <Eraser size={14} strokeWidth={1.5} />
             </button>
           </Popover.Trigger>
           <PopoverContent side="top" align="center" className="min-w-[140px]">
@@ -299,11 +297,10 @@ export function ArchivePanel() {
           <button
             data-testid="archive-overwrite"
             onClick={handleSave}
-            className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-bold px-2 py-1 rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
+            className="w-7 h-7 flex items-center justify-center text-accent hover:text-accent-bold rounded hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
             title={t('archive.overwrite_title')}
           >
-            <Save size={12} strokeWidth={1.5} />
-            {t('archive.overwrite')}
+            <Save size={14} strokeWidth={1.5} />
           </button>
         )}
 
@@ -324,7 +321,7 @@ export function ArchivePanel() {
                 className="flex items-center gap-1 text-[11px] text-white bg-accent/80 hover:bg-accent px-2.5 py-1 rounded cursor-pointer transition-colors duration-fast"
                 title={t('archive.load_title')}
               >
-                <Download size={14} strokeWidth={1.5} />
+                <Download size={12} strokeWidth={1.5} />
                 {t('archive.load')}
               </button>
             </Popover.Trigger>
