@@ -4,6 +4,8 @@
 import { MousePointer2, Ruler, Circle, Triangle, RectangleHorizontal, Grid3X3 } from 'lucide-react'
 import { toolRegistry } from './toolRegistry'
 import { BuiltinToolId } from './builtinToolIds'
+import { MeasureToolCanvas } from './MeasureTool'
+import { RangeCircleCanvas, RangeConeCanvas, RangeRectCanvas } from './RangeTemplate'
 
 toolRegistry.register({
   id: BuiltinToolId.Select,
@@ -21,6 +23,7 @@ toolRegistry.register({
   label: 'toolbar.measure',
   shortcut: 'M',
   defaultMode: 'one-shot',
+  CanvasLayer: MeasureToolCanvas,
 })
 
 toolRegistry.register({
@@ -30,6 +33,7 @@ toolRegistry.register({
   label: 'toolbar.range_circle',
   shortcut: '1',
   defaultMode: 'one-shot',
+  CanvasLayer: RangeCircleCanvas,
 })
 
 toolRegistry.register({
@@ -39,6 +43,7 @@ toolRegistry.register({
   label: 'toolbar.range_cone',
   shortcut: '2',
   defaultMode: 'one-shot',
+  CanvasLayer: RangeConeCanvas,
 })
 
 toolRegistry.register({
@@ -48,6 +53,7 @@ toolRegistry.register({
   label: 'toolbar.range_rect',
   shortcut: '3',
   defaultMode: 'one-shot',
+  CanvasLayer: RangeRectCanvas,
 })
 
 toolRegistry.register({

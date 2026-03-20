@@ -40,6 +40,7 @@ interface KonvaTokenLayerProps {
   onTokenDragMove?: (tokenId: string, x: number, y: number) => void
   onTokenDragEnd?: () => void
   remoteTokenDrags?: Map<string, { tokenId: string; x: number; y: number; color: string }>
+  listening?: boolean
 }
 
 const DRAG_THRESHOLD = 3
@@ -62,6 +63,7 @@ export function KonvaTokenLayer({
   onTokenDragMove,
   onTokenDragEnd,
   remoteTokenDrags,
+  listening = true,
 }: KonvaTokenLayerProps) {
   // Track whether a real drag happened (vs. click)
   const didDragRef = useRef(false)
@@ -275,7 +277,7 @@ export function KonvaTokenLayer({
   }, [clearHoverTimer, onTokenHover])
 
   return (
-    <Layer>
+    <Layer listening={listening}>
       {/* Ghost token preview (shown during drag with grid snap) */}
       {ghostState && (
         <GhostToken

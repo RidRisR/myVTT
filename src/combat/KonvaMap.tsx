@@ -10,15 +10,15 @@ import { KonvaTokenLayer } from './KonvaTokenLayer'
 import type { TokenContextMenuEvent, TokenHoverEvent } from './KonvaTokenLayer'
 import { TokenContextMenu } from './TokenContextMenu'
 import { TokenTooltip } from './TokenTooltip'
-import { MeasureTool } from './tools/MeasureTool'
-import { RangeTemplate } from './tools/RangeTemplate'
+import { ActiveToolCanvas } from './ActiveToolCanvas'
 import { snapToGrid, resolveTokenEntity } from './combatUtils'
 import { useToast } from '../ui/useToast'
 import { useCameraControls } from './hooks/useCameraControls'
 import { useTokenAwareness } from './hooks/useTokenAwareness'
 import { useEntityDrop } from './hooks/useEntityDrop'
 import { BackgroundLayer } from './BackgroundLayer'
-import { BuiltinToolId } from './tools/builtinToolIds'
+import { toolRegistry } from './tools/toolRegistry'
+import { isPanGesture, isDragBeyondThreshold } from './hooks/useCanvasGestures'
 
 interface ContextMenuState {
   screenX: number
@@ -76,7 +76,6 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
 
   // Active tool from UI store
   const activeTool = useUiStore((s) => s.activeTool)
-  const isSelectMode = activeTool === BuiltinToolId.Select
 
   // Camera controls (zoom, pan)
   const {
@@ -87,7 +86,9 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     handleResetCenter,
     handleZoomIn,
     handleZoomOut,
-    handleDragEnd,
+    startPan,
+    updatePan,
+    endPan,
   } = useCameraControls({ tacticalInfo, containerSize })
 
   // Expose camera controls via imperative handle for TacticalToolbar
@@ -122,6 +123,11 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
 
   // Track container offset for screen coordinate calculations
   const containerOffsetRef = useRef({ x: 0, y: 0 })
+
+  // Right-click pan state machine
+  const rightButtonDownRef = useRef(false)
+  const rightButtonStartRef = useRef<{ x: number; y: number } | null>(null)
+  const isPanningRef = useRef(false)
 
   // Track container size with ResizeObserver
   useEffect(() => {
@@ -172,37 +178,6 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
     [selectedTokenId, onSelectToken],
   )
 
-  // Right-click on empty stage area
-  const handleStageContextMenu = useCallback(
-    (e: Konva.KonvaEventObject<PointerEvent>) => {
-      e.evt.preventDefault()
-      if (role !== 'GM') return
-
-      const target = e.target
-      const stage = target.getStage()
-      const isStage = target === stage
-      const isLayer = target.nodeType === 'Layer'
-
-      // Only handle right-click on empty space (stage/layer), not on tokens
-      if (!isStage && !isLayer) return
-
-      // Stop DOM propagation so the App-level context menu doesn't also open
-      e.evt.stopPropagation()
-
-      const pointer = stage?.getRelativePointerPosition()
-      if (!pointer) return
-
-      setContextMenu({
-        screenX: e.evt.clientX,
-        screenY: e.evt.clientY,
-        tokenId: null,
-        mapX: pointer.x,
-        mapY: pointer.y,
-      })
-    },
-    [role],
-  )
-
   // Token context menu handler from KonvaTokenLayer
   const handleTokenContextMenu = useCallback((event: TokenContextMenuEvent) => {
     setTooltipState(null)
@@ -228,6 +203,85 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
   // Close context menu
   const handleCloseContextMenu = useCallback(() => {
     setContextMenu(null)
+  }, [])
+
+  // Unified mouse event handlers for right-click pan state machine
+  const handleStageMouseDown = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (isPanGesture(e.evt)) {
+      // Right button: start tracking for pan
+      rightButtonDownRef.current = true
+      rightButtonStartRef.current = { x: e.evt.clientX, y: e.evt.clientY }
+      isPanningRef.current = false
+    }
+    // Left button: let Konva handle normally (token clicks bubble up)
+  }, [])
+
+  const handleStageMouseMove = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (!rightButtonDownRef.current || !rightButtonStartRef.current) return
+
+      const startPos = rightButtonStartRef.current
+
+      if (!isPanningRef.current) {
+        // Check if we've moved beyond threshold to enter pan mode
+        if (isDragBeyondThreshold(startPos.x, startPos.y, e.evt.clientX, e.evt.clientY)) {
+          isPanningRef.current = true
+          startPan(e.evt.clientX, e.evt.clientY)
+        }
+      } else {
+        // Already panning — update
+        updatePan(e.evt.clientX, e.evt.clientY)
+      }
+    },
+    [startPan, updatePan],
+  )
+
+  const handleStageMouseUp = useCallback(
+    (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (!isPanGesture(e.evt)) return
+      if (!rightButtonDownRef.current) return
+
+      if (isPanningRef.current) {
+        // Was panning — end pan
+        endPan()
+      } else {
+        // Right click without drag (delta < threshold) — open context menu (GM only)
+        if (role === 'GM') {
+          const target = e.target
+          const stage = target.getStage()
+          const isStage = target === stage
+          const isLayer = target.nodeType === 'Layer'
+
+          // Only show context menu on empty space, not on tokens
+          if (isStage || isLayer) {
+            // Stop DOM propagation so the App-level context menu doesn't also open
+            e.evt.stopPropagation()
+
+            const pointer = stage?.getRelativePointerPosition()
+            if (pointer) {
+              setContextMenu({
+                screenX: e.evt.clientX,
+                screenY: e.evt.clientY,
+                tokenId: null,
+                mapX: pointer.x,
+                mapY: pointer.y,
+              })
+            }
+          }
+        }
+      }
+
+      // Reset state
+      rightButtonDownRef.current = false
+      rightButtonStartRef.current = null
+      isPanningRef.current = false
+    },
+    [endPan, role],
+  )
+
+  // Prevent browser context menu on the container
+  const handleContainerContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
   }, [])
 
   // Create token on empty space — spawns an ephemeral entity + tactical token
@@ -284,6 +338,9 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
   )
   const [tooltipToken, tooltipEntity] = resolveTokenEntity(tokens, tooltipState?.tokenId, getEntity)
 
+  // Token layer listening: only interactive when active tool is 'interaction' category
+  const tokenLayerListening = toolRegistry.get(activeTool)?.category === 'interaction'
+
   // No tacticalInfo state (no active scene)
   if (!tacticalInfo) {
     return (
@@ -318,6 +375,7 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
       }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      onContextMenu={handleContainerContextMenu}
     >
       {containerSize.width > 0 && containerSize.height > 0 && (
         <Stage
@@ -328,12 +386,13 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
           scaleY={stageScale}
           x={stagePos.x}
           y={stagePos.y}
-          draggable={isSelectMode}
+          draggable={false}
           onWheel={handleWheel}
           onClick={handleStageClick}
           onTap={handleStageClick}
-          onDragEnd={handleDragEnd}
-          onContextMenu={handleStageContextMenu}
+          onMouseDown={handleStageMouseDown}
+          onMouseMove={handleStageMouseMove}
+          onMouseUp={handleStageMouseUp}
         >
           {/* Background layer — non-interactive */}
           <BackgroundLayer tacticalInfo={tacticalInfo} />
@@ -349,8 +408,9 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
             gridOffsetY={tacticalInfo.grid.offsetY}
           />
 
-          {/* Token layer — interactive */}
+          {/* Token layer — interactive only when tool category is 'interaction' */}
           <KonvaTokenLayer
+            listening={tokenLayerListening}
             tokens={tokens}
             getEntity={getEntity}
             tacticalInfo={tacticalInfo}
@@ -370,15 +430,15 @@ export const KonvaMap = forwardRef<KonvaMapHandle, KonvaMapProps>(function Konva
             remoteTokenDrags={remoteTokenDrags}
           />
 
-          {/* Measurement tool layer — above tokens */}
-          <MeasureTool
-            active={activeTool === BuiltinToolId.Measure}
-            tacticalInfo={tacticalInfo}
+          {/* Active tool canvas layer — above tokens */}
+          <ActiveToolCanvas
             stageRef={stageRef}
+            tacticalInfo={tacticalInfo}
+            stageScale={stageScale}
+            stagePos={stagePos}
+            gridSize={tacticalInfo.grid.size}
+            gridSnap={tacticalInfo.grid.snap}
           />
-
-          {/* Range template layer — above tokens */}
-          <RangeTemplate activeTool={activeTool} tacticalInfo={tacticalInfo} stageRef={stageRef} />
         </Stage>
       )}
 

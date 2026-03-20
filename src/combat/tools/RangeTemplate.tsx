@@ -1,8 +1,8 @@
-import { BuiltinToolId } from './builtinToolIds'
 import { useState, useEffect, useRef } from 'react'
 import { Layer, Circle, Wedge, Rect, Line, Text, Group, Rect as BgRect } from 'react-konva'
 import type Konva from 'konva'
 import type { TacticalInfo } from '../../stores/worldStore'
+import type { ToolLayerProps } from './types'
 
 interface Point {
   x: number
@@ -16,12 +16,6 @@ interface RangeShape {
   label: string
 }
 
-interface RangeTemplateProps {
-  activeTool: string
-  tacticalInfo: TacticalInfo
-  stageRef: React.RefObject<Konva.Stage | null>
-}
-
 const RANGE_FILL = 'rgba(212, 160, 85, 0.15)'
 const RANGE_STROKE = '#D4A055'
 const RANGE_DASH = [6, 3]
@@ -29,13 +23,6 @@ const CONE_ANGLE = 90
 const LABEL_FONT_SIZE = 12
 const LABEL_PADDING = 3
 const LABEL_BG_COLOR = 'rgba(20, 15, 12, 0.88)'
-
-function getRangeMode(tool: string): 'circle' | 'cone' | 'rect' | null {
-  if (tool === BuiltinToolId.RangeCircle) return 'circle'
-  if (tool === BuiltinToolId.RangeCone) return 'cone'
-  if (tool === BuiltinToolId.RangeRect) return 'rect'
-  return null
-}
 
 function calcLabel(mode: string, origin: Point, end: Point, tacticalInfo: TacticalInfo): string {
   const dx = end.x - origin.x
@@ -67,8 +54,17 @@ function calcLabel(mode: string, origin: Point, end: Point, tacticalInfo: Tactic
   return ''
 }
 
-export function RangeTemplate({ activeTool, tacticalInfo, stageRef }: RangeTemplateProps) {
-  const mode = getRangeMode(activeTool)
+interface RangeTemplateCanvasProps extends ToolLayerProps {
+  mode: 'circle' | 'cone' | 'rect'
+}
+
+/** Internal canvas layer for range templates. Receives mode directly. */
+function RangeTemplateCanvas({
+  mode,
+  tacticalInfo,
+  stageRef,
+  onComplete,
+}: RangeTemplateCanvasProps) {
   const [drawing, setDrawing] = useState<{ origin: Point; end: Point } | null>(null)
   const [persisted, setPersisted] = useState<RangeShape[]>([])
   const isDrawingRef = useRef(false)
@@ -96,15 +92,8 @@ export function RangeTemplate({ activeTool, tacticalInfo, stageRef }: RangeTempl
     }
   }, [])
 
-  // Clear drawing when tool mode changes
-  useEffect(() => {
-    setDrawing(null)
-    isDrawingRef.current = false
-  }, [activeTool])
-
   // Attach Stage mouse event handlers
   useEffect(() => {
-    if (!mode) return
     const stage = stageRef.current
     if (!stage) return
 
@@ -145,8 +134,12 @@ export function RangeTemplate({ activeTool, tacticalInfo, stageRef }: RangeTempl
       setDrawing((prev) => {
         if (!prev) return null
         if (shiftRef.current) {
+          // Persist the shape (Shift held — do NOT call onComplete)
           const label = calcLabel(mode, prev.origin, prev.end, tacticalInfo)
           setPersisted((arr) => [...arr, { mode, origin: prev.origin, end: prev.end, label }])
+        } else {
+          // Shape complete without Shift — signal one-shot completion
+          onComplete?.()
         }
         return null
       })
@@ -161,10 +154,7 @@ export function RangeTemplate({ activeTool, tacticalInfo, stageRef }: RangeTempl
       stage.off('mousemove.range')
       stage.off('mouseup.range')
     }
-  }, [mode, tacticalInfo, stageRef])
-
-  // Nothing to render if no active range tool and no persisted shapes
-  if (!mode && persisted.length === 0) return null
+  }, [mode, tacticalInfo, stageRef, onComplete])
 
   return (
     <Layer listening={false}>
@@ -174,7 +164,7 @@ export function RangeTemplate({ activeTool, tacticalInfo, stageRef }: RangeTempl
       ))}
 
       {/* Active drawing */}
-      {drawing && mode && (
+      {drawing && (
         <RangeShapeRenderer
           shape={{
             mode,
@@ -186,6 +176,20 @@ export function RangeTemplate({ activeTool, tacticalInfo, stageRef }: RangeTempl
       )}
     </Layer>
   )
+}
+
+// ── Wrapper components for each range mode ──
+
+export function RangeCircleCanvas(props: ToolLayerProps) {
+  return <RangeTemplateCanvas mode="circle" {...props} />
+}
+
+export function RangeConeCanvas(props: ToolLayerProps) {
+  return <RangeTemplateCanvas mode="cone" {...props} />
+}
+
+export function RangeRectCanvas(props: ToolLayerProps) {
+  return <RangeTemplateCanvas mode="rect" {...props} />
 }
 
 // ── Shape Renderer ──
