@@ -1,5 +1,15 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
-import { Plus, Download, Save, MoreVertical, Copy, Pencil, Trash2, Swords, Eraser } from 'lucide-react'
+import {
+  Plus,
+  Download,
+  Save,
+  MoreVertical,
+  Copy,
+  Pencil,
+  Trash2,
+  Swords,
+  Eraser,
+} from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import * as Popover from '@radix-ui/react-popover'
 import { useWorldStore } from '../stores/worldStore'
@@ -87,6 +97,17 @@ export function ArchivePanel() {
     setSelectedId(null)
   }
 
+  const handleClearTactical = async () => {
+    setClearConfirmOpen(false)
+    try {
+      await clearTactical()
+      toast('success', t('archive.clear_map'))
+    } catch (err) {
+      console.error('Clear tactical failed:', err)
+      toast('error', t('archive.clear_map'))
+    }
+  }
+
   const handleSave = () => {
     if (!selectedId || !activeSceneId) return
     void saveArchive(selectedId)
@@ -141,7 +162,9 @@ export function ArchivePanel() {
                       : undefined
                   }
                 >
-                  <div className={`px-2.5 py-2 ${archive.mapUrl ? 'min-h-[56px] flex flex-col justify-end' : 'bg-surface/40'}`}>
+                  <div
+                    className={`px-2.5 py-2 ${archive.mapUrl ? 'min-h-[56px] flex flex-col justify-end' : 'bg-surface/40'}`}
+                  >
                     <div className="flex items-center gap-2">
                       {/* Name or rename input */}
                       {renamingId === archive.id ? (
@@ -162,7 +185,9 @@ export function ArchivePanel() {
                           className="flex-1 text-xs bg-surface text-text-primary border border-border-glass rounded px-1.5 py-0.5 outline-none min-w-0"
                         />
                       ) : (
-                        <span className={`flex-1 text-xs truncate ${archive.mapUrl ? 'text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-text-primary'}`}>
+                        <span
+                          className={`flex-1 text-xs truncate ${archive.mapUrl ? 'text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-text-primary'}`}
+                        >
                           {archive.name}
                         </span>
                       )}
@@ -248,9 +273,7 @@ export function ArchivePanel() {
             </button>
           </Popover.Trigger>
           <PopoverContent side="top" align="center" className="min-w-[140px]">
-            <p className="text-xs text-text-primary mb-2.5">
-              {t('archive.clear_map_confirm')}
-            </p>
+            <p className="text-xs text-text-primary mb-2.5">{t('archive.clear_map_confirm')}</p>
             <div className="flex justify-end gap-2">
               <button
                 data-testid="confirm-cancel"
@@ -263,16 +286,7 @@ export function ArchivePanel() {
               </button>
               <button
                 data-testid="confirm-action"
-                onClick={async () => {
-                  setClearConfirmOpen(false)
-                  try {
-                    await clearTactical()
-                    toast('success', t('archive.clear_map'))
-                  } catch (err) {
-                    console.error('Clear tactical failed:', err)
-                    toast('error', t('archive.clear_map'))
-                  }
-                }}
+                onClick={() => void handleClearTactical()}
                 className="text-[11px] text-white bg-danger px-2.5 py-1 rounded hover:bg-danger/80 cursor-pointer transition-colors duration-fast"
               >
                 {t('confirm_default', { ns: 'ui' })}
