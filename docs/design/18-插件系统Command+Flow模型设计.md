@@ -40,12 +40,12 @@ FVTT 有上百个 Hook，开发者依然 monkey-patch。根因不是 Hook 数量
 最小计算单元。类型化的输入 → 输出。
 
 ```typescript
-interface CommandDef<TInput, TOutput> {
+interface CommandDef {
   id: string
   // 开放参数：其他插件可以为这些参数提议值
   openParams?: Record<string, OpenParamDef>
-  // 执行函数
-  execute(ctx: ActionContext, input: TInput, openParams: ResolvedParams): Promise<TOutput>
+  // 执行函数：ctx 为事务上下文，flowCtx 为 Flow 共享上下文
+  execute(ctx: ActionContext, flowCtx: FlowContext, openParams: ResolvedParams): Promise<void>
 }
 
 interface OpenParamDef {
@@ -128,6 +128,10 @@ interface ReadonlyActionContext {
 - 两个插件提议同一个参数 → 冲突，基座检测并报错，GM 选择使用哪个
 - 提议是可选的——无人提议时使用 openParam 的默认值
 
+**为什么不支持多提议者链式组合？**
+
+FVTT 需要 libWrapper 来协调多个模块 patch 同一个方法，根因是 Game System 不提供扩展 API，模块只能绕过去。在我们的设计中，规则作者主动设计 openParams——如果预见到某个数值会被多方影响（如伤害倍率同时受"易伤"和"护甲"影响），应该拆成多个独立 openParam（`vulnerabilityMultiplier`、`armorMultiplier`），而非让多个提议者竞争同一个参数。组合问题是规则作者的 API 设计责任，不是基座的机制问题。
+
 **示例：**
 
 ```typescript
@@ -141,7 +145,7 @@ proposals.register<DamageInput>('dh:damage', 'damageMultiplier', (ctx, input) =>
 
 ### 2.3 Flow（工作流）
 
-命令的有序队列。由规则系统**自愿**暴露。
+命令的有序队列。任何插件都可以注册自己的 Flow——规则系统注册游戏动作流程（如攻击），扩展插件也可以注册独立工作流（如战斗日志归档）。命名空间天然区分来源（`dh:attack` vs `ext:combat-log`）。
 
 ```typescript
 interface FlowDef {
@@ -152,8 +156,6 @@ interface FlowDef {
 interface FlowStep {
   id: string // 步骤标识（用于 insert/remove/replace）
   commandId: string // 关联的命令
-  // 从累加器中提取本步骤的输入
-  mapInput?: (acc: FlowAccumulator) => unknown
 }
 ```
 
@@ -161,30 +163,30 @@ interface FlowStep {
 
 - **暴露 Flow = "我认为这些步骤可以被修改"**
 - **不暴露 Flow，直接用单命令 = "这是黑盒，想改就整个换掉"**
-- 规则系统完全控制暴露什么——这是自愿的，不是强制的
+- 插件自愿决定暴露什么——这是 API 设计，不是强制的
 - 扩展插件可以 `insertAfter`、`insertBefore`、`remove`、`replace` Flow 中的步骤
-- 基座提供基本的类型检查（步骤间输入输出能衔接），不保证语义正确
+- 干预 Flow 的前提是知道目标步骤的 ID——**step ID 和 command ID 就是 API 契约**
 - 修改后果由修改者（扩展插件）负责
 
-**步骤间数据传递——累加器模型：**
+**步骤间数据传递——共享 Flow Context：**
 
-Flow 执行器维护一个 `FlowAccumulator` 对象，每个步骤执行后将输出合并到累加器中：
+Flow 启动时打包一个共享 context 对象，所有步骤串行操作同一个 context：
 
 ```typescript
-interface FlowAccumulator {
-  [stepId: string]: unknown // 每个步骤的输出，以 step.id 为 key
+interface FlowContext {
+  [key: string]: unknown // 步骤可读取和添加数据
 }
 ```
 
 执行流程：
 
-1. Flow 执行开始，创建空累加器 `acc = {}`
-2. 第一个步骤的输入为 Flow 的启动参数（由调用者提供）
-3. 每个步骤执行后，输出存入 `acc[step.id]`
-4. 后续步骤通过 `mapInput` 函数从累加器中提取需要的数据
-5. 若步骤未定义 `mapInput`，默认将前一步的输出作为本步输入
+1. Flow 启动，创建初始 `flowCtx`（由调用者提供启动参数）
+2. 每个步骤接收 `flowCtx`，可以读取和添加新字段
+3. 步骤串行执行，不存在并发竞争
+4. 基座在每个步骤执行后记录 context diff + 步骤提供者（命名空间），用于审计
+5. Flow 执行完毕，Transaction 一次性 commit
 
-这种模型的好处：步骤间的数据依赖是显式的，新插入的步骤可以读取任意前序步骤的输出。
+与 Pipeline `ctx.data` 的区别：Pipeline 中多个 handler 并发竞争修改同一个对象（靠 priority 排序）；Flow context 是串行队列，一步一步走，没有竞争。审计日志提供了 Pipeline 方案没有的可观测性。
 
 **示例：**
 
@@ -198,16 +200,19 @@ flows.register('dh:attack', [
   { id: 'death-check', commandId: 'dh:death-check' },
 ])
 
-// 扩展插件在 apply-damage 之后插入日志步骤
+// 扩展插件也可以注册自己的独立工作流
+flows.register('ext:combat-log-archive', [
+  { id: 'collect', commandId: 'ext:collect-round-data' },
+  { id: 'format', commandId: 'ext:format-log' },
+  { id: 'save', commandId: 'ext:save-to-journal' },
+])
+
+// 扩展插件修改规则系统的 Flow
 flows.insertAfter('dh:attack', 'apply-damage', {
   id: 'ext:log-damage',
   commandId: 'ext:log-damage',
 })
-
-// 扩展插件移除自动死亡检查（GM 手动处理）
 flows.remove('dh:attack', 'death-check')
-
-// 扩展插件替换伤害计算
 flows.replace('dh:attack', 'calc-damage', {
   id: 'ext:alt-calc-damage',
   commandId: 'ext:alt-calc-damage',
@@ -298,18 +303,19 @@ broadcasts.on('commandExecuted', (log) => {
 ## 五、三层架构（沿用 Doc 16）
 
 ```
-┌─────────────────────────────────────────────┐
-│  扩展插件 (Extension Plugins)                │
-│  proposals / flows.insert / broadcasts.on   │
-├─────────────────────────────────────────────┤
-│  规则系统 (Rule System) — 二层基座            │
-│  commands.register / flows.register         │
-│  定义游戏命令和工作流                        │
-├─────────────────────────────────────────────┤
-│  基座 (Base Platform) — 运行时内核            │
-│  Command 注册表、Flow 执行器、Transaction    │
-│  Proposal 解析、广播系统、UI 骨架            │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│  扩展插件 (Extension Plugins)                        │
+│  proposals / flows.insert / broadcasts.on            │
+│  可注册独立 commands + flows（ext: 命名空间）        │
+├─────────────────────────────────────────────────────┤
+│  规则系统 (Rule System) — 二层基座                    │
+│  commands.register / flows.register                  │
+│  定义游戏命令和工作流（dh: 等规则命名空间）          │
+├─────────────────────────────────────────────────────┤
+│  基座 (Base Platform) — 运行时内核                    │
+│  Command 注册表、Flow 执行器、Transaction            │
+│  Proposal 解析、广播系统、UI 骨架                    │
+└─────────────────────────────────────────────────────┘
 ```
 
 **基座职责：**
@@ -340,16 +346,16 @@ broadcasts.on('commandExecuted', (log) => {
 
 ## 六、与 Doc 16 Pipeline 方案的对比
 
-|                | Doc 16 Pipeline                  | Command + Flow                         |
-| -------------- | -------------------------------- | -------------------------------------- |
-| 核心概念数量   | 9 个                             | 4 个                                   |
-| 扩展方式       | 往 Stage 添加 handler            | 替换命令 / 操作 Flow / 提议参数        |
-| 共享状态       | ctx.data 共享可变对象            | 命令有独立输入输出，无共享状态         |
-| 冲突处理       | priority 排序（多 handler 共存） | 同一目标只允许一个实现，冲突时 GM 选择 |
-| 扩展点由谁决定 | 规则系统声明 Stage 列表          | 规则系统自愿暴露 Flow                  |
-| 批量写入       | 需要特殊 RESOLVE 阶段语义        | Transaction 自然收集所有 mutation      |
-| 事件排队       | 需要事件队列 + 递归检测          | 不需要，链在内存中同步执行             |
-| 链式反应       | Hook → System → 事件队列         | 命令调用命令，同一事务内               |
+|                | Doc 16 Pipeline                        | Command + Flow                         |
+| -------------- | -------------------------------------- | -------------------------------------- |
+| 核心概念数量   | 9 个                                   | 4 个                                   |
+| 扩展方式       | 往 Stage 添加 handler                  | 替换命令 / 操作 Flow / 提议参数        |
+| 共享状态       | ctx.data 共享可变对象，多 handler 竞争 | Flow Context 串行操作，无竞争，有审计  |
+| 冲突处理       | priority 排序（多 handler 共存）       | 同一目标只允许一个实现，冲突时 GM 选择 |
+| 扩展点由谁决定 | 规则系统声明 Stage 列表                | 规则系统自愿暴露 Flow                  |
+| 批量写入       | 需要特殊 RESOLVE 阶段语义              | Transaction 自然收集所有 mutation      |
+| 事件排队       | 需要事件队列 + 递归检测                | 不需要，链在内存中同步执行             |
+| 链式反应       | Hook → System → 事件队列               | 命令调用命令，同一事务内               |
 
 ---
 
@@ -357,15 +363,18 @@ broadcasts.on('commandExecuted', (log) => {
 
 ```typescript
 // ── 命令注册 ──
+// 每个命令接收 (ctx: ActionContext, flowCtx: FlowContext)
+// flowCtx 是共享上下文，步骤串行操作，可读取和添加字段
 
-commands.register<RollInput, RollOutput>('dh:roll', {
-  async execute(ctx, { formula }) {
-    return await ctx.roll(formula)
+commands.register('dh:roll', {
+  async execute(ctx, flowCtx) {
+    flowCtx.rollResult = await ctx.roll(flowCtx.formula)
   },
 })
 
-commands.register<CheckInput, CheckOutput>('dh:check', {
-  async execute(ctx, { rollResult, dc }) {
+commands.register('dh:check', {
+  async execute(ctx, flowCtx) {
+    const { rollResult, dc } = flowCtx
     const hit = rollResult.total >= dc
     const [hopeDie, fearDie] = rollResult.terms[0].results
     let outcome: DaggerheartOutcome
@@ -373,36 +382,39 @@ commands.register<CheckInput, CheckOutput>('dh:check', {
     else if (hit && hopeDie > fearDie) outcome = 'success_hope'
     else if (hit) outcome = 'success_fear'
     else outcome = hopeDie > fearDie ? 'failure_hope' : 'failure_fear'
-    return { hit, outcome, hopeDie, fearDie }
+    flowCtx.hit = hit
+    flowCtx.outcome = outcome
   },
 })
 
-commands.register<CalcDamageInput, CalcDamageOutput>('dh:calc-damage', {
+commands.register('dh:calc-damage', {
   openParams: {
     damageMultiplier: { type: 'number', default: 1 },
   },
-  async execute(ctx, { rollResult, attackAttribute }, openParams) {
-    const baseDamage = rollResult.total // 简化
-    return { finalDamage: baseDamage * openParams.damageMultiplier }
+  async execute(ctx, flowCtx, openParams) {
+    const baseDamage = flowCtx.rollResult.total
+    flowCtx.finalDamage = baseDamage * openParams.damageMultiplier
   },
 })
 
-commands.register<ApplyDamageInput, void>('dh:apply-damage', {
-  async execute(ctx, { targetId, damage }) {
-    const target = ctx.getEntity(targetId)
+commands.register('dh:apply-damage', {
+  async execute(ctx, flowCtx) {
+    const target = ctx.getEntity(flowCtx.targetId)
     const currentHp = target.ruleData.health.hp.current
-    const newHp = Math.max(0, currentHp - damage)
-    ctx.mutate(targetId, { ruleData: { health: { hp: { current: newHp } } } })
+    const newHp = Math.max(0, currentHp - flowCtx.finalDamage)
+    ctx.mutate(flowCtx.targetId, {
+      ruleData: { health: { hp: { current: newHp } } },
+    })
   },
 })
 
-commands.register<DeathCheckInput, void>('dh:death-check', {
-  async execute(ctx, { targetId }) {
-    const target = ctx.getEntity(targetId)
+commands.register('dh:death-check', {
+  async execute(ctx, flowCtx) {
+    const target = ctx.getEntity(flowCtx.targetId)
     if (target.ruleData.health.hp.current <= 0) {
       const conditions = target.ruleData.conditions?.active ?? []
       if (!conditions.includes('downed')) {
-        ctx.mutate(targetId, {
+        ctx.mutate(flowCtx.targetId, {
           ruleData: { conditions: { active: [...conditions, 'downed'] } },
         })
       }
@@ -412,50 +424,29 @@ commands.register<DeathCheckInput, void>('dh:death-check', {
 
 // ── Flow 注册 ──
 
+// flowCtx 初始值由调用者提供: { targetId, dc, formula, attackAttribute }
 flows.register('dh:attack', [
   { id: 'roll', commandId: 'dh:roll' },
-  {
-    id: 'check',
-    commandId: 'dh:check',
-    mapInput: (acc) => ({ rollResult: acc.roll, dc: acc._init.dc }),
-  },
-  {
-    id: 'calc-damage',
-    commandId: 'dh:calc-damage',
-    mapInput: (acc) => ({
-      rollResult: acc.roll,
-      attackAttribute: acc._init.attackAttribute,
-    }),
-  },
-  {
-    id: 'apply-damage',
-    commandId: 'dh:apply-damage',
-    mapInput: (acc) => ({
-      targetId: acc._init.targetId,
-      damage: acc['calc-damage'].finalDamage,
-    }),
-  },
-  {
-    id: 'death-check',
-    commandId: 'dh:death-check',
-    mapInput: (acc) => ({ targetId: acc._init.targetId }),
-  },
+  { id: 'check', commandId: 'dh:check' },
+  { id: 'calc-damage', commandId: 'dh:calc-damage' },
+  { id: 'apply-damage', commandId: 'dh:apply-damage' },
+  { id: 'death-check', commandId: 'dh:death-check' },
 ])
 
 // ── 扩展插件 ──
 
 // 条件插件：易伤翻倍
-proposals.register('dh:calc-damage', 'damageMultiplier', (ctx, input) => {
-  const target = ctx.getEntity(input.targetId)
+proposals.register('dh:calc-damage', 'damageMultiplier', (ctx, flowCtx) => {
+  const target = ctx.getEntity(flowCtx.targetId)
   if (hasCondition(target, 'vulnerable')) return 2
   return 1
 })
 
 // 日志插件：插入日志步骤
 commands.register('ext:log-damage', {
-  async execute(ctx, { finalDamage, targetId }) {
-    const target = ctx.getEntity(targetId)
-    ctx.announce(`${target.name} 受到 ${finalDamage} 点伤害`)
+  async execute(ctx, flowCtx) {
+    const target = ctx.getEntity(flowCtx.targetId)
+    ctx.announce(`${target.name} 受到 ${flowCtx.finalDamage} 点伤害`)
   },
 })
 flows.insertAfter('dh:attack', 'apply-damage', {
@@ -488,7 +479,7 @@ flows.insertAfter('dh:attack', 'apply-damage', {
 - 房间同时只有一个规则系统激活
 - 同一个 openParam 只能有一个提议者
 - 基座不理解任何规则概念
-- 规则系统自愿决定哪些动作暴露为 Flow
+- 插件自愿决定哪些动作暴露为 Flow（不限于规则系统）
 
 ## Edge Cases
 
@@ -496,6 +487,24 @@ flows.insertAfter('dh:attack', 'apply-damage', {
 - 扩展插件删除 Flow 中的关键步骤导致后续步骤输入缺失 → 基座类型检查报错 or 运行时报错，扩展插件负责
 - 同一事务中 ctx.getEntity() 读到脏数据（之前步骤的 mutate 结果）→ 这是设计意图，允许链式计算
 - `ctx.exec()` 嵌套深度超过 16 → 基座抛出 MaxDepthExceeded 异常，事务回滚。这是防御性限制，正常 TTRPG 链不会触及此上限
+
+## 九、模式层——规则系统 SDK 与最佳实践
+
+原语层（Command + Flow + Proposal + Transaction）提供了机制，但如果规则作者不知道怎么用好它们，最终会退化成一个巨大命令 + 没有 Flow + 没有 openParams——和没有扩展系统一样。
+
+**类比：HTTP 是原语，REST 是模式。** 没有 REST 规范，大家也会用 HTTP，但用法千奇百怪。
+
+需要提供的模式层内容：
+
+- **规则系统 SDK**：脚手架、类型定义、示例模板
+- **Flow 设计指南**："如果你的动作有多步且每步可能被修改 → 暴露为 Flow"
+- **openParam 设计指南**："如果某个数值可能被外部影响 → 拆成独立 openParam，不要合并"
+- **命名约定**：`{system}:{verb}` 如 `dh:attack`，扩展插件用 `ext:{name}` 或 `{plugin}:{verb}`
+- **参考实现**：完整的 Daggerheart 规则系统作为范例
+
+> 这些内容在实现第一个规则系统时落地，空想不如实战。
+
+---
 
 ## 待细化
 
@@ -521,3 +530,7 @@ flows.insertAfter('dh:attack', 'apply-damage', {
 8. **命令模型** → 所有计算包装为命令，可替换不可修改
 9. **Flow = 自愿暴露的命令队列** → 规则系统控制暴露什么
 10. **提议机制** → 扩展插件提议参数，命令拥有者决定是否采纳
+11. **Flow 不限于规则系统** → 任何插件可注册独立 Flow，命名空间区分来源
+12. **共享 Flow Context** → 替代 accumulator + mapInput，串行队列无竞争，审计每步 diff
+13. **一个提议者的合理性** → FVTT 需要 libWrapper 是因为缺乏 API，我们的规则作者就是 API 设计者，组合问题通过拆分 openParams 解决
+14. **模式层的必要性** → 原语不够，需要 SDK + 最佳实践引导规则作者设计好 API，否则退化成巨大命令。在实现第一个规则系统时落地
