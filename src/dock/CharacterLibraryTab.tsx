@@ -18,7 +18,7 @@ export function CharacterLibraryTab() {
   const deleteEntity = useWorldStore((s) => s.deleteEntity)
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
   const seats = useIdentityStore((s) => s.seats)
-  const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
+  const openCard = useUiStore((s) => s.openCard)
   const { toast } = useToast()
   const plugin = useRulePlugin()
   const [search, setSearch] = useState('')
@@ -59,7 +59,7 @@ export function CharacterLibraryTab() {
     // Add to current scene so the inspector can locate the entity in PortraitBar.
     // visible=true so the portrait appears on stage for the GM to click/edit.
     if (activeSceneId) void addEntityToScene(activeSceneId, newEntity.id, true)
-    setInspectedCharacterId(newEntity.id)
+    openCard(newEntity.id)
   }
 
   const handleDelete = useCallback(
@@ -148,7 +148,7 @@ export function CharacterLibraryTab() {
                     if (activeSceneId) void addEntityToScene(activeSceneId, entity.id)
                   }}
                   onDoubleClick={() => {
-                    setInspectedCharacterId(entity.id)
+                    openCard(entity.id)
                   }}
                   className="flex-1 flex items-center gap-2 px-2 py-1.5 rounded text-left hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
                 >

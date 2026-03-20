@@ -25,6 +25,10 @@ export {
 export { DropdownMenuContent } from './DropdownMenuContent'
 export { DropdownMenuItem } from './DropdownMenuItem'
 
+// ─── FloatingCard ───────────────────────────────────────
+export { FloatingCard } from './FloatingCard'
+export type { FloatingCardProps } from './FloatingCard'
+
 // ─── Dialog ──────────────────────────────────────────────
 export {
   Root as DialogRoot,

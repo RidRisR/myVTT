@@ -159,11 +159,12 @@ function RoomSession({ roomId }: { roomId: string }) {
   const updateSeat = useIdentityStore((s) => s.updateSeat)
 
   // UI store
-  const inspectedCharacterId = useUiStore((s) => s.inspectedCharacterId)
+  const openCardId = useUiStore((s) => s.openCardId)
+  const closeCard = useUiStore((s) => s.closeCard)
+  const closePinnedCard = useUiStore((s) => s.closePinnedCard)
   const selectedTokenId = useUiStore((s) => s.selectedTokenId)
   const bgContextMenu = useUiStore((s) => s.bgContextMenu)
   const editingHandout = useUiStore((s) => s.editingHandout)
-  const setInspectedCharacterId = useUiStore((s) => s.setInspectedCharacterId)
   const setSelectedTokenId = useUiStore((s) => s.setSelectedTokenId)
   const setBgContextMenu = useUiStore((s) => s.setBgContextMenu)
   const setEditingHandout = useUiStore((s) => s.setEditingHandout)
@@ -281,7 +282,8 @@ function RoomSession({ roomId }: { roomId: string }) {
 
   const handleRemoveFromScene = (entityId: string) => {
     if (room.activeSceneId) void removeEntityFromScene(room.activeSceneId, entityId)
-    if (inspectedCharacterId === entityId) setInspectedCharacterId(null)
+    if (openCardId === entityId) closeCard()
+    closePinnedCard(entityId)
   }
 
   const handleDeleteScene = (sceneId: string) => {
@@ -338,7 +340,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       .getState()
       .createEphemeralNpcInScene()
       .then((entity) => {
-        if (entity) setInspectedCharacterId(entity.id)
+        if (entity) useUiStore.getState().openCard(entity.id)
       })
   }
 
@@ -399,9 +401,7 @@ function RoomSession({ roomId }: { roomId: string }) {
           role={mySeat.role}
           isGM={isGM}
           onlineSeatIds={onlineSeatIds}
-          inspectedCharacterId={inspectedCharacterId}
           activeCharacterId={mySeat.activeCharacterId ?? null}
-          onInspectCharacter={setInspectedCharacterId}
           onSetActiveCharacter={handleSetActiveCharacter}
           onRemoveFromScene={handleRemoveFromScene}
           onUpdateEntity={handleUpdateEntity}
