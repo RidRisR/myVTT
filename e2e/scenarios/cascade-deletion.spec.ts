@@ -31,7 +31,7 @@ test.describe('Cascade Deletion', () => {
     await room.expectInRoom()
 
     // Open Gallery tab and upload test-cascade.png
-    await room.gmDock.openTab('gallery')
+    await room.gmDock.openTab('maps')
     await room.gmDock.gallery.uploadImage(cascadePngPath)
     await room.gmDock.gallery.expectAssetVisible('test-cascade.png')
 

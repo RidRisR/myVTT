@@ -153,6 +153,7 @@ export function initRoomSchema(db: Database.Database): void {
       name TEXT DEFAULT '',
       media_type TEXT NOT NULL DEFAULT 'image',
       tags TEXT DEFAULT '[]',
+      sort_order INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL,
       extra TEXT DEFAULT '{}'
     );

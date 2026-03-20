@@ -1,13 +1,15 @@
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, FolderOpen, Loader2 } from 'lucide-react'
+import { Plus, Loader2, FolderOpen } from 'lucide-react'
 import * as ContextMenu from '@radix-ui/react-context-menu'
 import { useWorldStore } from '../stores/worldStore'
-import type { AssetMeta } from '../shared/assetTypes'
+import { AUTO_TAGS, type AssetMeta } from '../shared/assetTypes'
 import { isVideoUrl } from '../shared/assetUpload'
 import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { useToast } from '../ui/useToast'
+import { TagFilterBar } from '../ui/TagFilterBar'
+import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
 
 interface MapDockTabProps {
   activeSceneId: string | null
@@ -28,6 +30,8 @@ export function MapDockTab({
   const fileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [managerOpen, setManagerOpen] = useState(false)
 
   const allAssets = useWorldStore((s) => s.assets)
   const upload = useWorldStore((s) => s.uploadAsset)
@@ -36,6 +40,21 @@ export function MapDockTab({
     () => allAssets.filter((a) => a.mediaType === 'image' && a.tags.includes('map')),
     [allAssets],
   )
+
+  const availableTags = useMemo(() => {
+    const used = new Set<string>()
+    for (const a of assets) {
+      for (const t of a.tags) {
+        if (!AUTO_TAGS.includes(t)) used.add(t)
+      }
+    }
+    return Array.from(used).sort()
+  }, [assets])
+
+  const filteredAssets = useMemo(() => {
+    if (selectedTags.length === 0) return assets
+    return assets.filter((a) => selectedTags.every((t) => a.tags.includes(t)))
+  }, [assets, selectedTags])
 
   const { toast } = useToast()
 
@@ -67,6 +86,8 @@ export function MapDockTab({
 
   return (
     <div>
+      <AssetPickerPanel mode="manage" open={managerOpen} onOpenChange={setManagerOpen} />
+
       <input
         ref={fileRef}
         type="file"
@@ -77,22 +98,32 @@ export function MapDockTab({
         }}
       />
 
-      {assets.length === 0 && (
-        <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-          <FolderOpen size={32} strokeWidth={1} className="text-text-muted/40" />
-          <p className="text-text-muted text-sm">{t('map.no_images')}</p>
-          <p className="text-text-muted/50 text-xs">{t('map.upload_hint')}</p>
-        </div>
-      )}
+      {/* Tag filter bar — always visible */}
+      <div className="mb-2.5">
+        <TagFilterBar
+          availableTags={availableTags}
+          selectedTags={selectedTags}
+          onToggleTag={(tag) => {
+            setSelectedTags((prev) =>
+              prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+            )
+          }}
+          trailing={
+            <button
+              onClick={() => {
+                setManagerOpen(true)
+              }}
+              className="text-[10px] px-2 py-0.5 rounded-full cursor-pointer text-text-muted/40 hover:text-text-muted/60 border border-border-glass/30 transition-colors duration-fast ml-auto"
+              title={t('map.manage_assets')}
+            >
+              <FolderOpen size={12} strokeWidth={1.5} />
+            </button>
+          }
+        />
+      </div>
 
-      <div
-        className="grid gap-2"
-        style={{
-          gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-          contentVisibility: 'auto',
-        }}
-      >
-        {assets.map((asset) => {
+      <div className="flex overflow-x-auto gap-3 pb-1" style={{ scrollbarWidth: 'none' }}>
+        {filteredAssets.map((asset) => {
           const isHovered = hoveredId === asset.id
           return (
             <ContextMenu.Root key={asset.id}>
@@ -100,7 +131,7 @@ export function MapDockTab({
                 <div
                   role="button"
                   tabIndex={0}
-                  className="relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-fast border-border-glass"
+                  className="flex flex-col items-center gap-1 flex-shrink-0 cursor-pointer"
                   onClick={() => {
                     if (!activeSceneId || !asset.url) return
                     if (isTactical) {
@@ -126,34 +157,31 @@ export function MapDockTab({
                     setHoveredId(null)
                   }}
                 >
-                  {isVideoUrl(asset.url) ? (
-                    <video
-                      src={asset.url}
-                      muted
-                      loop
-                      autoPlay
-                      playsInline
-                      className="w-full h-[70px] object-cover block"
-                      draggable={false}
-                    />
-                  ) : (
-                    <img
-                      src={asset.url}
-                      alt={asset.name}
-                      className="w-full h-[70px] object-cover block"
-                      draggable={false}
-                    />
-                  )}
-                  <div className="px-1.5 py-1 text-[10px] overflow-hidden text-ellipsis whitespace-nowrap bg-black/30 text-text-muted/60">
-                    {asset.name || t('map.untitled')}
+                  <div
+                    className={`relative w-14 h-14 rounded-full overflow-hidden border-2 transition-all duration-fast ${isHovered ? 'border-accent' : 'border-border-glass'}`}
+                  >
+                    {isVideoUrl(asset.url) ? (
+                      <video
+                        src={asset.url}
+                        muted
+                        loop
+                        autoPlay
+                        playsInline
+                        className="w-full h-full object-cover block"
+                        draggable={false}
+                      />
+                    ) : (
+                      <img
+                        src={asset.url}
+                        alt={asset.name}
+                        className="w-full h-full object-cover block"
+                        draggable={false}
+                      />
+                    )}
                   </div>
-
-                  {/* Hover indicator for right-click */}
-                  {isHovered && (
-                    <div className="absolute top-1 right-1 w-[18px] h-[18px] rounded-full bg-black/40 flex items-center justify-center text-white/50 text-[8px]">
-                      ···
-                    </div>
-                  )}
+                  <span className="text-[10px] text-text-muted/60 max-w-[56px] overflow-hidden text-ellipsis whitespace-nowrap text-center">
+                    {asset.name || t('map.untitled')}
+                  </span>
                 </div>
               </ContextMenu.Trigger>
 
@@ -201,25 +229,24 @@ export function MapDockTab({
         })}
 
         {/* Upload card */}
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-          data-testid="gallery-upload"
-          className="rounded-lg border-2 border-dashed border-border-glass cursor-pointer flex flex-col items-center justify-center gap-1 text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50 bg-transparent disabled:cursor-not-allowed disabled:opacity-50 h-[94px]"
-        >
-          {uploading ? (
-            <>
-              <Loader2 size={20} strokeWidth={1.5} className="animate-spin" />
-              <span className="text-[10px]">{t('map.uploading')}</span>
-            </>
-          ) : (
-            <>
-              <Plus size={20} strokeWidth={1.5} />
-              <span className="text-[10px]">{t('map.upload')}</span>
-            </>
-          )}
-        </button>
+        <div className="flex flex-col items-center gap-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            data-testid="gallery-upload"
+            className="w-14 h-14 rounded-full border-2 border-dashed border-border-glass cursor-pointer flex flex-col items-center justify-center gap-0.5 text-text-muted/30 transition-colors duration-fast hover:border-text-muted/30 hover:text-text-muted/50 bg-transparent disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {uploading ? (
+              <Loader2 size={18} strokeWidth={1.5} className="animate-spin" />
+            ) : (
+              <Plus size={18} strokeWidth={1.5} />
+            )}
+          </button>
+          <span className="text-[10px] text-text-muted/40">
+            {uploading ? t('map.uploading') : t('map.upload')}
+          </span>
+        </div>
       </div>
     </div>
   )

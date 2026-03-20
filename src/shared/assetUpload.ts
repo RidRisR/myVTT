@@ -33,6 +33,44 @@ export function getMediaDimensions(url: string): Promise<{ w: number; h: number 
   })
 }
 
+export async function uploadBlueprintFromFile(
+  file: File,
+  meta?: { name?: string; tags?: string[]; defaults?: Record<string, unknown> },
+): Promise<{
+  id: string
+  name: string
+  imageUrl: string
+  tags: string[]
+  defaults: Record<string, unknown>
+  createdAt: number
+}> {
+  const roomId = getCurrentRoomId()
+  const formData = new FormData()
+  formData.append('file', file)
+  if (meta?.name) formData.append('name', meta.name)
+  if (meta?.tags) formData.append('tags', JSON.stringify(meta.tags))
+  if (meta?.defaults) formData.append('defaults', JSON.stringify(meta.defaults))
+
+  const res = await fetch(`${API_BASE}/api/rooms/${roomId}/blueprints/from-upload`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+  })
+
+  if (!res.ok) {
+    throw new Error(`Upload failed: ${res.statusText}`)
+  }
+
+  return (await res.json()) as {
+    id: string
+    name: string
+    imageUrl: string
+    tags: string[]
+    defaults: Record<string, unknown>
+    createdAt: number
+  }
+}
+
 export async function uploadAsset(
   file: File,
   meta?: { name?: string; mediaType?: string; extra?: Record<string, unknown> },

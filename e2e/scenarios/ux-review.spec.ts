@@ -114,7 +114,7 @@ test.describe('UX Journey Review', () => {
 
     // Upload background via Gallery
     const { mapPath } = createTestAssets()
-    await room.gmDock.openTab('gallery')
+    await room.gmDock.openTab('maps')
     await snap(page, 'gallery-tab')
 
     await room.gmDock.gallery.uploadImage(mapPath)
@@ -207,7 +207,7 @@ test.describe('UX Journey Review', () => {
     const { room } = await setupGmSession(page, 'j8')
 
     // All dock tabs
-    await room.gmDock.openTab('gallery')
+    await room.gmDock.openTab('maps')
     await snap(page, 'gm-dock-gallery')
 
     await room.gmDock.openTab('tokens')

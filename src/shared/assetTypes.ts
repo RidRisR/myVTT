@@ -1,9 +1,12 @@
+export const AUTO_TAGS: readonly string[] = ['map', 'token', 'portrait']
+
 export interface AssetMeta {
   id: string
   url: string
   name: string
   mediaType: 'image' | 'handout'
   tags: string[]
+  sortOrder: number
   width?: number
   height?: number
   createdAt: number

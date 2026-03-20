@@ -52,5 +52,7 @@
     "add_title": "添加标题...",
     "add_description": "添加描述...",
     "untitled": "未命名"
-  }
+  },
+  "asset_library": "资产库",
+  "maps": "地图"
 }

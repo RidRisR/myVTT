@@ -22,7 +22,7 @@ test.describe('Asset Management', () => {
     await gmRoom.expectInRoom()
 
     // Step 1: Open Gallery tab
-    await gmRoom.gmDock.openTab('gallery')
+    await gmRoom.gmDock.openTab('maps')
 
     // Step 2: Upload test-map.png
     await gmRoom.gmDock.gallery.uploadImage(testAssets.mapPath)
@@ -68,7 +68,7 @@ test.describe('Asset Management', () => {
     )
 
     // Step 7: Re-open Gallery tab (dock may have collapsed)
-    await gmRoom.gmDock.openTab('gallery')
+    await gmRoom.gmDock.openTab('maps')
 
     // Step 8: Delete the asset
     await gmRoom.gmDock.gallery.deleteAsset('test-map.png')

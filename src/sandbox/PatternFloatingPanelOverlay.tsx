@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import * as Popover from '@radix-ui/react-popover'
 import * as ContextMenu from '@radix-ui/react-context-menu'
 import { PopoverContent } from '../ui/primitives/PopoverContent'
@@ -12,12 +13,13 @@ import { useClickOutside } from '../hooks/useClickOutside'
 // Demonstrates the correct architecture for a non-modal floating panel that
 // contains nested Radix overlays (Popover, ContextMenu).
 //
-// KEY LESSON: Do NOT use Radix Dialog for complex interactive panels.
-// Dialog brings 3 hidden constraints that break nested interactions:
-//   1. Portal isolation — children render outside the Dialog's DOM tree
-//   2. Modal pointer-events — blocks interaction with anything outside
-//   3. transform-based centering — creates a CSS containing block that
-//      makes child `position: fixed` relative to Dialog, not viewport
+// KEY LESSONS:
+//   1. Do NOT use Radix Dialog for complex interactive panels — Dialog brings
+//      Portal isolation, modal pointer-events, and transform centering that
+//      all break nested overlay interactions.
+//   2. Always render via createPortal(jsx, document.body) — panels triggered
+//      from inside transformed/filtered ancestors will have broken fixed
+//      positioning if rendered inline (CSS containing block trap).
 // ---------------------------------------------------------------------------
 
 export default function PatternFloatingPanelOverlay() {
@@ -35,16 +37,19 @@ export default function PatternFloatingPanelOverlay() {
       <div className="mb-4 p-4 rounded-lg border border-border-glass bg-glass">
         <h2 className="text-sm font-medium mb-2">FloatingPanel + NestedOverlay</h2>
         <p className="text-xs text-muted leading-relaxed">
-          A non-modal panel using <code className="text-accent">position: fixed + left/top</code>{' '}
-          (no transform). Inside it: a Radix Popover and a ContextMenu, both rendering via Portal to
+          A non-modal panel rendered via{' '}
+          <code className="text-accent">createPortal + position: fixed + left/top</code> (no
+          transform). Inside it: a Radix Popover and a ContextMenu, both rendering via Portal to
           escape the panel&apos;s DOM tree.
         </p>
         <p className="text-xs text-muted mt-2 leading-relaxed">
-          Try: drag the panel, open the popover, right-click for context menu, click outside to
-          close. All interactions should work without conflict.
+          Try: open from the normal button AND from inside the trapped container below. Both should
+          produce a correctly-positioned panel. Then drag, open popover, right-click context menu,
+          click outside to close.
         </p>
       </div>
 
+      {/* Normal trigger — no containing block issues */}
       <button
         onClick={() => {
           setOpen(true)
@@ -54,7 +59,33 @@ export default function PatternFloatingPanelOverlay() {
         Open Panel
       </button>
 
-      {open && <FloatingPanel onClose={handleClose} />}
+      {/* PATTERN: Containing Block Trap — demonstrates WHY createPortal is needed.
+          This container has transform + backdrop-filter, which create a CSS
+          containing block. Without createPortal, a position:fixed panel rendered
+          inside this container would be positioned relative to IT, not viewport. */}
+      <div
+        className="mt-4 p-4 rounded-lg border border-dashed border-danger/40 bg-glass/50"
+        style={{ transform: 'translateX(0)', backdropFilter: 'blur(4px)' }}
+      >
+        <p className="text-[10px] text-danger/80 mb-2 leading-relaxed">
+          <span className="font-medium">Containing block trap</span> — this container has{' '}
+          <code>transform</code> + <code>backdrop-filter</code>. Without <code>createPortal</code>,
+          a fixed panel here would be trapped inside.
+        </p>
+        <button
+          onClick={() => {
+            setOpen(true)
+          }}
+          className="px-3 py-1.5 rounded-lg border border-danger/30 bg-glass text-xs text-text-primary cursor-pointer hover:bg-hover transition-colors duration-fast"
+        >
+          Open Panel (from trapped container)
+        </button>
+      </div>
+
+      {/* PATTERN: createPortal renders the panel to <body>, escaping ALL ancestor
+          containing blocks (transform, backdrop-filter, filter, will-change).
+          This is NOT conditional — always use createPortal for floating panels. */}
+      {open && createPortal(<FloatingPanel onClose={handleClose} />, document.body)}
     </div>
   )
 }
@@ -203,6 +234,10 @@ function FloatingPanel({ onClose }: { onClose: () => void }) {
 
         {/* Annotation */}
         <div className="text-[10px] text-muted leading-relaxed border-t border-border-glass pt-3 space-y-1">
+          <p>
+            <span className="text-accent font-medium">createPortal</span> — renders to {'<body>'},
+            escapes ancestor containing blocks (transform, backdrop-filter)
+          </p>
           <p>
             <span className="text-accent font-medium">fixed + left/top</span> — no transform, no
             containing block

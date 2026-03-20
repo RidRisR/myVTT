@@ -18,8 +18,12 @@ import { api } from '../shared/api'
 import { generateTokenId } from '../shared/idUtils'
 import { defaultNPCPermissions } from '../shared/permissions'
 import type { AssetMeta } from '../shared/assetTypes'
-import { uploadAsset as uploadAssetFile } from '../shared/assetUpload'
-import { updateAsset as patchAsset, deleteAsset } from '../shared/assetApi'
+import { uploadAsset as uploadAssetFile, uploadBlueprintFromFile } from '../shared/assetUpload'
+import {
+  updateAsset as patchAsset,
+  deleteAsset,
+  reorderAssets as reorderAssetsApi,
+} from '../shared/assetApi'
 
 // ── Types (re-exported from shared/storeTypes for backward compat) ──
 
@@ -163,6 +167,12 @@ interface WorldState {
   removeAsset: (assetId: string) => Promise<void>
   /** Remove from UI immediately, delete from server after delay. Returns undo function. */
   softRemoveAsset: (assetId: string, delayMs?: number) => () => void
+  reorderAssets: (order: { id: string; sortOrder: number }[]) => Promise<void>
+  /** Atomically upload file → create asset + blueprint in one server transaction */
+  uploadAndCreateBlueprint: (
+    file: File,
+    meta?: { name?: string; tags?: string[]; defaults?: Blueprint['defaults'] },
+  ) => Promise<Blueprint | null>
 
   // Handout actions
   addHandoutAsset: (asset: HandoutAsset) => void
@@ -237,6 +247,7 @@ function normalizeAsset(raw: Record<string, unknown>): AssetMeta {
     name: raw.name as string,
     mediaType: (raw.mediaType as AssetMeta['mediaType'] | undefined) || 'image',
     tags: (raw.tags as string[] | undefined) || [],
+    sortOrder: (raw.sortOrder as number | undefined) ?? 0,
     createdAt: raw.createdAt as number,
     ...(extra.handout ? { handout: extra.handout as AssetMeta['handout'] } : {}),
   }
@@ -449,6 +460,11 @@ function registerSocketEvents(
   socket.on('asset:deleted', ({ id }: { id: string }) => {
     set((s) => ({ assets: s.assets.filter((a) => a.id !== id) }))
   })
+  socket.on('asset:reordered', (assets) => {
+    set(() => ({
+      assets: assets.map((a) => normalizeAsset(a as unknown as Record<string, unknown>)),
+    }))
+  })
 
   // ── Blueprint events ──
   socket.on('blueprint:created', (bp: Blueprint) => {
@@ -504,6 +520,7 @@ const WS_EVENTS = [
   'asset:created',
   'asset:updated',
   'asset:deleted',
+  'asset:reordered',
   'blueprint:created',
   'blueprint:updated',
   'blueprint:deleted',
@@ -971,6 +988,31 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       clearTimeout(timer)
       set((s) => ({ assets: [...s.assets, cached] }))
     }
+  },
+
+  reorderAssets: async (order) => {
+    // Optimistic: apply new sortOrder locally so UI doesn't snap back
+    const orderMap = new Map(order.map((o) => [o.id, o.sortOrder]))
+    set((s) => {
+      const updated = s.assets.map((a) =>
+        orderMap.has(a.id) ? { ...a, sortOrder: orderMap.get(a.id) ?? a.sortOrder } : a,
+      )
+      updated.sort((a, b) => a.sortOrder - b.sortOrder)
+      return { assets: updated }
+    })
+    // Persist to server (response reconciles with authoritative order)
+    const result = await reorderAssetsApi(order)
+    set({ assets: result.map((a) => normalizeAsset(a as unknown as Record<string, unknown>)) })
+  },
+
+  uploadAndCreateBlueprint: async (file, meta) => {
+    const result = await uploadBlueprintFromFile(file, {
+      name: meta?.name || file.name,
+      tags: meta?.tags,
+      defaults: meta?.defaults as Record<string, unknown> | undefined,
+    })
+    // Do NOT manually update store — server emits asset:created + blueprint:created via Socket.io
+    return result as unknown as Blueprint
   },
 
   // ── Team tracker actions ──
