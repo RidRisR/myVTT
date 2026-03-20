@@ -163,6 +163,60 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
     res.json(state)
   })
 
+  // POST /tactical/clear — remove all tokens + reset map, stay in tactical mode
+  router.post('/api/rooms/:roomId/tactical/clear', room, (req, res) => {
+    const db = req.roomDb!
+    const sceneId = getActiveSceneId(db)
+    if (!sceneId) {
+      res.status(404).json({ error: 'No active scene' })
+      return
+    }
+
+    const doClear = db.transaction(() => {
+      // Delete orphan ephemeral entities (tactical-only, not in any scene)
+      const orphans = db
+        .prepare(
+          `SELECT e.id FROM entities e
+           JOIN tactical_tokens t ON t.entity_id = e.id
+           WHERE t.scene_id = ? AND e.lifecycle = 'ephemeral'
+             AND NOT EXISTS (SELECT 1 FROM scene_entities se WHERE se.entity_id = e.id)`,
+        )
+        .all(sceneId) as { id: string }[]
+
+      // Delete all tactical tokens for this scene
+      db.prepare('DELETE FROM tactical_tokens WHERE scene_id = ?').run(sceneId)
+
+      // Delete orphan entities
+      const deleteEntity = db.prepare('DELETE FROM entities WHERE id = ?')
+      for (const { id } of orphans) {
+        deleteEntity.run(id)
+      }
+
+      // Reset map fields (keep tactical_mode as-is)
+      db.prepare(
+        `UPDATE tactical_state
+         SET map_url = NULL, map_width = NULL, map_height = NULL,
+             round_number = 0, current_turn_token_id = NULL
+         WHERE scene_id = ?`,
+      ).run(sceneId)
+
+      return orphans.map((o) => o.id)
+    })
+    const orphanIds = doClear()
+
+    // Emit entity:deleted for orphans
+    for (const id of orphanIds) {
+      io.to(req.roomId!).emit('entity:deleted', { id })
+    }
+
+    // Emit updated tactical state
+    const state = getTacticalState(db, sceneId)
+    if (state) {
+      io.to(req.roomId!).emit('tactical:updated', state)
+    }
+    res.json(state)
+  })
+
   // POST /tactical/tokens — create token for existing entity
   router.post('/api/rooms/:roomId/tactical/tokens', room, (req, res) => {
     const {

@@ -65,4 +65,30 @@ describe('Tactical Mode', () => {
     const tokens = (data as { tokens: unknown[] }).tokens
     expect(tokens.length).toBeGreaterThanOrEqual(1)
   })
+
+  it('POST /tactical/clear removes all tokens and resets map', async () => {
+    // Setup: enter tactical, add a token, set map
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/enter`)
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens/quick`, {
+      x: 5,
+      y: 5,
+      name: 'Goblin',
+      color: '#ff0000',
+    })
+    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/tactical`, {
+      mapUrl: '/uploads/test-map.png',
+      mapWidth: 1000,
+      mapHeight: 800,
+    })
+
+    // Act
+    const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/clear`)
+    expect(status).toBe(200)
+
+    // Assert: tokens empty, map cleared, still in tactical mode
+    const result = data as { tokens: unknown[]; mapUrl: string | null; tacticalMode: number }
+    expect(result.tokens).toHaveLength(0)
+    expect(result.mapUrl).toBeNull()
+    expect(result.tacticalMode).toBe(1) // stays in tactical mode
+  })
 })
