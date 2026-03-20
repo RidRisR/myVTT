@@ -4,6 +4,7 @@
 
 import { execSync, spawn, type ChildProcess } from 'child_process'
 import { existsSync } from 'fs'
+import { get } from 'http'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -163,6 +164,41 @@ function bold(msg: string): string {
   return `\x1b[1m${msg}\x1b[0m`
 }
 
+/** Poll a port until it responds to HTTP, then call the callback */
+function waitForReady(port: number, onReady: () => void): { cancel: () => void } {
+  const MAX_ATTEMPTS = 100
+  const INTERVAL_MS = 3000
+  let attempts = 0
+  let cancelled = false
+  let resolved = false
+
+  const timer = setInterval(() => {
+    if (cancelled || resolved) return
+    attempts++
+    if (attempts > MAX_ATTEMPTS) {
+      clearInterval(timer)
+      return
+    }
+    const req = get(`http://localhost:${port}`, () => {
+      if (resolved) return
+      resolved = true
+      clearInterval(timer)
+      if (!cancelled) onReady()
+    })
+    req.on('error', () => {
+      // Not ready yet, will retry
+    })
+    req.setTimeout(2000, () => req.destroy())
+  }, INTERVAL_MS)
+
+  return {
+    cancel: () => {
+      cancelled = true
+      clearInterval(timer)
+    },
+  }
+}
+
 // ── Commands ──
 
 function cmdStart(branch: string) {
@@ -192,6 +228,7 @@ function cmdStart(branch: string) {
     HOST_VITE_PORT: String(vitePort),
     VITE_PROXY_MODE: 'true',
     CORS_ORIGIN: `http://localhost:${vitePort}`,
+    VITE_PREVIEW_BRANCH: branch,
   }
 
   log('')
@@ -220,11 +257,21 @@ function cmdStart(branch: string) {
     },
   )
 
+  // Poll for container readiness and print final port summary
+  const readyPoller = waitForReady(vitePort, () => {
+    log('')
+    log(`\x1b[32m✔ Preview ready\x1b[0m`)
+    log(`  UI:  http://localhost:${vitePort}`)
+    log(`  API: http://localhost:${serverPort}`)
+    log('')
+  })
+
   // Guard against double cleanup (SIGINT handler + child exit can both fire)
   let cleanedUp = false
   const cleanup = () => {
     if (cleanedUp) return
     cleanedUp = true
+    readyPoller.cancel()
     log('')
     log(`Shutting down preview for '${branch}'...`)
     try {

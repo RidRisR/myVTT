@@ -18,6 +18,7 @@ services:
       - VITE_DEV_PORT=5173
       - VITE_PROXY_MODE=${VITE_PROXY_MODE:-}
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173}
+      - VITE_PREVIEW_BRANCH=${VITE_PREVIEW_BRANCH:-}
 
 volumes:
   vtt-data:
