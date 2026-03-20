@@ -18,6 +18,7 @@ import { stateRoutes } from '../../routes/state'
 import { assetRoutes } from '../../routes/assets'
 import { bundleRoutes } from '../../routes/bundle'
 import { blueprintRoutes } from '../../routes/blueprints'
+import { tagRoutes } from '../../routes/tags'
 import { setupSocketAuth } from '../../ws'
 import { setupAwareness } from '../../awareness'
 import path from 'path'
@@ -76,6 +77,7 @@ export async function setupTestRoom(roomName = 'test-room'): Promise<TestContext
   app.use(assetRoutes(dataDir, io))
   app.use(bundleRoutes(dataDir, io))
   app.use(blueprintRoutes(dataDir, io))
+  app.use(tagRoutes(dataDir, io))
 
   getGlobalDb(dataDir)
 
@@ -233,6 +235,7 @@ export async function setupTestServer(): Promise<SimpleTestServer> {
   app.use(assetRoutes(dataDir, io))
   app.use(bundleRoutes(dataDir, io))
   app.use(blueprintRoutes(dataDir, io))
+  app.use(tagRoutes(dataDir, io))
 
   getGlobalDb(dataDir)
 

@@ -95,8 +95,17 @@ export function assetRoutes(dataDir: string, io: TypedServer): Router {
         ? (JSON.parse(uploadBody.extra as string) as Record<string, unknown>)
         : {}
       // Extract tags from FormData or extra, then strip from extra before storing
-      const tagNames: string[] = Array.isArray(uploadBody.tags)
-        ? (uploadBody.tags as string[])
+      // FormData values are always strings, so also try JSON.parse for array-valued fields
+      let rawTags = uploadBody.tags
+      if (typeof rawTags === 'string') {
+        try {
+          rawTags = JSON.parse(rawTags)
+        } catch {
+          rawTags = []
+        }
+      }
+      const tagNames: string[] = Array.isArray(rawTags)
+        ? (rawTags as string[])
         : Array.isArray(extra.tags)
           ? (extra.tags as string[])
           : []
