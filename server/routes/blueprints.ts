@@ -6,13 +6,9 @@ import fs from 'fs'
 import multer from 'multer'
 import type { TypedServer } from '../socketTypes'
 import type { Blueprint } from '../../src/shared/entityTypes'
-import type { AssetRecord } from '../../src/shared/storeTypes'
 import { withRoom } from '../middleware'
 import { toCamel, parseJsonFields, safePath } from '../db'
-
-function toBlueprint(row: Record<string, unknown>): Blueprint {
-  return parseJsonFields(toCamel(row), 'defaults', 'tags') as unknown as Blueprint
-}
+import { syncTags, toBlueprintWithTags } from '../tagHelpers'
 
 function uploadsDir(dataDir: string, roomId: string): string {
   const dir = safePath(dataDir, 'rooms', roomId, 'uploads')
@@ -28,7 +24,7 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
     const rows = req
       .roomDb!.prepare('SELECT * FROM blueprints ORDER BY created_at DESC')
       .all() as Record<string, unknown>[]
-    res.json(rows.map(toBlueprint))
+    res.json(rows.map((row) => toBlueprintWithTags(req.roomDb!, row)))
   })
 
   router.post('/api/rooms/:roomId/blueprints/from-upload', room, (req, res) => {
@@ -64,11 +60,13 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
       const url = `/api/rooms/${req.roomId}/uploads/${req.file.filename}`
       const body = req.body as Record<string, unknown>
       const name = (body.name as string) || req.file.originalname
-      const tags = body.tags
+      const tagNames: string[] = body.tags
         ? typeof body.tags === 'string'
-          ? body.tags
-          : JSON.stringify(body.tags)
-        : '[]'
+          ? (JSON.parse(body.tags) as string[])
+          : Array.isArray(body.tags)
+            ? (body.tags as string[])
+            : []
+        : []
       const defaults = body.defaults
         ? typeof body.defaults === 'string'
           ? body.defaults
@@ -78,19 +76,20 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
 
       // Atomic transaction: insert asset + blueprint together
       const insertAsset = req.roomDb!.prepare(
-        'INSERT INTO assets (id, url, name, media_type, tags, created_at, extra) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        "INSERT INTO assets (id, url, name, media_type, category, created_at, extra) VALUES (?, ?, ?, 'image', 'token', ?, '{}')",
       )
       const insertBlueprint = req.roomDb!.prepare(
-        'INSERT INTO blueprints (id, name, image_url, tags, defaults, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO blueprints (id, name, image_url, defaults, created_at) VALUES (?, ?, ?, ?, ?)',
       )
 
       const transaction = req.roomDb!.transaction(() => {
-        insertAsset.run(assetId, url, name, 'image', '[]', now, '{}')
-        insertBlueprint.run(blueprintId, name, url, tags, defaults, now)
+        insertAsset.run(assetId, url, name, now)
+        insertBlueprint.run(blueprintId, name, url, defaults, now)
       })
 
       try {
         transaction()
+        syncTags(req.roomDb!, 'blueprint_tags', 'blueprint_id', blueprintId, tagNames)
       } catch {
         // Cleanup uploaded file on DB failure
         const filePath = safePath(dir, req.file.filename)
@@ -99,24 +98,22 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
         return
       }
 
-      const asset = parseJsonFields(
-        toCamel(
-          req.roomDb!.prepare('SELECT * FROM assets WHERE id = ?').get(assetId) as Record<
-            string,
-            unknown
-          >,
-        ),
-        'extra',
-        'tags',
-      ) as unknown as AssetRecord
-      const bp = toBlueprint(
+      const assetRow = req
+        .roomDb!.prepare('SELECT * FROM assets WHERE id = ?')
+        .get(assetId) as Record<string, unknown>
+      const assetForEmit = parseJsonFields(toCamel(assetRow), 'extra') as never
+      // Tags are empty for a freshly uploaded asset
+      ;(assetForEmit as Record<string, unknown>).tags = []
+
+      const bp = toBlueprintWithTags(
+        req.roomDb!,
         req.roomDb!.prepare('SELECT * FROM blueprints WHERE id = ?').get(blueprintId) as Record<
           string,
           unknown
         >,
-      )
+      ) as unknown as Blueprint
 
-      io.to(req.roomId!).emit('asset:created', asset)
+      io.to(req.roomId!).emit('asset:created', assetForEmit)
       io.to(req.roomId!).emit('blueprint:created', bp)
       res.status(201).json(bp)
     })
@@ -127,21 +124,23 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
     const id = crypto.randomUUID()
     const name = (body.name as string) || ''
     const imageUrl = (body.imageUrl as string) || ''
-    const tags = body.tags ? JSON.stringify(body.tags) : '[]'
+    const tagNames: string[] = Array.isArray(body.tags) ? (body.tags as string[]) : []
     const defaults = body.defaults ? JSON.stringify(body.defaults) : '{}'
 
     req
       .roomDb!.prepare(
-        'INSERT INTO blueprints (id, name, image_url, tags, defaults, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO blueprints (id, name, image_url, defaults, created_at) VALUES (?, ?, ?, ?, ?)',
       )
-      .run(id, name, imageUrl, tags, defaults, Date.now())
+      .run(id, name, imageUrl, defaults, Date.now())
+    syncTags(req.roomDb!, 'blueprint_tags', 'blueprint_id', id, tagNames)
 
-    const bp = toBlueprint(
+    const bp = toBlueprintWithTags(
+      req.roomDb!,
       req.roomDb!.prepare('SELECT * FROM blueprints WHERE id = ?').get(id) as Record<
         string,
         unknown
       >,
-    )
+    ) as unknown as Blueprint
     io.to(req.roomId!).emit('blueprint:created', bp)
     res.status(201).json(bp)
   })
@@ -167,29 +166,33 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
       updates.push('image_url = ?')
       params.push(body.imageUrl)
     }
-    if (body.tags !== undefined) {
-      updates.push('tags = ?')
-      params.push(JSON.stringify(body.tags))
-    }
     if (body.defaults !== undefined) {
       updates.push('defaults = ?')
       params.push(JSON.stringify(body.defaults))
     }
 
-    if (updates.length === 0) {
-      res.json(toBlueprint(row))
+    if (updates.length === 0 && body.tags === undefined) {
+      res.json(toBlueprintWithTags(req.roomDb!, row))
       return
     }
 
-    params.push(req.params.id)
-    req.roomDb!.prepare(`UPDATE blueprints SET ${updates.join(', ')} WHERE id = ?`).run(...params)
+    if (updates.length > 0) {
+      params.push(req.params.id)
+      req.roomDb!.prepare(`UPDATE blueprints SET ${updates.join(', ')} WHERE id = ?`).run(...params)
+    }
 
-    const updated = toBlueprint(
+    if (body.tags !== undefined) {
+      const tagNames = Array.isArray(body.tags) ? (body.tags as string[]) : []
+      syncTags(req.roomDb!, 'blueprint_tags', 'blueprint_id', req.params.id as string, tagNames)
+    }
+
+    const updated = toBlueprintWithTags(
+      req.roomDb!,
       req.roomDb!.prepare('SELECT * FROM blueprints WHERE id = ?').get(req.params.id) as Record<
         string,
         unknown
       >,
-    )
+    ) as unknown as Blueprint
     io.to(req.roomId!).emit('blueprint:updated', updated)
     res.json(updated)
   })

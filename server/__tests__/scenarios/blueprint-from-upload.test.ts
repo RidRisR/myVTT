@@ -31,7 +31,7 @@ describe('Blueprint from-upload (atomic)', () => {
     imageUrl = bp.imageUrl as string
     expect(bp.id).toBeTruthy()
     expect(bp.name).toBe('Goblin')
-    expect(bp.tags).toEqual(['Beast'])
+    expect(bp.tags).toEqual(['beast'])
     expect(bp.defaults).toEqual({ color: '#ff0000', width: 1, height: 1 })
     expect(imageUrl).toContain('/uploads/')
   })
@@ -44,6 +44,7 @@ describe('Blueprint from-upload (atomic)', () => {
     expect(asset).toBeDefined()
     expect(asset!.name).toBe('Goblin')
     expect(asset!.mediaType).toBe('image')
+    expect(asset!.category).toBe('token')
   })
 
   it('uploaded file is downloadable', async () => {

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, Loader2, FolderOpen } from 'lucide-react'
 import * as ContextMenu from '@radix-ui/react-context-menu'
 import { useWorldStore } from '../stores/worldStore'
-import { AUTO_TAGS, type AssetMeta } from '../shared/assetTypes'
+import type { AssetMeta } from '../shared/assetTypes'
 import { isVideoUrl } from '../shared/assetUpload'
 import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
@@ -37,7 +37,7 @@ export function MapDockTab({
   const upload = useWorldStore((s) => s.uploadAsset)
   const softRemove = useWorldStore((s) => s.softRemoveAsset)
   const assets = useMemo(
-    () => allAssets.filter((a) => a.mediaType === 'image' && a.tags.includes('map')),
+    () => allAssets.filter((a) => a.mediaType === 'image' && a.category === 'map'),
     [allAssets],
   )
 
@@ -45,7 +45,7 @@ export function MapDockTab({
     const used = new Set<string>()
     for (const a of assets) {
       for (const t of a.tags) {
-        if (!AUTO_TAGS.includes(t)) used.add(t)
+        used.add(t)
       }
     }
     return Array.from(used).sort()
@@ -64,7 +64,7 @@ export function MapDockTab({
     e.target.value = ''
     setUploading(true)
     try {
-      await upload(file, { mediaType: 'image', tags: ['map'] })
+      await upload(file, { mediaType: 'image', category: 'map' })
       toast('success', t('map.uploaded', { name: file.name }))
     } catch (err) {
       toast(

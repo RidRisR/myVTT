@@ -15,10 +15,10 @@ describe('TagEditorPopover', () => {
     expect(screen.getByText('Edit Tags')).toBeInTheDocument()
   })
 
-  it('shows user tags as pills when open, filtering out auto-tags', () => {
+  it('shows all tags as pills when open (no auto-tag filtering)', () => {
     render(
       <TagEditorPopover
-        tags={['map', 'fantasy', 'token', 'dark']}
+        tags={['map', 'fantasy', 'dark']}
         allKnownTags={['fantasy', 'dark', 'forest']}
         onTagsChange={vi.fn()}
         defaultOpen
@@ -26,12 +26,10 @@ describe('TagEditorPopover', () => {
         <button>trigger</button>
       </TagEditorPopover>,
     )
-    // user tags should be visible
+    // All tags are user tags now — all should be visible as pills
+    expect(screen.getByText('map')).toBeInTheDocument()
     expect(screen.getByText('fantasy')).toBeInTheDocument()
     expect(screen.getByText('dark')).toBeInTheDocument()
-    // auto-tags should NOT be rendered as pills
-    expect(screen.queryByText('map')).not.toBeInTheDocument()
-    expect(screen.queryByText('token')).not.toBeInTheDocument()
   })
 
   it('calls onTagsChange when adding a tag via Enter', () => {
@@ -70,7 +68,7 @@ describe('TagEditorPopover', () => {
     expect(onTagsChange).not.toHaveBeenCalled()
   })
 
-  it('does not add auto-tags', () => {
+  it('allows adding any tag name (no auto-tag restriction)', () => {
     const onTagsChange = vi.fn()
     render(
       <TagEditorPopover tags={[]} allKnownTags={[]} onTagsChange={onTagsChange} defaultOpen>
@@ -80,12 +78,13 @@ describe('TagEditorPopover', () => {
     const input = screen.getByPlaceholderText('Type to add tag...')
     fireEvent.change(input, { target: { value: 'map' } })
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect(onTagsChange).not.toHaveBeenCalled()
+    // 'map' is now a valid user tag — no longer blocked
+    expect(onTagsChange).toHaveBeenCalledWith(['map'])
   })
 
-  it('shows "No tags" when no user tags exist', () => {
+  it('shows "No tags" when tags array is empty', () => {
     render(
-      <TagEditorPopover tags={['map']} allKnownTags={[]} onTagsChange={vi.fn()} defaultOpen>
+      <TagEditorPopover tags={[]} allKnownTags={[]} onTagsChange={vi.fn()} defaultOpen>
         <button>trigger</button>
       </TagEditorPopover>,
     )

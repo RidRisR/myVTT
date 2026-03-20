@@ -10,7 +10,6 @@ import { useToast } from '../ui/useToast'
 import { TagFilterBar } from '../ui/TagFilterBar'
 import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
 import { TagEditorPopover } from '../ui/TagEditorPopover'
-import { AUTO_TAGS } from '../shared/assetTypes'
 
 interface TokenDockTabProps {
   onSpawnToken: (bp: Blueprint) => void
@@ -44,7 +43,6 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     try {
       await uploadAndCreateBlueprint(file, {
         name: file.name,
-        tags: ['token'],
         defaults: { color: '#3b82f6', width: 1, height: 1 },
       })
       toast('success', t('blueprint.uploaded', { name: file.name }))
@@ -60,12 +58,12 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     }
   }
 
-  // Collect all used tags, excluding auto-tags
+  // Collect all used tags from blueprints
   const availableTags = useMemo(() => {
     const used = new Set<string>()
     for (const bp of blueprints) {
       for (const t of bp.tags) {
-        if (!AUTO_TAGS.includes(t)) used.add(t)
+        used.add(t)
       }
     }
     return Array.from(used).sort()

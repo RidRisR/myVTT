@@ -25,14 +25,14 @@ describe('schema alignment with design doc 43', () => {
     expect(JSON.parse(row.permissions)).toEqual({ default: 'none', seats: {} })
   })
 
-  it('assets table has tags column defaulting to []', () => {
+  it('assets table has category column defaulting to map', () => {
     db.prepare(
-      "INSERT INTO assets (id, url, created_at) VALUES ('tag-test', '/img.png', 1000)",
+      "INSERT INTO assets (id, url, created_at) VALUES ('cat-test', '/img.png', 1000)",
     ).run()
-    const row = db.prepare("SELECT tags FROM assets WHERE id = 'tag-test'").get() as {
-      tags: string
+    const row = db.prepare("SELECT category FROM assets WHERE id = 'cat-test'").get() as {
+      category: string
     }
-    expect(JSON.parse(row.tags)).toEqual([])
+    expect(row.category).toBe('map')
   })
 
   it('showcase_items uses type+data columns', () => {

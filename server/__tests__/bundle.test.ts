@@ -35,6 +35,25 @@ describe('GET /api/rooms/:id/bundle', () => {
     expect(body).toHaveProperty('showcase')
     expect(body).toHaveProperty('tactical')
     expect(body).toHaveProperty('blueprints')
+    expect(body).toHaveProperty('tags')
+  })
+
+  it('tags array contains tag metadata from tags table', async () => {
+    // Create a tag so bundle has something to return
+    const roomDb = getRoomDb(ctx.dataDir, roomId)
+    const tagId = 'test-tag-id'
+    roomDb
+      .prepare('INSERT INTO tags (id, name, color, sort_order, created_at) VALUES (?, ?, ?, ?, ?)')
+      .run(tagId, 'bundle-test', null, 0, Date.now())
+
+    const { data } = await ctx.api('GET', `/api/rooms/${roomId}/bundle`)
+    const { tags } = data as { tags: Record<string, unknown>[] }
+    expect(Array.isArray(tags)).toBe(true)
+    const tag = tags.find((t) => t.name === 'bundle-test')
+    expect(tag).toBeDefined()
+    expect(tag).toHaveProperty('id', tagId)
+    expect(tag).toHaveProperty('sortOrder')
+    expect(tag).toHaveProperty('createdAt')
   })
 
   it('room field includes ruleSystemId and activeSceneId', async () => {

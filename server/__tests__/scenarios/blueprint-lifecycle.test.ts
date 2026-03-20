@@ -42,7 +42,7 @@ describe('Blueprint Lifecycle Journey', () => {
     expect(status).toBe(201)
     const bp = data as Record<string, unknown>
     blueprintId = bp.id as string
-    expect(bp.tags).toEqual(['Humanoid', 'Beast'])
+    expect(bp.tags).toEqual(['humanoid', 'beast'])
 
     const event = (await promise) as Record<string, unknown>
     expect(event.id).toBe(blueprintId)
@@ -144,7 +144,7 @@ describe('Blueprint Lifecycle Journey', () => {
     expect(status).toBe(200)
     const bp = data as Record<string, unknown>
     expect(bp.name).toBe('Goblin Chief')
-    expect(bp.tags).toEqual(['Humanoid'])
+    expect(bp.tags).toEqual(['humanoid'])
 
     await promise
   })

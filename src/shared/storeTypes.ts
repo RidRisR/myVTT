@@ -62,6 +62,8 @@ export interface AssetRecord {
   url: string
   name: string
   mediaType: string
+  category: string
+  tags: string[]
   sortOrder: number
   createdAt: number
   extra: Record<string, unknown>

@@ -1,5 +1,5 @@
 import { arrayMove } from '@dnd-kit/sortable'
-import { AUTO_TAGS, type AssetMeta } from '../shared/assetTypes'
+import type { AssetMeta } from '../shared/assetTypes'
 
 const REORDER_GAP = 1000
 
@@ -44,7 +44,7 @@ export function filterAssets(
   }
   if (opts.category) {
     const cat = opts.category
-    result = result.filter((a) => a.tags.includes(cat))
+    result = result.filter((a) => a.category === cat)
   }
   if (opts.selectedTags && opts.selectedTags.length > 0) {
     const tags = opts.selectedTags
@@ -57,12 +57,12 @@ export function filterAssets(
   return result
 }
 
-/** Collect all user tags (excluding AUTO_TAGS) from assets */
+/** Collect all user tags from assets */
 export function collectUserTags(assets: AssetMeta[]): string[] {
   const tags = new Set<string>()
   for (const a of assets) {
     for (const tag of a.tags) {
-      if (!AUTO_TAGS.includes(tag)) tags.add(tag)
+      tags.add(tag)
     }
   }
   return Array.from(tags).sort()
@@ -101,12 +101,12 @@ export function computeReorder(
 
 // --- TagEditorPopover logic ---
 
-/** Filter out AUTO_TAGS, keeping only user-defined tags */
+/** Return tags as-is (all tags are user tags now) */
 export function filterUserTags(tags: string[]): string[] {
-  return tags.filter((t) => !AUTO_TAGS.includes(t))
+  return tags
 }
 
-/** Compute tag suggestions: exclude current tags, exclude AUTO_TAGS, filter by input */
+/** Compute tag suggestions: exclude current tags, filter by input */
 export function computeSuggestions(
   knownTags: string[],
   currentTags: string[],
@@ -114,7 +114,6 @@ export function computeSuggestions(
 ): string[] {
   const q = input.trim().toLowerCase()
   return knownTags
-    .filter((t) => !AUTO_TAGS.includes(t))
     .filter((t) => !currentTags.includes(t))
     .filter((t) => !q || t.toLowerCase().includes(q))
 }
@@ -123,6 +122,5 @@ export function computeSuggestions(
 export function shouldShowCreateOption(input: string, allKnownTags: string[]): boolean {
   const q = input.trim()
   if (!q) return false
-  if (AUTO_TAGS.some((t) => t.toLowerCase() === q.toLowerCase())) return false
   return !allKnownTags.some((t) => t.toLowerCase() === q.toLowerCase())
 }
