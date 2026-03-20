@@ -2,6 +2,13 @@
 
 <!-- Brief description of the change -->
 
+## Related Issues
+
+<!-- Every PR must link at least one issue (CI enforced).
+     Use "Closes #N" to auto-close on merge, or "Part of #N" for incremental progress. -->
+
+- Closes #
+
 ## API / Type Contract Changes
 
 <!-- Remove this section if not applicable -->
