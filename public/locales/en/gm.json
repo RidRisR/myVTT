@@ -48,7 +48,9 @@
     "load": "Load",
     "load_title": "Load archive",
     "delete_confirm": "Delete \"{{name}}\"?",
-    "load_confirm": "Load \"{{name}}\"? Current battlefield will be replaced."
+    "load_confirm": "Load \"{{name}}\"? Current battlefield will be replaced.",
+    "clear_map": "Clear map",
+    "clear_map_confirm": "Clear current battlefield? All tokens and the map background will be removed."
   },
   "entity": {
     "default_npc_name": "New NPC",

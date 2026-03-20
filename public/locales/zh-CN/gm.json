@@ -48,7 +48,9 @@
     "load": "加载",
     "load_title": "加载存档",
     "delete_confirm": "删除「{{name}}」？",
-    "load_confirm": "加载「{{name}}」？当前战场将被替换。"
+    "load_confirm": "加载「{{name}}」？当前战场将被替换。",
+    "clear_map": "清空地图",
+    "clear_map_confirm": "确定清空当前战场？所有 token 和地图背景将被移除。"
   },
   "entity": {
     "default_npc_name": "新NPC",
