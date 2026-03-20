@@ -1,10 +1,19 @@
-export const AUTO_TAGS: readonly string[] = ['map', 'token', 'portrait']
+export type AssetCategory = 'map' | 'token'
+
+export interface TagMeta {
+  id: string
+  name: string
+  color: string | null
+  sortOrder: number
+  createdAt: number
+}
 
 export interface AssetMeta {
   id: string
   url: string
   name: string
   mediaType: 'image' | 'handout'
+  category: AssetCategory
   tags: string[]
   sortOrder: number
   width?: number

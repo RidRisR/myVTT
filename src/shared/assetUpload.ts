@@ -73,12 +73,20 @@ export async function uploadBlueprintFromFile(
 
 export async function uploadAsset(
   file: File,
-  meta?: { name?: string; mediaType?: string; extra?: Record<string, unknown> },
+  meta?: {
+    name?: string
+    mediaType?: string
+    category?: string
+    tags?: string[]
+    extra?: Record<string, unknown>
+  },
 ): Promise<{
   id: string
   url: string
   name: string
   mediaType: string
+  category: string
+  tags: string[]
   createdAt: number
   extra: Record<string, unknown>
 }> {
@@ -87,6 +95,8 @@ export async function uploadAsset(
   formData.append('file', file)
   if (meta?.name) formData.append('name', meta.name)
   if (meta?.mediaType) formData.append('mediaType', meta.mediaType)
+  if (meta?.category) formData.append('category', meta.category)
+  if (meta?.tags) formData.append('tags', JSON.stringify(meta.tags))
   if (meta?.extra) formData.append('extra', JSON.stringify(meta.extra))
 
   const res = await fetch(`${API_BASE}/api/rooms/${roomId}/assets`, {
@@ -104,6 +114,8 @@ export async function uploadAsset(
     url: string
     name: string
     mediaType: string
+    category: string
+    tags: string[]
     createdAt: number
     extra: Record<string, unknown>
   }

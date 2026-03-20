@@ -16,6 +16,7 @@ interface RubberBand {
 interface AssetGridProps {
   assets: AssetMeta[]
   mode: 'select' | 'manage'
+  category: string
   autoTags?: string[]
   onSelect?: (asset: AssetMeta) => void
   selection: Set<string>
@@ -27,6 +28,7 @@ interface AssetGridProps {
 export function AssetGrid({
   assets,
   mode,
+  category,
   autoTags,
   onSelect,
   selection,
@@ -56,7 +58,8 @@ export function AssetGrid({
       const asset = await uploadAsset(file, {
         name: file.name.replace(/\.[^.]+$/, ''),
         mediaType: 'image',
-        tags: autoTags,
+        category,
+        tags: autoTags?.length ? autoTags : undefined,
       })
       if (mode === 'select' && onSelect) {
         onSelect(asset)

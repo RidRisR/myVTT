@@ -17,6 +17,7 @@ import type {
 import type { Entity, MapToken, Blueprint } from './entityTypes'
 import type { ChatMessage } from './chatTypes'
 import type { ShowcaseItem } from './showcaseTypes'
+import type { TagMeta } from './assetTypes'
 
 /** Typed client socket — enforces event name + payload consistency */
 export type TypedClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>
@@ -76,6 +77,11 @@ export interface ServerToClientEvents {
   'asset:updated': (asset: AssetRecord) => void
   'asset:deleted': (data: { id: string }) => void
   'asset:reordered': (assets: AssetRecord[]) => void
+
+  // ── Tags ──
+  'tag:created': (tag: TagMeta) => void
+  'tag:updated': (tag: TagMeta) => void
+  'tag:deleted': (data: { id: string }) => void
 
   // ── Blueprints ──
   'blueprint:created': (blueprint: Blueprint) => void

@@ -23,6 +23,7 @@ import { trackerRoutes } from './routes/trackers'
 import { showcaseRoutes } from './routes/showcase'
 import { stateRoutes } from './routes/state'
 import { bundleRoutes } from './routes/bundle'
+import { tagRoutes } from './routes/tags'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -100,6 +101,7 @@ app.use(trackerRoutes(DATA_DIR, io))
 app.use(showcaseRoutes(DATA_DIR, io))
 app.use(stateRoutes(DATA_DIR, io))
 app.use(bundleRoutes(DATA_DIR, io))
+app.use(tagRoutes(DATA_DIR, io))
 
 // Serve built frontend in production
 const distPath = path.join(__dirname, '..', 'dist')

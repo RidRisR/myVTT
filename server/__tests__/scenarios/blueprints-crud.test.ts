@@ -27,7 +27,7 @@ describe('Blueprint CRUD', () => {
     bpId = bp.id as string
     expect(bp.name).toBe('Goblin')
     expect(bp.imageUrl).toBe('/uploads/goblin.png')
-    expect(bp.tags).toEqual(['Humanoid'])
+    expect(bp.tags).toEqual(['humanoid'])
     const defaults = bp.defaults as Record<string, unknown>
     expect(defaults.color).toBe('#22c55e')
 

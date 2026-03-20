@@ -2,12 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { X } from 'lucide-react'
 import { PopoverContent } from './primitives/PopoverContent'
-import { AUTO_TAGS } from '../shared/assetTypes'
-import {
-  filterUserTags,
-  computeSuggestions,
-  shouldShowCreateOption,
-} from '../asset-picker/assetPickerUtils'
+import { computeSuggestions, shouldShowCreateOption } from '../asset-picker/assetPickerUtils'
 
 interface TagEditorPopoverProps {
   tags: string[]
@@ -38,11 +33,10 @@ export function TagEditorPopover({
     onOpenChange?.(v)
   }
 
-  // Filter out auto-tags from display and editing
-  const userTags = useMemo(() => filterUserTags(tags), [tags])
-  const autoTagsOnItem = useMemo(() => tags.filter((t) => AUTO_TAGS.includes(t)), [tags])
+  // All tags are user tags now
+  const userTags = tags
 
-  // Suggestions: known tags not already on this item, matching input, excluding auto-tags
+  // Suggestions: known tags not already on this item, matching input
   const suggestions = useMemo(
     () => computeSuggestions(allKnownTags, tags, input),
     [allKnownTags, tags, input],
@@ -55,13 +49,13 @@ export function TagEditorPopover({
 
   const addTag = (tag: string) => {
     const trimmed = tag.trim()
-    if (!trimmed || tags.includes(trimmed) || AUTO_TAGS.includes(trimmed)) return
+    if (!trimmed || tags.includes(trimmed)) return
     onTagsChange([...tags, trimmed])
     setInput('')
   }
 
   const removeTag = (tag: string) => {
-    onTagsChange(autoTagsOnItem.concat(userTags.filter((t) => t !== tag)))
+    onTagsChange(userTags.filter((t) => t !== tag))
   }
 
   // Focus input when popover opens

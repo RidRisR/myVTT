@@ -49,7 +49,6 @@ export function initRoomSchema(db: Database.Database): void {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL DEFAULT '',
       image_url TEXT DEFAULT '',
-      tags TEXT DEFAULT '[]',
       defaults TEXT DEFAULT '{}',
       created_at INTEGER NOT NULL
     );
@@ -152,10 +151,33 @@ export function initRoomSchema(db: Database.Database): void {
       url TEXT NOT NULL,
       name TEXT DEFAULT '',
       media_type TEXT NOT NULL DEFAULT 'image',
-      tags TEXT DEFAULT '[]',
+      category TEXT NOT NULL DEFAULT 'map' CHECK(category IN ('map', 'token')),
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL,
       extra TEXT DEFAULT '{}'
+    );
+
+    -- Tag definitions (room-level, first-class entities)
+    CREATE TABLE IF NOT EXISTS tags (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      color TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL
+    );
+
+    -- Asset ↔ Tag junction
+    CREATE TABLE IF NOT EXISTS asset_tags (
+      asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+      tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+      PRIMARY KEY (asset_id, tag_id)
+    );
+
+    -- Blueprint ↔ Tag junction
+    CREATE TABLE IF NOT EXISTS blueprint_tags (
+      blueprint_id TEXT NOT NULL REFERENCES blueprints(id) ON DELETE CASCADE,
+      tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+      PRIMARY KEY (blueprint_id, tag_id)
     );
 
     -- Team trackers
@@ -186,5 +208,7 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_tactical_tokens_entity ON tactical_tokens(entity_id);
     CREATE INDEX IF NOT EXISTS idx_archive_tokens_archive ON archive_tokens(archive_id);
     CREATE INDEX IF NOT EXISTS idx_blueprints_created ON blueprints(created_at);
+    CREATE INDEX IF NOT EXISTS idx_asset_tags_tag ON asset_tags(tag_id);
+    CREATE INDEX IF NOT EXISTS idx_blueprint_tags_tag ON blueprint_tags(tag_id);
   `)
 }
