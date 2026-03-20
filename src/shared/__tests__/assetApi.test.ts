@@ -5,37 +5,36 @@ vi.mock('../config', () => ({ API_BASE: 'http://test' }))
 
 // --- getCurrentRoomId ---
 
-describe('getCurrentRoomId', () => {
-  const original = window.location
-
-  beforeEach(() => {
-    Object.defineProperty(window, 'location', {
-      value: { ...original, hash: '' },
-      writable: true,
-    })
+function setHash(hash: string) {
+  Object.defineProperty(window, 'location', {
+    value: { hash },
+    writable: true,
+    configurable: true,
   })
+}
 
-  afterEach(() => {
-    Object.defineProperty(window, 'location', { value: original, writable: true })
+describe('getCurrentRoomId', () => {
+  beforeEach(() => {
+    setHash('')
   })
 
   it('parses roomId from hash', () => {
-    window.location.hash = '#room=abc123'
+    setHash('#room=abc123')
     expect(getCurrentRoomId()).toBe('abc123')
   })
 
   it('parses roomId with hyphens and underscores', () => {
-    window.location.hash = '#room=my_room-1'
+    setHash('#room=my_room-1')
     expect(getCurrentRoomId()).toBe('my_room-1')
   })
 
   it('throws when no room hash', () => {
-    window.location.hash = '#other=foo'
+    setHash('#other=foo')
     expect(() => getCurrentRoomId()).toThrow('No roomId found in URL hash')
   })
 
   it('throws for empty hash', () => {
-    window.location.hash = ''
+    setHash('')
     expect(() => getCurrentRoomId()).toThrow()
   })
 })
@@ -112,11 +111,7 @@ describe('deleteAsset', () => {
 
 describe('reorderAssets', () => {
   it('calls PATCH /reorder with getCurrentRoomId', async () => {
-    // Set up room hash
-    Object.defineProperty(window, 'location', {
-      value: { ...window.location, hash: '#room=myRoom' },
-      writable: true,
-    })
+    setHash('#room=myRoom')
     const mockData = [{ id: '1' }]
     vi.stubGlobal(
       'fetch',
@@ -136,10 +131,7 @@ describe('reorderAssets', () => {
   })
 
   it('throws on non-ok response', async () => {
-    Object.defineProperty(window, 'location', {
-      value: { ...window.location, hash: '#room=r1' },
-      writable: true,
-    })
+    setHash('#room=r1')
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({ ok: false, statusText: 'Internal Server Error' }),

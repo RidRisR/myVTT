@@ -43,10 +43,12 @@ export function filterAssets(
     result = result.filter((a) => a.mediaType === opts.mediaType)
   }
   if (opts.category) {
-    result = result.filter((a) => a.tags.includes(opts.category!))
+    const cat = opts.category
+    result = result.filter((a) => a.tags.includes(cat))
   }
   if (opts.selectedTags && opts.selectedTags.length > 0) {
-    result = result.filter((a) => opts.selectedTags!.every((tag) => a.tags.includes(tag)))
+    const tags = opts.selectedTags
+    result = result.filter((a) => tags.every((tag) => a.tags.includes(tag)))
   }
   if (opts.search?.trim()) {
     const q = opts.search.trim().toLowerCase()
