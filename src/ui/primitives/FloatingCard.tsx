@@ -9,7 +9,7 @@ export interface FloatingCardProps {
   anchor?: DOMRect | null
   /** floating mode: absolute screen position */
   position?: { x: number; y: number }
-  /** Enable drag handle (header area becomes draggable) */
+  /** Enable drag — any non-interactive surface becomes draggable */
   draggable?: boolean
   /** How this card should be dismissed */
   dismissOn: 'mouseleave' | 'clickoutside' | 'manual'
@@ -153,6 +153,7 @@ export function FloatingCard({
         'fixed! z-popover!',
         'rounded-xl border border-border-glass bg-surface shadow-[0_8px_32px_rgba(0,0,0,0.5)]',
         'animate-[radix-popover-in_150ms_ease-out]',
+        draggable && 'cursor-grab active:cursor-grabbing',
         className,
       ]
         .filter(Boolean)
@@ -165,6 +166,8 @@ export function FloatingCard({
       onClick={(e) => {
         e.stopPropagation()
       }}
+      // Capture phase: fires root-first so child stopPropagation can't block drag.
+      onPointerDownCapture={handleDragStart}
       onPointerDown={(e) => {
         e.stopPropagation()
       }}
@@ -174,14 +177,6 @@ export function FloatingCard({
       onMouseEnter={onMouseEnter}
       onMouseLeave={dismissOn === 'mouseleave' ? onMouseLeave : undefined}
     >
-      {draggable && (
-        <div
-          onPointerDown={handleDragStart}
-          className="cursor-grab active:cursor-grabbing select-none h-2 flex items-center justify-center"
-        >
-          <div className="w-8 h-0.5 rounded-full bg-border-glass/60" />
-        </div>
-      )}
       {children}
     </div>
   )
