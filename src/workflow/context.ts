@@ -16,8 +16,14 @@ export function createWorkflowContext(
   deps: ContextDeps,
   initialData: Record<string, unknown> = {},
 ): WorkflowContext {
+  const data: Record<string, unknown> = { ...initialData }
+
   const ctx: WorkflowContext = {
-    data: { ...initialData },
+    // getter-only: ctx.data = {} throws TypeError in strict mode,
+    // but ctx.data.foo = 'bar' works (modifies property, not reference)
+    get data() {
+      return data
+    },
 
     serverRoll: (formula: string) => deps.sendRoll(formula),
 
@@ -45,8 +51,8 @@ export function createWorkflowContext(
     abort: (_reason?: string) => {},
 
     // Creates a nested context and delegates to engine
-    runWorkflow: (name: string, data?: Record<string, unknown>) => {
-      const nestedCtx = createWorkflowContext(deps, data)
+    runWorkflow: (name: string, nestedData?: Record<string, unknown>) => {
+      const nestedCtx = createWorkflowContext(deps, nestedData)
       return deps.engine.runWorkflow(name, nestedCtx)
     },
   }

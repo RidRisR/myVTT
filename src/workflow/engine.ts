@@ -157,7 +157,8 @@ export class WorkflowEngine {
     }
 
     try {
-      for (const meta of record.steps) {
+      const steps = [...record.steps] // snapshot: runtime addStep/removeStep won't affect current execution
+      for (const meta of steps) {
         if (state.aborted) break
 
         const baseFn: StepFn = (c) => meta.step.run(c)

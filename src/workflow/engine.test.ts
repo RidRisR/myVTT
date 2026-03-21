@@ -460,7 +460,35 @@ describe('WorkflowEngine', () => {
     await expect(engine.runWorkflow('recurse', ctx)).rejects.toThrow(/recursion depth/i)
   })
 
-  // ── 13. Empty workflow ────────────────────────────────────────────────────
+  // ── 13. Step list snapshot ──────────────────────────────────────────────
+  it('step list snapshot: addStep during execution does not affect current run', async () => {
+    const order: string[] = []
+    engine.defineWorkflow('snap', [
+      {
+        id: 'a',
+        run: () => {
+          order.push('a')
+          engine.addStep('snap', {
+            id: 'injected',
+            run: () => {
+              order.push('injected')
+            },
+          })
+        },
+      },
+      {
+        id: 'b',
+        run: () => {
+          order.push('b')
+        },
+      },
+    ])
+    await engine.runWorkflow('snap', makeCtx())
+    expect(order).toEqual(['a', 'b'])
+    expect(engine.inspectWorkflow('snap')).toContain('injected')
+  })
+
+  // ── 14. Empty workflow ────────────────────────────────────────────────────
   it('empty workflow (all steps removed) runs silently', async () => {
     engine.defineWorkflow('empty', [{ id: 'a', run: () => {} }])
     engine.removeStep('empty', 'a')
