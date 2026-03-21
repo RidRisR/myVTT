@@ -97,7 +97,9 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     coreSDK.addStep(rollWorkflow, {
       id: 'dh:modifier',
       before: 'generate',
-      run: (ctx) => { ctx.data.modifierApplied = 'manual' },
+      run: (ctx) => {
+        ctx.data.modifierApplied = 'manual'
+      },
     })
 
     coreSDK.wrapStep(rollWorkflow, 'dh:modifier', {
@@ -118,7 +120,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     expect(result.status).toBe('completed')
   })
 
-  it('plugin deactivation removes owned steps and cascades dependants', async () => {
+  it('plugin deactivation removes owned steps and cascades dependants', () => {
     const { engine, coreSDK, cosmeticSDK } = setup()
 
     coreSDK.addStep(rollWorkflow, {

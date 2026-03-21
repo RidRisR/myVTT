@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from 'vitest'
 import { PluginSDK, WorkflowRunner } from './pluginSDK'
 import { WorkflowEngine } from './engine'
 import type { ContextDeps } from './context'
-import type { WorkflowHandle } from './types'
 
 function makeDeps(): Omit<ContextDeps, 'engine'> {
   return {
@@ -34,7 +33,11 @@ describe('PluginSDK', () => {
     const handle = engine.defineWorkflow('wf', [{ id: 'a', run: () => {} }])
     const addStepSpy = vi.spyOn(engine, 'addStep')
     sdk.addStep(handle, { id: 'b', after: 'a', run: () => {} })
-    expect(addStepSpy).toHaveBeenCalledWith('wf', expect.objectContaining({ id: 'b' }), 'test-plugin')
+    expect(addStepSpy).toHaveBeenCalledWith(
+      'wf',
+      expect.objectContaining({ id: 'b' }),
+      'test-plugin',
+    )
   })
 
   it('attachStep delegates to engine via handle', () => {
@@ -42,7 +45,11 @@ describe('PluginSDK', () => {
     const handle = engine.defineWorkflow('wf', [{ id: 'a', run: () => {} }])
     const attachSpy = vi.spyOn(engine, 'attachStep')
     sdk.attachStep(handle, { id: 'dep', to: 'a', run: () => {} })
-    expect(attachSpy).toHaveBeenCalledWith('wf', expect.objectContaining({ id: 'dep' }), 'test-plugin')
+    expect(attachSpy).toHaveBeenCalledWith(
+      'wf',
+      expect.objectContaining({ id: 'dep' }),
+      'test-plugin',
+    )
   })
 
   it('wrapStep delegates to engine via handle', () => {
@@ -83,7 +90,12 @@ describe('WorkflowRunner', () => {
     const { runner, engine } = makeRunner()
     let capturedData: Record<string, unknown> = {}
     const handle = engine.defineWorkflow('run-test', [
-      { id: 'capture', run: (ctx) => { capturedData = ctx.data } },
+      {
+        id: 'capture',
+        run: (ctx) => {
+          capturedData = ctx.data
+        },
+      },
     ])
     const result = await runner.runWorkflow(handle, { value: 99 })
     expect(capturedData).toEqual({ value: 99 })
@@ -94,7 +106,12 @@ describe('WorkflowRunner', () => {
     const { runner, engine } = makeRunner()
     let capturedData: Record<string, unknown> = { placeholder: true }
     const handle = engine.defineWorkflow('empty-data', [
-      { id: 'capture', run: (ctx) => { capturedData = ctx.data } },
+      {
+        id: 'capture',
+        run: (ctx) => {
+          capturedData = ctx.data
+        },
+      },
     ])
     await runner.runWorkflow(handle)
     expect(capturedData).toEqual({})
@@ -103,7 +120,13 @@ describe('WorkflowRunner', () => {
   it('runWorkflow returns errors from non-critical steps', async () => {
     const { runner, engine } = makeRunner()
     const handle = engine.defineWorkflow('errors', [
-      { id: 'fail', critical: false, run: () => { throw new Error('oops') } },
+      {
+        id: 'fail',
+        critical: false,
+        run: () => {
+          throw new Error('oops')
+        },
+      },
       { id: 'ok', run: () => {} },
     ])
     const result = await runner.runWorkflow(handle)
@@ -113,14 +136,9 @@ describe('WorkflowRunner', () => {
 
   it('each runWorkflow call gets independent depth tracking', async () => {
     const { runner, engine } = makeRunner()
-    const handle = engine.defineWorkflow('concurrent', [
-      { id: 'a', run: () => {} },
-    ]) as WorkflowHandle
+    const handle = engine.defineWorkflow('concurrent', [{ id: 'a', run: () => {} }])
     // Both should succeed independently
-    const [r1, r2] = await Promise.all([
-      runner.runWorkflow(handle),
-      runner.runWorkflow(handle),
-    ])
+    const [r1, r2] = await Promise.all([runner.runWorkflow(handle), runner.runWorkflow(handle)])
     expect(r1.status).toBe('completed')
     expect(r2.status).toBe('completed')
   })
