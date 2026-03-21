@@ -97,7 +97,9 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     coreSDK.addStep(getRollWorkflow(), {
       id: 'dh:modifier',
       before: 'generate',
-      run: (ctx) => { ctx.data.modifierApplied = 'manual' },
+      run: (ctx) => {
+        ctx.data.modifierApplied = 'manual'
+      },
     })
 
     coreSDK.wrapStep(getRollWorkflow(), 'dh:modifier', {

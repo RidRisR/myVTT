@@ -56,9 +56,24 @@ describe('WorkflowEngine', () => {
   it('executes steps in definition order', async () => {
     const order: string[] = []
     engine.defineWorkflow('test', [
-      { id: 'a', run: () => { order.push('a') } },
-      { id: 'b', run: () => { order.push('b') } },
-      { id: 'c', run: () => { order.push('c') } },
+      {
+        id: 'a',
+        run: () => {
+          order.push('a')
+        },
+      },
+      {
+        id: 'b',
+        run: () => {
+          order.push('b')
+        },
+      },
+      {
+        id: 'c',
+        run: () => {
+          order.push('c')
+        },
+      },
     ])
     await run(engine, 'test')
     expect(order).toEqual(['a', 'b', 'c'])
@@ -67,7 +82,9 @@ describe('WorkflowEngine', () => {
   // ── 2. Duplicate workflow name throws ──────────────────────────────────────
   it('throws on duplicate workflow name', () => {
     engine.defineWorkflow('dup', [])
-    expect(() => { engine.defineWorkflow('dup', []) }).toThrow(/already defined/i)
+    expect(() => {
+      engine.defineWorkflow('dup', [])
+    }).toThrow(/already defined/i)
   })
 
   // ── 3. Unknown workflow throws ─────────────────────────────────────────────
@@ -76,13 +93,17 @@ describe('WorkflowEngine', () => {
   })
 
   it('throws on unknown workflow in addStep', () => {
-    expect(() => { engine.addStep('nonexistent', { id: 'x', run: () => {} }) }).toThrow(/not found/i)
+    expect(() => {
+      engine.addStep('nonexistent', { id: 'x', run: () => {} })
+    }).toThrow(/not found/i)
   })
 
   // ── 4. Duplicate step ID throws ────────────────────────────────────────────
   it('throws on duplicate step ID within same workflow', () => {
     engine.defineWorkflow('dups', [{ id: 'a', run: () => {} }])
-    expect(() => { engine.addStep('dups', { id: 'a', run: () => {} }) }).toThrow(/duplicate step/i)
+    expect(() => {
+      engine.addStep('dups', { id: 'a', run: () => {} })
+    }).toThrow(/duplicate step/i)
   })
 
   it('throws on duplicate step ID in defineWorkflow', () => {
@@ -98,8 +119,18 @@ describe('WorkflowEngine', () => {
   it('addStep: after — inserts step after the anchor', async () => {
     const order: string[] = []
     engine.defineWorkflow('wf', [
-      { id: 'a', run: () => { order.push('a') } },
-      { id: 'c', run: () => { order.push('c') } },
+      {
+        id: 'a',
+        run: () => {
+          order.push('a')
+        },
+      },
+      {
+        id: 'c',
+        run: () => {
+          order.push('c')
+        },
+      },
     ])
     engine.addStep('wf', {
       id: 'b',
@@ -115,8 +146,18 @@ describe('WorkflowEngine', () => {
   it('addStep: before — inserts step before the anchor', async () => {
     const order: string[] = []
     engine.defineWorkflow('wf2', [
-      { id: 'a', run: () => { order.push('a') } },
-      { id: 'c', run: () => { order.push('c') } },
+      {
+        id: 'a',
+        run: () => {
+          order.push('a')
+        },
+      },
+      {
+        id: 'c',
+        run: () => {
+          order.push('c')
+        },
+      },
     ])
     engine.addStep('wf2', {
       id: 'b',
@@ -250,7 +291,14 @@ describe('WorkflowEngine', () => {
   // ── 7. wrapStep ────────────────────────────────────────────────────────────
   it('wrapStep: wrapper calls original via second arg', async () => {
     const order: string[] = []
-    engine.defineWorkflow('wrap', [{ id: 'target', run: () => { order.push('original') } }])
+    engine.defineWorkflow('wrap', [
+      {
+        id: 'target',
+        run: () => {
+          order.push('original')
+        },
+      },
+    ])
     engine.wrapStep('wrap', 'target', {
       run: async (ctx, original) => {
         order.push('before')
@@ -264,9 +312,18 @@ describe('WorkflowEngine', () => {
 
   it('wrapStep: wrapper can skip original', async () => {
     const order: string[] = []
-    engine.defineWorkflow('wrap2', [{ id: 'target', run: () => { order.push('original') } }])
+    engine.defineWorkflow('wrap2', [
+      {
+        id: 'target',
+        run: () => {
+          order.push('original')
+        },
+      },
+    ])
     engine.wrapStep('wrap2', 'target', {
-      run: (_ctx, _original) => { order.push('wrapped-skip') },
+      run: (_ctx, _original) => {
+        order.push('wrapped-skip')
+      },
     })
     await run(engine, 'wrap2')
     expect(order).toEqual(['wrapped-skip'])
@@ -284,11 +341,19 @@ describe('WorkflowEngine', () => {
     ])
     engine.wrapStep('onion', 'core', {
       priority: 200,
-      run: async (ctx, original) => { order.push('inner-before'); await original(ctx); order.push('inner-after') },
+      run: async (ctx, original) => {
+        order.push('inner-before')
+        await original(ctx)
+        order.push('inner-after')
+      },
     })
     engine.wrapStep('onion', 'core', {
       priority: 50,
-      run: async (ctx, original) => { order.push('outer-before'); await original(ctx); order.push('outer-after') },
+      run: async (ctx, original) => {
+        order.push('outer-before')
+        await original(ctx)
+        order.push('outer-after')
+      },
     })
     await run(engine, 'onion')
     expect(order).toEqual(['outer-before', 'inner-before', 'core', 'inner-after', 'outer-after'])
@@ -298,8 +363,18 @@ describe('WorkflowEngine', () => {
   it('removeStep: removes the step so it no longer runs', async () => {
     const order: string[] = []
     engine.defineWorkflow('rm', [
-      { id: 'a', run: () => { order.push('a') } },
-      { id: 'b', run: () => { order.push('b') } },
+      {
+        id: 'a',
+        run: () => {
+          order.push('a')
+        },
+      },
+      {
+        id: 'b',
+        run: () => {
+          order.push('b')
+        },
+      },
     ])
     engine.removeStep('rm', 'a')
     await run(engine, 'rm')
@@ -331,15 +406,28 @@ describe('WorkflowEngine', () => {
   })
 
   it('inspectWorkflow: throws on unknown workflow', () => {
-    expect(() => { engine.inspectWorkflow('nope') }).toThrow(/not found/i)
+    expect(() => {
+      engine.inspectWorkflow('nope')
+    }).toThrow(/not found/i)
   })
 
   // ── 10. abort ─────────────────────────────────────────────────────────────
   it('abort: stops subsequent steps and returns aborted status', async () => {
     const order: string[] = []
     engine.defineWorkflow('abrt', [
-      { id: 'a', run: (ctx) => { order.push('a'); ctx.abort('stop') } },
-      { id: 'b', run: () => { order.push('b') } },
+      {
+        id: 'a',
+        run: (ctx) => {
+          order.push('a')
+          ctx.abort('stop')
+        },
+      },
+      {
+        id: 'b',
+        run: () => {
+          order.push('b')
+        },
+      },
     ])
     const internal = makeInternal()
     const ctx = makeCtx()
@@ -358,8 +446,18 @@ describe('WorkflowEngine', () => {
   it('error in critical step propagates immediately', async () => {
     const order: string[] = []
     engine.defineWorkflow('err', [
-      { id: 'a', run: () => { throw new Error('boom') } },
-      { id: 'b', run: () => { order.push('b') } },
+      {
+        id: 'a',
+        run: () => {
+          throw new Error('boom')
+        },
+      },
+      {
+        id: 'b',
+        run: () => {
+          order.push('b')
+        },
+      },
     ])
     await expect(run(engine, 'err')).rejects.toThrow('boom')
     expect(order).toEqual([])
@@ -402,10 +500,20 @@ describe('WorkflowEngine', () => {
         id: 'a',
         run: () => {
           order.push('a')
-          engine.addStep('snap', { id: 'injected', run: () => { order.push('injected') } })
+          engine.addStep('snap', {
+            id: 'injected',
+            run: () => {
+              order.push('injected')
+            },
+          })
         },
       },
-      { id: 'b', run: () => { order.push('b') } },
+      {
+        id: 'b',
+        run: () => {
+          order.push('b')
+        },
+      },
     ])
     await run(engine, 'snap')
     expect(order).toEqual(['a', 'b'])
