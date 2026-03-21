@@ -47,11 +47,15 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
                 <button
                   key={`roll-${k}`}
                   onClick={() => {
-                    sdk.runWorkflow('roll', {
-                      formula: `2d12+@${k}`,
-                      actorId: entity.id,
-                      rollType: 'daggerheart:dd',
-                    }).catch((err: unknown) => console.error('[Workflow] roll failed:', err))
+                    sdk
+                      .runWorkflow('roll', {
+                        formula: `2d12+@${k}`,
+                        actorId: entity.id,
+                        rollType: 'daggerheart:dd',
+                      })
+                      .catch((err: unknown) => {
+                        console.error('[Workflow] roll failed:', err)
+                      })
                   }}
                   className="py-1 text-[9px] text-text-muted/60 bg-black/10 hover:bg-black/30 rounded transition-colors duration-fast capitalize"
                 >

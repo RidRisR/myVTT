@@ -28,8 +28,6 @@ export function resetWorkflowEngine(): void {
 export function useWorkflowSDK(): PluginSDK {
   const sendRoll = useWorldStore((s) => s.sendRoll)
   const updateEntity = useWorldStore((s) => s.updateEntity)
-  const updateTeamTracker = useWorldStore((s) => s.updateTeamTracker)
-  const sendMessage = useWorldStore((s) => s.sendMessage)
 
   return useMemo(() => {
     const engine = getWorkflowEngine()
@@ -39,13 +37,19 @@ export function useWorkflowSDK(): PluginSDK {
         // Real impl needs server to return roll results synchronously.
         // For POC, we call the endpoint. The return value won't be usable yet.
         await sendRoll({
-          dice: [], formula, resolvedFormula: formula,
-          senderId: '', senderName: '', senderColor: '',
+          dice: [],
+          formula,
+          resolvedFormula: formula,
+          senderId: '',
+          senderName: '',
+          senderColor: '',
         })
         // POC fallback: return empty result since sendRoll returns void
         return { rolls: [[]], total: 0 }
       },
-      updateEntity: (id, patch) => updateEntity(id, patch),
+      updateEntity: (id, patch) => {
+        void updateEntity(id, patch)
+      },
       updateTeamTracker: (_label, _patch) => {
         // POC stub — real impl finds tracker by label then calls store action
       },
@@ -57,5 +61,5 @@ export function useWorkflowSDK(): PluginSDK {
       },
     }
     return new PluginSDK(engine, deps)
-  }, [sendRoll, updateEntity, updateTeamTracker, sendMessage])
+  }, [sendRoll, updateEntity])
 }
