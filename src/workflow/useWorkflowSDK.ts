@@ -32,6 +32,9 @@ export function getWorkflowEngine(): WorkflowEngine {
   return _engine
 }
 
+// POC: hardcoded plugin list; real impl would discover from room's rule system
+const POC_PLUGINS: VTTPlugin[] = [daggerheartCorePlugin, daggerheartCosmeticPlugin]
+
 /** Reset engine — for testing only */
 export function resetWorkflowEngine(): void {
   _engine = null
