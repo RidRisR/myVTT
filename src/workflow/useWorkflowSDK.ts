@@ -1,8 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { WorkflowEngine } from './engine'
 import { PluginSDK } from './pluginSDK'
 import { registerBaseWorkflows } from './baseWorkflows'
 import { useWorldStore } from '../stores/worldStore'
+import { useIdentityStore } from '../stores/identityStore'
+import { useToast } from '../ui/useToast'
 import { tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
 import { daggerheartCorePlugin } from '../../plugins/daggerheart-core'
 import { daggerheartCosmeticPlugin } from '../../plugins/daggerheart-cosmetic'
@@ -27,6 +29,7 @@ const POC_PLUGINS: VTTPlugin[] = [daggerheartCorePlugin, daggerheartCosmeticPlug
 /** Reset engine — for testing only */
 export function resetWorkflowEngine(): void {
   _engine = null
+  _pluginsActivated = false
 }
 
 /**
@@ -36,6 +39,11 @@ export function resetWorkflowEngine(): void {
 export function useWorkflowSDK(): PluginSDK {
   const sendRoll = useWorldStore((s) => s.sendRoll)
   const updateEntity = useWorldStore((s) => s.updateEntity)
+  const { toast } = useToast()
+
+  // Use ref for toast to avoid useMemo dependency instability
+  const toastRef = useRef(toast)
+  toastRef.current = toast
 
   return useMemo(() => {
     const engine = getWorkflowEngine()
@@ -45,7 +53,7 @@ export function useWorkflowSDK(): PluginSDK {
         const stripped = formula.replace(/@[\p{L}\p{N}_]+/gu, '0')
         const terms = tokenizeExpression(stripped)
         const dice = terms ? toDiceSpecs(terms) : []
-        await sendRoll({
+        const result = await sendRoll({
           dice,
           formula,
           resolvedFormula: stripped,
@@ -53,20 +61,37 @@ export function useWorkflowSDK(): PluginSDK {
           senderName: '',
           senderColor: '',
         })
-        // POC: sendRoll returns void, server broadcasts result via socket
-        return { rolls: [[]], total: 0 }
+        const rolls: number[][] = result?.rolls ?? []
+        // POC: flat sum of all dice; production needs full formula evaluation
+        const total = rolls.flat().reduce<number>((sum, v) => sum + v, 0)
+        return { rolls, total }
       },
       updateEntity: (id, patch) => {
         void updateEntity(id, patch)
       },
-      updateTeamTracker: (_label, _patch) => {
-        // POC stub — real impl finds tracker by label then calls store action
+      updateTeamTracker: (label, patch) => {
+        const state = useWorldStore.getState()
+        const tracker = state.teamTrackers.find((t) => t.label === label)
+        if (!tracker) return
+        // patch.current is a delta (e.g. 1 means +1), convert to absolute value
+        const updates = {
+          ...patch,
+          ...(patch.current != null ? { current: tracker.current + patch.current } : {}),
+        }
+        void state.updateTeamTracker(tracker.id, updates)
       },
-      sendMessage: (_message) => {
-        // POC stub
+      sendMessage: (message) => {
+        const seat = useIdentityStore.getState().getMySeat()
+        void useWorldStore.getState().sendMessage({
+          senderId: seat?.id ?? '',
+          senderName: seat?.name ?? 'Unknown',
+          senderColor: seat?.color ?? '#888888',
+          content: message,
+        })
       },
-      showToast: (_text, _options) => {
-        // POC stub
+      showToast: (text, options) => {
+        const variant = options?.variant ?? 'info'
+        toastRef.current(variant, text, options?.durationMs ? { duration: options.durationMs } : undefined)
       },
     }
     const sdk = new PluginSDK(engine, deps)

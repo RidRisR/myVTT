@@ -59,11 +59,11 @@ describe('registerDHCoreSteps', () => {
     expect(deps.updateTeamTracker).toHaveBeenCalledWith('Fear', { current: 1 })
   })
 
-  it('dh:resolve does not call updateTeamTracker on success_hope outcome', async () => {
+  it('dh:resolve calls updateTeamTracker with Hope on success_hope outcome (rolls [[9,4]], total 15)', async () => {
     const { sdk, deps } = makeSetup({
       sendRoll: vi.fn().mockResolvedValue({ rolls: [[9, 4]], total: 15 }),
     })
     await sdk.runWorkflow('roll', { formula: '2d12' })
-    expect(deps.updateTeamTracker).not.toHaveBeenCalled()
+    expect(deps.updateTeamTracker).toHaveBeenCalledWith('Hope', { current: 1 })
   })
 })

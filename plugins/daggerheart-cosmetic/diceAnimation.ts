@@ -6,6 +6,9 @@ export async function cosmeticDiceAnimationStep(ctx: WorkflowContext): Promise<v
 
   const judgment = ctx.data.judgment as { type: string; outcome: string } | undefined
 
+  const outcome = judgment?.outcome ?? 'unknown'
+  ctx.showToast(`🎲 Dice animation: ${JSON.stringify(rolls.flat())} — ${outcome}`, { variant: 'info' })
+
   await ctx.playAnimation({
     type: 'dice-roll',
     data: {

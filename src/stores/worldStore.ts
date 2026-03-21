@@ -205,7 +205,7 @@ interface WorldState {
     senderColor: string
     portraitUrl?: string
     actionName?: string
-  }) => Promise<void>
+  }) => Promise<{ rolls: number[][] } | undefined>
 
   /** @internal Test-only */
   _reset: () => void
@@ -1073,8 +1073,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   sendRoll: async (data) => {
     const roomId = get()._roomId
-    if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/roll`, data)
+    if (!roomId) return undefined
+    const msg = await api.post<{ rolls: number[][] }>(`/api/rooms/${roomId}/roll`, data)
+    return { rolls: msg.rolls }
   },
 
   /** @internal Test-only: reset store to initial state (preserves socket/roomId) */
