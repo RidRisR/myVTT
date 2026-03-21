@@ -122,7 +122,12 @@ describe('createWorkflowContext', () => {
     const engine = makeEngine()
     const order: string[] = []
     engine.defineWorkflow('inner', [
-      { id: 'step', run: () => { order.push('inner-ran') } },
+      {
+        id: 'step',
+        run: () => {
+          order.push('inner-ran')
+        },
+      },
     ])
     const ctx = createWorkflowContext(makeDeps({ engine }), undefined, makeInternal())
     await ctx.runWorkflow({ name: 'inner' } as never, { x: 1 })
@@ -133,7 +138,12 @@ describe('createWorkflowContext', () => {
     const engine = makeEngine()
     let capturedData: Record<string, unknown> = {}
     engine.defineWorkflow('inner', [
-      { id: 'capture', run: (innerCtx) => { capturedData = innerCtx.data } },
+      {
+        id: 'capture',
+        run: (innerCtx) => {
+          capturedData = innerCtx.data
+        },
+      },
     ])
     const ctx = createWorkflowContext(makeDeps({ engine }), undefined, makeInternal())
     await ctx.runWorkflow({ name: 'inner' } as never, { value: 42 })
