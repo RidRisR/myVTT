@@ -30,7 +30,6 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       run: (ctx) => {
         executionOrder.push('dh:judge')
         const rolls = ctx.data.rolls as number[][]
-        const total = ctx.data.total as number
         const hopeDie = rolls[0]![0]!
         const fearDie = rolls[0]![1]!
         ctx.data.judgment = {
