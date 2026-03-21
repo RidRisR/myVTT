@@ -1,0 +1,69 @@
+// plugins/daggerheart-core/__tests__/rollSteps.test.ts
+import { describe, it, expect, vi } from 'vitest'
+import { WorkflowEngine } from '../../../src/workflow/engine'
+import { PluginSDK } from '../../../src/workflow/pluginSDK'
+import { registerBaseWorkflows } from '../../../src/workflow/baseWorkflows'
+import { registerDHCoreSteps } from '../rollSteps'
+import type { ContextDeps } from '../../../src/workflow/context'
+
+function makeDeps(overrides: Partial<ContextDeps> = {}): Omit<ContextDeps, 'engine'> {
+  return {
+    sendRoll: vi.fn().mockResolvedValue({ rolls: [[4, 9]], total: 15 }),
+    updateEntity: vi.fn(),
+    updateTeamTracker: vi.fn(),
+    sendMessage: vi.fn(),
+    showToast: vi.fn(),
+    ...overrides,
+  }
+}
+
+function makeSetup(depsOverrides: Partial<ContextDeps> = {}) {
+  const engine = new WorkflowEngine()
+  const deps = makeDeps(depsOverrides)
+  const sdk = new PluginSDK(engine, deps)
+  registerBaseWorkflows(engine)
+  registerDHCoreSteps(sdk)
+  return { engine, deps, sdk }
+}
+
+describe('registerDHCoreSteps', () => {
+  it('adds dh:judge after generate in the roll workflow', () => {
+    const { sdk } = makeSetup()
+    const steps = sdk.inspectWorkflow('roll')
+    const generateIdx = steps.indexOf('generate')
+    const judgeIdx = steps.indexOf('dh:judge')
+    expect(judgeIdx).toBeGreaterThan(-1)
+    expect(judgeIdx).toBeGreaterThan(generateIdx)
+  })
+
+  it('adds dh:resolve before display in the roll workflow', () => {
+    const { sdk } = makeSetup()
+    const steps = sdk.inspectWorkflow('roll')
+    const resolveIdx = steps.indexOf('dh:resolve')
+    const displayIdx = steps.indexOf('display')
+    expect(resolveIdx).toBeGreaterThan(-1)
+    expect(resolveIdx).toBeLessThan(displayIdx)
+  })
+
+  it('dh:judge computes judgment from rolls returned by serverRoll', async () => {
+    const { sdk, deps } = makeSetup()
+    await sdk.runWorkflow('roll', { formula: '2d12' })
+    expect(deps.sendRoll).toHaveBeenCalledWith('2d12')
+  })
+
+  it('dh:resolve calls updateTeamTracker with Fear on success_fear outcome (rolls [[4,9]], total 15)', async () => {
+    const { sdk, deps } = makeSetup({
+      sendRoll: vi.fn().mockResolvedValue({ rolls: [[4, 9]], total: 15 }),
+    })
+    await sdk.runWorkflow('roll', { formula: '2d12' })
+    expect(deps.updateTeamTracker).toHaveBeenCalledWith('Fear', { current: 1 })
+  })
+
+  it('dh:resolve does not call updateTeamTracker on success_hope outcome', async () => {
+    const { sdk, deps } = makeSetup({
+      sendRoll: vi.fn().mockResolvedValue({ rolls: [[9, 4]], total: 15 }),
+    })
+    await sdk.runWorkflow('roll', { formula: '2d12' })
+    expect(deps.updateTeamTracker).not.toHaveBeenCalled()
+  })
+})
