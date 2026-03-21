@@ -21,7 +21,6 @@ interface StepMeta {
 
 interface WorkflowRecord {
   steps: StepMeta[]
-  /** Map from step ID to its current wrapper fn (built lazily, cleared on mutations) */
   wrappers: Map<string, WrapperEntry[]>
 }
 
@@ -108,10 +107,11 @@ export class WorkflowEngine {
       throw new Error(`Step "${targetStepId}" not found in workflow "${workflow}"`)
     }
 
-    if (!record.wrappers.has(targetStepId)) {
-      record.wrappers.set(targetStepId, [])
+    let entries = record.wrappers.get(targetStepId)
+    if (entries === undefined) {
+      entries = []
+      record.wrappers.set(targetStepId, entries)
     }
-    const entries = record.wrappers.get(targetStepId)!
     entries.push({
       priority: options.priority ?? 100,
       insertionOrder: this.globalInsertionCounter++,
@@ -146,18 +146,19 @@ export class WorkflowEngine {
     }
 
     this.currentDepth++
-    let aborted = false
+    // Use a container object so the closure-assigned abort flag is visible to the loop
+    const state = { aborted: false }
 
     // Patch ctx.abort so the engine can intercept it
-    const originalAbort = ctx.abort
+    const originalAbort: WorkflowContext['abort'] = ctx.abort.bind(ctx)
     ctx.abort = (reason?: string) => {
-      aborted = true
-      originalAbort?.(reason)
+      state.aborted = true
+      originalAbort(reason)
     }
 
     try {
       for (const meta of record.steps) {
-        if (aborted) break
+        if (state.aborted) break
 
         const baseFn: StepFn = (c) => meta.step.run(c)
         const wrappers = record.wrappers.get(meta.step.id)
@@ -171,6 +172,7 @@ export class WorkflowEngine {
           let composed: StepFn = baseFn
           for (let i = wrappers.length - 1; i >= 0; i--) {
             const wrapper = wrappers[i]
+            if (wrapper === undefined) continue
             const inner = composed
             composed = (c: WorkflowContext) => wrapper.run(c, inner)
           }
@@ -203,19 +205,19 @@ export class WorkflowEngine {
    * Finds the insertion index for a new step meta entry.
    *
    * Logic:
-   * - No anchor: append to the end of all non-anchored steps (effectively end of list)
-   * - anchor + after: group goes right after the anchor (and after any existing after-anchor group members)
-   * - anchor + before: group goes right before the anchor (before any existing before-anchor group members)
+   * - No anchor: append at end, respecting priority among other no-anchor steps
+   * - anchor + after: group goes right after the anchor, sorted by priority
+   * - anchor + before: group goes right before the anchor, sorted by priority
    *
    * Within a group (same anchor + same direction), order by priority asc, then insertionOrder asc.
    */
   private findInsertIndex(steps: StepMeta[], newMeta: StepMeta): number {
     if (newMeta.anchor === undefined) {
-      // No anchor — append at end; among other no-anchor steps, respect priority then insertionOrder
-      // Find the position after all steps that either have an anchor or are lower/equal priority no-anchor steps
+      // No anchor — append at end among other no-anchor steps, respecting priority
       let insertAt = steps.length
       for (let i = steps.length - 1; i >= 0; i--) {
         const m = steps[i]
+        if (m === undefined) continue
         if (m.anchor === undefined) {
           // Same group (no-anchor). Compare priority
           if (
@@ -239,12 +241,12 @@ export class WorkflowEngine {
 
     if (newMeta.direction === 'after') {
       // Insert into the "after anchor" group
-      // The group starts right after the anchor index and continues while steps have same anchor + direction 'after'
       let insertAt = anchorIdx + 1
 
       // Walk forward through existing after-anchor group members
       for (let i = anchorIdx + 1; i < steps.length; i++) {
         const m = steps[i]
+        if (m === undefined) break
         if (m.anchor === newMeta.anchor && m.direction === 'after') {
           if (
             m.priority < newMeta.priority ||
@@ -261,15 +263,11 @@ export class WorkflowEngine {
       return insertAt
     } else {
       // direction === 'before'
-      // The group ends right before the anchor (or before any after-anchor group of a previous before-anchor member)
-      // We need to find: the existing before-anchor group starts somewhere before anchorIdx
-      // Walk backwards from anchorIdx - 1 to find where this group begins
-      let groupStart = anchorIdx // default: insert just before anchor
-
       // Collect all existing 'before' group members for this anchor
       const beforeGroup: number[] = []
       for (let i = 0; i < anchorIdx; i++) {
-        if (steps[i].anchor === newMeta.anchor && steps[i].direction === 'before') {
+        const m = steps[i]
+        if (m !== undefined && m.anchor === newMeta.anchor && m.direction === 'before') {
           beforeGroup.push(i)
         }
       }
@@ -281,22 +279,21 @@ export class WorkflowEngine {
 
       // Insert into the before group based on priority
       // Lower priority = earlier (further from anchor)
-      groupStart = beforeGroup[0] // start of group
-
       let insertAt = anchorIdx // default: append to end of before-group (just before anchor)
       for (let k = beforeGroup.length - 1; k >= 0; k--) {
-        const i = beforeGroup[k]
-        const m = steps[i]
+        const idx = beforeGroup[k]
+        if (idx === undefined) continue
+        const m = steps[idx]
+        if (m === undefined) continue
         if (
           m.priority < newMeta.priority ||
           (m.priority === newMeta.priority && m.insertionOrder < newMeta.insertionOrder)
         ) {
-          insertAt = i + 1
+          insertAt = idx + 1
           break
         }
-        insertAt = i
+        insertAt = idx
       }
-      void groupStart // suppress unused variable warning
       return insertAt
     }
   }

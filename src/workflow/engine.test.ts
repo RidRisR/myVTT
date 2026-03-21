@@ -29,9 +29,24 @@ describe('WorkflowEngine', () => {
   it('executes steps in definition order', async () => {
     const order: string[] = []
     engine.defineWorkflow('test', [
-      { id: 'a', run: () => { order.push('a') } },
-      { id: 'b', run: () => { order.push('b') } },
-      { id: 'c', run: () => { order.push('c') } },
+      {
+        id: 'a',
+        run: () => {
+          order.push('a')
+        },
+      },
+      {
+        id: 'b',
+        run: () => {
+          order.push('b')
+        },
+      },
+      {
+        id: 'c',
+        run: () => {
+          order.push('c')
+        },
+      },
     ])
     await engine.runWorkflow('test', makeCtx())
     expect(order).toEqual(['a', 'b', 'c'])
@@ -40,7 +55,9 @@ describe('WorkflowEngine', () => {
   // ── 2. Duplicate workflow name throws ──────────────────────────────────────
   it('throws on duplicate workflow name', () => {
     engine.defineWorkflow('dup', [])
-    expect(() => engine.defineWorkflow('dup', [])).toThrow(/already defined/i)
+    expect(() => {
+      engine.defineWorkflow('dup', [])
+    }).toThrow(/already defined/i)
   })
 
   // ── 3. Unknown workflow throws ─────────────────────────────────────────────
@@ -49,36 +66,52 @@ describe('WorkflowEngine', () => {
   })
 
   it('throws on unknown workflow in addStep', () => {
-    expect(() =>
-      engine.addStep('nonexistent', { id: 'x', run: () => {} }),
-    ).toThrow(/not found/i)
+    expect(() => {
+      engine.addStep('nonexistent', { id: 'x', run: () => {} })
+    }).toThrow(/not found/i)
   })
 
   // ── 4. Duplicate step ID throws ────────────────────────────────────────────
   it('throws on duplicate step ID within same workflow', () => {
     engine.defineWorkflow('dups', [{ id: 'a', run: () => {} }])
-    expect(() =>
-      engine.addStep('dups', { id: 'a', run: () => {} }),
-    ).toThrow(/duplicate step/i)
+    expect(() => {
+      engine.addStep('dups', { id: 'a', run: () => {} })
+    }).toThrow(/duplicate step/i)
   })
 
   it('throws on duplicate step ID in defineWorkflow', () => {
-    expect(() =>
+    expect(() => {
       engine.defineWorkflow('dups2', [
         { id: 'a', run: () => {} },
         { id: 'a', run: () => {} },
-      ]),
-    ).toThrow(/duplicate step/i)
+      ])
+    }).toThrow(/duplicate step/i)
   })
 
   // ── 5. addStep positioning ─────────────────────────────────────────────────
   it('addStep: after — inserts step after the anchor', async () => {
     const order: string[] = []
     engine.defineWorkflow('wf', [
-      { id: 'a', run: () => { order.push('a') } },
-      { id: 'c', run: () => { order.push('c') } },
+      {
+        id: 'a',
+        run: () => {
+          order.push('a')
+        },
+      },
+      {
+        id: 'c',
+        run: () => {
+          order.push('c')
+        },
+      },
     ])
-    engine.addStep('wf', { id: 'b', after: 'a', run: () => { order.push('b') } })
+    engine.addStep('wf', {
+      id: 'b',
+      after: 'a',
+      run: () => {
+        order.push('b')
+      },
+    })
     await engine.runWorkflow('wf', makeCtx())
     expect(order).toEqual(['a', 'b', 'c'])
   })
@@ -86,42 +119,91 @@ describe('WorkflowEngine', () => {
   it('addStep: before — inserts step before the anchor', async () => {
     const order: string[] = []
     engine.defineWorkflow('wf2', [
-      { id: 'a', run: () => { order.push('a') } },
-      { id: 'c', run: () => { order.push('c') } },
+      {
+        id: 'a',
+        run: () => {
+          order.push('a')
+        },
+      },
+      {
+        id: 'c',
+        run: () => {
+          order.push('c')
+        },
+      },
     ])
-    engine.addStep('wf2', { id: 'b', before: 'c', run: () => { order.push('b') } })
+    engine.addStep('wf2', {
+      id: 'b',
+      before: 'c',
+      run: () => {
+        order.push('b')
+      },
+    })
     await engine.runWorkflow('wf2', makeCtx())
     expect(order).toEqual(['a', 'b', 'c'])
   })
 
   it('addStep: no anchor — appends to end', async () => {
     const order: string[] = []
-    engine.defineWorkflow('wf3', [{ id: 'a', run: () => { order.push('a') } }])
-    engine.addStep('wf3', { id: 'b', run: () => { order.push('b') } })
+    engine.defineWorkflow('wf3', [
+      {
+        id: 'a',
+        run: () => {
+          order.push('a')
+        },
+      },
+    ])
+    engine.addStep('wf3', {
+      id: 'b',
+      run: () => {
+        order.push('b')
+      },
+    })
     await engine.runWorkflow('wf3', makeCtx())
     expect(order).toEqual(['a', 'b'])
   })
 
   it('addStep: throws on missing anchor', () => {
     engine.defineWorkflow('wf4', [{ id: 'a', run: () => {} }])
-    expect(() =>
-      engine.addStep('wf4', { id: 'b', after: 'nonexistent', run: () => {} }),
-    ).toThrow(/anchor.*not found/i)
+    expect(() => {
+      engine.addStep('wf4', { id: 'b', after: 'nonexistent', run: () => {} })
+    }).toThrow(/anchor.*not found/i)
   })
 
   it('addStep: throws when both before and after provided', () => {
     engine.defineWorkflow('wf5', [{ id: 'a', run: () => {} }])
-    expect(() =>
-      engine.addStep('wf5', { id: 'b', before: 'a', after: 'a', run: () => {} }),
-    ).toThrow(/cannot specify both/i)
+    expect(() => {
+      engine.addStep('wf5', { id: 'b', before: 'a', after: 'a', run: () => {} })
+    }).toThrow(/cannot specify both/i)
   })
 
   // ── 6. Priority ordering ───────────────────────────────────────────────────
   it('priority: lower priority runs first among same-anchor steps (after)', async () => {
     const order: string[] = []
-    engine.defineWorkflow('prio', [{ id: 'anchor', run: () => { order.push('anchor') } }])
-    engine.addStep('prio', { id: 'hi', after: 'anchor', priority: 200, run: () => { order.push('hi') } })
-    engine.addStep('prio', { id: 'lo', after: 'anchor', priority: 50, run: () => { order.push('lo') } })
+    engine.defineWorkflow('prio', [
+      {
+        id: 'anchor',
+        run: () => {
+          order.push('anchor')
+        },
+      },
+    ])
+    engine.addStep('prio', {
+      id: 'hi',
+      after: 'anchor',
+      priority: 200,
+      run: () => {
+        order.push('hi')
+      },
+    })
+    engine.addStep('prio', {
+      id: 'lo',
+      after: 'anchor',
+      priority: 50,
+      run: () => {
+        order.push('lo')
+      },
+    })
     await engine.runWorkflow('prio', makeCtx())
     expect(order).toEqual(['anchor', 'lo', 'hi'])
   })
@@ -129,17 +211,52 @@ describe('WorkflowEngine', () => {
   it('priority: same priority preserves registration order', async () => {
     const order: string[] = []
     engine.defineWorkflow('prio2', [{ id: 'anchor', run: () => {} }])
-    engine.addStep('prio2', { id: 'first', after: 'anchor', priority: 100, run: () => { order.push('first') } })
-    engine.addStep('prio2', { id: 'second', after: 'anchor', priority: 100, run: () => { order.push('second') } })
+    engine.addStep('prio2', {
+      id: 'first',
+      after: 'anchor',
+      priority: 100,
+      run: () => {
+        order.push('first')
+      },
+    })
+    engine.addStep('prio2', {
+      id: 'second',
+      after: 'anchor',
+      priority: 100,
+      run: () => {
+        order.push('second')
+      },
+    })
     await engine.runWorkflow('prio2', makeCtx())
     expect(order).toEqual(['first', 'second'])
   })
 
   it('priority: lower priority runs first among same-anchor steps (before)', async () => {
     const order: string[] = []
-    engine.defineWorkflow('prio3', [{ id: 'anchor', run: () => { order.push('anchor') } }])
-    engine.addStep('prio3', { id: 'hi', before: 'anchor', priority: 200, run: () => { order.push('hi') } })
-    engine.addStep('prio3', { id: 'lo', before: 'anchor', priority: 50, run: () => { order.push('lo') } })
+    engine.defineWorkflow('prio3', [
+      {
+        id: 'anchor',
+        run: () => {
+          order.push('anchor')
+        },
+      },
+    ])
+    engine.addStep('prio3', {
+      id: 'hi',
+      before: 'anchor',
+      priority: 200,
+      run: () => {
+        order.push('hi')
+      },
+    })
+    engine.addStep('prio3', {
+      id: 'lo',
+      before: 'anchor',
+      priority: 50,
+      run: () => {
+        order.push('lo')
+      },
+    })
     await engine.runWorkflow('prio3', makeCtx())
     expect(order).toEqual(['lo', 'hi', 'anchor'])
   })
@@ -147,7 +264,14 @@ describe('WorkflowEngine', () => {
   // ── 7. wrapStep ────────────────────────────────────────────────────────────
   it('wrapStep: wrapper calls original via second arg', async () => {
     const order: string[] = []
-    engine.defineWorkflow('wrap', [{ id: 'target', run: () => { order.push('original') } }])
+    engine.defineWorkflow('wrap', [
+      {
+        id: 'target',
+        run: () => {
+          order.push('original')
+        },
+      },
+    ])
     engine.wrapStep('wrap', 'target', {
       run: async (ctx, original) => {
         order.push('before')
@@ -161,9 +285,16 @@ describe('WorkflowEngine', () => {
 
   it('wrapStep: wrapper can skip original', async () => {
     const order: string[] = []
-    engine.defineWorkflow('wrap2', [{ id: 'target', run: () => { order.push('original') } }])
+    engine.defineWorkflow('wrap2', [
+      {
+        id: 'target',
+        run: () => {
+          order.push('original')
+        },
+      },
+    ])
     engine.wrapStep('wrap2', 'target', {
-      run: (ctx, _original) => {
+      run: (_ctx, _original) => {
         order.push('wrapped-skip')
       },
     })
@@ -173,7 +304,14 @@ describe('WorkflowEngine', () => {
 
   it('wrapStep: multiple wraps form onion — lower priority = outer layer', async () => {
     const order: string[] = []
-    engine.defineWorkflow('onion', [{ id: 'core', run: () => { order.push('core') } }])
+    engine.defineWorkflow('onion', [
+      {
+        id: 'core',
+        run: () => {
+          order.push('core')
+        },
+      },
+    ])
     // inner layer (priority 200)
     engine.wrapStep('onion', 'core', {
       priority: 200,
@@ -200,8 +338,18 @@ describe('WorkflowEngine', () => {
   it('removeStep: removes the step so it no longer runs', async () => {
     const order: string[] = []
     engine.defineWorkflow('rm', [
-      { id: 'a', run: () => { order.push('a') } },
-      { id: 'b', run: () => { order.push('b') } },
+      {
+        id: 'a',
+        run: () => {
+          order.push('a')
+        },
+      },
+      {
+        id: 'b',
+        run: () => {
+          order.push('b')
+        },
+      },
     ])
     engine.removeStep('rm', 'a')
     await engine.runWorkflow('rm', makeCtx())
@@ -210,7 +358,9 @@ describe('WorkflowEngine', () => {
 
   it('removeStep: throws when step not found', () => {
     engine.defineWorkflow('rm2', [])
-    expect(() => engine.removeStep('rm2', 'nonexistent')).toThrow(/not found/i)
+    expect(() => {
+      engine.removeStep('rm2', 'nonexistent')
+    }).toThrow(/not found/i)
   })
 
   // ── 9. inspectWorkflow ────────────────────────────────────────────────────
@@ -232,15 +382,28 @@ describe('WorkflowEngine', () => {
   })
 
   it('inspectWorkflow: throws on unknown workflow', () => {
-    expect(() => engine.inspectWorkflow('nope')).toThrow(/not found/i)
+    expect(() => {
+      engine.inspectWorkflow('nope')
+    }).toThrow(/not found/i)
   })
 
   // ── 10. abort ─────────────────────────────────────────────────────────────
   it('abort: stops subsequent steps', async () => {
     const order: string[] = []
     engine.defineWorkflow('abrt', [
-      { id: 'a', run: (ctx) => { order.push('a'); ctx.abort('stop') } },
-      { id: 'b', run: () => { order.push('b') } },
+      {
+        id: 'a',
+        run: (ctx) => {
+          order.push('a')
+          ctx.abort('stop')
+        },
+      },
+      {
+        id: 'b',
+        run: () => {
+          order.push('b')
+        },
+      },
     ])
     await engine.runWorkflow('abrt', makeCtx())
     expect(order).toEqual(['a'])
@@ -250,8 +413,18 @@ describe('WorkflowEngine', () => {
   it('error in step stops subsequent steps and propagates', async () => {
     const order: string[] = []
     engine.defineWorkflow('err', [
-      { id: 'a', run: () => { throw new Error('boom') } },
-      { id: 'b', run: () => { order.push('b') } },
+      {
+        id: 'a',
+        run: () => {
+          throw new Error('boom')
+        },
+      },
+      {
+        id: 'b',
+        run: () => {
+          order.push('b')
+        },
+      },
     ])
     await expect(engine.runWorkflow('err', makeCtx())).rejects.toThrow('boom')
     expect(order).toEqual([])
@@ -262,27 +435,28 @@ describe('WorkflowEngine', () => {
     engine.defineWorkflow('recurse', [
       {
         id: 'self',
-        run: async (ctx) => {
-          await ctx.runWorkflow('recurse')
+        run: async (_ctx) => {
+          await _ctx.runWorkflow('recurse')
         },
       },
     ])
 
     // Create a ctx where runWorkflow delegates back to engine
-    const ctx = makeCtx()
-    ;(ctx.runWorkflow as ReturnType<typeof vi.fn>).mockImplementation(
-      (name: string, data?: Record<string, unknown>) =>
-        engine.runWorkflow(name, createNestedCtx(engine, data)),
-    )
-
-    function createNestedCtx(eng: WorkflowEngine, data: Record<string, unknown> = {}): WorkflowContext {
+    function createNestedCtx(
+      eng: WorkflowEngine,
+      data: Record<string, unknown> = {},
+    ): WorkflowContext {
       const c = makeCtx(data)
+      const nestedRun = (name: string, d?: Record<string, unknown>): Promise<void> =>
+        eng.runWorkflow(name, createNestedCtx(eng, d))
+      // Cast needed: mockImplementation types its arg as void-returning, but async is valid at runtime
       ;(c.runWorkflow as ReturnType<typeof vi.fn>).mockImplementation(
-        (name: string, d?: Record<string, unknown>) => eng.runWorkflow(name, createNestedCtx(eng, d)),
+        nestedRun as unknown as () => void,
       )
       return c
     }
 
+    const ctx = createNestedCtx(engine)
     await expect(engine.runWorkflow('recurse', ctx)).rejects.toThrow(/recursion depth/i)
   })
 
