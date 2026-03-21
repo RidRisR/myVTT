@@ -6,7 +6,9 @@ import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
 import { useToast } from '../ui/useToast'
 import { tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
+// eslint-disable-next-line no-restricted-imports -- POC: will be replaced by plugin registry
 import { daggerheartCorePlugin } from '../../plugins/daggerheart-core'
+// eslint-disable-next-line no-restricted-imports -- POC: will be replaced by plugin registry
 import { daggerheartCosmeticPlugin } from '../../plugins/daggerheart-cosmetic'
 import type { VTTPlugin } from '../rules/types'
 import type { ToastType } from '../ui/Toast'
