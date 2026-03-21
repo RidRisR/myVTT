@@ -26,7 +26,9 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
       const judgment = ctx.data.judgment as { type: string; outcome: string } | undefined
       if (!judgment || judgment.type !== 'daggerheart') return
       const outcome = judgment.outcome
-      if (outcome === 'success_fear' || outcome === 'failure_fear') {
+      if (outcome === 'success_hope' || outcome === 'failure_hope') {
+        ctx.updateTeamTracker('Hope', { current: 1 })
+      } else if (outcome === 'success_fear' || outcome === 'failure_fear') {
         ctx.updateTeamTracker('Fear', { current: 1 })
       }
     },

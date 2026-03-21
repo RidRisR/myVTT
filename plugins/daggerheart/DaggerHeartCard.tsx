@@ -57,7 +57,7 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
                         console.error('[Workflow] roll failed:', err)
                       })
                   }}
-                  className="py-1 text-[9px] text-text-muted/60 bg-black/10 hover:bg-black/30 rounded transition-colors duration-fast capitalize"
+                  className="py-1.5 text-[10px] text-text-muted/50 bg-black/20 hover:bg-black/40 rounded transition-colors duration-fast capitalize"
                 >
                   {t(`roll.action.${k}`)}
                 </button>

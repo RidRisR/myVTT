@@ -3,10 +3,15 @@ import { WorkflowEngine } from './engine'
 import { PluginSDK } from './pluginSDK'
 import { registerBaseWorkflows } from './baseWorkflows'
 import { useWorldStore } from '../stores/worldStore'
+import { tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
+import { daggerheartCorePlugin } from '../../plugins/daggerheart-core'
+import { daggerheartCosmeticPlugin } from '../../plugins/daggerheart-cosmetic'
+import type { VTTPlugin } from '../rules/types'
 import type { PluginSDKDeps } from './pluginSDK'
 
 // Singleton engine instance — initialized once
 let _engine: WorkflowEngine | null = null
+let _pluginsActivated = false
 
 export function getWorkflowEngine(): WorkflowEngine {
   if (!_engine) {
@@ -15,6 +20,9 @@ export function getWorkflowEngine(): WorkflowEngine {
   }
   return _engine
 }
+
+// POC: hardcoded plugin list; real impl would discover from room's rule system
+const POC_PLUGINS: VTTPlugin[] = [daggerheartCorePlugin, daggerheartCosmeticPlugin]
 
 /** Reset engine — for testing only */
 export function resetWorkflowEngine(): void {
@@ -33,18 +41,19 @@ export function useWorkflowSDK(): PluginSDK {
     const engine = getWorkflowEngine()
     const deps: PluginSDKDeps = {
       sendRoll: async (formula: string) => {
-        // POC: sendRoll currently posts to server and returns void.
-        // Real impl needs server to return roll results synchronously.
-        // For POC, we call the endpoint. The return value won't be usable yet.
+        // Strip @variable references so tokenizeExpression can parse dice notation
+        const stripped = formula.replace(/@[\p{L}\p{N}_]+/gu, '0')
+        const terms = tokenizeExpression(stripped)
+        const dice = terms ? toDiceSpecs(terms) : []
         await sendRoll({
-          dice: [],
+          dice,
           formula,
-          resolvedFormula: formula,
+          resolvedFormula: stripped,
           senderId: '',
           senderName: '',
           senderColor: '',
         })
-        // POC fallback: return empty result since sendRoll returns void
+        // POC: sendRoll returns void, server broadcasts result via socket
         return { rolls: [[]], total: 0 }
       },
       updateEntity: (id, patch) => {
@@ -60,6 +69,22 @@ export function useWorkflowSDK(): PluginSDK {
         // POC stub
       },
     }
-    return new PluginSDK(engine, deps)
+    const sdk = new PluginSDK(engine, deps)
+
+    // Activate POC plugins once
+    if (!_pluginsActivated) {
+      for (const plugin of POC_PLUGINS) {
+        plugin.onActivate(sdk)
+      }
+      _pluginsActivated = true
+
+      // DEV: expose engine for console inspection
+      // Usage: __wfEngine.inspectWorkflow('roll')
+      if (import.meta.env.DEV) {
+        ;(globalThis as Record<string, unknown>).__wfEngine = engine
+      }
+    }
+
+    return sdk
   }, [sendRoll, updateEntity])
 }
