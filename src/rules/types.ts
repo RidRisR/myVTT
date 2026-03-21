@@ -272,5 +272,7 @@ export interface RulePlugin {
 
 export interface VTTPlugin {
   id: string
+  dependencies?: string[]
   onActivate(sdk: import('../workflow/types').IPluginSDK): void
+  onDeactivate?(sdk: import('../workflow/types').IPluginSDK): void
 }

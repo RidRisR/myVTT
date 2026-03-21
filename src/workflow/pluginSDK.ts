@@ -1,12 +1,69 @@
 // src/workflow/pluginSDK.ts
-import type { IPluginSDK, Step, StepAddition, WrapStepOptions } from './types'
+import type {
+  IPluginSDK,
+  IWorkflowRunner,
+  StepAddition,
+  AttachStepAddition,
+  WrapStepOptions,
+  ReplaceStepOptions,
+  WorkflowHandle,
+  WorkflowResult,
+} from './types'
 import type { WorkflowEngine } from './engine'
 import type { ContextDeps } from './context'
 import { createWorkflowContext } from './context'
 
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
 
+/**
+ * Registration-time API for plugins. No runWorkflow — plugins must use
+ * ctx.runWorkflow (inside steps) or the UI layer's IWorkflowRunner.
+ */
 export class PluginSDK implements IPluginSDK {
+  private engine: WorkflowEngine
+  private pluginId: string
+
+  constructor(engine: WorkflowEngine, pluginId: string) {
+    this.engine = engine
+    this.pluginId = pluginId
+  }
+
+  addStep<TData extends TBase, TBase = Record<string, unknown>>(
+    handle: WorkflowHandle<TBase>,
+    addition: StepAddition<TData>,
+  ): void {
+    this.engine.addStep(handle.name, addition as StepAddition, this.pluginId)
+  }
+
+  attachStep<TData extends TBase, TBase = Record<string, unknown>>(
+    handle: WorkflowHandle<TBase>,
+    addition: AttachStepAddition<TData>,
+  ): void {
+    this.engine.attachStep(handle.name, addition as AttachStepAddition, this.pluginId)
+  }
+
+  wrapStep(handle: WorkflowHandle, targetStepId: string, options: WrapStepOptions): void {
+    this.engine.wrapStep(handle.name, targetStepId, options)
+  }
+
+  replaceStep(handle: WorkflowHandle, targetStepId: string, options: ReplaceStepOptions): void {
+    this.engine.replaceStep(handle.name, targetStepId, options)
+  }
+
+  removeStep(handle: WorkflowHandle, targetStepId: string): void {
+    this.engine.removeStep(handle.name, targetStepId)
+  }
+
+  inspectWorkflow(handle: WorkflowHandle): string[] {
+    return this.engine.inspectWorkflow(handle.name)
+  }
+}
+
+/**
+ * Execution-time API for UI layer. Creates InternalState per run, ensuring
+ * depth tracking and abort isolation.
+ */
+export class WorkflowRunner implements IWorkflowRunner {
   private engine: WorkflowEngine
   private deps: PluginSDKDeps
 
@@ -15,28 +72,16 @@ export class PluginSDK implements IPluginSDK {
     this.deps = deps
   }
 
-  defineWorkflow(name: string, steps: Step[]): void {
-    this.engine.defineWorkflow(name, steps)
-  }
-
-  addStep(workflow: string, addition: StepAddition): void {
-    this.engine.addStep(workflow, addition)
-  }
-
-  wrapStep(workflow: string, targetStepId: string, options: WrapStepOptions): void {
-    this.engine.wrapStep(workflow, targetStepId, options)
-  }
-
-  removeStep(workflow: string, targetStepId: string): void {
-    this.engine.removeStep(workflow, targetStepId)
-  }
-
-  inspectWorkflow(name: string): string[] {
-    return this.engine.inspectWorkflow(name)
-  }
-
-  runWorkflow(name: string, data?: Record<string, unknown>): Promise<void> {
-    const ctx = createWorkflowContext({ ...this.deps, engine: this.engine }, data)
-    return this.engine.runWorkflow(name, ctx)
+  runWorkflow<TData = Record<string, unknown>>(
+    handle: WorkflowHandle<TData>,
+    data?: Partial<TData>,
+  ): Promise<WorkflowResult<TData>> {
+    const internal = { depth: 0, abortCtrl: { aborted: false } }
+    const ctx = createWorkflowContext(
+      { ...this.deps, engine: this.engine },
+      (data ?? {}) as Record<string, unknown>,
+      internal,
+    )
+    return this.engine.runWorkflow(handle.name, ctx, internal) as Promise<WorkflowResult<TData>>
   }
 }

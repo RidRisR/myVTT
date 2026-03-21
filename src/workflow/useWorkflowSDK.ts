@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { WorkflowEngine } from './engine'
-import { PluginSDK } from './pluginSDK'
+import { PluginSDK, WorkflowRunner } from './pluginSDK'
 import { registerBaseWorkflows } from './baseWorkflows'
 import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
@@ -9,6 +9,8 @@ import { tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
 import { daggerheartCorePlugin } from '../../plugins/daggerheart-core'
 import { daggerheartCosmeticPlugin } from '../../plugins/daggerheart-cosmetic'
 import type { VTTPlugin } from '../rules/types'
+import type { ToastType } from '../ui/Toast'
+import type { IWorkflowRunner } from './types'
 import type { PluginSDKDeps } from './pluginSDK'
 
 // Singleton engine instance — initialized once
@@ -32,84 +34,99 @@ export function resetWorkflowEngine(): void {
   _pluginsActivated = false
 }
 
+/** Build the PluginSDKDeps from store actions. Shared between hook and init. */
+function buildDeps(
+  sendRoll: ReturnType<typeof useWorldStore.getState>['sendRoll'],
+  updateEntity: ReturnType<typeof useWorldStore.getState>['updateEntity'],
+  toastFn: (variant: ToastType, text: string, opts?: { duration?: number }) => void,
+): PluginSDKDeps {
+  return {
+    sendRoll: async (formula: string) => {
+      const stripped = formula.replace(/@[\p{L}\p{N}_]+/gu, '0')
+      const terms = tokenizeExpression(stripped)
+      const dice = terms ? toDiceSpecs(terms) : []
+      const result = await sendRoll({
+        dice,
+        formula,
+        resolvedFormula: stripped,
+        senderId: '',
+        senderName: '',
+        senderColor: '',
+      })
+      const rolls: number[][] = result?.rolls ?? []
+      const total = rolls.flat().reduce<number>((sum, v) => sum + v, 0)
+      return { rolls, total }
+    },
+    updateEntity: (id, patch) => {
+      void updateEntity(id, patch)
+    },
+    updateTeamTracker: (label, patch) => {
+      const state = useWorldStore.getState()
+      const tracker = state.teamTrackers.find((t) => t.label === label)
+      if (!tracker) return
+      const updates = {
+        ...patch,
+        ...(patch.current != null ? { current: tracker.current + patch.current } : {}),
+      }
+      void state.updateTeamTracker(tracker.id, updates)
+    },
+    sendMessage: (message) => {
+      const seat = useIdentityStore.getState().getMySeat()
+      void useWorldStore.getState().sendMessage({
+        senderId: seat?.id ?? '',
+        senderName: seat?.name ?? 'Unknown',
+        senderColor: seat?.color ?? '#888888',
+        content: message,
+      })
+    },
+    showToast: (text, options) => {
+      const variant = (options?.variant ?? 'info') as ToastType
+      toastFn(variant, text, options?.durationMs ? { duration: options.durationMs } : undefined)
+    },
+  }
+}
+
 /**
- * React hook providing a PluginSDK instance connected to the global WorkflowEngine.
- * Uses worldStore actions as the base capability providers.
+ * Activate plugins and return a WorkflowRunner for the UI layer.
+ * Idempotent — only activates once per engine lifetime.
  */
-export function useWorkflowSDK(): PluginSDK {
+function ensurePluginsActivated(engine: WorkflowEngine, _deps: PluginSDKDeps): void {
+  if (_pluginsActivated) return
+
+  for (const plugin of POC_PLUGINS) {
+    const sdk = new PluginSDK(engine, plugin.id)
+    plugin.onActivate(sdk)
+  }
+  _pluginsActivated = true
+
+  if (import.meta.env.DEV) {
+    ;(globalThis as Record<string, unknown>).__wfEngine = engine
+  }
+}
+
+/**
+ * React hook providing a WorkflowRunner for the UI layer.
+ * Pure selector + memo — no side effects, StrictMode safe.
+ */
+export function useWorkflowRunner(): IWorkflowRunner {
   const sendRoll = useWorldStore((s) => s.sendRoll)
   const updateEntity = useWorldStore((s) => s.updateEntity)
   const { toast } = useToast()
 
-  // Use ref for toast to avoid useMemo dependency instability
   const toastRef = useRef(toast)
   toastRef.current = toast
 
   return useMemo(() => {
     const engine = getWorkflowEngine()
-    const deps: PluginSDKDeps = {
-      sendRoll: async (formula: string) => {
-        // Strip @variable references so tokenizeExpression can parse dice notation
-        const stripped = formula.replace(/@[\p{L}\p{N}_]+/gu, '0')
-        const terms = tokenizeExpression(stripped)
-        const dice = terms ? toDiceSpecs(terms) : []
-        const result = await sendRoll({
-          dice,
-          formula,
-          resolvedFormula: stripped,
-          senderId: '',
-          senderName: '',
-          senderColor: '',
-        })
-        const rolls: number[][] = result?.rolls ?? []
-        // POC: flat sum of all dice; production needs full formula evaluation
-        const total = rolls.flat().reduce<number>((sum, v) => sum + v, 0)
-        return { rolls, total }
-      },
-      updateEntity: (id, patch) => {
-        void updateEntity(id, patch)
-      },
-      updateTeamTracker: (label, patch) => {
-        const state = useWorldStore.getState()
-        const tracker = state.teamTrackers.find((t) => t.label === label)
-        if (!tracker) return
-        // patch.current is a delta (e.g. 1 means +1), convert to absolute value
-        const updates = {
-          ...patch,
-          ...(patch.current != null ? { current: tracker.current + patch.current } : {}),
-        }
-        void state.updateTeamTracker(tracker.id, updates)
-      },
-      sendMessage: (message) => {
-        const seat = useIdentityStore.getState().getMySeat()
-        void useWorldStore.getState().sendMessage({
-          senderId: seat?.id ?? '',
-          senderName: seat?.name ?? 'Unknown',
-          senderColor: seat?.color ?? '#888888',
-          content: message,
-        })
-      },
-      showToast: (text, options) => {
-        const variant = options?.variant ?? 'info'
-        toastRef.current(variant, text, options?.durationMs ? { duration: options.durationMs } : undefined)
-      },
-    }
-    const sdk = new PluginSDK(engine, deps)
-
-    // Activate POC plugins once
-    if (!_pluginsActivated) {
-      for (const plugin of POC_PLUGINS) {
-        plugin.onActivate(sdk)
-      }
-      _pluginsActivated = true
-
-      // DEV: expose engine for console inspection
-      // Usage: __wfEngine.inspectWorkflow('roll')
-      if (import.meta.env.DEV) {
-        ;(globalThis as Record<string, unknown>).__wfEngine = engine
-      }
-    }
-
-    return sdk
+    const deps = buildDeps(sendRoll, updateEntity, (v, t, o) => toastRef.current(v, t, o))
+    ensurePluginsActivated(engine, deps)
+    return new WorkflowRunner(engine, deps)
   }, [sendRoll, updateEntity])
+}
+
+/**
+ * @deprecated Use useWorkflowRunner() instead. This is kept for backward compatibility.
+ */
+export function useWorkflowSDK(): IWorkflowRunner {
+  return useWorkflowRunner()
 }
