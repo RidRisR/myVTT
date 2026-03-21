@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { PluginSDK, WorkflowRunner } from './pluginSDK'
 import { WorkflowEngine } from './engine'
 import type { ContextDeps } from './context'
+import type { WorkflowHandle } from './types'
 
 function makeDeps(): Omit<ContextDeps, 'engine'> {
   return {

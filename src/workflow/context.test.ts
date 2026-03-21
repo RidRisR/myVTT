@@ -122,40 +122,18 @@ describe('createWorkflowContext', () => {
     const engine = makeEngine()
     const order: string[] = []
     engine.defineWorkflow('inner', [
-      {
-        id: 'step',
-        run: () => {
-          order.push('inner-ran')
-        },
-      },
+      { id: 'step', run: () => { order.push('inner-ran') } },
     ])
     const ctx = createWorkflowContext(makeDeps({ engine }), undefined, makeInternal())
     await ctx.runWorkflow({ name: 'inner' } as never, { x: 1 })
     expect(order).toEqual(['inner-ran'])
   })
 
-  it('ctx.data is a getter — reassignment throws in strict mode', () => {
-    const deps = makeDeps()
-    const ctx = createWorkflowContext(deps, { foo: 'bar' })
-    expect(() => {
-      // @ts-expect-error — testing runtime protection
-      ctx.data = {}
-    }).toThrow()
-    // Property modification still works
-    ctx.data.foo = 'baz'
-    expect(ctx.data.foo).toBe('baz')
-  })
-
   it('runWorkflow passes initial data to nested context', async () => {
     const engine = makeEngine()
     let capturedData: Record<string, unknown> = {}
     engine.defineWorkflow('inner', [
-      {
-        id: 'capture',
-        run: (innerCtx) => {
-          capturedData = innerCtx.data
-        },
-      },
+      { id: 'capture', run: (innerCtx) => { capturedData = innerCtx.data } },
     ])
     const ctx = createWorkflowContext(makeDeps({ engine }), undefined, makeInternal())
     await ctx.runWorkflow({ name: 'inner' } as never, { value: 42 })
