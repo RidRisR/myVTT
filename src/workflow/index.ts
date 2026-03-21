@@ -16,3 +16,4 @@ export type {
   IPluginSDK,
 } from './types'
 export { registerBaseWorkflows } from './baseWorkflows'
+export { useWorkflowSDK, getWorkflowEngine, resetWorkflowEngine } from './useWorkflowSDK'

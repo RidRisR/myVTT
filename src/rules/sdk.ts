@@ -61,3 +61,4 @@ export type {
   ToastOptions,
 } from '../workflow/types'
 export type { VTTPlugin } from './types'
+export { useWorkflowSDK } from '../workflow/useWorkflowSDK'
