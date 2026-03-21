@@ -47,3 +47,17 @@ export type { RollCardProps } from './types'
 
 // ── Tool types for plugin map integration ───────────────────────────────────
 export type { ToolDefinition, ToolCategory, ToolLayerProps } from '../combat/tools/types'
+
+// ── Workflow types (new plugin cooperation model) ──────────────────────────
+export type {
+  Step,
+  StepAddition,
+  StepFn,
+  WrapStepFn,
+  WrapStepOptions,
+  WorkflowContext,
+  IPluginSDK,
+  AnimationSpec,
+  ToastOptions,
+} from '../workflow/types'
+export type { VTTPlugin } from './types'
