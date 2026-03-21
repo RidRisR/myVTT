@@ -15,3 +15,4 @@ export type {
   WorkflowContext,
   IPluginSDK,
 } from './types'
+export { registerBaseWorkflows } from './baseWorkflows'
