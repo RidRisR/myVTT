@@ -7,10 +7,13 @@ import { createWorkflowContext } from './context'
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
 
 export class PluginSDK implements IPluginSDK {
-  constructor(
-    private engine: WorkflowEngine,
-    private deps: PluginSDKDeps,
-  ) {}
+  private engine: WorkflowEngine
+  private deps: PluginSDKDeps
+
+  constructor(engine: WorkflowEngine, deps: PluginSDKDeps) {
+    this.engine = engine
+    this.deps = deps
+  }
 
   defineWorkflow(name: string, steps: Step[]): void {
     this.engine.defineWorkflow(name, steps)
