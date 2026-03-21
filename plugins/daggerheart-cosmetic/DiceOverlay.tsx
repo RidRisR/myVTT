@@ -22,7 +22,9 @@ export function DiceOverlay({ rolls, judgment, onComplete }: DiceOverlayProps) {
       setVisible(false)
       onComplete()
     }, 1500)
-    return () => { clearTimeout(timer); }
+    return () => {
+      clearTimeout(timer)
+    }
   }, [onComplete])
 
   if (!visible || !rolls[0]) return null

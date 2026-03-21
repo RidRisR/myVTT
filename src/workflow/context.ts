@@ -71,7 +71,11 @@ export function createWorkflowContext(
         depth: internal.depth,
         abortCtrl: { aborted: false },
       }
-      const nestedCtx = createWorkflowContext(deps, (nestedData ?? {}) as Record<string, unknown>, nestedInternal)
+      const nestedCtx = createWorkflowContext(
+        deps,
+        (nestedData ?? {}) as Record<string, unknown>,
+        nestedInternal,
+      )
       return deps.engine.runWorkflow(handle.name, nestedCtx, nestedInternal) as Promise<
         WorkflowResult<T>
       >

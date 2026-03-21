@@ -91,7 +91,9 @@ describe('createWorkflowContext', () => {
 
   it('playSound is a no-op stub', () => {
     const ctx = createWorkflowContext(makeDeps(), undefined, makeInternal())
-    expect(() => { ctx.playSound('boom.mp3') }).not.toThrow()
+    expect(() => {
+      ctx.playSound('boom.mp3')
+    }).not.toThrow()
   })
 
   it('abort sets internal state', () => {
@@ -116,7 +118,12 @@ describe('createWorkflowContext', () => {
     const engine = makeEngine()
     const order: string[] = []
     engine.defineWorkflow('inner', [
-      { id: 'step', run: () => { order.push('inner-ran') } },
+      {
+        id: 'step',
+        run: () => {
+          order.push('inner-ran')
+        },
+      },
     ])
     const ctx = createWorkflowContext(makeDeps({ engine }), undefined, makeInternal())
     await ctx.runWorkflow({ name: 'inner' } as never, { x: 1 })
@@ -127,7 +134,12 @@ describe('createWorkflowContext', () => {
     const engine = makeEngine()
     let capturedData: Record<string, unknown> = {}
     engine.defineWorkflow('inner', [
-      { id: 'capture', run: (innerCtx) => { capturedData = innerCtx.data } },
+      {
+        id: 'capture',
+        run: (innerCtx) => {
+          capturedData = innerCtx.data
+        },
+      },
     ])
     const ctx = createWorkflowContext(makeDeps({ engine }), undefined, makeInternal())
     await ctx.runWorkflow({ name: 'inner' } as never, { value: 42 })
@@ -137,7 +149,12 @@ describe('createWorkflowContext', () => {
   it('nested workflow has independent abort', async () => {
     const engine = makeEngine()
     engine.defineWorkflow('inner', [
-      { id: 'abort-inner', run: (ctx) => { ctx.abort('inner-stop') } },
+      {
+        id: 'abort-inner',
+        run: (ctx) => {
+          ctx.abort('inner-stop')
+        },
+      },
     ])
     engine.defineWorkflow('outer', [
       {
@@ -147,7 +164,12 @@ describe('createWorkflowContext', () => {
           ctx.data.innerStatus = result.status
         },
       },
-      { id: 'after', run: (ctx) => { ctx.data.afterRan = true } },
+      {
+        id: 'after',
+        run: (ctx) => {
+          ctx.data.afterRan = true
+        },
+      },
     ])
 
     const internal = makeInternal()
