@@ -1,7 +1,7 @@
 // src/workflow/engine.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { WorkflowEngine } from './engine'
-import type { WorkflowContext } from './types'
+import type { WorkflowContext, InternalState } from './types'
 
 function makeCtx(data: Record<string, unknown> = {}): WorkflowContext {
   return {
@@ -18,6 +18,15 @@ function makeCtx(data: Record<string, unknown> = {}): WorkflowContext {
   }
 }
 
+function makeInternal(): InternalState {
+  return { depth: 0, abortCtrl: { aborted: false } }
+}
+
+/** Helper: run workflow with default InternalState */
+function run(engine: WorkflowEngine, name: string, ctx?: WorkflowContext) {
+  return engine.runWorkflow(name, ctx ?? makeCtx(), makeInternal())
+}
+
 describe('WorkflowEngine', () => {
   let engine: WorkflowEngine
 
@@ -29,54 +38,33 @@ describe('WorkflowEngine', () => {
   it('executes steps in definition order', async () => {
     const order: string[] = []
     engine.defineWorkflow('test', [
-      {
-        id: 'a',
-        run: () => {
-          order.push('a')
-        },
-      },
-      {
-        id: 'b',
-        run: () => {
-          order.push('b')
-        },
-      },
-      {
-        id: 'c',
-        run: () => {
-          order.push('c')
-        },
-      },
+      { id: 'a', run: () => { order.push('a') } },
+      { id: 'b', run: () => { order.push('b') } },
+      { id: 'c', run: () => { order.push('c') } },
     ])
-    await engine.runWorkflow('test', makeCtx())
+    await run(engine, 'test')
     expect(order).toEqual(['a', 'b', 'c'])
   })
 
   // ── 2. Duplicate workflow name throws ──────────────────────────────────────
   it('throws on duplicate workflow name', () => {
     engine.defineWorkflow('dup', [])
-    expect(() => {
-      engine.defineWorkflow('dup', [])
-    }).toThrow(/already defined/i)
+    expect(() => { engine.defineWorkflow('dup', []) }).toThrow(/already defined/i)
   })
 
   // ── 3. Unknown workflow throws ─────────────────────────────────────────────
   it('throws on unknown workflow in runWorkflow', async () => {
-    await expect(engine.runWorkflow('nonexistent', makeCtx())).rejects.toThrow(/not found/i)
+    await expect(run(engine, 'nonexistent')).rejects.toThrow(/not found/i)
   })
 
   it('throws on unknown workflow in addStep', () => {
-    expect(() => {
-      engine.addStep('nonexistent', { id: 'x', run: () => {} })
-    }).toThrow(/not found/i)
+    expect(() => { engine.addStep('nonexistent', { id: 'x', run: () => {} }) }).toThrow(/not found/i)
   })
 
   // ── 4. Duplicate step ID throws ────────────────────────────────────────────
   it('throws on duplicate step ID within same workflow', () => {
     engine.defineWorkflow('dups', [{ id: 'a', run: () => {} }])
-    expect(() => {
-      engine.addStep('dups', { id: 'a', run: () => {} })
-    }).toThrow(/duplicate step/i)
+    expect(() => { engine.addStep('dups', { id: 'a', run: () => {} }) }).toThrow(/duplicate step/i)
   })
 
   it('throws on duplicate step ID in defineWorkflow', () => {
@@ -92,74 +80,30 @@ describe('WorkflowEngine', () => {
   it('addStep: after — inserts step after the anchor', async () => {
     const order: string[] = []
     engine.defineWorkflow('wf', [
-      {
-        id: 'a',
-        run: () => {
-          order.push('a')
-        },
-      },
-      {
-        id: 'c',
-        run: () => {
-          order.push('c')
-        },
-      },
+      { id: 'a', run: () => { order.push('a') } },
+      { id: 'c', run: () => { order.push('c') } },
     ])
-    engine.addStep('wf', {
-      id: 'b',
-      after: 'a',
-      run: () => {
-        order.push('b')
-      },
-    })
-    await engine.runWorkflow('wf', makeCtx())
+    engine.addStep('wf', { id: 'b', after: 'a', run: () => { order.push('b') } })
+    await run(engine, 'wf')
     expect(order).toEqual(['a', 'b', 'c'])
   })
 
   it('addStep: before — inserts step before the anchor', async () => {
     const order: string[] = []
     engine.defineWorkflow('wf2', [
-      {
-        id: 'a',
-        run: () => {
-          order.push('a')
-        },
-      },
-      {
-        id: 'c',
-        run: () => {
-          order.push('c')
-        },
-      },
+      { id: 'a', run: () => { order.push('a') } },
+      { id: 'c', run: () => { order.push('c') } },
     ])
-    engine.addStep('wf2', {
-      id: 'b',
-      before: 'c',
-      run: () => {
-        order.push('b')
-      },
-    })
-    await engine.runWorkflow('wf2', makeCtx())
+    engine.addStep('wf2', { id: 'b', before: 'c', run: () => { order.push('b') } })
+    await run(engine, 'wf2')
     expect(order).toEqual(['a', 'b', 'c'])
   })
 
   it('addStep: no anchor — appends to end', async () => {
     const order: string[] = []
-    engine.defineWorkflow('wf3', [
-      {
-        id: 'a',
-        run: () => {
-          order.push('a')
-        },
-      },
-    ])
-    engine.addStep('wf3', {
-      id: 'b',
-      run: () => {
-        order.push('b')
-      },
-    })
-    await engine.runWorkflow('wf3', makeCtx())
+    engine.defineWorkflow('wf3', [{ id: 'a', run: () => { order.push('a') } }])
+    engine.addStep('wf3', { id: 'b', run: () => { order.push('b') } })
+    await run(engine, 'wf3')
     expect(order).toEqual(['a', 'b'])
   })
 
@@ -180,98 +124,35 @@ describe('WorkflowEngine', () => {
   // ── 6. Priority ordering ───────────────────────────────────────────────────
   it('priority: lower priority runs first among same-anchor steps (after)', async () => {
     const order: string[] = []
-    engine.defineWorkflow('prio', [
-      {
-        id: 'anchor',
-        run: () => {
-          order.push('anchor')
-        },
-      },
-    ])
-    engine.addStep('prio', {
-      id: 'hi',
-      after: 'anchor',
-      priority: 200,
-      run: () => {
-        order.push('hi')
-      },
-    })
-    engine.addStep('prio', {
-      id: 'lo',
-      after: 'anchor',
-      priority: 50,
-      run: () => {
-        order.push('lo')
-      },
-    })
-    await engine.runWorkflow('prio', makeCtx())
+    engine.defineWorkflow('prio', [{ id: 'anchor', run: () => { order.push('anchor') } }])
+    engine.addStep('prio', { id: 'hi', after: 'anchor', priority: 200, run: () => { order.push('hi') } })
+    engine.addStep('prio', { id: 'lo', after: 'anchor', priority: 50, run: () => { order.push('lo') } })
+    await run(engine, 'prio')
     expect(order).toEqual(['anchor', 'lo', 'hi'])
   })
 
   it('priority: same priority preserves registration order', async () => {
     const order: string[] = []
     engine.defineWorkflow('prio2', [{ id: 'anchor', run: () => {} }])
-    engine.addStep('prio2', {
-      id: 'first',
-      after: 'anchor',
-      priority: 100,
-      run: () => {
-        order.push('first')
-      },
-    })
-    engine.addStep('prio2', {
-      id: 'second',
-      after: 'anchor',
-      priority: 100,
-      run: () => {
-        order.push('second')
-      },
-    })
-    await engine.runWorkflow('prio2', makeCtx())
+    engine.addStep('prio2', { id: 'first', after: 'anchor', priority: 100, run: () => { order.push('first') } })
+    engine.addStep('prio2', { id: 'second', after: 'anchor', priority: 100, run: () => { order.push('second') } })
+    await run(engine, 'prio2')
     expect(order).toEqual(['first', 'second'])
   })
 
   it('priority: lower priority runs first among same-anchor steps (before)', async () => {
     const order: string[] = []
-    engine.defineWorkflow('prio3', [
-      {
-        id: 'anchor',
-        run: () => {
-          order.push('anchor')
-        },
-      },
-    ])
-    engine.addStep('prio3', {
-      id: 'hi',
-      before: 'anchor',
-      priority: 200,
-      run: () => {
-        order.push('hi')
-      },
-    })
-    engine.addStep('prio3', {
-      id: 'lo',
-      before: 'anchor',
-      priority: 50,
-      run: () => {
-        order.push('lo')
-      },
-    })
-    await engine.runWorkflow('prio3', makeCtx())
+    engine.defineWorkflow('prio3', [{ id: 'anchor', run: () => { order.push('anchor') } }])
+    engine.addStep('prio3', { id: 'hi', before: 'anchor', priority: 200, run: () => { order.push('hi') } })
+    engine.addStep('prio3', { id: 'lo', before: 'anchor', priority: 50, run: () => { order.push('lo') } })
+    await run(engine, 'prio3')
     expect(order).toEqual(['lo', 'hi', 'anchor'])
   })
 
   // ── 7. wrapStep ────────────────────────────────────────────────────────────
   it('wrapStep: wrapper calls original via second arg', async () => {
     const order: string[] = []
-    engine.defineWorkflow('wrap', [
-      {
-        id: 'target',
-        run: () => {
-          order.push('original')
-        },
-      },
-    ])
+    engine.defineWorkflow('wrap', [{ id: 'target', run: () => { order.push('original') } }])
     engine.wrapStep('wrap', 'target', {
       run: async (ctx, original) => {
         order.push('before')
@@ -279,58 +160,32 @@ describe('WorkflowEngine', () => {
         order.push('after')
       },
     })
-    await engine.runWorkflow('wrap', makeCtx())
+    await run(engine, 'wrap')
     expect(order).toEqual(['before', 'original', 'after'])
   })
 
   it('wrapStep: wrapper can skip original', async () => {
     const order: string[] = []
-    engine.defineWorkflow('wrap2', [
-      {
-        id: 'target',
-        run: () => {
-          order.push('original')
-        },
-      },
-    ])
+    engine.defineWorkflow('wrap2', [{ id: 'target', run: () => { order.push('original') } }])
     engine.wrapStep('wrap2', 'target', {
-      run: (_ctx, _original) => {
-        order.push('wrapped-skip')
-      },
+      run: (_ctx, _original) => { order.push('wrapped-skip') },
     })
-    await engine.runWorkflow('wrap2', makeCtx())
+    await run(engine, 'wrap2')
     expect(order).toEqual(['wrapped-skip'])
   })
 
   it('wrapStep: multiple wraps form onion — lower priority = outer layer', async () => {
     const order: string[] = []
-    engine.defineWorkflow('onion', [
-      {
-        id: 'core',
-        run: () => {
-          order.push('core')
-        },
-      },
-    ])
-    // inner layer (priority 200)
+    engine.defineWorkflow('onion', [{ id: 'core', run: () => { order.push('core') } }])
     engine.wrapStep('onion', 'core', {
       priority: 200,
-      run: async (ctx, original) => {
-        order.push('inner-before')
-        await original(ctx)
-        order.push('inner-after')
-      },
+      run: async (ctx, original) => { order.push('inner-before'); await original(ctx); order.push('inner-after') },
     })
-    // outer layer (priority 50)
     engine.wrapStep('onion', 'core', {
       priority: 50,
-      run: async (ctx, original) => {
-        order.push('outer-before')
-        await original(ctx)
-        order.push('outer-after')
-      },
+      run: async (ctx, original) => { order.push('outer-before'); await original(ctx); order.push('outer-after') },
     })
-    await engine.runWorkflow('onion', makeCtx())
+    await run(engine, 'onion')
     expect(order).toEqual(['outer-before', 'inner-before', 'core', 'inner-after', 'outer-after'])
   })
 
@@ -338,29 +193,18 @@ describe('WorkflowEngine', () => {
   it('removeStep: removes the step so it no longer runs', async () => {
     const order: string[] = []
     engine.defineWorkflow('rm', [
-      {
-        id: 'a',
-        run: () => {
-          order.push('a')
-        },
-      },
-      {
-        id: 'b',
-        run: () => {
-          order.push('b')
-        },
-      },
+      { id: 'a', run: () => { order.push('a') } },
+      { id: 'b', run: () => { order.push('b') } },
     ])
     engine.removeStep('rm', 'a')
-    await engine.runWorkflow('rm', makeCtx())
+    await run(engine, 'rm')
     expect(order).toEqual(['b'])
   })
 
-  it('removeStep: throws when step not found', () => {
+  it('removeStep: idempotent on missing step', () => {
     engine.defineWorkflow('rm2', [])
-    expect(() => {
-      engine.removeStep('rm2', 'nonexistent')
-    }).toThrow(/not found/i)
+    // Should not throw — idempotent for cascade support
+    engine.removeStep('rm2', 'nonexistent')
   })
 
   // ── 9. inspectWorkflow ────────────────────────────────────────────────────
@@ -382,82 +226,58 @@ describe('WorkflowEngine', () => {
   })
 
   it('inspectWorkflow: throws on unknown workflow', () => {
-    expect(() => {
-      engine.inspectWorkflow('nope')
-    }).toThrow(/not found/i)
+    expect(() => { engine.inspectWorkflow('nope') }).toThrow(/not found/i)
   })
 
   // ── 10. abort ─────────────────────────────────────────────────────────────
-  it('abort: stops subsequent steps', async () => {
+  it('abort: stops subsequent steps and returns aborted status', async () => {
     const order: string[] = []
     engine.defineWorkflow('abrt', [
-      {
-        id: 'a',
-        run: (ctx) => {
-          order.push('a')
-          ctx.abort('stop')
-        },
-      },
-      {
-        id: 'b',
-        run: () => {
-          order.push('b')
-        },
-      },
+      { id: 'a', run: (ctx) => { order.push('a'); ctx.abort('stop') } },
+      { id: 'b', run: () => { order.push('b') } },
     ])
-    await engine.runWorkflow('abrt', makeCtx())
+    const internal = makeInternal()
+    const ctx = makeCtx()
+    // Wire up abort to set internal state (like createWorkflowContext does)
+    ctx.abort = (reason?: string) => {
+      internal.abortCtrl.aborted = true
+      internal.abortCtrl.reason = reason
+    }
+    const result = await engine.runWorkflow('abrt', ctx, internal)
     expect(order).toEqual(['a'])
+    expect(result.status).toBe('aborted')
+    expect(result.reason).toBe('stop')
   })
 
-  // ── 11. Error propagation ─────────────────────────────────────────────────
-  it('error in step stops subsequent steps and propagates', async () => {
+  // ── 11. Error propagation (critical steps) ─────────────────────────────────
+  it('error in critical step propagates immediately', async () => {
     const order: string[] = []
     engine.defineWorkflow('err', [
-      {
-        id: 'a',
-        run: () => {
-          throw new Error('boom')
-        },
-      },
-      {
-        id: 'b',
-        run: () => {
-          order.push('b')
-        },
-      },
+      { id: 'a', run: () => { throw new Error('boom') } },
+      { id: 'b', run: () => { order.push('b') } },
     ])
-    await expect(engine.runWorkflow('err', makeCtx())).rejects.toThrow('boom')
+    await expect(run(engine, 'err')).rejects.toThrow('boom')
     expect(order).toEqual([])
   })
 
   // ── 12. Recursion depth ───────────────────────────────────────────────────
   it('throws when recursion depth exceeds 10', async () => {
     engine.defineWorkflow('recurse', [
-      {
-        id: 'self',
-        run: async (_ctx) => {
-          await _ctx.runWorkflow('recurse')
-        },
-      },
+      { id: 'self', run: async (ctx) => { await ctx.runWorkflow({ name: 'recurse' } as never) } },
     ])
 
-    // Create a ctx where runWorkflow delegates back to engine
-    function createNestedCtx(
-      eng: WorkflowEngine,
-      data: Record<string, unknown> = {},
-    ): WorkflowContext {
-      const c = makeCtx(data)
-      const nestedRun = (name: string, d?: Record<string, unknown>): Promise<void> =>
-        eng.runWorkflow(name, createNestedCtx(eng, d))
-      // Cast needed: mockImplementation types its arg as void-returning, but async is valid at runtime
-      ;(c.runWorkflow as ReturnType<typeof vi.fn>).mockImplementation(
-        nestedRun as unknown as () => void,
+    // Simulate nested runWorkflow that shares InternalState
+    const sharedInternal = makeInternal()
+    function createNestedCtx(eng: WorkflowEngine): WorkflowContext {
+      const c = makeCtx()
+      ;(c.runWorkflow as ReturnType<typeof vi.fn>).mockImplementation(() =>
+        eng.runWorkflow('recurse', createNestedCtx(eng), sharedInternal),
       )
       return c
     }
 
-    const ctx = createNestedCtx(engine)
-    await expect(engine.runWorkflow('recurse', ctx)).rejects.toThrow(/recursion depth/i)
+    await expect(engine.runWorkflow('recurse', createNestedCtx(engine), sharedInternal))
+      .rejects.toThrow(/recursion depth/i)
   })
 
   // ── 13. Step list snapshot ──────────────────────────────────────────────
@@ -468,30 +288,165 @@ describe('WorkflowEngine', () => {
         id: 'a',
         run: () => {
           order.push('a')
-          engine.addStep('snap', {
-            id: 'injected',
-            run: () => {
-              order.push('injected')
-            },
-          })
+          engine.addStep('snap', { id: 'injected', run: () => { order.push('injected') } })
         },
       },
-      {
-        id: 'b',
-        run: () => {
-          order.push('b')
-        },
-      },
+      { id: 'b', run: () => { order.push('b') } },
     ])
-    await engine.runWorkflow('snap', makeCtx())
+    await run(engine, 'snap')
     expect(order).toEqual(['a', 'b'])
     expect(engine.inspectWorkflow('snap')).toContain('injected')
   })
 
-  // ── 14. Empty workflow ────────────────────────────────────────────────────
-  it('empty workflow (all steps removed) runs silently', async () => {
+  // ── 14. WorkflowResult ────────────────────────────────────────────────────
+  it('returns WorkflowResult with data shallow copy', async () => {
+    engine.defineWorkflow('res', [
+      { id: 'a', run: (ctx) => { ctx.data.value = 42 } },
+    ])
+    const ctx = makeCtx()
+    const result = await engine.runWorkflow('res', ctx, makeInternal())
+    expect(result.status).toBe('completed')
+    expect(result.data.value).toBe(42)
+    // data is a shallow copy — mutating result.data doesn't affect ctx.data
+    result.data.value = 99
+    expect(ctx.data.value).toBe(42)
+  })
+
+  it('empty workflow returns completed result', async () => {
     engine.defineWorkflow('empty', [{ id: 'a', run: () => {} }])
     engine.removeStep('empty', 'a')
-    await expect(engine.runWorkflow('empty', makeCtx())).resolves.toBeUndefined()
+    const result = await run(engine, 'empty')
+    expect(result.status).toBe('completed')
+    expect(result.errors).toEqual([])
+  })
+
+  // ── 15. Non-critical step fault tolerance ─────────────────────────────────
+  it('non-critical step failure: collects error, continues execution', async () => {
+    const order: string[] = []
+    engine.defineWorkflow('fault', [
+      { id: 'a', critical: false, run: () => { throw new Error('oops') } },
+      { id: 'b', run: () => { order.push('b') } },
+    ])
+    const result = await run(engine, 'fault')
+    expect(order).toEqual(['b'])
+    expect(result.status).toBe('completed')
+    expect(result.errors).toHaveLength(1)
+    expect(result.errors[0]!.stepId).toBe('a')
+    expect(result.errors[0]!.error.message).toBe('oops')
+  })
+
+  it('non-critical step failure: snapshot/restore reverts dirty data', async () => {
+    engine.defineWorkflow('restore', [
+      {
+        id: 'dirty',
+        critical: false,
+        run: (ctx) => {
+          ctx.data.dirty = true
+          throw new Error('fail')
+        },
+      },
+      { id: 'check', run: (ctx) => { ctx.data.checked = true } },
+    ])
+    const ctx = makeCtx({ clean: true })
+    const result = await engine.runWorkflow('restore', ctx, makeInternal())
+    expect(ctx.data.dirty).toBeUndefined()
+    expect(ctx.data.clean).toBe(true)
+    expect(ctx.data.checked).toBe(true)
+    expect(result.errors).toHaveLength(1)
+  })
+
+  // ── 16. replaceStep ────────────────────────────────────────────────────────
+  it('replaceStep: replaces step run function', async () => {
+    const order: string[] = []
+    engine.defineWorkflow('repl', [{ id: 'target', run: () => { order.push('original') } }])
+    engine.replaceStep('repl', 'target', { run: () => { order.push('replaced') } })
+    await run(engine, 'repl')
+    expect(order).toEqual(['replaced'])
+  })
+
+  it('replaceStep: second replace on same step throws', () => {
+    engine.defineWorkflow('repl2', [{ id: 'target', run: () => {} }])
+    engine.replaceStep('repl2', 'target', { run: () => {} })
+    expect(() => {
+      engine.replaceStep('repl2', 'target', { run: () => {} })
+    }).toThrow(/already replaced/i)
+  })
+
+  // ── 17. attachStep + dependsOn ────────────────────────────────────────────
+  it('attachStep: positions after dependency target by default', () => {
+    engine.defineWorkflow('att', [
+      { id: 'a', run: () => {} },
+      { id: 'b', run: () => {} },
+    ])
+    engine.attachStep('att', { id: 'dep', to: 'a', run: () => {} })
+    expect(engine.inspectWorkflow('att')).toEqual(['a', 'dep', 'b'])
+  })
+
+  it('attachStep: cascade removes dependants', () => {
+    engine.defineWorkflow('cas', [
+      { id: 'a', run: () => {} },
+      { id: 'b', run: () => {} },
+    ])
+    engine.attachStep('cas', { id: 'dep', to: 'a', run: () => {} })
+    engine.removeStep('cas', 'a')
+    expect(engine.inspectWorkflow('cas')).toEqual(['b'])
+  })
+
+  it('attachStep: non-critical dependency failure skips dependants', async () => {
+    const order: string[] = []
+    engine.defineWorkflow('depfail', [
+      { id: 'owner', critical: false, run: () => { throw new Error('fail') } },
+      { id: 'end', run: () => { order.push('end') } },
+    ])
+    engine.attachStep('depfail', {
+      id: 'dependent',
+      to: 'owner',
+      run: () => { order.push('dependent') },
+    })
+    const result = await run(engine, 'depfail')
+    expect(order).toEqual(['end'])
+    expect(result.errors).toHaveLength(1)
+  })
+
+  it('attachStep: throws on missing dependency target', () => {
+    engine.defineWorkflow('att2', [{ id: 'a', run: () => {} }])
+    expect(() => {
+      engine.attachStep('att2', { id: 'dep', to: 'nonexistent', run: () => {} })
+    }).toThrow(/not found/i)
+  })
+
+  // ── 18. Plugin lifecycle ──────────────────────────────────────────────────
+  it('deactivatePlugin: removes owned steps and wrappers', async () => {
+    engine.defineWorkflow('plug', [{ id: 'base', run: () => {} }])
+    engine.setCurrentPluginOwner('plugin-a')
+    engine.addStep('plug', { id: 'pa:step', after: 'base', run: () => {} })
+    engine.wrapStep('plug', 'base', { run: async (ctx, orig) => { await orig(ctx) } })
+    engine.setCurrentPluginOwner(undefined)
+
+    expect(engine.inspectWorkflow('plug')).toEqual(['base', 'pa:step'])
+    engine.deactivatePlugin('plugin-a')
+    expect(engine.inspectWorkflow('plug')).toEqual(['base'])
+  })
+
+  it('deactivatePlugin: restores replaced step originalRun', async () => {
+    const order: string[] = []
+    engine.defineWorkflow('restr', [{ id: 'target', run: () => { order.push('original') } }])
+    engine.setCurrentPluginOwner('plugin-b')
+    engine.replaceStep('restr', 'target', { run: () => { order.push('replaced') } })
+    engine.setCurrentPluginOwner(undefined)
+
+    await run(engine, 'restr')
+    expect(order).toEqual(['replaced'])
+
+    order.length = 0
+    engine.deactivatePlugin('plugin-b')
+    await run(engine, 'restr')
+    expect(order).toEqual(['original'])
+  })
+
+  // ── 19. defineWorkflow returns WorkflowHandle ─────────────────────────────
+  it('defineWorkflow returns a handle with the workflow name', () => {
+    const handle = engine.defineWorkflow('typed', [{ id: 'a', run: () => {} }])
+    expect(handle.name).toBe('typed')
   })
 })

@@ -1,13 +1,24 @@
 import { describe, it, expect, vi } from 'vitest'
 import { WorkflowEngine } from './engine'
-import { registerBaseWorkflows } from './baseWorkflows'
+import { registerBaseWorkflows, rollWorkflow } from './baseWorkflows'
 import { createWorkflowContext } from './context'
+import type { InternalState } from './types'
+
+function makeInternal(): InternalState {
+  return { depth: 0, abortCtrl: { aborted: false } }
+}
 
 describe('base roll workflow', () => {
   it('defines "roll" with generate + display steps', () => {
     const engine = new WorkflowEngine()
     registerBaseWorkflows(engine)
     expect(engine.inspectWorkflow('roll')).toEqual(['generate', 'display'])
+  })
+
+  it('rollWorkflow handle has name "roll"', () => {
+    const engine = new WorkflowEngine()
+    registerBaseWorkflows(engine)
+    expect(rollWorkflow.name).toBe('roll')
   })
 
   it('generate step calls serverRoll and stores result in ctx.data', async () => {
@@ -21,8 +32,9 @@ describe('base roll workflow', () => {
       showToast: vi.fn(),
       engine,
     }
-    const ctx = createWorkflowContext(deps, { formula: '2d12+1' })
-    await engine.runWorkflow('roll', ctx)
+    const internal = makeInternal()
+    const ctx = createWorkflowContext(deps, { formula: '2d12+1' }, internal)
+    await engine.runWorkflow('roll', ctx, internal)
     expect(deps.sendRoll).toHaveBeenCalledWith('2d12+1')
     expect(ctx.data.rolls).toEqual([[8, 5]])
     expect(ctx.data.total).toBe(13)
@@ -39,8 +51,9 @@ describe('base roll workflow', () => {
       showToast: vi.fn(),
       engine,
     }
-    const ctx = createWorkflowContext(deps, { formula: '2d12+1' })
-    await engine.runWorkflow('roll', ctx)
+    const internal = makeInternal()
+    const ctx = createWorkflowContext(deps, { formula: '2d12+1' }, internal)
+    await engine.runWorkflow('roll', ctx, internal)
     expect(deps.sendMessage).toHaveBeenCalled()
   })
 })

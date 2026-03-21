@@ -1,15 +1,16 @@
 // plugins/daggerheart-core/rollSteps.ts
 import type { IPluginSDK } from '@myvtt/sdk'
+import { rollWorkflow } from '@myvtt/sdk'
 import { dhEvaluateRoll } from '../daggerheart/diceSystem'
 
 export function registerDHCoreSteps(sdk: IPluginSDK): void {
   // After generate: evaluate Hope/Fear judgment
-  sdk.addStep('roll', {
+  sdk.addStep(rollWorkflow, {
     id: 'dh:judge',
     after: 'generate',
     run: (ctx) => {
-      const rolls = ctx.data.rolls as number[][] | undefined
-      const total = ctx.data.total as number | undefined
+      const rolls = ctx.data.rolls
+      const total = ctx.data.total
       if (!rolls || total == null) return
       const judgment = dhEvaluateRoll(rolls, total)
       if (judgment) {
@@ -19,7 +20,7 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
   })
 
   // Before display: resolve Hope/Fear effects
-  sdk.addStep('roll', {
+  sdk.addStep(rollWorkflow, {
     id: 'dh:resolve',
     before: 'display',
     run: (ctx) => {

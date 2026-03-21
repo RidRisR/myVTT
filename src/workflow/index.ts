@@ -26,6 +26,7 @@ export type {
 export { registerBaseWorkflows, rollWorkflow } from './baseWorkflows'
 export type { BaseRollData } from './baseWorkflows'
 export {
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- re-export for backward compat
   useWorkflowSDK,
   useWorkflowRunner,
   getWorkflowEngine,

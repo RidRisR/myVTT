@@ -279,7 +279,7 @@ export class WorkflowEngine {
     const errors: StepError[] = []
 
     // Access internal data object for snapshot/restore
-    const data = ctx.data as Record<string, unknown>
+    const data = ctx.data
 
     try {
       const steps = [...record.steps] // snapshot
@@ -335,6 +335,7 @@ export class WorkflowEngine {
             await composedFn(ctx)
           } catch (err) {
             if (snapshot) {
+              // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
               for (const k of Object.keys(data)) delete data[k]
               Object.assign(data, snapshot)
             }
@@ -386,7 +387,8 @@ export class WorkflowEngine {
     const computing = new Set<string>()
 
     const getAncestors = (stepId: string): Set<string> => {
-      if (ancestorsOf.has(stepId)) return ancestorsOf.get(stepId)!
+      const cached = ancestorsOf.get(stepId)
+      if (cached) return cached
       if (computing.has(stepId)) {
         const empty = new Set<string>()
         ancestorsOf.set(stepId, empty)

@@ -1,6 +1,6 @@
 // plugins/daggerheart/DaggerHeartCard.tsx
 import type { EntityCardProps } from '@myvtt/sdk'
-import { usePluginPanels, usePluginTranslation, useWorkflowSDK } from '@myvtt/sdk'
+import { usePluginPanels, usePluginTranslation, useWorkflowRunner, rollWorkflow } from '@myvtt/sdk'
 import type { DHRuleData } from './types'
 
 const ATTRS = ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowledge'] as const
@@ -9,7 +9,7 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
   const d = entity.ruleData ? (entity.ruleData as DHRuleData) : null
   const { openPanel } = usePluginPanels()
   const { t } = usePluginTranslation()
-  const sdk = useWorkflowSDK()
+  const runner = useWorkflowRunner()
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -47,11 +47,10 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
                 <button
                   key={`roll-${k}`}
                   onClick={() => {
-                    sdk
-                      .runWorkflow('roll', {
+                    runner
+                      .runWorkflow(rollWorkflow, {
                         formula: `2d12+@${k}`,
                         actorId: entity.id,
-                        rollType: 'daggerheart:dd',
                       })
                       .catch((err: unknown) => {
                         console.error('[Workflow] roll failed:', err)

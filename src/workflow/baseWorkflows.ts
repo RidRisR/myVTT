@@ -4,6 +4,7 @@ import type { WorkflowHandle } from './types'
 
 /** Base data shape for the roll workflow */
 export interface BaseRollData {
+  [key: string]: unknown
   formula: string
   actorId: string
   rolls?: number[][]
@@ -31,7 +32,7 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
     {
       id: 'display',
       run: (ctx) => {
-        const formula = ctx.data.formula as string
+        const formula = ctx.data.formula
         const total = ctx.data.total
         if (typeof total !== 'number') return
         ctx.showToast(`🎲 ${formula} = ${total}`, { variant: 'success' })

@@ -70,4 +70,6 @@ export type {
 export type { VTTPlugin } from './types'
 export { rollWorkflow } from '../workflow/baseWorkflows'
 export type { BaseRollData } from '../workflow/baseWorkflows'
-export { useWorkflowRunner, useWorkflowSDK } from '../workflow/useWorkflowSDK'
+export { useWorkflowRunner } from '../workflow/useWorkflowSDK'
+// eslint-disable-next-line @typescript-eslint/no-deprecated -- re-export for backward compat
+export { useWorkflowSDK } from '../workflow/useWorkflowSDK'
