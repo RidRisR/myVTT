@@ -12,6 +12,8 @@ import type {
 import type { WorkflowEngine } from './engine'
 import type { ContextDeps } from './context'
 import { createWorkflowContext } from './context'
+import type { IUIRegistrationSDK } from '../ui-system/registrationTypes'
+import type { UIRegistry } from '../ui-system/registry'
 
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
 
@@ -22,10 +24,21 @@ export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
 export class PluginSDK implements IPluginSDK {
   private engine: WorkflowEngine
   private pluginId: string
+  readonly ui: IUIRegistrationSDK
 
-  constructor(engine: WorkflowEngine, pluginId: string) {
+  constructor(engine: WorkflowEngine, pluginId: string, uiRegistry?: UIRegistry) {
     this.engine = engine
     this.pluginId = pluginId
+    this.ui = uiRegistry
+      ? {
+          registerComponent: (def) => { uiRegistry.registerComponent(def); },
+          registerLayer: (def) => { uiRegistry.registerLayer(def); },
+        }
+      : {
+          // no-op: existing tests do not pass a registry
+          registerComponent: () => {},
+          registerLayer: () => {},
+        }
   }
 
   addStep<TData extends TBase, TBase = Record<string, unknown>>(

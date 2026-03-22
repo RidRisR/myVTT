@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { WorkflowEngine } from './engine'
 import { PluginSDK, WorkflowRunner } from './pluginSDK'
+import { UIRegistry } from '../ui-system/registry'
 import { registerBaseWorkflows } from './baseWorkflows'
 import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
@@ -13,6 +14,7 @@ import type { PluginSDKDeps } from './pluginSDK'
 
 // Singleton engine instance — initialized once
 let _engine: WorkflowEngine | null = null
+let _uiRegistry: UIRegistry | null = null
 let _pluginsActivated = false
 let _registeredPlugins: VTTPlugin[] = []
 
@@ -32,12 +34,21 @@ export function getWorkflowEngine(): WorkflowEngine {
   return _engine
 }
 
+// Exported for production use — do NOT use in sandbox/tests.
+// The sandbox creates its own isolated UIRegistry to avoid polluting this singleton
+// (and to avoid double-registration if poc-ui is ever added to POC_PLUGINS).
+export function getUIRegistry(): UIRegistry {
+  if (!_uiRegistry) _uiRegistry = new UIRegistry()
+  return _uiRegistry
+}
+
 // POC: hardcoded plugin list; real impl would discover from room's rule system
 const POC_PLUGINS: VTTPlugin[] = [daggerheartCorePlugin, daggerheartCosmeticPlugin]
 
 /** Reset engine — for testing only */
 export function resetWorkflowEngine(): void {
   _engine = null
+  _uiRegistry = null
   _pluginsActivated = false
   _registeredPlugins = []
 }
