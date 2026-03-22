@@ -1,5 +1,6 @@
 // src/workflow/types.ts
 import type { Entity } from '../shared/entityTypes'
+import type { IUIRegistrationSDK } from '../ui-system/registrationTypes'
 
 // ── Cloneable — documented convention for ctx.data values ─────────────────
 
@@ -159,6 +160,7 @@ export interface IPluginSDK {
   replaceStep(handle: WorkflowHandle, targetStepId: string, options: ReplaceStepOptions): void
   removeStep(handle: WorkflowHandle, targetStepId: string): void
   inspectWorkflow(handle: WorkflowHandle): string[]
+  ui: IUIRegistrationSDK
 }
 
 // ── Workflow Runner — execution-time API (UI layer) ─────────────────────

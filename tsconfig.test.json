@@ -5,6 +5,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
-  "include": ["src/**/__tests__", "src/__test-utils__"],
+  "include": ["src/**/__tests__", "src/__test-utils__", "poc/**/__tests__"],
   "exclude": []
 }

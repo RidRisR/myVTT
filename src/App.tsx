@@ -45,6 +45,7 @@ import { PluginPanelContainer } from './layout/PluginPanelContainer'
 // false in production builds, making the lazy import dead code that Rollup
 // eliminates entirely (along with the whole src/sandbox/ directory).
 const SandboxRoot = import.meta.env.DEV ? lazy(() => import('./sandbox/index')) : () => null
+const PocApp = import.meta.env.DEV ? lazy(() => import('../poc/PocApp')) : () => null
 
 const EMPTY_ENTRIES: SceneEntityEntry[] = []
 
@@ -613,6 +614,20 @@ export default function App() {
         }
       >
         <SandboxRoot />
+      </Suspense>
+    )
+  }
+
+  if (import.meta.env.DEV && hash === '#poc') {
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-screen items-center justify-center bg-deep text-muted">
+            Loading POC...
+          </div>
+        }
+      >
+        <PocApp />
       </Suspense>
     )
   }
