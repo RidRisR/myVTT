@@ -3,7 +3,7 @@ import { WorkflowEngine } from '../src/workflow/engine'
 import type { WorkflowContext } from '../src/workflow/types'
 import { usePocStore } from './store'
 import { createDataReader } from './dataReader'
-import { createEventBus } from './eventBus'
+import { eventBus } from './eventBus'
 import { createPocWorkflowContext } from './pocWorkflowContext'
 import { activateCorePlugin } from './plugins/core/index'
 import { activateStatusFxPlugin } from './plugins/status-fx/index'
@@ -26,7 +26,7 @@ activateStatusFxPlugin(engine)
 loadMockData()
 
 const reader = createDataReader()
-const bus = createEventBus()
+const bus = eventBus
 
 // Wire up spell drop handler
 setSpellDropHandler((entityId: string, spell: SpellPayload) => {
