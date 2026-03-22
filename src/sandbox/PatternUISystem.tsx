@@ -53,6 +53,10 @@ export default function PatternUISystem() {
     return { registry: reg, runner: wfRunner }
   }, [])
 
+  const handleDrag = useCallback((instanceKey: string, delta: { dx: number; dy: number }) => {
+    setLayout((prev) => applyDrag(prev, instanceKey, delta))
+  }, [])
+
   // makeSDK receives layoutMode so sdk.context.layoutMode stays current
   const makeSDK = useCallback(
     (
@@ -67,14 +71,11 @@ export default function PatternUISystem() {
       workflow: runner,
       context: { instanceProps, role: 'GM', layoutMode: mode },
       // play 模式注入 layout.startDrag，让组件可以自定义把手；edit 模式系统浮层接管
-      layout: mode === 'play' ? { startDrag: createDragInitiator(instanceKey, handleDrag) } : undefined,
+      layout:
+        mode === 'play' ? { startDrag: createDragInitiator(instanceKey, handleDrag) } : undefined,
     }),
     [runner, handleDrag],
   )
-
-  const handleDrag = useCallback((instanceKey: string, delta: { dx: number; dy: number }) => {
-    setLayout((prev) => applyDrag(prev, instanceKey, delta))
-  }, [])
 
   return (
     <div>
