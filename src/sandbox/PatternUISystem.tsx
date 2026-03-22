@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { UIRegistry } from '../ui-system/registry'
 import { PanelRenderer } from '../ui-system/PanelRenderer'
 import { LayerRenderer } from '../ui-system/LayerRenderer'
+// eslint-disable-next-line no-restricted-imports -- sandbox: direct plugin import for demo, no registry needed
 import { pocUIPlugin } from '../../plugins/poc-ui'
 import { PluginSDK } from '../workflow/pluginSDK'
 import { getWorkflowEngine } from '../workflow/useWorkflowSDK'
@@ -39,7 +40,7 @@ export default function PatternUISystem() {
     const sdk = new PluginSDK(engine, pocUIPlugin.id, reg)
     pocUIPlugin.onActivate(sdk)
     const wfRunner = new WorkflowRunner(engine, {
-      sendRoll: async () => ({ rolls: [], total: 0 }),
+      sendRoll: () => Promise.resolve({ rolls: [], total: 0 }),
       updateEntity: () => {},
       updateTeamTracker: () => {},
       sendMessage: () => {},
@@ -48,7 +49,7 @@ export default function PatternUISystem() {
     return { registry: reg, runner: wfRunner }
   }, [])
 
-  function makeSDK(instanceKey: string, instanceProps: Record<string, unknown>): IComponentSDK {
+  function makeSDK(_instanceKey: string, instanceProps: Record<string, unknown>): IComponentSDK {
     return {
       data: {
         entity: (id) => MOCK_ENTITIES.find((e) => e.id === id),
@@ -64,7 +65,15 @@ export default function PatternUISystem() {
   }
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: 600, background: '#1a1a2e', overflow: 'hidden' }}>
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: 600,
+        background: '#1a1a2e',
+        overflow: 'hidden',
+      }}
+    >
       <LayerRenderer registry={registry} layoutMode="play" />
       <PanelRenderer registry={registry} layout={layout} makeSDK={makeSDK} layoutMode="play" />
     </div>

@@ -1,3 +1,4 @@
+import type React from 'react'
 import type { VTTPlugin } from '../../src/rules/types'
 import { HelloPanel } from './HelloPanel'
 import { VignetteLayer } from './VignetteLayer'
@@ -7,7 +8,7 @@ export const pocUIPlugin: VTTPlugin = {
   onActivate(sdk) {
     sdk.ui.registerComponent({
       id: 'poc-ui.hello',
-      component: HelloPanel,
+      component: HelloPanel as React.ComponentType<{ sdk: unknown }>,
       defaultSize: { width: 240, height: 140 },
     })
     sdk.ui.registerLayer({
