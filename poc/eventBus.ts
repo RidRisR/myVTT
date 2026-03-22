@@ -16,6 +16,7 @@ export class EventBus {
     const key = handle.key
     if (!this.handlers.has(key)) this.handlers.set(key, new Set())
     const h = handler as Handler
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- guaranteed by has() check above
     this.handlers.get(key)!.add(h)
     return () => {
       this.handlers.get(key)?.delete(h)

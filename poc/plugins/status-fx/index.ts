@@ -14,11 +14,13 @@ export function activateStatusFxPlugin(engine: WorkflowEngine): void {
       const state = (ctx as unknown as { state: DealDamageState }).state
       const read = (
         ctx as unknown as {
-          read: { component: <T>(eid: string, key: string) => T | undefined }
+          read: { component: (eid: string, key: string) => unknown }
         }
       ).read
 
-      const resistances = read.component<Resistances>(state.targetId, 'status-fx:resistances')
+      const resistances = read.component(state.targetId, 'status-fx:resistances') as
+        | Resistances
+        | undefined
       const resistance = resistances?.[state.damageType] ?? 0
       state.finalDamage = Math.max(0, state.finalDamage - resistance)
     },

@@ -1,4 +1,9 @@
-import type { WorkflowContext, InternalState, WorkflowHandle, WorkflowResult } from '../src/workflow/types'
+import type {
+  WorkflowContext,
+  InternalState,
+  WorkflowHandle,
+  WorkflowResult,
+} from '../src/workflow/types'
 import type { IDataReader } from './types'
 import type { EventBus, EventHandle } from './eventBus'
 import { usePocStore } from './store'
@@ -28,7 +33,7 @@ export function createPocWorkflowContext<TState extends Record<string, unknown>>
   initialState: TState,
   internal: InternalState,
 ): PocWorkflowContext<TState> {
-  const stateObj = { ...initialState } as TState
+  const stateObj = { ...initialState }
 
   const ctx: PocWorkflowContext<TState> = {
     get data() {
@@ -38,14 +43,14 @@ export function createPocWorkflowContext<TState extends Record<string, unknown>>
       return stateObj
     },
     read: deps.dataReader,
-    updateComponent: (entityId, key, updater) => {
+    updateComponent: (entityId: string, key: string, updater: (current: unknown) => unknown) => {
       usePocStore.getState().updateEntityComponent(entityId, key, updater)
     },
-    patchGlobal: (key, patch) => {
+    patchGlobal: (key: string, patch: Record<string, unknown>) => {
       usePocStore.getState().patchGlobal(key, patch)
     },
     events: {
-      emit: <T,>(handle: EventHandle<T>, payload: T) => {
+      emit: <T>(handle: EventHandle<T>, payload: T) => {
         deps.eventBus.emit(handle, payload)
       },
     },
@@ -53,7 +58,7 @@ export function createPocWorkflowContext<TState extends Record<string, unknown>>
       internal.abortCtrl.aborted = true
       internal.abortCtrl.reason = reason
     },
-    runWorkflow: async <T,>(handle: WorkflowHandle<T>, data?: Partial<T>) => {
+    runWorkflow: async <T>(handle: WorkflowHandle<T>, data?: Partial<T>) => {
       const nestedCtx = createPocWorkflowContext(
         deps,
         (data ?? {}) as T & Record<string, unknown>,

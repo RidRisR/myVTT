@@ -6,7 +6,6 @@ import { createEventBus } from '../eventBus'
 import { createPocWorkflowContext } from '../pocWorkflowContext'
 import { activateCorePlugin } from '../plugins/core/index'
 import { activateStatusFxPlugin } from '../plugins/status-fx/index'
-import { getDealDamageHandle } from '../plugins/core/workflows'
 import { loadMockData } from '../mockData'
 import type { Health } from '../plugins/core/components'
 import type { DealDamageState } from '../plugins/core/workflows'
@@ -27,7 +26,11 @@ function runDealDamage(engine: WorkflowEngine, state: DealDamageState) {
   const reader = createDataReader()
   const bus = createEventBus()
   const internal = { depth: 0, abortCtrl: { aborted: false } }
-  const ctx = createPocWorkflowContext({ dataReader: reader, eventBus: bus, engine }, state, internal)
+  const ctx = createPocWorkflowContext(
+    { dataReader: reader, eventBus: bus, engine },
+    state as DealDamageState & Record<string, unknown>,
+    internal,
+  )
   return engine.runWorkflow('core:deal-damage', ctx as unknown as WorkflowContext, internal)
 }
 
@@ -36,7 +39,9 @@ describe('Phase 2 — Workflow writes data', () => {
     const engine = setupEngine()
 
     // goblin-01 starts with hp: 20
-    const healthBefore = usePocStore.getState().entities['goblin-01']?.components['core:health'] as Health
+    const healthBefore = usePocStore.getState().entities['goblin-01']?.components[
+      'core:health'
+    ] as Health
     expect(healthBefore.hp).toBe(20)
 
     await runDealDamage(engine, {
@@ -47,12 +52,14 @@ describe('Phase 2 — Workflow writes data', () => {
     })
 
     // physical has no resistance for goblin-01, so 20 - 8 = 12
-    const healthAfter = usePocStore.getState().entities['goblin-01']?.components['core:health'] as Health
+    const healthAfter = usePocStore.getState().entities['goblin-01']?.components[
+      'core:health'
+    ] as Health
     expect(healthAfter.hp).toBe(12)
     expect(healthAfter.maxHp).toBe(30)
   })
 
-  it('ctx.read works within workflow — status-fx reads resistances', async () => {
+  it('ctx.read works within workflow — status-fx reads resistances', () => {
     const engine = setupEngine()
 
     // Verify the step order: calc-damage, apply-resistance, apply-damage
