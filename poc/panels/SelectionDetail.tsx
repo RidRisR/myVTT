@@ -27,7 +27,10 @@ export function SelectionDetail({ entityId }: { entityId: string | null }) {
       )}
       {resistances && (
         <div className="text-xs text-muted">
-          Resistances: {Object.entries(resistances).map(([k, v]) => `${k}:${v}`).join(', ')}
+          Resistances:{' '}
+          {Object.entries(resistances)
+            .map(([k, v]) => `${k}:${v}`)
+            .join(', ')}
         </div>
       )}
     </div>

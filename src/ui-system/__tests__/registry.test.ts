@@ -35,7 +35,9 @@ describe('UIRegistry', () => {
 
   it('throws on duplicate component id', () => {
     registry.registerComponent(componentDef)
-    expect(() => { registry.registerComponent(componentDef); }).toThrow('test.hello')
+    expect(() => {
+      registry.registerComponent(componentDef)
+    }).toThrow('test.hello')
   })
 
   it('stores and retrieves a registered layer', () => {

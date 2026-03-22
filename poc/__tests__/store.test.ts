@@ -75,9 +75,7 @@ describe('hook re-render precision', () => {
 
     // Update entity A only
     act(() => {
-      usePocStore
-        .getState()
-        .updateEntityComponent('a', 'core:health', () => ({ hp: 1, maxHp: 10 }))
+      usePocStore.getState().updateEntityComponent('a', 'core:health', () => ({ hp: 1, maxHp: 10 }))
     })
 
     // Selector is called to check equality, but the hook should NOT re-render

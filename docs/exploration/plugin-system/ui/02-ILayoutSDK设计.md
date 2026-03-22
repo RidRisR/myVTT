@@ -23,11 +23,12 @@ export interface IComponentSDK {
   data: IDataSDK
   workflow: IWorkflowRunner
   context: ComponentContext
-  layout?: ILayoutSDK  // play 模式且面板支持拖动时注入；edit 模式下不注入
+  layout?: ILayoutSDK // play 模式且面板支持拖动时注入；edit 模式下不注入
 }
 ```
 
 `layout` 是可选字段，因为：
+
 1. edit 模式下不注入（系统浮层接管）
 2. 未来可能有"固定面板"不允许拖动，届时也不注入
 
@@ -47,9 +48,7 @@ function MyWindowPanel({ sdk }: ComponentProps) {
           ⠿ 标题栏
         </div>
       )}
-      <div style={{ flex: 1 }}>
-        {/* 可交互的内容区 */}
-      </div>
+      <div style={{ flex: 1 }}>{/* 可交互的内容区 */}</div>
     </div>
   )
 }
@@ -68,10 +67,9 @@ export function createDragInitiator(
 ```
 
 `makeSDK` 在 play 模式下注入：
+
 ```ts
-layout: mode === 'play'
-  ? { startDrag: createDragInitiator(instanceKey, handleDrag) }
-  : undefined
+layout: mode === 'play' ? { startDrag: createDragInitiator(instanceKey, handleDrag) } : undefined
 ```
 
 ## 和跨组件 DnD 的关系

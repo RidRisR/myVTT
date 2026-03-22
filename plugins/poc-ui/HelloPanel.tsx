@@ -23,8 +23,12 @@ export function HelloPanel({ sdk }: ComponentProps) {
     accept: ['card'],
     // Reject 'shield' — demonstrates receiver-side canDrop control
     canDrop: (payload: DnDPayload) => (payload.data as CardDef).id !== 'shield',
-    onEnter: (canAccept) => { setHoverState(canAccept); },
-    onLeave: () => { setHoverState(null); },
+    onEnter: (canAccept) => {
+      setHoverState(canAccept)
+    },
+    onLeave: () => {
+      setHoverState(null)
+    },
     onDrop: (payload: DnDPayload) => {
       setHoverState(null)
       setDroppedLabel((payload.data as CardDef).label)

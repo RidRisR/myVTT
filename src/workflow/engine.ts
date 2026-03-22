@@ -70,9 +70,11 @@ export class WorkflowEngine {
     stepsOrRun?: Step<TData>[] | StepRunFn<TData>,
   ): WorkflowHandle<TData> {
     const steps: Step<TData>[] =
-      stepsOrRun === undefined ? [] :
-      typeof stepsOrRun === 'function' ? [{ id: name, run: stepsOrRun }] :
-      stepsOrRun
+      stepsOrRun === undefined
+        ? []
+        : typeof stepsOrRun === 'function'
+          ? [{ id: name, run: stepsOrRun }]
+          : stepsOrRun
 
     if (this.workflows.has(name)) {
       throw new Error(`Workflow "${name}" is already defined`)

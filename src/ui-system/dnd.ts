@@ -9,7 +9,6 @@ import type { IDnDSDK, DnDPayload } from './types'
  */
 let activeDragPayload: DnDPayload | null = null
 
- 
 export function makeDnDSDK(): IDnDSDK {
   return {
     makeDraggable(payload) {

@@ -31,8 +31,12 @@ export class PluginSDK implements IPluginSDK {
     this.pluginId = pluginId
     this.ui = uiRegistry
       ? {
-          registerComponent: (def) => { uiRegistry.registerComponent(def); },
-          registerLayer: (def) => { uiRegistry.registerLayer(def); },
+          registerComponent: (def) => {
+            uiRegistry.registerComponent(def)
+          },
+          registerLayer: (def) => {
+            uiRegistry.registerLayer(def)
+          },
         }
       : {
           // no-op: existing tests do not pass a registry

@@ -38,11 +38,15 @@ describe('EventBus', () => {
       useEvent(handle, (p) => received.push(p), bus)
     })
 
-    act(() => bus.emit(handle, 1))
+    act(() => {
+      bus.emit(handle, 1)
+    })
     expect(received).toEqual([1])
 
     unmount()
-    act(() => bus.emit(handle, 2))
+    act(() => {
+      bus.emit(handle, 2)
+    })
     expect(received).toEqual([1]) // no new entry after unmount
   })
 

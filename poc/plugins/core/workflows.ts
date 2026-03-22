@@ -42,11 +42,7 @@ export function registerCoreWorkflows(engine: WorkflowEngine): void {
         const state = (ctx as unknown as { state: DealDamageState }).state
         const updateComponent = (
           ctx as unknown as {
-            updateComponent: (
-              eid: string,
-              key: string,
-              updater: (c: unknown) => unknown,
-            ) => void
+            updateComponent: (eid: string, key: string, updater: (c: unknown) => unknown) => void
           }
         ).updateComponent
         const events = (

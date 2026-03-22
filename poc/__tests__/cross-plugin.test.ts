@@ -33,16 +33,18 @@ describe('Cross-plugin integration', () => {
       { targetId, rawDamage, damageType, finalDamage: 0 },
       internal,
     )
-    return e.runWorkflow('core:deal-damage', ctx as any, internal)
+    return e.runWorkflow(
+      'core:deal-damage',
+      ctx as unknown as import('../../src/workflow/types').WorkflowContext,
+      internal,
+    )
   }
 
   it('two plugins: fire arrow vs goblin applies resistance', async () => {
     const bus = createEventBus()
     await runDealDamage(engine, bus, 'goblin-01', 10, 'fire')
 
-    const health = usePocStore.getState().entities['goblin-01']?.components[
-      'core:health'
-    ] as Health
+    const health = usePocStore.getState().entities['goblin-01']?.components['core:health'] as Health
     // goblin has fire resistance 5, so 10 - 5 = 5 actual damage, 20 - 5 = 15 hp
     expect(health.hp).toBe(15)
   })
@@ -53,9 +55,7 @@ describe('Cross-plugin integration', () => {
     const bus = createEventBus()
     await runDealDamage(engine, bus, 'goblin-01', 10, 'fire')
 
-    const health = usePocStore.getState().entities['goblin-01']?.components[
-      'core:health'
-    ] as Health
+    const health = usePocStore.getState().entities['goblin-01']?.components['core:health'] as Health
     // No resistance step, so full 10 damage: 20 - 10 = 10 hp
     expect(health.hp).toBe(10)
   })

@@ -95,7 +95,9 @@ export default function PocApp() {
             return (
               <button
                 key={eid}
-                onClick={() => handleSelectEntity(eid)}
+                onClick={() => {
+                  handleSelectEntity(eid)
+                }}
                 className={`rounded px-2 py-1 text-left text-sm ${
                   isSelected ? 'bg-accent text-white' : 'hover:bg-surface'
                 }`}

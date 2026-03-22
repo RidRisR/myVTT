@@ -2,7 +2,9 @@ import { usePocSessionStore } from './sessionStore'
 
 export interface PanelEntry {
   component: React.ComponentType<Record<string, unknown>>
-  instanceProps?: Record<string, unknown> | ((session: { selection: string[] }) => Record<string, unknown>)
+  instanceProps?:
+    | Record<string, unknown>
+    | ((session: { selection: string[] }) => Record<string, unknown>)
 }
 
 export function PocPanelRenderer({ entries }: { entries: Record<string, PanelEntry> }) {

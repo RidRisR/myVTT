@@ -25,7 +25,9 @@ export function EntityCard({ entityId }: { entityId: string }) {
       (payload) => {
         if (payload.targetId === entityId) {
           setIsHit(true)
-          setTimeout(() => setIsHit(false), 300)
+          setTimeout(() => {
+            setIsHit(false)
+          }, 300)
         }
       },
       [entityId],
