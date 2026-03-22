@@ -53,20 +53,21 @@ export default function PatternUISystem() {
   }, [])
 
   // makeSDK receives layoutMode so sdk.context.layoutMode stays current
-  function makeSDK(
-    _instanceKey: string,
-    instanceProps: Record<string, unknown>,
-    mode: 'play' | 'edit',
-  ): IComponentSDK {
-    return {
+  const makeSDK = useCallback(
+    (
+      _instanceKey: string,
+      instanceProps: Record<string, unknown>,
+      mode: 'play' | 'edit',
+    ): IComponentSDK => ({
       data: {
         entity: (id) => MOCK_ENTITIES.find((e) => e.id === id),
         entities: () => MOCK_ENTITIES,
       },
       workflow: runner,
       context: { instanceProps, role: 'GM', layoutMode: mode },
-    }
-  }
+    }),
+    [runner],
+  )
 
   const handleDrag = useCallback((instanceKey: string, delta: { dx: number; dy: number }) => {
     setLayout((prev) => applyDrag(prev, instanceKey, delta))

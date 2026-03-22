@@ -82,4 +82,33 @@ describe('PanelRenderer', () => {
 
     expect(screen.getByText('survivor')).toBeInTheDocument()
   })
+
+  it('hides chrome div in play mode when chromeVisible is false', () => {
+    const registry = new UIRegistry()
+    registry.registerComponent({
+      id: 'test.bare',
+      component: () => <div>bare content</div>,
+      defaultSize: { width: 100, height: 100 },
+      chromeVisible: false,
+    })
+
+    const layout: LayoutConfig = {
+      'test.bare#1': { x: 0, y: 0, width: 100, height: 100 },
+    }
+
+    const { container } = render(
+      <PanelRenderer
+        registry={registry}
+        layout={layout}
+        makeSDK={() => mockSDK}
+        layoutMode="play"
+      />,
+    )
+
+    // The panel content renders but the chrome label div does not
+    expect(screen.getByText('bare content')).toBeInTheDocument()
+    // Chrome label shows componentId as text — should be absent
+    const allText = container.textContent ?? ''
+    expect(allText).not.toContain('test.bare')
+  })
 })
