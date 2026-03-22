@@ -3,7 +3,7 @@ import type { WorkflowContext } from '../../src/workflow/types'
 import { usePocStore } from '../store'
 import { createDataReader } from '../dataReader'
 import { createEventBus } from '../eventBus'
-import { createPocWorkflowContext } from '../pocWorkflowContext'
+import { createPocWorkflowContext, createPocInternal } from '../pocWorkflowContext'
 import { activateCorePlugin } from '../plugins/core/index'
 import { activateStatusFxPlugin } from '../plugins/status-fx/index'
 import { loadMockData } from '../mockData'
@@ -13,7 +13,7 @@ import type { DealDamageState } from '../plugins/core/workflows'
 function runDealDamage(engine: WorkflowEngine, state: DealDamageState) {
   const reader = createDataReader()
   const bus = createEventBus()
-  const internal = { depth: 0, abortCtrl: { aborted: false } }
+  const internal = createPocInternal()
   const ctx = createPocWorkflowContext(
     { dataReader: reader, eventBus: bus, engine },
     state as DealDamageState & Record<string, unknown>,

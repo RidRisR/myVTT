@@ -4,7 +4,7 @@ import type { WorkflowContext } from '../src/workflow/types'
 import { usePocStore } from './store'
 import { createDataReader } from './dataReader'
 import { eventBus } from './eventBus'
-import { createPocWorkflowContext } from './pocWorkflowContext'
+import { createPocWorkflowContext, createPocInternal } from './pocWorkflowContext'
 import { activateCorePlugin } from './plugins/core/index'
 import { activateStatusFxPlugin } from './plugins/status-fx/index'
 import { loadMockData } from './mockData'
@@ -30,7 +30,7 @@ const bus = eventBus
 
 // Wire up spell drop handler
 setSpellDropHandler((entityId: string, spell: SpellPayload) => {
-  const internal = { depth: 0, abortCtrl: { aborted: false } }
+  const internal = createPocInternal()
   const ctx = createPocWorkflowContext(
     { dataReader: reader, eventBus: bus, engine },
     { targetId: entityId, rawDamage: spell.damage, damageType: spell.damageType, finalDamage: 0 },
@@ -66,7 +66,7 @@ export default function PocApp() {
   }, [])
 
   const handleSelectEntity = useCallback((entityId: string) => {
-    const internal = { depth: 0, abortCtrl: { aborted: false } }
+    const internal = createPocInternal()
     const ctx = createPocWorkflowContext(
       { dataReader: reader, eventBus: bus, engine },
       { entityId },

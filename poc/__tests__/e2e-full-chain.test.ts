@@ -11,7 +11,7 @@ import type { WorkflowContext } from '../../src/workflow/types'
 import { usePocStore } from '../store'
 import { createDataReader } from '../dataReader'
 import { eventBus } from '../eventBus'
-import { createPocWorkflowContext } from '../pocWorkflowContext'
+import { createPocWorkflowContext, createPocInternal } from '../pocWorkflowContext'
 import { activateCorePlugin } from '../plugins/core/index'
 import { activateStatusFxPlugin } from '../plugins/status-fx/index'
 import { loadMockData } from '../mockData'
@@ -40,7 +40,7 @@ describe('E2E full-chain verification', () => {
   /** Run deal-damage workflow using singleton eventBus — mirrors PocApp wiring */
   async function castSpell(targetId: string, damage: number, damageType: string) {
     const reader = createDataReader()
-    const internal = { depth: 0, abortCtrl: { aborted: false } }
+    const internal = createPocInternal()
     const ctx = createPocWorkflowContext(
       { dataReader: reader, eventBus, engine },
       { targetId, rawDamage: damage, damageType, finalDamage: 0 },

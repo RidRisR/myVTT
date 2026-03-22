@@ -2,7 +2,7 @@ import { WorkflowEngine } from '../../src/workflow/engine'
 import { usePocStore } from '../store'
 import { createDataReader } from '../dataReader'
 import { createEventBus } from '../eventBus'
-import { createPocWorkflowContext } from '../pocWorkflowContext'
+import { createPocWorkflowContext, createPocInternal } from '../pocWorkflowContext'
 import { activateCorePlugin } from '../plugins/core/index'
 import { activateStatusFxPlugin } from '../plugins/status-fx/index'
 import { damageDealtEvent } from '../plugins/core/events'
@@ -27,7 +27,7 @@ describe('Cross-plugin integration', () => {
     damageType: string,
   ) {
     const reader = createDataReader()
-    const internal = { depth: 0, abortCtrl: { aborted: false } }
+    const internal = createPocInternal()
     const ctx = createPocWorkflowContext(
       { dataReader: reader, eventBus: bus, engine: e },
       { targetId, rawDamage, damageType, finalDamage: 0 },

@@ -25,7 +25,31 @@ export interface PocWorkflowContext<TState = Record<string, unknown>> {
   // Old interface compat
   readonly data: TState
   abort: (reason?: string) => void
-  runWorkflow: <T>(handle: WorkflowHandle<T>, data?: Partial<T>) => Promise<WorkflowResult<T>>
+  runWorkflow: <T extends Record<string, unknown>>(
+    handle: WorkflowHandle<T>,
+    data?: Partial<T>,
+  ) => Promise<WorkflowResult<T>>
+}
+
+/**
+ * Create an InternalState compatible with main's engine (which requires dataCtrl).
+ * POC doesn't use snapshot/restore, so dataCtrl is a no-op passthrough.
+ */
+export function createPocInternal(): InternalState {
+  const inner: Record<string, unknown> = {}
+  return {
+    depth: 0,
+    abortCtrl: { aborted: false },
+    dataCtrl: {
+      getInner: () => inner,
+      replaceInner: (replacement) => {
+        Object.keys(inner).forEach((k) => {
+          delete inner[k]
+        })
+        Object.assign(inner, replacement)
+      },
+    },
+  }
 }
 
 export function createPocWorkflowContext<TState extends Record<string, unknown>>(
@@ -58,7 +82,10 @@ export function createPocWorkflowContext<TState extends Record<string, unknown>>
       internal.abortCtrl.aborted = true
       internal.abortCtrl.reason = reason
     },
-    runWorkflow: async <T>(handle: WorkflowHandle<T>, data?: Partial<T>) => {
+    runWorkflow: async <T extends Record<string, unknown>>(
+      handle: WorkflowHandle<T>,
+      data?: Partial<T>,
+    ) => {
       const nestedCtx = createPocWorkflowContext(
         deps,
         (data ?? {}) as T & Record<string, unknown>,

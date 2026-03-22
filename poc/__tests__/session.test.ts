@@ -3,7 +3,7 @@ import type { WorkflowContext } from '../../src/workflow/types'
 import { usePocSessionStore, _setSelection } from '../sessionStore'
 import { createDataReader } from '../dataReader'
 import { createEventBus } from '../eventBus'
-import { createPocWorkflowContext } from '../pocWorkflowContext'
+import { createPocWorkflowContext, createPocInternal } from '../pocWorkflowContext'
 import { activateCorePlugin } from '../plugins/core/index'
 import { loadMockData } from '../mockData'
 import { getSetSelectionHandle } from '../plugins/core/workflows'
@@ -21,7 +21,7 @@ describe('Session State', () => {
   it('setSelection workflow updates session store', async () => {
     const reader = createDataReader()
     const bus = createEventBus()
-    const internal = { depth: 0, abortCtrl: { aborted: false } }
+    const internal = createPocInternal()
     const ctx = createPocWorkflowContext(
       { dataReader: reader, eventBus: bus, engine },
       { entityId: 'goblin-01' },
@@ -37,7 +37,7 @@ describe('Session State', () => {
 
     const reader = createDataReader()
     const bus = createEventBus()
-    const internal = { depth: 0, abortCtrl: { aborted: false } }
+    const internal = createPocInternal()
     const ctx = createPocWorkflowContext(
       { dataReader: reader, eventBus: bus, engine },
       { entityId: null },
