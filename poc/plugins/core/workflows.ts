@@ -2,6 +2,7 @@ import type { WorkflowEngine } from '../../../src/workflow/engine'
 import type { WorkflowHandle } from '../../../src/workflow/types'
 import type { Health } from './components'
 import { damageDealtEvent } from './events'
+import { _setSelection } from '../../sessionStore'
 
 export interface DealDamageState {
   targetId: string
@@ -10,11 +11,20 @@ export interface DealDamageState {
   finalDamage: number
 }
 
+export interface SetSelectionState {
+  entityId: string | null
+}
+
 // These will be set during plugin activation
 let _dealDamageHandle: WorkflowHandle<DealDamageState>
+let _setSelectionHandle: WorkflowHandle<SetSelectionState>
 
 export function getDealDamageHandle(): WorkflowHandle<DealDamageState> {
   return _dealDamageHandle
+}
+
+export function getSetSelectionHandle(): WorkflowHandle<SetSelectionState> {
+  return _setSelectionHandle
 }
 
 export function registerCoreWorkflows(engine: WorkflowEngine): void {
@@ -61,4 +71,9 @@ export function registerCoreWorkflows(engine: WorkflowEngine): void {
       },
     },
   ])
+
+  _setSelectionHandle = engine.defineWorkflow<SetSelectionState>('core:set-selection', (ctx) => {
+    const state = (ctx as unknown as { state: SetSelectionState }).state
+    _setSelection(state.entityId ? [state.entityId] : [])
+  })
 }
