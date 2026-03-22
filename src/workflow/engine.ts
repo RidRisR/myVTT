@@ -353,14 +353,13 @@ export class WorkflowEngine {
           try {
             await composedFn(ctx)
           } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err))
+            console.error(`[Workflow] Non-critical step "${meta.step.id}" failed:`, error)
             if (snapshot) {
               dataCtrl.replaceInner(snapshot)
             }
             failedSteps.add(meta.step.id)
-            errors.push({
-              stepId: meta.step.id,
-              error: err instanceof Error ? err : new Error(String(err)),
-            })
+            errors.push({ stepId: meta.step.id, error })
           }
         }
       }

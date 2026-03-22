@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { WorkflowEngine } from '../engine'
 import { PluginSDK, WorkflowRunner } from '../pluginSDK'
-import { registerBaseWorkflows, rollWorkflow } from '../baseWorkflows'
+import { registerBaseWorkflows, getRollWorkflow } from '../baseWorkflows'
 
 describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
   function setup() {
@@ -26,7 +26,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     const executionOrder: string[] = []
 
     // Simulate daggerheart-core onActivate
-    coreSDK.addStep(rollWorkflow, {
+    coreSDK.addStep(getRollWorkflow(), {
       id: 'dh:judge',
       after: 'generate',
       run: (ctx) => {
@@ -43,7 +43,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       },
     })
 
-    coreSDK.addStep(rollWorkflow, {
+    coreSDK.addStep(getRollWorkflow(), {
       id: 'dh:resolve',
       before: 'display',
       run: (ctx) => {
@@ -56,7 +56,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     })
 
     // Simulate daggerheart-cosmetic onActivate
-    cosmeticSDK.addStep(rollWorkflow, {
+    cosmeticSDK.addStep(getRollWorkflow(), {
       id: 'cos:dice-animation',
       after: 'dh:judge',
       critical: false,
@@ -71,7 +71,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     })
 
     // Verify assembled workflow
-    expect(coreSDK.inspectWorkflow(rollWorkflow)).toEqual([
+    expect(coreSDK.inspectWorkflow(getRollWorkflow())).toEqual([
       'generate',
       'dh:judge',
       'cos:dice-animation',
@@ -80,7 +80,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     ])
 
     // Execute via WorkflowRunner
-    const result = await runner.runWorkflow(rollWorkflow, {
+    const result = await runner.runWorkflow(getRollWorkflow(), {
       formula: '2d12+2',
       actorId: 'entity-1',
     })
@@ -94,7 +94,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
   it('wrapStep: auto-modifier wraps dh step', async () => {
     const { coreSDK, runner } = setup()
 
-    coreSDK.addStep(rollWorkflow, {
+    coreSDK.addStep(getRollWorkflow(), {
       id: 'dh:modifier',
       before: 'generate',
       run: (ctx) => {
@@ -102,7 +102,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       },
     })
 
-    coreSDK.wrapStep(rollWorkflow, 'dh:modifier', {
+    coreSDK.wrapStep(getRollWorkflow(), 'dh:modifier', {
       run: async (ctx, original) => {
         if (ctx.data.autoMode) {
           ctx.data.modifierApplied = 'auto'
@@ -112,7 +112,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       },
     })
 
-    const result = await runner.runWorkflow(rollWorkflow, {
+    const result = await runner.runWorkflow(getRollWorkflow(), {
       formula: '2d12',
       actorId: 'e1',
       autoMode: true,
@@ -123,14 +123,14 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
   it('plugin deactivation removes owned steps and cascades dependants', () => {
     const { engine, coreSDK, cosmeticSDK } = setup()
 
-    coreSDK.addStep(rollWorkflow, {
+    coreSDK.addStep(getRollWorkflow(), {
       id: 'dh:judge',
       after: 'generate',
       run: () => {},
     })
 
     // cos:dice-animation depends on dh:judge via attachStep
-    cosmeticSDK.attachStep(rollWorkflow, {
+    cosmeticSDK.attachStep(getRollWorkflow(), {
       id: 'cos:dice-animation',
       to: 'dh:judge',
       critical: false,

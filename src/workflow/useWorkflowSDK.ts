@@ -6,10 +6,6 @@ import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
 import { useToast } from '../ui/useToast'
 import { tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
-// eslint-disable-next-line no-restricted-imports -- POC: will be replaced by plugin registry
-import { daggerheartCorePlugin } from '../../plugins/daggerheart-core'
-// eslint-disable-next-line no-restricted-imports -- POC: will be replaced by plugin registry
-import { daggerheartCosmeticPlugin } from '../../plugins/daggerheart-cosmetic'
 import type { VTTPlugin } from '../rules/types'
 import type { ToastType } from '../ui/Toast'
 import type { IWorkflowRunner } from './types'
@@ -18,6 +14,15 @@ import type { PluginSDKDeps } from './pluginSDK'
 // Singleton engine instance — initialized once
 let _engine: WorkflowEngine | null = null
 let _pluginsActivated = false
+let _registeredPlugins: VTTPlugin[] = []
+
+/**
+ * Register workflow plugins for activation. Must be called before useWorkflowRunner.
+ * Designed to be called from the plugin registry boundary (src/rules/registry.ts).
+ */
+export function registerWorkflowPlugins(plugins: VTTPlugin[]): void {
+  _registeredPlugins = plugins
+}
 
 export function getWorkflowEngine(): WorkflowEngine {
   if (!_engine) {
@@ -27,13 +32,11 @@ export function getWorkflowEngine(): WorkflowEngine {
   return _engine
 }
 
-// POC: hardcoded plugin list; real impl would discover from room's rule system
-const POC_PLUGINS: VTTPlugin[] = [daggerheartCorePlugin, daggerheartCosmeticPlugin]
-
 /** Reset engine — for testing only */
 export function resetWorkflowEngine(): void {
   _engine = null
   _pluginsActivated = false
+  _registeredPlugins = []
 }
 
 /** Build the PluginSDKDeps from store actions. Shared between hook and init. */
@@ -89,13 +92,13 @@ function buildDeps(
 }
 
 /**
- * Activate plugins and return a WorkflowRunner for the UI layer.
- * Idempotent — only activates once per engine lifetime.
+ * Activate registered plugins on the engine. Idempotent — only activates once per engine lifetime.
+ * Uses plugins registered via registerWorkflowPlugins().
  */
-function ensurePluginsActivated(engine: WorkflowEngine, _deps: PluginSDKDeps): void {
+function ensurePluginsActivated(engine: WorkflowEngine): void {
   if (_pluginsActivated) return
 
-  for (const plugin of POC_PLUGINS) {
+  for (const plugin of _registeredPlugins) {
     const sdk = new PluginSDK(engine, plugin.id)
     plugin.onActivate(sdk)
   }
@@ -121,14 +124,7 @@ export function useWorkflowRunner(): IWorkflowRunner {
   return useMemo(() => {
     const engine = getWorkflowEngine()
     const deps = buildDeps(sendRoll, updateEntity, (v, t, o) => toastRef.current(v, t, o))
-    ensurePluginsActivated(engine, deps)
+    ensurePluginsActivated(engine)
     return new WorkflowRunner(engine, deps)
   }, [sendRoll, updateEntity])
-}
-
-/**
- * @deprecated Use useWorkflowRunner() instead. This is kept for backward compatibility.
- */
-export function useWorkflowSDK(): IWorkflowRunner {
-  return useWorkflowRunner()
 }

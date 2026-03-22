@@ -12,10 +12,17 @@ export interface BaseRollData {
 }
 
 /** Typed handle — plugins import this to add/attach steps to the roll workflow */
-export let rollWorkflow: WorkflowHandle<BaseRollData>
+let _rollWorkflow: WorkflowHandle<BaseRollData> | undefined
+
+export function getRollWorkflow(): WorkflowHandle<BaseRollData> {
+  if (!_rollWorkflow) {
+    throw new Error('rollWorkflow not initialized — call registerBaseWorkflows first')
+  }
+  return _rollWorkflow
+}
 
 export function registerBaseWorkflows(engine: WorkflowEngine): void {
-  rollWorkflow = engine.defineWorkflow<BaseRollData>('roll', [
+  _rollWorkflow = engine.defineWorkflow<BaseRollData>('roll', [
     {
       id: 'generate',
       run: async (ctx) => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { WorkflowEngine } from './engine'
-import { registerBaseWorkflows, rollWorkflow } from './baseWorkflows'
+import { registerBaseWorkflows, getRollWorkflow } from './baseWorkflows'
 import { createWorkflowContext } from './context'
 import type { InternalState } from './types'
 
@@ -19,10 +19,10 @@ describe('base roll workflow', () => {
     expect(engine.inspectWorkflow('roll')).toEqual(['generate', 'display'])
   })
 
-  it('rollWorkflow handle has name "roll"', () => {
+  it('getRollWorkflow() handle has name "roll"', () => {
     const engine = new WorkflowEngine()
     registerBaseWorkflows(engine)
-    expect(rollWorkflow.name).toBe('roll')
+    expect(getRollWorkflow().name).toBe('roll')
   })
 
   it('generate step calls serverRoll and stores result in ctx.data', async () => {

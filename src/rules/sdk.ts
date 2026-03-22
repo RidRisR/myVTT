@@ -68,8 +68,6 @@ export type {
   ToastOptions,
 } from '../workflow/types'
 export type { VTTPlugin } from './types'
-export { rollWorkflow } from '../workflow/baseWorkflows'
+export { getRollWorkflow } from '../workflow/baseWorkflows'
 export type { BaseRollData } from '../workflow/baseWorkflows'
 export { useWorkflowRunner } from '../workflow/useWorkflowSDK'
-// eslint-disable-next-line @typescript-eslint/no-deprecated -- re-export for backward compat
-export { useWorkflowSDK } from '../workflow/useWorkflowSDK'

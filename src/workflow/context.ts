@@ -81,7 +81,7 @@ export function createWorkflowContext(
       internal.abortCtrl.reason = reason
     },
 
-    runWorkflow: <T = Record<string, unknown>>(
+    runWorkflow: <T extends Record<string, unknown> = Record<string, unknown>>(
       handle: WorkflowHandle<T>,
       nestedData?: Partial<T>,
     ): Promise<WorkflowResult<T>> => {

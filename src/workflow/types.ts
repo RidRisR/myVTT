@@ -85,7 +85,7 @@ export interface StepError {
   error: Error
 }
 
-export interface WorkflowResult<TData = Record<string, unknown>> {
+export interface WorkflowResult<TData extends Record<string, unknown> = Record<string, unknown>> {
   status: 'completed' | 'aborted'
   reason?: string
   data: TData
@@ -138,7 +138,7 @@ export interface WorkflowContext<TData = Record<string, unknown>> {
 
   // ── Flow Control ──────────────────────────────────────────────────────
   abort(reason?: string): void
-  runWorkflow<T = Record<string, unknown>>(
+  runWorkflow<T extends Record<string, unknown> = Record<string, unknown>>(
     handle: WorkflowHandle<T>,
     data?: Partial<T>,
   ): Promise<WorkflowResult<T>>
@@ -164,7 +164,7 @@ export interface IPluginSDK {
 // ── Workflow Runner — execution-time API (UI layer) ─────────────────────
 
 export interface IWorkflowRunner {
-  runWorkflow<TData = Record<string, unknown>>(
+  runWorkflow<TData extends Record<string, unknown> = Record<string, unknown>>(
     handle: WorkflowHandle<TData>,
     data?: Partial<TData>,
   ): Promise<WorkflowResult<TData>>

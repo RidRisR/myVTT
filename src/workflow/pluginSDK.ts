@@ -72,7 +72,7 @@ export class WorkflowRunner implements IWorkflowRunner {
     this.deps = deps
   }
 
-  runWorkflow<TData = Record<string, unknown>>(
+  runWorkflow<TData extends Record<string, unknown> = Record<string, unknown>>(
     handle: WorkflowHandle<TData>,
     data?: Partial<TData>,
   ): Promise<WorkflowResult<TData>> {

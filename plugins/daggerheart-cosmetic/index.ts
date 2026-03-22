@@ -1,5 +1,5 @@
 import type { VTTPlugin } from '@myvtt/sdk'
-import { rollWorkflow } from '@myvtt/sdk'
+import { getRollWorkflow } from '@myvtt/sdk'
 import { cosmeticDiceAnimationStep } from './diceAnimation'
 
 export const daggerheartCosmeticPlugin: VTTPlugin = {
@@ -8,7 +8,7 @@ export const daggerheartCosmeticPlugin: VTTPlugin = {
   onActivate(sdk) {
     // Lifecycle-bound to dh:judge — if core plugin is deactivated, this step
     // is automatically cascade-removed
-    sdk.attachStep(rollWorkflow, {
+    sdk.attachStep(getRollWorkflow(), {
       id: 'cos:dice-animation',
       to: 'dh:judge',
       critical: false,

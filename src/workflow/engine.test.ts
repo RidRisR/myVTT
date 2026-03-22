@@ -474,20 +474,22 @@ describe('WorkflowEngine', () => {
       },
     ])
 
-    // Simulate nested runWorkflow that shares InternalState
+    // Use real createWorkflowContext for proper depth tracking (no mock needed)
+    const { createWorkflowContext } = await import('./context')
     const sharedInternal = makeInternal()
-    function createNestedCtx(eng: WorkflowEngine): WorkflowContext {
-      const c = makeCtx()
-      ;(c.runWorkflow as ReturnType<typeof vi.fn>).mockImplementation(
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        () => eng.runWorkflow('recurse', createNestedCtx(eng), sharedInternal),
-      )
-      return c
+    const deps = {
+      sendRoll: vi.fn().mockResolvedValue({ rolls: [], total: 0 }),
+      updateEntity: vi.fn(),
+      updateTeamTracker: vi.fn(),
+      sendMessage: vi.fn(),
+      showToast: vi.fn(),
+      engine,
     }
+    const ctx = createWorkflowContext(deps, {}, sharedInternal)
 
-    await expect(
-      engine.runWorkflow('recurse', createNestedCtx(engine), sharedInternal),
-    ).rejects.toThrow(/recursion depth/i)
+    await expect(engine.runWorkflow('recurse', ctx, sharedInternal)).rejects.toThrow(
+      /recursion depth/i,
+    )
   })
 
   // ── 13. Step list snapshot ──────────────────────────────────────────────
@@ -843,16 +845,16 @@ describe('WorkflowEngine', () => {
   // ── 23. wrapStep/replaceStep target not found ─────────────────────────────
   it('wrapStep throws when target step does not exist', () => {
     engine.defineWorkflow('notarget', [{ id: 'a', run: () => {} }])
-    expect(() => { engine.wrapStep('notarget', 'nonexistent', { run: vi.fn() }); }).toThrow(
-      'Step "nonexistent" not found',
-    )
+    expect(() => {
+      engine.wrapStep('notarget', 'nonexistent', { run: vi.fn() })
+    }).toThrow('Step "nonexistent" not found')
   })
 
   it('replaceStep throws when target step does not exist', () => {
     engine.defineWorkflow('notarget2', [{ id: 'a', run: () => {} }])
-    expect(() => { engine.replaceStep('notarget2', 'nonexistent', { run: vi.fn() }); }).toThrow(
-      'Step "nonexistent" not found',
-    )
+    expect(() => {
+      engine.replaceStep('notarget2', 'nonexistent', { run: vi.fn() })
+    }).toThrow('Step "nonexistent" not found')
   })
 
   // ── 24. Recursion depth boundary ──────────────────────────────────────────
