@@ -1,5 +1,4 @@
 // src/ui-system/types.ts
-import type React from 'react'
 import type { Entity } from '../shared/entityTypes'
 import type { IWorkflowRunner } from '../workflow/types'
 
