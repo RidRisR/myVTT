@@ -43,11 +43,11 @@ export class PluginSDK implements IPluginSDK {
   }
 
   wrapStep(handle: WorkflowHandle, targetStepId: string, options: WrapStepOptions): void {
-    this.engine.wrapStep(handle.name, targetStepId, options)
+    this.engine.wrapStep(handle.name, targetStepId, options, this.pluginId)
   }
 
   replaceStep(handle: WorkflowHandle, targetStepId: string, options: ReplaceStepOptions): void {
-    this.engine.replaceStep(handle.name, targetStepId, options)
+    this.engine.replaceStep(handle.name, targetStepId, options, this.pluginId)
   }
 
   removeStep(handle: WorkflowHandle, targetStepId: string): void {

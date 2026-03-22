@@ -168,7 +168,12 @@ export class WorkflowEngine {
     }
   }
 
-  wrapStep(workflow: string, targetStepId: string, options: WrapStepOptions): void {
+  wrapStep(
+    workflow: string,
+    targetStepId: string,
+    options: WrapStepOptions,
+    pluginOwner?: string,
+  ): void {
     const record = this.getRecord(workflow)
     const targetExists = record.steps.some((m) => m.step.id === targetStepId)
     if (!targetExists) {
@@ -184,7 +189,7 @@ export class WorkflowEngine {
       priority: options.priority ?? 100,
       insertionOrder: this.globalInsertionCounter++,
       run: options.run,
-      pluginOwner: this.currentPluginOwner,
+      pluginOwner: pluginOwner ?? this.currentPluginOwner,
     })
     entries.sort((a, b) => {
       if (a.priority !== b.priority) return a.priority - b.priority
@@ -192,7 +197,12 @@ export class WorkflowEngine {
     })
   }
 
-  replaceStep(workflow: string, targetStepId: string, options: ReplaceStepOptions): void {
+  replaceStep(
+    workflow: string,
+    targetStepId: string,
+    options: ReplaceStepOptions,
+    pluginOwner?: string,
+  ): void {
     const record = this.getRecord(workflow)
     const meta = record.steps.find((m) => m.step.id === targetStepId)
     if (!meta) {
@@ -206,7 +216,7 @@ export class WorkflowEngine {
     }
 
     record.replacements.set(targetStepId, {
-      pluginOwner: this.currentPluginOwner,
+      pluginOwner: pluginOwner ?? this.currentPluginOwner,
       originalRun: meta.step.run,
     })
     meta.step.run = options.run as StepFn
@@ -282,7 +292,14 @@ export class WorkflowEngine {
     const data = ctx.data
 
     try {
-      const steps = [...record.steps] // snapshot
+      // Snapshot step list (deep copy StepMeta + Step to prevent replaceStep pierce)
+      const steps = record.steps.map((m) => ({ ...m, step: { ...m.step } }))
+
+      // Snapshot wrapper map (shallow copy each entry array to prevent push pierce)
+      const wrappersSnapshot = new Map<string, WrapperEntry[]>()
+      for (const [k, v] of record.wrappers) {
+        wrappersSnapshot.set(k, [...v])
+      }
 
       // Pre-compute ancestor sets for dependsOn failure propagation
       const ancestorsOf = this.computeAncestors(steps)
@@ -304,8 +321,9 @@ export class WorkflowEngine {
 
         if (internal.abortCtrl.aborted) break
 
-        const baseFn: StepFn = (c) => meta.step.run(c)
-        const wrappers = record.wrappers.get(meta.step.id)
+        // Capture run reference directly (not via closure) since step is a snapshot copy
+        const baseFn: StepFn = meta.step.run
+        const wrappers = wrappersSnapshot.get(meta.step.id)
 
         let composedFn: StepFn
         if (!wrappers || wrappers.length === 0) {

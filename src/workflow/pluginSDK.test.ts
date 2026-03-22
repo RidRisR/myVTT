@@ -58,7 +58,7 @@ describe('PluginSDK', () => {
     const wrapSpy = vi.spyOn(engine, 'wrapStep')
     const opts = { run: vi.fn() }
     sdk.wrapStep(handle, 'a', opts)
-    expect(wrapSpy).toHaveBeenCalledWith('wf', 'a', opts)
+    expect(wrapSpy).toHaveBeenCalledWith('wf', 'a', opts, 'test-plugin')
   })
 
   it('replaceStep delegates to engine via handle', () => {
@@ -67,7 +67,7 @@ describe('PluginSDK', () => {
     const replaceSpy = vi.spyOn(engine, 'replaceStep')
     const opts = { run: () => {} }
     sdk.replaceStep(handle, 'a', opts)
-    expect(replaceSpy).toHaveBeenCalledWith('wf', 'a', opts)
+    expect(replaceSpy).toHaveBeenCalledWith('wf', 'a', opts, 'test-plugin')
   })
 
   it('removeStep delegates to engine via handle', () => {
