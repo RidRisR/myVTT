@@ -97,6 +97,11 @@ export interface WorkflowResult<TData = Record<string, unknown>> {
 export interface InternalState {
   depth: number
   abortCtrl: { aborted: boolean; reason?: string }
+  /** Proxy data control — set by createWorkflowContext, used by engine for snapshot/restore */
+  dataCtrl: {
+    getInner: () => Record<string, unknown>
+    replaceInner: (replacement: Record<string, unknown>) => void
+  }
 }
 
 // ── Animation / Toast ─────────────────────────────────────────────────────

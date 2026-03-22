@@ -18,8 +18,26 @@ function makeCtx(data: Record<string, unknown> = {}): WorkflowContext {
   }
 }
 
-function makeInternal(): InternalState {
-  return { depth: 0, abortCtrl: { aborted: false } }
+function makeInternal(data?: Record<string, unknown>): InternalState {
+  // If data is provided, wire up dataCtrl to operate on it (for snapshot/restore tests).
+  // Otherwise provide a no-op dataCtrl (most tests don't exercise snapshot/restore).
+  let inner = data ?? {}
+  return {
+    depth: 0,
+    abortCtrl: { aborted: false },
+    dataCtrl: {
+      getInner: () => inner,
+      replaceInner: (replacement) => {
+        // Repopulate the original data object to keep reference stable for tests
+        // (production uses Proxy swap; tests use plain objects so we sync manually)
+        if (data) {
+          for (const k of Object.keys(data)) Reflect.deleteProperty(data, k)
+          Object.assign(data, replacement)
+        }
+        inner = replacement
+      },
+    },
+  }
 }
 
 /** Helper: run workflow with default InternalState */
@@ -570,8 +588,9 @@ describe('WorkflowEngine', () => {
         },
       },
     ])
-    const ctx = makeCtx({ clean: true })
-    const result = await engine.runWorkflow('restore', ctx, makeInternal())
+    const data: Record<string, unknown> = { clean: true }
+    const ctx = makeCtx(data)
+    const result = await engine.runWorkflow('restore', ctx, makeInternal(data))
     expect(ctx.data.dirty).toBeUndefined()
     expect(ctx.data.clean).toBe(true)
     expect(ctx.data.checked).toBe(true)

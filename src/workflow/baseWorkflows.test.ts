@@ -5,7 +5,11 @@ import { createWorkflowContext } from './context'
 import type { InternalState } from './types'
 
 function makeInternal(): InternalState {
-  return { depth: 0, abortCtrl: { aborted: false } }
+  return {
+    depth: 0,
+    abortCtrl: { aborted: false },
+    dataCtrl: { getInner: () => ({}), replaceInner: () => {} },
+  }
 }
 
 describe('base roll workflow', () => {

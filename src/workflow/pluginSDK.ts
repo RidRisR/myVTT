@@ -76,7 +76,11 @@ export class WorkflowRunner implements IWorkflowRunner {
     handle: WorkflowHandle<TData>,
     data?: Partial<TData>,
   ): Promise<WorkflowResult<TData>> {
-    const internal = { depth: 0, abortCtrl: { aborted: false } }
+    const internal: import('./types').InternalState = {
+      depth: 0,
+      abortCtrl: { aborted: false },
+      dataCtrl: { getInner: () => ({}), replaceInner: () => {} }, // overwritten by createWorkflowContext
+    }
     const ctx = createWorkflowContext(
       { ...this.deps, engine: this.engine },
       (data ?? {}) as Record<string, unknown>,

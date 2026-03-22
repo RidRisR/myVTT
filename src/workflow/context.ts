@@ -24,11 +24,30 @@ export function createWorkflowContext(
   initialData: Record<string, unknown> = {},
   internal: InternalState,
 ): WorkflowContext {
-  const data: Record<string, unknown> = { ...initialData }
+  // Proxy delegates to a replaceable inner object. Snapshot/restore swaps _inner
+  // in O(1) without delete — eliminates need for no-dynamic-delete suppress.
+  let _inner: Record<string, unknown> = { ...initialData }
+
+  const data = new Proxy({} as Record<string, unknown>, {
+    get: (_, key): unknown => Reflect.get(_inner, key),
+    set: (_, key, val): boolean => Reflect.set(_inner, key, val),
+    deleteProperty: (_, key) => Reflect.deleteProperty(_inner, key),
+    has: (_, key) => Reflect.has(_inner, key),
+    ownKeys: () => Reflect.ownKeys(_inner),
+    getOwnPropertyDescriptor: (_, key) => Reflect.getOwnPropertyDescriptor(_inner, key),
+  })
+
+  // Wire up dataCtrl so engine can snapshot/restore via Proxy inner swap
+  internal.dataCtrl = {
+    getInner: () => _inner,
+    replaceInner: (replacement) => {
+      _inner = replacement
+    },
+  }
 
   const ctx: WorkflowContext = {
     // getter-only: ctx.data = {} throws TypeError in strict mode,
-    // but ctx.data.foo = 'bar' works (modifies property, not reference)
+    // but ctx.data.foo = 'bar' works (modifies Proxy → _inner)
     get data() {
       return data
     },
@@ -66,10 +85,11 @@ export function createWorkflowContext(
       handle: WorkflowHandle<T>,
       nestedData?: Partial<T>,
     ): Promise<WorkflowResult<T>> => {
-      // Nested workflow: inherit depth, independent abort
+      // Nested workflow: inherit depth, independent abort + dataCtrl
       const nestedInternal: InternalState = {
         depth: internal.depth,
         abortCtrl: { aborted: false },
+        dataCtrl: { getInner: () => ({}), replaceInner: () => {} }, // overwritten by nested createWorkflowContext
       }
       const nestedCtx = createWorkflowContext(
         deps,

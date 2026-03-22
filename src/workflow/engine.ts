@@ -288,8 +288,9 @@ export class WorkflowEngine {
     internal.depth++
     const errors: StepError[] = []
 
-    // Access internal data object for snapshot/restore
+    // Access data via Proxy (reads go through to _inner) and dataCtrl for restore
     const data = ctx.data
+    const { dataCtrl } = internal
 
     try {
       // Snapshot step list (deep copy StepMeta + Step to prevent replaceStep pierce)
@@ -345,7 +346,7 @@ export class WorkflowEngine {
           // Non-critical step — snapshot/restore on failure
           let snapshot: Record<string, unknown> | null = null
           try {
-            snapshot = structuredClone(data)
+            snapshot = structuredClone(dataCtrl.getInner())
           } catch {
             // Cannot clone — degrade to no-restore mode
           }
@@ -353,9 +354,7 @@ export class WorkflowEngine {
             await composedFn(ctx)
           } catch (err) {
             if (snapshot) {
-              // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-              for (const k of Object.keys(data)) delete data[k]
-              Object.assign(data, snapshot)
+              dataCtrl.replaceInner(snapshot)
             }
             failedSteps.add(meta.step.id)
             errors.push({
