@@ -3,7 +3,7 @@ import { useMemo, useState, useCallback } from 'react'
 import { UIRegistry } from '../ui-system/registry'
 import { PanelRenderer } from '../ui-system/PanelRenderer'
 import { LayerRenderer } from '../ui-system/LayerRenderer'
-import { applyDrag } from '../ui-system/LayoutEditor'
+import { applyDrag, createDragInitiator } from '../ui-system/LayoutEditor'
 // eslint-disable-next-line no-restricted-imports -- sandbox: direct plugin import for demo, no registry needed
 import { pocUIPlugin } from '../../plugins/poc-ui'
 import { PluginSDK, WorkflowRunner } from '../workflow/pluginSDK'
@@ -56,7 +56,7 @@ export default function PatternUISystem() {
   // makeSDK receives layoutMode so sdk.context.layoutMode stays current
   const makeSDK = useCallback(
     (
-      _instanceKey: string,
+      instanceKey: string,
       instanceProps: Record<string, unknown>,
       mode: 'play' | 'edit',
     ): IComponentSDK => ({
@@ -66,8 +66,10 @@ export default function PatternUISystem() {
       },
       workflow: runner,
       context: { instanceProps, role: 'GM', layoutMode: mode },
+      // play 模式注入 layout.startDrag，让组件可以自定义把手；edit 模式系统浮层接管
+      layout: mode === 'play' ? { startDrag: createDragInitiator(instanceKey, handleDrag) } : undefined,
     }),
-    [runner],
+    [runner, handleDrag],
   )
 
   const handleDrag = useCallback((instanceKey: string, delta: { dx: number; dy: number }) => {

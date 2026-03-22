@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { applyDrag } from '../LayoutEditor'
+import { describe, it, expect, vi } from 'vitest'
+import { applyDrag, createDragInitiator } from '../LayoutEditor'
 import type { LayoutConfig } from '../types'
 
 describe('applyDrag', () => {
@@ -29,5 +29,31 @@ describe('applyDrag', () => {
   it('ignores drag for unknown instance key', () => {
     const updated = applyDrag(layout, 'unknown#1', { dx: 10, dy: 10 })
     expect(updated).toEqual(layout)
+  })
+})
+
+describe('createDragInitiator', () => {
+  it('calls onDrag with correct delta on mousemove', () => {
+    const onDrag = vi.fn()
+    const initiator = createDragInitiator('test.panel#1', onDrag)
+
+    initiator({ clientX: 100, clientY: 100, preventDefault: vi.fn() })
+    window.dispatchEvent(new MouseEvent('mousemove', { clientX: 130, clientY: 90, bubbles: true }))
+
+    expect(onDrag).toHaveBeenCalledWith('test.panel#1', { dx: 30, dy: -10 })
+
+    // cleanup
+    window.dispatchEvent(new MouseEvent('mouseup'))
+  })
+
+  it('stops calling onDrag after mouseup', () => {
+    const onDrag = vi.fn()
+    const initiator = createDragInitiator('test.panel#1', onDrag)
+
+    initiator({ clientX: 100, clientY: 100, preventDefault: vi.fn() })
+    window.dispatchEvent(new MouseEvent('mouseup'))
+    window.dispatchEvent(new MouseEvent('mousemove', { clientX: 200, clientY: 200, bubbles: true }))
+
+    expect(onDrag).not.toHaveBeenCalled()
   })
 })
