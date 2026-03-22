@@ -16,6 +16,7 @@ export interface PocGlobal {
 /** Imperative one-shot reader (non-hook, usable anywhere) */
 export interface IDataReader {
   entity(id: string): PocEntity | undefined
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- caller-side cast is intentional
   component<T>(entityId: string, key: string): T | undefined
   global(key: string): PocGlobal | undefined
   query(spec: { has?: string[] }): PocEntity[]
