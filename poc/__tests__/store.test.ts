@@ -1,6 +1,5 @@
 import { renderHook, act } from '@testing-library/react'
 import { usePocStore } from '../store'
-import { useComponent } from '../hooks'
 import { createDataReader } from '../dataReader'
 import { loadMockData } from '../mockData'
 import type { PocEntity } from '../types'
@@ -26,7 +25,7 @@ describe('updateEntityComponent', () => {
     const { updateEntityComponent } = usePocStore.getState()
     updateEntityComponent('e1', 'core:health', () => ({ hp: 5, maxHp: 20 }))
 
-    const updated = usePocStore.getState().entities.e1
+    const updated = usePocStore.getState().entities.e1!
     expect(updated.components['core:health']).toEqual({ hp: 5, maxHp: 20 })
     expect(updated.components['core:tags']).toEqual({ tags: ['brave'] })
   })
@@ -43,7 +42,7 @@ describe('patchGlobal', () => {
     const { patchGlobal } = usePocStore.getState()
     patchGlobal('Fear', { current: 5 })
 
-    const g = usePocStore.getState().globals.Fear
+    const g = usePocStore.getState().globals.Fear!
     expect(g.current).toBe(5)
     expect(g.label).toBe('Dread')
     expect(g.key).toBe('Fear')
@@ -74,9 +73,6 @@ describe('hook re-render precision', () => {
     )
     renderHook(() => usePocStore(selectorSpy))
 
-    // Initial render = 1 call
-    const initialCalls = selectorSpy.mock.calls.length
-
     // Update entity A only
     act(() => {
       usePocStore
@@ -89,8 +85,8 @@ describe('hook re-render precision', () => {
     // zustand calls the selector on every state change to compare, so calls increase,
     // but the important thing is the returned value is stable.
     const result = selectorSpy.mock.results
-    const lastResult = result[result.length - 1].value
-    const firstResult = result[0].value
+    const lastResult = result[result.length - 1]!.value
+    const firstResult = result[0]!.value
     expect(lastResult).toEqual(firstResult)
   })
 })

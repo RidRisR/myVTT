@@ -28,7 +28,7 @@ function makeMinion(index: number): PocEntity {
     id,
     name: `Minion ${index}`,
     imageUrl: `/tokens/${id}.png`,
-    color: COLORS[(index - 1) % COLORS.length],
+    color: COLORS[(index - 1) % COLORS.length]!,
     components: {
       'core:health': { hp: 5 + index, maxHp: 10 + index },
       'status-fx:resistances': { fire: index % 3, ice: index % 5 },
