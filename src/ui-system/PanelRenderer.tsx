@@ -9,9 +9,17 @@ interface Props {
   makeSDK: (instanceKey: string, instanceProps: Record<string, unknown>) => IComponentSDK
   layoutMode: 'play' | 'edit'
   onDrag?: (instanceKey: string, delta: { dx: number; dy: number }) => void
+  showHandles?: boolean
 }
 
-export function PanelRenderer({ registry, layout, makeSDK, layoutMode, onDrag }: Props) {
+export function PanelRenderer({
+  registry,
+  layout,
+  makeSDK,
+  layoutMode,
+  onDrag,
+  showHandles = true,
+}: Props) {
   const entries = Object.entries(layout)
 
   return (
@@ -26,7 +34,6 @@ export function PanelRenderer({ registry, layout, makeSDK, layoutMode, onDrag }:
 
         const sdk = makeSDK(instanceKey, entry.instanceProps ?? {})
         const PanelComponent = def.component
-        const showChrome = layoutMode === 'edit' || (def.chromeVisible ?? true)
 
         return (
           <div
@@ -39,25 +46,14 @@ export function PanelRenderer({ registry, layout, makeSDK, layoutMode, onDrag }:
               height: entry.height,
             }}
           >
-            {layoutMode === 'edit' && onDrag ? (
+            <div style={{ position: 'absolute', inset: 0 }}>
+              <PanelErrorBoundary panelId={instanceKey}>
+                <PanelComponent sdk={sdk} />
+              </PanelErrorBoundary>
+            </div>
+            {layoutMode === 'edit' && onDrag && showHandles ? (
               <DragHandle instanceKey={instanceKey} label={componentId} onDrag={onDrag} />
-            ) : showChrome ? (
-              <div
-                style={{
-                  background: 'rgba(0,0,0,0.6)',
-                  borderBottom: '1px solid rgba(255,255,255,0.15)',
-                  padding: '2px 8px',
-                  fontSize: 11,
-                  color: 'rgba(255,255,255,0.5)',
-                  userSelect: 'none',
-                }}
-              >
-                {componentId}
-              </div>
             ) : null}
-            <PanelErrorBoundary panelId={instanceKey}>
-              <PanelComponent sdk={sdk} />
-            </PanelErrorBoundary>
           </div>
         )
       })}

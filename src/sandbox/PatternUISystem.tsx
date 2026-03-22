@@ -34,6 +34,7 @@ const INITIAL_LAYOUT: LayoutConfig = {
 export default function PatternUISystem() {
   const [layoutMode, setLayoutMode] = useState<'play' | 'edit'>('play')
   const [layout, setLayout] = useState<LayoutConfig>(INITIAL_LAYOUT)
+  const [showHandles, setShowHandles] = useState(true)
 
   const { registry, runner } = useMemo(() => {
     // Intentionally creates a local UIRegistry — does NOT use getUIRegistry() singleton,
@@ -85,7 +86,9 @@ export default function PatternUISystem() {
         }}
       >
         <button
-          onClick={() => { setLayoutMode((m) => (m === 'play' ? 'edit' : 'play')); }}
+          onClick={() => {
+            setLayoutMode((m) => (m === 'play' ? 'edit' : 'play'))
+          }}
           style={{
             padding: '4px 12px',
             fontSize: 12,
@@ -100,6 +103,23 @@ export default function PatternUISystem() {
         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11 }}>
           {layoutMode === 'edit' ? 'Drag panels to reposition' : 'Layout locked'}
         </span>
+        {layoutMode === 'edit' && (
+          <button
+            onClick={() => {
+              setShowHandles((v) => !v)
+            }}
+            style={{
+              padding: '4px 12px',
+              fontSize: 12,
+              cursor: 'pointer',
+              background: showHandles ? '#6366f1' : '#374151',
+              color: 'white',
+              border: 'none',
+            }}
+          >
+            {showHandles ? '◎ Hide Handles' : '◎ Show Handles'}
+          </button>
+        )}
       </div>
       <div
         style={{
@@ -117,6 +137,7 @@ export default function PatternUISystem() {
           makeSDK={(key, props) => makeSDK(key, props, layoutMode)}
           layoutMode={layoutMode}
           onDrag={layoutMode === 'edit' ? handleDrag : undefined}
+          showHandles={showHandles}
         />
       </div>
     </div>

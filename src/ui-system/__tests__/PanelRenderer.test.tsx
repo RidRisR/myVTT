@@ -83,13 +83,12 @@ describe('PanelRenderer', () => {
     expect(screen.getByText('survivor')).toBeInTheDocument()
   })
 
-  it('hides chrome div in play mode when chromeVisible is false', () => {
+  it('does not show chrome label in play mode', () => {
     const registry = new UIRegistry()
     registry.registerComponent({
       id: 'test.bare',
       component: () => <div>bare content</div>,
       defaultSize: { width: 100, height: 100 },
-      chromeVisible: false,
     })
 
     const layout: LayoutConfig = {
@@ -105,10 +104,63 @@ describe('PanelRenderer', () => {
       />,
     )
 
-    // The panel content renders but the chrome label div does not
     expect(screen.getByText('bare content')).toBeInTheDocument()
-    // Chrome label shows componentId as text — should be absent
+    // No chrome label — componentId should not appear as text
     const allText = container.textContent || ''
     expect(allText).not.toContain('test.bare')
+  })
+
+  it('does not render edit overlay when showHandles is false in edit mode', () => {
+    const registry = new UIRegistry()
+    registry.registerComponent({
+      id: 'test.panel',
+      component: () => <div>content</div>,
+      defaultSize: { width: 200, height: 100 },
+    })
+    const layout: LayoutConfig = {
+      'test.panel#1': { x: 0, y: 0, width: 200, height: 100 },
+    }
+    const onDrag = vi.fn()
+
+    const { container } = render(
+      <PanelRenderer
+        registry={registry}
+        layout={layout}
+        makeSDK={() => mockSDK}
+        layoutMode="edit"
+        onDrag={onDrag}
+        showHandles={false}
+      />,
+    )
+
+    // DragHandle carries title={label}; absent when showHandles=false
+    expect(container.querySelector('[title="test.panel"]')).toBeNull()
+  })
+
+  it('renders edit overlay as full-panel absolute element in edit mode', () => {
+    const registry = new UIRegistry()
+    registry.registerComponent({
+      id: 'test.panel',
+      component: () => <div>content</div>,
+      defaultSize: { width: 200, height: 100 },
+    })
+    const layout: LayoutConfig = {
+      'test.panel#1': { x: 0, y: 0, width: 200, height: 100 },
+    }
+    const onDrag = vi.fn()
+
+    const { container } = render(
+      <PanelRenderer
+        registry={registry}
+        layout={layout}
+        makeSDK={() => mockSDK}
+        layoutMode="edit"
+        onDrag={onDrag}
+      />,
+    )
+
+    const overlay = container.querySelector('[title="test.panel"]')
+    expect(overlay).toBeInTheDocument()
+    expect(overlay).toHaveStyle({ position: 'absolute' })
   })
 })

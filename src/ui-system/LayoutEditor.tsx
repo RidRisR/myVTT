@@ -63,17 +63,16 @@ export function DragHandle({ instanceKey, label, onDrag }: DragHandleProps) {
   return (
     <div
       onMouseDown={onMouseDown}
+      title={label}
       style={{
-        background: 'rgba(99,102,241,0.8)',
-        padding: '2px 8px',
-        fontSize: 11,
-        color: 'white',
-        cursor: 'grab',
+        position: 'absolute',
+        inset: 0,
+        zIndex: 10,
+        cursor: 'move',
         userSelect: 'none',
-        borderBottom: '1px solid rgba(255,255,255,0.2)',
+        border: '1.5px solid rgba(99,102,241,0.55)',
+        borderRadius: 2,
       }}
-    >
-      ⠿ {label}
-    </div>
+    />
   )
 }
