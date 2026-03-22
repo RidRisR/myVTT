@@ -88,7 +88,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     expect(result.status).toBe('completed')
     expect(executionOrder).toEqual(['dh:judge', 'cos:dice-animation', 'dh:resolve'])
     expect(deps.sendRoll).toHaveBeenCalledWith('2d12+2')
-    expect(deps.sendMessage).toHaveBeenCalled()
+    expect(deps.sendMessage).toHaveBeenCalledWith(expect.stringContaining('2d12+2'))
   })
 
   it('wrapStep: auto-modifier wraps dh step', async () => {

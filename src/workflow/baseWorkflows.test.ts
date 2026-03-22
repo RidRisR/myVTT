@@ -58,6 +58,7 @@ describe('base roll workflow', () => {
     const internal = makeInternal()
     const ctx = createWorkflowContext(deps, { formula: '2d12+1' }, internal)
     await engine.runWorkflow('roll', ctx, internal)
-    expect(deps.sendMessage).toHaveBeenCalled()
+    expect(deps.sendMessage).toHaveBeenCalledWith(expect.stringContaining('2d12+1'))
+    expect(deps.sendMessage).toHaveBeenCalledWith(expect.stringContaining('13'))
   })
 })

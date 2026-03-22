@@ -730,4 +730,161 @@ describe('WorkflowEngine', () => {
     const handle = engine.defineWorkflow('typed', [{ id: 'a', run: () => {} }])
     expect(handle.name).toBe('typed')
   })
+
+  // ── 20. Transitive dependsOn cascade (A→B→C) ─────────────────────────────
+  it('attachStep: transitive dependency failure cascades (A→B→C, A fails → B,C skipped)', async () => {
+    const order: string[] = []
+    engine.defineWorkflow('cascade', [
+      {
+        id: 'A',
+        critical: false,
+        run: () => {
+          order.push('A')
+          throw new Error('A failed')
+        },
+      },
+    ])
+    // B depends on A
+    engine.attachStep('cascade', {
+      id: 'B',
+      to: 'A',
+      run: () => {
+        order.push('B')
+      },
+    })
+    // C depends on B (transitive: C→B→A)
+    engine.attachStep('cascade', {
+      id: 'C',
+      to: 'B',
+      run: () => {
+        order.push('C')
+      },
+    })
+    // D has no dependency — should still run
+    engine.addStep('cascade', {
+      id: 'D',
+      after: 'C',
+      run: () => {
+        order.push('D')
+      },
+    })
+
+    const data: Record<string, unknown> = {}
+    const result = await engine.runWorkflow('cascade', makeCtx(data), makeInternal(data))
+    expect(order).toEqual(['A', 'D'])
+    expect(result.errors).toHaveLength(1)
+    expect(result.errors[0]?.stepId).toBe('A')
+  })
+
+  // ── 21. Wrapper snapshot isolation ────────────────────────────────────────
+  it('wrapper added during execution does not affect current run', async () => {
+    const order: string[] = []
+    engine.defineWorkflow('wsnapshot', [
+      {
+        id: 'first',
+        run: () => {
+          order.push('first')
+          // Add a wrapper to 'second' during execution — should not apply
+          engine.wrapStep('wsnapshot', 'second', {
+            run: (ctx, original) => {
+              order.push('late-wrapper')
+              return original(ctx)
+            },
+          })
+        },
+      },
+      {
+        id: 'second',
+        run: () => {
+          order.push('second')
+        },
+      },
+    ])
+    await run(engine, 'wsnapshot')
+    // The late wrapper should NOT have been picked up in this execution
+    expect(order).toEqual(['first', 'second'])
+
+    // But on a second run, the wrapper IS present
+    order.length = 0
+    await run(engine, 'wsnapshot')
+    expect(order).toEqual(['first', 'late-wrapper', 'second'])
+  })
+
+  // ── 22. structuredClone failure degrades gracefully ───────────────────────
+  it('non-critical step: structuredClone failure degrades to no-restore', async () => {
+    const fn = vi.fn()
+    engine.defineWorkflow('uncloneable', [
+      {
+        id: 'dirty',
+        critical: false,
+        run: (ctx) => {
+          ctx.data.fn = fn // functions are not cloneable
+          ctx.data.dirty = true
+          throw new Error('fail')
+        },
+      },
+      {
+        id: 'check',
+        run: (ctx) => {
+          // snapshot failed → data NOT restored, dirty write persists
+          ctx.data.checked = true
+        },
+      },
+    ])
+    const data: Record<string, unknown> = { fn } // fn in initial data makes structuredClone fail
+    const ctx = makeCtx(data)
+    const result = await engine.runWorkflow('uncloneable', ctx, makeInternal(data))
+    expect(result.errors).toHaveLength(1)
+    // Since clone failed, dirty data persists (no restore)
+    expect(ctx.data.dirty).toBe(true)
+    expect(ctx.data.checked).toBe(true)
+  })
+
+  // ── 23. wrapStep/replaceStep target not found ─────────────────────────────
+  it('wrapStep throws when target step does not exist', () => {
+    engine.defineWorkflow('notarget', [{ id: 'a', run: () => {} }])
+    expect(() => { engine.wrapStep('notarget', 'nonexistent', { run: vi.fn() }); }).toThrow(
+      'Step "nonexistent" not found',
+    )
+  })
+
+  it('replaceStep throws when target step does not exist', () => {
+    engine.defineWorkflow('notarget2', [{ id: 'a', run: () => {} }])
+    expect(() => { engine.replaceStep('notarget2', 'nonexistent', { run: vi.fn() }); }).toThrow(
+      'Step "nonexistent" not found',
+    )
+  })
+
+  // ── 24. Recursion depth boundary ──────────────────────────────────────────
+  it('recursion depth 9 succeeds (just under limit)', async () => {
+    let maxDepth = 0
+    engine.defineWorkflow('depth9', [
+      {
+        id: 'recurse',
+        run: async (ctx) => {
+          const d = (typeof ctx.data.depth === 'number' ? ctx.data.depth : 0) + 1
+          ctx.data.depth = d
+          if (d > maxDepth) maxDepth = d
+          if (d < 9) {
+            await ctx.runWorkflow({ name: 'depth9' } as never, { depth: d })
+          }
+        },
+      },
+    ])
+    // Use real createWorkflowContext + shared internal for proper depth tracking
+    const { createWorkflowContext } = await import('./context')
+    const internal = makeInternal()
+    const deps = {
+      sendRoll: vi.fn().mockResolvedValue({ rolls: [], total: 0 }),
+      updateEntity: vi.fn(),
+      updateTeamTracker: vi.fn(),
+      sendMessage: vi.fn(),
+      showToast: vi.fn(),
+      engine,
+    }
+    const ctx = createWorkflowContext(deps, {}, internal)
+    const result = await engine.runWorkflow('depth9', ctx, internal)
+    expect(result.status).toBe('completed')
+    expect(maxDepth).toBe(9)
+  })
 })

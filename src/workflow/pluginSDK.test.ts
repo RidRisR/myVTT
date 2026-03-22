@@ -143,3 +143,68 @@ describe('WorkflowRunner', () => {
     expect(r2.status).toBe('completed')
   })
 })
+
+describe('PluginSDK + deactivatePlugin', () => {
+  it('deactivatePlugin cleans up wrappers registered via SDK', async () => {
+    const engine = new WorkflowEngine()
+    const sdk = new PluginSDK(engine, 'plugin-x')
+    const order: string[] = []
+
+    const handle = engine.defineWorkflow('deact-wrap', [
+      {
+        id: 'target',
+        run: () => {
+          order.push('original')
+        },
+      },
+    ])
+
+    sdk.wrapStep(handle, 'target', {
+      run: (ctx, original) => {
+        order.push('wrapper')
+        return original(ctx)
+      },
+    })
+
+    // Run with wrapper active
+    const runner = new WorkflowRunner(engine, makeDeps())
+    await runner.runWorkflow(handle)
+    expect(order).toEqual(['wrapper', 'original'])
+
+    // Deactivate plugin and run again
+    order.length = 0
+    engine.deactivatePlugin('plugin-x')
+    await runner.runWorkflow(handle)
+    expect(order).toEqual(['original'])
+  })
+
+  it('deactivatePlugin restores replaced steps registered via SDK', async () => {
+    const engine = new WorkflowEngine()
+    const sdk = new PluginSDK(engine, 'plugin-y')
+    const order: string[] = []
+
+    const handle = engine.defineWorkflow('deact-repl', [
+      {
+        id: 'target',
+        run: () => {
+          order.push('original')
+        },
+      },
+    ])
+
+    sdk.replaceStep(handle, 'target', {
+      run: () => {
+        order.push('replaced')
+      },
+    })
+
+    const runner = new WorkflowRunner(engine, makeDeps())
+    await runner.runWorkflow(handle)
+    expect(order).toEqual(['replaced'])
+
+    order.length = 0
+    engine.deactivatePlugin('plugin-y')
+    await runner.runWorkflow(handle)
+    expect(order).toEqual(['original'])
+  })
+})
