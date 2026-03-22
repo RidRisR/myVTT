@@ -1,5 +1,29 @@
 import { useRef, useCallback } from 'react'
 import type { MouseEvent } from 'react'
+import type { LayoutConfig, LayoutEntry } from './types'
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function applyDrag(
+  layout: LayoutConfig,
+  instanceKey: string,
+  delta: { dx: number; dy: number },
+): LayoutConfig {
+  const entry = layout[instanceKey]
+  if (!entry) return layout
+
+  const updated: LayoutEntry = {
+    x: entry.x + delta.dx,
+    y: entry.y + delta.dy,
+    width: entry.width,
+    height: entry.height,
+    visible: entry.visible,
+    instanceProps: entry.instanceProps,
+  }
+  return {
+    ...layout,
+    [instanceKey]: updated,
+  }
+}
 
 interface DragHandleProps {
   instanceKey: string

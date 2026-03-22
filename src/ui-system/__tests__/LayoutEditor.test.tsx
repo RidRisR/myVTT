@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyDrag } from '../layoutEditorUtils'
+import { applyDrag } from '../LayoutEditor'
 import type { LayoutConfig } from '../types'
 
 describe('applyDrag', () => {
