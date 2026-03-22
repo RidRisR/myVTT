@@ -108,7 +108,7 @@ describe('PanelRenderer', () => {
     // The panel content renders but the chrome label div does not
     expect(screen.getByText('bare content')).toBeInTheDocument()
     // Chrome label shows componentId as text — should be absent
-    const allText = container.textContent ?? ''
+    const allText = container.textContent || ''
     expect(allText).not.toContain('test.bare')
   })
 })
