@@ -4,6 +4,7 @@ import { UIRegistry } from '../ui-system/registry'
 import { PanelRenderer } from '../ui-system/PanelRenderer'
 import { LayerRenderer } from '../ui-system/LayerRenderer'
 import { applyDrag, createDragInitiator } from '../ui-system/LayoutEditor'
+import { makeDnDSDK } from '../ui-system/dnd'
 // eslint-disable-next-line no-restricted-imports -- sandbox: direct plugin import for demo, no registry needed
 import { pocUIPlugin } from '../../plugins/poc-ui'
 import { PluginSDK, WorkflowRunner } from '../workflow/pluginSDK'
@@ -27,8 +28,8 @@ const MOCK_ENTITIES: Entity[] = [
 ]
 
 const INITIAL_LAYOUT: LayoutConfig = {
-  'poc-ui.hello#1': { x: 40, y: 40, width: 240, height: 140 },
-  'poc-ui.hello#2': { x: 320, y: 40, width: 240, height: 140, instanceProps: { entityId: 'e1' } },
+  'poc-ui.hello#1': { x: 40, y: 40, width: 240, height: 200 },
+  'poc-ui.hello#2': { x: 320, y: 40, width: 240, height: 200, instanceProps: { entityId: 'e1' } },
 }
 
 export default function PatternUISystem() {
@@ -70,9 +71,14 @@ export default function PatternUISystem() {
       },
       workflow: runner,
       context: { instanceProps, role: 'GM', layoutMode: mode },
-      // play 模式注入 layout.startDrag，让组件可以自定义把手；edit 模式系统浮层接管
-      layout:
-        mode === 'play' ? { startDrag: createDragInitiator(instanceKey, handleDrag) } : undefined,
+      // play 模式注入交互原语；edit 模式系统浮层接管所有交互，不注入
+      interaction:
+        mode === 'play'
+          ? {
+              layout: { startDrag: createDragInitiator(instanceKey, handleDrag) },
+              dnd: makeDnDSDK(),
+            }
+          : undefined,
     }),
     [runner, handleDrag],
   )
