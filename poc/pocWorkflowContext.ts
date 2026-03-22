@@ -42,11 +42,8 @@ export function createPocInternal(): InternalState {
     abortCtrl: { aborted: false },
     dataCtrl: {
       getInner: () => inner,
-      replaceInner: (replacement) => {
-        Object.keys(inner).forEach((k) => {
-          delete inner[k]
-        })
-        Object.assign(inner, replacement)
+      replaceInner: () => {
+        // no-op: POC doesn't use snapshot/restore
       },
     },
   }
