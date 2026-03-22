@@ -1,4 +1,7 @@
+import { useState, useCallback } from 'react'
 import { useComponent } from '../hooks'
+import { useEvent } from '../eventBus'
+import { damageDealtEvent } from '../plugins/core/events'
 import { createDataReader } from '../dataReader'
 import { makeDnDSDK } from '../../src/ui-system/dnd'
 import { getSpellDropHandler } from './spellDropHandler'
@@ -14,6 +17,21 @@ export function EntityCard({ entityId }: { entityId: string }) {
   const health = useComponent<Health>(entityId, 'core:health')
   const resistances = useComponent<Resistances>(entityId, 'status-fx:resistances')
 
+  const [isHit, setIsHit] = useState(false)
+
+  useEvent(
+    damageDealtEvent,
+    useCallback(
+      (payload) => {
+        if (payload.targetId === entityId) {
+          setIsHit(true)
+          setTimeout(() => setIsHit(false), 300)
+        }
+      },
+      [entityId],
+    ),
+  )
+
   const dropZoneProps = dnd.makeDropZone({
     accept: ['spell'],
     canDrop: () => {
@@ -27,7 +45,12 @@ export function EntityCard({ entityId }: { entityId: string }) {
   })
 
   return (
-    <div {...dropZoneProps} className="rounded border border-border bg-surface p-3">
+    <div
+      {...dropZoneProps}
+      className={`rounded border p-3 transition-colors duration-300 ${
+        isHit ? 'border-red-500 bg-red-500/10' : 'border-border bg-surface'
+      }`}
+    >
       <h3 className="font-semibold text-foreground">{entityId}</h3>
       {health && (
         <div className="mt-1 text-sm text-muted">

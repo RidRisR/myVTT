@@ -11,6 +11,7 @@ import { loadMockData } from './mockData'
 import { EntityCard } from './panels/EntityCard'
 import { setSpellDropHandler } from './panels/spellDropHandler'
 import { StatusTagPalette } from './panels/StatusTagPalette'
+import { DamageLog } from './panels/DamageLog'
 import type { SpellPayload } from './panels/StatusTagPalette'
 import type { Health } from './plugins/core/components'
 
@@ -65,6 +66,10 @@ export default function PocApp() {
         <div className="flex gap-4">
           <EntityCard entityId="hero-01" />
         </div>
+      </div>
+      {/* Right: Damage Log */}
+      <div className="w-60 border-l border-border">
+        <DamageLog />
       </div>
     </div>
   )

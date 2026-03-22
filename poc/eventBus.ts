@@ -1,3 +1,5 @@
+import { useRef, useEffect } from 'react'
+
 export interface EventHandle<T = unknown> {
   key: string
   __type?: T
@@ -39,3 +41,15 @@ export function createEventBus(): EventBus {
 }
 
 export const eventBus = new EventBus()
+
+export function useEvent<T>(
+  handle: EventHandle<T>,
+  handler: (payload: T) => void,
+  bus: EventBus = eventBus,
+): void {
+  const handlerRef = useRef(handler)
+  useEffect(() => {
+    handlerRef.current = handler
+  })
+  useEffect(() => bus.on(handle, (p) => handlerRef.current(p)), [handle.key, bus])
+}
