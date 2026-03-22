@@ -26,6 +26,12 @@ const PATTERNS: PatternEntry[] = [
     description: 'Single DndContext with tag drag + item sortable + batch drop',
     component: lazy(() => import('./PatternMultiTypeDnD')),
   },
+  {
+    key: 'ui-system-poc',
+    title: 'UI System POC',
+    description: 'Plugin registerComponent + registerLayer + IComponentSDK injection',
+    component: lazy(() => import('./PatternUISystem')),
+  },
 ]
 
 export default function SandboxRoot() {
