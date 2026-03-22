@@ -1,4 +1,5 @@
 import { WorkflowEngine } from '../../src/workflow/engine'
+import type { WorkflowContext } from '../../src/workflow/types'
 import { usePocSessionStore, _setSelection } from '../sessionStore'
 import { createDataReader } from '../dataReader'
 import { createEventBus } from '../eventBus'
@@ -26,7 +27,7 @@ describe('Session State', () => {
       { entityId: 'goblin-01' },
       internal,
     )
-    await engine.runWorkflow('core:set-selection', ctx as any, internal)
+    await engine.runWorkflow('core:set-selection', ctx as unknown as WorkflowContext, internal)
     expect(usePocSessionStore.getState().selection).toEqual(['goblin-01'])
   })
 
@@ -42,7 +43,7 @@ describe('Session State', () => {
       { entityId: null },
       internal,
     )
-    await engine.runWorkflow('core:set-selection', ctx as any, internal)
+    await engine.runWorkflow('core:set-selection', ctx as unknown as WorkflowContext, internal)
     expect(usePocSessionStore.getState().selection).toEqual([])
   })
 
