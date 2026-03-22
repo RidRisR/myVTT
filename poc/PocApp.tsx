@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { WorkflowEngine } from '../src/workflow/engine'
+import type { WorkflowContext } from '../src/workflow/types'
 import { usePocStore } from './store'
 import { createDataReader } from './dataReader'
 import { createEventBus } from './eventBus'
@@ -7,7 +8,8 @@ import { createPocWorkflowContext } from './pocWorkflowContext'
 import { activateCorePlugin } from './plugins/core/index'
 import { activateStatusFxPlugin } from './plugins/status-fx/index'
 import { loadMockData } from './mockData'
-import { EntityCard, setSpellDropHandler } from './panels/EntityCard'
+import { EntityCard } from './panels/EntityCard'
+import { setSpellDropHandler } from './panels/spellDropHandler'
 import { StatusTagPalette } from './panels/StatusTagPalette'
 import type { SpellPayload } from './panels/StatusTagPalette'
 import type { Health } from './plugins/core/components'
@@ -29,7 +31,7 @@ setSpellDropHandler((entityId: string, spell: SpellPayload) => {
     { targetId: entityId, rawDamage: spell.damage, damageType: spell.damageType, finalDamage: 0 },
     internal,
   )
-  void engine.runWorkflow('core:deal-damage', ctx as any, internal)
+  void engine.runWorkflow('core:deal-damage', ctx as unknown as WorkflowContext, internal)
 })
 
 export default function PocApp() {

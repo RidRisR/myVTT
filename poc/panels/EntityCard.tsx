@@ -1,17 +1,11 @@
 import { useComponent } from '../hooks'
 import { createDataReader } from '../dataReader'
 import { makeDnDSDK } from '../../src/ui-system/dnd'
+import { getSpellDropHandler } from './spellDropHandler'
 import type { Health } from '../plugins/core/components'
 import type { Resistances } from '../plugins/status-fx/components'
 import type { SpellPayload } from './StatusTagPalette'
 import type { DnDPayload } from '../../src/ui-system/types'
-
-// Runner function will be injected by PocApp
-let _onSpellDrop: ((entityId: string, spell: SpellPayload) => void) | null = null
-
-export function setSpellDropHandler(handler: (entityId: string, spell: SpellPayload) => void) {
-  _onSpellDrop = handler
-}
 
 const dnd = makeDnDSDK()
 const reader = createDataReader()
@@ -28,15 +22,12 @@ export function EntityCard({ entityId }: { entityId: string }) {
     },
     onDrop: (payload: DnDPayload) => {
       const spell = payload.data as SpellPayload
-      _onSpellDrop?.(entityId, spell)
+      getSpellDropHandler()?.(entityId, spell)
     },
   })
 
   return (
-    <div
-      {...dropZoneProps}
-      className="rounded border border-border bg-surface p-3"
-    >
+    <div {...dropZoneProps} className="rounded border border-border bg-surface p-3">
       <h3 className="font-semibold text-foreground">{entityId}</h3>
       {health && (
         <div className="mt-1 text-sm text-muted">

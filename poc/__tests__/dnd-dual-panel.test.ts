@@ -1,4 +1,5 @@
 import { WorkflowEngine } from '../../src/workflow/engine'
+import type { WorkflowContext } from '../../src/workflow/types'
 import { usePocStore } from '../store'
 import { createDataReader } from '../dataReader'
 import { createEventBus } from '../eventBus'
@@ -7,6 +8,19 @@ import { activateCorePlugin } from '../plugins/core/index'
 import { activateStatusFxPlugin } from '../plugins/status-fx/index'
 import { loadMockData } from '../mockData'
 import type { Health } from '../plugins/core/components'
+import type { DealDamageState } from '../plugins/core/workflows'
+
+function runDealDamage(engine: WorkflowEngine, state: DealDamageState) {
+  const reader = createDataReader()
+  const bus = createEventBus()
+  const internal = { depth: 0, abortCtrl: { aborted: false } }
+  const ctx = createPocWorkflowContext(
+    { dataReader: reader, eventBus: bus, engine },
+    state as DealDamageState & Record<string, unknown>,
+    internal,
+  )
+  return engine.runWorkflow('core:deal-damage', ctx as unknown as WorkflowContext, internal)
+}
 
 // Test the workflow trigger and canDrop logic directly
 describe('DnD → Workflow → Dual Panel', () => {
@@ -20,19 +34,14 @@ describe('DnD → Workflow → Dual Panel', () => {
   })
 
   it('onDrop triggers workflow and updates store', async () => {
-    const reader = createDataReader()
-    const bus = createEventBus()
-    const internal = { depth: 0, abortCtrl: { aborted: false } }
-    const ctx = createPocWorkflowContext(
-      { dataReader: reader, eventBus: bus, engine },
-      { targetId: 'goblin-01', rawDamage: 10, damageType: 'fire', finalDamage: 0 },
-      internal,
-    )
-    await engine.runWorkflow('core:deal-damage', ctx as any, internal)
+    await runDealDamage(engine, {
+      targetId: 'goblin-01',
+      rawDamage: 10,
+      damageType: 'fire',
+      finalDamage: 0,
+    })
 
-    const health = usePocStore.getState().entities['goblin-01']?.components[
-      'core:health'
-    ] as Health
+    const health = usePocStore.getState().entities['goblin-01']?.components['core:health'] as Health
     // 20 - (10 - 5 fire resistance) = 15
     expect(health.hp).toBe(15)
   })
@@ -50,23 +59,16 @@ describe('DnD → Workflow → Dual Panel', () => {
   })
 
   it('cross-panel sync after drop', async () => {
-    const reader = createDataReader()
-    const bus = createEventBus()
-    const internal = { depth: 0, abortCtrl: { aborted: false } }
-    const ctx = createPocWorkflowContext(
-      { dataReader: reader, eventBus: bus, engine },
-      { targetId: 'goblin-01', rawDamage: 10, damageType: 'fire', finalDamage: 0 },
-      internal,
-    )
-    await engine.runWorkflow('core:deal-damage', ctx as any, internal)
+    await runDealDamage(engine, {
+      targetId: 'goblin-01',
+      rawDamage: 10,
+      damageType: 'fire',
+      finalDamage: 0,
+    })
 
     // Two independent reads should return same value
-    const h1 = usePocStore.getState().entities['goblin-01']?.components[
-      'core:health'
-    ] as Health
-    const h2 = usePocStore.getState().entities['goblin-01']?.components[
-      'core:health'
-    ] as Health
+    const h1 = usePocStore.getState().entities['goblin-01']?.components['core:health'] as Health
+    const h2 = usePocStore.getState().entities['goblin-01']?.components['core:health'] as Health
     expect(h1.hp).toBe(h2.hp)
     expect(h1.hp).toBe(15)
   })
