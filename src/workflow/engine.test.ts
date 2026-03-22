@@ -857,7 +857,118 @@ describe('WorkflowEngine', () => {
     }).toThrow('Step "nonexistent" not found')
   })
 
-  // ── 24. Recursion depth boundary ──────────────────────────────────────────
+  // ── 24. Circular dependency detection in attachStep ─────────────────────
+  it('attachStep: self-dependency throws circular error', () => {
+    engine.defineWorkflow('selfref', [{ id: 'a', run: () => {} }])
+    // 'a' exists, try to attach a new step 'a' depending on itself
+    // checkCircularDependency runs before addStep's duplicate check,
+    // walking the chain: current='a', check 'a'==='a' → circular
+    expect(() => {
+      engine.attachStep('selfref', { id: 'a', to: 'a', run: () => {} })
+    }).toThrow(/circular dependency/i)
+  })
+
+  it('attachStep: valid chain does not trigger circular detection', () => {
+    engine.defineWorkflow('noCirc', [{ id: 'root', run: () => {} }])
+    engine.attachStep('noCirc', { id: 'a', to: 'root', run: () => {} })
+    engine.attachStep('noCirc', { id: 'b', to: 'a', run: () => {} })
+    engine.attachStep('noCirc', { id: 'c', to: 'b', run: () => {} })
+    // No cycle — should not throw
+    expect(engine.inspectWorkflow('noCirc')).toContain('c')
+  })
+
+  // ── 25. attachStep with explicit before/after override ─────────────────
+  it('attachStep: explicit before overrides default after positioning', () => {
+    engine.defineWorkflow('attach-pos', [
+      { id: 'a', run: () => {} },
+      { id: 'b', run: () => {} },
+      { id: 'c', run: () => {} },
+    ])
+    // dep depends on 'c' (lifecycle) but positioned before 'b'
+    engine.attachStep('attach-pos', { id: 'dep', to: 'c', before: 'b', run: () => {} })
+    expect(engine.inspectWorkflow('attach-pos')).toEqual(['a', 'dep', 'b', 'c'])
+  })
+
+  it('attachStep: explicit after overrides default positioning', () => {
+    engine.defineWorkflow('attach-pos2', [
+      { id: 'a', run: () => {} },
+      { id: 'b', run: () => {} },
+      { id: 'c', run: () => {} },
+    ])
+    // dep depends on 'a' (lifecycle) but positioned after 'c'
+    engine.attachStep('attach-pos2', { id: 'dep', to: 'a', after: 'c', run: () => {} })
+    expect(engine.inspectWorkflow('attach-pos2')).toEqual(['a', 'b', 'c', 'dep'])
+  })
+
+  // ── 26. deactivatePlugin with unknown plugin ID ────────────────────────
+  it('deactivatePlugin: no-op for unknown plugin ID', () => {
+    engine.defineWorkflow('no-op', [
+      { id: 'a', run: () => {} },
+      { id: 'b', run: () => {} },
+    ])
+    // Should not throw, should not modify anything
+    engine.deactivatePlugin('nonexistent-plugin')
+    expect(engine.inspectWorkflow('no-op')).toEqual(['a', 'b'])
+  })
+
+  // ── 27. Step that is both wrapped and replaced ─────────────────────────
+  it('wrapStep + replaceStep: wrapper composes around replaced run', async () => {
+    const order: string[] = []
+    engine.defineWorkflow('wrap-repl', [
+      {
+        id: 'target',
+        run: () => {
+          order.push('original')
+        },
+      },
+    ])
+    // First wrap, then replace
+    engine.wrapStep('wrap-repl', 'target', {
+      run: async (ctx, original) => {
+        order.push('wrapper-before')
+        await original(ctx)
+        order.push('wrapper-after')
+      },
+    })
+    engine.replaceStep('wrap-repl', 'target', {
+      run: () => {
+        order.push('replaced')
+      },
+    })
+    await run(engine, 'wrap-repl')
+    // Wrapper wraps the replaced run (since replace mutates meta.step.run,
+    // and wrapper captures baseFn at execution time from the snapshot)
+    expect(order).toEqual(['wrapper-before', 'replaced', 'wrapper-after'])
+  })
+
+  it('replaceStep + wrapStep: order of registration does not matter (same result)', async () => {
+    const order: string[] = []
+    engine.defineWorkflow('repl-wrap', [
+      {
+        id: 'target',
+        run: () => {
+          order.push('original')
+        },
+      },
+    ])
+    // Replace first, then wrap
+    engine.replaceStep('repl-wrap', 'target', {
+      run: () => {
+        order.push('replaced')
+      },
+    })
+    engine.wrapStep('repl-wrap', 'target', {
+      run: async (ctx, original) => {
+        order.push('wrapper-before')
+        await original(ctx)
+        order.push('wrapper-after')
+      },
+    })
+    await run(engine, 'repl-wrap')
+    expect(order).toEqual(['wrapper-before', 'replaced', 'wrapper-after'])
+  })
+
+  // ── 28. Recursion depth boundary ──────────────────────────────────────────
   it('recursion depth 9 succeeds (just under limit)', async () => {
     let maxDepth = 0
     engine.defineWorkflow('depth9', [

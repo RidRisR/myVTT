@@ -251,10 +251,12 @@ export class WorkflowEngine {
 
       // 2. Remove all wrappers owned by this plugin
       for (const [stepId, entries] of record.wrappers) {
-        record.wrappers.set(
-          stepId,
-          entries.filter((e) => e.pluginOwner !== pluginId),
-        )
+        const filtered = entries.filter((e) => e.pluginOwner !== pluginId)
+        if (filtered.length === 0) {
+          record.wrappers.delete(stepId)
+        } else {
+          record.wrappers.set(stepId, filtered)
+        }
       }
 
       // 3. Restore replaced steps owned by this plugin

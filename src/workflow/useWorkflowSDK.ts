@@ -111,7 +111,7 @@ function ensurePluginsActivated(engine: WorkflowEngine): void {
 
 /**
  * React hook providing a WorkflowRunner for the UI layer.
- * Pure selector + memo — no side effects, StrictMode safe.
+ * Plugin activation runs once via ref guard (not inside useMemo).
  */
 export function useWorkflowRunner(): IWorkflowRunner {
   const sendRoll = useWorldStore((s) => s.sendRoll)
@@ -121,10 +121,16 @@ export function useWorkflowRunner(): IWorkflowRunner {
   const toastRef = useRef(toast)
   toastRef.current = toast
 
+  // Side effect via ref guard — runs once, StrictMode safe (idempotent)
+  const activatedRef = useRef(false)
+  if (!activatedRef.current) {
+    ensurePluginsActivated(getWorkflowEngine())
+    activatedRef.current = true
+  }
+
   return useMemo(() => {
     const engine = getWorkflowEngine()
     const deps = buildDeps(sendRoll, updateEntity, (v, t, o) => toastRef.current(v, t, o))
-    ensurePluginsActivated(engine)
     return new WorkflowRunner(engine, deps)
   }, [sendRoll, updateEntity])
 }
