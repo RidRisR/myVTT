@@ -6,6 +6,9 @@ export type ZLayer = 'below-canvas' | 'above-canvas' | 'above-ui'
 
 export interface ComponentDef {
   id: string
+  // sdk typed as unknown: avoids importing IComponentSDK here (which would create a
+  // cycle: types.ts → workflow/types.ts → registrationTypes.ts → types.ts).
+  // Plugin registration sites cast their component: `MyPanel as React.ComponentType<{ sdk: unknown }>`.
   component: React.ComponentType<{ sdk: unknown }>
   defaultSize: { width: number; height: number }
   minSize?: { width: number; height: number }
