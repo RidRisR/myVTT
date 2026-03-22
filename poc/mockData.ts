@@ -1,7 +1,7 @@
 import { usePocStore } from './store'
 import type { PocEntity, PocGlobal } from './types'
 
-const COLORS = [
+const COLORS: readonly string[] = [
   '#e74c3c',
   '#3498db',
   '#2ecc71',
@@ -28,7 +28,7 @@ function makeMinion(index: number): PocEntity {
     id,
     name: `Minion ${index}`,
     imageUrl: `/tokens/${id}.png`,
-    color: COLORS[(index - 1) % COLORS.length]!,
+    color: COLORS[(index - 1) % COLORS.length] ?? '#888',
     components: {
       'core:health': { hp: 5 + index, maxHp: 10 + index },
       'status-fx:resistances': { fire: index % 3, ice: index % 5 },
