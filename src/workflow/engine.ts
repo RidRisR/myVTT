@@ -457,6 +457,13 @@ export class WorkflowEngine {
     }
   }
 
+  /** Returns true if `a` should be ordered before `b` (lower priority first, then insertion order) */
+  private isOrderedBefore(a: StepMeta, b: StepMeta): boolean {
+    return (
+      a.priority < b.priority || (a.priority === b.priority && a.insertionOrder < b.insertionOrder)
+    )
+  }
+
   /**
    * Finds the insertion index for a new step meta entry.
    */
@@ -464,13 +471,10 @@ export class WorkflowEngine {
     if (newMeta.anchor === undefined) {
       let insertAt = steps.length
       for (let i = steps.length - 1; i >= 0; i--) {
-        const m = steps[i]
-        if (m === undefined) continue
-        if (m.anchor === undefined) {
-          if (
-            m.priority < newMeta.priority ||
-            (m.priority === newMeta.priority && m.insertionOrder < newMeta.insertionOrder)
-          ) {
+        const existing = steps[i]
+        if (existing === undefined) continue
+        if (existing.anchor === undefined) {
+          if (this.isOrderedBefore(existing, newMeta)) {
             insertAt = i + 1
             break
           }
@@ -485,13 +489,10 @@ export class WorkflowEngine {
     if (newMeta.direction === 'after') {
       let insertAt = anchorIdx + 1
       for (let i = anchorIdx + 1; i < steps.length; i++) {
-        const m = steps[i]
-        if (m === undefined) break
-        if (m.anchor === newMeta.anchor && m.direction === 'after') {
-          if (
-            m.priority < newMeta.priority ||
-            (m.priority === newMeta.priority && m.insertionOrder < newMeta.insertionOrder)
-          ) {
+        const existing = steps[i]
+        if (existing === undefined) break
+        if (existing.anchor === newMeta.anchor && existing.direction === 'after') {
+          if (this.isOrderedBefore(existing, newMeta)) {
             insertAt = i + 1
           } else {
             break
@@ -504,8 +505,12 @@ export class WorkflowEngine {
     } else {
       const beforeGroup: number[] = []
       for (let i = 0; i < anchorIdx; i++) {
-        const m = steps[i]
-        if (m !== undefined && m.anchor === newMeta.anchor && m.direction === 'before') {
+        const existing = steps[i]
+        if (
+          existing !== undefined &&
+          existing.anchor === newMeta.anchor &&
+          existing.direction === 'before'
+        ) {
           beforeGroup.push(i)
         }
       }
@@ -518,12 +523,9 @@ export class WorkflowEngine {
       for (let k = beforeGroup.length - 1; k >= 0; k--) {
         const idx = beforeGroup[k]
         if (idx === undefined) continue
-        const m = steps[idx]
-        if (m === undefined) continue
-        if (
-          m.priority < newMeta.priority ||
-          (m.priority === newMeta.priority && m.insertionOrder < newMeta.insertionOrder)
-        ) {
+        const existing = steps[idx]
+        if (existing === undefined) continue
+        if (this.isOrderedBefore(existing, newMeta)) {
           insertAt = idx + 1
           break
         }
