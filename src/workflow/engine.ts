@@ -13,6 +13,8 @@ import type {
   WorkflowHandle,
 } from './types'
 
+type StepRunFn<TData> = (ctx: WorkflowContext<TData>) => Promise<void> | void
+
 const MAX_RECURSION_DEPTH = 10
 
 /**
@@ -65,8 +67,13 @@ export class WorkflowEngine {
 
   defineWorkflow<TData = Record<string, unknown>>(
     name: string,
-    steps: Step<TData>[],
+    stepsOrRun?: Step<TData>[] | StepRunFn<TData>,
   ): WorkflowHandle<TData> {
+    const steps: Step<TData>[] =
+      stepsOrRun === undefined ? [] :
+      typeof stepsOrRun === 'function' ? [{ id: name, run: stepsOrRun }] :
+      stepsOrRun
+
     if (this.workflows.has(name)) {
       throw new Error(`Workflow "${name}" is already defined`)
     }
@@ -280,6 +287,11 @@ export class WorkflowEngine {
     internal: InternalState,
   ): Promise<WorkflowResult> {
     const record = this.getRecord(name)
+
+    // Zero-step fast path: skip ancestor computation, snapshot, and loop entirely
+    if (record.steps.length === 0) {
+      return { status: 'completed', data: { ...ctx.data } as WorkflowResult['data'], errors: [] }
+    }
 
     if (internal.depth >= MAX_RECURSION_DEPTH) {
       throw new Error(
