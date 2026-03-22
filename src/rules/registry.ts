@@ -4,6 +4,9 @@ import i18next from 'i18next'
 import type { RulePlugin } from './types'
 import { genericPlugin } from '../../plugins/generic/index'
 import { daggerheartPlugin } from '../../plugins/daggerheart/index'
+import { daggerheartCorePlugin } from '../../plugins/daggerheart-core'
+import { daggerheartCosmeticPlugin } from '../../plugins/daggerheart-cosmetic'
+import { registerWorkflowPlugins } from '../workflow/useWorkflowSDK'
 
 function loadPluginI18n(plugin: RulePlugin): void {
   if (!plugin.i18n?.resources) return
@@ -22,6 +25,9 @@ const registry = new Map<string, RulePlugin>([
 for (const plugin of registry.values()) {
   loadPluginI18n(plugin)
 }
+
+// POC: register workflow plugins (will be replaced by dynamic discovery from room's rule system)
+registerWorkflowPlugins([daggerheartCorePlugin, daggerheartCosmeticPlugin])
 
 export function registerPlugin(plugin: RulePlugin): void {
   registry.set(plugin.id, plugin)

@@ -1,6 +1,11 @@
 // plugins/daggerheart/DaggerHeartCard.tsx
 import type { EntityCardProps } from '@myvtt/sdk'
-import { usePluginPanels, usePluginTranslation } from '@myvtt/sdk'
+import {
+  usePluginPanels,
+  usePluginTranslation,
+  useWorkflowRunner,
+  getRollWorkflow,
+} from '@myvtt/sdk'
 import type { DHRuleData } from './types'
 
 const ATTRS = ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowledge'] as const
@@ -9,6 +14,7 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
   const d = entity.ruleData ? (entity.ruleData as DHRuleData) : null
   const { openPanel } = usePluginPanels()
   const { t } = usePluginTranslation()
+  const runner = useWorkflowRunner()
 
   return (
     <div className="flex flex-col gap-3 p-4">
@@ -40,6 +46,28 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
               </div>
             ))}
           </div>
+          {!readonly && (
+            <div className="grid grid-cols-3 gap-1">
+              {ATTRS.map((k) => (
+                <button
+                  key={`roll-${k}`}
+                  onClick={() => {
+                    runner
+                      .runWorkflow(getRollWorkflow(), {
+                        formula: `2d12+@${k}`,
+                        actorId: entity.id,
+                      })
+                      .catch((err: unknown) => {
+                        console.error('[Workflow] roll failed:', err)
+                      })
+                  }}
+                  className="py-1.5 text-[10px] text-text-muted/50 bg-black/20 hover:bg-black/40 rounded transition-colors duration-fast capitalize"
+                >
+                  {t(`roll.action.${k}`)}
+                </button>
+              ))}
+            </div>
+          )}
         </>
       )}
       {!readonly && (

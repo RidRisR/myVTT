@@ -9,6 +9,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./server:/app/server
+      - ./plugins:/app/plugins
       - ./index.html:/app/index.html
       - ./tailwind.config.ts:/app/tailwind.config.ts
       - vtt-data:/app/db

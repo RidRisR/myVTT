@@ -267,3 +267,12 @@ export interface RulePlugin {
   // Layer 7: Rule resolution — reserved, not implemented
   // ruleResolution?: RuleResolutionModule
 }
+
+// ── VTTPlugin — new imperative plugin interface (coexists with RulePlugin) ──
+
+export interface VTTPlugin {
+  id: string
+  dependencies?: string[]
+  onActivate(sdk: import('../workflow/types').IPluginSDK): void
+  onDeactivate?(sdk: import('../workflow/types').IPluginSDK): void
+}
