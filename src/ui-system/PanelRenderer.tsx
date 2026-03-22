@@ -1,4 +1,5 @@
 import { PanelErrorBoundary } from './PanelErrorBoundary'
+import { DragHandle } from './LayoutEditor'
 import type { UIRegistry } from './registry'
 import type { LayoutConfig, IComponentSDK } from './types'
 
@@ -7,9 +8,10 @@ interface Props {
   layout: LayoutConfig
   makeSDK: (instanceKey: string, instanceProps: Record<string, unknown>) => IComponentSDK
   layoutMode: 'play' | 'edit'
+  onDrag?: (instanceKey: string, delta: { dx: number; dy: number }) => void
 }
 
-export function PanelRenderer({ registry, layout, makeSDK, layoutMode }: Props) {
+export function PanelRenderer({ registry, layout, makeSDK, layoutMode, onDrag }: Props) {
   const entries = Object.entries(layout)
 
   return (
@@ -37,7 +39,9 @@ export function PanelRenderer({ registry, layout, makeSDK, layoutMode }: Props) 
               height: entry.height,
             }}
           >
-            {showChrome && (
+            {layoutMode === 'edit' && onDrag ? (
+              <DragHandle instanceKey={instanceKey} label={componentId} onDrag={onDrag} />
+            ) : showChrome ? (
               <div
                 style={{
                   background: 'rgba(0,0,0,0.6)',
@@ -50,7 +54,7 @@ export function PanelRenderer({ registry, layout, makeSDK, layoutMode }: Props) 
               >
                 {componentId}
               </div>
-            )}
+            ) : null}
             <PanelErrorBoundary panelId={instanceKey}>
               <PanelComponent sdk={sdk} />
             </PanelErrorBoundary>
