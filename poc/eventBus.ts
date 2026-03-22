@@ -51,5 +51,6 @@ export function useEvent<T>(
   useEffect(() => {
     handlerRef.current = handler
   })
-  useEffect(() => bus.on(handle, (p) => handlerRef.current(p)), [handle.key, bus])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally keyed on handle.key, not handle object
+  useEffect(() => bus.on(handle, (p) => { handlerRef.current(p); }), [handle.key, bus])
 }
