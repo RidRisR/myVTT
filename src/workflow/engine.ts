@@ -102,9 +102,7 @@ export class WorkflowEngine {
       seen.add(step.id)
       // Forbidden combination: writable + non-critical
       if (step.readonly !== true && step.critical === false) {
-        throw new Error(
-          `Step "${step.id}": readonly must be true when critical is false`,
-        )
+        throw new Error(`Step "${step.id}": readonly must be true when critical is false`)
       }
     }
 
@@ -137,16 +135,12 @@ export class WorkflowEngine {
 
     // Forbidden combination: writable + non-critical
     if (addition.readonly !== true && addition.critical === false) {
-      throw new Error(
-        `Step "${addition.id}": readonly must be true when critical is false`,
-      )
+      throw new Error(`Step "${addition.id}": readonly must be true when critical is false`)
     }
 
     // phase: 'post' requires readonly: true
     if (addition.phase === 'post' && addition.readonly !== true) {
-      throw new Error(
-        `Step "${addition.id}": phase 'post' requires readonly: true`,
-      )
+      throw new Error(`Step "${addition.id}": phase 'post' requires readonly: true`)
     }
 
     if (record.steps.some((m) => m.step.id === addition.id)) {
@@ -391,9 +385,7 @@ export class WorkflowEngine {
         const composedFn = this.composeStep(meta.step.run, wrappersSnapshot.get(meta.step.id))
 
         // Choose context: readonly steps get a frozen-vars context
-        const stepCtx = meta.step.readonly
-          ? (readonlyCtx ??= this.createReadonlyCtx(ctx))
-          : ctx
+        const stepCtx = meta.step.readonly ? (readonlyCtx ??= this.createReadonlyCtx(ctx)) : ctx
 
         if (meta.step.critical !== false) {
           // Critical step — failure propagates immediately
@@ -447,6 +439,7 @@ export class WorkflowEngine {
       if (postSteps.length > 0) {
         const postCtx = readonlyCtx ?? this.createReadonlyCtx(ctx)
         for (const meta of postSteps) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- abort may be set by a prior post step
           if (internal.abortCtrl.aborted) break
 
           const composedFn = this.composeStep(meta.step.run, wrappersSnapshot.get(meta.step.id))
@@ -577,8 +570,8 @@ export class WorkflowEngine {
 
   /** Create a context with frozen vars (set/delete throw TypeError) */
   private createReadonlyCtx(ctx: WorkflowContext): WorkflowContext {
-    const frozenVars = new Proxy(ctx.vars as Record<string, unknown>, {
-      get: (target, key) => Reflect.get(target, key),
+    const frozenVars = new Proxy(ctx.vars, {
+      get: (target, key): unknown => Reflect.get(target, key),
       set: () => {
         throw new TypeError('Cannot modify vars in a readonly step')
       },
@@ -587,8 +580,7 @@ export class WorkflowEngine {
       },
       has: (target, key) => Reflect.has(target, key),
       ownKeys: (target) => Reflect.ownKeys(target),
-      getOwnPropertyDescriptor: (target, key) =>
-        Reflect.getOwnPropertyDescriptor(target, key),
+      getOwnPropertyDescriptor: (target, key) => Reflect.getOwnPropertyDescriptor(target, key),
     })
     const readonlyCtx = Object.create(ctx) as WorkflowContext
     Object.defineProperty(readonlyCtx, 'vars', {
