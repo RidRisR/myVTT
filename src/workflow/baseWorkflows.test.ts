@@ -10,7 +10,6 @@ function makeInternal(): InternalState {
   return {
     depth: 0,
     abortCtrl: { aborted: false },
-    dataCtrl: { getInner: () => ({}), replaceInner: () => {} },
   }
 }
 

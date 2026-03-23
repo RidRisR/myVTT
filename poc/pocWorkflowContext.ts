@@ -31,21 +31,10 @@ export interface PocWorkflowContext<TVars = Record<string, unknown>> {
   ) => Promise<WorkflowResult<T, TOut>>
 }
 
-/**
- * Create an InternalState compatible with main's engine (which requires dataCtrl).
- * POC doesn't use snapshot/restore, so dataCtrl is a no-op passthrough.
- */
 export function createPocInternal(): InternalState {
-  const inner: Record<string, unknown> = {}
   return {
     depth: 0,
     abortCtrl: { aborted: false },
-    dataCtrl: {
-      getInner: () => inner,
-      replaceInner: () => {
-        // no-op: POC doesn't use snapshot/restore
-      },
-    },
   }
 }
 

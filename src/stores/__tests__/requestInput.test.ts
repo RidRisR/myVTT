@@ -93,7 +93,6 @@ describe('ctx.requestInput — workflow integration', () => {
     const internal: InternalState = {
       depth: 0,
       abortCtrl: { aborted: false },
-      dataCtrl: { getInner: () => ({}), replaceInner: () => {} },
     }
     const ctx = createWorkflowContext(deps, {}, internal)
 

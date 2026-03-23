@@ -426,7 +426,7 @@ export class WorkflowEngine {
       const dataCopy = { ...ctx.vars } as Record<string, unknown>
 
       // ── Compute output ────────────────────────────────────────────────────
-      let output: unknown
+      let output: unknown = dataCopy
       if (record.outputFn) {
         try {
           output = record.outputFn(dataCopy)
@@ -441,8 +441,6 @@ export class WorkflowEngine {
             errors,
           }
         }
-      } else {
-        output = dataCopy
       }
 
       // ── Execute post phase (readonly steps after output computation) ──────
@@ -572,7 +570,7 @@ export class WorkflowEngine {
       const wrapper = wrappers[i]
       if (wrapper === undefined) continue
       const inner = composedFn
-      composedFn = (c: WorkflowContext) => wrapper.run(c, inner)
+      composedFn = (c: WorkflowContext): Promise<void> | void => wrapper.run(c, inner)
     }
     return composedFn
   }
