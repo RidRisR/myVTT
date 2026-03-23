@@ -14,7 +14,6 @@ function makeInternal(): InternalState {
   return {
     depth: 0,
     abortCtrl: { aborted: false },
-    dataCtrl: { getInner: () => ({}), replaceInner: () => {} },
   }
 }
 
@@ -158,6 +157,36 @@ describe('createWorkflowContext', () => {
     const ctx = createWorkflowContext(makeDeps({ engine }), undefined, makeInternal())
     await ctx.runWorkflow({ name: 'inner' } as never, { value: 42 })
     expect(capturedState).toEqual({ value: 42 })
+  })
+
+  it('readonly option: vars set throws TypeError', () => {
+    const ctx = createWorkflowContext(makeDeps(), { foo: 'bar' }, makeInternal(), { readonly: true })
+    expect(() => {
+      ctx.vars.foo = 'baz'
+    }).toThrow(TypeError)
+    // Value unchanged
+    expect(ctx.vars.foo).toBe('bar')
+  })
+
+  it('readonly option: vars delete throws TypeError', () => {
+    const ctx = createWorkflowContext(makeDeps(), { foo: 'bar' }, makeInternal(), { readonly: true })
+    expect(() => {
+      delete ctx.vars.foo
+    }).toThrow(TypeError)
+    expect(ctx.vars.foo).toBe('bar')
+  })
+
+  it('readonly option: vars reads still work', () => {
+    const ctx = createWorkflowContext(
+      makeDeps(),
+      { a: 1, b: 'hello' },
+      makeInternal(),
+      { readonly: true },
+    )
+    expect(ctx.vars.a).toBe(1)
+    expect(ctx.vars.b).toBe('hello')
+    expect('a' in ctx.vars).toBe(true)
+    expect(Object.keys(ctx.vars)).toEqual(['a', 'b'])
   })
 
   it('nested workflow has independent abort', async () => {

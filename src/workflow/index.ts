@@ -3,9 +3,8 @@ export { WorkflowEngine } from './engine'
 export { PluginSDK, WorkflowRunner } from './pluginSDK'
 export type { PluginSDKDeps } from './pluginSDK'
 export { createWorkflowContext } from './context'
-export type { ContextDeps } from './context'
+export type { ContextDeps, ContextOptions } from './context'
 export type {
-  Cloneable,
   Step,
   StepAddition,
   AttachStepAddition,

@@ -118,7 +118,7 @@ const result = await runner.runWorkflow(getQuickRollWorkflow(), {
 ```typescript
 interface WorkflowContext<TVars> {
   // ── 步骤间共享数据 ──
-  readonly vars: TVars            // Proxy，支持 snapshot/restore
+  readonly vars: TVars            // Proxy，readonly step 时 set/delete 抛 TypeError
 
   // ── 数据读取（只读） ──
   readonly read: IDataReader      // entity(), component<T>(), query({ has })
@@ -176,14 +176,58 @@ base roll workflow（不被 Daggerheart 污染）:
 generate    ← 纯掷骰，返回 { rolls, total }
 ```
 
+### Readonly Step 与 Post Phase
+
+步骤有两个独立维度：`readonly`（vars 访问权限）和 `critical`（错误处理）。
+
+| 组合 | 语义 | 用例 |
+|------|------|------|
+| `readonly: false, critical: true` | 正常步骤（默认） | roll, judge, resolve |
+| `readonly: true, critical: true` | 只读但失败中断 | 广播（读 vars 发送到聊天，失败要中断） |
+| `readonly: true, critical: false` | 只读且失败不中断 | cosmetic 动画、音效、日志 |
+| `readonly: false, critical: false` | **禁止** | 引擎注册时 throw |
+
+**Readonly 步骤**通过 frozen Proxy 在运行时强制 vars 只读（set/delete 抛 TypeError），因此可安全跨 workflow 边界插入。
+
+**Post Phase**：readonly 步骤可声明 `phase: 'post'`，在 output 计算之后执行：
+
+```
+Workflow 执行流程:
+  ① 普通步骤 + inline readonly steps 顺序执行
+  ② 计算 output（outputFn）
+  ③ post phase — readonly steps（保证看到最终结果）
+  ④ 返回 result
+```
+
+```typescript
+sdk.addStep(workflow, {
+  id: 'cos:dice-animation',
+  readonly: true,
+  phase: 'post',  // 在 output 计算后执行
+  run: (ctx) => {
+    ctx.events.emit(animationEvent, { rolls: ctx.vars.rolls })
+  },
+})
+```
+
 ### 错误处理
 
 | Step 类型 | 失败行为 |
 |-----------|---------|
 | `critical: true`（默认） | 失败 → workflow 立即中断 |
-| `critical: false` | 失败 → snapshot/restore 回滚 `ctx.vars`，继续执行后续步骤 |
+| `readonly: true, critical: false` | 失败 → 收集错误，继续执行后续步骤（无需 snapshot/restore） |
 
 Non-critical step 失败时，通过 `dependsOn` 链标记的依赖步骤也会被跳过。
+
+### Vars 契约
+
+workflow 的 `WorkflowHandle<TData>` 中 `TData` 声明的字段是**公共契约**。步骤如需添加非契约数据，使用 `pluginId:name` 命名空间约定：
+
+```typescript
+ctx.vars.formula     // string — 公共契约，所有步骤可依赖
+ctx.vars.rolls       // number[][] — 公共契约
+ctx.vars['dh-core:intermediateCalc'] = someData  // 命名空间变量，插件内部使用
+```
 
 ### Base Workflows
 
@@ -217,10 +261,10 @@ interface IPluginSDK {
   defineWorkflow<TData, TOutput>(name, steps, outputFn): WorkflowHandle<TData, TOutput>
 
   // 插入步骤（仅定位，无生命周期绑定）
-  addStep(handle, { id, before?, after?, priority?, critical?, run })
+  addStep(handle, { id, before?, after?, priority?, critical?, readonly?, phase?, run })
 
   // 插入步骤 + 生命周期绑定（目标被移除时级联移除）
-  attachStep(handle, { id, to, before?, after?, priority?, critical?, run })
+  attachStep(handle, { id, to, before?, after?, priority?, critical?, readonly?, phase?, run })
 
   // 包装已有步骤（洋葱模型，可叠加多个）
   wrapStep(handle, targetStepId, { priority?, run: (ctx, original) => ... })
@@ -465,6 +509,7 @@ const dhWorkflow = sdk.defineWorkflow<DHActionCheckData>('dh:action-check', [
 sdk.attachStep(getDHActionCheckWorkflow(), {
   id: 'cos:dice-animation',
   to: 'dh:judge',         // 生命周期绑定：dh:judge 被移除时自动移除
+  readonly: true,          // Proxy 强制不可写 → 跨边界安全
   critical: false,         // 失败不中断 workflow
   run: cosmeticDiceAnimationStep,
 })

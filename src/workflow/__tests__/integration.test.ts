@@ -103,6 +103,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     cosmeticSDK.attachStep(dhWorkflow, {
       id: 'cos:dice-animation',
       to: 'dh:judge',
+      readonly: true,
       critical: false,
       run: (ctx) => {
         executionOrder.push('cos:dice-animation')
@@ -195,6 +196,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       {
         id: 'cos:dice-animation',
         to: 'dh:judge',
+        readonly: true,
         critical: false,
         run: () => {},
       },

@@ -3,27 +3,6 @@ import type { Entity } from '../shared/entityTypes'
 import type { EventHandle } from '../events/eventBus'
 import type { IUIRegistrationSDK } from '../ui-system/registrationTypes'
 
-// ── Cloneable — documented convention for ctx.vars values ──────────────────
-
-/**
- * Types safe for structuredClone. ctx.vars should only contain Cloneable values.
- * This is enforced at runtime (structuredClone try/catch) rather than at compile
- * time, because TypeScript interfaces lack implicit index signatures which makes
- * generic constraints impractical. Exported for documentation/testing purposes.
- */
-export type Cloneable =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Date
-  | RegExp
-  | Map<Cloneable, Cloneable>
-  | Set<Cloneable>
-  | Cloneable[]
-  | { [key: string]: Cloneable }
-
 // ── WorkflowHandle — phantom type for compile-time safety ─────────────────
 
 /**
@@ -48,6 +27,7 @@ export interface WorkflowHandle<TData = Record<string, unknown>, TOutput = TData
 export interface Step<TData = Record<string, unknown>> {
   id: string
   critical?: boolean // default true; false = failure won't abort workflow
+  readonly?: boolean // default false; true = vars frozen via Proxy, safe for cross-boundary insert
   run: (ctx: WorkflowContext<TData>) => Promise<void> | void
 }
 
@@ -58,6 +38,8 @@ export interface StepAddition<TData = Record<string, unknown>> {
   after?: string
   priority?: number // default 100, lower = first
   critical?: boolean // default true
+  readonly?: boolean // default false; true = vars frozen, safe for cross-boundary insert
+  phase?: 'post' // run after output computation; requires readonly: true
   run: (ctx: WorkflowContext<TData>) => Promise<void> | void
 }
 
@@ -69,6 +51,8 @@ export interface AttachStepAddition<TData = Record<string, unknown>> {
   after?: string // optional: override positioning
   priority?: number
   critical?: boolean
+  readonly?: boolean // default false; true = vars frozen, safe for cross-boundary insert
+  phase?: 'post' // run after output computation; requires readonly: true
   run: (ctx: WorkflowContext<TData>) => Promise<void> | void
 }
 
@@ -119,11 +103,6 @@ export type WorkflowResult<
 export interface InternalState {
   depth: number
   abortCtrl: { aborted: boolean; reason?: string }
-  /** Proxy data control — set by createWorkflowContext, used by engine for snapshot/restore */
-  dataCtrl: {
-    getInner: () => Record<string, unknown>
-    replaceInner: (replacement: Record<string, unknown>) => void
-  }
 }
 
 // ── IDataReader — imperative store read (workflow steps, canDrop, event callbacks) ──

@@ -138,7 +138,6 @@ export class WorkflowRunner implements IWorkflowRunner {
     const internal: import('./types').InternalState = {
       depth: 0,
       abortCtrl: { aborted: false },
-      dataCtrl: { getInner: () => ({}), replaceInner: () => {} }, // overwritten by createWorkflowContext
     }
     const ctx = createWorkflowContext(
       { ...this.deps, engine: this.engine },

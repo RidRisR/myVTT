@@ -124,6 +124,7 @@ describe('WorkflowRunner', () => {
     const handle = engine.defineWorkflow('errors', [
       {
         id: 'fail',
+        readonly: true,
         critical: false,
         run: () => {
           throw new Error('oops')

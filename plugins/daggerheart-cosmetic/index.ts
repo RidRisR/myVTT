@@ -11,6 +11,7 @@ export const daggerheartCosmeticPlugin: VTTPlugin = {
     sdk.attachStep(dhActionCheck, {
       id: 'cos:dice-animation',
       to: 'dh:judge',
+      readonly: true,
       critical: false,
       run: cosmeticDiceAnimationStep,
     })

@@ -21,31 +21,41 @@ export interface ContextDeps {
   engine: WorkflowEngine
 }
 
+export interface ContextOptions {
+  readonly?: boolean // true = vars frozen via Proxy (set/delete throw)
+}
+
 export function createWorkflowContext(
   deps: ContextDeps,
   initialData: Record<string, unknown> = {},
   internal: InternalState,
+  options?: ContextOptions,
 ): WorkflowContext {
-  // Proxy delegates to a replaceable inner object. Snapshot/restore swaps _inner
-  // in O(1) without delete — eliminates need for no-dynamic-delete suppress.
-  let _inner: Record<string, unknown> = { ...initialData }
+  const _inner: Record<string, unknown> = { ...initialData }
 
-  const state = new Proxy({} as Record<string, unknown>, {
-    get: (_, key): unknown => Reflect.get(_inner, key),
-    set: (_, key, val): boolean => Reflect.set(_inner, key, val),
-    deleteProperty: (_, key) => Reflect.deleteProperty(_inner, key),
-    has: (_, key) => Reflect.has(_inner, key),
-    ownKeys: () => Reflect.ownKeys(_inner),
-    getOwnPropertyDescriptor: (_, key) => Reflect.getOwnPropertyDescriptor(_inner, key),
-  })
-
-  // Wire up dataCtrl so engine can snapshot/restore via Proxy inner swap
-  internal.dataCtrl = {
-    getInner: () => _inner,
-    replaceInner: (replacement) => {
-      _inner = replacement
-    },
-  }
+  const state = options?.readonly
+    ? new Proxy(_inner, {
+        get: (target, key): unknown => Reflect.get(target, key),
+        set: () => {
+          throw new TypeError('Cannot modify vars in a readonly step')
+        },
+        deleteProperty: () => {
+          throw new TypeError('Cannot modify vars in a readonly step')
+        },
+        has: (target, key) => Reflect.has(target, key),
+        ownKeys: (target) => Reflect.ownKeys(target),
+        getOwnPropertyDescriptor: (target, key) =>
+          Reflect.getOwnPropertyDescriptor(target, key),
+      })
+    : new Proxy({} as Record<string, unknown>, {
+        get: (_, key): unknown => Reflect.get(_inner, key),
+        set: (_, key, val): boolean => Reflect.set(_inner, key, val),
+        deleteProperty: (_, key) => Reflect.deleteProperty(_inner, key),
+        has: (_, key) => Reflect.has(_inner, key),
+        ownKeys: () => Reflect.ownKeys(_inner),
+        getOwnPropertyDescriptor: (_, key) =>
+          Reflect.getOwnPropertyDescriptor(_inner, key),
+      })
 
   // Imperative data reader backed by deps.getEntity
   const read: IDataReader = {
@@ -113,11 +123,10 @@ export function createWorkflowContext(
       handle: WorkflowHandle<T, TOut>,
       nestedData?: Partial<T>,
     ): Promise<WorkflowResult<T, TOut>> => {
-      // Nested workflow: inherit depth, independent abort + dataCtrl
+      // Nested workflow: inherit depth, independent abort
       const nestedInternal: InternalState = {
         depth: internal.depth,
         abortCtrl: { aborted: false },
-        dataCtrl: { getInner: () => ({}), replaceInner: () => {} }, // overwritten by nested createWorkflowContext
       }
       const nestedCtx = createWorkflowContext(
         deps,

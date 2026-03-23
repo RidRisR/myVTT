@@ -50,7 +50,6 @@ export type { ToolDefinition, ToolCategory, ToolLayerProps } from '../combat/too
 
 // ── Workflow types (plugin cooperation model) ───────────────────────────────
 export type {
-  Cloneable,
   Step,
   StepAddition,
   AttachStepAddition,
