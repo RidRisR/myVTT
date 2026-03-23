@@ -44,6 +44,7 @@ describe('createWorkflowContext', () => {
     const ctx = createWorkflowContext(makeDeps(), undefined, makeInternal())
     expect(typeof ctx.serverRoll).toBe('function')
     expect(typeof ctx.updateComponent).toBe('function')
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
     expect(typeof ctx.updateTeamTracker).toBe('function')
     expect(typeof ctx.events.emit).toBe('function')
     expect(typeof ctx.abort).toBe('function')
@@ -67,17 +68,25 @@ describe('createWorkflowContext', () => {
 
   it('updateComponent reads entity ruleData and writes back', () => {
     const entity = {
-      id: 'e1', name: 'Goblin', imageUrl: '', color: '', width: 1, height: 1,
-      blueprintId: undefined, notes: '', ruleData: { hp: { current: 10, max: 20 } },
-      permissions: { default: 'none' as const, seats: {} }, lifecycle: 'persistent' as const,
+      id: 'e1',
+      name: 'Goblin',
+      imageUrl: '',
+      color: '',
+      width: 1,
+      height: 1,
+      blueprintId: undefined,
+      notes: '',
+      ruleData: { hp: { current: 10, max: 20 } },
+      permissions: { default: 'none' as const, seats: {} },
+      lifecycle: 'persistent' as const,
     }
     const deps = makeDeps({ getEntity: vi.fn().mockReturnValue(entity) })
     const ctx = createWorkflowContext(deps, undefined, makeInternal())
 
-    ctx.updateComponent<{ current: number; max: number }>('e1', 'hp', (c) => ({
-      ...c!,
-      current: c!.current - 3,
-    }))
+    ctx.updateComponent<{ current: number; max: number }>('e1', 'hp', (c) => {
+      const val = c ?? { current: 0, max: 0 }
+      return { ...val, current: val.current - 3 }
+    })
 
     expect(deps.updateEntity).toHaveBeenCalledWith('e1', {
       ruleData: { hp: { current: 7, max: 20 } },
@@ -87,6 +96,7 @@ describe('createWorkflowContext', () => {
   it('updateTeamTracker delegates to deps.updateTeamTracker', () => {
     const deps = makeDeps()
     const ctx = createWorkflowContext(deps, undefined, makeInternal())
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
     ctx.updateTeamTracker('HP', { current: 5 })
     expect(deps.updateTeamTracker).toHaveBeenCalledWith('HP', { current: 5 })
   })

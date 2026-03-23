@@ -28,8 +28,10 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
       if (!judgment || judgment.type !== 'daggerheart') return
       const outcome = judgment.outcome
       if (outcome === 'success_hope' || outcome === 'failure_hope') {
+        // eslint-disable-next-line @typescript-eslint/no-deprecated -- will be removed when teamTracker is redesigned
         ctx.updateTeamTracker('Hope', { current: 1 })
       } else if (outcome === 'success_fear' || outcome === 'failure_fear') {
+        // eslint-disable-next-line @typescript-eslint/no-deprecated -- will be removed when teamTracker is redesigned
         ctx.updateTeamTracker('Fear', { current: 1 })
       }
     },
