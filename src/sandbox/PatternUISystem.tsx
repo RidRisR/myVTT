@@ -66,9 +66,10 @@ export default function PatternUISystem() {
       instanceProps: Record<string, unknown>,
       mode: 'play' | 'edit',
     ): IComponentSDK => ({
-      data: {
+      read: {
         entity: (id) => MOCK_ENTITIES.find((e) => e.id === id),
-        entities: () => MOCK_ENTITIES,
+        component: () => undefined,
+        query: () => MOCK_ENTITIES,
       },
       workflow: runner,
       context: { instanceProps, role: 'GM', layoutMode: mode },

@@ -34,7 +34,7 @@ server/uploads/
 !.claude/hooks/
 coverage/
 .superpowers/
-data/
+/data/
 refs/
 
 # Playwright

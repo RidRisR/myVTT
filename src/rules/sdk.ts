@@ -64,6 +64,7 @@ export type {
   StepError,
   IPluginSDK,
   IWorkflowRunner,
+  IDataReader,
 } from '../workflow/types'
 
 // ── EventBus (decoupled side effects) ──────────────────────────────────────
@@ -85,3 +86,7 @@ export type { VTTPlugin } from './types'
 export { getRollWorkflow } from '../workflow/baseWorkflows'
 export type { BaseRollData } from '../workflow/baseWorkflows'
 export { useWorkflowRunner } from '../workflow/useWorkflowSDK'
+
+// ── Data layer (reactive hooks + imperative reader) ────────────────────────
+export { useEntity, useComponent } from '../data/hooks'
+export { createDataReader } from '../data/dataReader'
