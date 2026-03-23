@@ -49,6 +49,7 @@ export default function PatternUISystem() {
       updateEntity: () => {},
       updateTeamTracker: () => {},
       getEntity: () => undefined,
+      getAllEntities: () => ({}),
       eventBus: new EventBus(),
     })
     return { registry: reg, runner: wfRunner }
