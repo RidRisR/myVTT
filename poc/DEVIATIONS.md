@@ -61,3 +61,15 @@
 **原因**：POC 的核心验证目标是 instanceProps 动态绑定机制，不是布局系统。面板定位复用现有 `PanelRenderer` 即可，无需在 POC 中重新实现。
 
 **影响**：无。动态绑定机制已验证，布局集成在正式版本中进行。
+
+---
+
+## 6. requestInput 未集成到 PocWorkflowContext
+
+**设计文档预期**：`ctx.requestInput(handle, context)` 作为 context 方法暂停 workflow。
+
+**实际实现**：`requestInput` 作为 `sessionStore.ts` 的独立函数实现，未挂载到 `PocWorkflowContext`。
+
+**原因**：独立函数已充分验证暂停/恢复/取消机制（8 个测试）。将其集成到 context 需要处理 WorkflowEngine 的异步步骤支持（当前步骤是同步的），超出 POC 范围。
+
+**影响**：正式迁移时需在 WorkflowContext 中添加 `requestInput` 方法，并确保 engine 支持异步步骤执行。
