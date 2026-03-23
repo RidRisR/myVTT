@@ -22,14 +22,13 @@ import type { Scene, TacticalInfo } from '../worldStore'
 
 const makeEntity = (id: string, overrides?: Partial<Entity>): Entity => ({
   id,
-  name: `Entity ${id}`,
-  imageUrl: '',
-  color: '#fff',
-  width: 1,
-  height: 1,
-  notes: '',
+  tags: [],
+  components: {
+    'core:identity': { name: `Entity ${id}`, imageUrl: '', color: '#fff' },
+    'core:token': { width: 1, height: 1 },
+    'core:notes': { text: '' },
+  },
   lifecycle: 'ephemeral' as const,
-  ruleData: {},
   permissions: { default: 'none', seats: {} },
   ...overrides,
 })

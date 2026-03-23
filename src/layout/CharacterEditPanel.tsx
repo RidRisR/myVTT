@@ -3,15 +3,11 @@ import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useClickOutside } from '../hooks/useClickOutside'
 import type { Entity } from '../shared/entityTypes'
+import { getName, getColor, getImageUrl, getIdentity, getNotes } from '../shared/coreComponents'
+import type { CoreIdentity } from '../shared/coreComponents'
 import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
-import {
-  getEntityResources,
-  getEntityAttributes,
-  getEntityStatuses,
-  type ResourceView,
-  type AttributeView,
-  updateRuleDataField,
-} from '../shared/entityAdapters'
+import { useRulePlugin } from '../rules/useRulePlugin'
+import type { ResourceView } from '../rules/types'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../ui/ResourceBar'
 import { MiniHoldButton } from '../ui/MiniHoldButton'
@@ -72,6 +68,10 @@ const removeBtnStyle: React.CSSProperties = {
   flexShrink: 0,
 }
 
+function updateComponent(entity: Entity, key: string, value: unknown): Partial<Entity> {
+  return { components: { ...entity.components, [key]: value } }
+}
+
 export function CharacterEditPanel({
   character,
   onUpdateCharacter,
@@ -83,6 +83,8 @@ export function CharacterEditPanel({
   const [colorPickerOpen, setColorPickerOpen] = useState<'character' | number | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const colorPickerRef = useRef<HTMLDivElement>(null)
+
+  const plugin = useRulePlugin()
 
   // Awareness for resource drag broadcasting
   const mySeatId = useIdentityStore((s) => s.mySeatId)
@@ -101,74 +103,89 @@ export function CharacterEditPanel({
   const updateChar = (updates: Partial<Entity>) => {
     onUpdateCharacter(character.id, updates)
   }
-  const resources = getEntityResources(character)
-  const attributes = getEntityAttributes(character)
-  const statuses = getEntityStatuses(character)
+
+  const name = getName(character)
+  const imageUrl = getImageUrl(character)
+  const color = getColor(character)
+  const identity = getIdentity(character)
+  const notes = getNotes(character).text
+
+  const resources = plugin.adapters.getPortraitResources(character)
+  const attributes = plugin.adapters.getFormulaTokens(character)
+  const statuses = plugin.adapters.getStatuses(character)
+  const attrEntries = Object.entries(attributes)
+
+  const updateIdentity = (patch: Partial<CoreIdentity>) => {
+    updateChar(updateComponent(character, 'core:identity', { ...identity, ...patch }))
+  }
 
   /* -- Resource helpers -- */
+  const rawResources = (character.components['rule:resources'] ?? []) as ResourceView[]
   const updateResource = (index: number, updates: Partial<ResourceView>) => {
-    const next = [...resources]
-    // index is guaranteed valid — called from .map() over resources
+    const next = [...rawResources]
     const existing = next[index]
     if (!existing) return
     next[index] = { ...existing, ...updates }
-    updateChar(updateRuleDataField(character, 'resources', next))
+    updateChar(updateComponent(character, 'rule:resources', next))
   }
   const addResource = () => {
-    const color = barColorForKey(`res_${resources.length}`)
+    const clr = barColorForKey(`res_${rawResources.length}`)
     updateChar(
-      updateRuleDataField(character, 'resources', [
-        ...resources,
-        { key: '', current: 10, max: 10, color },
+      updateComponent(character, 'rule:resources', [
+        ...rawResources,
+        { key: '', current: 10, max: 10, color: clr },
       ]),
     )
   }
   const removeResource = (index: number) => {
     updateChar(
-      updateRuleDataField(
+      updateComponent(
         character,
-        'resources',
-        resources.filter((_, i) => i !== index),
+        'rule:resources',
+        rawResources.filter((_, i) => i !== index),
       ),
     )
   }
 
   /* -- Attribute helpers -- */
-  const updateAttribute = (index: number, updates: Partial<AttributeView>) => {
-    const next = [...attributes]
+  type AttrEntry = { key: string; value: number }
+  const rawAttributes = (character.components['rule:attributes'] ?? []) as AttrEntry[]
+  const updateAttribute = (index: number, updates: Partial<AttrEntry>) => {
+    const next = [...rawAttributes]
     const existing = next[index]
     if (!existing) return
     next[index] = { ...existing, ...updates }
-    updateChar(updateRuleDataField(character, 'attributes', next))
+    updateChar(updateComponent(character, 'rule:attributes', next))
   }
   const addAttribute = () => {
     updateChar(
-      updateRuleDataField(character, 'attributes', [...attributes, { key: '', value: 10 }]),
+      updateComponent(character, 'rule:attributes', [...rawAttributes, { key: '', value: 10 }]),
     )
   }
   const removeAttribute = (index: number) => {
     updateChar(
-      updateRuleDataField(
+      updateComponent(
         character,
-        'attributes',
-        attributes.filter((_, i) => i !== index),
+        'rule:attributes',
+        rawAttributes.filter((_, i) => i !== index),
       ),
     )
   }
 
   /* -- Status helpers -- */
+  const rawStatuses = (character.components['rule:statuses'] ?? []) as { label: string }[]
   const addStatus = () => {
     const label = statusInput.trim()
-    if (!label || statuses.some((s) => s.label === label)) return
-    updateChar(updateRuleDataField(character, 'statuses', [...statuses, { label }]))
+    if (!label || rawStatuses.some((s) => s.label === label)) return
+    updateChar(updateComponent(character, 'rule:statuses', [...rawStatuses, { label }]))
     setStatusInput('')
   }
   const removeStatus = (index: number) => {
     updateChar(
-      updateRuleDataField(
+      updateComponent(
         character,
-        'statuses',
-        statuses.filter((_, i) => i !== index),
+        'rule:statuses',
+        rawStatuses.filter((_, i) => i !== index),
       ),
     )
   }
@@ -185,23 +202,23 @@ export function CharacterEditPanel({
           className="relative cursor-pointer shrink-0"
           title={t('character.change_portrait')}
         >
-          {character.imageUrl ? (
+          {imageUrl ? (
             <img
-              src={character.imageUrl}
-              alt={character.name}
+              src={imageUrl}
+              alt={name}
               className="w-12 h-12 rounded-full object-cover block"
-              style={{ border: `3px solid ${character.color}` }}
+              style={{ border: `3px solid ${color}` }}
             />
           ) : (
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold"
               style={{
-                background: `linear-gradient(135deg, ${character.color}, ${character.color}aa)`,
-                border: `3px solid ${character.color}`,
+                background: `linear-gradient(135deg, ${color}, ${color}aa)`,
+                border: `3px solid ${color}`,
                 boxSizing: 'border-box',
               }}
             >
-              {character.name.charAt(0).toUpperCase()}
+              {name.charAt(0).toUpperCase()}
             </div>
           )}
           {/* Hover overlay */}
@@ -221,9 +238,9 @@ export function CharacterEditPanel({
             {t('character.name_label')}
           </label>
           <input
-            value={character.name}
+            value={name}
             onChange={(e) => {
-              updateChar({ name: e.target.value })
+              updateIdentity({ name: e.target.value })
             }}
             style={{ ...inputStyle, fontSize: 14, fontWeight: 600 }}
           />
@@ -242,7 +259,7 @@ export function CharacterEditPanel({
             }}
             className="w-[18px] h-[18px] rounded-full cursor-pointer transition-[border-color] duration-fast hover:border-white/50"
             style={{
-              background: character.color,
+              background: color,
               border: '2px solid rgba(255,255,255,0.3)',
             }}
             title={t('character.change_color')}
@@ -263,13 +280,13 @@ export function CharacterEditPanel({
               <div
                 key={c}
                 onClick={() => {
-                  updateChar({ color: c })
+                  updateIdentity({ color: c })
                   setColorPickerOpen(null)
                 }}
                 className="w-[22px] h-[22px] rounded-full cursor-pointer transition-[border-color] duration-fast"
                 style={{
                   background: c,
-                  border: c === character.color ? '2px solid #fff' : '2px solid transparent',
+                  border: c === color ? '2px solid #fff' : '2px solid transparent',
                 }}
               />
             ))}
@@ -288,9 +305,9 @@ export function CharacterEditPanel({
             {/* Header: name + current/max inputs + remove */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
               <input
-                value={res.key}
+                value={res.label}
                 onChange={(e) => {
-                  updateResource(i, { key: e.target.value })
+                  updateResource(i, { key: e.target.value } as Partial<ResourceView>)
                 }}
                 placeholder={t('character.resource_name_placeholder')}
                 style={{
@@ -443,10 +460,10 @@ export function CharacterEditPanel({
 
   const renderAttributes = () => (
     <div>
-      {attributes.map((attr, i) => (
+      {attrEntries.map(([key, value], i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
           <input
-            value={attr.key}
+            value={key}
             onChange={(e) => {
               updateAttribute(i, { key: e.target.value })
             }}
@@ -456,12 +473,12 @@ export function CharacterEditPanel({
           <MiniHoldButton
             label="-"
             onTick={() => {
-              updateAttribute(i, { value: Math.max(0, attr.value - 1) })
+              updateAttribute(i, { value: Math.max(0, value - 1) })
             }}
             color="#ef4444"
           />
           <input
-            value={attr.value}
+            value={value}
             onChange={(e) => {
               const v = parseInt(e.target.value)
               if (!isNaN(v)) updateAttribute(i, { value: Math.max(0, v) })
@@ -479,7 +496,7 @@ export function CharacterEditPanel({
           <MiniHoldButton
             label="+"
             onTick={() => {
-              updateAttribute(i, { value: attr.value + 1 })
+              updateAttribute(i, { value: value + 1 })
             }}
             color="#22c55e"
           />
@@ -573,9 +590,9 @@ export function CharacterEditPanel({
   const renderNotes = () => (
     <div>
       <textarea
-        value={character.notes}
+        value={notes}
         onChange={(e) => {
-          updateChar({ notes: e.target.value })
+          updateChar(updateComponent(character, 'core:notes', { text: e.target.value }))
         }}
         placeholder={t('character.notes_placeholder')}
         rows={8}
@@ -609,7 +626,7 @@ export function CharacterEditPanel({
         filter={{ mediaType: 'image' }}
         autoTags={['portrait']}
         onSelect={(asset) => {
-          updateChar({ imageUrl: asset.url })
+          updateIdentity({ imageUrl: asset.url })
         }}
       />
       <div
@@ -656,7 +673,7 @@ export function CharacterEditPanel({
               }`}
               style={{
                 borderBottom:
-                  activeTab === tabId ? `2px solid ${character.color}` : '2px solid transparent',
+                  activeTab === tabId ? `2px solid ${color}` : '2px solid transparent',
               }}
             >
               {t(TAB_I18N_KEYS[tabId])}

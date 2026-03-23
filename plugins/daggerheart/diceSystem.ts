@@ -8,6 +8,8 @@ import type {
   RollAction,
   DaggerheartOutcome,
 } from '@myvtt/sdk'
+import type { DHAttributes } from './types'
+import { DH_KEYS } from './types'
 
 const DH_DC = 12 // DaggerHeart standard action roll difficulty
 
@@ -65,7 +67,8 @@ const ROLL_ATTR_KEYS = [
 ] as const
 
 export function dhGetRollActions(entity: Entity): RollAction[] {
-  if (!entity.ruleData) return []
+  const attrs = entity.components[DH_KEYS.attributes] as DHAttributes | undefined
+  if (!attrs) return []
   return ROLL_ATTR_KEYS.map((key) => ({
     id: key,
     name: `roll.action.${key}`,

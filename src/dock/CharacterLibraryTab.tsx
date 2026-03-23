@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Search, Trash2, Users } from 'lucide-react'
 import type { Entity } from '../shared/entityTypes'
+import { getName, getColor, getImageUrl } from '../shared/coreComponents'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { generateTokenId } from '../shared/idUtils'
 import { useWorldStore } from '../stores/worldStore'
@@ -37,27 +38,27 @@ export function CharacterLibraryTab() {
     })
     if (search.trim()) {
       const q = search.toLowerCase()
-      return list.filter((e) => e.name.toLowerCase().includes(q))
+      return list.filter((e) => getName(e).toLowerCase().includes(q))
     }
     return list
   }, [entities, seats, search, pendingDeletes])
 
   const handleCreate = () => {
+    const defaultComponents = plugin.dataTemplates?.createDefaultEntityData() ?? {}
     const newEntity: Entity = {
       id: generateTokenId(),
-      name: t('character.default_name'),
-      imageUrl: '',
-      color: '#3b82f6',
-      width: 1,
-      height: 1,
-      notes: '',
-      ruleData: plugin.dataTemplates?.createDefaultEntityData() ?? null,
+      blueprintId: undefined,
       permissions: defaultNPCPermissions(),
       lifecycle: 'reusable',
+      tags: [],
+      components: {
+        'core:identity': { name: t('character.default_name'), imageUrl: '', color: '#3b82f6' },
+        'core:token': { width: 1, height: 1 },
+        'core:notes': { text: '' },
+        ...defaultComponents,
+      },
     }
     void addEntity(newEntity)
-    // Add to current scene so the inspector can locate the entity in PortraitBar.
-    // visible=true so the portrait appears on stage for the GM to click/edit.
     if (activeSceneId) void addEntityToScene(activeSceneId, newEntity.id, true)
     openCard(newEntity.id)
   }
@@ -66,10 +67,8 @@ export function CharacterLibraryTab() {
     (entity: Entity) => {
       const id = entity.id
 
-      // Immediately hide from UI
       setPendingDeletes((prev) => new Set(prev).add(id))
 
-      // Schedule actual server delete after 5s
       const timer = setTimeout(() => {
         deleteTimers.current.delete(id)
         setPendingDeletes((prev) => {
@@ -81,12 +80,11 @@ export function CharacterLibraryTab() {
       }, 5000)
       deleteTimers.current.set(id, timer)
 
-      toast('undo', t('character.deleted', { name: entity.name }), {
+      toast('undo', t('character.deleted', { name: getName(entity) }), {
         duration: 5000,
         action: {
           label: t('character.undo'),
           onClick: () => {
-            // Cancel the pending delete
             const timer = deleteTimers.current.get(id)
             if (timer) clearTimeout(timer)
             deleteTimers.current.delete(id)
@@ -141,47 +139,52 @@ export function CharacterLibraryTab() {
           </div>
         ) : (
           <div className="flex flex-col gap-0.5">
-            {libraryEntities.map((entity) => (
-              <div key={entity.id} className="relative flex items-center group">
-                <button
-                  onClick={() => {
-                    if (activeSceneId) void addEntityToScene(activeSceneId, entity.id)
-                  }}
-                  onDoubleClick={() => {
-                    openCard(entity.id)
-                  }}
-                  className="flex-1 flex items-center gap-2 px-2 py-1.5 rounded text-left hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
-                >
-                  <div
-                    className="w-6 h-6 rounded-full shrink-0 border border-border-glass"
-                    style={{
-                      backgroundColor: entity.color,
-                      backgroundImage: entity.imageUrl ? `url(${entity.imageUrl})` : undefined,
-                      backgroundSize: 'cover',
+            {libraryEntities.map((entity) => {
+              const eName = getName(entity)
+              const eColor = getColor(entity)
+              const eImageUrl = getImageUrl(entity)
+              return (
+                <div key={entity.id} className="relative flex items-center group">
+                  <button
+                    onClick={() => {
+                      if (activeSceneId) void addEntityToScene(activeSceneId, entity.id)
                     }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-text-primary truncate">{entity.name}</div>
-                    <div className="text-[10px] text-text-muted/50">
-                      {entity.lifecycle === 'persistent'
-                        ? t('character.persistent')
-                        : t('character.reusable')}
+                    onDoubleClick={() => {
+                      openCard(entity.id)
+                    }}
+                    className="flex-1 flex items-center gap-2 px-2 py-1.5 rounded text-left hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
+                  >
+                    <div
+                      className="w-6 h-6 rounded-full shrink-0 border border-border-glass"
+                      style={{
+                        backgroundColor: eColor,
+                        backgroundImage: eImageUrl ? `url(${eImageUrl})` : undefined,
+                        backgroundSize: 'cover',
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-text-primary truncate">{eName}</div>
+                      <div className="text-[10px] text-text-muted/50">
+                        {entity.lifecycle === 'persistent'
+                          ? t('character.persistent')
+                          : t('character.reusable')}
+                      </div>
                     </div>
-                  </div>
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDelete(entity)
-                  }}
-                  className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 rounded text-text-muted/40 hover:text-danger hover:bg-danger/10 cursor-pointer transition-all duration-fast"
-                  title={t('character.delete_character')}
-                  data-testid="delete-character"
-                >
-                  <Trash2 size={12} strokeWidth={1.5} />
-                </button>
-              </div>
-            ))}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(entity)
+                    }}
+                    className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 rounded text-text-muted/40 hover:text-danger hover:bg-danger/10 cursor-pointer transition-all duration-fast"
+                    title={t('character.delete_character')}
+                    data-testid="delete-character"
+                  >
+                    <Trash2 size={12} strokeWidth={1.5} />
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@ import { useRef, useCallback, useState } from 'react'
 import { Layer } from 'react-konva'
 import type Konva from 'konva'
 import type { MapToken as MapTokenType, Entity } from '../shared/entityTypes'
+import { getColor } from '../shared/coreComponents'
 import type { TacticalInfo } from '../stores/worldStore'
 import { getEffectivePermissions, canSee } from '../shared/permissions'
 import { canDragToken, snapToGrid } from './combatUtils'
@@ -182,7 +183,7 @@ export function KonvaTokenLayer({
           : null
         const entity = draggedToken?.entityId ? getEntity(draggedToken.entityId) : null
         const tokenSize = draggedToken?.width ?? 1
-        const tokenColor = entity?.color ?? '#888'
+        const tokenColor = entity ? getColor(entity) : '#888'
 
         setGhostState({
           x: snapped.x,

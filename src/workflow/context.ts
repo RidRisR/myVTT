@@ -45,18 +45,17 @@ export function createWorkflowContext(
     },
   }
 
-  // Imperative data reader — Phase 3 will provide a full implementation,
-  // this is a temporary version backed by deps.getEntity
+  // Imperative data reader backed by deps.getEntity
   const read: IDataReader = {
     entity: (id: string) => deps.getEntity(id),
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T required for caller type inference
     component: <T>(entityId: string, key: string): T | undefined => {
       const entity = deps.getEntity(entityId)
       if (!entity) return undefined
-      return (entity.ruleData as Record<string, unknown> | undefined)?.[key] as T | undefined
+      return entity.components[key] as T | undefined
     },
     query: (spec: { has?: string[] }) => {
-      // Minimal placeholder — Phase 3 provides full implementation via worldStore
+      // Minimal placeholder — full implementation via worldStore's createDataReader
       void spec
       return []
     },
@@ -76,20 +75,16 @@ export function createWorkflowContext(
     serverRoll: (formula: string) => deps.sendRoll(formula),
 
     // ── Effects (side effects) ────────────────────────────────────────────
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T required for caller type inference
     updateComponent: <T>(
       entityId: string,
       key: string,
       updater: (current: T | undefined) => T,
     ): void => {
-      // Temporary implementation: writes to ruleData[key].
-      // Phase 4 will replace with entity.components[key] + REST PATCH.
       const entity = deps.getEntity(entityId)
-      const ruleData = (entity?.ruleData as Record<string, unknown> | null) ?? {}
-      const current = ruleData[key] as T | undefined
+      const current = entity?.components[key] as T | undefined
       const next = updater(current)
       deps.updateEntity(entityId, {
-        ruleData: { ...ruleData, [key]: next },
+        components: { ...entity?.components, [key]: next },
       })
     },
 

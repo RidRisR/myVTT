@@ -4,6 +4,7 @@ import { createWorkflowContext } from './context'
 import { WorkflowEngine } from './engine'
 import { createEventBus, defineEvent } from '../events/eventBus'
 import type { InternalState } from './types'
+import type { Entity } from '../shared/entityTypes'
 
 function makeEngine(): WorkflowEngine {
   return new WorkflowEngine()
@@ -66,17 +67,11 @@ describe('createWorkflowContext', () => {
     expect(result).toEqual({ rolls: [[4]], total: 4 })
   })
 
-  it('updateComponent reads entity ruleData and writes back', () => {
-    const entity = {
+  it('updateComponent reads entity components and writes back', () => {
+    const entity: Entity = {
       id: 'e1',
-      name: 'Goblin',
-      imageUrl: '',
-      color: '',
-      width: 1,
-      height: 1,
-      blueprintId: undefined,
-      notes: '',
-      ruleData: { hp: { current: 10, max: 20 } },
+      tags: [],
+      components: { hp: { current: 10, max: 20 } },
       permissions: { default: 'none' as const, seats: {} },
       lifecycle: 'persistent' as const,
     }
@@ -89,7 +84,7 @@ describe('createWorkflowContext', () => {
     })
 
     expect(deps.updateEntity).toHaveBeenCalledWith('e1', {
-      ruleData: { hp: { current: 7, max: 20 } },
+      components: { hp: { current: 7, max: 20 } },
     })
   })
 

@@ -6,12 +6,20 @@ import {
   useWorkflowRunner,
   getRollWorkflow,
 } from '@myvtt/sdk'
-import type { DHRuleData } from './types'
+import type { DHHealth, DHStress, DHAttributes, DHMeta, DHExtras } from './types'
+import { DH_KEYS } from './types'
+import { getName } from '../../src/shared/coreComponents'
 
 const ATTRS = ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowledge'] as const
 
 export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
-  const d = entity.ruleData ? (entity.ruleData as DHRuleData) : null
+  const hp = entity.components[DH_KEYS.health] as DHHealth | undefined
+  const stress = entity.components[DH_KEYS.stress] as DHStress | undefined
+  const attrs = entity.components[DH_KEYS.attributes] as DHAttributes | undefined
+  const meta = entity.components[DH_KEYS.meta] as DHMeta | undefined
+  const extras = entity.components[DH_KEYS.extras] as DHExtras | undefined
+  const hasDHData = !!(hp || stress || attrs || meta || extras)
+
   const { openPanel } = usePluginPanels()
   const { t } = usePluginTranslation()
   const runner = useWorkflowRunner()
@@ -19,32 +27,35 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
   return (
     <div className="flex flex-col gap-3 p-4">
       <div className="flex items-center gap-2">
-        <span className="text-text-primary font-semibold">{entity.name}</span>
-        {d?.className && <span className="text-xs text-text-muted">{d.className}</span>}
+        <span className="text-text-primary font-semibold">{getName(entity)}</span>
+        {meta?.className && <span className="text-xs text-text-muted">{meta.className}</span>}
       </div>
-      {d && (
+      {hasDHData && (
         <>
           <div className="flex gap-4 text-sm">
             <span className="text-red-500">
-              {t('card.hp')} {d.hp?.current ?? 0}/{d.hp?.max ?? 0}
+              {t('card.hp')} {hp?.current ?? 0}/{hp?.max ?? 0}
             </span>
             <span className="text-orange-400">
-              {t('card.stress')} {d.stress?.current ?? 0}/{d.stress?.max ?? 0}
+              {t('card.stress')} {stress?.current ?? 0}/{stress?.max ?? 0}
             </span>
             <span className="text-accent">
-              {t('card.hope')} {d.hope ?? 0}
+              {t('card.hope')} {extras?.hope ?? 0}
             </span>
           </div>
           <div className="grid grid-cols-3 gap-1 text-xs">
-            {ATTRS.map((k) => (
-              <div key={k} className="flex flex-col items-center bg-black/20 rounded p-1">
-                <span className="text-text-muted capitalize">{k}</span>
-                <span className="text-text-primary font-bold">
-                  {d[k] >= 0 ? '+' : ''}
-                  {d[k]}
-                </span>
-              </div>
-            ))}
+            {ATTRS.map((k) => {
+              const val = attrs?.[k] ?? 0
+              return (
+                <div key={k} className="flex flex-col items-center bg-black/20 rounded p-1">
+                  <span className="text-text-muted capitalize">{k}</span>
+                  <span className="text-text-primary font-bold">
+                    {val >= 0 ? '+' : ''}
+                    {val}
+                  </span>
+                </div>
+              )
+            })}
           </div>
           {!readonly && (
             <div className="grid grid-cols-3 gap-1">

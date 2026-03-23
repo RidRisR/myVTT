@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { setupTestRoom, type TestContext } from '../helpers/test-server'
+import type { Entity } from '../../../src/shared/entityTypes'
+import { getName, getColor } from '../../../src/shared/coreComponents'
 
 let ctx: TestContext
 
@@ -24,9 +26,13 @@ describe('Spawn from Blueprint Journey', () => {
 
   it('creates a blueprint', async () => {
     const { data, status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/blueprints`, {
-      name: '哥布林',
-      imageUrl: '/uploads/goblin.png',
-      defaults: { color: '#22c55e', width: 1, height: 1, ruleData: {} },
+      tags: [],
+      defaults: {
+        components: {
+          'core:identity': { name: '哥布林', imageUrl: '/uploads/goblin.png', color: '#22c55e' },
+          'core:token': { width: 1, height: 1 },
+        },
+      },
     })
     expect(status).toBe(201)
     blueprintId = (data as { id: string }).id
@@ -40,12 +46,12 @@ describe('Spawn from Blueprint Journey', () => {
     )
     expect(status).toBe(201)
     const result = data as {
-      entity: { id: string; name: string; lifecycle: string; color: string }
+      entity: Entity
       sceneEntity: { visible: boolean }
     }
-    expect(result.entity.name).toBe('\u54E5\u5E03\u6797 1')
+    expect(getName(result.entity)).toBe('\u54E5\u5E03\u6797 1')
     expect(result.entity.lifecycle).toBe('ephemeral')
-    expect(result.entity.color).toBe('#22c55e')
+    expect(getColor(result.entity)).toBe('#22c55e')
     expect(result.sceneEntity.visible).toBe(true)
   })
 
@@ -53,8 +59,8 @@ describe('Spawn from Blueprint Journey', () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneId}/spawn`, {
       blueprintId,
     })
-    const result = data as { entity: { name: string } }
-    expect(result.entity.name).toBe('\u54E5\u5E03\u6797 2')
+    const result = data as { entity: Entity }
+    expect(getName(result.entity)).toBe('\u54E5\u5E03\u6797 2')
   })
 
   it('spawned entity appears in scene entity list', async () => {

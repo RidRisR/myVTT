@@ -13,13 +13,12 @@ export function useEntity(id: string): Entity | undefined {
 /**
  * Reactive hook: subscribes to a single component value on an entity.
  * Re-renders only when that component value changes.
- * Phase 4 will replace ruleData lookup with entity.components[key].
  */
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T required for caller type inference
 export function useComponent<T>(entityId: string, key: string): T | undefined {
   return useWorldStore((s) => {
     const entity = s.entities[entityId]
     if (!entity) return undefined
-    return (entity.ruleData as Record<string, unknown> | undefined)?.[key] as T | undefined
+    return entity.components[key] as T | undefined
   })
 }

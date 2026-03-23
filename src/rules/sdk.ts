@@ -90,3 +90,14 @@ export { useWorkflowRunner } from '../workflow/useWorkflowSDK'
 // ── Data layer (reactive hooks + imperative reader) ────────────────────────
 export { useEntity, useComponent } from '../data/hooks'
 export { createDataReader } from '../data/dataReader'
+
+// ── Core component accessors ───────────────────────────────────────────────
+export {
+  getIdentity,
+  getToken,
+  getNotes,
+  getName,
+  getColor,
+  getImageUrl,
+} from '../shared/coreComponents'
+export type { CoreIdentity, CoreToken, CoreNotes } from '../shared/coreComponents'

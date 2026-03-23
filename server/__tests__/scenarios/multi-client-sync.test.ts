@@ -9,6 +9,8 @@ import {
   type TestContext,
 } from '../helpers/test-server'
 import type { Socket as ClientSocket } from 'socket.io-client'
+import type { Entity } from '../../../src/shared/entityTypes'
+import { getName } from '../../../src/shared/coreComponents'
 
 let ctx: TestContext
 let clientB: ClientSocket
@@ -72,19 +74,19 @@ describe('Multi-Client Sync Journey', () => {
   // ── Entity events ──
 
   it('5.4 entity:created broadcasts to client B', async () => {
-    const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'entity:created')
+    const eventPromise = waitForSocketEvent<Entity>(clientB, 'entity:created')
     const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      name: 'Goblin',
-      color: '#22c55e',
-      width: 1,
-      height: 1,
       lifecycle: 'ephemeral',
+      components: {
+        'core:identity': { name: 'Goblin', imageUrl: '', color: '#22c55e' },
+        'core:token': { width: 1, height: 1 },
+      },
     })
     expect(status).toBe(201)
-    entityId = (data as { id: string }).id
+    entityId = (data as Entity).id
 
     const payload = await eventPromise
-    expect(payload.name).toBe('Goblin')
+    expect(getName(payload)).toBe('Goblin')
     expect(payload.id).toBe(entityId)
   })
 

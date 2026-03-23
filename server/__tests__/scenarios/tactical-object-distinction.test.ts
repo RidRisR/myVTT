@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { setupTestRoom, type TestContext } from '../helpers/test-server'
+import type { Entity } from '../../../src/shared/entityTypes'
+import { getName } from '../../../src/shared/coreComponents'
 
 let ctx: TestContext
 let sceneId: string
@@ -52,10 +54,13 @@ describe('Tactical Object vs Scene Entity distinction', () => {
     beforeAll(async () => {
       // Create a blueprint via the blueprints endpoint
       const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/blueprints`, {
-        name: 'Skeleton',
-        imageUrl: '',
-        defaults: { color: '#888888', width: 1, height: 1, ruleData: {} },
         tags: [],
+        defaults: {
+          components: {
+            'core:identity': { name: 'Skeleton', imageUrl: '', color: '#888888' },
+            'core:token': { width: 1, height: 1 },
+          },
+        },
       })
       expect(status).toBe(201)
       blueprintId = (data as { id: string }).id
@@ -70,10 +75,10 @@ describe('Tactical Object vs Scene Entity distinction', () => {
       expect(status).toBe(201)
 
       const result = data as {
-        entity: { id: string; name: string }
+        entity: Entity
         sceneEntity: null
       }
-      expect(result.entity.name).toContain('Skeleton')
+      expect(getName(result.entity)).toContain('Skeleton')
       expect(result.sceneEntity).toBeNull()
 
       // Verify entity is NOT in scene_entities
@@ -116,12 +121,11 @@ describe('Tactical Object vs Scene Entity distinction', () => {
       const entityId = 'e-demote01'
       await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
         id: entityId,
-        name: 'Demotable NPC',
-        imageUrl: '',
-        color: '#ff0000',
-        width: 1,
-        height: 1,
         lifecycle: 'ephemeral',
+        components: {
+          'core:identity': { name: 'Demotable NPC', imageUrl: '', color: '#ff0000' },
+          'core:token': { width: 1, height: 1 },
+        },
       })
 
       // 2. Link to scene
@@ -159,12 +163,11 @@ describe('Tactical Object vs Scene Entity distinction', () => {
       const entityId = 'e-cleanup1'
       await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
         id: entityId,
-        name: 'Cleanup NPC',
-        imageUrl: '',
-        color: '#00ff00',
-        width: 1,
-        height: 1,
         lifecycle: 'ephemeral',
+        components: {
+          'core:identity': { name: 'Cleanup NPC', imageUrl: '', color: '#00ff00' },
+          'core:token': { width: 1, height: 1 },
+        },
       })
 
       // 2. Link to scene

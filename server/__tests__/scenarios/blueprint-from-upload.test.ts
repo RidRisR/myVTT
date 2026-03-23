@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { setupTestRoom, type TestContext } from '../helpers/test-server'
+import type { Blueprint } from '../../../src/shared/entityTypes'
 
 let ctx: TestContext
 
@@ -20,20 +21,25 @@ describe('Blueprint from-upload (atomic)', () => {
     formData.append('file', blob, 'goblin.png')
     formData.append('name', 'Goblin')
     formData.append('tags', JSON.stringify(['Beast']))
-    formData.append('defaults', JSON.stringify({ color: '#ff0000', width: 1, height: 1 }))
+    // No explicit defaults — server will create default components with upload URL
 
     const res = await fetch(`${ctx.apiBase}/api/rooms/${ctx.roomId}/blueprints/from-upload`, {
       method: 'POST',
       body: formData,
     })
     expect(res.status).toBe(201)
-    const bp = (await res.json()) as Record<string, unknown>
-    imageUrl = bp.imageUrl as string
+    const bp = (await res.json()) as Blueprint
     expect(bp.id).toBeTruthy()
-    expect(bp.name).toBe('Goblin')
     expect(bp.tags).toEqual(['beast'])
-    expect(bp.defaults).toEqual({ color: '#ff0000', width: 1, height: 1 })
+    // Server creates default components: core:identity with name+imageUrl, core:appearance with defaults
+    const identity = bp.defaults.components['core:identity'] as Record<string, unknown>
+    expect(identity.name).toBe('Goblin')
+    imageUrl = identity.imageUrl as string
     expect(imageUrl).toContain('/uploads/')
+    const appearance = bp.defaults.components['core:appearance'] as Record<string, unknown>
+    expect(appearance.color).toBe('#3b82f6')
+    expect(appearance.width).toBe(1)
+    expect(appearance.height).toBe(1)
   })
 
   it('asset record was also created', async () => {

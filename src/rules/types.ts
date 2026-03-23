@@ -5,7 +5,7 @@ import type { TeamTracker } from '../stores/worldStore'
 import type { ChatRollMessage } from '../shared/chatTypes'
 import type { ToolDefinition } from '../combat/tools/types'
 
-// ── Adapter view types (shared with entityAdapters.ts) ─────────────────────
+// ── Adapter view types ─────────────────────────────────────────────────────
 
 export interface ResourceView {
   label: string
@@ -242,7 +242,7 @@ export interface RulePlugin {
 
   // Layer 4: Data templates (optional)
   dataTemplates?: {
-    createDefaultEntityData(): unknown
+    createDefaultEntityData(): Record<string, unknown>
     getPresetTemplates?(): PresetTemplate[]
   }
 

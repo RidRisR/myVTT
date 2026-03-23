@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Plus, Search, ClipboardList, Eye, EyeOff, MapPin, Swords } from 'lucide-react'
 import type { Entity, SceneEntityEntry } from '../shared/entityTypes'
+import { getName } from '../shared/coreComponents'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
@@ -62,7 +63,7 @@ export function EntityPanel() {
       const entity = entities[entry.entityId]
       if (!entity) continue
       if (pcIds.has(entity.id)) continue
-      if (search && !entity.name.toLowerCase().includes(search.toLowerCase())) continue
+      if (search && !getName(entity).toLowerCase().includes(search.toLowerCase())) continue
       if (entry.visible) on.push(entity)
       else off.push(entity)
     }
@@ -79,7 +80,7 @@ export function EntityPanel() {
       if (pcIds.has(token.entityId)) continue
       const entity = entities[token.entityId]
       if (!entity) continue
-      if (search && !entity.name.toLowerCase().includes(search.toLowerCase())) continue
+      if (search && !getName(entity).toLowerCase().includes(search.toLowerCase())) continue
       result.push(entity)
     }
     return result
@@ -98,15 +99,15 @@ export function EntityPanel() {
   const handleCreateNpc = () => {
     const newEntity: Entity = {
       id: generateTokenId(),
-      name: t('entity.default_npc_name'),
-      imageUrl: '',
-      color: '#3b82f6',
-      width: 1,
-      height: 1,
-      notes: '',
-      ruleData: null,
+      blueprintId: undefined,
       permissions: defaultNPCPermissions(),
       lifecycle: 'ephemeral',
+      tags: [],
+      components: {
+        'core:identity': { name: t('entity.default_npc_name'), imageUrl: '', color: '#3b82f6' },
+        'core:token': { width: 1, height: 1 },
+        'core:notes': { text: '' },
+      },
     }
     void addEntity(newEntity)
     if (activeSceneId) void addEntityToScene(activeSceneId, newEntity.id, false)
@@ -115,7 +116,7 @@ export function EntityPanel() {
 
   const handleDelete = (entity: Entity) => {
     void deleteEntity(entity.id)
-    toast('undo', t('entity.deleted', { name: entity.name }), { duration: 5000 })
+    toast('undo', t('entity.deleted', { name: getName(entity) }), { duration: 5000 })
   }
 
   const handleToggleVisibility = (entity: Entity, currentlyVisible: boolean) => {
@@ -123,13 +124,13 @@ export function EntityPanel() {
     void toggleEntityVisibility(activeSceneId, entity.id, !currentlyVisible)
   }
 
-  // Promote tactical object → scene entity
+  // Promote tactical object -> scene entity
   const handlePromote = (entity: Entity) => {
     if (!activeSceneId) return
     void addEntityToScene(activeSceneId, entity.id)
   }
 
-  // Demote scene entity → tactical object (only ephemeral entities with tokens)
+  // Demote scene entity -> tactical object (only ephemeral entities with tokens)
   const handleDemote = (entity: Entity) => {
     if (!activeSceneId) return
     void removeEntityFromScene(activeSceneId, entity.id)

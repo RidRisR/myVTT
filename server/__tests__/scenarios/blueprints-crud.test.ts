@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { setupTestRoom, waitForSocketEvent, type TestContext } from '../helpers/test-server'
+import type { Entity, Blueprint } from '../../../src/shared/entityTypes'
 
 let ctx: TestContext
 
@@ -17,19 +18,22 @@ describe('Blueprint CRUD', () => {
   it('creates a blueprint', async () => {
     const promise = waitForSocketEvent(ctx.socket, 'blueprint:created')
     const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/blueprints`, {
-      name: 'Goblin',
-      imageUrl: '/uploads/goblin.png',
-      defaults: { color: '#22c55e', width: 1, height: 1 },
       tags: ['Humanoid'],
+      defaults: {
+        components: {
+          'core:identity': { name: 'Goblin', imageUrl: '/uploads/goblin.png', color: '#22c55e' },
+          'core:token': { width: 1, height: 1 },
+        },
+      },
     })
     expect(status).toBe(201)
-    const bp = data as Record<string, unknown>
-    bpId = bp.id as string
-    expect(bp.name).toBe('Goblin')
-    expect(bp.imageUrl).toBe('/uploads/goblin.png')
+    const bp = data as Blueprint
+    bpId = bp.id
+    const identity = bp.defaults.components['core:identity'] as Record<string, unknown>
+    expect(identity.name).toBe('Goblin')
+    expect(identity.imageUrl).toBe('/uploads/goblin.png')
     expect(bp.tags).toEqual(['humanoid'])
-    const defaults = bp.defaults as Record<string, unknown>
-    expect(defaults.color).toBe('#22c55e')
+    expect(identity.color).toBe('#22c55e')
 
     const event = await promise
     expect((event as Record<string, unknown>).id).toBe(bpId)
@@ -38,22 +42,31 @@ describe('Blueprint CRUD', () => {
   it('lists blueprints', async () => {
     const { status, data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/blueprints`)
     expect(status).toBe(200)
-    const list = data as Record<string, unknown>[]
+    const list = data as Blueprint[]
     expect(list).toHaveLength(1)
-    expect(list[0]!.name).toBe('Goblin')
+    const identity = list[0]!.defaults.components['core:identity'] as Record<string, unknown>
+    expect(identity.name).toBe('Goblin')
   })
 
   it('updates a blueprint', async () => {
     const promise = waitForSocketEvent(ctx.socket, 'blueprint:updated')
     const { status, data } = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/blueprints/${bpId}`, {
-      name: 'Goblin Chief',
-      defaults: { color: '#ff0000', width: 2, height: 2 },
+      defaults: {
+        components: {
+          'core:identity': { name: 'Goblin Chief', imageUrl: '/uploads/goblin.png', color: '#ff0000' },
+          'core:token': { width: 2, height: 2 },
+        },
+      },
     })
     expect(status).toBe(200)
-    expect((data as Record<string, unknown>).name).toBe('Goblin Chief')
+    const bp = data as Blueprint
+    const identity = bp.defaults.components['core:identity'] as Record<string, unknown>
+    expect(identity.name).toBe('Goblin Chief')
 
     const event = await promise
-    expect((event as Record<string, unknown>).name).toBe('Goblin Chief')
+    const eventBp = event as Blueprint
+    const eventIdentity = eventBp.defaults.components['core:identity'] as Record<string, unknown>
+    expect(eventIdentity.name).toBe('Goblin Chief')
   })
 
   it('returns 404 for non-existent blueprint', async () => {
@@ -78,34 +91,36 @@ describe('Blueprint CRUD', () => {
   it('ON DELETE SET NULL — entity.blueprint_id nulled when blueprint deleted', async () => {
     // Create blueprint
     const { data: bpData } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/blueprints`, {
-      name: 'Skeleton',
-      imageUrl: '/uploads/skeleton.png',
-      defaults: { color: '#888', width: 1, height: 1 },
+      tags: [],
+      defaults: {
+        components: {
+          'core:identity': { name: 'Skeleton', imageUrl: '/uploads/skeleton.png', color: '#888' },
+          'core:token': { width: 1, height: 1 },
+        },
+      },
     })
-    const skeletonBpId = (bpData as Record<string, unknown>).id as string
+    const skeletonBpId = (bpData as Blueprint).id
 
-    // Create a scene, then spawn from blueprint — but spawn still reads assets table (Task 4 fixes this)
-    // So instead, manually create an entity with blueprint_id
+    // Manually create an entity with blueprint_id
     const { data: entityData } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      name: 'Skeleton 1',
-      imageUrl: '/uploads/skeleton.png',
-      color: '#888',
-      width: 1,
-      height: 1,
       blueprintId: skeletonBpId,
+      components: {
+        'core:identity': { name: 'Skeleton 1', imageUrl: '/uploads/skeleton.png', color: '#888' },
+        'core:token': { width: 1, height: 1 },
+      },
     })
-    const entityId = (entityData as Record<string, unknown>).id as string
+    const entityId = (entityData as Entity).id
 
     // Delete blueprint
     await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/blueprints/${skeletonBpId}`)
 
-    // Verify entity still exists but blueprint_id is null
+    // Verify entity still exists but blueprint_id is undefined (SQL NULL → undefined in assembleEntity)
     const { data: fetchedEntity } = await ctx.api(
       'GET',
       `/api/rooms/${ctx.roomId}/entities/${entityId}`,
     )
-    const entity = fetchedEntity as Record<string, unknown>
+    const entity = fetchedEntity as Entity
     expect(entity.id).toBe(entityId)
-    expect(entity.blueprintId).toBeNull()
+    expect(entity.blueprintId).toBeUndefined()
   })
 })

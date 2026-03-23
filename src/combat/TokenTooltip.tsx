@@ -1,5 +1,6 @@
 import type { MapToken, Entity } from '../shared/entityTypes'
-import { getEntityResources, getEntityStatuses } from '../shared/entityAdapters'
+import { getName } from '../shared/coreComponents'
+import { useRulePlugin } from '../rules/useRulePlugin'
 import { statusColor } from '../shared/tokenUtils'
 
 interface TokenTooltipProps {
@@ -10,13 +11,13 @@ interface TokenTooltipProps {
 }
 
 export function TokenTooltip({ entity, screenX, screenY }: TokenTooltipProps) {
-  const name = entity?.name ?? ''
-  const resources = getEntityResources(entity)
-  const mainResource = resources[0]
+  const plugin = useRulePlugin()
+  const name = entity ? getName(entity) : ''
+  const mainResource = entity ? plugin.adapters.getMainResource(entity) : null
   const hasHp = mainResource != null && mainResource.max > 0
   const hpPct = hasHp ? Math.min(mainResource.current / mainResource.max, 1) : 0
 
-  const statuses = getEntityStatuses(entity)
+  const statuses = entity ? plugin.adapters.getStatuses(entity) : []
   const visibleStatuses = statuses.slice(0, 3)
   const extraCount = statuses.length - 3
 

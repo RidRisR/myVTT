@@ -4,19 +4,17 @@ import { createDataReader } from '../dataReader'
 import { useWorldStore } from '../../stores/worldStore'
 import type { Entity } from '../../shared/entityTypes'
 
-function makeEntity(id: string, ruleData: unknown = {}): Entity {
+function makeEntity(id: string, components: Record<string, unknown> = {}): Entity {
   return {
     id,
-    name: `Entity ${id}`,
-    imageUrl: '',
-    color: '',
-    width: 1,
-    height: 1,
-    blueprintId: undefined,
-    notes: '',
-    ruleData,
     permissions: { default: 'none' as const, seats: {} },
     lifecycle: 'persistent' as const,
+    tags: [],
+    components: {
+      'core:identity': { name: `Entity ${id}`, imageUrl: '', color: '' },
+      'core:token': { width: 1, height: 1 },
+      ...components,
+    },
   }
 }
 
@@ -35,7 +33,7 @@ describe('createDataReader', () => {
     expect(reader.entity('nonexistent')).toBeUndefined()
   })
 
-  it('component() returns ruleData value by key', () => {
+  it('component() returns component value by key', () => {
     const e = makeEntity('e1', { hp: { current: 10, max: 20 } })
     useWorldStore.setState({ entities: { e1: e } })
 
@@ -61,7 +59,7 @@ describe('createDataReader', () => {
   it('query() filters by component key presence', () => {
     const e1 = makeEntity('e1', { hp: { current: 10 }, armor: 5 })
     const e2 = makeEntity('e2', { hp: { current: 5 } })
-    const e3 = makeEntity('e3', {})
+    const e3 = makeEntity('e3')
     useWorldStore.setState({ entities: { e1, e2, e3 } })
 
     const reader = createDataReader()

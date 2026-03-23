@@ -27,7 +27,10 @@ function filterEntities(
   let list = entities
   if (search.trim()) {
     const q = search.toLowerCase()
-    list = list.filter((e) => e.name.toLowerCase().includes(q))
+    list = list.filter((e) => {
+      const identity = e.components['core:identity'] as { name?: string } | undefined
+      return (identity?.name ?? '').toLowerCase().includes(q)
+    })
   }
   if (filter === 'pc') list = list.filter((e) => pcIds.has(e.id))
   if (filter === 'npc') list = list.filter((e) => !pcIds.has(e.id))
@@ -58,16 +61,17 @@ function filterByTags(
 // ── Test data ──
 
 function makeEntity(overrides: Partial<Entity> & { id: string; name: string }): Entity {
+  const { name, ...rest } = overrides
   return {
-    imageUrl: '',
-    color: '#000',
-    width: 1,
-    height: 1,
-    notes: '',
-    ruleData: null,
+    tags: [],
+    components: {
+      'core:identity': { name, imageUrl: '', color: '#000' },
+      'core:token': { width: 1, height: 1 },
+      'core:notes': { text: '' },
+    },
     permissions: { default: 'observer' as const, seats: {} },
     lifecycle: 'ephemeral' as const,
-    ...overrides,
+    ...rest,
   }
 }
 

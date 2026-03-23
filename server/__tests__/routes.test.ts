@@ -180,20 +180,23 @@ describe('Full room lifecycle', () => {
   it('creates an entity', async () => {
     type EntityResponse = {
       id: string
-      name: string
       lifecycle: string
-      ruleData: { hp: { current: number; max: number }; str: number }
+      components: {
+        'core:identity': { name: string; color: string }
+        'game:stats': { hp: { current: number; max: number }; str: number }
+      }
     }
     const { status, data } = await api<EntityResponse>('POST', `/api/rooms/${roomId}/entities`, {
-      name: 'Hero',
-      color: '#00ff00',
-      ruleData: { hp: { current: 20, max: 20 }, str: 14 },
+      components: {
+        'core:identity': { name: 'Hero', color: '#00ff00' },
+        'game:stats': { hp: { current: 20, max: 20 }, str: 14 },
+      },
       lifecycle: 'persistent',
     })
     expect(status).toBe(201)
-    expect(data.name).toBe('Hero')
+    expect(data.components['core:identity'].name).toBe('Hero')
     expect(data.lifecycle).toBe('persistent')
-    expect(data.ruleData.hp.current).toBe(20)
+    expect(data.components['game:stats'].hp.current).toBe(20)
     entityId = data.id
   })
 
@@ -205,20 +208,28 @@ describe('Full room lifecycle', () => {
     expect(data.map((r) => r.entityId)).toContain(entityId)
   })
 
-  it('updates entity with deep merge on ruleData', async () => {
+  it('updates entity components via PATCH', async () => {
     type EntityResponse = {
-      ruleData: { hp: { current: number; max: number }; str: number }
+      components: {
+        'core:identity': { name: string; color: string }
+        'game:stats': { hp: { current: number; max: number }; str: number }
+      }
     }
+    // PATCH replaces entire component value per key
     const { data } = await api<EntityResponse>(
       'PATCH',
       `/api/rooms/${roomId}/entities/${entityId}`,
       {
-        ruleData: { hp: { current: 15 } },
+        components: {
+          'game:stats': { hp: { current: 15, max: 20 }, str: 14 },
+        },
       },
     )
-    expect(data.ruleData.hp.current).toBe(15)
-    expect(data.ruleData.hp.max).toBe(20) // preserved
-    expect(data.ruleData.str).toBe(14) // preserved
+    expect(data.components['game:stats'].hp.current).toBe(15)
+    expect(data.components['game:stats'].hp.max).toBe(20)
+    expect(data.components['game:stats'].str).toBe(14)
+    // Other components preserved
+    expect(data.components['core:identity'].name).toBe('Hero')
   })
 
   // ── Archives + Tactical ──
@@ -441,7 +452,7 @@ describe('Full room lifecycle', () => {
     for (const id of ids) {
       await api('POST', `/api/rooms/${roomId}/entities`, {
         id,
-        name: `Persistent ${id}`,
+        components: { 'core:identity': { name: `Persistent ${id}` } },
         lifecycle: 'persistent',
       })
     }

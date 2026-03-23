@@ -18,10 +18,13 @@ vi.mock('../../shared/assetUpload', () => ({
   uploadBlueprintFromFile: vi.fn(() =>
     Promise.resolve({
       id: 'bp-from-upload',
-      name: 'Goblin',
-      imageUrl: '/uploads/goblin.png',
       tags: ['token'],
-      defaults: { color: '#3b82f6', width: 1, height: 1 },
+      defaults: {
+        components: {
+          'core:identity': { name: 'Goblin', imageUrl: '/uploads/goblin.png', color: '#3b82f6' },
+          'core:token': { width: 1, height: 1 },
+        },
+      },
       createdAt: 1234567890,
     }),
   ),
@@ -29,6 +32,7 @@ vi.mock('../../shared/assetUpload', () => ({
   getMediaDimensions: vi.fn(() => Promise.resolve({ w: 100, h: 100 })),
 }))
 import type { Entity, MapToken } from '../../shared/entityTypes'
+import { getName } from '../../shared/coreComponents'
 import type { ShowcaseItem } from '../../shared/showcaseTypes'
 import type { ChatTextMessage } from '../../shared/chatTypes'
 
@@ -103,13 +107,12 @@ const makeScene = (overrides: Partial<Scene> = {}): Scene => ({
 
 const makeEntity = (overrides: Partial<Entity> = {}): Entity => ({
   id: 'entity-1',
-  name: 'Hero',
-  imageUrl: '',
-  color: '#ff0000',
-  width: 1,
-  height: 1,
-  notes: '',
-  ruleData: {},
+  tags: [],
+  components: {
+    'core:identity': { name: 'Hero', imageUrl: '', color: '#ff0000' },
+    'core:token': { width: 1, height: 1 },
+    'core:notes': { text: '' },
+  },
   permissions: { default: 'none', seats: {} },
   lifecycle: 'persistent' as const,
   ...overrides,
@@ -456,17 +459,34 @@ describe('socket event handlers', () => {
   // -- Entity events --
 
   it('entity:created adds to entities record', () => {
-    const newEntity = makeEntity({ id: 'entity-2', name: 'Villain' })
+    const newEntity = makeEntity({
+      id: 'entity-2',
+      components: {
+        'core:identity': { name: 'Villain', imageUrl: '', color: '#ff0000' },
+        'core:token': { width: 1, height: 1 },
+        'core:notes': { text: '' },
+      },
+    })
     socket._trigger('entity:created', newEntity)
 
     expect(useWorldStore.getState().entities['entity-2']).toBeDefined()
-    expect(useWorldStore.getState().entities['entity-2']?.name).toBe('Villain')
+    expect(getName(useWorldStore.getState().entities['entity-2']!)).toBe('Villain')
   })
 
   it('entity:updated updates matching entity', () => {
-    socket._trigger('entity:updated', makeEntity({ id: 'entity-1', name: 'Renamed Hero' }))
+    socket._trigger(
+      'entity:updated',
+      makeEntity({
+        id: 'entity-1',
+        components: {
+          'core:identity': { name: 'Renamed Hero', imageUrl: '', color: '#ff0000' },
+          'core:token': { width: 1, height: 1 },
+          'core:notes': { text: '' },
+        },
+      }),
+    )
 
-    expect(useWorldStore.getState().entities['entity-1']?.name).toBe('Renamed Hero')
+    expect(getName(useWorldStore.getState().entities['entity-1']!)).toBe('Renamed Hero')
   })
 
   it('entity:deleted removes from entities', () => {
@@ -489,7 +509,17 @@ describe('socket event handlers', () => {
       }),
     )
     // Also add entity-2 to the store
-    socket._trigger('entity:created', makeEntity({ id: 'entity-2', name: 'Other' }))
+    socket._trigger(
+      'entity:created',
+      makeEntity({
+        id: 'entity-2',
+        components: {
+          'core:identity': { name: 'Other', imageUrl: '', color: '#ff0000' },
+          'core:token': { width: 1, height: 1 },
+          'core:notes': { text: '' },
+        },
+      }),
+    )
 
     // Delete entity-1
     socket._trigger('entity:deleted', { id: 'entity-1' })
@@ -1215,15 +1245,17 @@ describe('uploadAndCreateBlueprint', () => {
     const file = new File(['fake'], 'goblin.png', { type: 'image/png' })
 
     const result = await useWorldStore.getState().uploadAndCreateBlueprint(file, {
-      name: 'Goblin',
       tags: ['token'],
-      defaults: { color: '#ff0000', width: 1, height: 1 },
+      defaults: {
+        components: {
+          'core:identity': { name: 'Goblin', imageUrl: '', color: '#ff0000' },
+          'core:token': { width: 1, height: 1 },
+        },
+      },
     })
 
     expect(result).toBeDefined()
     expect(result!.id).toBe('bp-from-upload')
-    expect(result!.name).toBe('Goblin')
-    expect(result!.imageUrl).toBe('/uploads/goblin.png')
   })
 
   it('does not duplicate blueprints in store (relies on socket events)', async () => {

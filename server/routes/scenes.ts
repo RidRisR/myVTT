@@ -6,7 +6,8 @@ import type { Scene } from '../../src/shared/storeTypes'
 import { withRoom, withRole } from '../middleware'
 import { toCamel, parseJsonFields, toBoolFields } from '../db'
 import { deepMerge } from '../deepMerge'
-import { degradeTokenReferences, toEntity } from './entities'
+import { degradeTokenReferences, loadEntity } from './entities'
+import { syncTags } from '../tagHelpers'
 
 export function sceneRoutes(dataDir: string, io: TypedServer): Router {
   const router = Router()
@@ -137,6 +138,7 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
 
     const deleteScene = req.roomDb!.transaction(() => {
       // Degrade token references and delete ephemeral entities
+      // (CASCADE handles entity_components + entity_tags)
       for (const e of ephemeralEntities) {
         degradeTokenReferences(req.roomDb!, e.id)
         req.roomDb!.prepare('DELETE FROM entities WHERE id = ?').run(e.id)
@@ -220,6 +222,7 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
         .run(req.params.sceneId, req.params.entityId)
 
       // Only delete ephemeral entities that have no tactical tokens
+      // (CASCADE handles entity_components + entity_tags)
       if (shouldDeleteEntity) {
         degradeTokenReferences(req.roomDb!, req.params.entityId as string)
         req.roomDb!.prepare('DELETE FROM entities WHERE id = ?').run(req.params.entityId)
@@ -283,51 +286,68 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
       res.status(404).json({ error: 'Blueprint not found' })
       return
     }
-    const defaults = JSON.parse((bpRow.defaults as string) || '{}') as Record<string, unknown>
+    const defaults = JSON.parse(
+      (bpRow.defaults as string) || '{"components":{}}',
+    ) as Record<string, unknown>
+    const bpComponents = (defaults.components || {}) as Record<string, unknown>
+
+    // Derive name from core:identity component for the counter
+    const identity = (bpComponents['core:identity'] || {}) as Record<string, unknown>
+    const baseName = (identity.name as string) || 'NPC'
 
     const count = req
       .roomDb!.prepare('SELECT COUNT(*) as c FROM entities WHERE blueprint_id = ?')
       .get(blueprintId) as { c: number }
-    const name = `${(bpRow.name as string) || 'NPC'} ${count.c + 1}`
+    const spawnName = `${baseName} ${count.c + 1}`
 
     const entityId = 'e-' + crypto.randomUUID().slice(0, 8)
+    const db = req.roomDb!
 
-    const spawnEntity = req.roomDb!.transaction(() => {
-      req
-        .roomDb!.prepare(
-          `INSERT INTO entities (id, name, image_url, color, width, height, notes, rule_data, permissions, lifecycle, blueprint_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ephemeral', ?)`,
+    const spawnEntity = db.transaction(() => {
+      db.prepare(
+        `INSERT INTO entities (id, permissions, lifecycle, blueprint_id)
+         VALUES (?, ?, 'ephemeral', ?)`,
+      ).run(entityId, JSON.stringify({ default: 'observer', seats: {} }), blueprintId)
+
+      // Insert components from blueprint defaults, override name with spawn counter
+      const insertComp = db.prepare(
+        'INSERT INTO entity_components (entity_id, component_key, data) VALUES (?, ?, ?)',
+      )
+      for (const [key, data] of Object.entries(bpComponents)) {
+        let compData = data
+        if (key === 'core:identity') {
+          // Override name with numbered spawn name
+          compData = { ...(data as Record<string, unknown>), name: spawnName }
+        }
+        insertComp.run(entityId, key, JSON.stringify(compData))
+      }
+
+      // Copy blueprint tags to entity
+      const bpTags = db
+        .prepare(
+          'SELECT t.name FROM tags t JOIN blueprint_tags bt ON t.id = bt.tag_id WHERE bt.blueprint_id = ?',
         )
-        .run(
+        .all(blueprintId) as { name: string }[]
+      if (bpTags.length > 0) {
+        syncTags(
+          db,
+          'entity_tags',
+          'entity_id',
           entityId,
-          name,
-          bpRow.image_url || '',
-          defaults.color || '#888888',
-          defaults.width || 1,
-          defaults.height || 1,
-          '',
-          JSON.stringify(defaults.ruleData || {}),
-          JSON.stringify({ default: 'observer', seats: {} }),
-          blueprintId,
+          bpTags.map((t) => t.name),
         )
+      }
 
       // Only create scene_entity_entry if NOT tactical-only (tactical objects skip this)
       if (!tacticalOnly) {
-        req
-          .roomDb!.prepare(
-            'INSERT INTO scene_entities (scene_id, entity_id, visible) VALUES (?, ?, 1)',
-          )
-          .run(req.params.sceneId, entityId)
+        db.prepare(
+          'INSERT INTO scene_entities (scene_id, entity_id, visible) VALUES (?, ?, 1)',
+        ).run(req.params.sceneId, entityId)
       }
     })
     spawnEntity()
 
-    const entity = toEntity(
-      req.roomDb!.prepare('SELECT * FROM entities WHERE id = ?').get(entityId) as Record<
-        string,
-        unknown
-      >,
-    )
+    const entity = loadEntity(db, entityId)!
 
     io.to(req.roomId!).emit('entity:created', entity)
     if (!tacticalOnly) {

@@ -16,13 +16,12 @@ import type { Entity } from '../shared/entityTypes'
 const MOCK_ENTITIES: Entity[] = [
   {
     id: 'e1',
-    name: 'Aria',
-    imageUrl: '',
-    color: '#60a5fa',
-    width: 1,
-    height: 1,
-    notes: '',
-    ruleData: null,
+    tags: [],
+    components: {
+      'core:identity': { name: 'Aria', imageUrl: '', color: '#60a5fa' },
+      'core:token': { width: 1, height: 1 },
+      'core:notes': { text: '' },
+    },
     permissions: { default: 'observer', seats: {} },
     lifecycle: 'persistent',
   },

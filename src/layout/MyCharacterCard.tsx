@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import type { Entity } from '../shared/entityTypes'
+import { getName, getColor, getImageUrl } from '../shared/coreComponents'
 import { useRulePlugin } from '../rules/useRulePlugin'
 
 interface MyCharacterCardProps {
@@ -12,6 +13,10 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
   const [open, setOpen] = useState(false)
   const plugin = useRulePlugin()
   const Card = plugin.characterUI.EntityCard
+
+  const name = getName(entity)
+  const imageUrl = getImageUrl(entity)
+  const color = getColor(entity)
 
   return (
     <div
@@ -27,7 +32,7 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
           transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
-        {/* Card panel — content delegated to plugin's EntityCard */}
+        {/* Card panel -- content delegated to plugin's EntityCard */}
         <div className="w-[272px] bg-glass backdrop-blur-[16px] rounded-r-[14px] shadow-[4px_0_32px_rgba(0,0,0,0.3)] border border-border-glass border-l-0 overflow-y-auto max-h-[80vh]">
           <Card
             entity={entity}
@@ -38,26 +43,26 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
           />
         </div>
 
-        {/* Tab handle — always visible */}
+        {/* Tab handle -- always visible */}
         <div
           onClick={() => {
             setOpen(!open)
           }}
           className="w-9 py-3 bg-glass backdrop-blur-[12px] rounded-r-[10px] cursor-pointer flex flex-col items-center gap-1.5 border border-border-glass border-l-0 shadow-[4px_0_16px_rgba(0,0,0,0.2)] transition-colors duration-fast -ml-px hover:bg-surface"
         >
-          {entity.imageUrl ? (
+          {imageUrl ? (
             <img
-              src={entity.imageUrl}
+              src={imageUrl}
               alt=""
               className="w-6 h-6 rounded-full object-cover"
-              style={{ border: `2px solid ${entity.color}` }}
+              style={{ border: `2px solid ${color}` }}
             />
           ) : (
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[11px] font-bold font-sans"
-              style={{ background: entity.color }}
+              style={{ background: color }}
             >
-              {entity.name.charAt(0).toUpperCase()}
+              {name.charAt(0).toUpperCase()}
             </div>
           )}
           <ChevronRight
