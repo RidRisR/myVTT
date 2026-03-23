@@ -18,6 +18,10 @@ describe('Chat & Dice Roll Journey', () => {
   let textMsgId: string
   let rollMsgId: string
 
+  const origin = () => ({
+    seat: { id: seatId, name: 'GM', color: '#ff6600' },
+  })
+
   it('setup: create a GM seat for senderId', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/seats`, {
       name: 'GM',
@@ -32,9 +36,7 @@ describe('Chat & Dice Roll Journey', () => {
 
   it('6.1 send text message → returned with server id + timestamp', async () => {
     const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
-      senderId: seatId,
-      senderName: 'GM',
-      senderColor: '#ff6600',
+      origin: origin(),
       content: 'Welcome to the dungeon!',
     })
     expect(status).toBe(201)
@@ -43,9 +45,10 @@ describe('Chat & Dice Roll Journey', () => {
     expect(msg.id).toBeTruthy()
     expect(msg.type).toBe('text')
     expect(msg.content).toBe('Welcome to the dungeon!')
-    expect(msg.senderName).toBe('GM')
-    expect(msg.senderColor).toBe('#ff6600')
-    expect(msg.senderId).toBe(seatId)
+    const msgOrigin = msg.origin as { seat: { name: string; color: string; id: string } }
+    expect(msgOrigin.seat.name).toBe('GM')
+    expect(msgOrigin.seat.color).toBe('#ff6600')
+    expect(msgOrigin.seat.id).toBe(seatId)
     expect(typeof msg.timestamp).toBe('number')
 
     textMsgId = msg.id as string
@@ -61,9 +64,7 @@ describe('Chat & Dice Roll Journey', () => {
 
   it('6.2 send dice roll → returned with raw rolls', async () => {
     const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/roll`, {
-      senderId: seatId,
-      senderName: 'GM',
-      senderColor: '#ff6600',
+      origin: origin(),
       formula: '2d6+3',
       dice: [{ sides: 6, count: 2 }],
     })
@@ -126,24 +127,18 @@ describe('Chat & Dice Roll Journey', () => {
   it('6.5 incremental fetch with ?after= returns only newer messages', async () => {
     // Send three messages rapidly (may share the same millisecond timestamp)
     const { data: msg1 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
-      senderId: seatId,
-      senderName: 'GM',
-      senderColor: '#ff6600',
+      origin: origin(),
       content: 'First',
     })
     const firstId = (msg1 as { id: string }).id
 
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
-      senderId: seatId,
-      senderName: 'GM',
-      senderColor: '#ff6600',
+      origin: origin(),
       content: 'Second',
     })
 
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
-      senderId: seatId,
-      senderName: 'GM',
-      senderColor: '#ff6600',
+      origin: origin(),
       content: 'Third',
     })
 
@@ -171,9 +166,7 @@ describe('Chat & Dice Roll Journey', () => {
 
   it('6.7 rejects text message without content', async () => {
     const { status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
-      senderId: seatId,
-      senderName: 'GM',
-      senderColor: '#ff6600',
+      origin: origin(),
     })
     expect(status).toBe(400)
   })

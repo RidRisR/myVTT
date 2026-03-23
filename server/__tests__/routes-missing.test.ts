@@ -81,9 +81,7 @@ describe('POST /chat/retract/:id', () => {
   it('creates a message, retracts it, and verifies it is gone from GET', async () => {
     // Send a message
     const { status: sendStatus, data: msg } = await api('POST', `/api/rooms/${roomId}/chat`, {
-      senderId: 's-gm',
-      senderName: 'GM',
-      senderColor: '#ff6600',
+      origin: { seat: { id: 's-gm', name: 'GM', color: '#ff6600' } },
       content: 'This message will be retracted',
     })
     expect(sendStatus).toBe(201)

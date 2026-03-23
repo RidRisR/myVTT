@@ -136,15 +136,14 @@ describe('Multi-Client Sync Journey', () => {
   it('5.8 chat:new broadcasts on POST /chat', async () => {
     const eventPromise = waitForSocketEvent<Record<string, unknown>>(clientB, 'chat:new')
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/chat`, {
-      senderId: 'gm-1',
-      senderName: 'GM',
-      senderColor: '#ff0000',
+      origin: { seat: { id: 'gm-1', name: 'GM', color: '#ff0000' } },
       content: 'Roll initiative!',
     })
 
     const payload = await eventPromise
     expect(payload.content).toBe('Roll initiative!')
-    expect(payload.senderName).toBe('GM')
+    const payloadOrigin = payload.origin as { seat: { name: string } }
+    expect(payloadOrigin.seat.name).toBe('GM')
     expect(payload.type).toBe('text')
     expect(payload.id).toBeTruthy()
   })

@@ -299,9 +299,7 @@ describe('Full room lifecycle', () => {
   // ── Chat ──
   it('sends a text message', async () => {
     const { status, data } = await api('POST', `/api/rooms/${roomId}/chat`, {
-      senderId: 's1',
-      senderName: 'GM',
-      senderColor: '#ff0000',
+      origin: { seat: { id: 's1', name: 'GM', color: '#ff0000' } },
       content: 'Hello adventurers!',
     })
     expect(status).toBe(201)
@@ -310,9 +308,9 @@ describe('Full room lifecycle', () => {
   })
 
   it('retrieves chat history', async () => {
-    const { data } = await api<{ senderName: string }[]>('GET', `/api/rooms/${roomId}/chat`)
+    const { data } = await api<{ origin: { seat: { name: string } } }[]>('GET', `/api/rooms/${roomId}/chat`)
     expect(data.length).toBe(1)
-    expect(data[0]!.senderName).toBe('GM')
+    expect(data[0]!.origin.seat.name).toBe('GM')
   })
 
   // ── Team Trackers ──

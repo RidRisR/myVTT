@@ -12,15 +12,15 @@ afterAll(async () => {
   await ctx.cleanup()
 })
 
+const origin = { seat: { id: 's1', name: 'Tester', color: '#fff' } }
+
 describe('POST /api/rooms/:roomId/roll — pure RNG', () => {
   it('returns raw rolls matching dice spec', async () => {
     const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/roll`, {
       dice: [{ sides: 12, count: 2 }],
       formula: '2d12',
       rollType: 'daggerheart:dd',
-      senderId: 's1',
-      senderName: 'Tester',
-      senderColor: '#fff',
+      origin,
     })
     expect(status).toBe(201)
     const msg = data as Record<string, unknown>
@@ -40,9 +40,7 @@ describe('POST /api/rooms/:roomId/roll — pure RNG', () => {
   it('rejects missing dice', async () => {
     const { status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/roll`, {
       formula: '2d12',
-      senderId: 's1',
-      senderName: 'T',
-      senderColor: '#fff',
+      origin,
     })
     expect(status).toBe(400)
   })
@@ -51,9 +49,7 @@ describe('POST /api/rooms/:roomId/roll — pure RNG', () => {
     const { status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/roll`, {
       dice: [{ sides: 0, count: 1 }],
       formula: '1d0',
-      senderId: 's1',
-      senderName: 'T',
-      senderColor: '#fff',
+      origin,
     })
     expect(status).toBe(400)
   })
@@ -62,9 +58,7 @@ describe('POST /api/rooms/:roomId/roll — pure RNG', () => {
     const { status } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/roll`, {
       dice: [{ sides: 6, count: 101 }],
       formula: '101d6',
-      senderId: 's1',
-      senderName: 'T',
-      senderColor: '#fff',
+      origin,
     })
     expect(status).toBe(400)
   })
@@ -76,9 +70,7 @@ describe('POST /api/rooms/:roomId/roll — pure RNG', () => {
         { sides: 8, count: 1 },
       ],
       formula: '2d6+1d8',
-      senderId: 's1',
-      senderName: 'Tester',
-      senderColor: '#fff',
+      origin,
     })
     expect(status).toBe(201)
     const msg = data as Record<string, unknown>

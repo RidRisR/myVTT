@@ -2,7 +2,7 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import type { TypedServer } from '../socketTypes'
-import type { ChatMessage } from '../../src/shared/chatTypes'
+import type { MessageOrigin, ChatMessage } from '../../src/shared/chatTypes'
 import type { DiceSpec } from '../../src/shared/diceUtils'
 import { withRoom } from '../middleware'
 import { toCamel, parseJsonFields } from '../db'
@@ -12,13 +12,17 @@ export function chatRoutes(dataDir: string, io: TypedServer): Router {
   const room = withRoom(dataDir)
 
   function toMessage(row: Record<string, unknown>): ChatMessage {
-    const msg = parseJsonFields(toCamel(row), 'rollData')
-    // Flatten rollData into top-level fields for client ChatRollMessage compatibility
-    if (msg.rollData && typeof msg.rollData === 'object') {
-      const { rollData, ...rest } = msg
-      return { ...rest, ...(rollData as Record<string, unknown>) } as unknown as ChatMessage
+    const msg = parseJsonFields(toCamel(row), 'rollData', 'seat', 'entity')
+    const origin: MessageOrigin = {
+      seat: msg.seat as MessageOrigin['seat'],
+      ...(msg.entity ? { entity: msg.entity as MessageOrigin['entity'] } : {}),
     }
-    return msg as unknown as ChatMessage
+    if (msg.rollData && typeof msg.rollData === 'object') {
+      const { rollData, seat: _s, entity: _e, ...rest } = msg
+      return { ...rest, ...(rollData as Record<string, unknown>), origin } as unknown as ChatMessage
+    }
+    const { seat: _s, entity: _e, ...rest } = msg
+    return { ...rest, origin } as unknown as ChatMessage
   }
 
   // Get chat history (supports incremental fetch via cursor id)
@@ -46,7 +50,7 @@ export function chatRoutes(dataDir: string, io: TypedServer): Router {
   // Send text message
   router.post('/api/rooms/:roomId/chat', room, (req, res) => {
     const body = req.body as Record<string, unknown>
-    const { senderId, senderName, senderColor, portraitUrl, content } = body
+    const { origin, content } = body as { origin: MessageOrigin; content: string }
     if (!content) {
       res.status(400).json({ error: 'content is required' })
       return
@@ -56,10 +60,16 @@ export function chatRoutes(dataDir: string, io: TypedServer): Router {
 
     req
       .roomDb!.prepare(
-        `INSERT INTO chat_messages (id, type, sender_id, sender_name, sender_color, portrait_url, content, timestamp)
-         VALUES (?, 'text', ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO chat_messages (id, type, seat, entity, content, timestamp)
+         VALUES (?, 'text', ?, ?, ?, ?)`,
       )
-      .run(id, senderId, senderName, senderColor, portraitUrl || null, content, timestamp)
+      .run(
+        id,
+        JSON.stringify(origin.seat),
+        origin.entity ? JSON.stringify(origin.entity) : null,
+        content,
+        timestamp,
+      )
 
     const message = toMessage(
       req.roomDb!.prepare('SELECT * FROM chat_messages WHERE id = ?').get(id) as Record<
@@ -88,15 +98,14 @@ export function chatRoutes(dataDir: string, io: TypedServer): Router {
   // Server-side dice roll — pure RNG only, no formula evaluation
   router.post('/api/rooms/:roomId/roll', room, (req, res) => {
     const rollBody = (req.body ?? {}) as Record<string, unknown>
-    const dice = rollBody.dice as DiceSpec[] | undefined
-    const formula = rollBody.formula as string | undefined
-    const resolvedFormula = rollBody.resolvedFormula as string | undefined
-    const rollType = rollBody.rollType as string | undefined
-    const senderId = rollBody.senderId as string | undefined
-    const senderName = rollBody.senderName as string | undefined
-    const senderColor = rollBody.senderColor as string | undefined
-    const portraitUrl = rollBody.portraitUrl as string | undefined
-    const actionName = rollBody.actionName as string | undefined
+    const { origin, dice, formula, resolvedFormula, rollType, actionName } = rollBody as {
+      origin: MessageOrigin
+      dice: DiceSpec[]
+      formula: string
+      resolvedFormula?: string
+      rollType?: string
+      actionName?: string
+    }
 
     if (!Array.isArray(dice) || dice.length === 0) {
       res.status(400).json({ error: 'dice is required' })
@@ -126,15 +135,49 @@ export function chatRoutes(dataDir: string, io: TypedServer): Router {
 
     req
       .roomDb!.prepare(
-        `INSERT INTO chat_messages (id, type, sender_id, sender_name, sender_color, portrait_url, roll_data, timestamp)
-         VALUES (?, 'roll', ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO chat_messages (id, type, seat, entity, roll_data, timestamp)
+         VALUES (?, 'roll', ?, ?, ?, ?)`,
       )
       .run(
         id,
-        senderId,
-        senderName,
-        senderColor,
-        portraitUrl ?? null,
+        JSON.stringify(origin.seat),
+        origin.entity ? JSON.stringify(origin.entity) : null,
+        JSON.stringify(rollData),
+        timestamp,
+      )
+
+    const message = toMessage(
+      req.roomDb!.prepare('SELECT * FROM chat_messages WHERE id = ?').get(id) as Record<
+        string,
+        unknown
+      >,
+    )
+    io.to(req.roomId!).emit('chat:new', message)
+    res.status(201).json(message)
+  })
+
+  // Judgment message (two-stage roll result)
+  router.post('/api/rooms/:roomId/chat/judgment', room, (req, res) => {
+    const { origin, rollMessageId, judgment, displayText, displayColor } = req.body as {
+      origin: MessageOrigin
+      rollMessageId: string
+      judgment: { type: string; outcome: string }
+      displayText: string
+      displayColor: string
+    }
+    const id = crypto.randomUUID()
+    const timestamp = Date.now()
+    const rollData = { rollMessageId, judgment, displayText, displayColor }
+
+    req
+      .roomDb!.prepare(
+        `INSERT INTO chat_messages (id, type, seat, entity, roll_data, timestamp)
+         VALUES (?, 'judgment', ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        JSON.stringify(origin.seat),
+        origin.entity ? JSON.stringify(origin.entity) : null,
         JSON.stringify(rollData),
         timestamp,
       )

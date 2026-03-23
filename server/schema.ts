@@ -135,10 +135,8 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS chat_messages (
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL DEFAULT 'text',
-      sender_id TEXT,
-      sender_name TEXT,
-      sender_color TEXT,
-      portrait_url TEXT,
+      seat TEXT NOT NULL,
+      entity TEXT,
       content TEXT,
       roll_data TEXT,
       timestamp INTEGER NOT NULL

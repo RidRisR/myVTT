@@ -221,9 +221,7 @@ describe('Chat error paths', () => {
 
   it('POST /chat with empty content returns 400', async () => {
     const { status, data } = await ctx.api('POST', `/api/rooms/${roomId}/chat`, {
-      senderId: 's1',
-      senderName: 'Player',
-      senderColor: '#00ff00',
+      origin: { seat: { id: 's1', name: 'Player', color: '#00ff00' } },
     })
     expect(status).toBe(400)
     expect((data as { error: string }).error).toBe('content is required')
@@ -241,9 +239,7 @@ describe('Chat error paths', () => {
   it('POST /chat/retract/:id — create then retract message', async () => {
     // Create a message
     const { data: msg } = await ctx.api('POST', `/api/rooms/${roomId}/chat`, {
-      senderId: 's1',
-      senderName: 'GM',
-      senderColor: '#ff0000',
+      origin: { seat: { id: 's1', name: 'GM', color: '#ff0000' } },
       content: 'Oops, wrong message',
     })
     const msgId = (msg as { id: string }).id
