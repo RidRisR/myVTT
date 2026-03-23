@@ -40,6 +40,8 @@ import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './ui/ToastProvider'
 import { PluginPanelContainer } from './layout/PluginPanelContainer'
+import { useRulePlugin } from './rules/useRulePlugin'
+import { getImageUrl } from './shared/coreComponents'
 
 // DEV-only: Sandbox pattern library. Vite replaces import.meta.env.DEV with
 // false in production builds, making the lazy import dead code that Rollup
@@ -204,7 +206,8 @@ function RoomSession({ roomId }: { roomId: string }) {
     : null
   const selectedTokenEntity = selectedToken?.entityId ? getEntity(selectedToken.entityId) : null
 
-  const seatProperties = deriveSeatProperties(activeEntity, selectedTokenEntity)
+  const plugin = useRulePlugin()
+  const seatProperties = deriveSeatProperties(plugin, activeEntity, selectedTokenEntity)
   const isGMForSpeakers = mySeat?.role === 'GM'
   const speakerEntities = useMemo(
     () => selectSpeakerEntities(entities, mySeatId, isGMForSpeakers),
@@ -445,7 +448,7 @@ function RoomSession({ roomId }: { roomId: string }) {
           senderId={mySeatId}
           senderName={mySeat.name}
           senderColor={mySeat.color}
-          portraitUrl={mySeat.portraitUrl || activeEntity?.imageUrl}
+          portraitUrl={mySeat.portraitUrl || (activeEntity ? getImageUrl(activeEntity) : undefined)}
           seatProperties={seatProperties}
           speakerEntities={speakerEntities}
         />

@@ -6,11 +6,11 @@
 
 ## 1. Workflow 步骤内的类型访问方式
 
-**设计文档预期**：步骤函数通过泛型 `WorkflowContext<TData>` 直接访问 `ctx.state`、`ctx.updateComponent` 等。
+**设计文档预期**：步骤函数通过泛型 `WorkflowContext<TData>` 直接访问 `ctx.vars`、`ctx.updateComponent` 等。
 
-**实际实现**：步骤函数接收的是旧 `WorkflowContext` 类型（engine 签名限制），通过 `as unknown as { state: DealDamageState }` 类型断言访问 POC 扩展字段。
+**实际实现**：步骤函数接收的是旧 `WorkflowContext` 类型（engine 签名限制），通过 `as unknown as { vars: DealDamageState }` 类型断言访问 POC 扩展字段。
 
-**原因**：`WorkflowEngine.runWorkflow()` 签名为 `(name: string, ctx: WorkflowContext, internal: InternalState)`，其中 `WorkflowContext` 不包含 `state`、`read`、`updateComponent` 等新接口。POC context 是运行时超集，但编译时类型不匹配。修改 engine 签名超出 POC 范围。
+**原因**：`WorkflowEngine.runWorkflow()` 签名为 `(name: string, ctx: WorkflowContext, internal: InternalState)`，其中 `WorkflowContext` 不包含 `vars`、`read`、`updateComponent` 等新接口。POC context 是运行时超集，但编译时类型不匹配。修改 engine 签名超出 POC 范围。
 
 **影响**：步骤代码需要手动类型断言，DX 不够理想。正式迁移时应升级 `WorkflowContext` 接口，消除断言需求。
 
@@ -61,3 +61,15 @@
 **原因**：POC 的核心验证目标是 instanceProps 动态绑定机制，不是布局系统。面板定位复用现有 `PanelRenderer` 即可，无需在 POC 中重新实现。
 
 **影响**：无。动态绑定机制已验证，布局集成在正式版本中进行。
+
+---
+
+## 6. requestInput 未集成到 PocWorkflowContext
+
+**设计文档预期**：`ctx.requestInput(handle, context)` 作为 context 方法暂停 workflow。
+
+**实际实现**：`requestInput` 作为 `sessionStore.ts` 的独立函数实现，未挂载到 `PocWorkflowContext`。
+
+**原因**：独立函数已充分验证暂停/恢复/取消机制（8 个测试）。将其集成到 context 需要处理 WorkflowEngine 的异步步骤支持（当前步骤是同步的），超出 POC 范围。
+
+**影响**：正式迁移时需在 WorkflowContext 中添加 `requestInput` 方法，并确保 engine 支持异步步骤执行。

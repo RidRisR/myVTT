@@ -29,8 +29,8 @@ export function findOrCreateTag(db: Database.Database, name: string): string {
 
 export function syncTags(
   db: Database.Database,
-  junctionTable: 'asset_tags' | 'blueprint_tags',
-  fkColumn: 'asset_id' | 'blueprint_id',
+  junctionTable: 'asset_tags' | 'blueprint_tags' | 'entity_tags',
+  fkColumn: 'asset_id' | 'blueprint_id' | 'entity_id',
   entityId: string,
   tagNames: string[],
 ): void {
@@ -46,8 +46,8 @@ export function syncTags(
 
 export function getTagNames(
   db: Database.Database,
-  junctionTable: 'asset_tags' | 'blueprint_tags',
-  fkColumn: 'asset_id' | 'blueprint_id',
+  junctionTable: 'asset_tags' | 'blueprint_tags' | 'entity_tags',
+  fkColumn: 'asset_id' | 'blueprint_id' | 'entity_id',
   entityId: string,
 ): string[] {
   const rows = db

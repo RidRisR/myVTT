@@ -64,10 +64,44 @@ export type {
   StepError,
   IPluginSDK,
   IWorkflowRunner,
-  AnimationSpec,
-  ToastOptions,
+  IDataReader,
+  StepRunFn,
 } from '../workflow/types'
+
+// ── Workflow helpers ─────────────────────────────────────────────────────────
+export { output } from '../workflow/helpers'
+
+// ── EventBus (decoupled side effects) ──────────────────────────────────────
+export { defineEvent } from '../events/eventBus'
+export type { EventHandle } from '../events/eventBus'
+export {
+  toastEvent,
+  announceEvent,
+  animationEvent,
+  soundEvent,
+} from '../events/systemEvents'
+export type {
+  ToastPayload,
+  AnnouncePayload,
+  AnimationPayload,
+  SoundPayload,
+} from '../events/systemEvents'
 export type { VTTPlugin } from './types'
-export { getRollWorkflow } from '../workflow/baseWorkflows'
-export type { BaseRollData } from '../workflow/baseWorkflows'
+export { getRollWorkflow, getQuickRollWorkflow } from '../workflow/baseWorkflows'
+export type { BaseRollData, RollOutput } from '../workflow/baseWorkflows'
 export { useWorkflowRunner } from '../workflow/useWorkflowSDK'
+
+// ── Data layer (reactive hooks + imperative reader) ────────────────────────
+export { useEntity, useComponent } from '../data/hooks'
+export { createDataReader } from '../data/dataReader'
+
+// ── Core component accessors ───────────────────────────────────────────────
+export {
+  getIdentity,
+  getToken,
+  getNotes,
+  getName,
+  getColor,
+  getImageUrl,
+} from '../shared/coreComponents'
+export type { CoreIdentity, CoreToken, CoreNotes } from '../shared/coreComponents'

@@ -1,5 +1,6 @@
 import { renderHook, act } from '@testing-library/react'
 import { usePocStore } from '../store'
+import { useGlobal } from '../hooks'
 import { createDataReader } from '../dataReader'
 import { loadMockData } from '../mockData'
 import type { PocEntity } from '../types'
@@ -86,6 +87,23 @@ describe('hook re-render precision', () => {
     const lastResult = result[result.length - 1]!.value
     const firstResult = result[0]!.value
     expect(lastResult).toEqual(firstResult)
+  })
+})
+
+describe('useGlobal re-render', () => {
+  it('patchGlobal triggers re-render in useGlobal hook', () => {
+    usePocStore.setState({
+      globals: { Fear: { key: 'Fear', current: 0 } },
+    })
+
+    const { result } = renderHook(() => useGlobal('Fear'))
+    expect(result.current?.current).toBe(0)
+
+    act(() => {
+      usePocStore.getState().patchGlobal('Fear', { current: 7 })
+    })
+
+    expect(result.current?.current).toBe(7)
   })
 })
 

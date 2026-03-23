@@ -3,10 +3,11 @@ import { Router } from 'express'
 import crypto from 'crypto'
 import type { TypedServer } from '../socketTypes'
 import type { TacticalInfo } from '../../src/shared/storeTypes'
-import type { Entity, MapToken } from '../../src/shared/entityTypes'
+import type { MapToken } from '../../src/shared/entityTypes'
 import type Database from 'better-sqlite3'
 import { withRoom } from '../middleware'
 import { toCamel, parseJsonFields } from '../db'
+import { loadEntity } from './entities'
 
 function toToken(row: Record<string, unknown>): MapToken {
   return {
@@ -21,10 +22,6 @@ function toToken(row: Record<string, unknown>): MapToken {
     imageScaleY: row.image_scale_y ?? 1,
     initiativePosition: row.initiative_position ?? null,
   } as unknown as MapToken
-}
-
-function toEntity(row: Record<string, unknown>): Entity {
-  return parseJsonFields(toCamel(row), 'ruleData', 'permissions') as unknown as Entity
 }
 
 export function getTacticalState(db: Database.Database, sceneId: string): TacticalInfo | null {
@@ -186,7 +183,7 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
       // Delete all tactical tokens for this scene
       db.prepare('DELETE FROM tactical_tokens WHERE scene_id = ?').run(sceneId)
 
-      // Delete orphan entities
+      // Delete orphan entities (CASCADE handles entity_components + entity_tags)
       const deleteEntity = db.prepare('DELETE FROM entities WHERE id = ?')
       for (const { id } of orphans) {
         deleteEntity.run(id)
@@ -289,33 +286,35 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
       return
     }
 
+    const db = req.roomDb!
     const entityId = 'e-' + crypto.randomUUID().slice(0, 8)
     const tokenId = crypto.randomUUID()
 
-    const createQuick = req.roomDb!.transaction(() => {
-      req
-        .roomDb!.prepare(
-          `INSERT INTO entities (id, name, image_url, color, width, height, lifecycle)
-           VALUES (?, ?, ?, ?, ?, ?, 'ephemeral')`,
-        )
-        .run(entityId, name, imageUrl, color, width, height)
+    const createQuick = db.transaction(() => {
+      // Insert slim entity
+      db.prepare(
+        `INSERT INTO entities (id, permissions, lifecycle)
+         VALUES (?, '{"default":"observer","seats":{}}', 'ephemeral')`,
+      ).run(entityId)
 
-      req
-        .roomDb!.prepare(
-          `INSERT INTO tactical_tokens (id, scene_id, entity_id, x, y, width, height)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        )
-        .run(tokenId, sceneId, entityId, x, y, width, height)
+      // Insert components
+      const insertComp = db.prepare(
+        'INSERT INTO entity_components (entity_id, component_key, data) VALUES (?, ?, ?)',
+      )
+      insertComp.run(entityId, 'core:identity', JSON.stringify({ name, imageUrl, color }))
+      insertComp.run(entityId, 'core:token', JSON.stringify({ width, height }))
+
+      db.prepare(
+        `INSERT INTO tactical_tokens (id, scene_id, entity_id, x, y, width, height)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ).run(tokenId, sceneId, entityId, x, y, width, height)
     })
     createQuick()
 
-    const entityRow = req
-      .roomDb!.prepare('SELECT * FROM entities WHERE id = ?')
-      .get(entityId) as Record<string, unknown>
-    const tokenRow = req
-      .roomDb!.prepare('SELECT * FROM tactical_tokens WHERE id = ?')
+    const entity = loadEntity(db, entityId)!
+    const tokenRow = db
+      .prepare('SELECT * FROM tactical_tokens WHERE id = ?')
       .get(tokenId) as Record<string, unknown>
-    const entity = toEntity(entityRow)
     const token = toToken(tokenRow)
 
     io.to(req.roomId!).emit('tactical:token:added', token)
@@ -332,10 +331,8 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
       return
     }
 
-    const entity = req
-      .roomDb!.prepare('SELECT id, width, height FROM entities WHERE id = ?')
-      .get(entityId) as { id: string; width: number; height: number } | undefined
-    if (!entity) {
+    const entityExists = req.roomDb!.prepare('SELECT id FROM entities WHERE id = ?').get(entityId)
+    if (!entityExists) {
       res.status(404).json({ error: 'Entity not found' })
       return
     }
@@ -355,9 +352,26 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
       return
     }
 
+    // Get width/height from core:token component if not provided
+    let tokenWidth = width
+    let tokenHeight = height
+    if (tokenWidth === undefined || tokenHeight === undefined) {
+      const tokenComp = req
+        .roomDb!.prepare(
+          "SELECT data FROM entity_components WHERE entity_id = ? AND component_key = 'core:token'",
+        )
+        .get(entityId) as { data: string } | undefined
+      if (tokenComp) {
+        const tokenData = JSON.parse(tokenComp.data) as Record<string, unknown>
+        if (tokenWidth === undefined) tokenWidth = tokenData.width ?? 1
+        if (tokenHeight === undefined) tokenHeight = tokenData.height ?? 1
+      } else {
+        if (tokenWidth === undefined) tokenWidth = 1
+        if (tokenHeight === undefined) tokenHeight = 1
+      }
+    }
+
     const id = crypto.randomUUID()
-    const tokenWidth = width ?? entity.width
-    const tokenHeight = height ?? entity.height
 
     try {
       req
@@ -386,18 +400,20 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
   // POST /tactical/tokens/:tokenId/duplicate — copy entity + token
   router.post('/api/rooms/:roomId/tactical/tokens/:tokenId/duplicate', room, (req, res) => {
     const { offsetX = 1, offsetY = 1 } = req.body as { offsetX?: number; offsetY?: number }
+    const db = req.roomDb!
 
-    const tokenRow = req
-      .roomDb!.prepare('SELECT * FROM tactical_tokens WHERE id = ?')
+    const tokenRow = db
+      .prepare('SELECT * FROM tactical_tokens WHERE id = ?')
       .get(req.params.tokenId) as Record<string, unknown> | undefined
     if (!tokenRow) {
       res.status(404).json({ error: 'Token not found' })
       return
     }
 
-    const entityRow = req
-      .roomDb!.prepare('SELECT * FROM entities WHERE id = ?')
-      .get(tokenRow.entity_id) as Record<string, unknown> | undefined
+    const sourceEntityId = tokenRow.entity_id as string
+    const entityRow = db.prepare('SELECT * FROM entities WHERE id = ?').get(sourceEntityId) as
+      | Record<string, unknown>
+      | undefined
     if (!entityRow) {
       res.status(404).json({ error: 'Source entity not found' })
       return
@@ -406,50 +422,61 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
     const newEntityId = 'e-' + crypto.randomUUID().slice(0, 8)
     const newTokenId = crypto.randomUUID()
 
-    const duplicate = req.roomDb!.transaction(() => {
-      req
-        .roomDb!.prepare(
-          `INSERT INTO entities (id, name, image_url, color, width, height, notes, rule_data, permissions, lifecycle)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ephemeral')`,
-        )
-        .run(
-          newEntityId,
-          entityRow.name,
-          entityRow.image_url,
-          entityRow.color,
-          entityRow.width,
-          entityRow.height,
-          entityRow.notes,
-          entityRow.rule_data,
-          entityRow.permissions,
-        )
+    const duplicate = db.transaction(() => {
+      // Insert slim entity copy
+      db.prepare(
+        `INSERT INTO entities (id, permissions, lifecycle)
+         VALUES (?, ?, 'ephemeral')`,
+      ).run(newEntityId, entityRow.permissions)
 
-      req
-        .roomDb!.prepare(
-          `INSERT INTO tactical_tokens (id, scene_id, entity_id, x, y, width, height, image_scale_x, image_scale_y)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      // Copy all components from source entity
+      const componentRows = db
+        .prepare('SELECT component_key, data FROM entity_components WHERE entity_id = ?')
+        .all(sourceEntityId) as { component_key: string; data: string }[]
+      const insertComp = db.prepare(
+        'INSERT INTO entity_components (entity_id, component_key, data) VALUES (?, ?, ?)',
+      )
+      for (const comp of componentRows) {
+        insertComp.run(newEntityId, comp.component_key, comp.data)
+      }
+
+      // Copy tags from source entity
+      const tagRows = db
+        .prepare(
+          'SELECT t.name FROM tags t JOIN entity_tags et ON t.id = et.tag_id WHERE et.entity_id = ?',
         )
-        .run(
-          newTokenId,
-          tokenRow.scene_id,
-          newEntityId,
-          (tokenRow.x as number) + offsetX,
-          (tokenRow.y as number) + offsetY,
-          tokenRow.width,
-          tokenRow.height,
-          tokenRow.image_scale_x,
-          tokenRow.image_scale_y,
-        )
+        .all(sourceEntityId) as { name: string }[]
+      if (tagRows.length > 0) {
+        // Use direct insert to avoid re-creating tags
+        const findTag = db.prepare('SELECT id FROM tags WHERE name = ?')
+        const insertTag = db.prepare('INSERT INTO entity_tags (entity_id, tag_id) VALUES (?, ?)')
+        for (const { name } of tagRows) {
+          const tag = findTag.get(name) as { id: string }
+          insertTag.run(newEntityId, tag.id)
+        }
+      }
+
+      db.prepare(
+        `INSERT INTO tactical_tokens (id, scene_id, entity_id, x, y, width, height, image_scale_x, image_scale_y)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(
+        newTokenId,
+        tokenRow.scene_id,
+        newEntityId,
+        (tokenRow.x as number) + offsetX,
+        (tokenRow.y as number) + offsetY,
+        tokenRow.width,
+        tokenRow.height,
+        tokenRow.image_scale_x,
+        tokenRow.image_scale_y,
+      )
     })
     duplicate()
 
-    const newEntityRow = req
-      .roomDb!.prepare('SELECT * FROM entities WHERE id = ?')
-      .get(newEntityId) as Record<string, unknown>
-    const newTokenRow = req
-      .roomDb!.prepare('SELECT * FROM tactical_tokens WHERE id = ?')
+    const entity = loadEntity(db, newEntityId)!
+    const newTokenRow = db
+      .prepare('SELECT * FROM tactical_tokens WHERE id = ?')
       .get(newTokenId) as Record<string, unknown>
-    const entity = toEntity(newEntityRow)
     const token = toToken(newTokenRow)
 
     io.to(req.roomId!).emit('tactical:token:added', token)

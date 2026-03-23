@@ -9,11 +9,10 @@ import type {
   WorkflowResult,
   StepError,
   StepFn,
+  StepRunFn,
   InternalState,
   WorkflowHandle,
 } from './types'
-
-type StepRunFn<TData> = (ctx: WorkflowContext<TData>) => Promise<void> | void
 
 const MAX_RECURSION_DEPTH = 10
 
@@ -42,6 +41,8 @@ interface WorkflowRecord {
   wrappers: Map<string, WrapperEntry[]>
   /** Tracks which plugin has replaced each step (only one replace per step) */
   replacements: Map<string, { pluginOwner?: string; originalRun: StepFn }>
+  /** Output extractor — called on completed workflows to produce structured output */
+  outputFn?: (vars: Record<string, unknown>) => unknown
 }
 
 interface WrapperEntry {
@@ -65,9 +66,21 @@ export class WorkflowEngine {
 
   // ── Registration ────────────────────────────────────────────────────────────
 
+  /** Define workflow without output extractor (output = vars snapshot) */
   defineWorkflow<TData = Record<string, unknown>>(
     name: string,
     stepsOrRun?: Step<TData>[] | StepRunFn<TData>,
+  ): WorkflowHandle<TData, TData>
+  /** Define workflow with output extractor (third parameter) */
+  defineWorkflow<TData extends Record<string, unknown>, TOutput>(
+    name: string,
+    steps: Step<TData>[],
+    outputFn: (vars: TData) => TOutput,
+  ): WorkflowHandle<TData, TOutput>
+  defineWorkflow<TData = Record<string, unknown>>(
+    name: string,
+    stepsOrRun?: Step<TData>[] | StepRunFn<TData>,
+    outputFn?: (vars: TData) => unknown,
   ): WorkflowHandle<TData> {
     const steps: Step<TData>[] =
       stepsOrRun === undefined
@@ -98,6 +111,7 @@ export class WorkflowEngine {
       })),
       wrappers: new Map(),
       replacements: new Map(),
+      outputFn: outputFn as WorkflowRecord['outputFn'],
     }
     this.workflows.set(name, record)
 
@@ -292,7 +306,9 @@ export class WorkflowEngine {
 
     // Zero-step fast path: skip ancestor computation, snapshot, and loop entirely
     if (record.steps.length === 0) {
-      return { status: 'completed', data: { ...ctx.data } as WorkflowResult['data'], errors: [] }
+      const dataCopy = { ...ctx.vars } as Record<string, unknown>
+      const output = record.outputFn ? record.outputFn(dataCopy) : dataCopy
+      return { status: 'completed' as const, data: dataCopy, output, errors: [] } as WorkflowResult
     }
 
     if (internal.depth >= MAX_RECURSION_DEPTH) {
@@ -304,8 +320,8 @@ export class WorkflowEngine {
     internal.depth++
     const errors: StepError[] = []
 
-    // Access data via Proxy (reads go through to _inner) and dataCtrl for restore
-    const data = ctx.data
+    // Access vars via Proxy (reads go through to _inner) and dataCtrl for restore
+    const data = ctx.vars
     const { dataCtrl } = internal
 
     try {
@@ -383,12 +399,48 @@ export class WorkflowEngine {
       internal.depth--
     }
 
-    return {
-      status: internal.abortCtrl.aborted ? 'aborted' : 'completed',
-      reason: internal.abortCtrl.reason,
-      data: { ...data } as WorkflowResult['data'],
-      errors,
+    const dataCopy = { ...data } as Record<string, unknown>
+
+    if (internal.abortCtrl.aborted) {
+      return {
+        status: 'aborted' as const,
+        reason: internal.abortCtrl.reason,
+        data: dataCopy,
+        output: undefined,
+        errors,
+      } as WorkflowResult
     }
+
+    // Extract structured output if an outputFn was provided
+    if (record.outputFn) {
+      try {
+        const output = record.outputFn(dataCopy)
+        return {
+          status: 'completed' as const,
+          data: dataCopy,
+          output,
+          errors,
+        } as WorkflowResult
+      } catch (e) {
+        const error = e instanceof Error ? e : new Error(String(e))
+        errors.push({ stepId: '__output__', error })
+        return {
+          status: 'aborted' as const,
+          reason: 'output extraction failed',
+          data: dataCopy,
+          output: undefined,
+          errors,
+        } as WorkflowResult
+      }
+    }
+
+    // No outputFn — output is the data snapshot itself
+    return {
+      status: 'completed' as const,
+      data: dataCopy,
+      output: dataCopy,
+      errors,
+    } as WorkflowResult
   }
 
   // ── Inspection ──────────────────────────────────────────────────────────────

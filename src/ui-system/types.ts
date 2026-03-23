@@ -1,7 +1,6 @@
 // src/ui-system/types.ts
 import type React from 'react'
-import type { Entity } from '../shared/entityTypes'
-import type { IWorkflowRunner } from '../workflow/types'
+import type { IWorkflowRunner, IDataReader } from '../workflow/types'
 
 export interface DnDPayload {
   /** Identifies the type of dragged item; drop zones use this for filtering */
@@ -12,13 +11,23 @@ export interface DnDPayload {
 
 export type { ZLayer, ComponentDef, LayerDef, IUIRegistrationSDK } from './registrationTypes'
 
+/** Session snapshot passed to instanceProps factory functions */
+export interface SessionSnapshot {
+  selection: string[]
+}
+
+/** Static props or a factory that receives current session state */
+export type InstancePropsOrFactory =
+  | Record<string, unknown>
+  | ((session: SessionSnapshot) => Record<string, unknown>)
+
 export interface LayoutEntry {
   x: number
   y: number
   width: number
   height: number
   visible?: boolean
-  instanceProps?: Record<string, unknown>
+  instanceProps?: InstancePropsOrFactory
 }
 
 // key format: "<componentId>#<instance>" e.g. "poc-ui.hello#1"
@@ -28,11 +37,6 @@ export interface ComponentContext {
   instanceProps: Record<string, unknown>
   role: 'GM' | 'Player'
   layoutMode: 'play' | 'edit'
-}
-
-export interface IDataSDK {
-  entity(id: string): Entity | undefined
-  entities(): Entity[]
 }
 
 export interface IDnDSDK {
@@ -74,7 +78,7 @@ export interface IInteractionSDK {
 }
 
 export interface IComponentSDK {
-  data: IDataSDK
+  read: IDataReader
   workflow: IWorkflowRunner
   context: ComponentContext
   /** play 模式下注入；edit 模式下系统浮层接管所有交互，不注入 */

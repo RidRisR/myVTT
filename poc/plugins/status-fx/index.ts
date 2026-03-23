@@ -11,7 +11,7 @@ export function activateStatusFxPlugin(engine: WorkflowEngine): void {
     id: 'status-fx:apply-resistance',
     before: 'core:apply-damage',
     run: (ctx) => {
-      const state = (ctx as unknown as { state: DealDamageState }).state
+      const state = (ctx as unknown as { vars: DealDamageState }).vars
       const read = (
         ctx as unknown as {
           read: { component: (eid: string, key: string) => unknown }

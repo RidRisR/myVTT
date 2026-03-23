@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { MoreVertical, Pencil, Trash2, MapPin } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import type { Entity } from '../shared/entityTypes'
+import { getName, getColor, getImageUrl, getIdentity } from '../shared/coreComponents'
 import { DropdownMenuContent } from '../ui/primitives/DropdownMenuContent'
 import { DropdownMenuItem } from '../ui/primitives/DropdownMenuItem'
 import { ConfirmDropdownItem } from '../ui/ConfirmDropdownItem'
@@ -32,9 +33,19 @@ export function EntityRow({
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
 
+  const name = getName(entity)
+  const imageUrl = getImageUrl(entity)
+  const color = getColor(entity)
+
   const commitRename = () => {
-    if (renameValue.trim() && renameValue.trim() !== entity.name) {
-      onUpdate({ name: renameValue.trim() })
+    if (renameValue.trim() && renameValue.trim() !== name) {
+      const identity = getIdentity(entity)
+      onUpdate({
+        components: {
+          ...entity.components,
+          'core:identity': { ...identity, name: renameValue.trim() },
+        },
+      })
     }
     setRenaming(false)
   }
@@ -46,19 +57,19 @@ export function EntityRow({
     >
       {/* Avatar */}
       <div className="relative shrink-0">
-        {entity.imageUrl ? (
+        {imageUrl ? (
           <img
-            src={entity.imageUrl}
+            src={imageUrl}
             alt=""
             className="w-7 h-7 rounded-full object-cover"
-            style={{ border: `2px solid ${entity.color}` }}
+            style={{ border: `2px solid ${color}` }}
           />
         ) : (
           <div
             className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[11px] font-bold"
-            style={{ background: entity.color }}
+            style={{ background: color }}
           >
-            {entity.name.charAt(0).toUpperCase()}
+            {name.charAt(0).toUpperCase()}
           </div>
         )}
         {/* Online indicator */}
@@ -87,7 +98,7 @@ export function EntityRow({
             className="w-full text-xs bg-surface text-text-primary border border-border-glass rounded px-1.5 py-0.5 outline-none"
           />
         ) : (
-          <div className="text-xs text-text-primary truncate">{entity.name}</div>
+          <div className="text-xs text-text-primary truncate">{name}</div>
         )}
         <div className="flex items-center gap-1 text-[10px] text-text-muted/40">
           {isPC && <span>{t('entity.label_pc')}</span>}
@@ -96,7 +107,7 @@ export function EntityRow({
         </div>
       </div>
 
-      {/* ⋮ Menu */}
+      {/* Menu */}
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <button
@@ -114,7 +125,7 @@ export function EntityRow({
             data-testid="entity-menu-rename"
             onSelect={() => {
               setRenaming(true)
-              setRenameValue(entity.name)
+              setRenameValue(name)
             }}
           >
             <Pencil size={12} strokeWidth={1.5} />
@@ -137,7 +148,7 @@ export function EntityRow({
           <ConfirmDropdownItem
             data-testid="entity-menu-delete"
             icon={<Trash2 size={12} strokeWidth={1.5} />}
-            message={t('entity.delete_confirm', { name: entity.name })}
+            message={t('entity.delete_confirm', { name })}
             onConfirm={onDelete}
           >
             Delete

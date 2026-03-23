@@ -99,14 +99,12 @@ interface WorldState {
   toggleEntityVisibility: (sceneId: string, entityId: string, visible: boolean) => Promise<void>
   saveEntityAsBlueprint: (entity: Entity) => Promise<void>
   createBlueprint: (data: {
-    name: string
-    imageUrl: string
     defaults: Blueprint['defaults']
     tags?: string[]
   }) => Promise<Blueprint | null>
   updateBlueprint: (
     id: string,
-    updates: Partial<Pick<Blueprint, 'name' | 'imageUrl' | 'defaults' | 'tags'>>,
+    updates: Partial<Pick<Blueprint, 'defaults' | 'tags'>>,
   ) => Promise<void>
   deleteBlueprint: (id: string) => Promise<void>
   spawnFromBlueprint: (
@@ -793,15 +791,14 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const sceneId = get().room.activeSceneId
     const entity: Entity = {
       id: generateTokenId(),
-      name: 'New NPC',
-      imageUrl: '',
-      color: '#3b82f6',
-      width: 1,
-      height: 1,
-      notes: '',
-      ruleData: null,
       permissions: defaultNPCPermissions(),
       lifecycle: 'ephemeral',
+      tags: [],
+      components: {
+        'core:identity': { name: 'New NPC', imageUrl: '', color: '#3b82f6' },
+        'core:token': { width: 1, height: 1 },
+        'core:notes': { text: '' },
+      },
     }
     // Optimistic update so character card can open immediately
     set((s) => ({
@@ -827,14 +824,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const roomId = get()._roomId
     if (!roomId) return
     await api.post(`/api/rooms/${roomId}/blueprints`, {
-      name: entity.name,
-      imageUrl: entity.imageUrl,
-      defaults: {
-        color: entity.color,
-        width: entity.width,
-        height: entity.height,
-        ruleData: entity.ruleData,
-      },
+      defaults: { components: { ...entity.components } },
     })
   },
 

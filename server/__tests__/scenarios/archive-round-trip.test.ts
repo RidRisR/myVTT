@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { setupTestRoom, type TestContext } from '../helpers/test-server'
+import type { Entity } from '../../../src/shared/entityTypes'
+import { getName } from '../../../src/shared/coreComponents'
 
 let ctx: TestContext
 let sceneId: string
@@ -115,8 +117,8 @@ describe('Archive round-trip: save then load restores full state', () => {
         'GET',
         `/api/rooms/${ctx.roomId}/entities/${token.entityId}`,
       )
-      const e = entity as { name: string }
-      expect(['Goblin A', 'Goblin B']).toContain(e.name)
+      const e = entity as Entity
+      expect(['Goblin A', 'Goblin B']).toContain(getName(e))
     }
 
     // ── Assert: round state restored ──
@@ -129,9 +131,10 @@ describe('Archive round-trip: save then load restores full state', () => {
   it('save + load preserves reusable entity tokens with exact entity reference', async () => {
     // Create a reusable entity
     const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      name: 'Dragon Boss',
       lifecycle: 'reusable',
-      color: '#ef4444',
+      components: {
+        'core:identity': { name: 'Dragon Boss', imageUrl: '', color: '#ef4444' },
+      },
     })
     const entityId = (entity as { id: string }).id
 

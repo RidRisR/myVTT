@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { X, Plus, Loader2, FolderOpen } from 'lucide-react'
 import * as ContextMenu from '@radix-ui/react-context-menu'
 import type { Blueprint } from '../shared/entityTypes'
+import { getBlueprintName, getBlueprintImageUrl, getBlueprintColor } from '../shared/coreComponents'
 import { useWorldStore } from '../stores/worldStore'
 import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
@@ -42,8 +43,12 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
     setUploading(true)
     try {
       await uploadAndCreateBlueprint(file, {
-        name: file.name,
-        defaults: { color: '#3b82f6', width: 1, height: 1 },
+        defaults: {
+          components: {
+            'core:identity': { name: file.name, imageUrl: '', color: '#3b82f6' },
+            'core:token': { width: 1, height: 1 },
+          },
+        },
       })
       toast('success', t('blueprint.uploaded', { name: file.name }))
     } catch (err) {
@@ -83,17 +88,21 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
 
   const handleDelete = (bp: Blueprint) => {
     void deleteBlueprintAction(bp.id)
-    toast('info', t('blueprint.deleted', { name: bp.name }))
+    toast('info', t('blueprint.deleted', { name: getBlueprintName(bp) }))
   }
 
   const startEdit = (bp: Blueprint) => {
     setEditingId(bp.id)
-    setEditName(bp.name)
+    setEditName(getBlueprintName(bp))
   }
 
   const commitEdit = () => {
     if (editingId && editName.trim()) {
-      void updateBlueprint(editingId, { name: editName.trim() })
+      void updateBlueprint(editingId, {
+        defaults: {
+          components: { 'core:identity': { name: editName.trim() } },
+        },
+      })
     }
     setEditingId(null)
   }
@@ -171,13 +180,13 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                     }}
                     className="w-14 h-14 rounded-full overflow-hidden cursor-pointer shrink-0 transition-shadow duration-fast"
                     style={{
-                      border: `3px solid ${bp.defaults.color}`,
-                      boxShadow: isHovered ? `0 0 12px ${bp.defaults.color}44` : 'none',
+                      border: `3px solid ${getBlueprintColor(bp)}`,
+                      boxShadow: isHovered ? `0 0 12px ${getBlueprintColor(bp)}44` : 'none',
                     }}
                   >
                     <img
-                      src={bp.imageUrl}
-                      alt={bp.name}
+                      src={getBlueprintImageUrl(bp)}
+                      alt={getBlueprintName(bp)}
                       className="w-full h-full object-cover block"
                       draggable={false}
                     />
@@ -205,7 +214,7 @@ export function BlueprintDockTab({ onSpawnToken, onAddToActive, isTactical }: To
                       }}
                       className="text-[9px] text-text-muted/60 text-center overflow-hidden text-ellipsis whitespace-nowrap max-w-[72px] cursor-default"
                     >
-                      {bp.name}
+                      {getBlueprintName(bp)}
                     </span>
                   )}
 

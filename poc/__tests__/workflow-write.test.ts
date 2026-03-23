@@ -105,6 +105,36 @@ describe('Phase 2 — Workflow writes data', () => {
     expect(read1).toBe(read2)
   })
 
+  it('ctx.patchGlobal writes globals from within a workflow step', async () => {
+    const engine = new WorkflowEngine()
+    // Register a trivial workflow that patches a global
+    engine.defineWorkflow('test:patch-global', (ctx) => {
+      const pocCtx = ctx as unknown as {
+        patchGlobal: (key: string, patch: Record<string, unknown>) => void
+      }
+      pocCtx.patchGlobal('Fear', { current: 10 })
+    })
+
+    const reader = createDataReader()
+    const bus = createEventBus()
+    const internal = createPocInternal()
+    const ctx = createPocWorkflowContext(
+      { dataReader: reader, eventBus: bus, engine },
+      {} as Record<string, unknown>,
+      internal,
+    )
+
+    // Ensure Fear global exists
+    usePocStore.setState((s) => ({
+      globals: { ...s.globals, Fear: { key: 'Fear', current: 0 } },
+    }))
+
+    await engine.runWorkflow('test:patch-global', ctx as unknown as WorkflowContext, internal)
+
+    const fear = usePocStore.getState().globals.Fear!
+    expect(fear.current).toBe(10)
+  })
+
   it('event bus emits damageDealt event during workflow', async () => {
     const engine = new WorkflowEngine()
     activateCorePlugin(engine)

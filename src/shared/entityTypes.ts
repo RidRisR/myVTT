@@ -16,16 +16,11 @@ export interface EntityPermissions {
 
 export interface Entity {
   id: string
-  name: string
-  imageUrl: string
-  color: string
-  width: number
-  height: number
   blueprintId?: string
-  notes: string
-  ruleData: unknown
   permissions: EntityPermissions
   lifecycle: EntityLifecycle
+  tags: string[]
+  components: Record<string, unknown>
 }
 
 export interface MapToken {
@@ -41,14 +36,9 @@ export interface MapToken {
 
 export interface Blueprint {
   id: string
-  name: string
-  imageUrl: string
   tags: string[]
   defaults: {
-    color: string
-    width: number
-    height: number
-    ruleData?: unknown
+    components: Record<string, unknown>
   }
   createdAt: number
 }

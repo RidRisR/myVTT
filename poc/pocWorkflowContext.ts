@@ -15,20 +15,20 @@ export interface PocContextDeps {
   engine: WorkflowEngine
 }
 
-export interface PocWorkflowContext<TState = Record<string, unknown>> {
+export interface PocWorkflowContext<TVars = Record<string, unknown>> {
   // New POC interface
-  state: TState
+  vars: TVars
   read: IDataReader
   updateComponent: (entityId: string, key: string, updater: (current: unknown) => unknown) => void
   patchGlobal: (key: string, patch: Record<string, unknown>) => void
   events: { emit: <T>(handle: EventHandle<T>, payload: T) => void }
   // Old interface compat
-  readonly data: TState
+  readonly data: TVars
   abort: (reason?: string) => void
-  runWorkflow: <T extends Record<string, unknown>>(
-    handle: WorkflowHandle<T>,
+  runWorkflow: <T extends Record<string, unknown>, TOut = T>(
+    handle: WorkflowHandle<T, TOut>,
     data?: Partial<T>,
-  ) => Promise<WorkflowResult<T>>
+  ) => Promise<WorkflowResult<T, TOut>>
 }
 
 /**
@@ -49,18 +49,18 @@ export function createPocInternal(): InternalState {
   }
 }
 
-export function createPocWorkflowContext<TState extends Record<string, unknown>>(
+export function createPocWorkflowContext<TVars extends Record<string, unknown>>(
   deps: PocContextDeps,
-  initialState: TState,
+  initialState: TVars,
   internal: InternalState,
-): PocWorkflowContext<TState> {
+): PocWorkflowContext<TVars> {
   const stateObj = { ...initialState }
 
-  const ctx: PocWorkflowContext<TState> = {
+  const ctx: PocWorkflowContext<TVars> = {
     get data() {
       return stateObj
     },
-    get state() {
+    get vars() {
       return stateObj
     },
     read: deps.dataReader,
@@ -79,8 +79,8 @@ export function createPocWorkflowContext<TState extends Record<string, unknown>>
       internal.abortCtrl.aborted = true
       internal.abortCtrl.reason = reason
     },
-    runWorkflow: async <T extends Record<string, unknown>>(
-      handle: WorkflowHandle<T>,
+    runWorkflow: async <T extends Record<string, unknown>, TOut = T>(
+      handle: WorkflowHandle<T, TOut>,
       data?: Partial<T>,
     ) => {
       const nestedCtx = createPocWorkflowContext(
@@ -92,7 +92,7 @@ export function createPocWorkflowContext<TState extends Record<string, unknown>>
         handle.name,
         nestedCtx as unknown as WorkflowContext,
         internal,
-      ) as Promise<WorkflowResult<T>>
+      ) as Promise<WorkflowResult<T, TOut>>
     },
     // Stubs for old interface (engine doesn't call these, but TypeScript needs them)
     updateEntity: () => {},
@@ -102,7 +102,7 @@ export function createPocWorkflowContext<TState extends Record<string, unknown>>
     announce: () => {},
     playAnimation: () => Promise.resolve(),
     playSound: () => {},
-  } as unknown as PocWorkflowContext<TState>
+  } as unknown as PocWorkflowContext<TVars>
 
   return ctx
 }

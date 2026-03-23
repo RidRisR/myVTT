@@ -4,6 +4,7 @@ import type { TypedServer } from '../socketTypes'
 import { withRoom } from '../middleware'
 import { getGlobalDb, toCamel, toCamelAll, parseJsonFields, toBoolFields } from '../db'
 import { getTacticalState } from './tactical'
+import { assembleEntity } from './entities'
 import type Database from 'better-sqlite3'
 import type { BundleResponse } from '../../src/shared/bundleTypes'
 import { getTagNames, getAllTags } from '../tagHelpers'
@@ -23,9 +24,15 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
       roomDb.prepare('SELECT * FROM scenes ORDER BY sort_order').all() as Record<string, unknown>[]
     ).map((r) => toBoolFields(parseJsonFields(toCamel(r), 'atmosphere'), 'gmOnly'))
 
-    const entities = (
-      roomDb.prepare('SELECT * FROM entities').all() as Record<string, unknown>[]
-    ).map((r) => parseJsonFields(toCamel(r), 'ruleData', 'permissions'))
+    const entityRows = roomDb.prepare('SELECT * FROM entities').all() as Record<string, unknown>[]
+    const entities = entityRows.map((row) => {
+      const id = row.id as string
+      const componentRows = roomDb
+        .prepare('SELECT component_key, data FROM entity_components WHERE entity_id = ?')
+        .all(id) as { component_key: string; data: string }[]
+      const tagNames = getTagNames(roomDb, 'entity_tags', 'entity_id', id)
+      return assembleEntity(row, componentRows, tagNames)
+    })
 
     const seRows = roomDb
       .prepare('SELECT scene_id, entity_id, visible FROM scene_entities')

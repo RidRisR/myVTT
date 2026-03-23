@@ -9,19 +9,19 @@ import { makeDnDSDK } from '../ui-system/dnd'
 import { pocUIPlugin } from '../../plugins/poc-ui'
 import { PluginSDK, WorkflowRunner } from '../workflow/pluginSDK'
 import { getWorkflowEngine } from '../workflow/useWorkflowSDK'
+import { EventBus } from '../events/eventBus'
 import type { IComponentSDK, LayoutConfig } from '../ui-system/types'
 import type { Entity } from '../shared/entityTypes'
 
 const MOCK_ENTITIES: Entity[] = [
   {
     id: 'e1',
-    name: 'Aria',
-    imageUrl: '',
-    color: '#60a5fa',
-    width: 1,
-    height: 1,
-    notes: '',
-    ruleData: null,
+    tags: [],
+    components: {
+      'core:identity': { name: 'Aria', imageUrl: '', color: '#60a5fa' },
+      'core:token': { width: 1, height: 1 },
+      'core:notes': { text: '' },
+    },
     permissions: { default: 'observer', seats: {} },
     lifecycle: 'persistent',
   },
@@ -48,8 +48,9 @@ export default function PatternUISystem() {
       sendRoll: () => Promise.resolve({ rolls: [], total: 0 }),
       updateEntity: () => {},
       updateTeamTracker: () => {},
-      sendMessage: () => {},
-      showToast: () => {},
+      getEntity: () => undefined,
+      getAllEntities: () => ({}),
+      eventBus: new EventBus(),
     })
     return { registry: reg, runner: wfRunner }
   }, [])
@@ -65,9 +66,10 @@ export default function PatternUISystem() {
       instanceProps: Record<string, unknown>,
       mode: 'play' | 'edit',
     ): IComponentSDK => ({
-      data: {
+      read: {
         entity: (id) => MOCK_ENTITIES.find((e) => e.id === id),
-        entities: () => MOCK_ENTITIES,
+        component: () => undefined,
+        query: () => MOCK_ENTITIES,
       },
       workflow: runner,
       context: { instanceProps, role: 'GM', layoutMode: mode },

@@ -1,6 +1,7 @@
 import { Group, Circle, Image, Rect, Text } from 'react-konva'
 import type Konva from 'konva'
 import type { MapToken as MapTokenType, Entity } from '../shared/entityTypes'
+import { getColor, getImageUrl, getName } from '../shared/coreComponents'
 import { useRulePlugin } from '../rules/useRulePlugin'
 import { statusColor } from '../shared/tokenUtils'
 import { useImage } from './useImage'
@@ -39,13 +40,13 @@ export function KonvaToken({
   onMouseLeave,
 }: KonvaTokenProps) {
   const plugin = useRulePlugin()
-  const rawColor = entity?.color ?? '#888888'
+  const rawColor = entity ? getColor(entity) : '#888888'
   // Expand 3-char hex (#abc) to 6-char (#aabbcc) so appending alpha (e.g. 'aa') works
   const color = /^#[0-9a-fA-F]{3}$/.test(rawColor)
     ? `#${rawColor[1]}${rawColor[1]}${rawColor[2]}${rawColor[2]}${rawColor[3]}${rawColor[3]}`
     : rawColor
-  const imageUrl = entity?.imageUrl ?? ''
-  const name = entity?.name ?? ''
+  const imageUrl = entity ? getImageUrl(entity) : ''
+  const name = entity ? getName(entity) : ''
 
   const [img] = useImage(imageUrl || undefined)
 

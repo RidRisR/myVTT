@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { ChatMessage } from '../shared/chatTypes'
 import type { DiceSpec } from '../shared/diceUtils'
 import type { Entity } from '../shared/entityTypes'
+import { getName, getColor, getImageUrl } from '../shared/coreComponents'
 import { useWorldStore } from '../stores/worldStore'
 import { useRulePlugin } from '../rules/useRulePlugin'
 import { MessageScrollArea } from './MessageScrollArea'
@@ -120,9 +121,9 @@ export function ChatPanel({
       speakerEntity
         ? {
             id: senderId,
-            name: speakerEntity.name,
-            color: speakerEntity.color,
-            portraitUrl: speakerEntity.imageUrl || undefined,
+            name: getName(speakerEntity),
+            color: getColor(speakerEntity),
+            portraitUrl: getImageUrl(speakerEntity) || undefined,
           }
         : seatIdentity,
     [speakerEntity, senderId, seatIdentity],
@@ -298,9 +299,9 @@ export function ChatPanel({
                   key={e.id}
                   identity={{
                     id: senderId,
-                    name: e.name,
-                    color: e.color,
-                    portraitUrl: e.imageUrl || undefined,
+                    name: getName(e),
+                    color: getColor(e),
+                    portraitUrl: getImageUrl(e) || undefined,
                   }}
                   isActive={speakerCharId === e.id}
                   onSelect={() => {

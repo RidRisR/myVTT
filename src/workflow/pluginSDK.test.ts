@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { PluginSDK, WorkflowRunner } from './pluginSDK'
 import { WorkflowEngine } from './engine'
+import { createEventBus } from '../events/eventBus'
 import type { ContextDeps } from './context'
 
 function makeDeps(): Omit<ContextDeps, 'engine'> {
@@ -9,8 +10,9 @@ function makeDeps(): Omit<ContextDeps, 'engine'> {
     sendRoll: vi.fn().mockResolvedValue({ rolls: [[4]], total: 4 }),
     updateEntity: vi.fn(),
     updateTeamTracker: vi.fn(),
-    sendMessage: vi.fn(),
-    showToast: vi.fn(),
+    getEntity: vi.fn(),
+    getAllEntities: vi.fn().mockReturnValue({}),
+    eventBus: createEventBus(),
   }
 }
 
@@ -86,35 +88,35 @@ describe('PluginSDK', () => {
 })
 
 describe('WorkflowRunner', () => {
-  it('runWorkflow creates context with initial data and returns result', async () => {
+  it('runWorkflow creates context with initial state and returns result', async () => {
     const { runner, engine } = makeRunner()
-    let capturedData: Record<string, unknown> = {}
+    let capturedState: Record<string, unknown> = {}
     const handle = engine.defineWorkflow('run-test', [
       {
         id: 'capture',
         run: (ctx) => {
-          capturedData = ctx.data
+          capturedState = ctx.vars
         },
       },
     ])
     const result = await runner.runWorkflow(handle, { value: 99 })
-    expect(capturedData).toEqual({ value: 99 })
+    expect(capturedState).toEqual({ value: 99 })
     expect(result.status).toBe('completed')
   })
 
-  it('runWorkflow with no data creates context with empty data', async () => {
+  it('runWorkflow with no data creates context with empty state', async () => {
     const { runner, engine } = makeRunner()
-    let capturedData: Record<string, unknown> = { placeholder: true }
+    let capturedState: Record<string, unknown> = { placeholder: true }
     const handle = engine.defineWorkflow('empty-data', [
       {
         id: 'capture',
         run: (ctx) => {
-          capturedData = ctx.data
+          capturedState = ctx.vars
         },
       },
     ])
     await runner.runWorkflow(handle)
-    expect(capturedData).toEqual({})
+    expect(capturedState).toEqual({})
   })
 
   it('runWorkflow returns errors from non-critical steps', async () => {

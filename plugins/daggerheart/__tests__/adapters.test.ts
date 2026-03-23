@@ -7,34 +7,48 @@ import {
   dhGetStatuses,
   dhGetFormulaTokens,
 } from '../adapters'
-import type { DHRuleData } from '../types'
+import type { DHHealth, DHStress, DHAttributes, DHMeta, DHExtras } from '../types'
+import { DH_KEYS } from '../types'
 
-const makeDHEntity = (overrides?: Partial<DHRuleData>) => {
-  const defaults: DHRuleData = {
-    agility: 2,
-    strength: 1,
-    finesse: 3,
-    instinct: 0,
-    presence: 1,
-    knowledge: 2,
-    tier: 1,
-    proficiency: 1,
-    className: 'Ranger',
-    ancestry: 'Elf',
-    hp: { current: 15, max: 20 },
-    stress: { current: 2, max: 6 },
-    hope: 3,
-    armor: 2,
+const makeDHEntity = (overrides?: Record<string, unknown>) => {
+  const defaults: Record<string, unknown> = {
+    [DH_KEYS.health]: { current: 15, max: 20 } satisfies DHHealth,
+    [DH_KEYS.stress]: { current: 2, max: 6 } satisfies DHStress,
+    [DH_KEYS.attributes]: {
+      agility: 2,
+      strength: 1,
+      finesse: 3,
+      instinct: 0,
+      presence: 1,
+      knowledge: 2,
+    } satisfies DHAttributes,
+    [DH_KEYS.meta]: {
+      tier: 1,
+      proficiency: 1,
+      className: 'Ranger',
+      ancestry: 'Elf',
+    } satisfies DHMeta,
+    [DH_KEYS.extras]: { hope: 3, armor: 2 } satisfies DHExtras,
   }
-  return makeEntity({ ruleData: { ...defaults, ...overrides } })
+  return makeEntity({
+    components: {
+      'core:identity': { name: 'Test Character', imageUrl: '', color: '#3b82f6' },
+      'core:token': { width: 1, height: 1 },
+      'core:notes': { text: '' },
+      ...defaults,
+      ...overrides,
+    },
+  })
 }
 
 describe('dhGetMainResource', () => {
-  it('returns null for entity with no ruleData', () => {
-    expect(dhGetMainResource(makeEntity({ ruleData: null }))).toBeNull()
+  it('returns null for entity with no health component', () => {
+    expect(dhGetMainResource(makeEntity())).toBeNull()
   })
   it('returns HP with label and red color', () => {
-    const r = dhGetMainResource(makeDHEntity({ hp: { current: 15, max: 20 } }))
+    const r = dhGetMainResource(
+      makeDHEntity({ [DH_KEYS.health]: { current: 15, max: 20 } }),
+    )
     expect(r?.label).toBe('HP')
     expect(r?.current).toBe(15)
     expect(r?.max).toBe(20)
@@ -43,8 +57,8 @@ describe('dhGetMainResource', () => {
 })
 
 describe('dhGetPortraitResources', () => {
-  it('returns empty array for no ruleData', () => {
-    expect(dhGetPortraitResources(makeEntity({ ruleData: null }))).toEqual([])
+  it('returns empty array for no health component', () => {
+    expect(dhGetPortraitResources(makeEntity())).toEqual([])
   })
   it('returns [HP, Stress] in order', () => {
     const r = dhGetPortraitResources(makeDHEntity())
@@ -62,8 +76,8 @@ describe('dhGetStatuses', () => {
 })
 
 describe('dhGetFormulaTokens', () => {
-  it('returns empty for no ruleData', () => {
-    expect(dhGetFormulaTokens(makeEntity({ ruleData: null }))).toEqual({})
+  it('returns empty for no attributes component', () => {
+    expect(dhGetFormulaTokens(makeEntity())).toEqual({})
   })
   it('returns 6 attributes + proficiency', () => {
     const tokens = dhGetFormulaTokens(makeDHEntity())

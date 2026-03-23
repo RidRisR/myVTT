@@ -152,6 +152,59 @@ describe('E2E full-chain verification', () => {
     expect(hp).toBe(35) // 45 - 10 (fire resistance is 0)
   })
 
+  it('workflow writes component + global + emits event in one chain', async () => {
+    // Add a step that patches a global (damage counter) after apply-damage
+    engine.addStep('core:deal-damage', {
+      id: 'e2e:track-total-damage',
+      after: 'core:apply-damage',
+      run(ctx) {
+        const pocCtx = ctx as unknown as {
+          vars: { finalDamage: number }
+          patchGlobal: (key: string, patch: Record<string, unknown>) => void
+          read: { global: (key: string) => { current?: number } | undefined }
+        }
+        const current = pocCtx.read.global('TotalDamage')?.current ?? 0
+        pocCtx.patchGlobal('TotalDamage', { current: current + pocCtx.vars.finalDamage })
+      },
+    })
+
+    // Initialize global
+    usePocStore.setState((s) => ({
+      globals: { ...s.globals, TotalDamage: { key: 'TotalDamage', current: 0 } },
+    }))
+
+    const receivedEvents: DamageDealtPayload[] = []
+    const unsub = eventBus.on(damageDealtEvent, (payload) => {
+      receivedEvents.push(payload)
+    })
+    cleanup.push(unsub)
+
+    // Cast fire spell on goblin-01 (fire resistance 5)
+    await castSpell('goblin-01', 10, 'fire')
+
+    // 1. Component updated: hp = 20 - 5 = 15
+    const hp = (usePocStore.getState().entities['goblin-01']?.components['core:health'] as Health)
+      .hp
+    expect(hp).toBe(15)
+
+    // 2. Global updated: totalDamage = 5
+    const totalDmg = usePocStore.getState().globals.TotalDamage!
+    expect(totalDmg.current).toBe(5)
+
+    // 3. Event emitted
+    expect(receivedEvents).toHaveLength(1)
+    expect(receivedEvents[0]!.damage).toBe(5)
+
+    // Cast another spell — globals accumulate
+    await castSpell('goblin-01', 15, 'lightning')
+
+    const hp2 = (usePocStore.getState().entities['goblin-01']?.components['core:health'] as Health)
+      .hp
+    expect(hp2).toBe(0) // 15 - 15 = 0
+    expect(usePocStore.getState().globals.TotalDamage!.current).toBe(20) // 5 + 15
+    expect(receivedEvents).toHaveLength(2)
+  })
+
   it('hero-01 ice resistance reduces Ice Shard damage', async () => {
     await castSpell('hero-01', 8, 'ice')
 
