@@ -1,21 +1,21 @@
 // src/workflow/context.ts
 import type {
   WorkflowContext,
-  AnimationSpec,
-  ToastOptions,
+  IDataReader,
   InternalState,
   WorkflowHandle,
   WorkflowResult,
 } from './types'
 import type { Entity } from '../shared/entityTypes'
 import type { WorkflowEngine } from './engine'
+import type { EventBus } from '../events/eventBus'
 
 export interface ContextDeps {
   sendRoll: (formula: string) => Promise<{ rolls: number[][]; total: number }>
   updateEntity: (id: string, patch: Partial<Entity>) => void
   updateTeamTracker: (label: string, patch: { current?: number }) => void
-  sendMessage: (message: string) => void
-  showToast: (text: string, options?: ToastOptions) => void
+  getEntity: (id: string) => Entity | undefined
+  eventBus: EventBus
   engine: WorkflowEngine
 }
 
@@ -28,7 +28,7 @@ export function createWorkflowContext(
   // in O(1) without delete — eliminates need for no-dynamic-delete suppress.
   let _inner: Record<string, unknown> = { ...initialData }
 
-  const data = new Proxy({} as Record<string, unknown>, {
+  const state = new Proxy({} as Record<string, unknown>, {
     get: (_, key): unknown => Reflect.get(_inner, key),
     set: (_, key, val): boolean => Reflect.set(_inner, key, val),
     deleteProperty: (_, key) => Reflect.deleteProperty(_inner, key),
@@ -45,35 +45,58 @@ export function createWorkflowContext(
     },
   }
 
-  const ctx: WorkflowContext = {
-    // getter-only: ctx.data = {} throws TypeError in strict mode,
-    // but ctx.data.foo = 'bar' works (modifies Proxy → _inner)
-    get data() {
-      return data
+  // Imperative data reader — Phase 3 will provide a full implementation,
+  // this is a temporary version backed by deps.getEntity
+  const read: IDataReader = {
+    entity: (id: string) => deps.getEntity(id),
+    component: <T>(entityId: string, key: string): T | undefined => {
+      const entity = deps.getEntity(entityId)
+      if (!entity) return undefined
+      return (entity.ruleData as Record<string, unknown> | undefined)?.[key] as T | undefined
     },
+    query: (spec: { has?: string[] }) => {
+      // Minimal placeholder — Phase 3 provides full implementation via worldStore
+      void spec
+      return []
+    },
+  }
+
+  const ctx: WorkflowContext = {
+    // getter-only: ctx.state = {} throws TypeError in strict mode,
+    // but ctx.state.foo = 'bar' works (modifies Proxy → _inner)
+    get state() {
+      return state
+    },
+
+    // ── Data access ─────────────────────────────────────────────────────────
+    read,
 
     // ── Input (returns value) ─────────────────────────────────────────────
     serverRoll: (formula: string) => deps.sendRoll(formula),
 
     // ── Effects (side effects) ────────────────────────────────────────────
-    updateEntity: (entityId: string, patch: Partial<Entity>) => {
-      deps.updateEntity(entityId, patch)
+    updateComponent: <T>(entityId: string, key: string, updater: (current: T | undefined) => T): void => {
+      // Temporary implementation: writes to ruleData[key].
+      // Phase 4 will replace with entity.components[key] + REST PATCH.
+      const entity = deps.getEntity(entityId)
+      const ruleData = (entity?.ruleData as Record<string, unknown>) ?? {}
+      const current = ruleData[key] as T | undefined
+      const next = updater(current)
+      deps.updateEntity(entityId, {
+        ruleData: { ...ruleData, [key]: next },
+      })
     },
 
     updateTeamTracker: (label: string, patch: { current?: number }) => {
       deps.updateTeamTracker(label, patch)
     },
 
-    announce: (message: string) => {
-      deps.sendMessage(message)
+    // ── Events (decoupled side effects via EventBus) ─────────────────────
+    events: {
+      emit: <T>(handle: { key: string; __type?: T }, payload: T): void => {
+        deps.eventBus.emit(handle, payload)
+      },
     },
-
-    showToast: (text: string, options?: ToastOptions) => {
-      deps.showToast(text, options)
-    },
-
-    playAnimation: (_animation: AnimationSpec) => Promise.resolve(),
-    playSound: (_sound: string) => {},
 
     // ── Flow Control ──────────────────────────────────────────────────────
     abort: (reason?: string) => {

@@ -16,6 +16,7 @@ import type { IUIRegistrationSDK } from '../ui-system/registrationTypes'
 import type { UIRegistry } from '../ui-system/registry'
 
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
+// PluginSDKDeps = { sendRoll, updateEntity, updateTeamTracker, eventBus }
 
 /**
  * Registration-time API for plugins. No runWorkflow — plugins must use

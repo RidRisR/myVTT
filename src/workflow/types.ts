@@ -1,11 +1,12 @@
 // src/workflow/types.ts
 import type { Entity } from '../shared/entityTypes'
+import type { EventHandle } from '../events/eventBus'
 import type { IUIRegistrationSDK } from '../ui-system/registrationTypes'
 
-// ── Cloneable — documented convention for ctx.data values ─────────────────
+// ── Cloneable — documented convention for ctx.state values ─────────────────
 
 /**
- * Types safe for structuredClone. ctx.data should only contain Cloneable values.
+ * Types safe for structuredClone. ctx.state should only contain Cloneable values.
  * This is enforced at runtime (structuredClone try/catch) rather than at compile
  * time, because TypeScript interfaces lack implicit index signatures which makes
  * generic constraints impractical. Exported for documentation/testing purposes.
@@ -105,37 +106,36 @@ export interface InternalState {
   }
 }
 
-// ── Animation / Toast ─────────────────────────────────────────────────────
+// ── IDataReader — imperative store read (workflow steps, canDrop, event callbacks) ──
 
-/** Animation spec for playAnimation */
-export interface AnimationSpec {
-  type: string
-  data?: Record<string, unknown>
-  durationMs?: number
-}
-
-export interface ToastOptions {
-  variant?: 'info' | 'success' | 'warning' | 'error'
-  durationMs?: number
+export interface IDataReader {
+  entity(id: string): Entity | undefined
+  component<T>(entityId: string, key: string): T | undefined
+  query(spec: { has?: string[] }): Entity[]
 }
 
 // ── WorkflowContext ───────────────────────────────────────────────────────
 
 /** Runtime context passed to each step's run function */
-export interface WorkflowContext<TData = Record<string, unknown>> {
-  /** Step-shared data. Getter-only — reference replacement throws TypeError. */
-  readonly data: TData
+export interface WorkflowContext<TState = Record<string, unknown>> {
+  /** Step-shared mutable state. Getter-only — reference replacement throws TypeError. */
+  readonly state: TState
+
+  // ── Data access (imperative reads from store) ─────────────────────────
+  readonly read: IDataReader
 
   // ── Input (returns value, immediate execution) ────────────────────────
   serverRoll(formula: string): Promise<{ rolls: number[][]; total: number }>
 
   // ── Effects (side effects, fire-and-forget) ───────────────────────────
-  updateEntity(entityId: string, patch: Partial<Entity>): void
+  updateComponent<T>(entityId: string, key: string, updater: (current: T | undefined) => T): void
+  /** @deprecated — will be removed when teamTracker is redesigned */
   updateTeamTracker(label: string, patch: { current?: number }): void
-  announce(message: string): void
-  showToast(text: string, options?: ToastOptions): void
-  playAnimation(animation: AnimationSpec): Promise<void>
-  playSound(sound: string): void
+
+  // ── Events (decoupled side effects via EventBus) ──────────────────────
+  events: {
+    emit<T>(handle: EventHandle<T>, payload: T): void
+  }
 
   // ── Flow Control ──────────────────────────────────────────────────────
   abort(reason?: string): void

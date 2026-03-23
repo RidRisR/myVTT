@@ -13,8 +13,6 @@ export type {
   WrapStepFn,
   WrapStepOptions,
   ReplaceStepOptions,
-  AnimationSpec,
-  ToastOptions,
   WorkflowContext,
   WorkflowHandle,
   WorkflowResult,

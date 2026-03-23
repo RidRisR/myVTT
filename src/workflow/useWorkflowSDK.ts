@@ -3,11 +3,9 @@ import { WorkflowEngine } from './engine'
 import { PluginSDK, WorkflowRunner } from './pluginSDK'
 import { registerBaseWorkflows } from './baseWorkflows'
 import { useWorldStore } from '../stores/worldStore'
-import { useIdentityStore } from '../stores/identityStore'
-import { useToast } from '../ui/useToast'
 import { tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
+import { eventBus } from '../events/eventBus'
 import type { VTTPlugin } from '../rules/types'
-import type { ToastType } from '../ui/Toast'
 import type { IWorkflowRunner } from './types'
 import type { PluginSDKDeps } from './pluginSDK'
 
@@ -39,11 +37,10 @@ export function resetWorkflowEngine(): void {
   _registeredPlugins = []
 }
 
-/** Build the PluginSDKDeps from store actions. Shared between hook and init. */
+/** Build the PluginSDKDeps from store actions. */
 function buildDeps(
   sendRoll: ReturnType<typeof useWorldStore.getState>['sendRoll'],
   updateEntity: ReturnType<typeof useWorldStore.getState>['updateEntity'],
-  toastFn: (variant: ToastType, text: string, opts?: { duration?: number }) => void,
 ): PluginSDKDeps {
   return {
     sendRoll: async (formula: string) => {
@@ -65,6 +62,9 @@ function buildDeps(
     updateEntity: (id, patch) => {
       void updateEntity(id, patch)
     },
+    getEntity: (id) => {
+      return useWorldStore.getState().entities.find((e) => e.id === id)
+    },
     updateTeamTracker: (label, patch) => {
       const state = useWorldStore.getState()
       const tracker = state.teamTrackers.find((t) => t.label === label)
@@ -75,19 +75,7 @@ function buildDeps(
       }
       void state.updateTeamTracker(tracker.id, updates)
     },
-    sendMessage: (message) => {
-      const seat = useIdentityStore.getState().getMySeat()
-      void useWorldStore.getState().sendMessage({
-        senderId: seat?.id ?? '',
-        senderName: seat?.name ?? 'Unknown',
-        senderColor: seat?.color ?? '#888888',
-        content: message,
-      })
-    },
-    showToast: (text, options) => {
-      const variant = (options?.variant ?? 'info') as ToastType
-      toastFn(variant, text, options?.durationMs ? { duration: options.durationMs } : undefined)
-    },
+    eventBus,
   }
 }
 
@@ -116,10 +104,6 @@ function ensurePluginsActivated(engine: WorkflowEngine): void {
 export function useWorkflowRunner(): IWorkflowRunner {
   const sendRoll = useWorldStore((s) => s.sendRoll)
   const updateEntity = useWorldStore((s) => s.updateEntity)
-  const { toast } = useToast()
-
-  const toastRef = useRef(toast)
-  toastRef.current = toast
 
   // Side effect via ref guard — runs once, StrictMode safe (idempotent)
   const activatedRef = useRef(false)
@@ -130,7 +114,7 @@ export function useWorkflowRunner(): IWorkflowRunner {
 
   return useMemo(() => {
     const engine = getWorkflowEngine()
-    const deps = buildDeps(sendRoll, updateEntity, (v, t, o) => toastRef.current(v, t, o))
+    const deps = buildDeps(sendRoll, updateEntity)
     return new WorkflowRunner(engine, deps)
   }, [sendRoll, updateEntity])
 }

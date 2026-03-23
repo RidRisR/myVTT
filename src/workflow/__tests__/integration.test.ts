@@ -2,28 +2,37 @@ import { describe, it, expect, vi } from 'vitest'
 import { WorkflowEngine } from '../engine'
 import { PluginSDK, WorkflowRunner } from '../pluginSDK'
 import { registerBaseWorkflows, getRollWorkflow } from '../baseWorkflows'
+import { createEventBus } from '../../events/eventBus'
+import { toastEvent, announceEvent, animationEvent } from '../../events/systemEvents'
 
 describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
   function setup() {
     const engine = new WorkflowEngine()
     registerBaseWorkflows(engine)
 
+    const bus = createEventBus()
     const deps = {
       sendRoll: vi.fn().mockResolvedValue({ rolls: [[8, 5]], total: 15 }),
       updateEntity: vi.fn(),
       updateTeamTracker: vi.fn(),
-      sendMessage: vi.fn(),
-      showToast: vi.fn(),
+      getEntity: vi.fn(),
+      eventBus: bus,
     }
     const coreSDK = new PluginSDK(engine, 'daggerheart-core')
     const cosmeticSDK = new PluginSDK(engine, 'daggerheart-cosmetic')
     const runner = new WorkflowRunner(engine, deps)
-    return { engine, coreSDK, cosmeticSDK, runner, deps }
+    return { engine, coreSDK, cosmeticSDK, runner, deps, bus }
   }
 
   it('full POC flow: generate → dh:judge → cos:animate → dh:resolve → display', async () => {
-    const { coreSDK, cosmeticSDK, runner, deps } = setup()
+    const { coreSDK, cosmeticSDK, runner, deps, bus } = setup()
     const executionOrder: string[] = []
+
+    // Track emitted events
+    const toasts: unknown[] = []
+    const announcements: unknown[] = []
+    bus.on(toastEvent, (p) => toasts.push(p))
+    bus.on(announceEvent, (p) => announcements.push(p))
 
     // Simulate daggerheart-core onActivate
     coreSDK.addStep(getRollWorkflow(), {
@@ -31,10 +40,10 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       after: 'generate',
       run: (ctx) => {
         executionOrder.push('dh:judge')
-        const rolls = ctx.data.rolls as number[][]
+        const rolls = ctx.state.rolls as number[][]
         const hopeDie = rolls[0]![0]!
         const fearDie = rolls[0]![1]!
-        ctx.data.judgment = {
+        ctx.state.judgment = {
           type: 'daggerheart',
           hopeDie,
           fearDie,
@@ -48,7 +57,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       before: 'display',
       run: (ctx) => {
         executionOrder.push('dh:resolve')
-        const j = ctx.data.judgment as { outcome: string }
+        const j = ctx.state.judgment as { outcome: string }
         if (j.outcome === 'success_fear' || j.outcome === 'failure_fear') {
           ctx.updateTeamTracker('Fear', { current: 1 })
         }
@@ -60,11 +69,11 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       id: 'cos:dice-animation',
       after: 'dh:judge',
       critical: false,
-      run: async (ctx) => {
+      run: (ctx) => {
         executionOrder.push('cos:dice-animation')
-        await ctx.playAnimation({
+        ctx.events.emit(animationEvent, {
           type: 'dice-roll',
-          data: { rolls: ctx.data.rolls },
+          data: { rolls: ctx.state.rolls },
           durationMs: 100,
         })
       },
@@ -88,7 +97,9 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     expect(result.status).toBe('completed')
     expect(executionOrder).toEqual(['dh:judge', 'cos:dice-animation', 'dh:resolve'])
     expect(deps.sendRoll).toHaveBeenCalledWith('2d12+2')
-    expect(deps.sendMessage).toHaveBeenCalledWith(expect.stringContaining('2d12+2'))
+    // display step emits toast + announce events
+    expect(toasts).toEqual([expect.objectContaining({ text: expect.stringContaining('2d12+2') })])
+    expect(announcements).toEqual([expect.objectContaining({ message: expect.stringContaining('2d12+2') })])
   })
 
   it('wrapStep: auto-modifier wraps dh step', async () => {
@@ -98,14 +109,14 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       id: 'dh:modifier',
       before: 'generate',
       run: (ctx) => {
-        ctx.data.modifierApplied = 'manual'
+        ctx.state.modifierApplied = 'manual'
       },
     })
 
     coreSDK.wrapStep(getRollWorkflow(), 'dh:modifier', {
       run: async (ctx, original) => {
-        if (ctx.data.autoMode) {
-          ctx.data.modifierApplied = 'auto'
+        if (ctx.state.autoMode) {
+          ctx.state.modifierApplied = 'auto'
         } else {
           await original(ctx)
         }

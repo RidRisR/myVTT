@@ -292,7 +292,7 @@ export class WorkflowEngine {
 
     // Zero-step fast path: skip ancestor computation, snapshot, and loop entirely
     if (record.steps.length === 0) {
-      return { status: 'completed', data: { ...ctx.data } as WorkflowResult['data'], errors: [] }
+      return { status: 'completed', data: { ...ctx.state } as WorkflowResult['data'], errors: [] }
     }
 
     if (internal.depth >= MAX_RECURSION_DEPTH) {
@@ -304,8 +304,8 @@ export class WorkflowEngine {
     internal.depth++
     const errors: StepError[] = []
 
-    // Access data via Proxy (reads go through to _inner) and dataCtrl for restore
-    const data = ctx.data
+    // Access state via Proxy (reads go through to _inner) and dataCtrl for restore
+    const data = ctx.state
     const { dataCtrl } = internal
 
     try {
