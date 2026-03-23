@@ -65,6 +65,7 @@ describe('base roll workflow', () => {
     const ctx = createWorkflowContext(deps, { formula: '2d12+1' }, internal)
     await engine.runWorkflow('roll', ctx, internal)
     expect(announcements).toEqual([
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- vitest matcher returns any
       expect.objectContaining({ message: expect.stringContaining('2d12+1') }),
     ])
   })

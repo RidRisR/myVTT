@@ -1,7 +1,7 @@
 import type { WorkflowContext } from '@myvtt/sdk'
 import { toastEvent, animationEvent } from '../../src/events/systemEvents'
 
-export async function cosmeticDiceAnimationStep(ctx: WorkflowContext): Promise<void> {
+export function cosmeticDiceAnimationStep(ctx: WorkflowContext): void {
   const rolls = ctx.state.rolls as number[][] | undefined
   if (!rolls || rolls.length === 0) return
 

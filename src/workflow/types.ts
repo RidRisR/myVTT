@@ -110,7 +110,7 @@ export interface InternalState {
 
 export interface IDataReader {
   entity(id: string): Entity | undefined
-  component<T>(entityId: string, key: string): T | undefined
+  component(entityId: string, key: string): unknown
   query(spec: { has?: string[] }): Entity[]
 }
 

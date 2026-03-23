@@ -59,6 +59,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
         executionOrder.push('dh:resolve')
         const j = ctx.state.judgment as { outcome: string }
         if (j.outcome === 'success_fear' || j.outcome === 'failure_fear') {
+          // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
           ctx.updateTeamTracker('Fear', { current: 1 })
         }
       },
@@ -99,7 +100,9 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     expect(deps.sendRoll).toHaveBeenCalledWith('2d12+2')
     // display step emits toast + announce events
     expect(toasts).toEqual([expect.objectContaining({ text: expect.stringContaining('2d12+2') })])
-    expect(announcements).toEqual([expect.objectContaining({ message: expect.stringContaining('2d12+2') })])
+    expect(announcements).toEqual([
+      expect.objectContaining({ message: expect.stringContaining('2d12+2') }),
+    ])
   })
 
   it('wrapStep: auto-modifier wraps dh step', async () => {

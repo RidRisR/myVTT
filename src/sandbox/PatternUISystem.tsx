@@ -9,6 +9,7 @@ import { makeDnDSDK } from '../ui-system/dnd'
 import { pocUIPlugin } from '../../plugins/poc-ui'
 import { PluginSDK, WorkflowRunner } from '../workflow/pluginSDK'
 import { getWorkflowEngine } from '../workflow/useWorkflowSDK'
+import { EventBus } from '../events/eventBus'
 import type { IComponentSDK, LayoutConfig } from '../ui-system/types'
 import type { Entity } from '../shared/entityTypes'
 
@@ -48,8 +49,8 @@ export default function PatternUISystem() {
       sendRoll: () => Promise.resolve({ rolls: [], total: 0 }),
       updateEntity: () => {},
       updateTeamTracker: () => {},
-      sendMessage: () => {},
-      showToast: () => {},
+      getEntity: () => undefined,
+      eventBus: new EventBus(),
     })
     return { registry: reg, runner: wfRunner }
   }, [])

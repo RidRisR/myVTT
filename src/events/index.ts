@@ -1,5 +1,6 @@
 // src/events/index.ts
-export { EventBus, EventHandle, defineEvent, createEventBus, eventBus, useEvent } from './eventBus'
+export { EventBus, defineEvent, createEventBus, eventBus, useEvent } from './eventBus'
+export type { EventHandle } from './eventBus'
 export {
   toastEvent,
   announceEvent,
