@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Send } from 'lucide-react'
 import { resolveFormula, tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
 import type { DiceSpec } from '../shared/diceUtils'
-import type { ChatMessage } from '../shared/chatTypes'
+import type { ChatMessage, MessageOrigin } from '../shared/chatTypes'
 import { useRulePlugin } from '../rules/useRulePlugin'
 
 interface Suggestion {
@@ -13,11 +13,8 @@ interface Suggestion {
 }
 
 interface ChatInputProps {
+  origin: MessageOrigin
   selectedTokenProps: { key: string; value: string }[]
-  senderId: string
-  senderName: string
-  senderColor: string
-  portraitUrl?: string
   seatProperties: { key: string; value: string }[]
   onSend: (message: ChatMessage) => void
   onRoll?: (formula: string, resolvedFormula?: string, dice?: DiceSpec[], rollType?: string) => void
@@ -30,11 +27,8 @@ function generateId(): string {
 }
 
 export function ChatInput({
+  origin,
   selectedTokenProps,
-  senderId,
-  senderName,
-  senderColor,
-  portraitUrl,
   seatProperties,
   onSend,
   onRoll,
@@ -179,10 +173,7 @@ export function ChatInput({
     onSend({
       type: 'text',
       id: generateId(),
-      senderId,
-      senderName,
-      senderColor,
-      portraitUrl,
+      origin,
       content: trimmed,
       timestamp: Date.now(),
     })

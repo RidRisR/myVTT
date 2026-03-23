@@ -153,9 +153,7 @@ const makeTacticalInfo = (overrides: Partial<TacticalInfo> = {}): TacticalInfo =
 const makeChatMessage = (overrides: Partial<ChatTextMessage> = {}): ChatTextMessage => ({
   type: 'text',
   id: 'msg-1',
-  senderId: 'user-1',
-  senderName: 'Player',
-  senderColor: '#00ff00',
+  origin: { seat: { id: 'user-1', name: 'Player', color: '#00ff00' } },
   content: 'Hello',
   timestamp: Date.now(),
   ...overrides,
