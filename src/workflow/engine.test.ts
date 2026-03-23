@@ -5,14 +5,12 @@ import type { WorkflowContext, InternalState } from './types'
 
 function makeCtx(data: Record<string, unknown> = {}): WorkflowContext {
   return {
-    data,
+    state: data,
+    read: { entity: vi.fn(), component: vi.fn(), query: vi.fn().mockReturnValue([]) },
     serverRoll: vi.fn(),
-    updateEntity: vi.fn(),
+    updateComponent: vi.fn(),
     updateTeamTracker: vi.fn(),
-    announce: vi.fn(),
-    showToast: vi.fn(),
-    playAnimation: vi.fn(),
-    playSound: vi.fn(),
+    events: { emit: vi.fn() },
     abort: vi.fn(),
     runWorkflow: vi.fn(),
   }
@@ -476,13 +474,14 @@ describe('WorkflowEngine', () => {
 
     // Use real createWorkflowContext for proper depth tracking (no mock needed)
     const { createWorkflowContext } = await import('./context')
+    const { EventBus } = await import('../events/eventBus')
     const sharedInternal = makeInternal()
     const deps = {
       sendRoll: vi.fn().mockResolvedValue({ rolls: [], total: 0 }),
       updateEntity: vi.fn(),
       updateTeamTracker: vi.fn(),
-      sendMessage: vi.fn(),
-      showToast: vi.fn(),
+      getEntity: vi.fn(),
+      eventBus: new EventBus(),
       engine,
     }
     const ctx = createWorkflowContext(deps, {}, sharedInternal)
@@ -526,7 +525,7 @@ describe('WorkflowEngine', () => {
       {
         id: 'a',
         run: (ctx) => {
-          ctx.data.value = 42
+          ctx.state.value = 42
         },
       },
     ])
@@ -534,9 +533,9 @@ describe('WorkflowEngine', () => {
     const result = await engine.runWorkflow('res', ctx, makeInternal())
     expect(result.status).toBe('completed')
     expect(result.data.value).toBe(42)
-    // data is a shallow copy — mutating result.data doesn't affect ctx.data
+    // data is a shallow copy — mutating result.data doesn't affect ctx.state
     result.data.value = 99
-    expect(ctx.data.value).toBe(42)
+    expect(ctx.state.value).toBe(42)
   })
 
   it('empty workflow returns completed result', async () => {
@@ -579,23 +578,23 @@ describe('WorkflowEngine', () => {
         id: 'dirty',
         critical: false,
         run: (ctx) => {
-          ctx.data.dirty = true
+          ctx.state.dirty = true
           throw new Error('fail')
         },
       },
       {
         id: 'check',
         run: (ctx) => {
-          ctx.data.checked = true
+          ctx.state.checked = true
         },
       },
     ])
     const data: Record<string, unknown> = { clean: true }
     const ctx = makeCtx(data)
     const result = await engine.runWorkflow('restore', ctx, makeInternal(data))
-    expect(ctx.data.dirty).toBeUndefined()
-    expect(ctx.data.clean).toBe(true)
-    expect(ctx.data.checked).toBe(true)
+    expect(ctx.state.dirty).toBeUndefined()
+    expect(ctx.state.clean).toBe(true)
+    expect(ctx.state.checked).toBe(true)
     expect(result.errors).toHaveLength(1)
   })
 
@@ -820,8 +819,8 @@ describe('WorkflowEngine', () => {
         id: 'dirty',
         critical: false,
         run: (ctx) => {
-          ctx.data.fn = fn // functions are not cloneable
-          ctx.data.dirty = true
+          ctx.state.fn = fn // functions are not cloneable
+          ctx.state.dirty = true
           throw new Error('fail')
         },
       },
@@ -829,7 +828,7 @@ describe('WorkflowEngine', () => {
         id: 'check',
         run: (ctx) => {
           // snapshot failed → data NOT restored, dirty write persists
-          ctx.data.checked = true
+          ctx.state.checked = true
         },
       },
     ])
@@ -838,8 +837,8 @@ describe('WorkflowEngine', () => {
     const result = await engine.runWorkflow('uncloneable', ctx, makeInternal(data))
     expect(result.errors).toHaveLength(1)
     // Since clone failed, dirty data persists (no restore)
-    expect(ctx.data.dirty).toBe(true)
-    expect(ctx.data.checked).toBe(true)
+    expect(ctx.state.dirty).toBe(true)
+    expect(ctx.state.checked).toBe(true)
   })
 
   // ── 23. wrapStep/replaceStep target not found ─────────────────────────────
@@ -975,8 +974,8 @@ describe('WorkflowEngine', () => {
       {
         id: 'recurse',
         run: async (ctx) => {
-          const d = (typeof ctx.data.depth === 'number' ? ctx.data.depth : 0) + 1
-          ctx.data.depth = d
+          const d = (typeof ctx.state.depth === 'number' ? ctx.state.depth : 0) + 1
+          ctx.state.depth = d
           if (d > maxDepth) maxDepth = d
           if (d < 9) {
             await ctx.runWorkflow({ name: 'depth9' } as never, { depth: d })
@@ -986,13 +985,14 @@ describe('WorkflowEngine', () => {
     ])
     // Use real createWorkflowContext + shared internal for proper depth tracking
     const { createWorkflowContext } = await import('./context')
+    const { EventBus } = await import('../events/eventBus')
     const internal = makeInternal()
     const deps = {
       sendRoll: vi.fn().mockResolvedValue({ rolls: [], total: 0 }),
       updateEntity: vi.fn(),
       updateTeamTracker: vi.fn(),
-      sendMessage: vi.fn(),
-      showToast: vi.fn(),
+      getEntity: vi.fn(),
+      eventBus: new EventBus(),
       engine,
     }
     const ctx = createWorkflowContext(deps, {}, internal)

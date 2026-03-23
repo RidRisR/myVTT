@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createWorkflowContext } from './context'
 import { WorkflowEngine } from './engine'
+import { createEventBus, defineEvent } from '../events/eventBus'
 import type { InternalState } from './types'
 
 function makeEngine(): WorkflowEngine {
@@ -21,35 +22,39 @@ function makeDeps(overrides: Partial<Parameters<typeof createWorkflowContext>[0]
     sendRoll: vi.fn().mockResolvedValue({ rolls: [[4]], total: 4 }),
     updateEntity: vi.fn(),
     updateTeamTracker: vi.fn(),
-    sendMessage: vi.fn(),
-    showToast: vi.fn(),
+    getEntity: vi.fn(),
+    eventBus: createEventBus(),
     engine: makeEngine(),
     ...overrides,
   }
 }
 
 describe('createWorkflowContext', () => {
-  it('creates context with the provided initial data', () => {
+  it('creates context with the provided initial state', () => {
     const ctx = createWorkflowContext(makeDeps(), { foo: 'bar' }, makeInternal())
-    expect(ctx.data).toEqual({ foo: 'bar' })
+    expect(ctx.state).toEqual({ foo: 'bar' })
   })
 
-  it('creates context with empty data when none provided', () => {
+  it('creates context with empty state when none provided', () => {
     const ctx = createWorkflowContext(makeDeps(), undefined, makeInternal())
-    expect(ctx.data).toEqual({})
+    expect(ctx.state).toEqual({})
   })
 
   it('all methods are functions', () => {
     const ctx = createWorkflowContext(makeDeps(), undefined, makeInternal())
     expect(typeof ctx.serverRoll).toBe('function')
-    expect(typeof ctx.updateEntity).toBe('function')
+    expect(typeof ctx.updateComponent).toBe('function')
     expect(typeof ctx.updateTeamTracker).toBe('function')
-    expect(typeof ctx.announce).toBe('function')
-    expect(typeof ctx.showToast).toBe('function')
-    expect(typeof ctx.playAnimation).toBe('function')
-    expect(typeof ctx.playSound).toBe('function')
+    expect(typeof ctx.events.emit).toBe('function')
     expect(typeof ctx.abort).toBe('function')
     expect(typeof ctx.runWorkflow).toBe('function')
+  })
+
+  it('provides read.entity and read.component', () => {
+    const ctx = createWorkflowContext(makeDeps(), undefined, makeInternal())
+    expect(typeof ctx.read.entity).toBe('function')
+    expect(typeof ctx.read.component).toBe('function')
+    expect(typeof ctx.read.query).toBe('function')
   })
 
   it('serverRoll delegates to deps.sendRoll', async () => {
@@ -60,11 +65,23 @@ describe('createWorkflowContext', () => {
     expect(result).toEqual({ rolls: [[4]], total: 4 })
   })
 
-  it('updateEntity delegates to deps.updateEntity', () => {
-    const deps = makeDeps()
+  it('updateComponent reads entity ruleData and writes back', () => {
+    const entity = {
+      id: 'e1', name: 'Goblin', imageUrl: '', color: '', width: 1, height: 1,
+      blueprintId: undefined, notes: '', ruleData: { hp: { current: 10, max: 20 } },
+      permissions: { default: 'none' as const, seats: {} }, lifecycle: 'persistent' as const,
+    }
+    const deps = makeDeps({ getEntity: vi.fn().mockReturnValue(entity) })
     const ctx = createWorkflowContext(deps, undefined, makeInternal())
-    ctx.updateEntity('entity-1', { name: 'Goblin' })
-    expect(deps.updateEntity).toHaveBeenCalledWith('entity-1', { name: 'Goblin' })
+
+    ctx.updateComponent<{ current: number; max: number }>('e1', 'hp', (c) => ({
+      ...c!,
+      current: c!.current - 3,
+    }))
+
+    expect(deps.updateEntity).toHaveBeenCalledWith('e1', {
+      ruleData: { hp: { current: 7, max: 20 } },
+    })
   })
 
   it('updateTeamTracker delegates to deps.updateTeamTracker', () => {
@@ -74,30 +91,17 @@ describe('createWorkflowContext', () => {
     expect(deps.updateTeamTracker).toHaveBeenCalledWith('HP', { current: 5 })
   })
 
-  it('announce delegates to deps.sendMessage', () => {
-    const deps = makeDeps()
+  it('events.emit delegates to deps.eventBus', () => {
+    const bus = createEventBus()
+    const deps = makeDeps({ eventBus: bus })
     const ctx = createWorkflowContext(deps, undefined, makeInternal())
-    ctx.announce('Hello world')
-    expect(deps.sendMessage).toHaveBeenCalledWith('Hello world')
-  })
 
-  it('showToast delegates to deps.showToast', () => {
-    const deps = makeDeps()
-    const ctx = createWorkflowContext(deps, undefined, makeInternal())
-    ctx.showToast('Success!', { variant: 'success' })
-    expect(deps.showToast).toHaveBeenCalledWith('Success!', { variant: 'success' })
-  })
+    const handle = defineEvent<string>('test:event')
+    const received: string[] = []
+    bus.on(handle, (p) => received.push(p))
 
-  it('playAnimation is a no-op stub that resolves', async () => {
-    const ctx = createWorkflowContext(makeDeps(), undefined, makeInternal())
-    await expect(ctx.playAnimation({ type: 'flash' })).resolves.toBeUndefined()
-  })
-
-  it('playSound is a no-op stub', () => {
-    const ctx = createWorkflowContext(makeDeps(), undefined, makeInternal())
-    expect(() => {
-      ctx.playSound('boom.mp3')
-    }).not.toThrow()
+    ctx.events.emit(handle, 'hello')
+    expect(received).toEqual(['hello'])
   })
 
   it('abort sets internal state', () => {
@@ -108,14 +112,14 @@ describe('createWorkflowContext', () => {
     expect(internal.abortCtrl.reason).toBe('reason')
   })
 
-  it('ctx.data is a getter — reassignment throws in strict mode', () => {
+  it('ctx.state is a getter — reassignment throws in strict mode', () => {
     const ctx = createWorkflowContext(makeDeps(), { foo: 'bar' }, makeInternal())
     expect(() => {
       // @ts-expect-error — testing runtime protection
-      ctx.data = {}
+      ctx.state = {}
     }).toThrow()
-    ctx.data.foo = 'baz'
-    expect(ctx.data.foo).toBe('baz')
+    ctx.state.foo = 'baz'
+    expect(ctx.state.foo).toBe('baz')
   })
 
   it('runWorkflow creates a nested context and delegates to engine', async () => {
@@ -136,18 +140,18 @@ describe('createWorkflowContext', () => {
 
   it('runWorkflow passes initial data to nested context', async () => {
     const engine = makeEngine()
-    let capturedData: Record<string, unknown> = {}
+    let capturedState: Record<string, unknown> = {}
     engine.defineWorkflow('inner', [
       {
         id: 'capture',
         run: (innerCtx) => {
-          capturedData = innerCtx.data
+          capturedState = innerCtx.state
         },
       },
     ])
     const ctx = createWorkflowContext(makeDeps({ engine }), undefined, makeInternal())
     await ctx.runWorkflow({ name: 'inner' } as never, { value: 42 })
-    expect(capturedData).toEqual({ value: 42 })
+    expect(capturedState).toEqual({ value: 42 })
   })
 
   it('nested workflow has independent abort', async () => {
@@ -165,13 +169,13 @@ describe('createWorkflowContext', () => {
         id: 'call-inner',
         run: async (ctx) => {
           const result = await ctx.runWorkflow({ name: 'inner' } as never)
-          ctx.data.innerStatus = result.status
+          ctx.state.innerStatus = result.status
         },
       },
       {
         id: 'after',
         run: (ctx) => {
-          ctx.data.afterRan = true
+          ctx.state.afterRan = true
         },
       },
     ])
@@ -181,7 +185,7 @@ describe('createWorkflowContext', () => {
     const result = await engine.runWorkflow('outer', ctx, internal)
     // Inner aborted, but outer continued
     expect(result.status).toBe('completed')
-    expect(ctx.data.innerStatus).toBe('aborted')
-    expect(ctx.data.afterRan).toBe(true)
+    expect(ctx.state.innerStatus).toBe('aborted')
+    expect(ctx.state.afterRan).toBe(true)
   })
 })

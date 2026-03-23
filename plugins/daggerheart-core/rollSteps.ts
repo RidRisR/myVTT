@@ -9,12 +9,12 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
     id: 'dh:judge',
     after: 'generate',
     run: (ctx) => {
-      const rolls = ctx.data.rolls
-      const total = ctx.data.total
+      const rolls = ctx.state.rolls
+      const total = ctx.state.total
       if (!rolls || total == null) return
       const judgment = dhEvaluateRoll(rolls, total)
       if (judgment) {
-        ctx.data.judgment = judgment
+        ctx.state.judgment = judgment
       }
     },
   })
@@ -24,7 +24,7 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
     id: 'dh:resolve',
     before: 'display',
     run: (ctx) => {
-      const judgment = ctx.data.judgment as { type: string; outcome: string } | undefined
+      const judgment = ctx.state.judgment as { type: string; outcome: string } | undefined
       if (!judgment || judgment.type !== 'daggerheart') return
       const outcome = judgment.outcome
       if (outcome === 'success_hope' || outcome === 'failure_hope') {

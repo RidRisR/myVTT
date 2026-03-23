@@ -49,10 +49,11 @@ export function createWorkflowContext(
   // this is a temporary version backed by deps.getEntity
   const read: IDataReader = {
     entity: (id: string) => deps.getEntity(id),
-    component: (entityId: string, key: string): unknown => {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T required for caller type inference
+    component: <T>(entityId: string, key: string): T | undefined => {
       const entity = deps.getEntity(entityId)
       if (!entity) return undefined
-      return (entity.ruleData as Record<string, unknown> | undefined)?.[key]
+      return (entity.ruleData as Record<string, unknown> | undefined)?.[key] as T | undefined
     },
     query: (spec: { has?: string[] }) => {
       // Minimal placeholder — Phase 3 provides full implementation via worldStore
@@ -75,16 +76,17 @@ export function createWorkflowContext(
     serverRoll: (formula: string) => deps.sendRoll(formula),
 
     // ── Effects (side effects) ────────────────────────────────────────────
-    updateComponent: (
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T required for caller type inference
+    updateComponent: <T>(
       entityId: string,
       key: string,
-      updater: (current: unknown) => unknown,
+      updater: (current: T | undefined) => T,
     ): void => {
       // Temporary implementation: writes to ruleData[key].
       // Phase 4 will replace with entity.components[key] + REST PATCH.
       const entity = deps.getEntity(entityId)
       const ruleData = (entity?.ruleData as Record<string, unknown> | null) ?? {}
-      const current: unknown = ruleData[key]
+      const current = ruleData[key] as T | undefined
       const next = updater(current)
       deps.updateEntity(entityId, {
         ruleData: { ...ruleData, [key]: next },

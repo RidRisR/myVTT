@@ -110,7 +110,8 @@ export interface InternalState {
 
 export interface IDataReader {
   entity(id: string): Entity | undefined
-  component(entityId: string, key: string): unknown
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T required for caller type inference
+  component<T>(entityId: string, key: string): T | undefined
   query(spec: { has?: string[] }): Entity[]
 }
 

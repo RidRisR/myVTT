@@ -5,14 +5,15 @@ import { PluginSDK, WorkflowRunner } from '../../../src/workflow/pluginSDK'
 import { registerBaseWorkflows, getRollWorkflow } from '../../../src/workflow/baseWorkflows'
 import { registerDHCoreSteps } from '../rollSteps'
 import type { ContextDeps } from '../../../src/workflow/context'
+import { EventBus } from '../../../src/events/eventBus'
 
 function makeDeps(overrides: Partial<ContextDeps> = {}): Omit<ContextDeps, 'engine'> {
   return {
     sendRoll: vi.fn().mockResolvedValue({ rolls: [[4, 9]], total: 15 }),
     updateEntity: vi.fn(),
     updateTeamTracker: vi.fn(),
-    sendMessage: vi.fn(),
-    showToast: vi.fn(),
+    getEntity: vi.fn(),
+    eventBus: new EventBus(),
     ...overrides,
   }
 }
