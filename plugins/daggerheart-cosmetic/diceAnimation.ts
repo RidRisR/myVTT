@@ -2,10 +2,10 @@ import type { WorkflowContext } from '@myvtt/sdk'
 import { toastEvent, animationEvent } from '../../src/events/systemEvents'
 
 export function cosmeticDiceAnimationStep(ctx: WorkflowContext): void {
-  const rolls = ctx.state.rolls as number[][] | undefined
+  const rolls = ctx.vars.rolls as number[][] | undefined
   if (!rolls || rolls.length === 0) return
 
-  const judgment = ctx.state.judgment as { type: string; outcome: string } | undefined
+  const judgment = ctx.vars.judgment as { type: string; outcome: string } | undefined
 
   const outcome = judgment?.outcome ?? 'unknown'
   ctx.events.emit(toastEvent, {

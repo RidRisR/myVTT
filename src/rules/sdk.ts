@@ -65,7 +65,11 @@ export type {
   IPluginSDK,
   IWorkflowRunner,
   IDataReader,
+  StepRunFn,
 } from '../workflow/types'
+
+// ── Workflow helpers ─────────────────────────────────────────────────────────
+export { output } from '../workflow/helpers'
 
 // ── EventBus (decoupled side effects) ──────────────────────────────────────
 export { defineEvent } from '../events/eventBus'
@@ -83,8 +87,8 @@ export type {
   SoundPayload,
 } from '../events/systemEvents'
 export type { VTTPlugin } from './types'
-export { getRollWorkflow } from '../workflow/baseWorkflows'
-export type { BaseRollData } from '../workflow/baseWorkflows'
+export { getRollWorkflow, getQuickRollWorkflow } from '../workflow/baseWorkflows'
+export type { BaseRollData, RollOutput } from '../workflow/baseWorkflows'
 export { useWorkflowRunner } from '../workflow/useWorkflowSDK'
 
 // ── Data layer (reactive hooks + imperative reader) ────────────────────────

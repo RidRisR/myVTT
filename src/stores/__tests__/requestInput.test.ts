@@ -85,7 +85,7 @@ describe('ctx.requestInput — workflow integration', () => {
         id: 'ask-user',
         run: async (ctx) => {
           const answer = await ctx.requestInput('pick-target')
-          ctx.state.answer = answer
+          ctx.vars.answer = answer
         },
       },
     ])

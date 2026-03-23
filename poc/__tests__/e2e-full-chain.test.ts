@@ -159,12 +159,12 @@ describe('E2E full-chain verification', () => {
       after: 'core:apply-damage',
       run(ctx) {
         const pocCtx = ctx as unknown as {
-          state: { finalDamage: number }
+          vars: { finalDamage: number }
           patchGlobal: (key: string, patch: Record<string, unknown>) => void
           read: { global: (key: string) => { current?: number } | undefined }
         }
         const current = pocCtx.read.global('TotalDamage')?.current ?? 0
-        pocCtx.patchGlobal('TotalDamage', { current: current + pocCtx.state.finalDamage })
+        pocCtx.patchGlobal('TotalDamage', { current: current + pocCtx.vars.finalDamage })
       },
     })
 

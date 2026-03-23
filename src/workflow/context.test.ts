@@ -34,12 +34,12 @@ function makeDeps(overrides: Partial<Parameters<typeof createWorkflowContext>[0]
 describe('createWorkflowContext', () => {
   it('creates context with the provided initial state', () => {
     const ctx = createWorkflowContext(makeDeps(), { foo: 'bar' }, makeInternal())
-    expect(ctx.state).toEqual({ foo: 'bar' })
+    expect(ctx.vars).toEqual({ foo: 'bar' })
   })
 
   it('creates context with empty state when none provided', () => {
     const ctx = createWorkflowContext(makeDeps(), undefined, makeInternal())
-    expect(ctx.state).toEqual({})
+    expect(ctx.vars).toEqual({})
   })
 
   it('all methods are functions', () => {
@@ -118,14 +118,14 @@ describe('createWorkflowContext', () => {
     expect(internal.abortCtrl.reason).toBe('reason')
   })
 
-  it('ctx.state is a getter — reassignment throws in strict mode', () => {
+  it('ctx.vars is a getter — reassignment throws in strict mode', () => {
     const ctx = createWorkflowContext(makeDeps(), { foo: 'bar' }, makeInternal())
     expect(() => {
       // @ts-expect-error — testing runtime protection
-      ctx.state = {}
+      ctx.vars = {}
     }).toThrow()
-    ctx.state.foo = 'baz'
-    expect(ctx.state.foo).toBe('baz')
+    ctx.vars.foo = 'baz'
+    expect(ctx.vars.foo).toBe('baz')
   })
 
   it('runWorkflow creates a nested context and delegates to engine', async () => {
@@ -151,7 +151,7 @@ describe('createWorkflowContext', () => {
       {
         id: 'capture',
         run: (innerCtx) => {
-          capturedState = innerCtx.state
+          capturedState = innerCtx.vars
         },
       },
     ])
@@ -175,13 +175,13 @@ describe('createWorkflowContext', () => {
         id: 'call-inner',
         run: async (ctx) => {
           const result = await ctx.runWorkflow({ name: 'inner' } as never)
-          ctx.state.innerStatus = result.status
+          ctx.vars.innerStatus = result.status
         },
       },
       {
         id: 'after',
         run: (ctx) => {
-          ctx.state.afterRan = true
+          ctx.vars.afterRan = true
         },
       },
     ])
@@ -191,7 +191,7 @@ describe('createWorkflowContext', () => {
     const result = await engine.runWorkflow('outer', ctx, internal)
     // Inner aborted, but outer continued
     expect(result.status).toBe('completed')
-    expect(ctx.state.innerStatus).toBe('aborted')
-    expect(ctx.state.afterRan).toBe(true)
+    expect(ctx.vars.innerStatus).toBe('aborted')
+    expect(ctx.vars.afterRan).toBe(true)
   })
 })

@@ -65,9 +65,9 @@ export function createWorkflowContext(
   }
 
   const ctx: WorkflowContext = {
-    // getter-only: ctx.state = {} throws TypeError in strict mode,
-    // but ctx.state.foo = 'bar' works (modifies Proxy → _inner)
-    get state() {
+    // getter-only: ctx.vars = {} throws TypeError in strict mode,
+    // but ctx.vars.foo = 'bar' works (modifies Proxy → _inner)
+    get vars() {
       return state
     },
 
@@ -109,10 +109,10 @@ export function createWorkflowContext(
       internal.abortCtrl.reason = reason
     },
 
-    runWorkflow: <T extends Record<string, unknown> = Record<string, unknown>>(
-      handle: WorkflowHandle<T>,
+    runWorkflow: <T extends Record<string, unknown> = Record<string, unknown>, TOut = T>(
+      handle: WorkflowHandle<T, TOut>,
       nestedData?: Partial<T>,
-    ): Promise<WorkflowResult<T>> => {
+    ): Promise<WorkflowResult<T, TOut>> => {
       // Nested workflow: inherit depth, independent abort + dataCtrl
       const nestedInternal: InternalState = {
         depth: internal.depth,
@@ -125,7 +125,7 @@ export function createWorkflowContext(
         nestedInternal,
       )
       return deps.engine.runWorkflow(handle.name, nestedCtx, nestedInternal) as Promise<
-        WorkflowResult<T>
+        WorkflowResult<T, TOut>
       >
     },
   }

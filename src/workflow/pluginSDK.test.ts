@@ -95,7 +95,7 @@ describe('WorkflowRunner', () => {
       {
         id: 'capture',
         run: (ctx) => {
-          capturedState = ctx.state
+          capturedState = ctx.vars
         },
       },
     ])
@@ -111,7 +111,7 @@ describe('WorkflowRunner', () => {
       {
         id: 'capture',
         run: (ctx) => {
-          capturedState = ctx.state
+          capturedState = ctx.vars
         },
       },
     ])

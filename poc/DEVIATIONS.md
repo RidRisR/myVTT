@@ -6,11 +6,11 @@
 
 ## 1. Workflow 步骤内的类型访问方式
 
-**设计文档预期**：步骤函数通过泛型 `WorkflowContext<TData>` 直接访问 `ctx.state`、`ctx.updateComponent` 等。
+**设计文档预期**：步骤函数通过泛型 `WorkflowContext<TData>` 直接访问 `ctx.vars`、`ctx.updateComponent` 等。
 
-**实际实现**：步骤函数接收的是旧 `WorkflowContext` 类型（engine 签名限制），通过 `as unknown as { state: DealDamageState }` 类型断言访问 POC 扩展字段。
+**实际实现**：步骤函数接收的是旧 `WorkflowContext` 类型（engine 签名限制），通过 `as unknown as { vars: DealDamageState }` 类型断言访问 POC 扩展字段。
 
-**原因**：`WorkflowEngine.runWorkflow()` 签名为 `(name: string, ctx: WorkflowContext, internal: InternalState)`，其中 `WorkflowContext` 不包含 `state`、`read`、`updateComponent` 等新接口。POC context 是运行时超集，但编译时类型不匹配。修改 engine 签名超出 POC 范围。
+**原因**：`WorkflowEngine.runWorkflow()` 签名为 `(name: string, ctx: WorkflowContext, internal: InternalState)`，其中 `WorkflowContext` 不包含 `vars`、`read`、`updateComponent` 等新接口。POC context 是运行时超集，但编译时类型不匹配。修改 engine 签名超出 POC 范围。
 
 **影响**：步骤代码需要手动类型断言，DX 不够理想。正式迁移时应升级 `WorkflowContext` 接口，消除断言需求。
 

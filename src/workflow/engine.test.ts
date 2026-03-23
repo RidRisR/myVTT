@@ -5,7 +5,7 @@ import type { WorkflowContext, InternalState } from './types'
 
 function makeCtx(data: Record<string, unknown> = {}): WorkflowContext {
   return {
-    state: data,
+    vars: data,
     read: { entity: vi.fn(), component: vi.fn(), query: vi.fn().mockReturnValue([]) },
     serverRoll: vi.fn(),
     requestInput: vi.fn(),
@@ -438,7 +438,9 @@ describe('WorkflowEngine', () => {
     const result = await engine.runWorkflow('abrt', ctx, internal)
     expect(order).toEqual(['a'])
     expect(result.status).toBe('aborted')
-    expect(result.reason).toBe('stop')
+    if (result.status === 'aborted') {
+      expect(result.reason).toBe('stop')
+    }
   })
 
   // ── 11. Error propagation (critical steps) ─────────────────────────────────
@@ -527,7 +529,7 @@ describe('WorkflowEngine', () => {
       {
         id: 'a',
         run: (ctx) => {
-          ctx.state.value = 42
+          ctx.vars.value = 42
         },
       },
     ])
@@ -535,9 +537,9 @@ describe('WorkflowEngine', () => {
     const result = await engine.runWorkflow('res', ctx, makeInternal())
     expect(result.status).toBe('completed')
     expect(result.data.value).toBe(42)
-    // data is a shallow copy — mutating result.data doesn't affect ctx.state
+    // data is a shallow copy — mutating result.data doesn't affect ctx.vars
     result.data.value = 99
-    expect(ctx.state.value).toBe(42)
+    expect(ctx.vars.value).toBe(42)
   })
 
   it('empty workflow returns completed result', async () => {
@@ -580,23 +582,23 @@ describe('WorkflowEngine', () => {
         id: 'dirty',
         critical: false,
         run: (ctx) => {
-          ctx.state.dirty = true
+          ctx.vars.dirty = true
           throw new Error('fail')
         },
       },
       {
         id: 'check',
         run: (ctx) => {
-          ctx.state.checked = true
+          ctx.vars.checked = true
         },
       },
     ])
     const data: Record<string, unknown> = { clean: true }
     const ctx = makeCtx(data)
     const result = await engine.runWorkflow('restore', ctx, makeInternal(data))
-    expect(ctx.state.dirty).toBeUndefined()
-    expect(ctx.state.clean).toBe(true)
-    expect(ctx.state.checked).toBe(true)
+    expect(ctx.vars.dirty).toBeUndefined()
+    expect(ctx.vars.clean).toBe(true)
+    expect(ctx.vars.checked).toBe(true)
     expect(result.errors).toHaveLength(1)
   })
 
@@ -821,8 +823,8 @@ describe('WorkflowEngine', () => {
         id: 'dirty',
         critical: false,
         run: (ctx) => {
-          ctx.state.fn = fn // functions are not cloneable
-          ctx.state.dirty = true
+          ctx.vars.fn = fn // functions are not cloneable
+          ctx.vars.dirty = true
           throw new Error('fail')
         },
       },
@@ -830,7 +832,7 @@ describe('WorkflowEngine', () => {
         id: 'check',
         run: (ctx) => {
           // snapshot failed → data NOT restored, dirty write persists
-          ctx.state.checked = true
+          ctx.vars.checked = true
         },
       },
     ])
@@ -839,8 +841,8 @@ describe('WorkflowEngine', () => {
     const result = await engine.runWorkflow('uncloneable', ctx, makeInternal(data))
     expect(result.errors).toHaveLength(1)
     // Since clone failed, dirty data persists (no restore)
-    expect(ctx.state.dirty).toBe(true)
-    expect(ctx.state.checked).toBe(true)
+    expect(ctx.vars.dirty).toBe(true)
+    expect(ctx.vars.checked).toBe(true)
   })
 
   // ── 23. wrapStep/replaceStep target not found ─────────────────────────────
@@ -976,8 +978,8 @@ describe('WorkflowEngine', () => {
       {
         id: 'recurse',
         run: async (ctx) => {
-          const d = (typeof ctx.state.depth === 'number' ? ctx.state.depth : 0) + 1
-          ctx.state.depth = d
+          const d = (typeof ctx.vars.depth === 'number' ? ctx.vars.depth : 0) + 1
+          ctx.vars.depth = d
           if (d > maxDepth) maxDepth = d
           if (d < 9) {
             await ctx.runWorkflow({ name: 'depth9' } as never, { depth: d })

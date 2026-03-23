@@ -32,14 +32,14 @@ export function registerCoreWorkflows(engine: WorkflowEngine): void {
     {
       id: 'core:calc-damage',
       run: (ctx) => {
-        const state = (ctx as unknown as { state: DealDamageState }).state
+        const state = (ctx as unknown as { vars: DealDamageState }).vars
         state.finalDamage = state.rawDamage
       },
     },
     {
       id: 'core:apply-damage',
       run: (ctx) => {
-        const state = (ctx as unknown as { state: DealDamageState }).state
+        const state = (ctx as unknown as { vars: DealDamageState }).vars
         const updateComponent = (
           ctx as unknown as {
             updateComponent: (eid: string, key: string, updater: (c: unknown) => unknown) => void
@@ -69,7 +69,7 @@ export function registerCoreWorkflows(engine: WorkflowEngine): void {
   ])
 
   _setSelectionHandle = engine.defineWorkflow<SetSelectionState>('core:set-selection', (ctx) => {
-    const state = (ctx as unknown as { state: SetSelectionState }).state
+    const state = (ctx as unknown as { vars: SetSelectionState }).vars
     _setSelection(state.entityId ? [state.entityId] : [])
   })
 }
