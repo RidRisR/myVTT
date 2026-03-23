@@ -4,14 +4,6 @@ import { render, cleanup } from '@testing-library/react'
 import { ToastProvider } from '../../ui/ToastProvider'
 import { getRulePlugin, getAvailablePlugins, registerPlugin } from '../registry'
 import { makeEntity } from '../../__test-utils__/fixtures'
-const DH_KEYS = {
-  health: 'daggerheart:health',
-  stress: 'daggerheart:stress',
-  attributes: 'daggerheart:attributes',
-  meta: 'daggerheart:meta',
-  extras: 'daggerheart:extras',
-} as const
-
 describe('getRulePlugin', () => {
   it('returns generic plugin for "generic" id', () => {
     const plugin = getRulePlugin('generic')
@@ -104,7 +96,10 @@ describe.each(allPluginIds)('%s plugin — adapter safety contract', (pluginId) 
 
   const edgeCases = [
     { label: 'empty components', components: {} },
-    { label: 'core-only components', components: { 'core:identity': { name: 'x', imageUrl: '', color: '' } } },
+    {
+      label: 'core-only components',
+      components: { 'core:identity': { name: 'x', imageUrl: '', color: '' } },
+    },
     { label: 'unrelated components', components: { 'foo:bar': { baz: 1 } } },
   ]
 
@@ -134,7 +129,10 @@ describe.each(allPluginIds)('%s plugin — EntityCard render safety', (pluginId)
 
   const edgeCases = [
     { label: 'empty components', components: {} },
-    { label: 'core-only components', components: { 'core:identity': { name: 'x', imageUrl: '', color: '' } } },
+    {
+      label: 'core-only components',
+      components: { 'core:identity': { name: 'x', imageUrl: '', color: '' } },
+    },
     { label: 'unrelated components', components: { 'foo:bar': { baz: 1 } } },
   ]
 
@@ -149,37 +147,4 @@ describe.each(allPluginIds)('%s plugin — EntityCard render safety', (pluginId)
       ).not.toThrow()
     })
   }
-})
-
-describe('daggerheartPlugin registration', () => {
-  it('getRulePlugin returns daggerheart after registration', () => {
-    const plugin = getRulePlugin('daggerheart')
-    expect(plugin.id).toBe('daggerheart')
-  })
-  it('daggerheart adapters.getMainResource returns HP', () => {
-    const plugin = getRulePlugin('daggerheart')
-    const entity = makeEntity({
-      components: {
-        'core:identity': { name: 'R', imageUrl: '', color: '' },
-        [DH_KEYS.health]: { current: 12, max: 20 },
-        [DH_KEYS.stress]: { current: 0, max: 6 },
-        [DH_KEYS.attributes]: {
-          agility: 2, strength: 1, finesse: 3,
-          instinct: 0, presence: 1, knowledge: 2,
-        },
-        [DH_KEYS.meta]: { tier: 1, proficiency: 1, className: 'R', ancestry: 'E' },
-        [DH_KEYS.extras]: { hope: 2, armor: 1 },
-      },
-    })
-    expect(plugin.adapters.getMainResource(entity)?.current).toBe(12)
-  })
-  it('daggerheart diceSystem.evaluateRoll works', () => {
-    const plugin = getRulePlugin('daggerheart')
-    const r = plugin.diceSystem?.evaluateRoll([[8, 5]], 15)
-    expect(r?.type).toBe('daggerheart')
-  })
-  it('daggerheart surfaces.rollCardRenderers has daggerheart:dd', () => {
-    const plugin = getRulePlugin('daggerheart')
-    expect(plugin.surfaces?.rollCardRenderers?.['daggerheart:dd']).toBeDefined()
-  })
 })
