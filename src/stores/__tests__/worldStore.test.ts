@@ -939,7 +939,9 @@ describe('action methods', () => {
   })
 
   it('updateEntity calls PATCH /api/rooms/{roomId}/entities/{id}', async () => {
-    await useWorldStore.getState().updateEntity('entity-1', { name: 'Updated' })
+    await useWorldStore.getState().updateEntity('entity-1', {
+      components: { 'core:identity': { name: 'Updated', imageUrl: '', color: '#ff0000' } },
+    })
 
     const { url, method } = getLastFetchCall()
     expect(url).toContain(`/api/rooms/${ROOM_ID}/entities/entity-1`)

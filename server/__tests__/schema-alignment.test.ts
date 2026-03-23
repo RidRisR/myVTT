@@ -18,7 +18,7 @@ describe('schema alignment with design doc 43', () => {
   })
 
   it('entities.permissions defaults to {"default":"none","seats":{}}', () => {
-    db.prepare("INSERT INTO entities (id, name) VALUES ('perm-test', 'Test Entity')").run()
+    db.prepare("INSERT INTO entities (id) VALUES ('perm-test')").run()
     const row = db.prepare("SELECT permissions FROM entities WHERE id = 'perm-test'").get() as {
       permissions: string
     }
@@ -73,7 +73,7 @@ describe('schema alignment with design doc 43', () => {
 
   it('FK cascade: delete scene removes scene_entities rows', () => {
     db.prepare("INSERT INTO scenes (id, name) VALUES ('fk-s1', 'Tavern')").run()
-    db.prepare("INSERT INTO entities (id, name) VALUES ('fk-e1', 'Warrior')").run()
+    db.prepare("INSERT INTO entities (id) VALUES ('fk-e1')").run()
     db.prepare("INSERT INTO scene_entities (scene_id, entity_id) VALUES ('fk-s1', 'fk-e1')").run()
 
     // Verify link exists
@@ -111,7 +111,7 @@ describe('schema alignment with design doc 43', () => {
 
   it('FK cascade: delete entity removes scene_entities rows', () => {
     db.prepare("INSERT INTO scenes (id, name) VALUES ('fk-s2', 'Dungeon')").run()
-    db.prepare("INSERT INTO entities (id, name) VALUES ('fk-e2', 'Goblin')").run()
+    db.prepare("INSERT INTO entities (id) VALUES ('fk-e2')").run()
     db.prepare("INSERT INTO scene_entities (scene_id, entity_id) VALUES ('fk-s2', 'fk-e2')").run()
 
     // Verify link exists

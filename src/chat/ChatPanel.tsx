@@ -121,9 +121,9 @@ export function ChatPanel({
       speakerEntity
         ? {
             id: senderId,
-            name: speakerEntity.name,
-            color: speakerEntity.color,
-            portraitUrl: speakerEntity.imageUrl || undefined,
+            name: getName(speakerEntity),
+            color: getColor(speakerEntity),
+            portraitUrl: getImageUrl(speakerEntity) || undefined,
           }
         : seatIdentity,
     [speakerEntity, senderId, seatIdentity],

@@ -145,7 +145,11 @@ describe('Blueprint Lifecycle Journey', () => {
       {
         defaults: {
           components: {
-            'core:identity': { name: 'Goblin Chief', imageUrl: '/uploads/goblin.png', color: '#22c55e' },
+            'core:identity': {
+              name: 'Goblin Chief',
+              imageUrl: '/uploads/goblin.png',
+              color: '#22c55e',
+            },
             'core:token': { width: 1, height: 1 },
             'dnd5e:stats': { hp: 7 },
           },
@@ -229,6 +233,6 @@ describe('Blueprint Lifecycle Journey', () => {
       `/api/rooms/${ctx.roomId}/scenes/${sceneId}/entities`,
     )
     const entries = seData as { entityId: string }[]
-    expect(entries.find((e) => e.entityId === (result.entity.id as string))).toBeUndefined()
+    expect(entries.find((e) => e.entityId === result.entity.id)).toBeUndefined()
   })
 })

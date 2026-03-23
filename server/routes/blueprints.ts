@@ -110,7 +110,7 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
         syncTags(req.roomDb!, 'blueprint_tags', 'blueprint_id', blueprintId, tagNames)
       } catch {
         // Cleanup uploaded file on DB failure
-        const filePath = safePath(dir, req.file!.filename)
+        const filePath = safePath(dir, req.file.filename)
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
         res.status(500).json({ error: 'Failed to create blueprint' })
         return
@@ -144,9 +144,7 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
     const defaults = body.defaults ? JSON.stringify(body.defaults) : '{"components":{}}'
 
     req
-      .roomDb!.prepare(
-        'INSERT INTO blueprints (id, defaults, created_at) VALUES (?, ?, ?)',
-      )
+      .roomDb!.prepare('INSERT INTO blueprints (id, defaults, created_at) VALUES (?, ?, ?)')
       .run(id, defaults, Date.now())
     syncTags(req.roomDb!, 'blueprint_tags', 'blueprint_id', id, tagNames)
 

@@ -70,7 +70,7 @@ describe('FullCharacterSheet', () => {
       expect.objectContaining({
         components: expect.objectContaining({
           [DH_KEYS.health]: { current: 15, max: 20 },
-        }),
+        }) as Record<string, unknown>,
       }),
     )
   })
