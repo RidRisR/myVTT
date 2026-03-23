@@ -22,7 +22,7 @@ describe('MessageOrigin', () => {
     }
     expectTypeOf(msg.origin).toEqualTypeOf<MessageOrigin>()
     // @ts-expect-error — senderId no longer exists
-    msg.senderId
+    void msg.senderId
   })
 })
 
