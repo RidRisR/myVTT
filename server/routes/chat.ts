@@ -17,11 +17,17 @@ export function chatRoutes(dataDir: string, io: TypedServer): Router {
       seat: msg.seat as MessageOrigin['seat'],
       ...(msg.entity ? { entity: msg.entity as MessageOrigin['entity'] } : {}),
     }
+    // Remove DB-level seat/entity/rollData; replace with structured origin + flattened rollData
+    const rest = Object.fromEntries(
+      Object.entries(msg).filter(([k]) => k !== 'seat' && k !== 'entity' && k !== 'rollData'),
+    )
     if (msg.rollData && typeof msg.rollData === 'object') {
-      const { rollData, seat: _s, entity: _e, ...rest } = msg
-      return { ...rest, ...(rollData as Record<string, unknown>), origin } as unknown as ChatMessage
+      return {
+        ...rest,
+        ...(msg.rollData as Record<string, unknown>),
+        origin,
+      } as unknown as ChatMessage
     }
-    const { seat: _s, entity: _e, ...rest } = msg
     return { ...rest, origin } as unknown as ChatMessage
   }
 
