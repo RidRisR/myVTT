@@ -8,6 +8,7 @@ function makeCtx(data: Record<string, unknown> = {}): WorkflowContext {
     state: data,
     read: { entity: vi.fn(), component: vi.fn(), query: vi.fn().mockReturnValue([]) },
     serverRoll: vi.fn(),
+    requestInput: vi.fn(),
     updateComponent: vi.fn(),
     updateTeamTracker: vi.fn(),
     events: { emit: vi.fn() },
