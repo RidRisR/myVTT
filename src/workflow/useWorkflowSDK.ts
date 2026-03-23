@@ -48,12 +48,10 @@ function buildDeps(
       const terms = tokenizeExpression(stripped)
       const dice = terms ? toDiceSpecs(terms) : []
       const result = await sendRoll({
+        origin: { seat: { id: '', name: '', color: '' } },
         dice,
         formula,
         resolvedFormula: stripped,
-        senderId: '',
-        senderName: '',
-        senderColor: '',
       })
       const rolls: number[][] = result?.rolls ?? []
       const total = rolls.flat().reduce<number>((sum, v) => sum + v, 0)

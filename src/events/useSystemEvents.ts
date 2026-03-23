@@ -14,20 +14,36 @@ export function useSystemEvents(): void {
   const toastRef = useRef(toast)
   toastRef.current = toast
 
-  useEvent(toastEvent, (payload) => {
-    const variant = (payload.variant ?? 'info') as ToastType
-    toastRef.current(variant, payload.text, payload.durationMs ? { duration: payload.durationMs } : undefined)
-  }, eventBus)
+  useEvent(
+    toastEvent,
+    (payload) => {
+      const variant = (payload.variant ?? 'info') as ToastType
+      toastRef.current(
+        variant,
+        payload.text,
+        payload.durationMs ? { duration: payload.durationMs } : undefined,
+      )
+    },
+    eventBus,
+  )
 
-  useEvent(announceEvent, (payload) => {
-    const seat = useIdentityStore.getState().getMySeat()
-    void useWorldStore.getState().sendMessage({
-      senderId: seat?.id ?? '',
-      senderName: seat?.name ?? 'Unknown',
-      senderColor: seat?.color ?? '#888888',
-      content: payload.message,
-    })
-  }, eventBus)
+  useEvent(
+    announceEvent,
+    (payload) => {
+      const seat = useIdentityStore.getState().getMySeat()
+      void useWorldStore.getState().sendMessage({
+        origin: {
+          seat: {
+            id: seat?.id ?? '',
+            name: seat?.name ?? 'Unknown',
+            color: seat?.color ?? '#888888',
+          },
+        },
+        content: payload.message,
+      })
+    },
+    eventBus,
+  )
 
   // animationEvent and soundEvent: no-op for now (no UI implementation yet)
 }
