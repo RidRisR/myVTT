@@ -183,6 +183,9 @@ export interface IPluginSDK {
     output: (vars: TData) => TOutput,
   ): WorkflowHandle<TData, TOutput>
 
+  /** Look up an existing workflow by name (returns untyped handle) */
+  getWorkflow(name: string): WorkflowHandle
+
   /* eslint-disable @typescript-eslint/no-explicit-any -- TOutput irrelevant for step manipulation */
   addStep<TData extends TBase, TBase = Record<string, unknown>>(
     handle: WorkflowHandle<TBase, any>,

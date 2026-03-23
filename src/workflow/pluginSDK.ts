@@ -77,6 +77,10 @@ export class PluginSDK implements IPluginSDK {
     }
   }
 
+  getWorkflow(name: string): WorkflowHandle {
+    return this.engine.getWorkflow(name)
+  }
+
   /* eslint-disable @typescript-eslint/no-explicit-any -- TOutput irrelevant for step manipulation */
   addStep<TData extends TBase, TBase = Record<string, unknown>>(
     handle: WorkflowHandle<TBase, any>,

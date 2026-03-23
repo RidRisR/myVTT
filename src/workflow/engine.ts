@@ -301,14 +301,14 @@ export class WorkflowEngine {
     name: string,
     ctx: WorkflowContext,
     internal: InternalState,
-  ): Promise<WorkflowResult> {
+  ): Promise<WorkflowResult<Record<string, unknown>, unknown>> {
     const record = this.getRecord(name)
 
     // Zero-step fast path: skip ancestor computation, snapshot, and loop entirely
     if (record.steps.length === 0) {
       const dataCopy = { ...ctx.vars } as Record<string, unknown>
       const output = record.outputFn ? record.outputFn(dataCopy) : dataCopy
-      return { status: 'completed' as const, data: dataCopy, output, errors: [] } as WorkflowResult
+      return { status: 'completed' as const, data: dataCopy, output, errors: [] }
     }
 
     if (internal.depth >= MAX_RECURSION_DEPTH) {
@@ -408,7 +408,7 @@ export class WorkflowEngine {
         data: dataCopy,
         output: undefined,
         errors,
-      } as WorkflowResult
+      }
     }
 
     // Extract structured output if an outputFn was provided
@@ -420,7 +420,7 @@ export class WorkflowEngine {
           data: dataCopy,
           output,
           errors,
-        } as WorkflowResult
+        }
       } catch (e) {
         const error = e instanceof Error ? e : new Error(String(e))
         errors.push({ stepId: '__output__', error })
@@ -430,7 +430,7 @@ export class WorkflowEngine {
           data: dataCopy,
           output: undefined,
           errors,
-        } as WorkflowResult
+        }
       }
     }
 
@@ -440,7 +440,16 @@ export class WorkflowEngine {
       data: dataCopy,
       output: dataCopy,
       errors,
-    } as WorkflowResult
+    }
+  }
+
+  // ── Lookup ─────────────────────────────────────────────────────────────────
+
+  getWorkflow(name: string): WorkflowHandle {
+    if (!this.workflows.has(name)) {
+      throw new Error(`Workflow "${name}" not found`)
+    }
+    return { name } as WorkflowHandle
   }
 
   // ── Inspection ──────────────────────────────────────────────────────────────

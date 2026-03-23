@@ -15,7 +15,11 @@ export function output<TOutput>(
   return (vars: Record<string, unknown>) => {
     const result = {} as Record<string, unknown>
     for (const key of keys) {
-      result[key as string] = vars[key as string]
+      const k = key as string
+      if (!(k in vars)) {
+        throw new Error(`output(): key "${k}" not found in workflow vars`)
+      }
+      result[k] = vars[k]
     }
     return result as TOutput
   }
