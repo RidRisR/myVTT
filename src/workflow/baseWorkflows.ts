@@ -2,6 +2,7 @@
 import type { WorkflowEngine } from './engine'
 import type { WorkflowHandle } from './types'
 import { toastEvent, announceEvent } from '../events/systemEvents'
+import { _setSelection } from '../stores/sessionStore'
 
 /** Base data shape for the roll workflow */
 export interface BaseRollData {
@@ -12,14 +13,28 @@ export interface BaseRollData {
   total?: number
 }
 
+/** Data shape for the set-selection workflow */
+export interface SetSelectionState {
+  [key: string]: unknown
+  entityId: string | null
+}
+
 /** Typed handle — plugins import this to add/attach steps to the roll workflow */
 let _rollWorkflow: WorkflowHandle<BaseRollData> | undefined
+let _setSelectionWorkflow: WorkflowHandle<SetSelectionState> | undefined
 
 export function getRollWorkflow(): WorkflowHandle<BaseRollData> {
   if (!_rollWorkflow) {
     throw new Error('rollWorkflow not initialized — call registerBaseWorkflows first')
   }
   return _rollWorkflow
+}
+
+export function getSetSelectionWorkflow(): WorkflowHandle<SetSelectionState> {
+  if (!_setSelectionWorkflow) {
+    throw new Error('setSelectionWorkflow not initialized — call registerBaseWorkflows first')
+  }
+  return _setSelectionWorkflow
 }
 
 export function registerBaseWorkflows(engine: WorkflowEngine): void {
@@ -48,4 +63,8 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
       },
     },
   ])
+
+  _setSelectionWorkflow = engine.defineWorkflow<SetSelectionState>('core:set-selection', (ctx) => {
+    _setSelection(ctx.state.entityId ? [ctx.state.entityId] : [])
+  })
 }

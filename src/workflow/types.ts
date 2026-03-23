@@ -125,8 +125,10 @@ export interface WorkflowContext<TState = Record<string, unknown>> {
   // ── Data access (imperative reads from store) ─────────────────────────
   readonly read: IDataReader
 
-  // ── Input (returns value, immediate execution) ────────────────────────
+  // ── Input (returns value, suspends execution) ──────────────────────────
   serverRoll(formula: string): Promise<{ rolls: number[][]; total: number }>
+  /** Pause workflow until UI resolves/cancels the interaction */
+  requestInput(interactionId: string): Promise<unknown>
 
   // ── Effects (side effects, fire-and-forget) ───────────────────────────
   updateComponent<T>(entityId: string, key: string, updater: (current: T | undefined) => T): void

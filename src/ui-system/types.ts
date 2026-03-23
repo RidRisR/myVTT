@@ -11,13 +11,23 @@ export interface DnDPayload {
 
 export type { ZLayer, ComponentDef, LayerDef, IUIRegistrationSDK } from './registrationTypes'
 
+/** Session snapshot passed to instanceProps factory functions */
+export interface SessionSnapshot {
+  selection: string[]
+}
+
+/** Static props or a factory that receives current session state */
+export type InstancePropsOrFactory =
+  | Record<string, unknown>
+  | ((session: SessionSnapshot) => Record<string, unknown>)
+
 export interface LayoutEntry {
   x: number
   y: number
   width: number
   height: number
   visible?: boolean
-  instanceProps?: Record<string, unknown>
+  instanceProps?: InstancePropsOrFactory
 }
 
 // key format: "<componentId>#<instance>" e.g. "poc-ui.hello#1"

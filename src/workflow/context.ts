@@ -9,6 +9,7 @@ import type {
 import type { Entity } from '../shared/entityTypes'
 import type { WorkflowEngine } from './engine'
 import type { EventBus } from '../events/eventBus'
+import { requestInput as sessionRequestInput } from '../stores/sessionStore'
 
 export interface ContextDeps {
   sendRoll: (formula: string) => Promise<{ rolls: number[][]; total: number }>
@@ -71,8 +72,9 @@ export function createWorkflowContext(
     // ── Data access ─────────────────────────────────────────────────────────
     read,
 
-    // ── Input (returns value) ─────────────────────────────────────────────
+    // ── Input (returns value, suspends execution) ────────────────────────
     serverRoll: (formula: string) => deps.sendRoll(formula),
+    requestInput: (interactionId: string) => sessionRequestInput(interactionId),
 
     // ── Effects (side effects) ────────────────────────────────────────────
     updateComponent: <T>(

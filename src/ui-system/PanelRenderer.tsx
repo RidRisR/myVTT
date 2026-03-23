@@ -2,6 +2,7 @@ import { PanelErrorBoundary } from './PanelErrorBoundary'
 import { DragHandle } from './LayoutEditor'
 import type { UIRegistry } from './registry'
 import type { LayoutConfig, IComponentSDK } from './types'
+import { useSessionStore } from '../stores/sessionStore'
 
 interface Props {
   registry: UIRegistry
@@ -20,6 +21,9 @@ export function PanelRenderer({
   onDrag,
   showHandles = true,
 }: Props) {
+  // Select primitive array ref directly — avoid new object to prevent infinite re-render
+  const selection = useSessionStore((s) => s.selection)
+  const session = { selection }
   const entries = Object.entries(layout)
 
   return (
@@ -32,7 +36,11 @@ export function PanelRenderer({
         const def = registry.getComponent(componentId)
         if (!def) return null
 
-        const sdk = makeSDK(instanceKey, entry.instanceProps ?? {})
+        const resolvedProps =
+          typeof entry.instanceProps === 'function'
+            ? entry.instanceProps(session)
+            : (entry.instanceProps ?? {})
+        const sdk = makeSDK(instanceKey, resolvedProps)
         const PanelComponent = def.component
 
         return (
