@@ -23,12 +23,13 @@ export function createDataReader(): IDataReader {
 
     query: (spec: { has?: string[] }): Entity[] => {
       const entities = Object.values(useWorldStore.getState().entities)
-      if (!spec.has || spec.has.length === 0) return entities
+      const keys = spec.has
+      if (!keys || keys.length === 0) return entities
       // Phase 4 will replace ruleData with entity.components — filter by component key presence
       return entities.filter((e) => {
         const ruleData = e.ruleData as Record<string, unknown> | undefined
         if (!ruleData) return false
-        return spec.has!.every((key) => key in ruleData)
+        return keys.every((key) => key in ruleData)
       })
     },
   }
