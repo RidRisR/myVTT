@@ -65,6 +65,9 @@ function buildDeps(
     getEntity: (id: string) => {
       return useWorldStore.getState().entities[id]
     },
+    getAllEntities: () => {
+      return useWorldStore.getState().entities
+    },
     updateTeamTracker: (label, patch) => {
       const state = useWorldStore.getState()
       const tracker = state.teamTrackers.find((t) => t.label === label)

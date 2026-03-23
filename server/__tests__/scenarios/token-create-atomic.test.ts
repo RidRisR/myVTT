@@ -48,8 +48,8 @@ describe('POST /tactical/tokens/quick — atomic ephemeral entity + token', () =
     expect(result.entity.id).toBeTruthy()
     expect(getName(result.entity)).toBe('Skeleton')
     expect(result.entity.lifecycle).toBe('ephemeral')
-    const appearance = result.entity.components['core:appearance'] as { color: string }
-    expect(appearance.color).toBe('#aaaaaa')
+    const identity = result.entity.components['core:identity'] as { color: string }
+    expect(identity.color).toBe('#aaaaaa')
 
     // Token assertions
     expect(result.token.id).toBeTruthy()

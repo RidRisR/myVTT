@@ -18,6 +18,7 @@ describe('Session State', () => {
       updateEntity: vi.fn(),
       updateTeamTracker: vi.fn(),
       getEntity: vi.fn(),
+      getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: bus,
     }
     runner = new WorkflowRunner(engine, deps)

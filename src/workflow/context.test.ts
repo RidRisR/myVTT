@@ -24,6 +24,7 @@ function makeDeps(overrides: Partial<Parameters<typeof createWorkflowContext>[0]
     updateEntity: vi.fn(),
     updateTeamTracker: vi.fn(),
     getEntity: vi.fn(),
+    getAllEntities: vi.fn().mockReturnValue({}),
     eventBus: createEventBus(),
     engine: makeEngine(),
     ...overrides,

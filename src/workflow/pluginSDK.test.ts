@@ -11,6 +11,7 @@ function makeDeps(): Omit<ContextDeps, 'engine'> {
     updateEntity: vi.fn(),
     updateTeamTracker: vi.fn(),
     getEntity: vi.fn(),
+    getAllEntities: vi.fn().mockReturnValue({}),
     eventBus: createEventBus(),
   }
 }

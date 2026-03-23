@@ -13,6 +13,7 @@ function makeDeps(overrides: Partial<ContextDeps> = {}): Omit<ContextDeps, 'engi
     updateEntity: vi.fn(),
     updateTeamTracker: vi.fn(),
     getEntity: vi.fn(),
+    getAllEntities: vi.fn().mockReturnValue({}),
     eventBus: new EventBus(),
     ...overrides,
   }

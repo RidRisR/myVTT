@@ -75,6 +75,7 @@ describe('ctx.requestInput — workflow integration', () => {
       updateEntity: vi.fn(),
       updateTeamTracker: vi.fn(),
       getEntity: vi.fn(),
+      getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: bus,
       engine,
     }

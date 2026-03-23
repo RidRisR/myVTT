@@ -301,16 +301,8 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
       const insertComp = db.prepare(
         'INSERT INTO entity_components (entity_id, component_key, data) VALUES (?, ?, ?)',
       )
-      insertComp.run(
-        entityId,
-        'core:identity',
-        JSON.stringify({ name, imageUrl }),
-      )
-      insertComp.run(
-        entityId,
-        'core:appearance',
-        JSON.stringify({ color, width, height }),
-      )
+      insertComp.run(entityId, 'core:identity', JSON.stringify({ name, imageUrl, color }))
+      insertComp.run(entityId, 'core:token', JSON.stringify({ width, height }))
 
       db.prepare(
         `INSERT INTO tactical_tokens (id, scene_id, entity_id, x, y, width, height)
@@ -339,9 +331,7 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
       return
     }
 
-    const entityExists = req
-      .roomDb!.prepare('SELECT id FROM entities WHERE id = ?')
-      .get(entityId)
+    const entityExists = req.roomDb!.prepare('SELECT id FROM entities WHERE id = ?').get(entityId)
     if (!entityExists) {
       res.status(404).json({ error: 'Entity not found' })
       return
@@ -362,19 +352,19 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
       return
     }
 
-    // Get width/height from core:appearance component if not provided
+    // Get width/height from core:token component if not provided
     let tokenWidth = width
     let tokenHeight = height
     if (tokenWidth === undefined || tokenHeight === undefined) {
-      const appearance = req.roomDb!
-        .prepare(
-          "SELECT data FROM entity_components WHERE entity_id = ? AND component_key = 'core:appearance'",
+      const tokenComp = req
+        .roomDb!.prepare(
+          "SELECT data FROM entity_components WHERE entity_id = ? AND component_key = 'core:token'",
         )
         .get(entityId) as { data: string } | undefined
-      if (appearance) {
-        const appData = JSON.parse(appearance.data) as Record<string, unknown>
-        if (tokenWidth === undefined) tokenWidth = appData.width ?? 1
-        if (tokenHeight === undefined) tokenHeight = appData.height ?? 1
+      if (tokenComp) {
+        const tokenData = JSON.parse(tokenComp.data) as Record<string, unknown>
+        if (tokenWidth === undefined) tokenWidth = tokenData.width ?? 1
+        if (tokenHeight === undefined) tokenHeight = tokenData.height ?? 1
       } else {
         if (tokenWidth === undefined) tokenWidth = 1
         if (tokenHeight === undefined) tokenHeight = 1
@@ -421,9 +411,9 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
     }
 
     const sourceEntityId = tokenRow.entity_id as string
-    const entityRow = db
-      .prepare('SELECT * FROM entities WHERE id = ?')
-      .get(sourceEntityId) as Record<string, unknown> | undefined
+    const entityRow = db.prepare('SELECT * FROM entities WHERE id = ?').get(sourceEntityId) as
+      | Record<string, unknown>
+      | undefined
     if (!entityRow) {
       res.status(404).json({ error: 'Source entity not found' })
       return
@@ -459,9 +449,7 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
       if (tagRows.length > 0) {
         // Use direct insert to avoid re-creating tags
         const findTag = db.prepare('SELECT id FROM tags WHERE name = ?')
-        const insertTag = db.prepare(
-          'INSERT INTO entity_tags (entity_id, tag_id) VALUES (?, ?)',
-        )
+        const insertTag = db.prepare('INSERT INTO entity_tags (entity_id, tag_id) VALUES (?, ?)')
         for (const { name } of tagRows) {
           const tag = findTag.get(name) as { id: string }
           insertTag.run(newEntityId, tag.id)

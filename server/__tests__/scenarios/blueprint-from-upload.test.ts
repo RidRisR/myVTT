@@ -31,15 +31,15 @@ describe('Blueprint from-upload (atomic)', () => {
     const bp = (await res.json()) as Blueprint
     expect(bp.id).toBeTruthy()
     expect(bp.tags).toEqual(['beast'])
-    // Server creates default components: core:identity with name+imageUrl, core:appearance with defaults
+    // Server creates default components: core:identity with name+imageUrl+color, core:token with width+height
     const identity = bp.defaults.components['core:identity'] as Record<string, unknown>
     expect(identity.name).toBe('Goblin')
     imageUrl = identity.imageUrl as string
     expect(imageUrl).toContain('/uploads/')
-    const appearance = bp.defaults.components['core:appearance'] as Record<string, unknown>
-    expect(appearance.color).toBe('#3b82f6')
-    expect(appearance.width).toBe(1)
-    expect(appearance.height).toBe(1)
+    expect(identity.color).toBe('#3b82f6')
+    const token = bp.defaults.components['core:token'] as Record<string, unknown>
+    expect(token.width).toBe(1)
+    expect(token.height).toBe(1)
   })
 
   it('asset record was also created', async () => {

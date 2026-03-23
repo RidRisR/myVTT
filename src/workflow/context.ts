@@ -16,6 +16,7 @@ export interface ContextDeps {
   updateEntity: (id: string, patch: Partial<Entity>) => void
   updateTeamTracker: (label: string, patch: { current?: number }) => void
   getEntity: (id: string) => Entity | undefined
+  getAllEntities: () => Record<string, Entity>
   eventBus: EventBus
   engine: WorkflowEngine
 }
@@ -55,10 +56,11 @@ export function createWorkflowContext(
       if (!entity) return undefined
       return entity.components[key] as T | undefined
     },
-    query: (spec: { has?: string[] }) => {
-      // Minimal placeholder — full implementation via worldStore's createDataReader
-      void spec
-      return []
+    query: (spec: { has?: string[] }): Entity[] => {
+      const entities = Object.values(deps.getAllEntities())
+      const keys = spec.has
+      if (!keys || keys.length === 0) return entities
+      return entities.filter((e) => keys.every((key) => key in e.components))
     },
   }
 

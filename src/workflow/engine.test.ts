@@ -482,6 +482,7 @@ describe('WorkflowEngine', () => {
       updateEntity: vi.fn(),
       updateTeamTracker: vi.fn(),
       getEntity: vi.fn(),
+      getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: new EventBus(),
       engine,
     }
@@ -993,6 +994,7 @@ describe('WorkflowEngine', () => {
       updateEntity: vi.fn(),
       updateTeamTracker: vi.fn(),
       getEntity: vi.fn(),
+      getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: new EventBus(),
       engine,
     }

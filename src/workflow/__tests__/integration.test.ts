@@ -16,6 +16,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       updateEntity: vi.fn(),
       updateTeamTracker: vi.fn(),
       getEntity: vi.fn(),
+      getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: bus,
     }
     const coreSDK = new PluginSDK(engine, 'daggerheart-core')

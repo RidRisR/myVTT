@@ -35,6 +35,7 @@ describe('base roll workflow', () => {
       updateEntity: vi.fn(),
       updateTeamTracker: vi.fn(),
       getEntity: vi.fn(),
+      getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: createEventBus(),
       engine,
     }
@@ -58,6 +59,7 @@ describe('base roll workflow', () => {
       updateEntity: vi.fn(),
       updateTeamTracker: vi.fn(),
       getEntity: vi.fn(),
+      getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: bus,
       engine,
     }

@@ -85,8 +85,8 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
         // Default: put identity info into core:identity component
         defaults = JSON.stringify({
           components: {
-            'core:identity': { name, imageUrl: url },
-            'core:appearance': { color: '#3b82f6', width: 1, height: 1 },
+            'core:identity': { name, imageUrl: url, color: '#3b82f6' },
+            'core:token': { width: 1, height: 1 },
           },
         })
       }
