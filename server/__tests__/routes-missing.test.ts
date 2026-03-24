@@ -71,45 +71,6 @@ describe('POST /seats/:id/claim', () => {
   })
 })
 
-describe('POST /chat/retract/:id', () => {
-  let roomId: string
-
-  beforeAll(async () => {
-    roomId = await createRoom('Retract Test Room')
-  })
-
-  it('creates a message, retracts it, and verifies it is gone from GET', async () => {
-    // Send a message
-    const { status: sendStatus, data: msg } = await api('POST', `/api/rooms/${roomId}/chat`, {
-      origin: { seat: { id: 's-gm', name: 'GM', color: '#ff6600' } },
-      content: 'This message will be retracted',
-    })
-    expect(sendStatus).toBe(201)
-    expect(msg.id).toBeTruthy()
-
-    // Verify it appears in history
-    const { data: before } = await api<Array<{ id: string }>>('GET', `/api/rooms/${roomId}/chat`)
-    expect(before.some((m) => m.id === (msg.id as string))).toBe(true)
-
-    // Retract
-    const { status: retractStatus, data: retractData } = await api(
-      'POST',
-      `/api/rooms/${roomId}/chat/retract/${msg.id as string}`,
-    )
-    expect(retractStatus).toBe(200)
-    expect(retractData.ok).toBe(true)
-
-    // Verify gone
-    const { data: after } = await api<Array<{ id: string }>>('GET', `/api/rooms/${roomId}/chat`)
-    expect(after.some((m) => m.id === (msg.id as string))).toBe(false)
-  })
-
-  it('returns 404 for non-existent message', async () => {
-    const { status } = await api('POST', `/api/rooms/${roomId}/chat/retract/fake-msg-id`)
-    expect(status).toBe(404)
-  })
-})
-
 describe('POST /showcase/:id/pin + POST /showcase/unpin', () => {
   let roomId: string
 

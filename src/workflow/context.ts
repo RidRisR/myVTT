@@ -9,16 +9,23 @@ import type {
 import type { Entity } from '../shared/entityTypes'
 import type { WorkflowEngine } from './engine'
 import type { EventBus } from '../events/eventBus'
+import type { GameLogEntry, LogEntrySubmission, RollRequest, Visibility } from '../shared/logTypes'
+import type { MessageOrigin } from '../shared/chatTypes'
+import type { DiceSpec } from '../shared/diceUtils'
+import { uuidv7 } from '../shared/uuidv7'
 import { requestInput as sessionRequestInput } from '../stores/sessionStore'
 
 export interface ContextDeps {
-  sendRoll: (formula: string) => Promise<{ rolls: number[][]; total: number }>
-  updateEntity: (id: string, patch: Partial<Entity>) => void
-  updateTeamTracker: (label: string, patch: { current?: number }) => void
+  emitEntry: (entry: LogEntrySubmission) => void
+  serverRoll: (request: RollRequest) => Promise<GameLogEntry>
   getEntity: (id: string) => Entity | undefined
   getAllEntities: () => Record<string, Entity>
   eventBus: EventBus
   engine: WorkflowEngine
+  getActiveOrigin: () => MessageOrigin
+  getSeatId: () => string
+  getLogWatermark: () => number
+  getFormulaTokens: (entity: Entity) => Record<string, number>
 }
 
 export interface ContextOptions {
@@ -70,6 +77,11 @@ export function createWorkflowContext(
       if (!keys || keys.length === 0) return entities
       return entities.filter((e) => keys.every((key) => key in e.components))
     },
+    formulaTokens: (entityId: string): Record<string, number> => {
+      const entity = deps.getEntity(entityId)
+      if (!entity) return {}
+      return deps.getFormulaTokens(entity)
+    },
   }
 
   const ctx: WorkflowContext = {
@@ -83,10 +95,59 @@ export function createWorkflowContext(
     read,
 
     // ── Input (returns value, suspends execution) ────────────────────────
-    serverRoll: (formula: string) => deps.sendRoll(formula),
+    serverRoll: async (
+      formula: string,
+      options?: {
+        dice?: DiceSpec[]
+        resolvedFormula?: string
+        rollType?: string
+        actionName?: string
+        parentId?: string
+        chainDepth?: number
+        triggerable?: boolean
+        visibility?: Visibility
+      },
+    ) => {
+      const request: RollRequest = {
+        origin: deps.getActiveOrigin(),
+        parentId: options?.parentId,
+        chainDepth: options?.chainDepth ?? 0,
+        triggerable: options?.triggerable ?? true,
+        visibility: options?.visibility ?? {},
+        dice: options?.dice ?? [{ sides: 6, count: 1 }], // fallback if not provided
+        formula,
+        resolvedFormula: options?.resolvedFormula,
+        rollType: options?.rollType,
+        actionName: options?.actionName,
+      }
+      return deps.serverRoll(request)
+    },
     requestInput: (interactionId: string) => sessionRequestInput(interactionId),
 
     // ── Effects (side effects) ────────────────────────────────────────────
+    emitEntry: (partial: {
+      type: string
+      payload: Record<string, unknown>
+      triggerable: boolean
+      parentId?: string
+      chainDepth?: number
+      visibility?: Visibility
+    }) => {
+      const submission: LogEntrySubmission = {
+        id: uuidv7(),
+        type: partial.type,
+        origin: deps.getActiveOrigin(),
+        parentId: partial.parentId,
+        chainDepth: partial.chainDepth ?? 0,
+        triggerable: partial.triggerable,
+        visibility: partial.visibility ?? {},
+        baseSeq: deps.getLogWatermark(),
+        payload: partial.payload,
+        timestamp: Date.now(),
+      }
+      deps.emitEntry(submission)
+    },
+
     updateComponent: <T>(
       entityId: string,
       key: string,
@@ -95,13 +156,33 @@ export function createWorkflowContext(
       const entity = deps.getEntity(entityId)
       const current = entity?.components[key] as T | undefined
       const next = updater(current)
-      deps.updateEntity(entityId, {
-        components: { ...entity?.components, [key]: next },
-      })
+      const submission: LogEntrySubmission = {
+        id: uuidv7(),
+        type: 'core:component-update',
+        origin: deps.getActiveOrigin(),
+        chainDepth: 0,
+        triggerable: false,
+        visibility: {},
+        baseSeq: deps.getLogWatermark(),
+        payload: { entityId, key, data: next },
+        timestamp: Date.now(),
+      }
+      deps.emitEntry(submission)
     },
 
     updateTeamTracker: (label: string, patch: { current?: number }) => {
-      deps.updateTeamTracker(label, patch)
+      const submission: LogEntrySubmission = {
+        id: uuidv7(),
+        type: 'core:tracker-update',
+        origin: deps.getActiveOrigin(),
+        chainDepth: 0,
+        triggerable: false,
+        visibility: {},
+        baseSeq: deps.getLogWatermark(),
+        payload: { label, ...patch },
+        timestamp: Date.now(),
+      }
+      deps.emitEntry(submission)
     },
 
     // ── Events (decoupled side effects via EventBus) ─────────────────────

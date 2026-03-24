@@ -11,7 +11,6 @@ import { sceneRoutes } from '../routes/scenes'
 import { entityRoutes } from '../routes/entities'
 import { archiveRoutes } from '../routes/archives'
 import { tacticalRoutes } from '../routes/tactical'
-import { chatRoutes } from '../routes/chat'
 import { trackerRoutes } from '../routes/trackers'
 import { showcaseRoutes } from '../routes/showcase'
 import { stateRoutes } from '../routes/state'
@@ -57,7 +56,6 @@ beforeAll(async () => {
   app.use(entityRoutes(dataDir, io))
   app.use(archiveRoutes(dataDir, io))
   app.use(tacticalRoutes(dataDir, io))
-  app.use(chatRoutes(dataDir, io))
   app.use(trackerRoutes(dataDir, io))
   app.use(showcaseRoutes(dataDir, io))
   app.use(stateRoutes(dataDir, io))
@@ -294,26 +292,6 @@ describe('Full room lifecycle', () => {
       `/api/rooms/${roomId}/archives/${archiveId}/load`,
     )
     expect(loadStatus).toBe(200)
-  })
-
-  // ── Chat ──
-  it('sends a text message', async () => {
-    const { status, data } = await api('POST', `/api/rooms/${roomId}/chat`, {
-      origin: { seat: { id: 's1', name: 'GM', color: '#ff0000' } },
-      content: 'Hello adventurers!',
-    })
-    expect(status).toBe(201)
-    expect(data.type).toBe('text')
-    expect(data.content).toBe('Hello adventurers!')
-  })
-
-  it('retrieves chat history', async () => {
-    const { data } = await api<{ origin: { seat: { name: string } } }[]>(
-      'GET',
-      `/api/rooms/${roomId}/chat`,
-    )
-    expect(data.length).toBe(1)
-    expect(data[0]!.origin.seat.name).toBe('GM')
   })
 
   // ── Team Trackers ──

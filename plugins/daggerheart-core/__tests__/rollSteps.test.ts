@@ -7,14 +7,33 @@ import { registerDHCoreSteps, getDHActionCheckWorkflow } from '../rollSteps'
 import type { ContextDeps } from '../../../src/workflow/context'
 import { EventBus } from '../../../src/events/eventBus'
 
+function makeRollEntry(rolls: number[][] = [[4, 9]], total = 15) {
+  return {
+    seq: 1,
+    id: 'roll-1',
+    type: 'core:roll-result',
+    origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
+    executor: 's1',
+    chainDepth: 0,
+    triggerable: true,
+    visibility: {},
+    baseSeq: 0,
+    timestamp: Date.now(),
+    payload: { rolls, total, formula: '2d12', dice: [{ sides: 12, count: 2 }] },
+  }
+}
+
 function makeDeps(overrides: Partial<ContextDeps> = {}): Omit<ContextDeps, 'engine'> {
   return {
-    sendRoll: vi.fn().mockResolvedValue({ rolls: [[4, 9]], total: 15 }),
-    updateEntity: vi.fn(),
-    updateTeamTracker: vi.fn(),
+    emitEntry: vi.fn(),
+    serverRoll: vi.fn().mockResolvedValue(makeRollEntry()),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
     eventBus: new EventBus(),
+    getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
+    getSeatId: vi.fn().mockReturnValue('s1'),
+    getLogWatermark: vi.fn().mockReturnValue(0),
+    getFormulaTokens: vi.fn().mockReturnValue({}),
     ...overrides,
   }
 }
@@ -44,22 +63,32 @@ describe('registerDHCoreSteps', () => {
   it('dh:action-check internally calls roll workflow and gets output', async () => {
     const { runner, deps } = makeSetup()
     await runner.runWorkflow(getDHActionCheckWorkflow(), { formula: '2d12', actorId: '' })
-    expect(deps.sendRoll).toHaveBeenCalledWith('2d12')
+    expect(deps.serverRoll).toHaveBeenCalledWith(expect.objectContaining({ formula: '2d12' }))
   })
 
-  it('dh:resolve calls updateTeamTracker with Fear on success_fear outcome (rolls [[4,9]])', async () => {
+  it('dh:resolve emits tracker-update for Fear on success_fear outcome (rolls [[4,9]])', async () => {
     const { runner, deps } = makeSetup({
-      sendRoll: vi.fn().mockResolvedValue({ rolls: [[4, 9]], total: 15 }),
+      serverRoll: vi.fn().mockResolvedValue(makeRollEntry([[4, 9]], 15)),
     })
     await runner.runWorkflow(getDHActionCheckWorkflow(), { formula: '2d12', actorId: '' })
-    expect(deps.updateTeamTracker).toHaveBeenCalledWith('Fear', { current: 1 })
+    expect(deps.emitEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'core:tracker-update',
+        payload: { label: 'Fear', current: 1 },
+      }),
+    )
   })
 
-  it('dh:resolve calls updateTeamTracker with Hope on success_hope outcome (rolls [[9,4]])', async () => {
+  it('dh:resolve emits tracker-update for Hope on success_hope outcome (rolls [[9,4]])', async () => {
     const { runner, deps } = makeSetup({
-      sendRoll: vi.fn().mockResolvedValue({ rolls: [[9, 4]], total: 15 }),
+      serverRoll: vi.fn().mockResolvedValue(makeRollEntry([[9, 4]], 15)),
     })
     await runner.runWorkflow(getDHActionCheckWorkflow(), { formula: '2d12', actorId: '' })
-    expect(deps.updateTeamTracker).toHaveBeenCalledWith('Hope', { current: 1 })
+    expect(deps.emitEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'core:tracker-update',
+        payload: { label: 'Hope', current: 1 },
+      }),
+    )
   })
 })

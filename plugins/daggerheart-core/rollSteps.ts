@@ -30,6 +30,8 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
         const result = await ctx.runWorkflow(getRollWorkflow(), {
           formula: ctx.vars.formula,
           actorId: ctx.vars.actorId,
+          resolvedFormula: ctx.vars.resolvedFormula as string | undefined,
+          rollType: ctx.vars.rollType as string | undefined,
         })
         if (result.status === 'aborted') {
           ctx.abort(result.reason)

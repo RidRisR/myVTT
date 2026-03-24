@@ -1,6 +1,7 @@
 // src/workflow/baseWorkflows.ts
 import type { WorkflowEngine } from './engine'
 import type { WorkflowHandle } from './types'
+import { tokenizeExpression, toDiceSpecs, buildCompoundResult } from '../shared/diceUtils'
 import { toastEvent, announceEvent } from '../events/systemEvents'
 import { _setSelection } from '../stores/sessionStore'
 
@@ -9,6 +10,7 @@ export interface BaseRollData {
   [key: string]: unknown
   formula: string
   actorId: string
+  resolvedFormula?: string
   rolls?: number[][]
   total?: number
 }
@@ -61,12 +63,42 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
         run: async (ctx) => {
           const formula = ctx.vars.formula
           if (typeof formula !== 'string' || formula.length === 0) {
-            ctx.abort('Missing or invalid formula in ctx.vars')
+            ctx.abort('Missing or invalid formula')
             return
           }
-          const result = await ctx.serverRoll(formula)
-          ctx.vars.rolls = result.rolls
-          ctx.vars.total = result.total
+
+          // 1. Resolve @tokens (skip if resolvedFormula already provided)
+          let resolved = ctx.vars.resolvedFormula
+          if (!resolved && /@[\p{L}\p{N}_]+/u.test(formula)) {
+            const tokens = ctx.read.formulaTokens(ctx.vars.actorId)
+            resolved = formula.replace(/@([\p{L}\p{N}_]+)/gu, (_, key: string) => {
+              const val = tokens[key]
+              return val !== undefined ? String(val) : `@${key}`
+            })
+            ctx.vars.resolvedFormula = resolved
+          }
+
+          // 2. Tokenize + compute DiceSpecs
+          const finalFormula = resolved ?? formula
+          const terms = tokenizeExpression(finalFormula)
+          if (!terms) {
+            ctx.abort(`Cannot parse formula: ${finalFormula}`)
+            return
+          }
+          const dice = toDiceSpecs(terms)
+
+          // 3. Server roll
+          const entry = await ctx.serverRoll(formula, {
+            dice,
+            resolvedFormula: resolved,
+            rollType: ctx.vars.rollType as string | undefined,
+          })
+
+          // 4. Full total (includes modifiers, not just dice sum)
+          const rolls = entry.payload.rolls as number[][]
+          const { total } = buildCompoundResult(terms, rolls)
+          ctx.vars.rolls = rolls
+          ctx.vars.total = total
         },
       },
     ],

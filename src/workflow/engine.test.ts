@@ -6,9 +6,15 @@ import type { WorkflowContext, InternalState } from './types'
 function makeCtx(data: Record<string, unknown> = {}): WorkflowContext {
   return {
     vars: data,
-    read: { entity: vi.fn(), component: vi.fn(), query: vi.fn().mockReturnValue([]) },
+    read: {
+      entity: vi.fn(),
+      component: vi.fn(),
+      query: vi.fn().mockReturnValue([]),
+      formulaTokens: vi.fn().mockReturnValue({}),
+    },
     serverRoll: vi.fn(),
     requestInput: vi.fn(),
+    emitEntry: vi.fn(),
     updateComponent: vi.fn(),
     updateTeamTracker: vi.fn(),
     events: { emit: vi.fn() },
@@ -465,13 +471,28 @@ describe('WorkflowEngine', () => {
     const { EventBus } = await import('../events/eventBus')
     const sharedInternal = makeInternal()
     const deps = {
-      sendRoll: vi.fn().mockResolvedValue({ rolls: [], total: 0 }),
-      updateEntity: vi.fn(),
-      updateTeamTracker: vi.fn(),
+      emitEntry: vi.fn(),
+      serverRoll: vi.fn().mockResolvedValue({
+        seq: 1,
+        id: 'roll-1',
+        type: 'core:roll-result',
+        origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
+        executor: 's1',
+        chainDepth: 0,
+        triggerable: true,
+        visibility: {},
+        baseSeq: 0,
+        timestamp: Date.now(),
+        payload: { rolls: [], total: 0, formula: '', dice: [] },
+      }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: new EventBus(),
       engine,
+      getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
+      getSeatId: vi.fn().mockReturnValue('s1'),
+      getLogWatermark: vi.fn().mockReturnValue(0),
+      getFormulaTokens: vi.fn().mockReturnValue({}),
     }
     const ctx = createWorkflowContext(deps, {}, sharedInternal)
 
@@ -1085,13 +1106,28 @@ describe('WorkflowEngine', () => {
     const { EventBus } = await import('../events/eventBus')
     const internal = makeInternal()
     const deps = {
-      sendRoll: vi.fn().mockResolvedValue({ rolls: [], total: 0 }),
-      updateEntity: vi.fn(),
-      updateTeamTracker: vi.fn(),
+      emitEntry: vi.fn(),
+      serverRoll: vi.fn().mockResolvedValue({
+        seq: 1,
+        id: 'roll-1',
+        type: 'core:roll-result',
+        origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
+        executor: 's1',
+        chainDepth: 0,
+        triggerable: true,
+        visibility: {},
+        baseSeq: 0,
+        timestamp: Date.now(),
+        payload: { rolls: [], total: 0, formula: '', dice: [] },
+      }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: new EventBus(),
       engine,
+      getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
+      getSeatId: vi.fn().mockReturnValue('s1'),
+      getLogWatermark: vi.fn().mockReturnValue(0),
+      getFormulaTokens: vi.fn().mockReturnValue({}),
     }
     const ctx = createWorkflowContext(deps, {}, internal)
     const result = await engine.runWorkflow('depth9', ctx, internal)

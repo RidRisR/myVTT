@@ -2,6 +2,7 @@
 // The ONLY base file that imports from plugins/. All other base files use getRulePlugin().
 import i18next from 'i18next'
 import type { RulePlugin } from './types'
+import { useWorldStore } from '../stores/worldStore'
 import { genericPlugin } from '../../plugins/generic/index'
 import { daggerheartPlugin } from '../../plugins/daggerheart/index'
 import { daggerheartCorePlugin } from '../../plugins/daggerheart-core'
@@ -36,6 +37,12 @@ export function registerPlugin(plugin: RulePlugin): void {
 
 export function getRulePlugin(id: string): RulePlugin {
   return registry.get(id) ?? genericPlugin
+}
+
+/** Non-hook accessor for the active rule plugin (uses current room's ruleSystemId) */
+export function getRulePluginSync(): RulePlugin {
+  const ruleSystemId = useWorldStore.getState().room.ruleSystemId
+  return getRulePlugin(ruleSystemId)
 }
 
 export function getAvailablePlugins(): Array<{ id: string; name: string }> {

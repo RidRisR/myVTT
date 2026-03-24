@@ -19,6 +19,7 @@ import { DHRollCard } from './ui/DHRollCard'
 import { FullCharacterSheet } from './ui/FullCharacterSheet'
 import { DHTeamPanel } from './ui/DHTeamPanel'
 import { daggerheartI18n } from './i18n'
+import { getDHActionCheckWorkflow } from '../daggerheart-core/rollSteps'
 
 export const daggerheartPlugin: RulePlugin = {
   id: 'daggerheart',
@@ -42,6 +43,9 @@ export const daggerheartPlugin: RulePlugin = {
     getJudgmentDisplay: dhGetJudgmentDisplay,
     getModifierOptions: () => [],
     rollCommands,
+    rollWorkflows: {
+      'daggerheart:dd': () => getDHActionCheckWorkflow(),
+    },
   },
 
   dataTemplates: { createDefaultEntityData: createDefaultDHEntityData },

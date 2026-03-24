@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url'
 import rateLimit from 'express-rate-limit'
 import { setupSocketAuth } from './ws'
 import { setupAwareness } from './awareness'
+import { setupLogHandlers } from './logHandler'
 import type { TypedServer } from './socketTypes'
 import { getGlobalDb, closeAllDbs } from './db'
 import { roomRoutes } from './routes/rooms'
@@ -16,7 +17,6 @@ import { sceneRoutes } from './routes/scenes'
 import { entityRoutes } from './routes/entities'
 import { archiveRoutes } from './routes/archives'
 import { tacticalRoutes } from './routes/tactical'
-import { chatRoutes } from './routes/chat'
 import { assetRoutes } from './routes/assets'
 import { blueprintRoutes } from './routes/blueprints'
 import { trackerRoutes } from './routes/trackers'
@@ -76,11 +76,15 @@ const io = new SocketIOServer(server, {
     origin: CORS_ORIGIN,
     credentials: true,
   },
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+  },
 }) as TypedServer
 
 // Socket.io auth + awareness
 setupSocketAuth(io, DATA_DIR)
 setupAwareness(io)
+setupLogHandlers(io, DATA_DIR)
 
 // ── Health check ──
 app.get('/api/health', (_req, res) => {
@@ -94,7 +98,6 @@ app.use(sceneRoutes(DATA_DIR, io))
 app.use(entityRoutes(DATA_DIR, io))
 app.use(archiveRoutes(DATA_DIR, io))
 app.use(tacticalRoutes(DATA_DIR, io))
-app.use(chatRoutes(DATA_DIR, io))
 app.use(assetRoutes(DATA_DIR, io))
 app.use(blueprintRoutes(DATA_DIR, io))
 app.use(trackerRoutes(DATA_DIR, io))

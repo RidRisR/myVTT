@@ -7,12 +7,27 @@ import type { ContextDeps } from './context'
 
 function makeDeps(): Omit<ContextDeps, 'engine'> {
   return {
-    sendRoll: vi.fn().mockResolvedValue({ rolls: [[4]], total: 4 }),
-    updateEntity: vi.fn(),
-    updateTeamTracker: vi.fn(),
+    emitEntry: vi.fn(),
+    serverRoll: vi.fn().mockResolvedValue({
+      seq: 1,
+      id: 'roll-1',
+      type: 'core:roll-result',
+      origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
+      executor: 's1',
+      chainDepth: 0,
+      triggerable: true,
+      visibility: {},
+      baseSeq: 0,
+      timestamp: Date.now(),
+      payload: { rolls: [[4]], total: 4, formula: '1d6', dice: [{ sides: 6, count: 1 }] },
+    }),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
     eventBus: createEventBus(),
+    getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
+    getSeatId: vi.fn().mockReturnValue('s1'),
+    getLogWatermark: vi.fn().mockReturnValue(0),
+    getFormulaTokens: vi.fn().mockReturnValue({}),
   }
 }
 

@@ -13,12 +13,27 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
 
     const bus = createEventBus()
     const deps = {
-      sendRoll: vi.fn().mockResolvedValue({ rolls: [[8, 5]], total: 15 }),
-      updateEntity: vi.fn(),
-      updateTeamTracker: vi.fn(),
+      emitEntry: vi.fn(),
+      serverRoll: vi.fn().mockResolvedValue({
+        seq: 1,
+        id: 'roll-1',
+        type: 'core:roll-result',
+        origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
+        executor: 's1',
+        chainDepth: 0,
+        triggerable: true,
+        visibility: {},
+        baseSeq: 0,
+        timestamp: Date.now(),
+        payload: { rolls: [[8, 5]], total: 15, formula: '2d12+2', dice: [{ sides: 12, count: 2 }] },
+      }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: bus,
+      getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
+      getSeatId: vi.fn().mockReturnValue('s1'),
+      getLogWatermark: vi.fn().mockReturnValue(0),
+      getFormulaTokens: vi.fn().mockReturnValue({}),
     }
     const coreSDK = new PluginSDK(engine, 'daggerheart-core')
     const cosmeticSDK = new PluginSDK(engine, 'daggerheart-cosmetic')
@@ -135,7 +150,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
 
     expect(result.status).toBe('completed')
     expect(executionOrder).toEqual(['dh:judge', 'cos:dice-animation', 'dh:resolve', 'display'])
-    expect(deps.sendRoll).toHaveBeenCalledWith('2d12+2')
+    expect(deps.serverRoll).toHaveBeenCalledWith(expect.objectContaining({ formula: '2d12+2' }))
     expect(toasts).toEqual([expect.objectContaining({ text: expect.stringContaining('2d12+2') })])
   })
 

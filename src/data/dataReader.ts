@@ -27,5 +27,12 @@ export function createDataReader(): IDataReader {
       if (!keys || keys.length === 0) return entities
       return entities.filter((e) => keys.every((key) => key in e.components))
     },
+
+    formulaTokens: (_entityId: string): Record<string, number> => {
+      // Production dataReader delegates to getRulePluginSync — but that creates
+      // a circular dependency. Workflow context.ts already wires this via deps.
+      // This stub satisfies the IDataReader interface for non-workflow callers.
+      return {}
+    },
   }
 }

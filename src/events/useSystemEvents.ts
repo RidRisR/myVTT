@@ -5,8 +5,6 @@ import { useRef } from 'react'
 import { useEvent, eventBus } from './eventBus'
 import { toastEvent, announceEvent } from './systemEvents'
 import { useToast } from '../ui/useToast'
-import { useWorldStore } from '../stores/worldStore'
-import { useIdentityStore } from '../stores/identityStore'
 import type { ToastType } from '../ui/Toast'
 
 export function useSystemEvents(): void {
@@ -29,18 +27,8 @@ export function useSystemEvents(): void {
 
   useEvent(
     announceEvent,
-    (payload) => {
-      const seat = useIdentityStore.getState().getMySeat()
-      void useWorldStore.getState().sendMessage({
-        origin: {
-          seat: {
-            id: seat?.id ?? '',
-            name: seat?.name ?? 'Unknown',
-            color: seat?.color ?? '#888888',
-          },
-        },
-        content: payload.message,
-      })
+    (_payload) => {
+      // sendMessage removed (chat replaced by game_log); announcement is a no-op for now
     },
     eventBus,
   )

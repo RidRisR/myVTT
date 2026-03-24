@@ -34,7 +34,6 @@ vi.mock('../../shared/assetUpload', () => ({
 import type { Entity, MapToken } from '../../shared/entityTypes'
 import { getName } from '../../shared/coreComponents'
 import type { ShowcaseItem } from '../../shared/showcaseTypes'
-import type { ChatTextMessage } from '../../shared/chatTypes'
 
 // ── Mock fetch globally (api.ts uses fetch internally) ──
 
@@ -150,15 +149,6 @@ const makeTacticalInfo = (overrides: Partial<TacticalInfo> = {}): TacticalInfo =
   ...overrides,
 })
 
-const makeChatMessage = (overrides: Partial<ChatTextMessage> = {}): ChatTextMessage => ({
-  type: 'text',
-  id: 'msg-1',
-  origin: { seat: { id: 'user-1', name: 'Player', color: '#00ff00' } },
-  content: 'Hello',
-  timestamp: Date.now(),
-  ...overrides,
-})
-
 const makeTracker = (overrides: Partial<TeamTracker> = {}): TeamTracker => ({
   id: 'tracker-1',
   label: 'HP',
@@ -223,7 +213,6 @@ beforeEach(() => {
     scenes: [],
     entities: {},
     sceneEntityMap: {},
-    chatMessages: [],
     tacticalInfo: null,
     showcaseItems: [],
     showcasePinnedItemId: null,
@@ -250,10 +239,11 @@ function setupInitMockResponses(overrides: Record<string, unknown> = {}) {
       sceneEntityMap: { [scene.id]: [{ entityId: 'entity-1', visible: true }] },
       seats: [],
       assets: [makeAsset()],
-      chat: [makeChatMessage()],
       teamTrackers: [makeTracker()],
       showcase: [makeShowcaseItem()],
       tactical: null,
+      logEntries: [],
+      logWatermark: 0,
     },
   }
   Object.assign(mockResponses, defaults, overrides)
@@ -272,7 +262,6 @@ describe('init()', () => {
     expect(state.scenes).toHaveLength(1)
     expect(state.scenes[0]?.name).toBe('Test Scene')
     expect(state.entities['entity-1']).toBeDefined()
-    expect(state.chatMessages).toHaveLength(1)
     expect(state.teamTrackers).toHaveLength(1)
     expect(state.assets).toHaveLength(1)
     expect(state.showcaseItems).toHaveLength(1)
@@ -308,7 +297,6 @@ describe('init()', () => {
     expect(registeredEvents).toContain('scene:created')
     expect(registeredEvents).toContain('entity:created')
     expect(registeredEvents).toContain('tactical:updated')
-    expect(registeredEvents).toContain('chat:new')
     expect(registeredEvents).toContain('room:state:updated')
     expect(registeredEvents).toContain('tracker:created')
     expect(registeredEvents).toContain('asset:created')
@@ -329,7 +317,6 @@ describe('init()', () => {
     expect(removedEvents).toContain('scene:deleted')
     expect(removedEvents).toContain('entity:created')
     expect(removedEvents).toContain('tactical:updated')
-    expect(removedEvents).toContain('chat:new')
     expect(removedEvents).toContain('room:state:updated')
     expect(removedEvents).toContain('tracker:created')
     expect(removedEvents).toContain('asset:created')
@@ -619,48 +606,6 @@ describe('socket event handlers', () => {
 
     const tokens = useWorldStore.getState().tacticalInfo?.tokens ?? []
     expect(tokens.find((t) => t.id === 'token-1')).toBeUndefined()
-  })
-
-  // -- Chat events --
-
-  it('chat:new appends to chatMessages', () => {
-    const msg = makeChatMessage({ id: 'msg-2', content: 'World' })
-    socket._trigger('chat:new', msg)
-
-    const msgs = useWorldStore.getState().chatMessages
-    expect(msgs).toHaveLength(2)
-    expect(msgs[1]?.id).toBe('msg-2')
-  })
-
-  it('chat:new adds id to freshChatIds atomically with chatMessages', () => {
-    // This test guards against the timing bug where freshChatIds was updated in a
-    // useEffect (after render), causing MessageCard to mount with isNew=false.
-    // Both must update in the same zustand set() call.
-    const msg = makeChatMessage({ id: 'msg-fresh', content: 'Fresh' })
-    socket._trigger('chat:new', msg)
-
-    const state = useWorldStore.getState()
-    expect(state.chatMessages.find((m) => m.id === 'msg-fresh')).toBeDefined()
-    expect(state.freshChatIds.has('msg-fresh')).toBe(true)
-  })
-
-  it('chat:new clears freshChatIds after 2500ms', () => {
-    vi.useFakeTimers()
-    const msg = makeChatMessage({ id: 'msg-expire', content: 'Expire' })
-    socket._trigger('chat:new', msg)
-
-    expect(useWorldStore.getState().freshChatIds.has('msg-expire')).toBe(true)
-
-    vi.advanceTimersByTime(2500)
-
-    expect(useWorldStore.getState().freshChatIds.has('msg-expire')).toBe(false)
-    vi.useRealTimers()
-  })
-
-  it('chat:retracted filters out message', () => {
-    socket._trigger('chat:retracted', { id: 'msg-1' })
-
-    expect(useWorldStore.getState().chatMessages).toHaveLength(0)
   })
 
   // -- Room state events --
@@ -1126,10 +1071,11 @@ describe('loadAll() via bundle endpoint', () => {
           },
         },
       ],
-      chat: [],
       teamTrackers: [],
       showcase: [],
       tactical: null,
+      logEntries: [],
+      logWatermark: 0,
     }
     const socket = createMockSocket()
     await useWorldStore.getState().init(ROOM_ID, socket as never)

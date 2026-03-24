@@ -11,7 +11,6 @@ import { sceneRoutes } from '../../routes/scenes'
 import { entityRoutes } from '../../routes/entities'
 import { archiveRoutes } from '../../routes/archives'
 import { tacticalRoutes } from '../../routes/tactical'
-import { chatRoutes } from '../../routes/chat'
 import { trackerRoutes } from '../../routes/trackers'
 import { showcaseRoutes } from '../../routes/showcase'
 import { stateRoutes } from '../../routes/state'
@@ -21,6 +20,7 @@ import { blueprintRoutes } from '../../routes/blueprints'
 import { tagRoutes } from '../../routes/tags'
 import { setupSocketAuth } from '../../ws'
 import { setupAwareness } from '../../awareness'
+import { setupLogHandlers } from '../../logHandler'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -63,6 +63,7 @@ export async function setupTestRoom(roomName = 'test-room'): Promise<TestContext
 
   setupSocketAuth(io, dataDir)
   setupAwareness(io)
+  setupLogHandlers(io, dataDir)
 
   app.use(roomRoutes(dataDir, io))
   app.use(seatRoutes(dataDir, io))
@@ -70,7 +71,6 @@ export async function setupTestRoom(roomName = 'test-room'): Promise<TestContext
   app.use(entityRoutes(dataDir, io))
   app.use(archiveRoutes(dataDir, io))
   app.use(tacticalRoutes(dataDir, io))
-  app.use(chatRoutes(dataDir, io))
   app.use(trackerRoutes(dataDir, io))
   app.use(showcaseRoutes(dataDir, io))
   app.use(stateRoutes(dataDir, io))
@@ -221,6 +221,7 @@ export async function setupTestServer(): Promise<SimpleTestServer> {
 
   setupSocketAuth(io, dataDir)
   setupAwareness(io)
+  setupLogHandlers(io, dataDir)
 
   app.use(roomRoutes(dataDir, io))
   app.use(seatRoutes(dataDir, io))
@@ -228,7 +229,6 @@ export async function setupTestServer(): Promise<SimpleTestServer> {
   app.use(entityRoutes(dataDir, io))
   app.use(archiveRoutes(dataDir, io))
   app.use(tacticalRoutes(dataDir, io))
-  app.use(chatRoutes(dataDir, io))
   app.use(trackerRoutes(dataDir, io))
   app.use(showcaseRoutes(dataDir, io))
   app.use(stateRoutes(dataDir, io))

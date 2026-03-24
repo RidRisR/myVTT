@@ -3,8 +3,9 @@ import { WorkflowEngine } from './engine'
 import { PluginSDK, WorkflowRunner } from './pluginSDK'
 import { registerBaseWorkflows } from './baseWorkflows'
 import { useWorldStore } from '../stores/worldStore'
-import { tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
+import { useIdentityStore } from '../stores/identityStore'
 import { eventBus } from '../events/eventBus'
+import { getRulePluginSync } from '../rules/registry'
 import type { VTTPlugin } from '../rules/types'
 import type { IWorkflowRunner } from './types'
 import type { PluginSDKDeps } from './pluginSDK'
@@ -38,27 +39,29 @@ export function resetWorkflowEngine(): void {
 }
 
 /** Build the PluginSDKDeps from store actions. */
-function buildDeps(
-  sendRoll: ReturnType<typeof useWorldStore.getState>['sendRoll'],
-  updateEntity: ReturnType<typeof useWorldStore.getState>['updateEntity'],
-): PluginSDKDeps {
+function buildDeps(): PluginSDKDeps {
   return {
-    sendRoll: async (formula: string) => {
-      const stripped = formula.replace(/@[\p{L}\p{N}_]+/gu, '0')
-      const terms = tokenizeExpression(stripped)
-      const dice = terms ? toDiceSpecs(terms) : []
-      const result = await sendRoll({
-        origin: { seat: { id: '', name: '', color: '' } },
-        dice,
-        formula,
-        resolvedFormula: stripped,
-      })
-      const rolls: number[][] = result?.rolls ?? []
-      const total = rolls.flat().reduce<number>((sum, v) => sum + v, 0)
-      return { rolls, total }
+    emitEntry: (entry) => {
+      const socket = useWorldStore.getState()._socket
+      if (socket) socket.emit('log:entry', entry, () => {})
     },
-    updateEntity: (id, patch) => {
-      void updateEntity(id, patch)
+    serverRoll: (request) => {
+      const socket = useWorldStore.getState()._socket
+      if (!socket) return Promise.reject(new Error('Socket not connected'))
+      return new Promise((resolve, reject) => {
+        socket.timeout(5000).emit('log:roll-request', request, (err, ack) => {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- err is null on success despite Socket.io TS typing
+          if (err) {
+            reject(new Error('Roll request timed out'))
+            return
+          }
+          if ('error' in ack) {
+            reject(new Error(ack.error))
+            return
+          }
+          resolve(ack)
+        })
+      })
     },
     getEntity: (id: string) => {
       return useWorldStore.getState().entities[id]
@@ -66,17 +69,15 @@ function buildDeps(
     getAllEntities: () => {
       return useWorldStore.getState().entities
     },
-    updateTeamTracker: (label, patch) => {
-      const state = useWorldStore.getState()
-      const tracker = state.teamTrackers.find((t) => t.label === label)
-      if (!tracker) return
-      const updates = {
-        ...patch,
-        ...(patch.current != null ? { current: tracker.current + patch.current } : {}),
-      }
-      void state.updateTeamTracker(tracker.id, updates)
-    },
     eventBus,
+    getActiveOrigin: () => {
+      const seat = useIdentityStore.getState().getMySeat()
+      if (!seat) return { seat: { id: '', name: '', color: '' } }
+      return { seat: { id: seat.id, name: seat.name, color: seat.color } }
+    },
+    getSeatId: () => useIdentityStore.getState().mySeatId ?? '',
+    getLogWatermark: () => useWorldStore.getState().logWatermark,
+    getFormulaTokens: (entity) => getRulePluginSync().adapters.getFormulaTokens(entity),
   }
 }
 
@@ -103,9 +104,6 @@ function ensurePluginsActivated(engine: WorkflowEngine): void {
  * Plugin activation runs once via ref guard (not inside useMemo).
  */
 export function useWorkflowRunner(): IWorkflowRunner {
-  const sendRoll = useWorldStore((s) => s.sendRoll)
-  const updateEntity = useWorldStore((s) => s.updateEntity)
-
   // Side effect via ref guard — runs once, StrictMode safe (idempotent)
   const activatedRef = useRef(false)
   if (!activatedRef.current) {
@@ -115,7 +113,7 @@ export function useWorkflowRunner(): IWorkflowRunner {
 
   return useMemo(() => {
     const engine = getWorkflowEngine()
-    const deps = buildDeps(sendRoll, updateEntity)
+    const deps = buildDeps()
     return new WorkflowRunner(engine, deps)
-  }, [sendRoll, updateEntity])
+  }, [])
 }

@@ -14,12 +14,27 @@ describe('Session State', () => {
     registerBaseWorkflows(engine)
     const bus = createEventBus()
     const deps = {
-      sendRoll: vi.fn().mockResolvedValue({ rolls: [[1]], total: 1 }),
-      updateEntity: vi.fn(),
-      updateTeamTracker: vi.fn(),
+      emitEntry: vi.fn(),
+      serverRoll: vi.fn().mockResolvedValue({
+        seq: 0,
+        id: '',
+        type: '',
+        origin: { seat: { id: '', name: '', color: '' } },
+        executor: '',
+        chainDepth: 0,
+        triggerable: false,
+        visibility: {},
+        baseSeq: 0,
+        payload: { rolls: [[1]], total: 1 },
+        timestamp: 0,
+      }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: bus,
+      getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: '', name: '', color: '' } }),
+      getSeatId: vi.fn().mockReturnValue(''),
+      getLogWatermark: vi.fn().mockReturnValue(0),
+      getFormulaTokens: vi.fn().mockReturnValue({}),
     }
     runner = new WorkflowRunner(engine, deps)
     useSessionStore.setState({ selection: [], pendingInteractions: new Map() })
