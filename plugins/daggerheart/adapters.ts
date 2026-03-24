@@ -41,7 +41,6 @@ export function dhGetFormulaTokens(entity: Entity): Record<string, number> {
     presence: attrs.presence,
     knowledge: attrs.knowledge,
     proficiency:
-      ((entity.components[DH_KEYS.meta] as { proficiency?: number } | undefined)?.proficiency) ??
-      0,
+      (entity.components[DH_KEYS.meta] as { proficiency?: number } | undefined)?.proficiency ?? 0,
   }
 }

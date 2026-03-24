@@ -78,13 +78,17 @@ describe('EventBus', () => {
       { initialProps: { label: 'v1' } },
     )
 
-    act(() => { bus.emit(handle, 1) })
+    act(() => {
+      bus.emit(handle, 1)
+    })
     expect(calls).toEqual(['v1:1'])
 
     // Re-render with a new handler closure
     rerender({ label: 'v2' })
 
-    act(() => { bus.emit(handle, 2) })
+    act(() => {
+      bus.emit(handle, 2)
+    })
     expect(calls).toEqual(['v1:1', 'v2:2']) // latest handler called
   })
 

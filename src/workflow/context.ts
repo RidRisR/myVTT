@@ -44,8 +44,7 @@ export function createWorkflowContext(
         },
         has: (target, key) => Reflect.has(target, key),
         ownKeys: (target) => Reflect.ownKeys(target),
-        getOwnPropertyDescriptor: (target, key) =>
-          Reflect.getOwnPropertyDescriptor(target, key),
+        getOwnPropertyDescriptor: (target, key) => Reflect.getOwnPropertyDescriptor(target, key),
       })
     : new Proxy({} as Record<string, unknown>, {
         get: (_, key): unknown => Reflect.get(_inner, key),
@@ -53,8 +52,7 @@ export function createWorkflowContext(
         deleteProperty: (_, key) => Reflect.deleteProperty(_inner, key),
         has: (_, key) => Reflect.has(_inner, key),
         ownKeys: () => Reflect.ownKeys(_inner),
-        getOwnPropertyDescriptor: (_, key) =>
-          Reflect.getOwnPropertyDescriptor(_inner, key),
+        getOwnPropertyDescriptor: (_, key) => Reflect.getOwnPropertyDescriptor(_inner, key),
       })
 
   // Imperative data reader backed by deps.getEntity

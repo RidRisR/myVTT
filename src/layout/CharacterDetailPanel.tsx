@@ -19,7 +19,10 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
   const statuses = plugin.adapters.getStatuses(character)
   const notes = getNotes(character).text
   const rd = character.components
-  const handouts = ((rd['core:handouts'] as { id: string; title?: string; description?: string; imageUrl?: string }[] | undefined) ?? [])
+  const handouts =
+    (rd['core:handouts'] as
+      | { id: string; title?: string; description?: string; imageUrl?: string }[]
+      | undefined) ?? []
 
   const attrEntries = Object.entries(attributes)
 

@@ -605,9 +605,7 @@ describe('WorkflowEngine', () => {
 
   it('forbidden combo: readonly=false + critical=false throws on defineWorkflow', () => {
     expect(() => {
-      engine.defineWorkflow('forbidden', [
-        { id: 'a', critical: false, run: () => {} },
-      ])
+      engine.defineWorkflow('forbidden', [{ id: 'a', critical: false, run: () => {} }])
     }).toThrow(/readonly must be true/i)
   })
 
@@ -663,7 +661,12 @@ describe('WorkflowEngine', () => {
   it('post phase: multiple steps sorted by priority', async () => {
     const order: string[] = []
     engine.defineWorkflow('post-prio', [
-      { id: 'main', run: () => { order.push('main') } },
+      {
+        id: 'main',
+        run: () => {
+          order.push('main')
+        },
+      },
     ])
     engine.addStep('post-prio', {
       id: 'post-hi',
@@ -671,7 +674,9 @@ describe('WorkflowEngine', () => {
       critical: false,
       phase: 'post',
       priority: 200,
-      run: () => { order.push('post-hi') },
+      run: () => {
+        order.push('post-hi')
+      },
     })
     engine.addStep('post-prio', {
       id: 'post-lo',
@@ -679,7 +684,9 @@ describe('WorkflowEngine', () => {
       critical: false,
       phase: 'post',
       priority: 50,
-      run: () => { order.push('post-lo') },
+      run: () => {
+        order.push('post-lo')
+      },
     })
     await run(engine, 'post-prio')
     expect(order).toEqual(['main', 'post-lo', 'post-hi'])
@@ -701,7 +708,9 @@ describe('WorkflowEngine', () => {
       readonly: true,
       critical: false,
       phase: 'post',
-      run: () => { order.push('post') },
+      run: () => {
+        order.push('post')
+      },
     })
     const internal = makeInternal()
     const ctx = makeCtx()

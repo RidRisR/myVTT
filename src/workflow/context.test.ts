@@ -160,7 +160,9 @@ describe('createWorkflowContext', () => {
   })
 
   it('readonly option: vars set throws TypeError', () => {
-    const ctx = createWorkflowContext(makeDeps(), { foo: 'bar' }, makeInternal(), { readonly: true })
+    const ctx = createWorkflowContext(makeDeps(), { foo: 'bar' }, makeInternal(), {
+      readonly: true,
+    })
     expect(() => {
       ctx.vars.foo = 'baz'
     }).toThrow(TypeError)
@@ -169,7 +171,9 @@ describe('createWorkflowContext', () => {
   })
 
   it('readonly option: vars delete throws TypeError', () => {
-    const ctx = createWorkflowContext(makeDeps(), { foo: 'bar' }, makeInternal(), { readonly: true })
+    const ctx = createWorkflowContext(makeDeps(), { foo: 'bar' }, makeInternal(), {
+      readonly: true,
+    })
     expect(() => {
       delete ctx.vars.foo
     }).toThrow(TypeError)
@@ -177,12 +181,9 @@ describe('createWorkflowContext', () => {
   })
 
   it('readonly option: vars reads still work', () => {
-    const ctx = createWorkflowContext(
-      makeDeps(),
-      { a: 1, b: 'hello' },
-      makeInternal(),
-      { readonly: true },
-    )
+    const ctx = createWorkflowContext(makeDeps(), { a: 1, b: 'hello' }, makeInternal(), {
+      readonly: true,
+    })
     expect(ctx.vars.a).toBe(1)
     expect(ctx.vars.b).toBe('hello')
     expect('a' in ctx.vars).toBe(true)

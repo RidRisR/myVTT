@@ -43,7 +43,9 @@ test.describe('Entity Lifecycle', () => {
       () => {
         const store = (window as any).__MYVTT_STORES__?.world()
         if (!store?.entities) return false
-        return Object.values(store.entities).some((e: any) => e.name === 'Goblin Scout')
+        return Object.values(store.entities).some(
+          (e: any) => e.components?.['core:identity']?.name === 'Goblin Scout',
+        )
       },
       null,
       { timeout: 10_000 },

@@ -53,7 +53,11 @@ describe('Blueprint CRUD', () => {
     const { status, data } = await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/blueprints/${bpId}`, {
       defaults: {
         components: {
-          'core:identity': { name: 'Goblin Chief', imageUrl: '/uploads/goblin.png', color: '#ff0000' },
+          'core:identity': {
+            name: 'Goblin Chief',
+            imageUrl: '/uploads/goblin.png',
+            color: '#ff0000',
+          },
           'core:token': { width: 2, height: 2 },
         },
       },

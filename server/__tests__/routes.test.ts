@@ -308,7 +308,10 @@ describe('Full room lifecycle', () => {
   })
 
   it('retrieves chat history', async () => {
-    const { data } = await api<{ origin: { seat: { name: string } } }[]>('GET', `/api/rooms/${roomId}/chat`)
+    const { data } = await api<{ origin: { seat: { name: string } } }[]>(
+      'GET',
+      `/api/rooms/${roomId}/chat`,
+    )
     expect(data.length).toBe(1)
     expect(data[0]!.origin.seat.name).toBe('GM')
   })

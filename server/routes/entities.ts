@@ -20,7 +20,9 @@ export function assembleEntity(
   return {
     id: entityRow.id as string,
     blueprintId: (entityRow.blueprint_id as string) || undefined,
-    permissions: JSON.parse((entityRow.permissions as string) || '{"default":"none","seats":{}}') as Entity['permissions'],
+    permissions: JSON.parse(
+      (entityRow.permissions as string) || '{"default":"none","seats":{}}',
+    ) as Entity['permissions'],
     lifecycle: entityRow.lifecycle as Entity['lifecycle'],
     tags: tagNames,
     components,
@@ -181,9 +183,7 @@ export function entityRoutes(dataDir: string, io: TypedServer): Router {
   // PATCH single component by key
   router.patch('/api/rooms/:roomId/entities/:id/components/:key', room, (req, res) => {
     const db = req.roomDb!
-    const entityExists = db
-      .prepare('SELECT id FROM entities WHERE id = ?')
-      .get(req.params.id)
+    const entityExists = db.prepare('SELECT id FROM entities WHERE id = ?').get(req.params.id)
     if (!entityExists) {
       res.status(404).json({ error: 'Entity not found' })
       return

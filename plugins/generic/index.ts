@@ -32,9 +32,7 @@ export const genericPlugin: RulePlugin = {
     },
 
     getFormulaTokens(entity: Entity): Record<string, number> {
-      const attrs = entity.components['generic:attributes'] as
-        | Record<string, number>
-        | undefined
+      const attrs = entity.components['generic:attributes'] as Record<string, number> | undefined
       return attrs ?? {}
     },
   },

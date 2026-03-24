@@ -73,12 +73,7 @@ export { output } from '../workflow/helpers'
 // ── EventBus (decoupled side effects) ──────────────────────────────────────
 export { defineEvent } from '../events/eventBus'
 export type { EventHandle } from '../events/eventBus'
-export {
-  toastEvent,
-  announceEvent,
-  animationEvent,
-  soundEvent,
-} from '../events/systemEvents'
+export { toastEvent, announceEvent, animationEvent, soundEvent } from '../events/systemEvents'
 export type {
   ToastPayload,
   AnnouncePayload,

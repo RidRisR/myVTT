@@ -46,9 +46,7 @@ describe('dhGetMainResource', () => {
     expect(dhGetMainResource(makeEntity())).toBeNull()
   })
   it('returns HP with label and red color', () => {
-    const r = dhGetMainResource(
-      makeDHEntity({ [DH_KEYS.health]: { current: 15, max: 20 } }),
-    )
+    const r = dhGetMainResource(makeDHEntity({ [DH_KEYS.health]: { current: 15, max: 20 } }))
     expect(r?.label).toBe('HP')
     expect(r?.current).toBe(15)
     expect(r?.max).toBe(20)

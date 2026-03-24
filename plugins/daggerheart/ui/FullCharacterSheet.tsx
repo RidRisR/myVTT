@@ -25,11 +25,20 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
 
   // Edit view: merge with defaults so all fields are editable even on new entities
   const defaults = createDefaultDHEntityData()
-  const hp: DHHealth = (entity.components[DH_KEYS.health] as DHHealth | undefined) ?? (defaults[DH_KEYS.health] as DHHealth)
-  const stress: DHStress = (entity.components[DH_KEYS.stress] as DHStress | undefined) ?? (defaults[DH_KEYS.stress] as DHStress)
-  const attrs: DHAttributes = (entity.components[DH_KEYS.attributes] as DHAttributes | undefined) ?? (defaults[DH_KEYS.attributes] as DHAttributes)
-  const meta: DHMeta = (entity.components[DH_KEYS.meta] as DHMeta | undefined) ?? (defaults[DH_KEYS.meta] as DHMeta)
-  const extras: DHExtras = (entity.components[DH_KEYS.extras] as DHExtras | undefined) ?? (defaults[DH_KEYS.extras] as DHExtras)
+  const hp: DHHealth =
+    (entity.components[DH_KEYS.health] as DHHealth | undefined) ??
+    (defaults[DH_KEYS.health] as DHHealth)
+  const stress: DHStress =
+    (entity.components[DH_KEYS.stress] as DHStress | undefined) ??
+    (defaults[DH_KEYS.stress] as DHStress)
+  const attrs: DHAttributes =
+    (entity.components[DH_KEYS.attributes] as DHAttributes | undefined) ??
+    (defaults[DH_KEYS.attributes] as DHAttributes)
+  const meta: DHMeta =
+    (entity.components[DH_KEYS.meta] as DHMeta | undefined) ?? (defaults[DH_KEYS.meta] as DHMeta)
+  const extras: DHExtras =
+    (entity.components[DH_KEYS.extras] as DHExtras | undefined) ??
+    (defaults[DH_KEYS.extras] as DHExtras)
 
   const updateComponent = (key: string, value: unknown) => {
     onUpdateEntity(entity.id, { components: { ...entity.components, [key]: value } })
@@ -63,7 +72,10 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
       onUpdateEntity(entity.id, {
         components: {
           ...entity.components,
-          'core:identity': { ...entity.components['core:identity'] as Record<string, unknown>, name: trimmed },
+          'core:identity': {
+            ...(entity.components['core:identity'] as Record<string, unknown>),
+            name: trimmed,
+          },
         },
       })
     }

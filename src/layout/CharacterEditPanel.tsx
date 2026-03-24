@@ -672,8 +672,7 @@ export function CharacterEditPanel({
                   : 'text-text-muted/35 hover:text-text-muted/60'
               }`}
               style={{
-                borderBottom:
-                  activeTab === tabId ? `2px solid ${color}` : '2px solid transparent',
+                borderBottom: activeTab === tabId ? `2px solid ${color}` : '2px solid transparent',
               }}
             >
               {t(TAB_I18N_KEYS[tabId])}

@@ -87,6 +87,8 @@ export function ChatPanel({
 
   // Read messages from worldStore
   const messages = useWorldStore((s) => s.chatMessages)
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
   const freshChatIds = useWorldStore((s) => s.freshChatIds)
   const sendMessage = useWorldStore((s) => s.sendMessage)
   const sendRoll = useWorldStore((s) => s.sendRoll)
@@ -148,7 +150,7 @@ export function ChatPanel({
 
     // Detect newly added messages
     if (messages.length > prevMessageCountRef.current) {
-      const newMsgs = messages.slice(prevMessageCountRef.current)
+      const newMsgs = messagesRef.current.slice(prevMessageCountRef.current)
 
       // Add to toast queue if collapsed
       if (!expandedRef.current) {
@@ -158,7 +160,7 @@ export function ChatPanel({
       }
     }
     prevMessageCountRef.current = messages.length
-  }, [messages])
+  }, [messages.length])
 
   // Limit to max 3 toasts
   useEffect(() => {

@@ -286,9 +286,10 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
       res.status(404).json({ error: 'Blueprint not found' })
       return
     }
-    const defaults = JSON.parse(
-      (bpRow.defaults as string) || '{"components":{}}',
-    ) as Record<string, unknown>
+    const defaults = JSON.parse((bpRow.defaults as string) || '{"components":{}}') as Record<
+      string,
+      unknown
+    >
     const bpComponents = (defaults.components || {}) as Record<string, unknown>
 
     // Derive name from core:identity component for the counter

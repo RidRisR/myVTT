@@ -82,10 +82,7 @@ describe('Tactical broadcast tests', () => {
       socket2,
       'tactical:token:added',
     )
-    const entityPromise = waitForSocketEvent<Entity>(
-      socket2,
-      'entity:created',
-    )
+    const entityPromise = waitForSocketEvent<Entity>(socket2, 'entity:created')
 
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens/quick`, {
       x: 15,
