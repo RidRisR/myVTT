@@ -1,27 +1,25 @@
 import type { Entity, ResourceView, StatusView } from '@myvtt/sdk'
-import type { DHRuleData } from './types'
-
-function getDH(entity: Entity): DHRuleData | null {
-  return entity.ruleData ? (entity.ruleData as DHRuleData) : null
-}
+import type { DHHealth, DHStress, DHAttributes } from './types'
+import { DH_KEYS } from './types'
 
 export function dhGetMainResource(entity: Entity): ResourceView | null {
-  const d = getDH(entity)
-  if (!d?.hp) return null
-  return { label: 'HP', current: d.hp.current, max: d.hp.max, color: '#ef4444' }
+  const hp = entity.components[DH_KEYS.health] as DHHealth | undefined
+  if (!hp) return null
+  return { label: 'HP', current: hp.current, max: hp.max, color: '#ef4444' }
 }
 
 export function dhGetPortraitResources(entity: Entity): ResourceView[] {
-  const d = getDH(entity)
-  if (!d?.hp) return []
+  const hp = entity.components[DH_KEYS.health] as DHHealth | undefined
+  if (!hp) return []
   const resources: ResourceView[] = [
-    { label: 'HP', current: d.hp.current, max: d.hp.max, color: '#ef4444' },
+    { label: 'HP', current: hp.current, max: hp.max, color: '#ef4444' },
   ]
-  if (d.stress) {
+  const stress = entity.components[DH_KEYS.stress] as DHStress | undefined
+  if (stress) {
     resources.push({
       label: 'Stress',
-      current: d.stress.current,
-      max: d.stress.max,
+      current: stress.current,
+      max: stress.max,
       color: '#f97316',
     })
   }
@@ -33,15 +31,16 @@ export function dhGetStatuses(_entity: Entity): StatusView[] {
 }
 
 export function dhGetFormulaTokens(entity: Entity): Record<string, number> {
-  const d = getDH(entity)
-  if (!d) return {}
+  const attrs = entity.components[DH_KEYS.attributes] as DHAttributes | undefined
+  if (!attrs) return {}
   return {
-    agility: d.agility,
-    strength: d.strength,
-    finesse: d.finesse,
-    instinct: d.instinct,
-    presence: d.presence,
-    knowledge: d.knowledge,
-    proficiency: d.proficiency,
+    agility: attrs.agility,
+    strength: attrs.strength,
+    finesse: attrs.finesse,
+    instinct: attrs.instinct,
+    presence: attrs.presence,
+    knowledge: attrs.knowledge,
+    proficiency:
+      (entity.components[DH_KEYS.meta] as { proficiency?: number } | undefined)?.proficiency ?? 0,
   }
 }

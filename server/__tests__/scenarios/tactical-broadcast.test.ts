@@ -6,6 +6,8 @@ import {
   waitForSocketEvent,
   type TestContext,
 } from '../helpers/test-server'
+import type { Entity } from '../../../src/shared/entityTypes'
+import { getName } from '../../../src/shared/coreComponents'
 
 let ctx: TestContext
 let sceneId: string
@@ -47,9 +49,10 @@ describe('Tactical broadcast tests', () => {
 
     // Create entity first
     const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      name: 'Broadcast Fighter',
       lifecycle: 'reusable',
-      color: '#ef4444',
+      components: {
+        'core:identity': { name: 'Broadcast Fighter', imageUrl: '', color: '#ef4444' },
+      },
     })
     const entityId = (entity as { id: string }).id
 
@@ -79,10 +82,7 @@ describe('Tactical broadcast tests', () => {
       socket2,
       'tactical:token:added',
     )
-    const entityPromise = waitForSocketEvent<{ id: string; name: string }>(
-      socket2,
-      'entity:created',
-    )
+    const entityPromise = waitForSocketEvent<Entity>(socket2, 'entity:created')
 
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens/quick`, {
       x: 15,
@@ -90,14 +90,14 @@ describe('Tactical broadcast tests', () => {
       name: 'Quick Goblin',
       color: '#22c55e',
     })
-    const result = data as { entity: { id: string }; token: { id: string } }
+    const result = data as { entity: Entity; token: { id: string } }
 
     const [tokenPayload, entityPayload] = await Promise.all([tokenPromise, entityPromise])
 
     expect(tokenPayload.id).toBe(result.token.id)
     expect(tokenPayload.entityId).toBe(result.entity.id)
     expect(entityPayload.id).toBe(result.entity.id)
-    expect(entityPayload.name).toBe('Quick Goblin')
+    expect(getName(entityPayload)).toBe('Quick Goblin')
 
     socket2.disconnect()
   })

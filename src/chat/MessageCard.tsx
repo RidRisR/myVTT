@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Star } from 'lucide-react'
 import type { ChatMessage, ChatRollMessage } from '../shared/chatTypes'
+import { getDisplayIdentity } from '../shared/chatTypes'
 import { Avatar } from './Avatar'
 import { DiceResultCard, DiceAnimContent } from './DiceResultCard'
 import { useRulePlugin } from '../rules/useRulePlugin'
@@ -50,6 +51,8 @@ export const MessageCard: React.FC<MessageCardProps> = ({
     [message, isNew],
   )
 
+  const display = getDisplayIdentity(message.origin)
+
   const animation = isNew
     ? animationStyle === 'toast'
       ? 'toastEnter 0.3s ease-out'
@@ -63,20 +66,41 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         style={{ animation }}
       >
         <Avatar
-          portraitUrl={message.portraitUrl}
-          senderName={message.senderName}
-          senderColor={message.senderColor}
+          portraitUrl={display.portraitUrl}
+          senderName={display.name}
+          senderColor={display.color}
         />
         <div className="flex-1 flex flex-col gap-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[13px] font-semibold" style={{ color: message.senderColor }}>
-              {message.senderName}
+            <span className="text-[13px] font-semibold" style={{ color: display.color }}>
+              {display.name}
             </span>
             <span className="text-[11px] text-text-muted/40">{formatTime(message.timestamp)}</span>
           </div>
           <div className="text-sm text-text-primary leading-relaxed break-words">
             {message.content}
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (message.type === 'judgment') {
+    return (
+      <div
+        className="flex gap-2.5 px-3.5 py-2 bg-glass backdrop-blur-[20px] border border-border-glass rounded-[10px]"
+        style={{ animation }}
+      >
+        <Avatar
+          portraitUrl={display.portraitUrl}
+          senderName={display.name}
+          senderColor={display.color}
+        />
+        <div className="flex-1 flex items-center gap-2">
+          <span className="text-sm font-semibold" style={{ color: message.displayColor }}>
+            {message.displayText}
+          </span>
+          <span className="text-[11px] text-text-muted/40">{formatTime(message.timestamp)}</span>
         </div>
       </div>
     )
@@ -109,15 +133,15 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         </button>
       )}
       <Avatar
-        portraitUrl={message.portraitUrl}
-        senderName={message.senderName}
-        senderColor={message.senderColor}
+        portraitUrl={display.portraitUrl}
+        senderName={display.name}
+        senderColor={display.color}
       />
       <div className="flex-1 flex flex-col gap-1.5">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold" style={{ color: message.senderColor }}>
-              {message.senderName}
+            <span className="text-[13px] font-semibold" style={{ color: display.color }}>
+              {display.name}
             </span>
             <span className="text-xs text-text-muted/50 font-mono">
               {message.rollType

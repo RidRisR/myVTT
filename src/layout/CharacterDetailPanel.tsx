@@ -1,11 +1,8 @@
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { Entity } from '../shared/entityTypes'
-import {
-  getEntityResources,
-  getEntityAttributes,
-  getEntityStatuses,
-} from '../shared/entityAdapters'
+import { getName, getColor, getImageUrl, getNotes } from '../shared/coreComponents'
+import { useRulePlugin } from '../rules/useRulePlugin'
 import { statusColor } from '../shared/tokenUtils'
 
 interface CharacterDetailPanelProps {
@@ -16,24 +13,29 @@ interface CharacterDetailPanelProps {
 
 export function CharacterDetailPanel({ character, isOnline, onClose }: CharacterDetailPanelProps) {
   const { t } = useTranslation('layout')
-  const resources = getEntityResources(character)
-  const attributes = getEntityAttributes(character)
-  const statuses = getEntityStatuses(character)
-  const notes = character.notes
-  const rd = character.ruleData as Record<string, unknown> | null
-  const handouts = (rd?.handouts ?? []) as {
-    id: string
-    title?: string
-    description?: string
-    imageUrl?: string
-  }[]
+  const plugin = useRulePlugin()
+  const resources = plugin.adapters.getPortraitResources(character)
+  const attributes = plugin.adapters.getFormulaTokens(character)
+  const statuses = plugin.adapters.getStatuses(character)
+  const notes = getNotes(character).text
+  const rd = character.components
+  const handouts =
+    (rd['core:handouts'] as
+      | { id: string; title?: string; description?: string; imageUrl?: string }[]
+      | undefined) ?? []
+
+  const attrEntries = Object.entries(attributes)
 
   const hasContent =
     resources.length > 0 ||
-    attributes.length > 0 ||
+    attrEntries.length > 0 ||
     statuses.length > 0 ||
     notes ||
     handouts.length > 0
+
+  const name = getName(character)
+  const imageUrl = getImageUrl(character)
+  const color = getColor(character)
 
   return (
     <div
@@ -62,25 +64,25 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
 
       {/* Portrait */}
       <div className="flex flex-col items-center mb-4">
-        {character.imageUrl ? (
+        {imageUrl ? (
           <img
-            src={character.imageUrl}
-            alt={character.name}
+            src={imageUrl}
+            alt={name}
             className="w-20 h-20 rounded-full object-cover block"
             style={{
-              border: `3px solid ${character.color}`,
-              boxShadow: `0 0 20px ${character.color}33`,
+              border: `3px solid ${color}`,
+              boxShadow: `0 0 20px ${color}33`,
             }}
           />
         ) : (
           <div
             className="w-20 h-20 rounded-full flex items-center justify-center text-white text-[32px] font-bold"
             style={{
-              background: `linear-gradient(135deg, ${character.color}, ${character.color}99)`,
-              boxShadow: `0 0 20px ${character.color}33`,
+              background: `linear-gradient(135deg, ${color}, ${color}99)`,
+              boxShadow: `0 0 20px ${color}33`,
             }}
           >
-            {character.name.charAt(0).toUpperCase()}
+            {name.charAt(0).toUpperCase()}
           </div>
         )}
       </div>
@@ -88,7 +90,7 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
       {/* Name + Online */}
       <div className="text-center mb-5">
         <div className="font-bold text-lg text-white flex items-center justify-center gap-2 tracking-wide">
-          {character.name}
+          {name}
           {isOnline && (
             <span className="inline-flex items-center gap-1 text-[10px] text-success font-medium tracking-normal">
               <span className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
@@ -112,7 +114,7 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
               <div key={i} className="mb-1.5">
                 <div className="flex justify-between text-[11px] mb-0.5">
                   <span className="text-text-muted/50 font-semibold">
-                    {res.key || t('character.unnamed_resource')}
+                    {res.label || t('character.unnamed_resource')}
                   </span>
                   <span className="text-white font-bold text-[10px]">
                     {res.current}/{res.max}
@@ -134,12 +136,12 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
       )}
 
       {/* Attributes (read-only values) */}
-      {attributes.length > 0 && (
+      {attrEntries.length > 0 && (
         <div className="mb-3.5">
           <div className="text-[10px] text-text-muted/40 font-semibold mb-2 uppercase tracking-wider">
             {t('character.attributes')}
           </div>
-          {attributes.map((attr, i) => (
+          {attrEntries.map(([key, value], i) => (
             <div
               key={i}
               className={`flex justify-between items-center px-2 py-[5px] rounded-md text-xs ${
@@ -147,9 +149,9 @@ export function CharacterDetailPanel({ character, isOnline, onClose }: Character
               }`}
             >
               <span className="text-text-muted/50 font-semibold">
-                {attr.key || t('character.unnamed_attribute')}
+                {key || t('character.unnamed_attribute')}
               </span>
-              <span className="text-white font-bold">{attr.value}</span>
+              <span className="text-white font-bold">{value}</span>
             </div>
           ))}
         </div>

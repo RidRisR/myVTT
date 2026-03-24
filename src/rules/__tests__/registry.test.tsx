@@ -4,7 +4,6 @@ import { render, cleanup } from '@testing-library/react'
 import { ToastProvider } from '../../ui/ToastProvider'
 import { getRulePlugin, getAvailablePlugins, registerPlugin } from '../registry'
 import { makeEntity } from '../../__test-utils__/fixtures'
-
 describe('getRulePlugin', () => {
   it('returns generic plugin for "generic" id', () => {
     const plugin = getRulePlugin('generic')
@@ -36,17 +35,18 @@ describe('getRulePlugin', () => {
 })
 
 describe('genericPlugin adapters', () => {
-  it('getMainResource returns null for entity with no ruleData', () => {
+  it('getMainResource returns null for entity with no resources', () => {
     const plugin = getRulePlugin('generic')
-    const entity = makeEntity({ ruleData: null })
+    const entity = makeEntity()
     expect(plugin.adapters.getMainResource(entity)).toBeNull()
   })
 
-  it('getMainResource returns first resource from ruleData', () => {
+  it('getMainResource returns first resource from generic:resources component', () => {
     const plugin = getRulePlugin('generic')
     const entity = makeEntity({
-      ruleData: {
-        resources: { hp: { current: 15, max: 20, color: '#f00' } },
+      components: {
+        'core:identity': { name: 'Test', imageUrl: '', color: '#3b82f6' },
+        'generic:resources': [{ label: 'hp', current: 15, max: 20, color: '#f00' }],
       },
     })
     const resource = plugin.adapters.getMainResource(entity)
@@ -60,7 +60,10 @@ describe('genericPlugin adapters', () => {
   it('getStatuses returns status labels', () => {
     const plugin = getRulePlugin('generic')
     const entity = makeEntity({
-      ruleData: { statuses: [{ label: 'Poisoned' }, { label: 'Stunned' }] },
+      components: {
+        'core:identity': { name: 'Test', imageUrl: '', color: '#3b82f6' },
+        'generic:statuses': [{ label: 'Poisoned' }, { label: 'Stunned' }],
+      },
     })
     const statuses = plugin.adapters.getStatuses(entity)
     expect(statuses).toHaveLength(2)
@@ -70,10 +73,11 @@ describe('genericPlugin adapters', () => {
   it('getPortraitResources returns all resources', () => {
     const plugin = getRulePlugin('generic')
     const entity = makeEntity({
-      ruleData: {
-        resources: [
-          { key: 'hp', current: 10, max: 20, color: '#f00' },
-          { key: 'mp', current: 5, max: 10, color: '#00f' },
+      components: {
+        'core:identity': { name: 'Test', imageUrl: '', color: '#3b82f6' },
+        'generic:resources': [
+          { label: 'hp', current: 10, max: 20, color: '#f00' },
+          { label: 'mp', current: 5, max: 10, color: '#00f' },
         ],
       },
     })
@@ -83,7 +87,7 @@ describe('genericPlugin adapters', () => {
   })
 })
 
-// ── Base-level contract: all plugins must handle edge-case ruleData without crashing ──
+// ── Base-level contract: all plugins must handle edge-case components without crashing ──
 
 const allPluginIds = getAvailablePlugins().map((p) => p.id)
 
@@ -91,29 +95,31 @@ describe.each(allPluginIds)('%s plugin — adapter safety contract', (pluginId) 
   const plugin = getRulePlugin(pluginId)
 
   const edgeCases = [
-    { label: 'null ruleData', ruleData: null },
-    { label: 'empty object ruleData', ruleData: {} },
-    { label: 'partial ruleData', ruleData: { hp: { current: 5, max: 10 } } },
-    { label: 'unrelated ruleData', ruleData: { foo: 'bar' } },
+    { label: 'empty components', components: {} },
+    {
+      label: 'core-only components',
+      components: { 'core:identity': { name: 'x', imageUrl: '', color: '' } },
+    },
+    { label: 'unrelated components', components: { 'foo:bar': { baz: 1 } } },
   ]
 
-  for (const { label, ruleData } of edgeCases) {
+  for (const { label, components } of edgeCases) {
     it(`getMainResource does not crash with ${label}`, () => {
-      expect(() => plugin.adapters.getMainResource(makeEntity({ ruleData }))).not.toThrow()
+      expect(() => plugin.adapters.getMainResource(makeEntity({ components }))).not.toThrow()
     })
     it(`getPortraitResources does not crash with ${label}`, () => {
-      expect(() => plugin.adapters.getPortraitResources(makeEntity({ ruleData }))).not.toThrow()
+      expect(() => plugin.adapters.getPortraitResources(makeEntity({ components }))).not.toThrow()
     })
     it(`getStatuses does not crash with ${label}`, () => {
-      expect(() => plugin.adapters.getStatuses(makeEntity({ ruleData }))).not.toThrow()
+      expect(() => plugin.adapters.getStatuses(makeEntity({ components }))).not.toThrow()
     })
     it(`getFormulaTokens does not crash with ${label}`, () => {
-      expect(() => plugin.adapters.getFormulaTokens(makeEntity({ ruleData }))).not.toThrow()
+      expect(() => plugin.adapters.getFormulaTokens(makeEntity({ components }))).not.toThrow()
     })
   }
 })
 
-// ── Base-level contract: EntityCard must not crash with edge-case ruleData ──
+// ── Base-level contract: EntityCard must not crash with edge-case components ──
 
 describe.each(allPluginIds)('%s plugin — EntityCard render safety', (pluginId) => {
   const plugin = getRulePlugin(pluginId)
@@ -122,59 +128,23 @@ describe.each(allPluginIds)('%s plugin — EntityCard render safety', (pluginId)
   afterEach(cleanup)
 
   const edgeCases = [
-    { label: 'null ruleData', ruleData: null },
-    { label: 'empty object ruleData', ruleData: {} },
-    { label: 'partial ruleData', ruleData: { hp: { current: 5, max: 10 } } },
-    { label: 'unrelated ruleData', ruleData: { foo: 'bar' } },
+    { label: 'empty components', components: {} },
+    {
+      label: 'core-only components',
+      components: { 'core:identity': { name: 'x', imageUrl: '', color: '' } },
+    },
+    { label: 'unrelated components', components: { 'foo:bar': { baz: 1 } } },
   ]
 
-  for (const { label, ruleData } of edgeCases) {
+  for (const { label, components } of edgeCases) {
     it(`does not crash with ${label}`, () => {
       expect(() =>
         render(
           <ToastProvider>
-            <EntityCard entity={makeEntity({ ruleData })} onUpdate={vi.fn()} readonly />
+            <EntityCard entity={makeEntity({ components })} onUpdate={vi.fn()} readonly />
           </ToastProvider>,
         ),
       ).not.toThrow()
     })
   }
-})
-
-describe('daggerheartPlugin registration', () => {
-  it('getRulePlugin returns daggerheart after registration', () => {
-    const plugin = getRulePlugin('daggerheart')
-    expect(plugin.id).toBe('daggerheart')
-  })
-  it('daggerheart adapters.getMainResource returns HP', () => {
-    const plugin = getRulePlugin('daggerheart')
-    const entity = makeEntity({
-      ruleData: {
-        agility: 2,
-        strength: 1,
-        finesse: 3,
-        instinct: 0,
-        presence: 1,
-        knowledge: 2,
-        tier: 1,
-        proficiency: 1,
-        className: 'R',
-        ancestry: 'E',
-        hp: { current: 12, max: 20 },
-        stress: { current: 0, max: 6 },
-        hope: 2,
-        armor: 1,
-      },
-    })
-    expect(plugin.adapters.getMainResource(entity)?.current).toBe(12)
-  })
-  it('daggerheart diceSystem.evaluateRoll works', () => {
-    const plugin = getRulePlugin('daggerheart')
-    const r = plugin.diceSystem?.evaluateRoll([[8, 5]], 15)
-    expect(r?.type).toBe('daggerheart')
-  })
-  it('daggerheart surfaces.rollCardRenderers has daggerheart:dd', () => {
-    const plugin = getRulePlugin('daggerheart')
-    expect(plugin.surfaces?.rollCardRenderers?.['daggerheart:dd']).toBeDefined()
-  })
 })

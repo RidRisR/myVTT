@@ -78,12 +78,8 @@ describe('initRoomSchema', () => {
 
   it('enforces entities.blueprint_id ON DELETE SET NULL', () => {
     initRoomSchema(db)
-    db.prepare(
-      "INSERT INTO blueprints (id, name, image_url, created_at) VALUES ('bp1', 'Goblin', '', 1)",
-    ).run()
-    db.prepare(
-      "INSERT INTO entities (id, name, blueprint_id) VALUES ('e1', 'Goblin 1', 'bp1')",
-    ).run()
+    db.prepare("INSERT INTO blueprints (id, created_at) VALUES ('bp1', 1)").run()
+    db.prepare("INSERT INTO entities (id, blueprint_id) VALUES ('e1', 'bp1')").run()
 
     db.prepare("DELETE FROM blueprints WHERE id = 'bp1'").run()
     const entity = db.prepare("SELECT blueprint_id FROM entities WHERE id = 'e1'").get() as {
@@ -95,7 +91,7 @@ describe('initRoomSchema', () => {
   it('enforces scene_entities foreign key cascade', () => {
     initRoomSchema(db)
     db.prepare("INSERT INTO scenes (id, name) VALUES ('s1', 'Test')").run()
-    db.prepare("INSERT INTO entities (id, name) VALUES ('e1', 'Hero')").run()
+    db.prepare("INSERT INTO entities (id) VALUES ('e1')").run()
     db.prepare("INSERT INTO scene_entities (scene_id, entity_id) VALUES ('s1', 'e1')").run()
 
     // Delete scene → scene_entities should cascade

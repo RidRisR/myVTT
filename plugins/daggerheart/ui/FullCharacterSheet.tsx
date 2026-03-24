@@ -3,14 +3,16 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import type { PluginPanelProps } from '@myvtt/sdk'
 import { usePluginTranslation } from '@myvtt/sdk'
-import type { DHRuleData } from '../types'
+import type { DHHealth, DHStress, DHAttributes, DHMeta, DHExtras } from '../types'
+import { DH_KEYS } from '../types'
 import { createDefaultDHEntityData } from '../templates'
+import { getName, getImageUrl, getColor, getNotes } from '../../../src/shared/coreComponents'
 
 const ATTR_KEYS = ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowledge'] as const
 
 export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPanelProps) {
   const [editingName, setEditingName] = useState(false)
-  const [editName, setEditName] = useState(entity?.name ?? '')
+  const [editName, setEditName] = useState(entity ? getName(entity) : '')
   const { t } = usePluginTranslation()
 
   if (!entity) {
@@ -22,26 +24,60 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
   }
 
   // Edit view: merge with defaults so all fields are editable even on new entities
-  const d = { ...createDefaultDHEntityData(), ...(entity.ruleData as Record<string, unknown>) }
+  const defaults = createDefaultDHEntityData()
+  const hp: DHHealth =
+    (entity.components[DH_KEYS.health] as DHHealth | undefined) ??
+    (defaults[DH_KEYS.health] as DHHealth)
+  const stress: DHStress =
+    (entity.components[DH_KEYS.stress] as DHStress | undefined) ??
+    (defaults[DH_KEYS.stress] as DHStress)
+  const attrs: DHAttributes =
+    (entity.components[DH_KEYS.attributes] as DHAttributes | undefined) ??
+    (defaults[DH_KEYS.attributes] as DHAttributes)
+  const meta: DHMeta =
+    (entity.components[DH_KEYS.meta] as DHMeta | undefined) ?? (defaults[DH_KEYS.meta] as DHMeta)
+  const extras: DHExtras =
+    (entity.components[DH_KEYS.extras] as DHExtras | undefined) ??
+    (defaults[DH_KEYS.extras] as DHExtras)
 
-  const updateDH = (patch: Partial<DHRuleData>) => {
-    onUpdateEntity(entity.id, { ruleData: { ...d, ...patch } })
+  const updateComponent = (key: string, value: unknown) => {
+    onUpdateEntity(entity.id, { components: { ...entity.components, [key]: value } })
   }
 
-  const updateHP = (patch: Partial<DHRuleData['hp']>) => {
-    const cur = d.hp ?? { current: 0, max: 0 }
-    updateDH({ hp: { ...cur, ...patch } })
+  const updateHP = (patch: Partial<DHHealth>) => {
+    updateComponent(DH_KEYS.health, { ...hp, ...patch })
   }
 
-  const updateStress = (patch: Partial<DHRuleData['stress']>) => {
-    const cur = d.stress ?? { current: 0, max: 0 }
-    updateDH({ stress: { ...cur, ...patch } })
+  const updateStress = (patch: Partial<DHStress>) => {
+    updateComponent(DH_KEYS.stress, { ...stress, ...patch })
   }
+
+  const updateMeta = (patch: Partial<DHMeta>) => {
+    updateComponent(DH_KEYS.meta, { ...meta, ...patch })
+  }
+
+  const updateExtras = (patch: Partial<DHExtras>) => {
+    updateComponent(DH_KEYS.extras, { ...extras, ...patch })
+  }
+
+  const updateAttrs = (patch: Partial<DHAttributes>) => {
+    updateComponent(DH_KEYS.attributes, { ...attrs, ...patch })
+  }
+
+  const entityName = getName(entity)
 
   const handleSaveName = () => {
     const trimmed = editName.trim()
-    if (trimmed && trimmed !== entity.name) {
-      onUpdateEntity(entity.id, { name: trimmed })
+    if (trimmed && trimmed !== entityName) {
+      onUpdateEntity(entity.id, {
+        components: {
+          ...entity.components,
+          'core:identity': {
+            ...(entity.components['core:identity'] as Record<string, unknown>),
+            name: trimmed,
+          },
+        },
+      })
     }
     setEditingName(false)
   }
@@ -51,19 +87,19 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border-glass">
         <div className="flex items-center gap-3">
-          {entity.imageUrl ? (
+          {getImageUrl(entity) ? (
             <img
-              src={entity.imageUrl}
+              src={getImageUrl(entity)}
               alt=""
               className="w-10 h-10 rounded-full object-cover"
-              style={{ border: `2px solid ${entity.color}` }}
+              style={{ border: `2px solid ${getColor(entity)}` }}
             />
           ) : (
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center text-white text-base font-bold"
-              style={{ background: entity.color }}
+              style={{ background: getColor(entity) }}
             >
-              {entity.name.charAt(0).toUpperCase()}
+              {entityName.charAt(0).toUpperCase()}
             </div>
           )}
           {editingName ? (
@@ -78,7 +114,7 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
                 if (e.key === 'Enter') handleSaveName()
                 if (e.key === 'Escape') {
                   setEditingName(false)
-                  setEditName(entity.name)
+                  setEditName(entityName)
                 }
               }}
               className="px-2 py-0.5 border border-border-glass rounded-md text-lg font-bold bg-surface text-white outline-none"
@@ -87,11 +123,11 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
             <span
               className="text-lg font-bold cursor-text hover:opacity-80"
               onClick={() => {
-                setEditName(entity.name)
+                setEditName(entityName)
                 setEditingName(true)
               }}
             >
-              {entity.name}
+              {entityName}
             </span>
           )}
         </div>
@@ -116,16 +152,16 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
             <div className="grid grid-cols-2 gap-2">
               <IdentityField
                 label={t('sheet.class')}
-                value={d.className}
+                value={meta.className}
                 onChange={(v) => {
-                  updateDH({ className: v })
+                  updateMeta({ className: v })
                 }}
               />
               <IdentityField
                 label={t('sheet.ancestry')}
-                value={d.ancestry}
+                value={meta.ancestry}
                 onChange={(v) => {
-                  updateDH({ ancestry: v })
+                  updateMeta({ ancestry: v })
                 }}
               />
             </div>
@@ -146,10 +182,10 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
                     <button
                       key={tier}
                       onClick={() => {
-                        updateDH({ tier })
+                        updateMeta({ tier })
                       }}
                       className={`flex-1 py-1 rounded text-xs font-bold transition-colors duration-fast ${
-                        d.tier === tier
+                        meta.tier === tier
                           ? 'bg-accent text-white'
                           : 'bg-black/20 text-text-muted/50 hover:bg-black/40'
                       }`}
@@ -161,11 +197,11 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
               </div>
               <NumberField
                 label={t('sheet.proficiency')}
-                value={d.proficiency}
+                value={meta.proficiency}
                 min={1}
                 max={6}
                 onChange={(v) => {
-                  updateDH({ proficiency: v })
+                  updateMeta({ proficiency: v })
                 }}
               />
             </div>
@@ -181,9 +217,9 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
                 <AttrField
                   key={key}
                   label={t(`attr.${key}`)}
-                  value={d[key]}
+                  value={attrs[key]}
                   onChange={(v) => {
-                    updateDH({ [key]: v } as Partial<DHRuleData>)
+                    updateAttrs({ [key]: v } as Partial<DHAttributes>)
                   }}
                 />
               ))}
@@ -201,8 +237,8 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
               <ResourceField
                 label={t('sheet.hp')}
                 color="#ef4444"
-                current={d.hp?.current ?? 0}
-                max={d.hp?.max ?? 0}
+                current={hp.current}
+                max={hp.max}
                 onCurrentChange={(v) => {
                   updateHP({ current: v })
                 }}
@@ -213,8 +249,8 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
               <ResourceField
                 label={t('sheet.stress')}
                 color="#f97316"
-                current={d.stress?.current ?? 0}
-                max={d.stress?.max ?? 0}
+                current={stress.current}
+                max={stress.max}
                 onCurrentChange={(v) => {
                   updateStress({ current: v })
                 }}
@@ -225,20 +261,20 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
               <div className="grid grid-cols-2 gap-2">
                 <NumberField
                   label={t('sheet.hope')}
-                  value={d.hope ?? 0}
+                  value={extras.hope}
                   min={0}
                   max={99}
                   onChange={(v) => {
-                    updateDH({ hope: v })
+                    updateExtras({ hope: v })
                   }}
                 />
                 <NumberField
                   label={t('sheet.armor')}
-                  value={d.armor ?? 0}
+                  value={extras.armor}
                   min={0}
                   max={6}
                   onChange={(v) => {
-                    updateDH({ armor: v })
+                    updateExtras({ armor: v })
                   }}
                 />
               </div>
@@ -251,9 +287,14 @@ export function FullCharacterSheet({ entity, onClose, onUpdateEntity }: PluginPa
               {t('sheet.sectionNotes')}
             </div>
             <textarea
-              value={entity.notes}
+              value={getNotes(entity).text}
               onChange={(e) => {
-                onUpdateEntity(entity.id, { notes: e.target.value })
+                onUpdateEntity(entity.id, {
+                  components: {
+                    ...entity.components,
+                    'core:notes': { text: e.target.value },
+                  },
+                })
               }}
               placeholder={t('sheet.notesPlaceholder')}
               rows={6}

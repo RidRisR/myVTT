@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { setupTestRoom, type TestContext } from '../helpers/test-server'
+import type { Entity } from '../../../src/shared/entityTypes'
+import { getName } from '../../../src/shared/coreComponents'
 
 let ctx: TestContext
 let sceneId: string
@@ -18,9 +20,10 @@ beforeAll(async () => {
   await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: sceneId })
 
   const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-    name: 'Fighter',
     lifecycle: 'reusable',
-    color: '#ef4444',
+    components: {
+      'core:identity': { name: 'Fighter', imageUrl: '', color: '#ef4444' },
+    },
   })
   entityId = (entity as { id: string }).id
 })
@@ -48,10 +51,10 @@ describe('Tactical Tokens CRUD', () => {
     )
     expect(status).toBe(201)
     const result = data as {
-      entity: { id: string; name: string; lifecycle: string }
+      entity: Entity
       token: { id: string; entityId: string; x: number; y: number }
     }
-    expect(result.entity.name).toBe('Goblin')
+    expect(getName(result.entity)).toBe('Goblin')
     expect(result.entity.lifecycle).toBe('ephemeral')
     expect(result.token.entityId).toBe(result.entity.id)
     expect(result.token.x).toBe(5)
@@ -78,8 +81,10 @@ describe('Tactical Tokens CRUD', () => {
   it('POST /tactical/tokens/from-entity places entity on map', async () => {
     // Create a second entity for from-entity test
     const { data: e2 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      name: 'Mage',
       lifecycle: 'reusable',
+      components: {
+        'core:identity': { name: 'Mage', imageUrl: '', color: '#888888' },
+      },
     })
     const e2Id = (e2 as { id: string }).id
 

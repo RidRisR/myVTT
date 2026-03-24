@@ -8,7 +8,8 @@ import {
   rollCommands,
 } from '../diceSystem'
 import { makeEntity } from '../../../src/__test-utils__/fixtures'
-import type { DHRuleData } from '../types'
+import type { DHAttributes, DHMeta, DHHealth, DHStress, DHExtras } from '../types'
+import { DH_KEYS } from '../types'
 
 function asDH(r: ReturnType<typeof dhEvaluateRoll>) {
   expect(r).not.toBeNull()
@@ -99,27 +100,32 @@ describe('dhGetJudgmentDisplay', () => {
 })
 
 describe('dhGetRollActions', () => {
-  it('returns empty for entity with no ruleData', () => {
-    expect(dhGetRollActions(makeEntity({ ruleData: null }))).toEqual([])
+  it('returns empty for entity with no attributes component', () => {
+    expect(dhGetRollActions(makeEntity())).toEqual([])
   })
   it('returns 6 actions with 2d12+@attr formulas', () => {
     const entity = makeEntity({
-      ruleData: {
-        agility: 2,
-        strength: 1,
-        finesse: 3,
-        instinct: 0,
-        presence: 1,
-        knowledge: 2,
-        tier: 1,
-        proficiency: 1,
-        className: '',
-        ancestry: '',
-        hp: { current: 0, max: 0 },
-        stress: { current: 0, max: 0 },
-        hope: 0,
-        armor: 0,
-      } satisfies DHRuleData,
+      components: {
+        'core:identity': { name: 'Test', imageUrl: '', color: '#3b82f6' },
+        'core:token': { width: 1, height: 1 },
+        [DH_KEYS.attributes]: {
+          agility: 2,
+          strength: 1,
+          finesse: 3,
+          instinct: 0,
+          presence: 1,
+          knowledge: 2,
+        } satisfies DHAttributes,
+        [DH_KEYS.meta]: {
+          tier: 1,
+          proficiency: 1,
+          className: '',
+          ancestry: '',
+        } satisfies DHMeta,
+        [DH_KEYS.health]: { current: 0, max: 0 } satisfies DHHealth,
+        [DH_KEYS.stress]: { current: 0, max: 0 } satisfies DHStress,
+        [DH_KEYS.extras]: { hope: 0, armor: 0 } satisfies DHExtras,
+      },
     })
     const actions = dhGetRollActions(entity)
     expect(actions).toHaveLength(6)

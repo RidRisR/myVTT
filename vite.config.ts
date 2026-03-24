@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => {
         'src/**/*.test.{ts,tsx}',
         'plugins/**/*.test.{ts,tsx}',
         'server/**/*.test.{ts,mjs}',
+        'poc/**/*.test.{ts,tsx}',
       ],
       environmentMatchGlobs: [['server/**', 'node']],
       setupFiles: ['./src/__test-utils__/setup.ts'],

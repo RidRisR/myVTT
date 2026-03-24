@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ChatMessage } from '../shared/chatTypes'
+import type { ChatMessage, MessageOrigin } from '../shared/chatTypes'
+import { getDisplayIdentity } from '../shared/chatTypes'
 import type { DiceSpec } from '../shared/diceUtils'
 import type { Entity } from '../shared/entityTypes'
+import { getName, getColor, getImageUrl } from '../shared/coreComponents'
 import { useWorldStore } from '../stores/worldStore'
 import { useRulePlugin } from '../rules/useRulePlugin'
 import { MessageScrollArea } from './MessageScrollArea'
@@ -18,15 +20,13 @@ interface ChatPanelProps {
   senderId: string
   senderName: string
   senderColor: string
-  portraitUrl?: string
   seatProperties: { key: string; value: string }[]
   selectedTokenProps?: { key: string; value: string }[]
   speakerEntities: Entity[]
 }
 
-/** Resolved identity used for sending messages */
-interface SpeakerIdentity {
-  id: string
+/** Display identity for speaker picker items */
+interface SpeakerDisplayIdentity {
   name: string
   color: string
   portraitUrl?: string
@@ -37,7 +37,7 @@ function SpeakerPickerItem({
   isActive,
   onSelect,
 }: {
-  identity: SpeakerIdentity
+  identity: SpeakerDisplayIdentity
   isActive: boolean
   onSelect: () => void
 }) {
@@ -69,7 +69,6 @@ export function ChatPanel({
   senderId,
   senderName,
   senderColor,
-  portraitUrl,
   seatProperties,
   selectedTokenProps = [],
   speakerEntities,
@@ -88,20 +87,19 @@ export function ChatPanel({
 
   // Read messages from worldStore
   const messages = useWorldStore((s) => s.chatMessages)
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
   const freshChatIds = useWorldStore((s) => s.freshChatIds)
   const sendMessage = useWorldStore((s) => s.sendMessage)
   const sendRoll = useWorldStore((s) => s.sendRoll)
   const plugin = useRulePlugin()
 
-  // Build speaker identity: null = seat identity, string = character
-  const seatIdentity: SpeakerIdentity = useMemo(
+  // Build origin: null = seat identity, string = character
+  const seatOrigin: MessageOrigin = useMemo(
     () => ({
-      id: senderId,
-      name: senderName,
-      color: senderColor,
-      portraitUrl,
+      seat: { id: senderId, name: senderName, color: senderColor },
     }),
-    [senderId, senderName, senderColor, portraitUrl],
+    [senderId, senderName, senderColor],
   )
 
   const speakerEntity = speakerCharId
@@ -115,18 +113,22 @@ export function ChatPanel({
     }
   }, [speakerCharId, speakerEntity])
 
-  const activeSpeaker: SpeakerIdentity = useMemo(
-    () =>
-      speakerEntity
+  const activeOrigin: MessageOrigin = useMemo(
+    () => ({
+      seat: { id: senderId, name: senderName, color: senderColor },
+      entity: speakerEntity
         ? {
-            id: senderId,
-            name: speakerEntity.name,
-            color: speakerEntity.color,
-            portraitUrl: speakerEntity.imageUrl || undefined,
+            id: speakerEntity.id,
+            name: getName(speakerEntity),
+            color: getColor(speakerEntity),
+            portraitUrl: getImageUrl(speakerEntity) || undefined,
           }
-        : seatIdentity,
-    [speakerEntity, senderId, seatIdentity],
+        : undefined,
+    }),
+    [senderId, senderName, senderColor, speakerEntity],
   )
+
+  const activeDisplay = useMemo(() => getDisplayIdentity(activeOrigin), [activeOrigin])
 
   // When speaking as an entity, use that entity's properties for @ resolution
   const activeSpeakerProps = useMemo(() => {
@@ -148,7 +150,7 @@ export function ChatPanel({
 
     // Detect newly added messages
     if (messages.length > prevMessageCountRef.current) {
-      const newMsgs = messages.slice(prevMessageCountRef.current)
+      const newMsgs = messagesRef.current.slice(prevMessageCountRef.current)
 
       // Add to toast queue if collapsed
       if (!expandedRef.current) {
@@ -158,7 +160,7 @@ export function ChatPanel({
       }
     }
     prevMessageCountRef.current = messages.length
-  }, [messages])
+  }, [messages.length])
 
   // Limit to max 3 toasts
   useEffect(() => {
@@ -182,10 +184,7 @@ export function ChatPanel({
     (message: ChatMessage) => {
       if (message.type === 'text') {
         void sendMessage({
-          senderId: message.senderId,
-          senderName: message.senderName,
-          senderColor: message.senderColor,
-          portraitUrl: message.portraitUrl,
+          origin: message.origin,
           content: message.content,
         })
       }
@@ -196,17 +195,14 @@ export function ChatPanel({
   const handleRoll = useCallback(
     (formula: string, resolvedFormula?: string, dice: DiceSpec[] = [], rollType?: string) => {
       void sendRoll({
+        origin: activeOrigin,
         formula,
         resolvedFormula,
         dice,
         rollType,
-        senderId: activeSpeaker.id,
-        senderName: activeSpeaker.name,
-        senderColor: activeSpeaker.color,
-        portraitUrl: activeSpeaker.portraitUrl,
       })
     },
-    [sendRoll, activeSpeaker],
+    [sendRoll, activeOrigin],
   )
 
   // Tab to cycle speaker: seat → entity1 → entity2 → ... → seat
@@ -265,9 +261,9 @@ export function ChatPanel({
               aria-label={t('switch_speaker')}
             >
               <Avatar
-                portraitUrl={activeSpeaker.portraitUrl}
-                senderName={activeSpeaker.name}
-                senderColor={activeSpeaker.color}
+                portraitUrl={activeDisplay.portraitUrl}
+                senderName={activeDisplay.name}
+                senderColor={activeDisplay.color}
                 size={28}
               />
             </button>
@@ -286,7 +282,7 @@ export function ChatPanel({
                 {t('speak_as')}
               </div>
               <SpeakerPickerItem
-                identity={seatIdentity}
+                identity={getDisplayIdentity(seatOrigin)}
                 isActive={speakerCharId === null}
                 onSelect={() => {
                   setSpeakerCharId(null)
@@ -297,10 +293,9 @@ export function ChatPanel({
                 <SpeakerPickerItem
                   key={e.id}
                   identity={{
-                    id: senderId,
-                    name: e.name,
-                    color: e.color,
-                    portraitUrl: e.imageUrl || undefined,
+                    name: getName(e),
+                    color: getColor(e),
+                    portraitUrl: getImageUrl(e) || undefined,
                   }}
                   isActive={speakerCharId === e.id}
                   onSelect={() => {
@@ -315,10 +310,7 @@ export function ChatPanel({
 
         <div className="flex-1">
           <ChatInput
-            senderId={activeSpeaker.id}
-            senderName={activeSpeaker.name}
-            senderColor={activeSpeaker.color}
-            portraitUrl={activeSpeaker.portraitUrl}
+            origin={activeOrigin}
             onSend={handleSend}
             onRoll={handleRoll}
             selectedTokenProps={selectedTokenProps}

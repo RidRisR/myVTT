@@ -47,25 +47,24 @@ export function initRoomSchema(db: Database.Database): void {
     -- Blueprints (entity template factory)
     CREATE TABLE IF NOT EXISTS blueprints (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL DEFAULT '',
-      image_url TEXT DEFAULT '',
-      defaults TEXT DEFAULT '{}',
+      defaults TEXT DEFAULT '{"components":{}}',
       created_at INTEGER NOT NULL
     );
 
-    -- Entities
+    -- Entities (slim: identity/appearance now live in entity_components)
     CREATE TABLE IF NOT EXISTS entities (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL DEFAULT '',
-      image_url TEXT DEFAULT '',
-      color TEXT DEFAULT '#888888',
-      width REAL NOT NULL DEFAULT 1,
-      height REAL NOT NULL DEFAULT 1,
-      notes TEXT DEFAULT '',
-      rule_data TEXT DEFAULT '{}',
       permissions TEXT DEFAULT '{"default":"none","seats":{}}',
       lifecycle TEXT DEFAULT 'ephemeral' CHECK(lifecycle IN ('ephemeral','reusable','persistent')),
       blueprint_id TEXT REFERENCES blueprints(id) ON DELETE SET NULL
+    );
+
+    -- Entity components (ECS-style key/value store)
+    CREATE TABLE IF NOT EXISTS entity_components (
+      entity_id TEXT NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+      component_key TEXT NOT NULL,
+      data TEXT NOT NULL DEFAULT '{}',
+      PRIMARY KEY (entity_id, component_key)
     );
 
     -- Scene-Entity many-to-many
@@ -136,10 +135,8 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS chat_messages (
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL DEFAULT 'text',
-      sender_id TEXT,
-      sender_name TEXT,
-      sender_color TEXT,
-      portrait_url TEXT,
+      seat TEXT NOT NULL,
+      entity TEXT,
       content TEXT,
       roll_data TEXT,
       timestamp INTEGER NOT NULL
@@ -171,6 +168,13 @@ export function initRoomSchema(db: Database.Database): void {
       asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
       tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
       PRIMARY KEY (asset_id, tag_id)
+    );
+
+    -- Entity ↔ Tag junction
+    CREATE TABLE IF NOT EXISTS entity_tags (
+      entity_id TEXT NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+      tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+      PRIMARY KEY (entity_id, tag_id)
     );
 
     -- Blueprint ↔ Tag junction
@@ -210,5 +214,7 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_blueprints_created ON blueprints(created_at);
     CREATE INDEX IF NOT EXISTS idx_asset_tags_tag ON asset_tags(tag_id);
     CREATE INDEX IF NOT EXISTS idx_blueprint_tags_tag ON blueprint_tags(tag_id);
+    CREATE INDEX IF NOT EXISTS idx_entity_components_entity ON entity_components(entity_id);
+    CREATE INDEX IF NOT EXISTS idx_entity_tags_tag ON entity_tags(tag_id);
   `)
 }

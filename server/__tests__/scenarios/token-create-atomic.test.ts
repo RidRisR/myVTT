@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { setupTestRoom, type TestContext } from '../helpers/test-server'
+import type { Entity } from '../../../src/shared/entityTypes'
+import { getName } from '../../../src/shared/coreComponents'
 
 let ctx: TestContext
 let sceneId: string
@@ -38,15 +40,16 @@ describe('POST /tactical/tokens/quick — atomic ephemeral entity + token', () =
     expect(status).toBe(201)
 
     const result = data as {
-      entity: { id: string; name: string; lifecycle: string; color: string }
+      entity: Entity
       token: { id: string; entityId: string; x: number; y: number }
     }
 
     // Entity assertions
     expect(result.entity.id).toBeTruthy()
-    expect(result.entity.name).toBe('Skeleton')
+    expect(getName(result.entity)).toBe('Skeleton')
     expect(result.entity.lifecycle).toBe('ephemeral')
-    expect(result.entity.color).toBe('#aaaaaa')
+    const identity = result.entity.components['core:identity'] as { color: string }
+    expect(identity.color).toBe('#aaaaaa')
 
     // Token assertions
     expect(result.token.id).toBeTruthy()

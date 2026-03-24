@@ -1,13 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Entity } from '../shared/entityTypes'
-import {
-  getEntityResources,
-  getEntityAttributes,
-  getEntityStatuses,
-  type ResourceView,
-  updateRuleDataField,
-} from '../shared/entityAdapters'
+import { getName } from '../shared/coreComponents'
+import { useRulePlugin } from '../rules/useRulePlugin'
+import type { ResourceView } from '../rules/types'
 import { statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../ui/ResourceBar'
 import { useIdentityStore } from '../stores/identityStore'
@@ -22,6 +18,10 @@ interface CharacterHoverPreviewProps {
 
 type Tab = 'stats' | 'attr'
 
+function updateComponent(entity: Entity, key: string, value: unknown): Partial<Entity> {
+  return { components: { ...entity.components, [key]: value } }
+}
+
 export function CharacterHoverPreview({
   character,
   isOnline,
@@ -29,6 +29,8 @@ export function CharacterHoverPreview({
   onUpdateCharacter,
 }: CharacterHoverPreviewProps) {
   const { t } = useTranslation('layout')
+  const plugin = useRulePlugin()
+
   // Awareness for resource drag broadcasting
   const mySeatId = useIdentityStore((s) => s.mySeatId)
   const mySeat = useIdentityStore((s) => s.getMySeat())
@@ -37,47 +39,53 @@ export function CharacterHoverPreview({
     mySeat?.color ?? null,
   )
 
-  const allResources = getEntityResources(character)
+  const allResources = plugin.adapters.getPortraitResources(character)
   const resources = allResources.filter((r) => r.max > 0)
-  const attributes = getEntityAttributes(character)
-  const statuses = getEntityStatuses(character)
+  const attributes = plugin.adapters.getFormulaTokens(character)
+  const statuses = plugin.adapters.getStatuses(character)
+  const attrEntries = Object.entries(attributes)
   const [activeTab, setActiveTab] = useState<Tab>('stats')
   const [editingStatusIdx, setEditingStatusIdx] = useState<number | null>(null)
   const [editingStatusLabel, setEditingStatusLabel] = useState('')
   const [addingStatus, setAddingStatus] = useState(false)
   const [newStatusLabel, setNewStatusLabel] = useState('')
 
+  const name = getName(character)
+
   const canEdit = !!(editable && onUpdateCharacter)
   const hasStats = resources.length > 0 || statuses.length > 0 || canEdit
-  const hasAttr = attributes.length > 0
+  const hasAttr = attrEntries.length > 0
   const showTabs = hasStats && hasAttr
+
+  const rawResources = (character.components['rule:resources'] ?? []) as ResourceView[]
+  const rawStatuses = (character.components['rule:statuses'] ?? []) as { label: string }[]
+
   const updateResource = (index: number, updates: Partial<ResourceView>) => {
     if (!onUpdateCharacter) return
-    // index is guaranteed valid — called from .map() over resources
     const resource = resources[index]
     if (!resource) return
     const visibleIndex = allResources.indexOf(resource)
     if (visibleIndex < 0) return
-    const existing = allResources[visibleIndex]
+    const existing = rawResources[visibleIndex]
     if (!existing) return
-    const next = [...allResources]
+    const next = [...rawResources]
     next[visibleIndex] = { ...existing, ...updates }
-    onUpdateCharacter(character.id, updateRuleDataField(character, 'resources', next))
+    onUpdateCharacter(character.id, updateComponent(character, 'rule:resources', next))
   }
 
   const removeStatus = (index: number) => {
     if (!onUpdateCharacter) return
-    const next = statuses.filter((_, i) => i !== index)
-    onUpdateCharacter(character.id, updateRuleDataField(character, 'statuses', next))
+    const next = rawStatuses.filter((_, i) => i !== index)
+    onUpdateCharacter(character.id, updateComponent(character, 'rule:statuses', next))
   }
 
   const commitStatusEdit = (index: number, label: string) => {
     if (!onUpdateCharacter) return
     const trimmed = label.trim()
-    if (trimmed && trimmed !== statuses[index]?.label) {
-      const next = [...statuses]
+    if (trimmed && trimmed !== rawStatuses[index]?.label) {
+      const next = [...rawStatuses]
       next[index] = { label: trimmed }
-      onUpdateCharacter(character.id, updateRuleDataField(character, 'statuses', next))
+      onUpdateCharacter(character.id, updateComponent(character, 'rule:statuses', next))
     }
     setEditingStatusIdx(null)
   }
@@ -88,7 +96,7 @@ export function CharacterHoverPreview({
     if (trimmed) {
       onUpdateCharacter(
         character.id,
-        updateRuleDataField(character, 'statuses', [...statuses, { label: trimmed }]),
+        updateComponent(character, 'rule:statuses', [...rawStatuses, { label: trimmed }]),
       )
     }
     setNewStatusLabel('')
@@ -141,7 +149,7 @@ export function CharacterHoverPreview({
             whiteSpace: 'nowrap',
           }}
         >
-          {character.name}
+          {name}
         </span>
         {isOnline && (
           <span
@@ -208,7 +216,7 @@ export function CharacterHoverPreview({
             return (
               <ResourceBar
                 key={i}
-                label={res.key || t('character.unnamed_resource')}
+                label={res.label || t('character.unnamed_resource')}
                 current={res.current}
                 max={res.max}
                 color={res.color}
@@ -438,7 +446,7 @@ export function CharacterHoverPreview({
       {/* Attr tab: Attributes */}
       {showAttr && (
         <div>
-          {attributes.map((attr, i) => (
+          {attrEntries.map(([key, value], i) => (
             <div
               key={i}
               style={{
@@ -452,9 +460,9 @@ export function CharacterHoverPreview({
               }}
             >
               <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
-                {attr.key || t('character.unnamed_attribute')}
+                {key || t('character.unnamed_attribute')}
               </span>
-              <span style={{ color: '#fff', fontWeight: 700 }}>{attr.value}</span>
+              <span style={{ color: '#fff', fontWeight: 700 }}>{value}</span>
             </div>
           ))}
         </div>

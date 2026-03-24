@@ -1,17 +1,19 @@
 import type { WorkflowContext } from '@myvtt/sdk'
+import { toastEvent, animationEvent } from '../../src/events/systemEvents'
 
-export async function cosmeticDiceAnimationStep(ctx: WorkflowContext): Promise<void> {
-  const rolls = ctx.data.rolls as number[][] | undefined
+export function cosmeticDiceAnimationStep(ctx: WorkflowContext): void {
+  const rolls = ctx.vars.rolls as number[][] | undefined
   if (!rolls || rolls.length === 0) return
 
-  const judgment = ctx.data.judgment as { type: string; outcome: string } | undefined
+  const judgment = ctx.vars.judgment as { type: string; outcome: string } | undefined
 
   const outcome = judgment?.outcome ?? 'unknown'
-  ctx.showToast(`🎲 Dice animation: ${JSON.stringify(rolls.flat())} — ${outcome}`, {
+  ctx.events.emit(toastEvent, {
+    text: `🎲 Dice animation: ${JSON.stringify(rolls.flat())} — ${outcome}`,
     variant: 'info',
   })
 
-  await ctx.playAnimation({
+  ctx.events.emit(animationEvent, {
     type: 'dice-roll',
     data: {
       rolls,

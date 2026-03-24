@@ -8,6 +8,7 @@ import type { TacticalInfo } from '../stores/worldStore'
 import { useWorldStore } from '../stores/worldStore'
 import { canSee, canEdit, defaultPCPermissions } from '../shared/permissions'
 import { statusColor } from '../shared/tokenUtils'
+import { getName, getImageUrl, getColor } from '../shared/coreComponents'
 import { generateTokenId } from '../shared/idUtils'
 import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
@@ -195,15 +196,15 @@ export function PortraitBar({
     if (!mySeatId || !activeSceneId) return
     const newEntity: Entity = {
       id: generateTokenId(),
-      name: t('portrait.my_character'),
-      imageUrl: '',
-      color: '#3b82f6',
-      width: 1,
-      height: 1,
-      notes: '',
-      ruleData: plugin.dataTemplates?.createDefaultEntityData() ?? null,
       permissions: defaultPCPermissions(mySeatId),
       lifecycle: 'persistent',
+      tags: [],
+      components: {
+        'core:identity': { name: t('portrait.my_character'), imageUrl: '', color: '#3b82f6' },
+        'core:token': { width: 1, height: 1 },
+        'core:notes': { text: '' },
+        ...(plugin.dataTemplates?.createDefaultEntityData() ?? {}),
+      },
     }
     void addEntity(newEntity)
     void addEntityToScene(activeSceneId, newEntity.id, true)
@@ -277,6 +278,10 @@ export function PortraitBar({
     const statuses = plugin.adapters.getStatuses(entity)
     const maxStatusDots = 3
 
+    const eName = getName(entity)
+    const eColor = getColor(entity)
+    const eImageUrl = getImageUrl(entity)
+
     // Check if entity has an owner seat that is online
     const ownerSeatId = Object.entries(entity.permissions.seats).find(([, v]) => v === 'owner')?.[0]
     const isOnline =
@@ -303,7 +308,7 @@ export function PortraitBar({
             onMouseLeave={() => {
               handlePortraitMouseLeave()
             }}
-            title={`${entity.name}${statuses.length > 0 ? '\n' + statuses.map((s) => s.label).join(', ') : ''}`}
+            title={`${eName}${statuses.length > 0 ? '\n' + statuses.map((s) => s.label).join(', ') : ''}`}
           >
             {/* SVG ring progress */}
             <svg
@@ -336,19 +341,19 @@ export function PortraitBar({
               }}
               className="flex items-center justify-center"
             >
-              {entity.imageUrl ? (
+              {eImageUrl ? (
                 <img
-                  src={entity.imageUrl}
-                  alt={entity.name}
+                  src={eImageUrl}
+                  alt={eName}
                   style={{
                     width: IMG_SIZE,
                     height: IMG_SIZE,
                     border: isInspected
                       ? '2px solid #fff'
                       : isActive
-                        ? `2px solid ${entity.color}`
+                        ? `2px solid ${eColor}`
                         : '2px solid rgba(255,255,255,0.15)',
-                    boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
+                    boxShadow: isInspected ? `0 0 12px ${eColor}88` : 'none',
                   }}
                   className="rounded-full object-cover block transition-[border-color,box-shadow] duration-200"
                 />
@@ -357,13 +362,13 @@ export function PortraitBar({
                   style={{
                     width: IMG_SIZE,
                     height: IMG_SIZE,
-                    background: `linear-gradient(135deg, ${entity.color}, ${entity.color}aa)`,
+                    background: `linear-gradient(135deg, ${eColor}, ${eColor}aa)`,
                     border: isInspected ? '2px solid #fff' : '2px solid rgba(255,255,255,0.15)',
-                    boxShadow: isInspected ? `0 0 12px ${entity.color}88` : 'none',
+                    boxShadow: isInspected ? `0 0 12px ${eColor}88` : 'none',
                   }}
                   className="rounded-full flex items-center justify-center text-white text-sm font-bold font-sans box-border transition-[border-color,box-shadow] duration-200"
                 >
-                  {entity.name.charAt(0).toUpperCase()}
+                  {eName.charAt(0).toUpperCase()}
                 </div>
               )}
             </div>

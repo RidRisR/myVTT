@@ -67,11 +67,29 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
             ? (body.tags as string[])
             : []
         : []
-      const defaults = body.defaults
-        ? typeof body.defaults === 'string'
-          ? body.defaults
-          : JSON.stringify(body.defaults)
-        : '{"color":"#3b82f6","width":1,"height":1}'
+
+      // Build defaults in { components: {...} } format
+      let defaults: string
+      if (body.defaults) {
+        const parsed =
+          typeof body.defaults === 'string'
+            ? (JSON.parse(body.defaults) as Record<string, unknown>)
+            : (body.defaults as Record<string, unknown>)
+        // If caller already sent { components: {...} }, use as-is; otherwise wrap
+        if (parsed.components) {
+          defaults = JSON.stringify(parsed)
+        } else {
+          defaults = JSON.stringify({ components: parsed })
+        }
+      } else {
+        // Default: put identity info into core:identity component
+        defaults = JSON.stringify({
+          components: {
+            'core:identity': { name, imageUrl: url, color: '#3b82f6' },
+            'core:token': { width: 1, height: 1 },
+          },
+        })
+      }
       const now = Date.now()
 
       // Atomic transaction: insert asset + blueprint together
@@ -79,12 +97,12 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
         "INSERT INTO assets (id, url, name, media_type, category, created_at, extra) VALUES (?, ?, ?, 'image', 'token', ?, '{}')",
       )
       const insertBlueprint = req.roomDb!.prepare(
-        'INSERT INTO blueprints (id, name, image_url, defaults, created_at) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO blueprints (id, defaults, created_at) VALUES (?, ?, ?)',
       )
 
       const transaction = req.roomDb!.transaction(() => {
         insertAsset.run(assetId, url, name, now)
-        insertBlueprint.run(blueprintId, name, url, defaults, now)
+        insertBlueprint.run(blueprintId, defaults, now)
       })
 
       try {
@@ -122,16 +140,12 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
   router.post('/api/rooms/:roomId/blueprints', room, (req, res) => {
     const body = req.body as Record<string, unknown>
     const id = crypto.randomUUID()
-    const name = (body.name as string) || ''
-    const imageUrl = (body.imageUrl as string) || ''
     const tagNames: string[] = Array.isArray(body.tags) ? (body.tags as string[]) : []
-    const defaults = body.defaults ? JSON.stringify(body.defaults) : '{}'
+    const defaults = body.defaults ? JSON.stringify(body.defaults) : '{"components":{}}'
 
     req
-      .roomDb!.prepare(
-        'INSERT INTO blueprints (id, name, image_url, defaults, created_at) VALUES (?, ?, ?, ?, ?)',
-      )
-      .run(id, name, imageUrl, defaults, Date.now())
+      .roomDb!.prepare('INSERT INTO blueprints (id, defaults, created_at) VALUES (?, ?, ?)')
+      .run(id, defaults, Date.now())
     syncTags(req.roomDb!, 'blueprint_tags', 'blueprint_id', id, tagNames)
 
     const bp = toBlueprintWithTags(
@@ -158,14 +172,6 @@ export function blueprintRoutes(dataDir: string, io: TypedServer): Router {
     const updates: string[] = []
     const params: unknown[] = []
 
-    if (body.name !== undefined) {
-      updates.push('name = ?')
-      params.push(body.name)
-    }
-    if (body.imageUrl !== undefined) {
-      updates.push('image_url = ?')
-      params.push(body.imageUrl)
-    }
     if (body.defaults !== undefined) {
       updates.push('defaults = ?')
       params.push(JSON.stringify(body.defaults))

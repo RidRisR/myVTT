@@ -3,10 +3,10 @@ import { Router } from 'express'
 import crypto from 'crypto'
 import type { TypedServer } from '../socketTypes'
 import type { ArchiveRecord } from '../../src/shared/storeTypes'
-import type { Entity } from '../../src/shared/entityTypes'
 import { withRoom, withRole } from '../middleware'
 import { toCamel, parseJsonFields, toBoolFields } from '../db'
 import { getTacticalState } from './tactical'
+import { loadEntity } from './entities'
 
 function toArchive(row: Record<string, unknown>): ArchiveRecord {
   const r = parseJsonFields(toCamel(row), 'grid')
@@ -142,12 +142,11 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
         }
       | undefined
 
-    // 4. Get tokens joined with entities
+    // 4. Get tokens joined with entities + their components
     const tokenRows = db
       .prepare(
         `SELECT t.id, t.x, t.y, t.width, t.height, t.image_scale_x, t.image_scale_y,
-                e.id as entity_id, e.name, e.image_url, e.color, e.width as entity_width,
-                e.height as entity_height, e.notes, e.rule_data, e.permissions, e.lifecycle
+                e.id as entity_id, e.permissions, e.lifecycle
          FROM tactical_tokens t
          JOIN entities e ON t.entity_id = e.id
          WHERE t.scene_id = ?`,
@@ -168,17 +167,19 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
       for (const row of tokenRows) {
         const tokenId = crypto.randomUUID()
         const lifecycle = row.lifecycle as string
+        const entityId = row.entity_id as string
 
         if (lifecycle === 'ephemeral') {
-          // Snapshot: store entity data, no reference
+          // Snapshot: store components + permissions, no reference
+          const componentRows = db
+            .prepare('SELECT component_key, data FROM entity_components WHERE entity_id = ?')
+            .all(entityId) as { component_key: string; data: string }[]
+          const components: Record<string, unknown> = {}
+          for (const cr of componentRows) {
+            components[cr.component_key] = JSON.parse(cr.data)
+          }
           const snapshotData = JSON.stringify({
-            name: row.name,
-            imageUrl: row.image_url,
-            color: row.color,
-            width: row.entity_width,
-            height: row.entity_height,
-            notes: row.notes,
-            ruleData: row.rule_data,
+            components,
             permissions: row.permissions,
           })
           insertStmt.run(
@@ -206,7 +207,7 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
             row.image_scale_x,
             row.image_scale_y,
             lifecycle,
-            row.entity_id,
+            entityId,
             null,
           )
         }
@@ -284,7 +285,7 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
       // a. Delete all tactical_tokens for current scene
       db.prepare('DELETE FROM tactical_tokens WHERE scene_id = ?').run(sceneId)
 
-      // b. Delete orphan ephemeral entities
+      // b. Delete orphan ephemeral entities (CASCADE handles entity_components + entity_tags)
       const deleteEntityStmt = db.prepare('DELETE FROM entities WHERE id = ?')
       for (const id of orphanIds) {
         deleteEntityStmt.run(id)
@@ -296,8 +297,11 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       const insertEntityStmt = db.prepare(
-        `INSERT INTO entities (id, name, image_url, color, width, height, notes, rule_data, permissions, lifecycle)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ephemeral')`,
+        `INSERT INTO entities (id, permissions, lifecycle)
+         VALUES (?, ?, 'ephemeral')`,
+      )
+      const insertCompStmt = db.prepare(
+        'INSERT INTO entity_components (entity_id, component_key, data) VALUES (?, ?, ?)',
       )
 
       for (const at of archiveTokens) {
@@ -314,19 +318,20 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
           }
           const entityId = 'e-' + crypto.randomUUID().slice(0, 8)
           newEntityIds.push(entityId)
-          insertEntityStmt.run(
-            entityId,
-            snap.name || '',
-            snap.imageUrl || '',
-            snap.color || '#888888',
-            snap.width ?? 1,
-            snap.height ?? 1,
-            snap.notes || '',
-            typeof snap.ruleData === 'string' ? snap.ruleData : JSON.stringify(snap.ruleData || {}),
+
+          const permissions =
             typeof snap.permissions === 'string'
               ? snap.permissions
-              : JSON.stringify(snap.permissions || {}),
-          )
+              : JSON.stringify(snap.permissions || { default: 'observer', seats: {} })
+
+          insertEntityStmt.run(entityId, permissions)
+
+          // Restore components
+          const components = (snap.components || {}) as Record<string, unknown>
+          for (const [key, data] of Object.entries(components)) {
+            insertCompStmt.run(entityId, key, JSON.stringify(data))
+          }
+
           insertTokenStmt.run(
             tokenId,
             sceneId,
@@ -380,19 +385,13 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
       io.to(req.roomId!).emit('entity:deleted', { id })
     }
     for (const id of newEntityIds) {
-      const entityRow = db.prepare('SELECT * FROM entities WHERE id = ?').get(id) as Record<
-        string,
-        unknown
-      >
-      const entity = parseJsonFields(
-        toCamel(entityRow),
-        'ruleData',
-        'permissions',
-      ) as unknown as Entity
-      io.to(req.roomId!).emit('entity:created', entity)
+      const entity = loadEntity(db, id)
+      if (entity) {
+        io.to(req.roomId!).emit('entity:created', entity)
+      }
     }
 
-    // 6. Emit tactical:updated with restored state
+    // 7. Emit tactical:updated with restored state
     const result = getTacticalState(db, sceneId)
     if (result) {
       io.to(req.roomId!).emit('tactical:updated', result)

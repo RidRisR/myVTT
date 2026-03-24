@@ -1,6 +1,7 @@
 import { useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MapToken, Entity } from '../shared/entityTypes'
+import { getName } from '../shared/coreComponents'
 import type { ContextMenuContext } from '../rules/types'
 import { useRulePlugin } from '../rules/useRulePlugin'
 import { useClickOutside } from '../hooks/useClickOutside'
@@ -87,7 +88,7 @@ export function TokenContextMenu({
   const isTokenMenu = tokenId !== null && token !== null
   const isHidden = token ? (entity?.permissions.default ?? 'observer') === 'none' : false
   const currentSize = token?.width ?? 1
-  const tokenName = entity?.name ?? 'Token'
+  const tokenName = entity ? getName(entity) : 'Token'
 
   return (
     <div

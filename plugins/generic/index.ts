@@ -1,14 +1,14 @@
 // plugins/generic/index.ts
 import type { RulePlugin, ResourceView, StatusView, Entity } from '@myvtt/sdk'
 import { GenericEntityCard } from './GenericEntityCard'
-import {
-  getEntityResources,
-  getEntityStatuses,
-  getEntityAttributes,
-} from '../../src/shared/entityAdapters'
 
-// Generic plugin: delegates adapters to entityAdapters.ts.
-// This is the legacy fallback for rooms without a specific rule system.
+function getResources(entity: Entity): ResourceView[] {
+  const resources = entity.components['generic:resources'] as ResourceView[] | undefined
+  return resources ?? []
+}
+
+// Generic plugin: reads directly from entity.components.
+// This is the fallback for rooms without a specific rule system.
 export const genericPlugin: RulePlugin = {
   id: 'generic',
   name: 'Generic',
@@ -16,34 +16,24 @@ export const genericPlugin: RulePlugin = {
 
   adapters: {
     getMainResource(entity: Entity): ResourceView | null {
-      // entityAdapters.getEntityResources returns items with { key, current, max, color }
-      // Map to plugin ResourceView { label, current, max, color }
-      const resources = getEntityResources(entity)
+      const resources = getResources(entity)
       if (resources.length === 0) return null
-      // resources.length check above guarantees r exists
       const r = resources[0] as (typeof resources)[0]
-      return { label: r.key, current: r.current, max: r.max, color: r.color }
+      return r
     },
 
     getPortraitResources(entity: Entity): ResourceView[] {
-      return getEntityResources(entity).map((r) => ({
-        label: r.key,
-        current: r.current,
-        max: r.max,
-        color: r.color,
-      }))
+      return getResources(entity)
     },
 
     getStatuses(entity: Entity): StatusView[] {
-      return getEntityStatuses(entity)
+      const statuses = entity.components['generic:statuses'] as StatusView[] | undefined
+      return statuses ?? []
     },
 
     getFormulaTokens(entity: Entity): Record<string, number> {
-      const result: Record<string, number> = {}
-      for (const attr of getEntityAttributes(entity)) {
-        result[attr.key] = attr.value
-      }
-      return result
+      const attrs = entity.components['generic:attributes'] as Record<string, number> | undefined
+      return attrs ?? {}
     },
   },
 

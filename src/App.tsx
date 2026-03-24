@@ -40,11 +40,13 @@ import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './ui/ToastProvider'
 import { PluginPanelContainer } from './layout/PluginPanelContainer'
+import { useRulePlugin } from './rules/useRulePlugin'
 
 // DEV-only: Sandbox pattern library. Vite replaces import.meta.env.DEV with
 // false in production builds, making the lazy import dead code that Rollup
 // eliminates entirely (along with the whole src/sandbox/ directory).
 const SandboxRoot = import.meta.env.DEV ? lazy(() => import('./sandbox/index')) : () => null
+const PocApp = import.meta.env.DEV ? lazy(() => import('../poc/PocApp')) : () => null
 
 const EMPTY_ENTRIES: SceneEntityEntry[] = []
 
@@ -203,7 +205,8 @@ function RoomSession({ roomId }: { roomId: string }) {
     : null
   const selectedTokenEntity = selectedToken?.entityId ? getEntity(selectedToken.entityId) : null
 
-  const seatProperties = deriveSeatProperties(activeEntity, selectedTokenEntity)
+  const plugin = useRulePlugin()
+  const seatProperties = deriveSeatProperties(plugin, activeEntity, selectedTokenEntity)
   const isGMForSpeakers = mySeat?.role === 'GM'
   const speakerEntities = useMemo(
     () => selectSpeakerEntities(entities, mySeatId, isGMForSpeakers),
@@ -444,7 +447,6 @@ function RoomSession({ roomId }: { roomId: string }) {
           senderId={mySeatId}
           senderName={mySeat.name}
           senderColor={mySeat.color}
-          portraitUrl={mySeat.portraitUrl || activeEntity?.imageUrl}
           seatProperties={seatProperties}
           speakerEntities={speakerEntities}
         />
@@ -613,6 +615,20 @@ export default function App() {
         }
       >
         <SandboxRoot />
+      </Suspense>
+    )
+  }
+
+  if (import.meta.env.DEV && hash === '#poc') {
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-screen items-center justify-center bg-deep text-muted">
+            Loading POC...
+          </div>
+        }
+      >
+        <PocApp />
       </Suspense>
     )
   }

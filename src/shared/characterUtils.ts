@@ -1,4 +1,5 @@
 import type { Entity } from './entityTypes'
+import { getName } from './coreComponents'
 
 /**
  * Generate the next numbered name for an NPC from a blueprint.
@@ -13,7 +14,7 @@ export function nextNpcName(
   if (siblings.length === 0) return `${baseName} 1`
 
   const numbers = siblings.map((e) => {
-    const match = e.name.match(/(\d+)$/)
+    const match = getName(e).match(/(\d+)$/)
     return match ? parseInt(match[1] ?? '0', 10) : 0
   })
   const maxNum = Math.max(0, ...numbers)

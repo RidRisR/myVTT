@@ -9,6 +9,7 @@ import type {
   WorkflowResult,
   StepError,
   StepFn,
+  StepRunFn,
   InternalState,
   WorkflowHandle,
 } from './types'
@@ -33,6 +34,8 @@ interface StepMeta {
   pluginOwner?: string
   /** Lifecycle dependency — set by attachStep */
   dependsOn?: string
+  /** 'post' = run after output computation; undefined = main phase */
+  phase?: 'post'
 }
 
 interface WorkflowRecord {
@@ -40,6 +43,8 @@ interface WorkflowRecord {
   wrappers: Map<string, WrapperEntry[]>
   /** Tracks which plugin has replaced each step (only one replace per step) */
   replacements: Map<string, { pluginOwner?: string; originalRun: StepFn }>
+  /** Output extractor — called on completed workflows to produce structured output */
+  outputFn?: (vars: Record<string, unknown>) => unknown
 }
 
 interface WrapperEntry {
@@ -63,10 +68,29 @@ export class WorkflowEngine {
 
   // ── Registration ────────────────────────────────────────────────────────────
 
+  /** Define workflow without output extractor (output = vars snapshot) */
   defineWorkflow<TData = Record<string, unknown>>(
     name: string,
+    stepsOrRun?: Step<TData>[] | StepRunFn<TData>,
+  ): WorkflowHandle<TData, TData>
+  /** Define workflow with output extractor (third parameter) */
+  defineWorkflow<TData extends Record<string, unknown>, TOutput>(
+    name: string,
     steps: Step<TData>[],
+    outputFn: (vars: TData) => TOutput,
+  ): WorkflowHandle<TData, TOutput>
+  defineWorkflow<TData = Record<string, unknown>>(
+    name: string,
+    stepsOrRun?: Step<TData>[] | StepRunFn<TData>,
+    outputFn?: (vars: TData) => unknown,
   ): WorkflowHandle<TData> {
+    const steps: Step<TData>[] =
+      stepsOrRun === undefined
+        ? []
+        : typeof stepsOrRun === 'function'
+          ? [{ id: name, run: stepsOrRun }]
+          : stepsOrRun
+
     if (this.workflows.has(name)) {
       throw new Error(`Workflow "${name}" is already defined`)
     }
@@ -76,6 +100,10 @@ export class WorkflowEngine {
         throw new Error(`Duplicate step ID "${step.id}" in workflow "${name}"`)
       }
       seen.add(step.id)
+      // Forbidden combination: writable + non-critical
+      if (step.readonly !== true && step.critical === false) {
+        throw new Error(`Step "${step.id}": readonly must be true when critical is false`)
+      }
     }
 
     const record: WorkflowRecord = {
@@ -89,6 +117,7 @@ export class WorkflowEngine {
       })),
       wrappers: new Map(),
       replacements: new Map(),
+      outputFn: outputFn as WorkflowRecord['outputFn'],
     }
     this.workflows.set(name, record)
 
@@ -102,6 +131,16 @@ export class WorkflowEngine {
 
     if (addition.before !== undefined && addition.after !== undefined) {
       throw new Error(`Cannot specify both "before" and "after" in addStep`)
+    }
+
+    // Forbidden combination: writable + non-critical
+    if (addition.readonly !== true && addition.critical === false) {
+      throw new Error(`Step "${addition.id}": readonly must be true when critical is false`)
+    }
+
+    // phase: 'post' requires readonly: true
+    if (addition.phase === 'post' && addition.readonly !== true) {
+      throw new Error(`Step "${addition.id}": phase 'post' requires readonly: true`)
     }
 
     if (record.steps.some((m) => m.step.id === addition.id)) {
@@ -120,12 +159,18 @@ export class WorkflowEngine {
     }
 
     const newMeta: StepMeta = {
-      step: { id: addition.id, critical: addition.critical, run: addition.run as StepFn },
+      step: {
+        id: addition.id,
+        critical: addition.critical,
+        readonly: addition.readonly,
+        run: addition.run as StepFn,
+      },
       anchor,
       direction,
       priority: addition.priority ?? 100,
       insertionOrder: this.globalInsertionCounter++,
       pluginOwner: owner,
+      phase: addition.phase,
     }
 
     const insertIndex = this.findInsertIndex(record.steps, newMeta)
@@ -152,7 +197,9 @@ export class WorkflowEngine {
     const effectiveAddition: StepAddition = {
       id: addition.id,
       critical: addition.critical,
+      readonly: addition.readonly,
       priority: addition.priority,
+      phase: addition.phase,
       run: addition.run as StepFn,
       ...(hasExplicitAnchor
         ? { before: addition.before, after: addition.after }
@@ -278,8 +325,15 @@ export class WorkflowEngine {
     name: string,
     ctx: WorkflowContext,
     internal: InternalState,
-  ): Promise<WorkflowResult> {
+  ): Promise<WorkflowResult<Record<string, unknown>, unknown>> {
     const record = this.getRecord(name)
+
+    // Zero-step fast path
+    if (record.steps.length === 0) {
+      const dataCopy = { ...ctx.vars } as Record<string, unknown>
+      const output = record.outputFn ? record.outputFn(dataCopy) : dataCopy
+      return { status: 'completed' as const, data: dataCopy, output, errors: [] }
+    }
 
     if (internal.depth >= MAX_RECURSION_DEPTH) {
       throw new Error(
@@ -290,13 +344,9 @@ export class WorkflowEngine {
     internal.depth++
     const errors: StepError[] = []
 
-    // Access data via Proxy (reads go through to _inner) and dataCtrl for restore
-    const data = ctx.data
-    const { dataCtrl } = internal
-
     try {
       // Snapshot step list (deep copy StepMeta + Step to prevent replaceStep pierce)
-      const steps = record.steps.map((m) => ({ ...m, step: { ...m.step } }))
+      const allSteps = record.steps.map((m) => ({ ...m, step: { ...m.step } }))
 
       // Snapshot wrapper map (shallow copy each entry array to prevent push pierce)
       const wrappersSnapshot = new Map<string, WrapperEntry[]>()
@@ -304,11 +354,19 @@ export class WorkflowEngine {
         wrappersSnapshot.set(k, [...v])
       }
 
-      // Pre-compute ancestor sets for dependsOn failure propagation
-      const ancestorsOf = this.computeAncestors(steps)
+      // Split into main phase and post phase
+      const mainSteps = allSteps.filter((m) => m.phase !== 'post')
+      const postSteps = allSteps.filter((m) => m.phase === 'post')
+
+      // Pre-compute ancestor sets for dependsOn failure propagation (main phase only)
+      const ancestorsOf = this.computeAncestors(mainSteps)
       const failedSteps = new Set<string>()
 
-      for (const meta of steps) {
+      // Lazily created readonly context (shared across all readonly steps in this run)
+      let readonlyCtx: WorkflowContext | undefined
+
+      // ── Execute main phase ──────────────────────────────────────────────────
+      for (const meta of mainSteps) {
         // Check if any ancestor has failed
         const ancestors = ancestorsOf.get(meta.step.id)
         if (ancestors && ancestors.size > 0) {
@@ -324,57 +382,95 @@ export class WorkflowEngine {
 
         if (internal.abortCtrl.aborted) break
 
-        // Capture run reference directly (not via closure) since step is a snapshot copy
-        const baseFn: StepFn = meta.step.run
-        const wrappers = wrappersSnapshot.get(meta.step.id)
+        const composedFn = this.composeStep(meta.step.run, wrappersSnapshot.get(meta.step.id))
 
-        let composedFn: StepFn
-        if (!wrappers || wrappers.length === 0) {
-          composedFn = baseFn
-        } else {
-          composedFn = baseFn
-          for (let i = wrappers.length - 1; i >= 0; i--) {
-            const wrapper = wrappers[i]
-            if (wrapper === undefined) continue
-            const inner = composedFn
-            composedFn = (c: WorkflowContext) => wrapper.run(c, inner)
-          }
-        }
+        // Choose context: readonly steps get a frozen-vars context
+        const stepCtx = meta.step.readonly ? (readonlyCtx ??= this.createReadonlyCtx(ctx)) : ctx
 
         if (meta.step.critical !== false) {
           // Critical step — failure propagates immediately
-          await composedFn(ctx)
+          await composedFn(stepCtx)
         } else {
-          // Non-critical step — snapshot/restore on failure
-          let snapshot: Record<string, unknown> | null = null
+          // Non-critical readonly step — catch error, continue (no snapshot/restore needed)
           try {
-            snapshot = structuredClone(dataCtrl.getInner())
-          } catch {
-            // Cannot clone — degrade to no-restore mode
-          }
-          try {
-            await composedFn(ctx)
+            await composedFn(stepCtx)
           } catch (err) {
             const error = err instanceof Error ? err : new Error(String(err))
             console.error(`[Workflow] Non-critical step "${meta.step.id}" failed:`, error)
-            if (snapshot) {
-              dataCtrl.replaceInner(snapshot)
-            }
             failedSteps.add(meta.step.id)
             errors.push({ stepId: meta.step.id, error })
           }
         }
       }
+
+      // ── Check for abort before output ─────────────────────────────────────
+      if (internal.abortCtrl.aborted) {
+        const dataCopy = { ...ctx.vars } as Record<string, unknown>
+        return {
+          status: 'aborted' as const,
+          reason: internal.abortCtrl.reason,
+          data: dataCopy,
+          output: undefined,
+          errors,
+        }
+      }
+
+      const dataCopy = { ...ctx.vars } as Record<string, unknown>
+
+      // ── Compute output ────────────────────────────────────────────────────
+      let output: unknown = dataCopy
+      if (record.outputFn) {
+        try {
+          output = record.outputFn(dataCopy)
+        } catch (e) {
+          const error = e instanceof Error ? e : new Error(String(e))
+          errors.push({ stepId: '__output__', error })
+          return {
+            status: 'aborted' as const,
+            reason: 'output extraction failed',
+            data: dataCopy,
+            output: undefined,
+            errors,
+          }
+        }
+      }
+
+      // ── Execute post phase (readonly steps after output computation) ──────
+      if (postSteps.length > 0) {
+        const postCtx = readonlyCtx ?? this.createReadonlyCtx(ctx)
+        for (const meta of postSteps) {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- abort may be set by a prior post step
+          if (internal.abortCtrl.aborted) break
+
+          const composedFn = this.composeStep(meta.step.run, wrappersSnapshot.get(meta.step.id))
+
+          if (meta.step.critical !== false) {
+            await composedFn(postCtx)
+          } else {
+            try {
+              await composedFn(postCtx)
+            } catch (err) {
+              const error = err instanceof Error ? err : new Error(String(err))
+              console.error(`[Workflow] Non-critical post step "${meta.step.id}" failed:`, error)
+              errors.push({ stepId: meta.step.id, error })
+            }
+          }
+        }
+      }
+
+      return { status: 'completed' as const, data: dataCopy, output, errors }
     } finally {
       internal.depth--
     }
+  }
 
-    return {
-      status: internal.abortCtrl.aborted ? 'aborted' : 'completed',
-      reason: internal.abortCtrl.reason,
-      data: { ...data } as WorkflowResult['data'],
-      errors,
+  // ── Lookup ─────────────────────────────────────────────────────────────────
+
+  getWorkflow(name: string): WorkflowHandle {
+    if (!this.workflows.has(name)) {
+      throw new Error(`Workflow "${name}" not found`)
     }
+    return { name } as WorkflowHandle
   }
 
   // ── Inspection ──────────────────────────────────────────────────────────────
@@ -457,6 +553,41 @@ export class WorkflowEngine {
       const meta = record.steps.find((m) => m.step.id === current)
       current = meta?.dependsOn
     }
+  }
+
+  /** Compose a step's run function with its wrappers (onion model) */
+  private composeStep(baseFn: StepFn, wrappers: WrapperEntry[] | undefined): StepFn {
+    if (!wrappers || wrappers.length === 0) return baseFn
+    let composedFn: StepFn = baseFn
+    for (let i = wrappers.length - 1; i >= 0; i--) {
+      const wrapper = wrappers[i]
+      if (wrapper === undefined) continue
+      const inner = composedFn
+      composedFn = (c: WorkflowContext): Promise<void> | void => wrapper.run(c, inner)
+    }
+    return composedFn
+  }
+
+  /** Create a context with frozen vars (set/delete throw TypeError) */
+  private createReadonlyCtx(ctx: WorkflowContext): WorkflowContext {
+    const frozenVars = new Proxy(ctx.vars, {
+      get: (target, key): unknown => Reflect.get(target, key),
+      set: () => {
+        throw new TypeError('Cannot modify vars in a readonly step')
+      },
+      deleteProperty: () => {
+        throw new TypeError('Cannot modify vars in a readonly step')
+      },
+      has: (target, key) => Reflect.has(target, key),
+      ownKeys: (target) => Reflect.ownKeys(target),
+      getOwnPropertyDescriptor: (target, key) => Reflect.getOwnPropertyDescriptor(target, key),
+    })
+    const readonlyCtx = Object.create(ctx) as WorkflowContext
+    Object.defineProperty(readonlyCtx, 'vars', {
+      get: () => frozenVars,
+      configurable: false,
+    })
+    return readonlyCtx
   }
 
   /** Returns true if `a` should be ordered before `b` (lower priority first, then insertion order) */

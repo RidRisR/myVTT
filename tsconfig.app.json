@@ -29,6 +29,6 @@
       "@myvtt/sdk": ["./src/rules/sdk.ts"]
     }
   },
-  "include": ["src", "plugins"],
-  "exclude": ["src/**/__tests__", "src/**/__test-utils__"]
+  "include": ["src", "plugins", "poc"],
+  "exclude": ["src/**/__tests__", "src/**/__test-utils__", "poc/**/__tests__"]
 }

@@ -5,38 +5,22 @@ import type { WorkflowContext, InternalState } from './types'
 
 function makeCtx(data: Record<string, unknown> = {}): WorkflowContext {
   return {
-    data,
+    vars: data,
+    read: { entity: vi.fn(), component: vi.fn(), query: vi.fn().mockReturnValue([]) },
     serverRoll: vi.fn(),
-    updateEntity: vi.fn(),
+    requestInput: vi.fn(),
+    updateComponent: vi.fn(),
     updateTeamTracker: vi.fn(),
-    announce: vi.fn(),
-    showToast: vi.fn(),
-    playAnimation: vi.fn(),
-    playSound: vi.fn(),
+    events: { emit: vi.fn() },
     abort: vi.fn(),
     runWorkflow: vi.fn(),
   }
 }
 
-function makeInternal(data?: Record<string, unknown>): InternalState {
-  // If data is provided, wire up dataCtrl to operate on it (for snapshot/restore tests).
-  // Otherwise provide a no-op dataCtrl (most tests don't exercise snapshot/restore).
-  let inner = data ?? {}
+function makeInternal(): InternalState {
   return {
     depth: 0,
     abortCtrl: { aborted: false },
-    dataCtrl: {
-      getInner: () => inner,
-      replaceInner: (replacement) => {
-        // Repopulate the original data object to keep reference stable for tests
-        // (production uses Proxy swap; tests use plain objects so we sync manually)
-        if (data) {
-          for (const k of Object.keys(data)) Reflect.deleteProperty(data, k)
-          Object.assign(data, replacement)
-        }
-        inner = replacement
-      },
-    },
   }
 }
 
@@ -439,7 +423,9 @@ describe('WorkflowEngine', () => {
     const result = await engine.runWorkflow('abrt', ctx, internal)
     expect(order).toEqual(['a'])
     expect(result.status).toBe('aborted')
-    expect(result.reason).toBe('stop')
+    if (result.status === 'aborted') {
+      expect(result.reason).toBe('stop')
+    }
   })
 
   // ── 11. Error propagation (critical steps) ─────────────────────────────────
@@ -476,13 +462,15 @@ describe('WorkflowEngine', () => {
 
     // Use real createWorkflowContext for proper depth tracking (no mock needed)
     const { createWorkflowContext } = await import('./context')
+    const { EventBus } = await import('../events/eventBus')
     const sharedInternal = makeInternal()
     const deps = {
       sendRoll: vi.fn().mockResolvedValue({ rolls: [], total: 0 }),
       updateEntity: vi.fn(),
       updateTeamTracker: vi.fn(),
-      sendMessage: vi.fn(),
-      showToast: vi.fn(),
+      getEntity: vi.fn(),
+      getAllEntities: vi.fn().mockReturnValue({}),
+      eventBus: new EventBus(),
       engine,
     }
     const ctx = createWorkflowContext(deps, {}, sharedInternal)
@@ -526,7 +514,7 @@ describe('WorkflowEngine', () => {
       {
         id: 'a',
         run: (ctx) => {
-          ctx.data.value = 42
+          ctx.vars.value = 42
         },
       },
     ])
@@ -534,9 +522,9 @@ describe('WorkflowEngine', () => {
     const result = await engine.runWorkflow('res', ctx, makeInternal())
     expect(result.status).toBe('completed')
     expect(result.data.value).toBe(42)
-    // data is a shallow copy — mutating result.data doesn't affect ctx.data
+    // data is a shallow copy — mutating result.data doesn't affect ctx.vars
     result.data.value = 99
-    expect(ctx.data.value).toBe(42)
+    expect(ctx.vars.value).toBe(42)
   })
 
   it('empty workflow returns completed result', async () => {
@@ -547,12 +535,13 @@ describe('WorkflowEngine', () => {
     expect(result.errors).toEqual([])
   })
 
-  // ── 15. Non-critical step fault tolerance ─────────────────────────────────
-  it('non-critical step failure: collects error, continues execution', async () => {
+  // ── 15. Non-critical readonly step fault tolerance ──────────────────────────
+  it('non-critical readonly step failure: collects error, continues execution', async () => {
     const order: string[] = []
     engine.defineWorkflow('fault', [
       {
         id: 'a',
+        readonly: true,
         critical: false,
         run: () => {
           throw new Error('oops')
@@ -573,30 +562,165 @@ describe('WorkflowEngine', () => {
     expect(result.errors[0]?.error.message).toBe('oops')
   })
 
-  it('non-critical step failure: snapshot/restore reverts dirty data', async () => {
-    engine.defineWorkflow('restore', [
+  it('readonly step: writing to vars throws TypeError', async () => {
+    engine.defineWorkflow('ro-write', [
       {
-        id: 'dirty',
-        critical: false,
+        id: 'setup',
         run: (ctx) => {
-          ctx.data.dirty = true
-          throw new Error('fail')
+          ctx.vars.value = 42
         },
       },
       {
-        id: 'check',
+        id: 'readonly-step',
+        readonly: true,
         run: (ctx) => {
-          ctx.data.checked = true
+          ctx.vars.value = 99 // should throw
         },
       },
     ])
-    const data: Record<string, unknown> = { clean: true }
-    const ctx = makeCtx(data)
-    const result = await engine.runWorkflow('restore', ctx, makeInternal(data))
-    expect(ctx.data.dirty).toBeUndefined()
-    expect(ctx.data.clean).toBe(true)
-    expect(ctx.data.checked).toBe(true)
-    expect(result.errors).toHaveLength(1)
+    // critical: true (default) + readonly: true → TypeError propagates
+    await expect(run(engine, 'ro-write')).rejects.toThrow(TypeError)
+  })
+
+  it('readonly step: can read vars but not modify', async () => {
+    let readValue: unknown
+    engine.defineWorkflow('ro-read', [
+      {
+        id: 'setup',
+        run: (ctx) => {
+          ctx.vars.value = 42
+        },
+      },
+      {
+        id: 'reader',
+        readonly: true,
+        run: (ctx) => {
+          readValue = ctx.vars.value // read should work
+        },
+      },
+    ])
+    await run(engine, 'ro-read')
+    expect(readValue).toBe(42)
+  })
+
+  it('forbidden combo: readonly=false + critical=false throws on defineWorkflow', () => {
+    expect(() => {
+      engine.defineWorkflow('forbidden', [{ id: 'a', critical: false, run: () => {} }])
+    }).toThrow(/readonly must be true/i)
+  })
+
+  it('forbidden combo: readonly=false + critical=false throws on addStep', () => {
+    engine.defineWorkflow('forbidden2', [{ id: 'a', run: () => {} }])
+    expect(() => {
+      engine.addStep('forbidden2', { id: 'b', critical: false, run: () => {} })
+    }).toThrow(/readonly must be true/i)
+  })
+
+  it('phase post requires readonly: true', () => {
+    engine.defineWorkflow('phase-check', [{ id: 'a', run: () => {} }])
+    expect(() => {
+      engine.addStep('phase-check', { id: 'b', phase: 'post', run: () => {} })
+    }).toThrow(/requires readonly/i)
+  })
+
+  it('post phase steps run after output computation', async () => {
+    const order: string[] = []
+    let capturedOutput: unknown
+    engine.defineWorkflow(
+      'post-phase',
+      [
+        {
+          id: 'main',
+          run: (ctx) => {
+            order.push('main')
+            ctx.vars.value = 42
+          },
+        },
+      ],
+      (vars) => ({ result: (vars as { value: number }).value * 2 }),
+    )
+    engine.addStep('post-phase', {
+      id: 'post-observer',
+      readonly: true,
+      critical: false,
+      phase: 'post',
+      run: (ctx) => {
+        order.push('post')
+        capturedOutput = ctx.vars.value // can still read vars
+      },
+    })
+    const result = await run(engine, 'post-phase')
+    expect(order).toEqual(['main', 'post'])
+    expect(result.status).toBe('completed')
+    if (result.status === 'completed') {
+      expect(result.output).toEqual({ result: 84 })
+    }
+    expect(capturedOutput).toBe(42)
+  })
+
+  it('post phase: multiple steps sorted by priority', async () => {
+    const order: string[] = []
+    engine.defineWorkflow('post-prio', [
+      {
+        id: 'main',
+        run: () => {
+          order.push('main')
+        },
+      },
+    ])
+    engine.addStep('post-prio', {
+      id: 'post-hi',
+      readonly: true,
+      critical: false,
+      phase: 'post',
+      priority: 200,
+      run: () => {
+        order.push('post-hi')
+      },
+    })
+    engine.addStep('post-prio', {
+      id: 'post-lo',
+      readonly: true,
+      critical: false,
+      phase: 'post',
+      priority: 50,
+      run: () => {
+        order.push('post-lo')
+      },
+    })
+    await run(engine, 'post-prio')
+    expect(order).toEqual(['main', 'post-lo', 'post-hi'])
+  })
+
+  it('post phase steps skipped when workflow is aborted', async () => {
+    const order: string[] = []
+    engine.defineWorkflow('post-abort', [
+      {
+        id: 'aborter',
+        run: (ctx) => {
+          order.push('aborter')
+          ctx.abort('stop')
+        },
+      },
+    ])
+    engine.addStep('post-abort', {
+      id: 'post-step',
+      readonly: true,
+      critical: false,
+      phase: 'post',
+      run: () => {
+        order.push('post')
+      },
+    })
+    const internal = makeInternal()
+    const ctx = makeCtx()
+    ctx.abort = (reason?: string) => {
+      internal.abortCtrl.aborted = true
+      internal.abortCtrl.reason = reason
+    }
+    const result = await engine.runWorkflow('post-abort', ctx, internal)
+    expect(order).toEqual(['aborter'])
+    expect(result.status).toBe('aborted')
   })
 
   // ── 16. replaceStep ────────────────────────────────────────────────────────
@@ -652,6 +776,7 @@ describe('WorkflowEngine', () => {
     engine.defineWorkflow('depfail', [
       {
         id: 'owner',
+        readonly: true,
         critical: false,
         run: () => {
           throw new Error('fail')
@@ -739,6 +864,7 @@ describe('WorkflowEngine', () => {
     engine.defineWorkflow('cascade', [
       {
         id: 'A',
+        readonly: true,
         critical: false,
         run: () => {
           order.push('A')
@@ -772,7 +898,7 @@ describe('WorkflowEngine', () => {
     })
 
     const data: Record<string, unknown> = {}
-    const result = await engine.runWorkflow('cascade', makeCtx(data), makeInternal(data))
+    const result = await engine.runWorkflow('cascade', makeCtx(data), makeInternal())
     expect(order).toEqual(['A', 'D'])
     expect(result.errors).toHaveLength(1)
     expect(result.errors[0]?.stepId).toBe('A')
@@ -812,37 +938,7 @@ describe('WorkflowEngine', () => {
     expect(order).toEqual(['first', 'late-wrapper', 'second'])
   })
 
-  // ── 22. structuredClone failure degrades gracefully ───────────────────────
-  it('non-critical step: structuredClone failure degrades to no-restore', async () => {
-    const fn = vi.fn()
-    engine.defineWorkflow('uncloneable', [
-      {
-        id: 'dirty',
-        critical: false,
-        run: (ctx) => {
-          ctx.data.fn = fn // functions are not cloneable
-          ctx.data.dirty = true
-          throw new Error('fail')
-        },
-      },
-      {
-        id: 'check',
-        run: (ctx) => {
-          // snapshot failed → data NOT restored, dirty write persists
-          ctx.data.checked = true
-        },
-      },
-    ])
-    const data: Record<string, unknown> = { fn } // fn in initial data makes structuredClone fail
-    const ctx = makeCtx(data)
-    const result = await engine.runWorkflow('uncloneable', ctx, makeInternal(data))
-    expect(result.errors).toHaveLength(1)
-    // Since clone failed, dirty data persists (no restore)
-    expect(ctx.data.dirty).toBe(true)
-    expect(ctx.data.checked).toBe(true)
-  })
-
-  // ── 23. wrapStep/replaceStep target not found ─────────────────────────────
+  // ── 22. wrapStep/replaceStep target not found ──────────────────────────────
   it('wrapStep throws when target step does not exist', () => {
     engine.defineWorkflow('notarget', [{ id: 'a', run: () => {} }])
     expect(() => {
@@ -975,8 +1071,8 @@ describe('WorkflowEngine', () => {
       {
         id: 'recurse',
         run: async (ctx) => {
-          const d = (typeof ctx.data.depth === 'number' ? ctx.data.depth : 0) + 1
-          ctx.data.depth = d
+          const d = (typeof ctx.vars.depth === 'number' ? ctx.vars.depth : 0) + 1
+          ctx.vars.depth = d
           if (d > maxDepth) maxDepth = d
           if (d < 9) {
             await ctx.runWorkflow({ name: 'depth9' } as never, { depth: d })
@@ -986,13 +1082,15 @@ describe('WorkflowEngine', () => {
     ])
     // Use real createWorkflowContext + shared internal for proper depth tracking
     const { createWorkflowContext } = await import('./context')
+    const { EventBus } = await import('../events/eventBus')
     const internal = makeInternal()
     const deps = {
       sendRoll: vi.fn().mockResolvedValue({ rolls: [], total: 0 }),
       updateEntity: vi.fn(),
       updateTeamTracker: vi.fn(),
-      sendMessage: vi.fn(),
-      showToast: vi.fn(),
+      getEntity: vi.fn(),
+      getAllEntities: vi.fn().mockReturnValue({}),
+      eventBus: new EventBus(),
       engine,
     }
     const ctx = createWorkflowContext(deps, {}, internal)

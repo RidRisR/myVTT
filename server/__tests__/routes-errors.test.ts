@@ -30,70 +30,80 @@ describe('Entity error paths', () => {
       'PATCH',
       `/api/rooms/${roomId}/entities/nonexistent-id`,
       {
-        name: 'Ghost',
+        components: { 'core:identity': { name: 'Ghost' } },
       },
     )
     expect(status).toBe(404)
     expect((data as { error: string }).error).toBe('Entity not found')
   })
 
-  it('deep merge PATCH on entity — nested 3-level ruleData merge', async () => {
+  it('PATCH components — upsert replaces individual component data', async () => {
     const { data: entity } = await ctx.api('POST', `/api/rooms/${roomId}/entities`, {
-      name: 'Wizard',
-      ruleData: {
-        stats: {
-          mental: { intelligence: 18, wisdom: 14 },
-          physical: { strength: 8 },
+      components: {
+        'game:stats': {
+          stats: {
+            mental: { intelligence: 18, wisdom: 14 },
+            physical: { strength: 8 },
+          },
+          level: 5,
         },
-        level: 5,
+        'core:identity': { name: 'Wizard' },
       },
     })
     const entityId = (entity as { id: string }).id
 
-    // Patch a deeply nested field
+    // Patch replaces the entire component value for the given key
     const { data: updated } = await ctx.api('PATCH', `/api/rooms/${roomId}/entities/${entityId}`, {
-      ruleData: {
-        stats: {
-          mental: { wisdom: 16 },
+      components: {
+        'game:stats': {
+          stats: {
+            mental: { intelligence: 18, wisdom: 16 },
+            physical: { strength: 8 },
+          },
+          level: 5,
         },
       },
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const u = updated as any
-    // 3rd-level field updated
-    expect(u.ruleData.stats.mental.wisdom).toBe(16)
-    // Sibling at 3rd level preserved
-    expect(u.ruleData.stats.mental.intelligence).toBe(18)
-    // Sibling at 2nd level preserved
-    expect(u.ruleData.stats.physical.strength).toBe(8)
-    // Top-level sibling preserved
-    expect(u.ruleData.level).toBe(5)
+    // Updated field
+    expect(u.components['game:stats'].stats.mental.wisdom).toBe(16)
+    // Preserved fields within same component
+    expect(u.components['game:stats'].stats.mental.intelligence).toBe(18)
+    expect(u.components['game:stats'].stats.physical.strength).toBe(8)
+    expect(u.components['game:stats'].level).toBe(5)
+    // Other component preserved
+    expect(u.components['core:identity'].name).toBe('Wizard')
   })
 
-  it('deep merge PATCH — array field overwrites (not merges)', async () => {
+  it('PATCH components — array value replaces correctly', async () => {
     const { data: entity } = await ctx.api('POST', `/api/rooms/${roomId}/entities`, {
-      name: 'Fighter',
-      ruleData: {
-        attacks: ['sword', 'shield bash'],
-        hp: { current: 30, max: 30 },
+      components: {
+        'core:identity': { name: 'Fighter' },
+        'game:combat': {
+          attacks: ['sword', 'shield bash'],
+          hp: { current: 30, max: 30 },
+        },
       },
     })
     const entityId = (entity as { id: string }).id
 
-    // Patch with a new array — should overwrite, not concat
+    // Patch replaces the entire component value
     const { data: updated } = await ctx.api('PATCH', `/api/rooms/${roomId}/entities/${entityId}`, {
-      ruleData: {
-        attacks: ['greataxe'],
+      components: {
+        'game:combat': {
+          attacks: ['greataxe'],
+          hp: { current: 30, max: 30 },
+        },
       },
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const u = updated as any
-    expect(u.ruleData.attacks).toEqual(['greataxe'])
-    // Object sibling preserved
-    expect(u.ruleData.hp.current).toBe(30)
-    expect(u.ruleData.hp.max).toBe(30)
+    expect(u.components['game:combat'].attacks).toEqual(['greataxe'])
+    expect(u.components['game:combat'].hp.current).toBe(30)
+    expect(u.components['game:combat'].hp.max).toBe(30)
   })
 })
 
@@ -113,7 +123,7 @@ describe('Scene delete cascade', () => {
 
     // Create non-persistent entity (so it doesn't auto-link)
     const { data: entity } = await ctx.api('POST', `/api/rooms/${roomId}/entities`, {
-      name: 'Goblin',
+      components: { 'core:identity': { name: 'Goblin' } },
       lifecycle: 'reusable',
     })
     const entityId = (entity as { id: string }).id
@@ -211,9 +221,7 @@ describe('Chat error paths', () => {
 
   it('POST /chat with empty content returns 400', async () => {
     const { status, data } = await ctx.api('POST', `/api/rooms/${roomId}/chat`, {
-      senderId: 's1',
-      senderName: 'Player',
-      senderColor: '#00ff00',
+      origin: { seat: { id: 's1', name: 'Player', color: '#00ff00' } },
     })
     expect(status).toBe(400)
     expect((data as { error: string }).error).toBe('content is required')
@@ -231,9 +239,7 @@ describe('Chat error paths', () => {
   it('POST /chat/retract/:id — create then retract message', async () => {
     // Create a message
     const { data: msg } = await ctx.api('POST', `/api/rooms/${roomId}/chat`, {
-      senderId: 's1',
-      senderName: 'GM',
-      senderColor: '#ff0000',
+      origin: { seat: { id: 's1', name: 'GM', color: '#ff0000' } },
       content: 'Oops, wrong message',
     })
     const msgId = (msg as { id: string }).id

@@ -34,7 +34,7 @@ server/uploads/
 !.claude/hooks/
 coverage/
 .superpowers/
-data/
+/data/
 refs/
 
 # Playwright
@@ -42,3 +42,4 @@ e2e/playwright-report/
 e2e/test-results/
 playwright-report/
 test-results/
+.worktrees

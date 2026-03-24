@@ -122,11 +122,23 @@ describe('toolPersist', () => {
 // ── Action targeting state machine ──
 
 describe('targeting state machine', () => {
-  const mockEntity = { id: 'e1', name: 'Fighter' } as Entity
+  const mockEntity = {
+    id: 'e1',
+    tags: [],
+    components: { 'core:identity': { name: 'Fighter', imageUrl: '', color: '#fff' } },
+    permissions: { default: 'none' as const, seats: {} },
+    lifecycle: 'persistent' as const,
+  } as Entity
 
   const makeTarget = (tokenId: string, index: number): TargetInfo => ({
     tokenId,
-    entity: { id: `entity-${tokenId}`, name: `Entity ${tokenId}` } as Entity,
+    entity: {
+      id: `entity-${tokenId}`,
+      tags: [],
+      components: { 'core:identity': { name: `Entity ${tokenId}`, imageUrl: '', color: '#fff' } },
+      permissions: { default: 'none' as const, seats: {} },
+      lifecycle: 'persistent' as const,
+    } as Entity,
     index,
   })
 
