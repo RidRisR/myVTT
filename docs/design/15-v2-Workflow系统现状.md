@@ -1,6 +1,6 @@
 # Workflow 系统现状
 
-> **状态**：已实施（基于 `15-Workflow系统设计.md`，实施偏差见 `15a-Workflow实施偏差记录.md`）
+> **状态**：✅ 活跃参考 | 2026-03-26
 > **前置文档**：`docs/exploration/plugin-system/16~22`（探索与 POC 验证系列）
 > **范围**：Workflow 引擎、Step 模型、插件协作机制、Trigger 系统、EventBus 集成
 
