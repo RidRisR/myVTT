@@ -1,7 +1,7 @@
 #!/bin/bash
-# Validates that design documents include required sections.
+# Validates that design documents include required status line.
 # Usage: scripts/check-doc-structure.sh <file>
-# See docs/conventions/bug-fix-workflow.md for requirements.
+# Status line format: > **状态**：<emoji> <label> | YYYY-MM-DD
 
 FILE="$1"
 
@@ -12,15 +12,14 @@ fi
 
 ERRORS=0
 
-# docs/design/ documents must include Assumptions and Edge Cases sections
+# docs/design/ documents must include a status line
 if [[ "$FILE" == docs/design/* ]]; then
-  for section in "## Assumptions" "## Edge Cases"; do
-    if ! grep -q "$section" "$FILE" 2>/dev/null; then
-      echo "❌ $FILE: missing required section '$section'"
-      echo "   See docs/conventions/bug-fix-workflow.md for requirements"
-      ERRORS=$((ERRORS + 1))
-    fi
-  done
+  if ! grep -qE "^\*\*状态\*\*|^> \*\*状态\*\*" "$FILE" 2>/dev/null; then
+    echo "❌ $FILE: missing required status line"
+    echo "   Add '> **状态**：📋 规划中 | YYYY-MM-DD' after the title"
+    echo "   Valid statuses: 📋 规划中 | 🚧 实施中 | ✅ 活跃参考 | ⚠️ 需重新设计"
+    ERRORS=$((ERRORS + 1))
+  fi
 fi
 
 exit $ERRORS
