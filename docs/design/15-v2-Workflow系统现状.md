@@ -970,3 +970,18 @@ run: async (ctx, original) => {
 - **空 workflow**：`defineWorkflow('name', [])` 合法，立即返回 `{ status: 'completed', output: ..., errors: [] }`
 - **全部非关键步骤失败**：workflow 仍返回 `completed`，所有错误收集在 `result.errors`
 - **重复 deactivatePlugin**：幂等操作（`removeStep` 幂等）
+
+---
+
+## 与原始设计（15-Workflow系统设计.md）的关键偏差
+
+> 完整偏差记录见 `docs/archive/design-history/15a-Workflow实施偏差记录.md`
+
+| 偏差                  | 原始设计                                         | 实际实现                                                     | 状态                                        |
+| --------------------- | ------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------- |
+| Cloneable 泛型约束    | `Cloneable` 作为 `ctx.data` 的泛型约束           | 仅作为文档类型导出，泛型默认值改为 `Record<string, unknown>` | ✅ TypeScript 接口/类型兼容性导致的务实妥协 |
+| BaseRollData 索引签名 | 纯 interface（仅 formula/actorId/rolls?/total?） | 添加 `[key: string]: unknown` 索引签名                       | ✅ 插件扩展字段所必需                       |
+| useWorkflowSDK 保留   | PluginSDK 与 WorkflowRunner 分离                 | 一致，额外保留 `useWorkflowSDK()` 为 `@deprecated` 别名      | ✅ 渐进迁移兼容                             |
+| POC 插件直接导入      | 插件通过 registry 注册，不直接导入               | `useWorkflowSDK.ts` 仍直接 import daggerheart 插件           | ⚠️ 技术债，后续插件注册表实施时替换         |
+| 插件拓扑排序激活      | `dependencies` 字段用于拓扑排序                  | 字段已声明，但按数组顺序激活（未实现拓扑排序）               | ⚠️ 待完善                                   |
+| `onDeactivate` 回调   | 类型已声明，插件卸载时调用                       | 类型已声明，调用点未连接                                     | ⚠️ 待完善                                   |
