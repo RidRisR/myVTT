@@ -17,15 +17,35 @@ function makeInternal(): InternalState {
   }
 }
 
+function makeRollEntry(overrides: Record<string, unknown> = {}) {
+  return {
+    seq: 1,
+    id: 'roll-1',
+    type: 'core:roll-result',
+    origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
+    executor: 's1',
+    chainDepth: 0,
+    triggerable: true,
+    visibility: {},
+    baseSeq: 0,
+    timestamp: Date.now(),
+    payload: { rolls: [[4]], total: 4, formula: '1d6', dice: [{ sides: 6, count: 1 }] },
+    ...overrides,
+  }
+}
+
 function makeDeps(overrides: Partial<Parameters<typeof createWorkflowContext>[0]> = {}) {
   return {
-    sendRoll: vi.fn().mockResolvedValue({ rolls: [[4]], total: 4 }),
-    updateEntity: vi.fn(),
-    updateTeamTracker: vi.fn(),
+    emitEntry: vi.fn(),
+    serverRoll: vi.fn().mockResolvedValue(makeRollEntry()),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
     eventBus: createEventBus(),
     engine: makeEngine(),
+    getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
+    getSeatId: vi.fn().mockReturnValue('s1'),
+    getLogWatermark: vi.fn().mockReturnValue(0),
+    getFormulaTokens: vi.fn().mockReturnValue({}),
     ...overrides,
   }
 }
@@ -44,6 +64,7 @@ describe('createWorkflowContext', () => {
   it('all methods are functions', () => {
     const ctx = createWorkflowContext(makeDeps(), undefined, makeInternal())
     expect(typeof ctx.serverRoll).toBe('function')
+    expect(typeof ctx.emitEntry).toBe('function')
     expect(typeof ctx.updateComponent).toBe('function')
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
     expect(typeof ctx.updateTeamTracker).toBe('function')
@@ -59,15 +80,21 @@ describe('createWorkflowContext', () => {
     expect(typeof ctx.read.query).toBe('function')
   })
 
-  it('serverRoll delegates to deps.sendRoll', async () => {
+  it('serverRoll delegates to deps.serverRoll with RollRequest', async () => {
     const deps = makeDeps()
     const ctx = createWorkflowContext(deps, undefined, makeInternal())
     const result = await ctx.serverRoll('1d6')
-    expect(deps.sendRoll).toHaveBeenCalledWith('1d6')
-    expect(result).toEqual({ rolls: [[4]], total: 4 })
+    expect(deps.serverRoll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        formula: '1d6',
+        origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
+      }),
+    )
+    expect(result.payload.rolls).toEqual([[4]])
+    expect(result.payload.total).toBe(4)
   })
 
-  it('updateComponent reads entity components and writes back', () => {
+  it('updateComponent emits core:component-update log entry', () => {
     const entity: Entity = {
       id: 'e1',
       tags: [],
@@ -83,17 +110,25 @@ describe('createWorkflowContext', () => {
       return { ...val, current: val.current - 3 }
     })
 
-    expect(deps.updateEntity).toHaveBeenCalledWith('e1', {
-      components: { hp: { current: 7, max: 20 } },
-    })
+    expect(deps.emitEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'core:component-update',
+        payload: { entityId: 'e1', key: 'hp', data: { current: 7, max: 20 } },
+      }),
+    )
   })
 
-  it('updateTeamTracker delegates to deps.updateTeamTracker', () => {
+  it('updateTeamTracker emits core:tracker-update log entry', () => {
     const deps = makeDeps()
     const ctx = createWorkflowContext(deps, undefined, makeInternal())
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
     ctx.updateTeamTracker('HP', { current: 5 })
-    expect(deps.updateTeamTracker).toHaveBeenCalledWith('HP', { current: 5 })
+    expect(deps.emitEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'core:tracker-update',
+        payload: { label: 'HP', current: 5 },
+      }),
+    )
   })
 
   it('events.emit delegates to deps.eventBus', () => {

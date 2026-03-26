@@ -1,9 +1,9 @@
 # 身份系统与 WebSocket 鉴权方案设计
 
-> **📋 实现状态：规划中 — 未实现**
+> **状态**：⚠️ 需重新设计（Yjs 时代方案）| 2026-03-26
 >
-> 本文档描述的方案尚未实现。当前系统无 JWT、无用户账号，Socket.io auth 只验证 roomId 存在，`withRole` 中间件读取 `X-MyVTT-Role` header 可被伪造。
-> 注意：本文档编写于 Yjs 时代，部分细节（如 transaction.origin 审计）需根据当前 REST+Socket.io 架构重新设计。
+> ⚠️ **注意**：此文档为 Yjs 时代方案（基于 y-websocket + y-protocols）。当前架构已迁移至 REST + Socket.io + SQLite。上线前需根据现有架构重新设计鉴权方案，此文档仅供概念参考。
+> **相关架构**：当前 auth 入口见 `server/ws.ts`（Socket.io auth）和 `server/middleware.ts`（withRole 中间件）。
 
 ## 问题
 

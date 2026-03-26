@@ -212,50 +212,6 @@ describe('Archive gm_only filter', () => {
   })
 })
 
-describe('Chat error paths', () => {
-  let roomId: string
-
-  beforeAll(async () => {
-    roomId = await createRoom('Chat Error Room')
-  })
-
-  it('POST /chat with empty content returns 400', async () => {
-    const { status, data } = await ctx.api('POST', `/api/rooms/${roomId}/chat`, {
-      origin: { seat: { id: 's1', name: 'Player', color: '#00ff00' } },
-    })
-    expect(status).toBe(400)
-    expect((data as { error: string }).error).toBe('content is required')
-  })
-
-  it('POST /chat/retract/:id with non-existent id returns 404', async () => {
-    const { status, data } = await ctx.api(
-      'POST',
-      `/api/rooms/${roomId}/chat/retract/nonexistent-msg`,
-    )
-    expect(status).toBe(404)
-    expect((data as { error: string }).error).toBe('Message not found')
-  })
-
-  it('POST /chat/retract/:id — create then retract message', async () => {
-    // Create a message
-    const { data: msg } = await ctx.api('POST', `/api/rooms/${roomId}/chat`, {
-      origin: { seat: { id: 's1', name: 'GM', color: '#ff0000' } },
-      content: 'Oops, wrong message',
-    })
-    const msgId = (msg as { id: string }).id
-
-    // Retract it
-    const { status, data } = await ctx.api('POST', `/api/rooms/${roomId}/chat/retract/${msgId}`)
-    expect(status).toBe(200)
-    expect((data as { ok: boolean }).ok).toBe(true)
-
-    // Verify it is gone from history
-    const { data: history } = await ctx.api('GET', `/api/rooms/${roomId}/chat`)
-    const ids = (history as { id: string }[]).map((m) => m.id)
-    expect(ids).not.toContain(msgId)
-  })
-})
-
 describe('Showcase error paths', () => {
   let roomId: string
 

@@ -47,6 +47,7 @@ import { useRulePlugin } from './rules/useRulePlugin'
 // eliminates entirely (along with the whole src/sandbox/ directory).
 const SandboxRoot = import.meta.env.DEV ? lazy(() => import('./sandbox/index')) : () => null
 const PocApp = import.meta.env.DEV ? lazy(() => import('../poc/PocApp')) : () => null
+const DebugLogPage = import.meta.env.DEV ? lazy(() => import('./debug/DebugLogPage')) : () => null
 
 const EMPTY_ENTRIES: SceneEntityEntry[] = []
 
@@ -631,6 +632,23 @@ export default function App() {
         <PocApp />
       </Suspense>
     )
+  }
+
+  if (import.meta.env.DEV) {
+    const debugMatch = hash.match(/^#debug=([a-zA-Z0-9_-]+)$/)
+    if (debugMatch) {
+      return (
+        <Suspense
+          fallback={
+            <div className="flex h-screen items-center justify-center bg-deep text-muted">
+              Loading debug…
+            </div>
+          }
+        >
+          <DebugLogPage roomId={debugMatch[1] as string} />
+        </Suspense>
+      )
+    }
   }
 
   const roomMatch = hash.match(/^#room=([a-zA-Z0-9_-]+)$/)

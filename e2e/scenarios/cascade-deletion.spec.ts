@@ -110,7 +110,7 @@ test.describe('Cascade Deletion', () => {
     // Find the entity name from the store
     const entityName = await page.evaluate((eid: string) => {
       const store = (window as any).__MYVTT_STORES__?.world()
-      return store?.entities?.[eid]?.name
+      return store?.entities?.[eid]?.components?.['core:identity']?.name
     }, entityId as string)
 
     await room.gmSidebar.entityPanel.deleteEntity(entityName as string)

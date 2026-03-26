@@ -30,20 +30,36 @@ describe('base roll workflow', () => {
     const engine = new WorkflowEngine()
     registerBaseWorkflows(engine)
     const deps = {
-      sendRoll: vi.fn().mockResolvedValue({ rolls: [[8, 5]], total: 13 }),
-      updateEntity: vi.fn(),
-      updateTeamTracker: vi.fn(),
+      emitEntry: vi.fn(),
+      serverRoll: vi.fn().mockResolvedValue({
+        seq: 1,
+        id: 'roll-1',
+        type: 'core:roll-result',
+        origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
+        executor: 's1',
+        chainDepth: 0,
+        triggerable: true,
+        visibility: {},
+        baseSeq: 0,
+        timestamp: Date.now(),
+        payload: { rolls: [[8, 5]], total: 13, formula: '2d12+1', dice: [{ sides: 12, count: 2 }] },
+      }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: createEventBus(),
       engine,
+      getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
+      getSeatId: vi.fn().mockReturnValue('s1'),
+      getLogWatermark: vi.fn().mockReturnValue(0),
+      getFormulaTokens: vi.fn().mockReturnValue({}),
     }
     const internal = makeInternal()
-    const ctx = createWorkflowContext(deps, { formula: '2d12+1' }, internal)
+    const ctx = createWorkflowContext(deps, { formula: '2d12+1', actorId: 'a1' }, internal)
     const result = await engine.runWorkflow('roll', ctx, internal)
     expect(result.status).toBe('completed')
     if (result.status === 'completed') {
-      expect(result.output).toEqual({ rolls: [[8, 5]], total: 13 })
+      // total includes modifier: 8 + 5 + 1 = 14
+      expect(result.output).toEqual({ rolls: [[8, 5]], total: 14 })
     }
   })
 
@@ -58,16 +74,31 @@ describe('base roll workflow', () => {
     bus.on(announceEvent, (p) => announcements.push(p))
 
     const deps = {
-      sendRoll: vi.fn().mockResolvedValue({ rolls: [[8, 5]], total: 13 }),
-      updateEntity: vi.fn(),
-      updateTeamTracker: vi.fn(),
+      emitEntry: vi.fn(),
+      serverRoll: vi.fn().mockResolvedValue({
+        seq: 1,
+        id: 'roll-1',
+        type: 'core:roll-result',
+        origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
+        executor: 's1',
+        chainDepth: 0,
+        triggerable: true,
+        visibility: {},
+        baseSeq: 0,
+        timestamp: Date.now(),
+        payload: { rolls: [[8, 5]], total: 13, formula: '2d12+1', dice: [{ sides: 12, count: 2 }] },
+      }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: bus,
       engine,
+      getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
+      getSeatId: vi.fn().mockReturnValue('s1'),
+      getLogWatermark: vi.fn().mockReturnValue(0),
+      getFormulaTokens: vi.fn().mockReturnValue({}),
     }
     const internal = makeInternal()
-    const ctx = createWorkflowContext(deps, { formula: '2d12+1' }, internal)
+    const ctx = createWorkflowContext(deps, { formula: '2d12+1', actorId: 'a1' }, internal)
     await engine.runWorkflow('quick-roll', ctx, internal)
     expect(announcements).toEqual([
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- vitest matcher returns any

@@ -131,17 +131,6 @@ export function initRoomSchema(db: Database.Database): void {
       UNIQUE(scene_id, entity_id)
     );
 
-    -- Chat messages
-    CREATE TABLE IF NOT EXISTS chat_messages (
-      id TEXT PRIMARY KEY,
-      type TEXT NOT NULL DEFAULT 'text',
-      seat TEXT NOT NULL,
-      entity TEXT,
-      content TEXT,
-      roll_data TEXT,
-      timestamp INTEGER NOT NULL
-    );
-
     -- Assets (file management)
     CREATE TABLE IF NOT EXISTS assets (
       id TEXT PRIMARY KEY,
@@ -204,9 +193,27 @@ export function initRoomSchema(db: Database.Database): void {
       created_at INTEGER NOT NULL
     );
 
+    -- Game log (unified event stream)
+    CREATE TABLE IF NOT EXISTS game_log (
+      seq INTEGER PRIMARY KEY AUTOINCREMENT,
+      id TEXT NOT NULL UNIQUE,
+      type TEXT NOT NULL,
+      origin TEXT NOT NULL,
+      executor TEXT NOT NULL,
+      parent_id TEXT,
+      chain_depth INTEGER NOT NULL DEFAULT 0,
+      triggerable INTEGER NOT NULL DEFAULT 0,
+      visibility TEXT NOT NULL DEFAULT '{}',
+      base_seq INTEGER NOT NULL DEFAULT 0,
+      payload TEXT NOT NULL DEFAULT '{}',
+      timestamp INTEGER NOT NULL
+    );
+
     -- Indexes for common queries
+    CREATE INDEX IF NOT EXISTS idx_game_log_type ON game_log(type);
+    CREATE INDEX IF NOT EXISTS idx_game_log_executor ON game_log(executor);
+    CREATE INDEX IF NOT EXISTS idx_game_log_parent ON game_log(parent_id);
     CREATE INDEX IF NOT EXISTS idx_scene_entities_scene ON scene_entities(scene_id);
-    CREATE INDEX IF NOT EXISTS idx_chat_messages_ts ON chat_messages(timestamp);
     CREATE INDEX IF NOT EXISTS idx_entities_lifecycle ON entities(lifecycle);
     CREATE INDEX IF NOT EXISTS idx_tactical_tokens_scene ON tactical_tokens(scene_id);
     CREATE INDEX IF NOT EXISTS idx_tactical_tokens_entity ON tactical_tokens(entity_id);

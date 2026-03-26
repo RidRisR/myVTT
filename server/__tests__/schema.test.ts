@@ -57,11 +57,11 @@ describe('initRoomSchema', () => {
     expect(names).toContain('archive_tokens')
     expect(names).toContain('tactical_state')
     expect(names).toContain('tactical_tokens')
-    expect(names).toContain('chat_messages')
     expect(names).toContain('assets')
     expect(names).toContain('team_trackers')
     expect(names).toContain('showcase_items')
     expect(names).toContain('blueprints')
+    expect(names).toContain('game_log')
   })
 
   it('initializes singleton rows', () => {
@@ -74,6 +74,26 @@ describe('initRoomSchema', () => {
     expect(roomState.active_scene_id).toBeNull()
     // tactical_mode now lives in tactical_state (per-scene), not room_state
     expect(roomState.plugin_config).toBe('{}')
+  })
+
+  it('creates game_log table with expected columns', () => {
+    initRoomSchema(db)
+    const columns = db.pragma('table_info(game_log)') as { name: string }[]
+    const colNames = columns.map((c) => c.name)
+    expect(colNames).toEqual([
+      'seq',
+      'id',
+      'type',
+      'origin',
+      'executor',
+      'parent_id',
+      'chain_depth',
+      'triggerable',
+      'visibility',
+      'base_seq',
+      'payload',
+      'timestamp',
+    ])
   })
 
   it('enforces entities.blueprint_id ON DELETE SET NULL', () => {

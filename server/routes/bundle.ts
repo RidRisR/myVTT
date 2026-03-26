@@ -7,7 +7,9 @@ import { getTacticalState } from './tactical'
 import { assembleEntity } from './entities'
 import type Database from 'better-sqlite3'
 import type { BundleResponse } from '../../src/shared/bundleTypes'
+import type { GameLogEntry } from '../../src/shared/logTypes'
 import { getTagNames, getAllTags } from '../tagHelpers'
+import { rowToEntry } from '../logUtils'
 
 function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): BundleResponse {
   const globalDb = getGlobalDb(dataDir)
@@ -52,19 +54,6 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
       return base
     })
 
-    const chat = (
-      roomDb
-        .prepare('SELECT * FROM chat_messages ORDER BY timestamp ASC LIMIT 200')
-        .all() as Record<string, unknown>[]
-    ).map((r) => {
-      const msg = parseJsonFields(toCamel(r), 'rollData')
-      if (msg.rollData && typeof msg.rollData === 'object') {
-        const { rollData, ...rest } = msg
-        return { ...rest, ...(rollData as Record<string, unknown>) }
-      }
-      return msg
-    })
-
     const teamTrackers = toCamelAll(
       roomDb.prepare('SELECT * FROM team_trackers ORDER BY sort_order').all() as Record<
         string,
@@ -92,6 +81,16 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
 
     const allTags = getAllTags(roomDb)
 
+    // NOTE: Bundle returns all log entries unfiltered by visibility.
+    // REST endpoint has no seat/role context. Client-side rendering should
+    // filter based on local seat. This is a known v1 limitation.
+    const logRows = roomDb
+      .prepare('SELECT * FROM game_log ORDER BY seq DESC LIMIT 200')
+      .all() as Record<string, unknown>[]
+    const logEntries = logRows.reverse().map(rowToEntry)
+    const lastEntry = logEntries[logEntries.length - 1] as GameLogEntry | undefined
+    const logWatermark = lastEntry?.seq ?? 0
+
     // Build sceneEntityMap: Record<sceneId, { entityId, visible }[]>
     const sceneEntityMap: Record<string, { entityId: string; visible: boolean }[]> = {}
     for (const row of seRows) {
@@ -113,11 +112,12 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
       seats,
       assets,
       blueprints,
-      chat,
       teamTrackers,
       showcase,
       tactical,
       tags: allTags,
+      logEntries,
+      logWatermark,
     }
   })()
 
@@ -134,11 +134,12 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
     seats: data.seats,
     assets: data.assets,
     blueprints: data.blueprints,
-    chat: data.chat,
     teamTrackers: data.teamTrackers,
     showcase: data.showcase,
     tactical: data.tactical,
     tags: data.tags,
+    logEntries: data.logEntries,
+    logWatermark: data.logWatermark,
   } as unknown as BundleResponse
 }
 

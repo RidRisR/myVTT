@@ -1,0 +1,70 @@
+import type { MessageOrigin } from './chatTypes'
+import type { DiceSpec } from './diceUtils'
+
+// ── Visibility ──
+export type Visibility =
+  | Record<string, never> // {} = public
+  | { include: string[] } // whitelist
+  | { exclude: string[] } // blacklist
+
+// ── GameLogEntry (server → client, with seq) ──
+export interface GameLogEntry {
+  seq: number
+  id: string
+  type: string
+  origin: MessageOrigin
+  executor: string
+  parentId?: string
+  chainDepth: number
+  triggerable: boolean
+  visibility: Visibility
+  baseSeq: number
+  payload: Record<string, unknown>
+  timestamp: number
+}
+
+// ── LogEntrySubmission (client → server, no seq/executor) ──
+export interface LogEntrySubmission {
+  id: string
+  type: string
+  origin: MessageOrigin
+  parentId?: string
+  chainDepth: number
+  triggerable: boolean
+  visibility: Visibility
+  baseSeq: number
+  payload: Record<string, unknown>
+  timestamp: number
+}
+
+// ── RollRequest (client → server for RNG) ──
+export interface RollRequest {
+  origin: MessageOrigin
+  parentId?: string
+  chainDepth: number
+  triggerable: boolean
+  visibility: Visibility
+  dice: DiceSpec[]
+  formula: string
+  resolvedFormula?: string
+  rollType?: string
+  actionName?: string
+}
+
+// ── Ack types ──
+export type LogEntryAck = GameLogEntry | { error: string }
+
+export type RollRequestAck = GameLogEntry | { error: string }
+
+// ── Constants ──
+export const MAX_CHAIN_DEPTH = 10
+
+// ── Trigger definition (for PluginSDK.registerTrigger) ──
+export interface TriggerDefinition {
+  id: string
+  on: string
+  filter?: Record<string, unknown>
+  workflow: string
+  mapInput: (entry: GameLogEntry) => Record<string, unknown>
+  executeAs: 'triggering-executor'
+}

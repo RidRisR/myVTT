@@ -12,12 +12,11 @@ import type {
   Blueprint,
 } from '../shared/entityTypes'
 import type { ShowcaseItem } from '../shared/showcaseTypes'
-import type { ChatMessage, MessageOrigin } from '../shared/chatTypes'
-import type { DiceSpec } from '../shared/diceUtils'
 import { api } from '../shared/api'
 import { generateTokenId } from '../shared/idUtils'
 import { defaultNPCPermissions } from '../shared/permissions'
 import type { AssetMeta, TagMeta } from '../shared/assetTypes'
+import type { GameLogEntry } from '../shared/logTypes'
 import { uploadAsset as uploadAssetFile, uploadBlueprintFromFile } from '../shared/assetUpload'
 import {
   updateAsset as patchAsset,
@@ -53,9 +52,6 @@ export interface HandoutAsset {
   createdAt: number
 }
 
-// ChatMessage type re-exported from chatTypes for backward compatibility
-export type { ChatMessage } from '../shared/chatTypes'
-
 // ── Store interface ──
 
 interface WorldState {
@@ -64,8 +60,6 @@ interface WorldState {
   scenes: Scene[]
   entities: Record<string, Entity>
   sceneEntityMap: Record<string, SceneEntityEntry[]>
-  chatMessages: ChatMessage[]
-  freshChatIds: Set<string>
   tacticalInfo: TacticalInfo | null
   showcaseItems: ShowcaseItem[]
   showcasePinnedItemId: string | null
@@ -74,6 +68,9 @@ interface WorldState {
   assets: AssetMeta[]
   blueprints: Blueprint[]
   tags: TagMeta[]
+  logEntries: GameLogEntry[]
+  logEntriesById: Record<string, GameLogEntry>
+  logWatermark: number
 
   // Internal refs
   _socket: TypedClientSocket | null
@@ -185,24 +182,6 @@ interface WorldState {
   updateTeamTracker: (id: string, updates: Partial<TeamTracker>) => Promise<void>
   deleteTeamTracker: (id: string) => Promise<void>
 
-  // Chat actions
-  sendMessage: (msg: { origin: MessageOrigin; content: string }) => Promise<void>
-  sendRoll: (data: {
-    origin: MessageOrigin
-    dice: DiceSpec[]
-    formula: string
-    resolvedFormula?: string
-    rollType?: string
-    actionName?: string
-  }) => Promise<{ rolls: number[][]; id: string } | undefined>
-  sendJudgment: (data: {
-    origin: MessageOrigin
-    rollMessageId: string
-    judgment: { type: string; outcome: string }
-    displayText: string
-    displayColor: string
-  }) => Promise<void>
-
   /** @internal Test-only */
   _reset: () => void
 }
@@ -210,6 +189,7 @@ interface WorldState {
 // ── Constants (stable references to avoid infinite re-renders in selectors) ──
 
 const EMPTY_ENTRIES: SceneEntityEntry[] = []
+const EMPTY_LOG_ENTRIES: GameLogEntry[] = []
 
 const DEFAULT_GRID: TacticalInfo['grid'] = {
   size: 50,
@@ -265,13 +245,15 @@ async function loadAll(roomId: string) {
     scenes: bundle.scenes,
     entities,
     sceneEntityMap: bundle.sceneEntityMap,
-    chatMessages: bundle.chat,
     teamTrackers: bundle.teamTrackers,
     assets: bundle.assets.map(normalizeAsset),
     blueprints: bundle.blueprints,
     tags: bundle.tags,
     showcaseItems: bundle.showcase,
     tacticalInfo: bundle.tactical ? normalizeTacticalInfo(bundle.tactical) : null,
+    logEntries: bundle.logEntries,
+    logEntriesById: Object.fromEntries(bundle.logEntries.map((e) => [e.id, e])),
+    logWatermark: bundle.logWatermark,
   }
 }
 
@@ -392,26 +374,6 @@ function registerSocketEvents(
     })
   })
 
-  // ── Chat events ──
-  socket.on('chat:new', (message: ChatMessage) => {
-    set((s) => ({
-      chatMessages: [...s.chatMessages, message],
-      freshChatIds: new Set([...s.freshChatIds, message.id]),
-    }))
-    setTimeout(() => {
-      set((s) => {
-        const next = new Set(s.freshChatIds)
-        next.delete(message.id)
-        return { freshChatIds: next }
-      })
-    }, 2500)
-  })
-  socket.on('chat:retracted', ({ id }: { id: string }) => {
-    set((s) => ({
-      chatMessages: s.chatMessages.filter((m) => m.id !== id),
-    }))
-  })
-
   // ── Room state events ──
   socket.on('room:state:updated', (state: Partial<RoomState>) => {
     set((s) => ({ room: { ...s.room, ...state } }))
@@ -505,6 +467,47 @@ function registerSocketEvents(
   socket.on('archive:deleted', ({ id }: { id: string }) => {
     set((s) => ({ archives: s.archives.filter((a) => a.id !== id) }))
   })
+
+  // ── Game log events ──
+  socket.on('log:new', (entry: GameLogEntry) => {
+    set((s) => {
+      // Dedup: skip if already received
+      if (s.logEntriesById[entry.id]) return s
+
+      // NOTE: logEntries grows unbounded. For long-running campaigns this may
+      // consume significant memory. A client-side eviction strategy (e.g., sliding
+      // window) is listed as an open design question (doc 16 §开放问题).
+      const updates: Partial<WorldState> = {
+        logEntries: [...s.logEntries, entry],
+        logEntriesById: { ...s.logEntriesById, [entry.id]: entry },
+        logWatermark: Math.max(s.logWatermark, entry.seq),
+      }
+
+      // Snapshot sync: tracker-update
+      if (entry.type === 'core:tracker-update' && entry.payload.snapshot) {
+        const snap = entry.payload.snapshot as TeamTracker
+        updates.teamTrackers = s.teamTrackers.map((t) => (t.id === snap.id ? snap : t))
+      }
+
+      // Snapshot sync: component-update
+      if (entry.type === 'core:component-update') {
+        const { entityId, key, data } = entry.payload as {
+          entityId: string
+          key: string
+          data: unknown
+        }
+        const entity = s.entities[entityId]
+        if (entity) {
+          updates.entities = {
+            ...s.entities,
+            [entityId]: { ...entity, components: { ...entity.components, [key]: data } },
+          }
+        }
+      }
+
+      return updates
+    })
+  })
 }
 
 const WS_EVENTS = [
@@ -521,8 +524,6 @@ const WS_EVENTS = [
   'tactical:token:added',
   'tactical:token:updated',
   'tactical:token:removed',
-  'chat:new',
-  'chat:retracted',
   'room:state:updated',
   'tracker:created',
   'tracker:updated',
@@ -544,6 +545,7 @@ const WS_EVENTS = [
   'tag:created',
   'tag:updated',
   'tag:deleted',
+  'log:new',
 ] as const
 
 // ── Store creation ──
@@ -554,8 +556,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   scenes: [],
   entities: {},
   sceneEntityMap: {},
-  chatMessages: [],
-  freshChatIds: new Set<string>(),
   tacticalInfo: null,
   showcaseItems: [],
   showcasePinnedItemId: null,
@@ -564,6 +564,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   assets: [],
   blueprints: [],
   tags: [],
+  logEntries: EMPTY_LOG_ENTRIES,
+  logEntriesById: {},
+  logWatermark: 0,
   archives: [],
 
   // Internal refs
@@ -1051,34 +1054,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     await api.delete(`/api/rooms/${roomId}/team-trackers/${id}`)
   },
 
-  // ── Chat actions ──
-
-  sendMessage: async (msg) => {
-    const roomId = get()._roomId
-    if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/chat`, msg)
-  },
-
-  sendRoll: async (data) => {
-    const roomId = get()._roomId
-    if (!roomId) return undefined
-    const msg = await api.post<{ rolls: number[][]; id: string }>(`/api/rooms/${roomId}/roll`, data)
-    return { rolls: msg.rolls, id: msg.id }
-  },
-
-  sendJudgment: async (data) => {
-    const roomId = get()._roomId
-    if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/chat`, {
-      type: 'judgment',
-      origin: data.origin,
-      rollMessageId: data.rollMessageId,
-      judgment: data.judgment,
-      displayText: data.displayText,
-      displayColor: data.displayColor,
-    })
-  },
-
   /** @internal Test-only: reset store to initial state (preserves socket/roomId) */
   _reset: () => {
     set({
@@ -1089,7 +1064,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       scenes: [],
       entities: {},
       sceneEntityMap: {},
-      chatMessages: [],
       tacticalInfo: null,
       showcaseItems: [],
       showcasePinnedItemId: null,
@@ -1097,6 +1071,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       teamTrackers: [],
       assets: [],
       tags: [],
+      logEntries: EMPTY_LOG_ENTRIES,
+      logEntriesById: {},
+      logWatermark: 0,
       archives: [],
     })
   },

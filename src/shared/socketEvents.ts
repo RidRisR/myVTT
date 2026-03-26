@@ -15,7 +15,13 @@ import type {
   RoomMeta,
 } from './storeTypes'
 import type { Entity, MapToken, Blueprint } from './entityTypes'
-import type { ChatMessage } from './chatTypes'
+import type {
+  GameLogEntry,
+  LogEntrySubmission,
+  RollRequest,
+  LogEntryAck,
+  RollRequestAck,
+} from './logTypes'
 import type { ShowcaseItem } from './showcaseTypes'
 import type { TagMeta } from './assetTypes'
 
@@ -52,9 +58,8 @@ export interface ServerToClientEvents {
   'tactical:token:updated': (token: MapToken) => void
   'tactical:token:removed': (data: { id: string }) => void
 
-  // ── Chat ──
-  'chat:new': (message: ChatMessage) => void
-  'chat:retracted': (data: { id: string }) => void
+  // ── Game Log ──
+  'log:new': (entry: GameLogEntry) => void
 
   // ── Room state ──
   'room:state:updated': (state: Partial<RoomState>) => void
@@ -153,4 +158,12 @@ export interface ClientToServerEvents {
     seatId: string
   }) => void
   'awareness:tokenDragEnd': (data: { seatId: string }) => void
+
+  // ── Game Log ──
+  'log:entry': (entry: LogEntrySubmission, ack: (response: LogEntryAck) => void) => void
+  'log:roll-request': (request: RollRequest, ack: (response: RollRequestAck) => void) => void
+  'log:history': (
+    query: { beforeSeq?: number; limit?: number },
+    ack: (entries: GameLogEntry[]) => void,
+  ) => void
 }

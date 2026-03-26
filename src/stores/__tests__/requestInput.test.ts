@@ -71,13 +71,28 @@ describe('ctx.requestInput — workflow integration', () => {
     const engine = new WorkflowEngine()
     const bus = createEventBus()
     const deps = {
-      sendRoll: vi.fn(),
-      updateEntity: vi.fn(),
-      updateTeamTracker: vi.fn(),
+      emitEntry: vi.fn(),
+      serverRoll: vi.fn().mockResolvedValue({
+        seq: 0,
+        id: '',
+        type: '',
+        origin: { seat: { id: '', name: '', color: '' } },
+        executor: '',
+        chainDepth: 0,
+        triggerable: false,
+        visibility: {},
+        baseSeq: 0,
+        payload: {},
+        timestamp: 0,
+      }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
       eventBus: bus,
       engine,
+      getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: '', name: '', color: '' } }),
+      getSeatId: vi.fn().mockReturnValue(''),
+      getLogWatermark: vi.fn().mockReturnValue(0),
+      getFormulaTokens: vi.fn().mockReturnValue({}),
     }
 
     engine.defineWorkflow('test:interactive', [

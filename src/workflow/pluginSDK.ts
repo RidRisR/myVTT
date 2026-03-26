@@ -16,9 +16,11 @@ import type { ContextDeps } from './context'
 import { createWorkflowContext } from './context'
 import type { IUIRegistrationSDK } from '../ui-system/registrationTypes'
 import type { UIRegistry } from '../ui-system/registry'
+import type { TriggerDefinition } from '../shared/logTypes'
+import { TriggerRegistry } from './triggerRegistry'
 
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
-// PluginSDKDeps = { sendRoll, updateEntity, updateTeamTracker, eventBus }
+// PluginSDKDeps = { emitEntry, serverRoll, getEntity, getAllEntities, eventBus, getActiveOrigin, getSeatId, getLogWatermark }
 
 /**
  * Registration-time API for plugins. No runWorkflow — plugins must use
@@ -27,11 +29,18 @@ export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
 export class PluginSDK implements IPluginSDK {
   private engine: WorkflowEngine
   private pluginId: string
+  private triggerRegistry?: TriggerRegistry
   readonly ui: IUIRegistrationSDK
 
-  constructor(engine: WorkflowEngine, pluginId: string, uiRegistry?: UIRegistry) {
+  constructor(
+    engine: WorkflowEngine,
+    pluginId: string,
+    uiRegistry?: UIRegistry,
+    triggerRegistry?: TriggerRegistry,
+  ) {
     this.engine = engine
     this.pluginId = pluginId
+    this.triggerRegistry = triggerRegistry
     this.ui = uiRegistry
       ? {
           registerComponent: (def) => {
@@ -116,6 +125,13 @@ export class PluginSDK implements IPluginSDK {
     return this.engine.inspectWorkflow(handle.name)
   }
   /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  registerTrigger(trigger: TriggerDefinition): void {
+    if (!this.triggerRegistry) {
+      throw new Error('TriggerRegistry not available')
+    }
+    this.triggerRegistry.register(trigger)
+  }
 }
 
 /**

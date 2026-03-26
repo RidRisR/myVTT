@@ -6,14 +6,14 @@
 
 ## 进度
 
-| Phase   | 状态        | 描述                                                                  |
-| ------- | ----------- | --------------------------------------------------------------------- |
-| Phase 1 | ✅ 完成     | EventBus — 解耦系统事件                                               |
-| Phase 2 | ✅ 完成     | WorkflowContext 重写 — ctx.state/read/updateComponent                 |
-| Phase 3 | ✅ 完成     | IDataReader + 响应式 Hooks                                            |
-| Phase 4 | 📋 计划已写 | Entity.components 全量迁移（[详细计划](phase4-entity-components.md)） |
-| Phase 5 | ⏳ 待执行   | Session State                                                         |
-| Phase 6 | ⏳ 待执行   | requestInput + 异步步骤                                               |
+| Phase   | 状态    | 描述                                                  |
+| ------- | ------- | ----------------------------------------------------- |
+| Phase 1 | ✅ 完成 | EventBus — 解耦系统事件                               |
+| Phase 2 | ✅ 完成 | WorkflowContext 重写 — ctx.state/read/updateComponent |
+| Phase 3 | ✅ 完成 | IDataReader + 响应式 Hooks                            |
+| Phase 4 | ✅ 完成 | Entity.components 全量迁移（#168）                    |
+| Phase 5 | ✅ 完成 | Session State — sessionStore.ts                       |
+| Phase 6 | ✅ 完成 | requestInput + 异步步骤                               |
 
 ## 审查发现
 
@@ -93,42 +93,35 @@ Phase 4 实现时在 `IPluginSDK` 添加 `entity: IEntityRegistrationSDK`（`reg
 
 ---
 
-## Phase 4: Entity.components 全量迁移（📋 计划已写）
+## Phase 4: Entity.components 全量迁移（✅ 完成）
 
 **目标**：`Entity.ruleData + 预定义字段` → `Entity.components: Record<string, unknown>`
 
-详见 [phase4-entity-components.md](phase4-entity-components.md)
-
-子阶段：4a(类型) → 4h(data layer) → 4f(插件) → 4g(UI) → 4b(DB) → 4c+4e(服务端) → 4d(store)
+详见 [phase4-entity-components.md](phase4-entity-components.md)。已在 commit #168 完成全部子阶段。
 
 ---
 
-## Phase 5: Session State（⏳ 待执行）
+## Phase 5: Session State（✅ 完成）
 
 **目标**：UI 选中态、交互状态管理。
 
-**新建文件：**
-
-- `src/stores/sessionStore.ts` — selection + pendingInteractions
-
-**修改文件：**
-
-- `src/workflow/baseWorkflows.ts` — 注册 core:set-selection、core:open-card
-- `src/ui-system/PanelRenderer.tsx` — instanceProps factory 支持
-- `src/ui-system/types.ts` — instanceProps 类型
+已实现：`src/stores/sessionStore.ts`（selection + pendingInteractions）。
 
 ---
 
-## Phase 6: requestInput + 异步步骤（⏳ 待执行）
+## Phase 6: requestInput + 异步步骤（✅ 完成）
 
 **目标**：Workflow 步骤支持异步（`Promise<void>`），添加 `ctx.requestInput()` 交互模型。
 
-**修改文件：**
+已实现：`src/workflow/types.ts`（StepFn + requestInput）、`src/workflow/context.ts`（requestInput 实现）、`src/stores/sessionStore.ts`（requestInput/resolveInput/cancelInput）。
 
-- `src/workflow/types.ts` — StepFn 返回 `void | Promise<void>`，ctx 添加 requestInput；InputRequestHandle 增加 accepts
-- `src/workflow/engine.ts` — 步骤执行 await
-- `src/workflow/context.ts` — 实现 requestInput
-- `src/stores/sessionStore.ts` — requestInput/resolveInput/cancelInput + usePendingByAccepts
+---
+
+## 迁移完成声明
+
+全部 6 个 Phase 已完成，POC 验证的插件系统架构已全面迁移到生产代码。
+
+后续演进计划见 [17-插件系统演进路线.md](../design/17-插件系统演进路线.md)（三轨道：事件日志完善 → UI 插件化 → RulePlugin 退役）。
 
 ---
 

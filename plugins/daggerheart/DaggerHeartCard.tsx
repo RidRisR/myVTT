@@ -63,6 +63,7 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
                       .runWorkflow(getDHActionCheckWorkflow(), {
                         formula: `2d12+@${k}`,
                         actorId: entity.id,
+                        rollType: 'daggerheart:dd',
                       })
                       .catch((err: unknown) => {
                         console.error('[Workflow] roll failed:', err)

@@ -3,10 +3,13 @@ import { useTranslation } from 'react-i18next'
 import type { ChatMessage, MessageOrigin } from '../shared/chatTypes'
 import { getDisplayIdentity } from '../shared/chatTypes'
 import type { DiceSpec } from '../shared/diceUtils'
+import type { GameLogEntry } from '../shared/logTypes'
 import type { Entity } from '../shared/entityTypes'
 import { getName, getColor, getImageUrl } from '../shared/coreComponents'
-import { useWorldStore } from '../stores/worldStore'
 import { useRulePlugin } from '../rules/useRulePlugin'
+import { useWorldStore } from '../stores/worldStore'
+import { useWorkflowRunner } from '../workflow/useWorkflowSDK'
+import { getRollWorkflow, getSendTextWorkflow } from '../workflow/baseWorkflows'
 import { MessageScrollArea } from './MessageScrollArea'
 import { ToastStack, type ToastItem } from './ToastStack'
 import { ChatInput } from './ChatInput'
@@ -14,6 +17,38 @@ import { Avatar } from './Avatar'
 import * as Popover from '@radix-ui/react-popover'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
+
+// Module-level constants for stable references
+const EMPTY_FRESH_IDS = new Set<string>()
+
+/** Convert a GameLogEntry to a ChatMessage for rendering */
+function logEntryToChatMessage(entry: GameLogEntry): ChatMessage | null {
+  switch (entry.type) {
+    case 'core:text':
+      return {
+        type: 'text',
+        id: entry.id,
+        origin: entry.origin,
+        content: (entry.payload.content as string | undefined) ?? '',
+        timestamp: entry.timestamp,
+      }
+    case 'core:roll-result':
+      return {
+        type: 'roll',
+        id: entry.id,
+        origin: entry.origin,
+        timestamp: entry.timestamp,
+        formula: (entry.payload.formula as string | undefined) ?? '',
+        resolvedFormula: entry.payload.resolvedFormula as string | undefined,
+        dice: (entry.payload.dice as DiceSpec[] | undefined) ?? [],
+        rolls: (entry.payload.rolls as number[][] | undefined) ?? [],
+        rollType: entry.payload.rollType as string | undefined,
+        actionName: entry.payload.actionName as string | undefined,
+      }
+    default:
+      return null
+  }
+}
 
 interface ChatPanelProps {
   roomId: string
@@ -85,14 +120,16 @@ export function ChatPanel({
   const [speakerCharId, setSpeakerCharId] = useState<string | null>(null)
   const [showSpeakerPicker, setShowSpeakerPicker] = useState(false)
 
-  // Read messages from worldStore
-  const messages = useWorldStore((s) => s.chatMessages)
-  const messagesRef = useRef(messages)
-  messagesRef.current = messages
-  const freshChatIds = useWorldStore((s) => s.freshChatIds)
-  const sendMessage = useWorldStore((s) => s.sendMessage)
-  const sendRoll = useWorldStore((s) => s.sendRoll)
   const plugin = useRulePlugin()
+  const runner = useWorkflowRunner()
+
+  // Map game_log entries to ChatMessage for rendering
+  const logEntries = useWorldStore((s) => s.logEntries)
+  const messages = useMemo(
+    () => logEntries.map(logEntryToChatMessage).filter((m): m is ChatMessage => m !== null),
+    [logEntries],
+  )
+  const freshChatIds = EMPTY_FRESH_IDS
 
   // Build origin: null = seat identity, string = character
   const seatOrigin: MessageOrigin = useMemo(
@@ -150,7 +187,7 @@ export function ChatPanel({
 
     // Detect newly added messages
     if (messages.length > prevMessageCountRef.current) {
-      const newMsgs = messagesRef.current.slice(prevMessageCountRef.current)
+      const newMsgs = messages.slice(prevMessageCountRef.current)
 
       // Add to toast queue if collapsed
       if (!expandedRef.current) {
@@ -160,7 +197,7 @@ export function ChatPanel({
       }
     }
     prevMessageCountRef.current = messages.length
-  }, [messages.length])
+  }, [messages])
 
   // Limit to max 3 toasts
   useEffect(() => {
@@ -182,27 +219,34 @@ export function ChatPanel({
 
   const handleSend = useCallback(
     (message: ChatMessage) => {
-      if (message.type === 'text') {
-        void sendMessage({
-          origin: message.origin,
-          content: message.content,
-        })
-      }
+      if (message.type !== 'text') return
+      void runner.runWorkflow(getSendTextWorkflow(), {
+        content: message.content,
+        senderName: senderName,
+      })
     },
-    [sendMessage],
+    [runner, senderName],
   )
 
   const handleRoll = useCallback(
-    (formula: string, resolvedFormula?: string, dice: DiceSpec[] = [], rollType?: string) => {
-      void sendRoll({
-        origin: activeOrigin,
-        formula,
-        resolvedFormula,
-        dice,
-        rollType,
-      })
+    (formula: string, resolvedFormula?: string, _dice: DiceSpec[] = [], rollType?: string) => {
+      // Plugin roll command → use plugin's action-check workflow
+      if (rollType) {
+        const getWf = plugin.diceSystem?.rollWorkflows?.[rollType]
+        if (getWf) {
+          void runner.runWorkflow(getWf(), {
+            formula,
+            resolvedFormula,
+            actorId: senderId,
+            rollType,
+          })
+          return
+        }
+      }
+      // Generic roll (.r)
+      void runner.runWorkflow(getRollWorkflow(), { formula, resolvedFormula, actorId: senderId })
     },
-    [sendRoll, activeOrigin],
+    [runner, senderId, plugin],
   )
 
   // Tab to cycle speaker: seat → entity1 → entity2 → ... → seat

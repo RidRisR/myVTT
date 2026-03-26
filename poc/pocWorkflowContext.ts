@@ -84,9 +84,22 @@ export function createPocWorkflowContext<TVars extends Record<string, unknown>>(
       ) as Promise<WorkflowResult<T, TOut>>
     },
     // Stubs for old interface (engine doesn't call these, but TypeScript needs them)
-    updateEntity: () => {},
+    emitEntry: () => {},
     updateTeamTracker: () => {},
-    serverRoll: () => Promise.resolve({ rolls: [], total: 0 }),
+    serverRoll: () =>
+      Promise.resolve({
+        seq: 0,
+        id: '',
+        type: '',
+        origin: { seat: { id: '', name: '', color: '' } },
+        executor: '',
+        chainDepth: 0,
+        triggerable: false,
+        visibility: {},
+        baseSeq: 0,
+        payload: { rolls: [], total: 0 },
+        timestamp: 0,
+      }),
     showToast: () => {},
     announce: () => {},
     playAnimation: () => Promise.resolve(),

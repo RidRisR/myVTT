@@ -45,12 +45,15 @@ export default function PatternUISystem() {
     const sdk = new PluginSDK(engine, pocUIPlugin.id, reg)
     pocUIPlugin.onActivate(sdk)
     const wfRunner = new WorkflowRunner(engine, {
-      sendRoll: () => Promise.resolve({ rolls: [], total: 0 }),
-      updateEntity: () => {},
-      updateTeamTracker: () => {},
+      emitEntry: () => {},
+      serverRoll: () => Promise.reject(new Error('serverRoll not available in sandbox')),
       getEntity: () => undefined,
       getAllEntities: () => ({}),
       eventBus: new EventBus(),
+      getActiveOrigin: () => ({ seat: { id: '', name: '', color: '' } }),
+      getSeatId: () => '',
+      getLogWatermark: () => 0,
+      getFormulaTokens: () => ({}),
     })
     return { registry: reg, runner: wfRunner }
   }, [])
@@ -70,6 +73,7 @@ export default function PatternUISystem() {
         entity: (id) => MOCK_ENTITIES.find((e) => e.id === id),
         component: () => undefined,
         query: () => MOCK_ENTITIES,
+        formulaTokens: () => ({}),
       },
       workflow: runner,
       context: { instanceProps, role: 'GM', layoutMode: mode },

@@ -236,8 +236,10 @@ export interface RulePlugin {
     getDieStyles(terms: DiceTermResult[]): DieStyle[]
     getJudgmentDisplay(result: JudgmentResult): JudgmentDisplay
     getModifierOptions(): ModifierOption[]
-    // NEW: 插件注册的自定义投骰命令
+    // Plugin-registered roll commands (e.g., .dd → daggerheart:dd)
     rollCommands?: Record<string, { resolveFormula(modifierExpr?: string): string }>
+    // Plugin-registered workflow per rollType (getter to avoid init-order issues)
+    rollWorkflows?: Record<string, () => import('../workflow/types').WorkflowHandle>
   }
 
   // Layer 4: Data templates (optional)

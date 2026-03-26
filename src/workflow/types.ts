@@ -2,6 +2,8 @@
 import type { Entity } from '../shared/entityTypes'
 import type { EventHandle } from '../events/eventBus'
 import type { IUIRegistrationSDK } from '../ui-system/registrationTypes'
+import type { GameLogEntry, TriggerDefinition, Visibility } from '../shared/logTypes'
+import type { DiceSpec } from '../shared/diceUtils'
 
 // ── WorkflowHandle — phantom type for compile-time safety ─────────────────
 
@@ -112,6 +114,7 @@ export interface IDataReader {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T required for caller type inference
   component<T>(entityId: string, key: string): T | undefined
   query(spec: { has?: string[] }): Entity[]
+  formulaTokens(entityId: string): Record<string, number>
 }
 
 // ── WorkflowContext ───────────────────────────────────────────────────────
@@ -125,11 +128,33 @@ export interface WorkflowContext<TVars = Record<string, unknown>> {
   readonly read: IDataReader
 
   // ── Input (returns value, suspends execution) ──────────────────────────
-  serverRoll(formula: string): Promise<{ rolls: number[][]; total: number }>
+  /** Server-side dice roll via Socket.io (await ack) — returns full GameLogEntry with rolls */
+  serverRoll(
+    formula: string,
+    options?: {
+      dice?: DiceSpec[]
+      resolvedFormula?: string
+      rollType?: string
+      actionName?: string
+      parentId?: string
+      chainDepth?: number
+      triggerable?: boolean
+      visibility?: Visibility
+    },
+  ): Promise<GameLogEntry>
   /** Pause workflow until UI resolves/cancels the interaction */
   requestInput(interactionId: string): Promise<unknown>
 
   // ── Effects (side effects, fire-and-forget) ───────────────────────────
+  /** Emit a log entry (fire-and-forget via Socket.io) */
+  emitEntry(partial: {
+    type: string
+    payload: Record<string, unknown>
+    triggerable: boolean
+    parentId?: string
+    chainDepth?: number
+    visibility?: Visibility
+  }): void
   updateComponent<T>(entityId: string, key: string, updater: (current: T | undefined) => T): void
   /** @deprecated — will be removed when teamTracker is redesigned */
   updateTeamTracker(label: string, patch: { current?: number }): void
@@ -183,6 +208,7 @@ export interface IPluginSDK {
   removeStep(handle: WorkflowHandle<any, any>, targetStepId: string): void
   inspectWorkflow(handle: WorkflowHandle<any, any>): string[]
   /* eslint-enable @typescript-eslint/no-explicit-any */
+  registerTrigger(trigger: TriggerDefinition): void
   ui: IUIRegistrationSDK
 }
 

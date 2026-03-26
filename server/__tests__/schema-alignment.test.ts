@@ -97,12 +97,6 @@ describe('schema alignment with design doc 43', () => {
     expect(indexNames.some((n) => n.includes('scene'))).toBe(true)
   })
 
-  it('has index on chat_messages(timestamp)', () => {
-    const indexes = db.prepare("PRAGMA index_list('chat_messages')").all() as { name: string }[]
-    const indexNames = indexes.map((i) => i.name)
-    expect(indexNames.some((n) => n.includes('chat') || n.includes('ts'))).toBe(true)
-  })
-
   it('has index on entities(lifecycle)', () => {
     const indexes = db.prepare("PRAGMA index_list('entities')").all() as { name: string }[]
     const indexNames = indexes.map((i) => i.name)
