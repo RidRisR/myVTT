@@ -9,7 +9,7 @@ import { getName, getColor, getImageUrl } from '../shared/coreComponents'
 import { useRulePlugin } from '../rules/useRulePlugin'
 import { useWorldStore } from '../stores/worldStore'
 import { useWorkflowRunner } from '../workflow/useWorkflowSDK'
-import { getRollWorkflow } from '../workflow/baseWorkflows'
+import { getRollWorkflow, getSendTextWorkflow } from '../workflow/baseWorkflows'
 import { MessageScrollArea } from './MessageScrollArea'
 import { ToastStack, type ToastItem } from './ToastStack'
 import { ChatInput } from './ChatInput'
@@ -217,9 +217,16 @@ export function ChatPanel({
     setToastQueue((prev) => prev.filter((item) => item.message.id !== id))
   }, [])
 
-  const handleSend = useCallback((_message: ChatMessage) => {
-    // sendMessage removed — chat replaced by game_log system
-  }, [])
+  const handleSend = useCallback(
+    (message: ChatMessage) => {
+      if (message.type !== 'text') return
+      void runner.runWorkflow(getSendTextWorkflow(), {
+        content: message.content,
+        senderName: senderName,
+      })
+    },
+    [runner, senderName],
+  )
 
   const handleRoll = useCallback(
     (formula: string, resolvedFormula?: string, _dice: DiceSpec[] = [], rollType?: string) => {

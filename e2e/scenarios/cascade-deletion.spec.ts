@@ -110,7 +110,7 @@ test.describe('Cascade Deletion', () => {
     // Find the entity name from the store
     const entityName = await page.evaluate((eid: string) => {
       const store = (window as any).__MYVTT_STORES__?.world()
-      return store?.entities?.[eid]?.name
+      return store?.entities?.[eid]?.components?.['core:identity']?.name
     }, entityId as string)
 
     await room.gmSidebar.entityPanel.deleteEntity(entityName as string)
@@ -322,7 +322,9 @@ test.describe('Cascade Deletion', () => {
     const entityId = await page.evaluate(() => {
       const store = (window as any).__MYVTT_STORES__?.world()
       if (!store?.entities) return null
-      const entity = Object.values(store.entities).find((e: any) => e.name === 'New Character')
+      const entity = Object.values(store.entities).find(
+        (e: any) => e.components?.['core:identity']?.name === 'New Character',
+      )
       return (entity as any)?.id ?? null
     })
     expect(entityId).toBeTruthy()
@@ -384,7 +386,9 @@ test.describe('Cascade Deletion', () => {
       () => {
         const store = (window as any).__MYVTT_STORES__?.world()
         if (!store?.entities) return false
-        return Object.values(store.entities).some((e: any) => e.name === 'New Character')
+        return Object.values(store.entities).some(
+          (e: any) => e.components?.['core:identity']?.name === 'New Character',
+        )
       },
       null,
       { timeout: 5_000 },

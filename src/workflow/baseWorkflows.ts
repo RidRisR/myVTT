@@ -27,10 +27,18 @@ export interface SetSelectionState {
   entityId: string | null
 }
 
+/** Data shape for the send-text workflow */
+export interface SendTextData {
+  [key: string]: unknown
+  content: string
+  senderName?: string
+}
+
 /** Typed handle — plugins import this to add/attach steps to the roll workflow */
 let _rollWorkflow: WorkflowHandle<BaseRollData, RollOutput> | undefined
 let _quickRollWorkflow: WorkflowHandle<BaseRollData> | undefined
 let _setSelectionWorkflow: WorkflowHandle<SetSelectionState> | undefined
+let _sendTextWorkflow: WorkflowHandle<SendTextData> | undefined
 
 export function getRollWorkflow(): WorkflowHandle<BaseRollData, RollOutput> {
   if (!_rollWorkflow) {
@@ -51,6 +59,13 @@ export function getSetSelectionWorkflow(): WorkflowHandle<SetSelectionState> {
     throw new Error('setSelectionWorkflow not initialized — call registerBaseWorkflows first')
   }
   return _setSelectionWorkflow
+}
+
+export function getSendTextWorkflow(): WorkflowHandle<SendTextData> {
+  if (!_sendTextWorkflow) {
+    throw new Error('sendTextWorkflow not initialized — call registerBaseWorkflows first')
+  }
+  return _sendTextWorkflow
 }
 
 export function registerBaseWorkflows(engine: WorkflowEngine): void {
@@ -137,4 +152,20 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
   _setSelectionWorkflow = engine.defineWorkflow<SetSelectionState>('core:set-selection', (ctx) => {
     _setSelection(ctx.vars.entityId ? [ctx.vars.entityId] : [])
   })
+
+  // send-text: emit a plain text chat message into game_log
+  _sendTextWorkflow = engine.defineWorkflow<SendTextData>('core:send-text', [
+    {
+      id: 'emit',
+      run: (ctx) => {
+        const content = ctx.vars.content
+        if (typeof content !== 'string' || content.length === 0) return
+        ctx.emitEntry({
+          type: 'core:text',
+          payload: { content, senderName: ctx.vars.senderName },
+          triggerable: true,
+        })
+      },
+    },
+  ])
 }
