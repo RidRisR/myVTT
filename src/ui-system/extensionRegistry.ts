@@ -22,6 +22,7 @@ export function logRenderer(
 interface Contribution {
   component: ComponentType<never>
   priority: number
+  insertionOrder: number
 }
 
 export class ExtensionRegistry {
@@ -34,9 +35,9 @@ export class ExtensionRegistry {
     priority = 0,
   ): void {
     const list = this.map.get(point.key) ?? []
-    list.push({ component: component as ComponentType<never>, priority })
-    // Keep sorted by priority descending for fast get()
-    list.sort((a, b) => b.priority - a.priority)
+    list.push({ component: component as ComponentType<never>, priority, insertionOrder: list.length })
+    // Keep sorted by priority descending, insertion order ascending for stability
+    list.sort((a, b) => b.priority - a.priority || a.insertionOrder - b.insertionOrder)
     this.map.set(point.key, list)
   }
 
