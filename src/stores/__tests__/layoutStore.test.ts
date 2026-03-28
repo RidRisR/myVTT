@@ -30,9 +30,9 @@ describe('layoutStore', () => {
       tactical: {},
     })
     store.getState().updateEntry('a#1', { x: 50, y: 50 })
-    expect(store.getState().narrative['a#1'].x).toBe(50)
-    expect(store.getState().narrative['a#1'].y).toBe(50)
-    expect(store.getState().narrative['a#1'].width).toBe(100)
+    expect(store.getState().narrative['a#1']!.x).toBe(50)
+    expect(store.getState().narrative['a#1']!.y).toBe(50)
+    expect(store.getState().narrative['a#1']!.width).toBe(100)
   })
 
   it('addEntry adds a new panel to the active layout', () => {

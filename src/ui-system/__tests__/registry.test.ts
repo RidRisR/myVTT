@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { UIRegistry } from '../registry'
-import type { ComponentDef, LayerDef, PanelType } from '../types'
+import type { ComponentDef, LayerDef } from '../types'
 
 const mockComponent = () => null
 const mockLayer = () => null
@@ -82,7 +82,7 @@ describe('UIRegistry', () => {
     })
 
     expect(registry.listComponentsByType('panel')).toHaveLength(1)
-    expect(registry.listComponentsByType('panel')[0].id).toBe('test.hello')
+    expect(registry.listComponentsByType('panel')[0]!.id).toBe('test.hello')
     expect(registry.listComponentsByType('background')).toHaveLength(1)
     expect(registry.listComponentsByType('overlay')).toHaveLength(1)
   })

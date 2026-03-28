@@ -31,7 +31,7 @@ describe('ExtensionRegistry', () => {
 
   it('get returns highest priority contribution', () => {
     const registry = new ExtensionRegistry()
-    const point = createExtensionPoint<{}>('core:test.prio')
+    const point = createExtensionPoint<object>('core:test.prio')
     const low = (() => 'low') as never
     const high = (() => 'high') as never
     registry.contribute(point, low, 1)
@@ -41,17 +41,17 @@ describe('ExtensionRegistry', () => {
 
   it('default priority is 0', () => {
     const registry = new ExtensionRegistry()
-    const point = createExtensionPoint<{}>('core:test.default-prio')
+    const point = createExtensionPoint<object>('core:test.default-prio')
     const compA = (() => 'A') as never
     const compB = (() => 'B') as never
-    registry.contribute(point, compA)       // priority 0
-    registry.contribute(point, compB, 1)    // priority 1
+    registry.contribute(point, compA) // priority 0
+    registry.contribute(point, compB, 1) // priority 1
     expect(registry.get(point)).toBe(compB)
   })
 
   it('getAll returns empty array when nothing contributed', () => {
     const registry = new ExtensionRegistry()
-    const point = createExtensionPoint<{}>('core:test.none')
+    const point = createExtensionPoint<object>('core:test.none')
     expect(registry.getAll(point)).toEqual([])
   })
 })

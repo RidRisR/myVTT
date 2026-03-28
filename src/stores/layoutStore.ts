@@ -70,7 +70,9 @@ export function createLayoutStore() {
       const { isTactical, narrative, tactical } = get()
       const modeKey = isTactical ? 'tactical' : 'narrative'
       const current = isTactical ? tactical : narrative
-      const { [instanceKey]: _, ...rest } = current
+      const rest = Object.fromEntries(
+        Object.entries(current).filter(([k]) => k !== instanceKey),
+      ) as typeof current
       set({
         [modeKey]: rest,
         activeLayout: rest,

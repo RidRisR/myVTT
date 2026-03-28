@@ -12,17 +12,26 @@ export function layoutRoutes(dataDir: string, io: TypedServer) {
     const row = req.roomDb!.prepare('SELECT config FROM layout WHERE id = 1').get() as
       | { config: string }
       | undefined
-    const config = row ? JSON.parse(row.config) : { narrative: {}, tactical: {} }
+    const config = row
+      ? (JSON.parse(row.config) as {
+          narrative: Record<string, unknown>
+          tactical: Record<string, unknown>
+        })
+      : { narrative: {}, tactical: {} }
     res.json(config)
   })
 
   // PUT /api/rooms/:roomId/layout — save layout config (GM only in future)
   router.put('/api/rooms/:roomId/layout', room, (req, res) => {
-    const config = JSON.stringify(req.body)
+    const body = req.body as {
+      narrative: Record<string, unknown>
+      tactical: Record<string, unknown>
+    }
+    const config = JSON.stringify(body)
     req.roomDb!.prepare('UPDATE layout SET config = ? WHERE id = 1').run(config)
     // Broadcast to all clients in the room
-    io.to(req.roomId!).emit('layout:updated', req.body)
-    res.json(req.body)
+    io.to(req.roomId!).emit('layout:updated', body)
+    res.json(body)
   })
 
   return router

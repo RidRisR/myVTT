@@ -130,7 +130,10 @@ export interface ServerToClientEvents {
   'awareness:remove': (data: { seatId: string; clientId: string }) => void
 
   // ── Layout sync ──
-  'layout:updated': (layout: { narrative: Record<string, unknown>; tactical: Record<string, unknown> }) => void
+  'layout:updated': (layout: {
+    narrative: Record<string, unknown>
+    tactical: Record<string, unknown>
+  }) => void
 
   // ── Awareness channel (generic) ──
   'awareness:ch:broadcast': (data: { channel: string; payload: unknown; seatId: string }) => void

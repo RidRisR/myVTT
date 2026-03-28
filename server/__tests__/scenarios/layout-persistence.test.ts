@@ -31,7 +31,10 @@ describe('layout table', () => {
 
   it('upserts layout config', () => {
     const v1 = JSON.stringify({ narrative: {}, tactical: {} })
-    const v2 = JSON.stringify({ narrative: { 'a#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 } }, tactical: {} })
+    const v2 = JSON.stringify({
+      narrative: { 'a#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 } },
+      tactical: {},
+    })
     db.prepare('INSERT OR REPLACE INTO layout (id, config) VALUES (1, ?)').run(v1)
     db.prepare('UPDATE layout SET config = ? WHERE id = 1').run(v2)
     const row = db.prepare('SELECT config FROM layout WHERE id = 1').get() as { config: string }

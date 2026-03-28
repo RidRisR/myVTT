@@ -142,10 +142,14 @@ describe('AwarenessManager', () => {
     manager.subscribe(ch2, handler2)
 
     manager.handleIncoming('awareness:ch:broadcast', {
-      channel: 'test:a', payload: { x: 1 }, seatId: 'seat-B',
+      channel: 'test:a',
+      payload: { x: 1 },
+      seatId: 'seat-B',
     })
     manager.handleIncoming('awareness:ch:broadcast', {
-      channel: 'test:b', payload: { y: 2 }, seatId: 'seat-B',
+      channel: 'test:b',
+      payload: { y: 2 },
+      seatId: 'seat-B',
     })
 
     manager.handleRemove('seat-B')

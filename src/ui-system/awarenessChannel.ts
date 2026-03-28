@@ -11,7 +11,7 @@ export function createAwarenessChannel<T>(key: string): AwarenessChannel<T> {
   return { key } as AwarenessChannel<T>
 }
 
-type AwarenessHandler = (seatId: string, state: unknown | null) => void
+type AwarenessHandler = (seatId: string, state: unknown) => void
 
 interface ChannelBroadcastData {
   channel: string
@@ -118,7 +118,7 @@ export class AwarenessManager {
     this.activeSeatChannels.clear()
   }
 
-  private notifySubscribers(channel: string, seatId: string, state: unknown | null): void {
+  private notifySubscribers(channel: string, seatId: string, state: unknown): void {
     const handlers = this.subscribers.get(channel)
     if (!handlers) return
     for (const handler of handlers) {

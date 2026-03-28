@@ -2,14 +2,18 @@ import { describe, it, expect, vi } from 'vitest'
 
 // Minimal mock for Socket.io types
 function createMockSocket(roomId: string, seatId: string | null) {
-  const handlers = new Map<string, Function>()
+  const handlers = new Map<string, (...args: unknown[]) => void>()
   const toEmissions: Array<{ event: string; data: unknown }> = []
   return {
     data: { roomId, seatId, role: seatId ? 'PL' : null },
     id: `socket-${Math.random().toString(36).slice(2)}`,
-    on: (event: string, handler: Function) => { handlers.set(event, handler) },
-    to: (room: string) => ({
-      emit: (event: string, data: unknown) => { toEmissions.push({ event, data }) },
+    on: (event: string, handler: (...args: unknown[]) => void) => {
+      handlers.set(event, handler)
+    },
+    to: (_room: string) => ({
+      emit: (event: string, data: unknown) => {
+        toEmissions.push({ event, data })
+      },
     }),
     emit: vi.fn(),
     _handlers: handlers,

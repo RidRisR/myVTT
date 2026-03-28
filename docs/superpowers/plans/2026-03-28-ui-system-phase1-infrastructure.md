@@ -16,31 +16,31 @@
 
 ### New files
 
-| File | Responsibility |
-|------|---------------|
-| `src/ui-system/extensionRegistry.ts` | `ExtensionRegistry` class, `createExtensionPoint`, `logRenderer` helper |
-| `src/ui-system/__tests__/extensionRegistry.test.ts` | ExtensionRegistry unit tests |
-| `src/ui-system/awarenessChannel.ts` | `createAwarenessChannel`, `AwarenessManager` (client-side TTL + subscribe/broadcast) |
-| `src/ui-system/__tests__/awarenessChannel.test.ts` | AwarenessManager unit tests |
-| `src/stores/layoutStore.ts` | zustand store for `RoomLayoutConfig`, layout mode, panel CRUD, sync actions |
-| `src/stores/__tests__/layoutStore.test.ts` | Layout store unit tests |
-| `server/routes/layout.ts` | REST `GET`/`PUT /api/rooms/:roomId/layout` |
-| `server/__tests__/scenarios/layout-persistence.test.ts` | Layout REST + Socket.io broadcast test |
+| File                                                    | Responsibility                                                                       |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `src/ui-system/extensionRegistry.ts`                    | `ExtensionRegistry` class, `createExtensionPoint`, `logRenderer` helper              |
+| `src/ui-system/__tests__/extensionRegistry.test.ts`     | ExtensionRegistry unit tests                                                         |
+| `src/ui-system/awarenessChannel.ts`                     | `createAwarenessChannel`, `AwarenessManager` (client-side TTL + subscribe/broadcast) |
+| `src/ui-system/__tests__/awarenessChannel.test.ts`      | AwarenessManager unit tests                                                          |
+| `src/stores/layoutStore.ts`                             | zustand store for `RoomLayoutConfig`, layout mode, panel CRUD, sync actions          |
+| `src/stores/__tests__/layoutStore.test.ts`              | Layout store unit tests                                                              |
+| `server/routes/layout.ts`                               | REST `GET`/`PUT /api/rooms/:roomId/layout`                                           |
+| `server/__tests__/scenarios/layout-persistence.test.ts` | Layout REST + Socket.io broadcast test                                               |
 
 ### Modified files
 
-| File | Changes |
-|------|---------|
-| `src/ui-system/registrationTypes.ts` | Add `type` field + `DefaultPlacement` to `ComponentDef` |
-| `src/ui-system/registry.ts` | Add `listComponents()`, `listComponentsByType()` |
-| `src/ui-system/__tests__/registry.test.ts` | Tests for new methods + type field |
-| `src/ui-system/types.ts` | Add `zOrder` to `LayoutEntry`, extend `IComponentSDK` with `awareness`/`log`/`ui` |
-| `src/ui-system/PanelRenderer.tsx` | Add isolation container (`contain`, `data-plugin`, `data-type`, `zIndex`) |
-| `src/shared/socketEvents.ts` | Add `layout:updated`, `awareness:ch:broadcast`, `awareness:ch:clear` events |
-| `server/schema.ts` | Add `layout` table to `initRoomSchema` |
-| `server/awareness.ts` | Add generic channel relay handlers |
-| `server/index.ts` | Wire layout routes |
-| `src/workflow/pluginSDK.ts` | Add `contribute()` to `PluginSDK.ui`, accept `ExtensionRegistry` |
+| File                                       | Changes                                                                           |
+| ------------------------------------------ | --------------------------------------------------------------------------------- |
+| `src/ui-system/registrationTypes.ts`       | Add `type` field + `DefaultPlacement` to `ComponentDef`                           |
+| `src/ui-system/registry.ts`                | Add `listComponents()`, `listComponentsByType()`                                  |
+| `src/ui-system/__tests__/registry.test.ts` | Tests for new methods + type field                                                |
+| `src/ui-system/types.ts`                   | Add `zOrder` to `LayoutEntry`, extend `IComponentSDK` with `awareness`/`log`/`ui` |
+| `src/ui-system/PanelRenderer.tsx`          | Add isolation container (`contain`, `data-plugin`, `data-type`, `zIndex`)         |
+| `src/shared/socketEvents.ts`               | Add `layout:updated`, `awareness:ch:broadcast`, `awareness:ch:clear` events       |
+| `server/schema.ts`                         | Add `layout` table to `initRoomSchema`                                            |
+| `server/awareness.ts`                      | Add generic channel relay handlers                                                |
+| `server/index.ts`                          | Wire layout routes                                                                |
+| `src/workflow/pluginSDK.ts`                | Add `contribute()` to `PluginSDK.ui`, accept `ExtensionRegistry`                  |
 
 ---
 
@@ -49,6 +49,7 @@
 Pure data structure — no React, no I/O. Foundation for all extension point contributions.
 
 **Files:**
+
 - Create: `src/ui-system/extensionRegistry.ts`
 - Create: `src/ui-system/__tests__/extensionRegistry.test.ts`
 
@@ -102,8 +103,8 @@ describe('ExtensionRegistry', () => {
     const point = createExtensionPoint<{}>('core:test.default-prio')
     const compA = (() => 'A') as never
     const compB = (() => 'B') as never
-    registry.contribute(point, compA)       // priority 0
-    registry.contribute(point, compB, 1)    // priority 1
+    registry.contribute(point, compA) // priority 0
+    registry.contribute(point, compB, 1) // priority 1
     expect(registry.get(point)).toBe(compB)
   })
 
@@ -161,11 +162,7 @@ export class ExtensionRegistry {
   private map = new Map<string, Contribution[]>()
 
   /** Register a component contribution to an extension point. */
-  contribute<T>(
-    point: ExtensionPoint<T>,
-    component: ComponentType<T>,
-    priority = 0,
-  ): void {
+  contribute<T>(point: ExtensionPoint<T>, component: ComponentType<T>, priority = 0): void {
     const list = this.map.get(point.key) ?? []
     list.push({ component: component as ComponentType<never>, priority })
     // Keep sorted by priority descending for fast get()
@@ -209,6 +206,7 @@ renderers, menu items). Uses typed tokens for compile-time safety.
 Extend existing types and registry to support the spec's `type` field, `defaultPlacement`, and list methods.
 
 **Files:**
+
 - Modify: `src/ui-system/registrationTypes.ts`
 - Modify: `src/ui-system/registry.ts`
 - Modify: `src/ui-system/__tests__/registry.test.ts`
@@ -320,41 +318,41 @@ const componentDef: ComponentDef = {
 }
 
 // Add new tests inside the existing describe('UIRegistry', ...)
-  it('listComponents returns all registered components', () => {
-    registry.registerComponent(componentDef)
-    registry.registerComponent({
-      id: 'test.world',
-      component: mockComponent as never,
-      type: 'overlay',
-      defaultSize: { width: 100, height: 100 },
-    })
-    expect(registry.listComponents()).toHaveLength(2)
+it('listComponents returns all registered components', () => {
+  registry.registerComponent(componentDef)
+  registry.registerComponent({
+    id: 'test.world',
+    component: mockComponent as never,
+    type: 'overlay',
+    defaultSize: { width: 100, height: 100 },
+  })
+  expect(registry.listComponents()).toHaveLength(2)
+})
+
+it('listComponentsByType filters by panel type', () => {
+  registry.registerComponent(componentDef) // type: 'panel'
+  registry.registerComponent({
+    id: 'test.bg',
+    component: mockComponent as never,
+    type: 'background',
+    defaultSize: { width: 100, height: 100 },
+  })
+  registry.registerComponent({
+    id: 'test.overlay',
+    component: mockComponent as never,
+    type: 'overlay',
+    defaultSize: { width: 100, height: 100 },
   })
 
-  it('listComponentsByType filters by panel type', () => {
-    registry.registerComponent(componentDef) // type: 'panel'
-    registry.registerComponent({
-      id: 'test.bg',
-      component: mockComponent as never,
-      type: 'background',
-      defaultSize: { width: 100, height: 100 },
-    })
-    registry.registerComponent({
-      id: 'test.overlay',
-      component: mockComponent as never,
-      type: 'overlay',
-      defaultSize: { width: 100, height: 100 },
-    })
+  expect(registry.listComponentsByType('panel')).toHaveLength(1)
+  expect(registry.listComponentsByType('panel')[0].id).toBe('test.hello')
+  expect(registry.listComponentsByType('background')).toHaveLength(1)
+  expect(registry.listComponentsByType('overlay')).toHaveLength(1)
+})
 
-    expect(registry.listComponentsByType('panel')).toHaveLength(1)
-    expect(registry.listComponentsByType('panel')[0].id).toBe('test.hello')
-    expect(registry.listComponentsByType('background')).toHaveLength(1)
-    expect(registry.listComponentsByType('overlay')).toHaveLength(1)
-  })
-
-  it('listComponents returns empty array when none registered', () => {
-    expect(registry.listComponents()).toEqual([])
-  })
+it('listComponents returns empty array when none registered', () => {
+  expect(registry.listComponents()).toEqual([])
+})
 ```
 
 - [ ] **Step 4: Fix any downstream type errors from adding `type` to ComponentDef**
@@ -388,6 +386,7 @@ Add listComponents() and listComponentsByType() to UIRegistry.
 Add `zOrder` to `LayoutEntry` and define all new socket events needed for layout sync and awareness channels.
 
 **Files:**
+
 - Modify: `src/ui-system/types.ts`
 - Modify: `src/shared/socketEvents.ts`
 
@@ -457,6 +456,7 @@ generic awareness channels (awareness:ch:broadcast/clear).
 Add the `layout` table to room.db, REST endpoints, and Socket.io broadcast.
 
 **Files:**
+
 - Modify: `server/schema.ts`
 - Create: `server/routes/layout.ts`
 - Modify: `server/index.ts`
@@ -499,7 +499,10 @@ describe('layout table', () => {
 
   it('upserts layout config', () => {
     const v1 = JSON.stringify({ narrative: {}, tactical: {} })
-    const v2 = JSON.stringify({ narrative: { 'a#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 } }, tactical: {} })
+    const v2 = JSON.stringify({
+      narrative: { 'a#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 } },
+      tactical: {},
+    })
     db.prepare('INSERT INTO layout (id, config) VALUES (1, ?)').run(v1)
     db.prepare('UPDATE layout SET config = ? WHERE id = 1').run(v2)
     const row = db.prepare('SELECT config FROM layout WHERE id = 1').get() as { config: string }
@@ -600,6 +603,7 @@ Broadcasts layout:updated on save to sync all clients.
 Zustand store managing RoomLayoutConfig, layout mode, and panel CRUD operations.
 
 **Files:**
+
 - Create: `src/stores/layoutStore.ts`
 - Create: `src/stores/__tests__/layoutStore.test.ts`
 
@@ -802,6 +806,7 @@ tactical modes. Supports entry CRUD, mode switching, and edit mode.
 Upgrade existing PanelRenderer with CSS containment, plugin attribution, and z-ordering.
 
 **Files:**
+
 - Modify: `src/ui-system/PanelRenderer.tsx`
 
 - [ ] **Step 1: Update PanelRenderer with isolation**
@@ -890,6 +895,7 @@ export function PanelRenderer({
 ```
 
 Key changes:
+
 - Added `className="plugin-panel"` for CSS `@scope` targeting
 - Added `data-plugin={pluginId}` extracted from componentId namespace
 - Added `data-type={def.type}` for z-order group debugging
@@ -925,6 +931,7 @@ Apply zOrder from LayoutEntry for panel z-ordering.
 Add generic channel relay to the server alongside existing hardcoded awareness events.
 
 **Files:**
+
 - Modify: `server/awareness.ts`
 - Create: `server/__tests__/scenarios/awareness-channel-relay.test.ts`
 
@@ -941,9 +948,13 @@ function createMockSocket(roomId: string, seatId: string | null) {
   return {
     data: { roomId, seatId, role: seatId ? 'PL' : null },
     id: `socket-${Math.random().toString(36).slice(2)}`,
-    on: (event: string, handler: Function) => { handlers.set(event, handler) },
+    on: (event: string, handler: Function) => {
+      handlers.set(event, handler)
+    },
     to: (room: string) => ({
-      emit: (event: string, data: unknown) => { toEmissions.push({ event, data }) },
+      emit: (event: string, data: unknown) => {
+        toEmissions.push({ event, data })
+      },
     }),
     emit: vi.fn(),
     _handlers: handlers,
@@ -999,22 +1010,22 @@ Expected: PASS (we're testing the relay logic inline)
 Append inside the `io.on('connection', (socket) => { ... })` block, after the existing handlers and before the disconnect handler:
 
 ```typescript
-    // Generic awareness channel relay (new plugin-extensible channels)
-    socket.on('awareness:ch:broadcast', (data: { channel: string; payload: unknown }) => {
-      if (!socket.data.seatId) return
-      socket.to(roomId).emit('awareness:ch:broadcast', {
-        ...data,
-        seatId: socket.data.seatId,
-      })
-    })
+// Generic awareness channel relay (new plugin-extensible channels)
+socket.on('awareness:ch:broadcast', (data: { channel: string; payload: unknown }) => {
+  if (!socket.data.seatId) return
+  socket.to(roomId).emit('awareness:ch:broadcast', {
+    ...data,
+    seatId: socket.data.seatId,
+  })
+})
 
-    socket.on('awareness:ch:clear', (data: { channel: string }) => {
-      if (!socket.data.seatId) return
-      socket.to(roomId).emit('awareness:ch:clear', {
-        channel: data.channel,
-        seatId: socket.data.seatId,
-      })
-    })
+socket.on('awareness:ch:clear', (data: { channel: string }) => {
+  if (!socket.data.seatId) return
+  socket.to(roomId).emit('awareness:ch:clear', {
+    channel: data.channel,
+    seatId: socket.data.seatId,
+  })
+})
 ```
 
 - [ ] **Step 4: Verify type safety**
@@ -1039,6 +1050,7 @@ custom awareness channels without server-side changes.
 Client-side `AwarenessManager` with subscribe/broadcast/clear and TTL auto-expiry.
 
 **Files:**
+
 - Create: `src/ui-system/awarenessChannel.ts`
 - Create: `src/ui-system/__tests__/awarenessChannel.test.ts`
 
@@ -1200,10 +1212,14 @@ describe('AwarenessManager', () => {
     manager.subscribe(ch2, handler2)
 
     manager.handleIncoming('awareness:ch:broadcast', {
-      channel: 'test:a', payload: { x: 1 }, seatId: 'seat-B',
+      channel: 'test:a',
+      payload: { x: 1 },
+      seatId: 'seat-B',
     })
     manager.handleIncoming('awareness:ch:broadcast', {
-      channel: 'test:b', payload: { y: 2 }, seatId: 'seat-B',
+      channel: 'test:b',
+      payload: { y: 2 },
+      seatId: 'seat-B',
     })
 
     manager.handleRemove('seat-B')
@@ -1395,6 +1411,7 @@ define custom channels without server changes.
 Wire ExtensionRegistry and AwarenessManager into the existing PluginSDK so plugins can use `sdk.ui.contribute()` and components can access `sdk.awareness`.
 
 **Files:**
+
 - Modify: `src/ui-system/registrationTypes.ts` (add `IUIRegistrationSDK.contribute`)
 - Modify: `src/workflow/pluginSDK.ts` (accept ExtensionRegistry, wire contribute)
 - Modify: `src/ui-system/types.ts` (add awareness + log + ui to IComponentSDK)
@@ -1515,6 +1532,7 @@ log (subscribe), and ui (openPanel/closePanel) namespaces.
 Verify everything compiles together and existing functionality is preserved.
 
 **Files:**
+
 - No new files — verification only
 
 - [ ] **Step 1: Run full type check**
@@ -1530,6 +1548,7 @@ Expected: All tests PASS
 - [ ] **Step 3: Verify the sandbox still works**
 
 Open `src/sandbox/PatternUISystem.tsx` in the editor. Confirm:
+
 - No type errors in the file
 - The POC plugin (`plugins/poc-ui/index.ts`) has `type: 'panel'` on its ComponentDef
 - Layout entries have `zOrder: 0`
@@ -1548,20 +1567,21 @@ chore: fix type errors from UI system Phase 1 integration
 
 ## Summary
 
-| Task | What | Lines (est.) | Independent? |
-|------|------|-------------|-------------|
-| 1 | ExtensionRegistry | ~60 code + ~80 test | Yes |
-| 2 | UIRegistry + ComponentDef | ~40 code + ~40 test | Yes |
-| 3 | LayoutEntry zOrder + Socket events | ~20 code | Yes |
-| 4 | Layout persistence (server) | ~60 code + ~40 test | Depends on 3 |
-| 5 | Layout store (client) | ~80 code + ~60 test | Depends on 3 |
-| 6 | PanelRenderer isolation | ~30 code changes | Depends on 2, 3 |
-| 7 | Awareness channel (server) | ~20 code + ~30 test | Depends on 3 |
-| 8 | Awareness channel (client) | ~120 code + ~100 test | Yes |
-| 9 | PluginSDK extensions | ~30 code changes | Depends on 1, 8 |
-| 10 | Integration smoke test | 0 | Depends on all |
+| Task | What                               | Lines (est.)          | Independent?    |
+| ---- | ---------------------------------- | --------------------- | --------------- |
+| 1    | ExtensionRegistry                  | ~60 code + ~80 test   | Yes             |
+| 2    | UIRegistry + ComponentDef          | ~40 code + ~40 test   | Yes             |
+| 3    | LayoutEntry zOrder + Socket events | ~20 code              | Yes             |
+| 4    | Layout persistence (server)        | ~60 code + ~40 test   | Depends on 3    |
+| 5    | Layout store (client)              | ~80 code + ~60 test   | Depends on 3    |
+| 6    | PanelRenderer isolation            | ~30 code changes      | Depends on 2, 3 |
+| 7    | Awareness channel (server)         | ~20 code + ~30 test   | Depends on 3    |
+| 8    | Awareness channel (client)         | ~120 code + ~100 test | Yes             |
+| 9    | PluginSDK extensions               | ~30 code changes      | Depends on 1, 8 |
+| 10   | Integration smoke test             | 0                     | Depends on all  |
 
 **Parallelizable groups:**
+
 - Group A (independent): Tasks 1, 2, 3, 8
 - Group B (after 3): Tasks 4, 5, 6, 7
 - Group C (after all): Tasks 9, 10

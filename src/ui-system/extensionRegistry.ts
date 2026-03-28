@@ -29,13 +29,13 @@ export class ExtensionRegistry {
   private map = new Map<string, Contribution[]>()
 
   /** Register a component contribution to an extension point. */
-  contribute<T>(
-    point: ExtensionPoint<T>,
-    component: ComponentType<T>,
-    priority = 0,
-  ): void {
+  contribute<T>(point: ExtensionPoint<T>, component: ComponentType<T>, priority = 0): void {
     const list = this.map.get(point.key) ?? []
-    list.push({ component: component as ComponentType<never>, priority, insertionOrder: list.length })
+    list.push({
+      component: component as ComponentType<never>,
+      priority,
+      insertionOrder: list.length,
+    })
     // Keep sorted by priority descending, insertion order ascending for stability
     list.sort((a, b) => b.priority - a.priority || a.insertionOrder - b.insertionOrder)
     this.map.set(point.key, list)
