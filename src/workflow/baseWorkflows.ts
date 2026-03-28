@@ -127,6 +127,7 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
       id: 'roll',
       run: async (ctx) => {
         // Support both direct calls (formula) and command system (raw)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- formula absent when invoked via command system
         const formula = ctx.vars.formula ?? (ctx.vars.raw as string | undefined)
         if (!formula) {
           ctx.abort('Missing formula')
