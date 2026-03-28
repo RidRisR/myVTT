@@ -42,17 +42,18 @@
 
 ```
 tactical_state (PK: scene_id)
-  ├── map_url, map_width, map_height    # 战术地图
-  ├── grid (JSON)                        # 网格配置
-  ├── round_number                       # 回合计数
-  └── current_turn_token_id              # 先攻（预留）
+  ├── tactical_mode (INTEGER, 0|1)         # 战术模式开关（per-scene）
+  ├── map_url, map_width, map_height       # 战术地图
+  ├── grid (JSON)                          # 网格配置
+  ├── round_number                         # 回合计数
+  └── current_turn_token_id                # 先攻（预留）
 
 tactical_tokens (PK: id, UNIQUE: scene_id+entity_id)
-  ├── entity_id → entities.id           # 必须关联实体
-  ├── x, y                               # 地图坐标
-  ├── width, height                      # 尺寸（格数）
-  ├── image_scale_x, image_scale_y       # 图像缩放
-  └── initiative_position                # 先攻位置（预留）
+  ├── entity_id → entities.id             # 必须关联实体
+  ├── x, y                                 # 地图坐标
+  ├── width, height                        # 尺寸（格数）
+  ├── image_scale_x, image_scale_y         # 图像缩放
+  └── initiative_position                  # 先攻位置（预留）
 ```
 
 **核心约束**：
@@ -66,9 +67,10 @@ tactical_tokens (PK: id, UNIQUE: scene_id+entity_id)
 ```typescript
 interface TacticalInfo {
   sceneId: string
-  mapUrl: string
-  mapWidth: number
-  mapHeight: number
+  tacticalMode: number // 0 | 1, stored in tactical_state (per-scene)
+  mapUrl: string | null
+  mapWidth: number | null
+  mapHeight: number | null
   grid: {
     size: number
     snap: boolean
@@ -91,6 +93,7 @@ interface MapToken {
   height: number
   imageScaleX: number
   imageScaleY: number
+  initiativePosition: number | null // initiative ordering (reserved)
 }
 ```
 
@@ -180,15 +183,14 @@ POST /api/rooms/:roomId/archives/:archiveId/load
 
 ### Enter（进入战术模式）
 
+`tactical_mode` is a per-scene flag stored in the `tactical_state` table (not in `room_state`).
+
 ```
 worldStore.enterTactical()
   │
   ├─ POST /api/rooms/:roomId/tactical/enter
-  │   → 服务端创建/获取 tactical_state（for current scene）
-  │   → 广播 tactical:activated
-  │
-  ├─ PATCH /api/rooms/:roomId/state { tacticalMode: true }
-  │   → 广播 room:state:updated
+  │   → 服务端 SET tactical_mode = 1 (in tactical_state for active scene)
+  │   → Socket.io broadcast tactical:updated (full TacticalInfo)
   │
   └─ 所有客户端：TacticalPanel 渲染，SceneViewer 模糊
 ```
@@ -198,8 +200,9 @@ worldStore.enterTactical()
 ```
 worldStore.exitTactical()
   │
-  ├─ PATCH /api/rooms/:roomId/state { tacticalMode: false }
-  │   → 广播 room:state:updated
+  ├─ POST /api/rooms/:roomId/tactical/exit
+  │   → 服务端 SET tactical_mode = 0 (in tactical_state for active scene)
+  │   → Socket.io broadcast tactical:updated (full TacticalInfo)
   │
   └─ 所有客户端：TacticalPanel 淡出，SceneViewer 恢复
      （tactical_state 和 tokens 保留在数据库，不删除）
@@ -227,22 +230,44 @@ worldStore.exitTactical()
 
 ### tactical.ts
 
-| 方法   | 路径                        | 说明                                     |
-| ------ | --------------------------- | ---------------------------------------- |
-| GET    | `/tactical`                 | 获取当前场景的战术状态 + tokens          |
-| POST   | `/tactical/enter`           | 进入战术模式（创建/获取 tactical_state） |
-| PATCH  | `/tactical`                 | 更新战术状态（map, grid）                |
-| POST   | `/tactical/tokens`          | 添加 Token（多种创建方式）               |
-| PATCH  | `/tactical/tokens/:tokenId` | 更新 Token 位置/尺寸                     |
-| DELETE | `/tactical/tokens/:tokenId` | 移除 Token                               |
+All paths are prefixed with `/api/rooms/:roomId`.
+
+| 方法   | 路径                                  | 说明                                                                  |
+| ------ | ------------------------------------- | --------------------------------------------------------------------- |
+| GET    | `/tactical`                           | 获取当前场景的战术状态 + tokens                                       |
+| POST   | `/tactical/enter`                     | 进入战术模式（sets tactical_mode = 1 in tactical_state）              |
+| POST   | `/tactical/exit`                      | 退出战术模式（sets tactical_mode = 0 in tactical_state）              |
+| POST   | `/tactical/clear`                     | 删除所有 tokens + orphan ephemeral entities，重置 map 字段            |
+| PATCH  | `/tactical`                           | 更新战术状态（map, grid, tacticalMode 等）                            |
+| POST   | `/tactical/tokens`                    | 添加 Token（关联已有 entity）                                         |
+| POST   | `/tactical/tokens/quick`              | 原子创建 ephemeral entity + token（右键空白处快速放置）               |
+| POST   | `/tactical/tokens/from-entity`        | 从已有 entity 创建 token（读取 core:token 组件获取默认 width/height） |
+| POST   | `/tactical/tokens/:tokenId/duplicate` | 复制 entity（components + tags）+ token（偏移 offsetX/offsetY）       |
+| PATCH  | `/tactical/tokens/:tokenId`           | 更新 Token 位置/尺寸/initiativePosition                               |
+| DELETE | `/tactical/tokens/:tokenId`           | 移除 Token                                                            |
 
 ### archives.ts
 
-| 方法   | 路径                        | 说明                   |
-| ------ | --------------------------- | ---------------------- |
-| GET    | `/archives?sceneId=`        | 获取场景的存档列表     |
-| POST   | `/archives`                 | 创建空存档             |
-| PATCH  | `/archives/:archiveId`      | 更新存档元数据         |
-| DELETE | `/archives/:archiveId`      | 删除存档               |
-| POST   | `/archives/:archiveId/save` | 保存当前战术状态到存档 |
-| POST   | `/archives/:archiveId/load` | 从存档加载战术状态     |
+All paths are prefixed with `/api/rooms/:roomId`.
+
+| 方法   | 路径                        | 说明                                                   |
+| ------ | --------------------------- | ------------------------------------------------------ |
+| GET    | `/scenes/:sceneId/archives` | 获取场景的存档列表（GM sees all; PL excludes gm_only） |
+| POST   | `/scenes/:sceneId/archives` | 创建空存档                                             |
+| PATCH  | `/archives/:archiveId`      | 更新存档元数据（name, map, grid, gmOnly）              |
+| DELETE | `/archives/:archiveId`      | 删除存档（CASCADE 清理 archive_tokens）                |
+| POST   | `/archives/:archiveId/save` | 保存当前战术状态到存档                                 |
+| POST   | `/archives/:archiveId/load` | 从存档加载战术状态                                     |
+
+## Socket Events
+
+Tactical state changes are broadcast via Socket.io to all clients in the room.
+
+| Event                    | Payload          | Emitted by                                                                       |
+| ------------------------ | ---------------- | -------------------------------------------------------------------------------- |
+| `tactical:updated`       | `TacticalInfo`   | PATCH /tactical, POST /tactical/enter, /exit, /clear, archive load               |
+| `tactical:token:added`   | `MapToken`       | POST /tactical/tokens, /tokens/quick, /tokens/from-entity, /tokens/:id/duplicate |
+| `tactical:token:updated` | `MapToken`       | PATCH /tactical/tokens/:tokenId                                                  |
+| `tactical:token:removed` | `{ id: string }` | DELETE /tactical/tokens/:tokenId                                                 |
+
+Note: `tactical:updated` carries the full `TacticalInfo` (including all tokens). The granular `tactical:token:*` events carry individual token payloads for incremental updates.

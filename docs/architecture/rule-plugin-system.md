@@ -31,13 +31,13 @@ myVTT 的骨架（场景、实体、Token、聊天）不绑定任何 TRPG 规则
 ┌──────────────────────────┴──────────────────────────────────┐
 │  Engine 层（永远存在，不可卸载）                               │
 │                                                              │
-│  WorkflowEngine          EventBus           IDataReader      │
-│  ├─ defineWorkflow()     ├─ defineEvent()   ├─ entity()      │
-│  ├─ runWorkflow()        ├─ emit()          ├─ component()   │
-│  └─ base workflows:      └─ on()            └─ query()       │
-│     ├─ roll              (→ RollOutput)                      │
-│     ├─ quick-roll        (compose roll + display)            │
-│     └─ core:set-selection                                    │
+│  WorkflowEngine          EventBus           IDataReader       │
+│  ├─ defineWorkflow()     ├─ defineEvent()   ├─ entity()       │
+│  ├─ runWorkflow()        ├─ emit()          ├─ component()    │
+│  └─ base workflows:      └─ on()            ├─ query()        │
+│     ├─ roll              (→ RollOutput)     └─ formulaTokens()│
+│     ├─ quick-roll        (compose roll + display)             │
+│     └─ core:set-selection                                     │
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────┴──────────────────────────────────┐
@@ -120,13 +120,33 @@ interface WorkflowContext<TVars> {
   readonly vars: TVars // Proxy，readonly step 时 set/delete 抛 TypeError
 
   // ── 数据读取（只读） ──
-  readonly read: IDataReader // entity(), component<T>(), query({ has })
+  readonly read: IDataReader // entity(), component<T>(), query({ has }), formulaTokens()
 
   // ── Input（需要返回值） ──
-  serverRoll(formula): Promise<{ rolls; total }>
+  serverRoll(
+    formula: string,
+    options?: {
+      dice?: DiceSpec[] // pre-parsed dice specs
+      resolvedFormula?: string // formula with @-tokens resolved
+      rollType?: string // plugin-defined roll type tag
+      actionName?: string // display name for the action
+      parentId?: string // parent log entry (for chaining)
+      chainDepth?: number // cascade depth counter
+      triggerable?: boolean // whether triggers can fire on this roll
+      visibility?: Visibility // public | include | exclude
+    },
+  ): Promise<GameLogEntry> // full log entry with rolls in payload
   requestInput(interactionId): Promise<unknown> // 暂停执行等待 UI 输入
 
   // ── Effects（副作用） ──
+  emitEntry(partial: {
+    type: string
+    payload: Record<string, unknown>
+    triggerable: boolean
+    parentId?: string
+    chainDepth?: number
+    visibility?: Visibility
+  }): void // fire-and-forget log entry emission
   updateComponent<T>(entityId, key, updater): void // 原子更新 entity 组件
   updateTeamTracker(label, patch): void // @deprecated
 
@@ -268,6 +288,9 @@ interface IPluginSDK {
   defineWorkflow<TData>(name, steps?): WorkflowHandle<TData, TData>
   defineWorkflow<TData, TOutput>(name, steps, outputFn): WorkflowHandle<TData, TOutput>
 
+  // Look up an existing workflow by name (returns untyped handle)
+  getWorkflow(name: string): WorkflowHandle
+
   // 插入步骤（仅定位，无生命周期绑定）
   addStep(handle, { id, before?, after?, priority?, critical?, readonly?, phase?, run })
 
@@ -285,6 +308,9 @@ interface IPluginSDK {
 
   // 调试：查看 workflow 当前步骤顺序
   inspectWorkflow(handle): string[]
+
+  // Declarative trigger registration (fires workflow on matching log entries)
+  registerTrigger(trigger: TriggerDefinition): void
 
   // UI 注册
   ui: IUIRegistrationSDK
@@ -341,6 +367,56 @@ useEvent(toastEvent, (payload) => showToastUI(payload))
 
 ---
 
+## Trigger System
+
+Triggers enable declarative reactive workflows: when a matching game log entry arrives, the engine automatically runs a registered workflow with mapped input data. This powers chain reactions (e.g., "when damage is dealt, check for status effects").
+
+### Architecture
+
+```
+┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
+│  TriggerRegistry │ ←──  │ IPluginSDK       │      │ WorkflowEngine   │
+│  ├─ register()   │      │ .registerTrigger()│      │ .runWorkflow()   │
+│  └─ getMatching  │      └──────────────────┘      └────────▲─────────┘
+│     Triggers()   │                                          │
+└────────┬─────────┘                                          │
+         │                                                    │
+         ▼                                                    │
+┌──────────────────────────────────────────────────────────────┘
+│  LogStreamDispatcher
+│  ├─ dispatch(entry: GameLogEntry)
+│  │   1. Skip historical entries (seq <= watermark)
+│  │   2. Skip non-triggerable entries
+│  │   3. Cascade protection (chainDepth >= MAX_CHAIN_DEPTH)
+│  │   4. Executor routing (only on matching client)
+│  │   5. Get matching triggers from registry
+│  │   6. Serial execution: trigger.mapInput(entry) → runWorkflow()
+│  └─ updateWatermark(seq)
+└──────────────────────────────────────────────────────────────
+```
+
+### TriggerDefinition
+
+```typescript
+interface TriggerDefinition {
+  id: string // unique trigger ID
+  on: string // log entry type to match
+  filter?: Record<string, unknown> // shallow payload filter (all keys must match)
+  workflow: string // workflow name to execute
+  mapInput: (entry: GameLogEntry) => Record<string, unknown> // transform entry to workflow input
+  executeAs: 'triggering-executor' // runs on the same client that originated the entry
+}
+```
+
+### Safety guarantees
+
+- **Cascade depth limit**: `MAX_CHAIN_DEPTH` (10) prevents infinite trigger chains
+- **Watermark**: historical entries replayed on reconnect are skipped
+- **Serial execution**: matching triggers run sequentially (no parallel races)
+- **Executor routing**: trigger workflows only execute on the client whose seat matches the entry's executor
+
+---
+
 ## Entity 数据模型
 
 ### 组件化存储
@@ -378,6 +454,7 @@ interface IDataReader {
   entity(id: string): Entity | undefined
   component<T>(entityId: string, key: string): T | undefined
   query(spec: { has?: string[] }): Entity[]
+  formulaTokens(entityId: string): Record<string, number> // resolve @-tokens for dice formulas
 }
 ```
 
@@ -428,6 +505,7 @@ interface RulePlugin {
     getJudgmentDisplay(result): JudgmentDisplay
     getModifierOptions(): ModifierOption[]
     rollCommands?: Record<string, { resolveFormula(expr?): string }>
+    rollWorkflows?: Record<string, () => WorkflowHandle> // per-rollType workflow getter
   }
 
   // Layer 4: 数据模板（可选）

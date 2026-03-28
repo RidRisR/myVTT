@@ -45,9 +45,9 @@ src/
 ├── App.tsx                # 应用入口，初始化 stores + Socket.io
 ├── main.tsx               # Vite 入口
 ├── stores/                # zustand 状态管理（详见 state-management.md）
-│   ├── worldStore.ts      # 核心数据：scenes, entities, room state
+│   ├── worldStore.ts      # 核心数据：scenes, entities, room state, assets
 │   ├── identityStore.ts   # 座位/身份
-│   ├── assetStore.ts      # 素材管理
+│   ├── sessionStore.ts    # 选中状态 + pending interactions
 │   ├── uiStore.ts         # 客户端 UI 状态
 │   └── selectors.ts       # 派生数据选择器
 ├── combat/                # 战术模式（详见 tactical-system.md）
@@ -87,23 +87,25 @@ src/
 
 ### 入口
 
-`server/index.ts`：创建 Express app + HTTP server + Socket.io → 注册中间件 → 挂载 11 个路由模块 → 生产环境托管前端静态文件
+`server/index.ts`：创建 Express app + HTTP server + Socket.io → 注册中间件 → 挂载 13 个路由模块 → 生产环境托管前端静态文件
 
 ### 路由模块
 
-| 文件                 | 前缀                          | 职责                    |
-| -------------------- | ----------------------------- | ----------------------- |
-| `routes/rooms.ts`    | `/api/rooms`                  | 房间 CRUD（全局库）     |
-| `routes/seats.ts`    | `/api/rooms/:roomId/seats`    | 座位管理                |
-| `routes/scenes.ts`   | `/api/rooms/:roomId/scenes`   | 场景 CRUD + Entity 关联 |
-| `routes/entities.ts` | `/api/rooms/:roomId/entities` | Entity CRUD             |
-| `routes/archives.ts` | `/api/rooms/:roomId/archives` | 战术存档 save/load      |
-| `routes/tactical.ts` | `/api/rooms/:roomId/tactical` | 战术状态 + Token CRUD   |
-| `routes/chat.ts`     | `/api/rooms/:roomId/chat`     | 聊天消息 + 骰子         |
-| `routes/assets.ts`   | `/api/rooms/:roomId/assets`   | 文件上传 + 素材管理     |
-| `routes/trackers.ts` | `/api/rooms/:roomId/trackers` | 团队追踪器              |
-| `routes/showcase.ts` | `/api/rooms/:roomId/showcase` | 展示材料                |
-| `routes/state.ts`    | `/api/rooms/:roomId/state`    | 房间状态（活动场景等）  |
+| 文件                   | 前缀                            | 职责                    |
+| ---------------------- | ------------------------------- | ----------------------- |
+| `routes/rooms.ts`      | `/api/rooms`                    | 房间 CRUD（全局库）     |
+| `routes/seats.ts`      | `/api/rooms/:roomId/seats`      | 座位管理                |
+| `routes/scenes.ts`     | `/api/rooms/:roomId/scenes`     | 场景 CRUD + Entity 关联 |
+| `routes/entities.ts`   | `/api/rooms/:roomId/entities`   | Entity CRUD             |
+| `routes/archives.ts`   | `/api/rooms/:roomId/archives`   | 战术存档 save/load      |
+| `routes/tactical.ts`   | `/api/rooms/:roomId/tactical`   | 战术状态 + Token CRUD   |
+| `routes/assets.ts`     | `/api/rooms/:roomId/assets`     | 文件上传 + 素材管理     |
+| `routes/blueprints.ts` | `/api/rooms/:roomId/blueprints` | 蓝图 CRUD               |
+| `routes/trackers.ts`   | `/api/rooms/:roomId/trackers`   | 团队追踪器              |
+| `routes/showcase.ts`   | `/api/rooms/:roomId/showcase`   | 展示材料                |
+| `routes/state.ts`      | `/api/rooms/:roomId/state`      | 房间状态（活动场景等）  |
+| `routes/bundle.ts`     | `/api/rooms/:roomId/bundle`     | 初始化批量加载          |
+| `routes/tags.ts`       | `/api/rooms/:roomId/tags`       | 标签 CRUD               |
 
 ### 核心服务
 
@@ -135,24 +137,26 @@ data/
 
 ## Socket.io 事件全景
 
-### 数据广播事件（35 个）
+### 数据广播事件（42 个）
 
 服务端在 REST API 修改数据后，通过 `io.to(roomId).emit()` 广播。
 
 | 命名空间          | 事件                                                 |
 | ----------------- | ---------------------------------------------------- |
-| `seat:`           | created, updated, deleted                            |
+| `seat:`           | created, updated, deleted, online, offline           |
 | `scene:`          | created, updated, deleted                            |
 | `scene:entity:`   | linked, unlinked, updated                            |
 | `entity:`         | created, updated, deleted                            |
-| `tactical:`       | activated, updated                                   |
+| `tactical:`       | updated                                              |
 | `tactical:token:` | added, updated, removed                              |
 | `archive:`        | created, updated, deleted                            |
-| `chat:`           | new, retracted                                       |
+| `blueprint:`      | created, updated, deleted                            |
+| `tag:`            | created, updated, deleted                            |
 | `showcase:`       | created, updated, deleted, pinned, unpinned, cleared |
 | `tracker:`        | created, updated, deleted                            |
-| `asset:`          | created, updated, deleted                            |
+| `asset:`          | created, updated, deleted, reordered                 |
 | `room:state:`     | updated                                              |
+| `log:`            | new                                                  |
 
 ### 感知事件（6 个）
 
