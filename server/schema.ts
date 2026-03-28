@@ -209,6 +209,13 @@ export function initRoomSchema(db: Database.Database): void {
       timestamp INTEGER NOT NULL
     );
 
+    -- Layout config (singleton row, JSON blob)
+    CREATE TABLE IF NOT EXISTS layout (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      config TEXT NOT NULL DEFAULT '{"narrative":{},"tactical":{}}'
+    );
+    INSERT OR IGNORE INTO layout (id, config) VALUES (1, '{"narrative":{},"tactical":{}}');
+
     -- Indexes for common queries
     CREATE INDEX IF NOT EXISTS idx_game_log_type ON game_log(type);
     CREATE INDEX IF NOT EXISTS idx_game_log_executor ON game_log(executor);
