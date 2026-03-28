@@ -159,7 +159,9 @@ describe('initWorkflowSystem', () => {
       logEntriesById: { ...s.logEntriesById, [e1.id]: e1 },
       logWatermark: 1,
     }))
-    await vi.waitFor(() => expect(triggerCount).toBe(1))
+    await vi.waitFor(() => {
+      expect(triggerCount).toBe(1)
+    })
 
     // Cleanup
     cleanup()

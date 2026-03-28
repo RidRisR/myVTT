@@ -29,7 +29,7 @@ function logEntryToChatMessage(entry: GameLogEntry): ChatMessage | null {
       type: 'text',
       id: entry.id,
       origin: entry.origin,
-      content: entry.payload.content ?? '',
+      content: entry.payload.content,
       timestamp: entry.timestamp,
     }
   }
@@ -39,10 +39,10 @@ function logEntryToChatMessage(entry: GameLogEntry): ChatMessage | null {
       id: entry.id,
       origin: entry.origin,
       timestamp: entry.timestamp,
-      formula: entry.payload.formula ?? '',
+      formula: entry.payload.formula,
       resolvedFormula: entry.payload.resolvedFormula,
-      dice: entry.payload.dice ?? [],
-      rolls: entry.payload.rolls ?? [],
+      dice: entry.payload.dice,
+      rolls: entry.payload.rolls,
       rollType: entry.payload.rollType,
       actionName: entry.payload.actionName,
     }

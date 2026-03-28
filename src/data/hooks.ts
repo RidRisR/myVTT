@@ -20,6 +20,7 @@ export function useComponent<K extends keyof ComponentTypeMap>(
   entityId: string,
   key: K,
 ): ComponentTypeMap[K] | undefined
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- fallback overload requires standalone T
 export function useComponent<T = unknown>(entityId: string, key: string): T | undefined
 export function useComponent(entityId: string, key: string) {
   return useWorldStore((s) => {

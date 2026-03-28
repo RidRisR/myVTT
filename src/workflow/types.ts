@@ -112,7 +112,11 @@ export interface InternalState {
 
 export interface IDataReader {
   entity(id: string): Entity | undefined
-  component<K extends keyof ComponentTypeMap>(entityId: string, key: K): ComponentTypeMap[K] | undefined
+  component<K extends keyof ComponentTypeMap>(
+    entityId: string,
+    key: K,
+  ): ComponentTypeMap[K] | undefined
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- fallback overload
   component<T = unknown>(entityId: string, key: string): T | undefined
   query(spec: { has?: string[] }): Entity[]
   formulaTokens(entityId: string): Record<string, number>

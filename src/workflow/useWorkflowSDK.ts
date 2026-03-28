@@ -32,9 +32,7 @@ function getRulePluginSyncLazy(): RulePlugin {
   if (!_getRulePluginSyncFn) {
     // Dynamically import at first use — by runtime all modules are fully initialized
     // so the circular reference is no longer a problem.
-    throw new Error(
-      'getRulePluginSync not available — ensure _bindRuleRegistry() has been called',
-    )
+    throw new Error('getRulePluginSync not available — ensure _bindRuleRegistry() has been called')
   }
   return _getRulePluginSyncFn()
 }
@@ -177,7 +175,8 @@ export function initWorkflowSystem(): () => void {
     if (state.logEntries.length > prevState.logEntries.length) {
       const prevWatermark = prevState.logWatermark
       for (let i = prevState.logEntries.length; i < state.logEntries.length; i++) {
-        void dispatcher.dispatch(state.logEntries[i]!, prevWatermark)
+        const entry = state.logEntries[i]
+        if (entry) void dispatcher.dispatch(entry, prevWatermark)
       }
     }
   })

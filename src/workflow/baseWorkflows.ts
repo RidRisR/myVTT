@@ -171,6 +171,6 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
   ])
 
   // Register chat commands
-  registerCommand('.r', _quickRollWorkflow!)
-  registerCommand('.roll', _quickRollWorkflow!)
+  registerCommand('.r', _quickRollWorkflow)
+  registerCommand('.roll', _quickRollWorkflow)
 }

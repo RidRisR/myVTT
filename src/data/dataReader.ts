@@ -21,6 +21,7 @@ export function createDataReader(): IDataReader {
       return entity.components[key]
     }) as {
       <K extends keyof ComponentTypeMap>(entityId: string, key: K): ComponentTypeMap[K] | undefined
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- fallback overload
       <T = unknown>(entityId: string, key: string): T | undefined
     },
 
