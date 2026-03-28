@@ -58,9 +58,21 @@ export function PanelRenderer({
               height: entry.height,
               contain: 'layout paint',
               zIndex: entry.zOrder,
+              pointerEvents: 'auto',
             }}
           >
-            <div style={{ position: 'absolute', inset: 0 }}>
+            {/* Content layer: isolation: isolate creates a stacking context so
+                panel-internal zIndex cannot escape and cover the DragHandle.
+                pointerEvents: none in edit mode ensures the system DragHandle
+                always receives events regardless of panel content. */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                isolation: 'isolate',
+                pointerEvents: layoutMode === 'edit' ? 'none' : undefined,
+              }}
+            >
               <PanelErrorBoundary panelId={instanceKey}>
                 <PanelComponent sdk={sdk} />
               </PanelErrorBoundary>

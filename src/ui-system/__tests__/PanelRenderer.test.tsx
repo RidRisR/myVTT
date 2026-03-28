@@ -186,3 +186,143 @@ describe('PanelRenderer', () => {
     expect(overlay).toHaveStyle({ position: 'absolute' })
   })
 })
+
+// ── Infrastructure isolation guarantees ──
+// These tests verify that the PanelRenderer base layer provides structural
+// CSS guarantees that hold regardless of what a plugin panel renders.
+// The browser guarantees the CSS behavior; we verify the properties are applied.
+
+describe('PanelRenderer isolation guarantees', () => {
+  function renderPanel(opts: {
+    component: React.ComponentType<{ sdk: unknown }>
+    layoutMode?: 'play' | 'edit'
+    onDrag?: (key: string, delta: { dx: number; dy: number }) => void
+  }) {
+    const registry = new UIRegistry()
+    registry.registerComponent({
+      id: 'test.panel',
+      component: opts.component,
+      type: 'panel',
+      defaultSize: { width: 200, height: 100 },
+    })
+    const layout: LayoutConfig = {
+      'test.panel#1': { x: 0, y: 0, width: 200, height: 100, zOrder: 5 },
+    }
+    return render(
+      <PanelRenderer
+        registry={registry}
+        layout={layout}
+        makeSDK={() => mockSDK}
+        layoutMode={opts.layoutMode ?? 'play'}
+        onDrag={opts.onDrag}
+      />,
+    )
+  }
+
+  it('plugin-panel container has contain: layout paint for CSS containment', () => {
+    const { container } = renderPanel({ component: () => <div>test</div> })
+    const panel = container.querySelector('.plugin-panel')
+    expect(panel).toHaveStyle({ contain: 'layout paint' })
+  })
+
+  it('plugin-panel container has pointerEvents: auto (overrides parent none)', () => {
+    const { container } = renderPanel({ component: () => <div>test</div> })
+    const panel = container.querySelector('.plugin-panel')
+    expect(panel).toHaveStyle({ pointerEvents: 'auto' })
+  })
+
+  it('content wrapper has isolation: isolate (prevents zIndex escape)', () => {
+    const { container } = renderPanel({ component: () => <div>test</div> })
+    const panel = container.querySelector('.plugin-panel')
+    // Content wrapper is the first child of .plugin-panel
+    const contentWrapper = panel?.firstElementChild as HTMLElement
+    expect(contentWrapper).toHaveStyle({ isolation: 'isolate' })
+  })
+
+  it('content wrapper has pointerEvents: none in edit mode', () => {
+    const { container } = renderPanel({
+      component: () => <button>clickable</button>,
+      layoutMode: 'edit',
+      onDrag: vi.fn(),
+    })
+    const panel = container.querySelector('.plugin-panel')
+    const contentWrapper = panel?.firstElementChild as HTMLElement
+    expect(contentWrapper).toHaveStyle({ pointerEvents: 'none' })
+  })
+
+  it('content wrapper allows pointer events in play mode', () => {
+    const { container } = renderPanel({
+      component: () => <button>clickable</button>,
+      layoutMode: 'play',
+    })
+    const panel = container.querySelector('.plugin-panel')
+    const contentWrapper = panel?.firstElementChild as HTMLElement
+    // pointerEvents should not be set (inherits auto from parent)
+    expect(contentWrapper.style.pointerEvents).toBe('')
+  })
+
+  it('DragHandle renders even when panel component throws', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { container } = renderPanel({
+      component: () => {
+        throw new Error('panel crash')
+      },
+      layoutMode: 'edit',
+      onDrag: vi.fn(),
+    })
+    spy.mockRestore()
+
+    // DragHandle must still be present despite panel crash
+    const dragHandle = container.querySelector('[title="test.panel"]')
+    expect(dragHandle).toBeInTheDocument()
+    expect(dragHandle).toHaveStyle({ position: 'absolute', cursor: 'move' })
+  })
+
+  it('DragHandle renders regardless of panel DOM complexity', () => {
+    // A panel with deeply nested DOM, high zIndex elements, and event handlers
+    const ComplexPanel = () => (
+      <div style={{ position: 'relative', zIndex: 9999 }}>
+        <div style={{ position: 'absolute', inset: 0, zIndex: 9999 }}>
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{ position: 'relative', zIndex: 9999 }}
+          >
+            steal events
+          </button>
+        </div>
+      </div>
+    )
+    const { container } = renderPanel({
+      component: ComplexPanel,
+      layoutMode: 'edit',
+      onDrag: vi.fn(),
+    })
+
+    // DragHandle must render on top of whatever the panel does
+    const dragHandle = container.querySelector('[title="test.panel"]')
+    expect(dragHandle).toBeInTheDocument()
+
+    // Content wrapper isolation prevents zIndex escape
+    const panel = container.querySelector('.plugin-panel')
+    const contentWrapper = panel?.firstElementChild as HTMLElement
+    expect(contentWrapper).toHaveStyle({ isolation: 'isolate', pointerEvents: 'none' })
+  })
+
+  it('zOrder from LayoutEntry is applied as zIndex', () => {
+    const { container } = renderPanel({ component: () => <div>test</div> })
+    const panel = container.querySelector('.plugin-panel')
+    expect(panel).toHaveStyle({ zIndex: '5' })
+  })
+
+  it('data-plugin attribute extracted from componentId namespace', () => {
+    const { container } = renderPanel({ component: () => <div>test</div> })
+    const panel = container.querySelector('.plugin-panel')
+    expect(panel).toHaveAttribute('data-plugin', 'test')
+  })
+
+  it('data-type attribute reflects panel type', () => {
+    const { container } = renderPanel({ component: () => <div>test</div> })
+    const panel = container.querySelector('.plugin-panel')
+    expect(panel).toHaveAttribute('data-type', 'panel')
+  })
+})
