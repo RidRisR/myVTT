@@ -19,6 +19,7 @@ import type { UIRegistry } from '../ui-system/registry'
 import type { TriggerDefinition } from '../shared/logTypes'
 import { TriggerRegistry } from './triggerRegistry'
 import { registerCommand } from './commandRegistry'
+import type { ExtensionRegistry } from '../ui-system/extensionRegistry'
 
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
 // PluginSDKDeps = { emitEntry, serverRoll, getEntity, getAllEntities, eventBus, getActiveOrigin, getSeatId, getLogWatermark }
@@ -38,6 +39,7 @@ export class PluginSDK implements IPluginSDK {
     pluginId: string,
     uiRegistry?: UIRegistry,
     triggerRegistry?: TriggerRegistry,
+    extensionRegistry?: ExtensionRegistry,
   ) {
     this.engine = engine
     this.pluginId = pluginId
@@ -50,11 +52,15 @@ export class PluginSDK implements IPluginSDK {
           registerLayer: (def) => {
             uiRegistry.registerLayer(def)
           },
+          contribute: (point, component, priority) => {
+            extensionRegistry?.contribute(point as never, component as never, priority)
+          },
         }
       : {
           // no-op: existing tests do not pass a registry
           registerComponent: () => {},
           registerLayer: () => {},
+          contribute: () => {},
         }
   }
 

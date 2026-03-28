@@ -84,6 +84,24 @@ export interface IComponentSDK {
   context: ComponentContext
   /** play 模式下注入；edit 模式下系统浮层接管所有交互，不注入 */
   interaction?: IInteractionSDK
+  /** Phase 1: optional. Phase 2: required once AwarenessManager is wired. */
+  awareness?: {
+    subscribe<T>(
+      channel: { readonly key: string; readonly __phantom?: T },
+      handler: (seatId: string, state: T | null) => void,
+    ): () => void
+    broadcast<T>(channel: { readonly key: string; readonly __phantom?: T }, data: T): void
+    clear(channel: { readonly key: string }): void
+  }
+  /** Phase 1: optional. Phase 2: required once LogStreamDispatcher is wired (Track A dep). */
+  log?: {
+    subscribe(pattern: string, handler: (entry: unknown) => void): () => void
+  }
+  /** Phase 1: optional. Phase 2: required once layout store openPanel/closePanel is wired. */
+  ui?: {
+    openPanel(componentId: string, instanceProps?: Record<string, unknown>): string
+    closePanel(instanceKey: string): void
+  }
 }
 
 export interface ComponentProps {

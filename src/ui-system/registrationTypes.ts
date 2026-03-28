@@ -37,4 +37,9 @@ export interface LayerDef {
 export interface IUIRegistrationSDK {
   registerComponent(def: ComponentDef): void
   registerLayer(def: LayerDef): void
+  contribute<T>(
+    point: { readonly key: string },
+    component: React.ComponentType<T>,
+    priority?: number,
+  ): void
 }
