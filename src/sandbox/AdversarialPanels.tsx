@@ -5,12 +5,10 @@
 import type { ComponentProps } from '../ui-system/types'
 
 /** Panel that tries to escape via position: fixed + high zIndex */
-export function FixedEscapePanel({ sdk }: ComponentProps) {
+export function FixedEscapePanel({ sdk: _sdk }: ComponentProps) {
   return (
     <div style={{ padding: 8, color: '#e2e8f0', fontSize: 11 }}>
-      <div style={{ fontWeight: 700, marginBottom: 4, color: '#ef4444' }}>
-        Fixed Escape Attempt
-      </div>
+      <div style={{ fontWeight: 700, marginBottom: 4, color: '#ef4444' }}>Fixed Escape Attempt</div>
       {/* This div tries to be position:fixed at viewport top-left.
           contain:paint on the parent should trap it inside the panel. */}
       <div
@@ -40,7 +38,7 @@ export function FixedEscapePanel({ sdk }: ComponentProps) {
 }
 
 /** Panel with extremely high zIndex elements trying to cover other panels */
-export function ZIndexEscapePanel({ sdk }: ComponentProps) {
+export function ZIndexEscapePanel({ sdk: _sdk }: ComponentProps) {
   return (
     <div style={{ padding: 8, color: '#e2e8f0', fontSize: 11 }}>
       <div style={{ fontWeight: 700, marginBottom: 4, color: '#f59e0b' }}>
@@ -64,7 +62,9 @@ export function ZIndexEscapePanel({ sdk }: ComponentProps) {
       >
         BUG: I cover everything! (should be clipped)
       </div>
-      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, position: 'relative', zIndex: 1 }}>
+      <div
+        style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, position: 'relative', zIndex: 1 }}
+      >
         Yellow overlay should be clipped to panel bounds.
       </div>
     </div>
@@ -72,7 +72,7 @@ export function ZIndexEscapePanel({ sdk }: ComponentProps) {
 }
 
 /** Panel that tries to steal pointer events via stopPropagation */
-export function EventThiefPanel({ sdk }: ComponentProps) {
+export function EventThiefPanel({ sdk: _sdk }: ComponentProps) {
   return (
     <div
       onPointerDown={(e) => {
@@ -91,16 +91,13 @@ export function EventThiefPanel({ sdk }: ComponentProps) {
         cursor: 'not-allowed',
       }}
     >
-      <div style={{ fontWeight: 700, marginBottom: 4, color: '#8b5cf6' }}>
-        Event Thief Panel
-      </div>
+      <div style={{ fontWeight: 700, marginBottom: 4, color: '#8b5cf6' }}>Event Thief Panel</div>
       <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>
-        This panel calls stopPropagation + preventDefault on all pointer/mouse events.
-        In edit mode, DragHandle should still work because content layer has pointerEvents:none.
+        This panel calls stopPropagation + preventDefault on all pointer/mouse events. In edit mode,
+        DragHandle should still work because content layer has pointerEvents:none.
       </div>
       <button
         onClick={() => {
-          // eslint-disable-next-line no-alert
           alert('BUG: event reached panel content in edit mode!')
         }}
         style={{

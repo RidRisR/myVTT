@@ -1,7 +1,7 @@
 import type { ComponentProps } from '../../src/ui-system/types'
 
 export function SessionInfoPanel({ sdk }: ComponentProps) {
-  const entities = sdk.read.query()
+  const entities = sdk.read.query({})
   const characters = entities.filter(
     (e) => e.lifecycle === 'persistent' && e.components['core:identity'],
   )
@@ -55,7 +55,8 @@ export function SessionInfoPanel({ sdk }: ComponentProps) {
               fontSize: 10,
               fontWeight: 700,
               letterSpacing: '0.05em',
-              background: sdk.context.role === 'GM' ? 'rgba(251,191,36,0.15)' : 'rgba(96,165,250,0.15)',
+              background:
+                sdk.context.role === 'GM' ? 'rgba(251,191,36,0.15)' : 'rgba(96,165,250,0.15)',
               color: sdk.context.role === 'GM' ? '#fbbf24' : '#60a5fa',
             }}
           >

@@ -4,11 +4,18 @@ import { PanelRenderer } from '../PanelRenderer'
 import { UIRegistry } from '../registry'
 import type { LayoutConfig, IComponentSDK } from '../types'
 import {
-  FixedEscapePanel,
-  ZIndexEscapePanel,
-  EventThiefPanel,
-  CrashPanel,
+  FixedEscapePanel as _FixedEscapePanel,
+  ZIndexEscapePanel as _ZIndexEscapePanel,
+  EventThiefPanel as _EventThiefPanel,
+  CrashPanel as _CrashPanel,
 } from '../../sandbox/AdversarialPanels'
+
+// Cast to ComponentType<{ sdk: unknown }> — matches registerComponent's type
+type PanelComponent = React.ComponentType<{ sdk: unknown }>
+const FixedEscapePanel = _FixedEscapePanel as PanelComponent
+const ZIndexEscapePanel = _ZIndexEscapePanel as PanelComponent
+const EventThiefPanel = _EventThiefPanel as PanelComponent
+const CrashPanel = _CrashPanel as PanelComponent
 
 const mockSDK: IComponentSDK = {
   read: {
@@ -290,7 +297,9 @@ describe('PanelRenderer isolation guarantees', () => {
       <div style={{ position: 'relative', zIndex: 9999 }}>
         <div style={{ position: 'absolute', inset: 0, zIndex: 9999 }}>
           <button
-            onPointerDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => {
+              e.stopPropagation()
+            }}
             style={{ position: 'relative', zIndex: 9999 }}
           >
             steal events
