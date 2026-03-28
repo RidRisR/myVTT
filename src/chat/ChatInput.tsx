@@ -1,10 +1,10 @@
 import { useState, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Send } from 'lucide-react'
-import { resolveFormula, tokenizeExpression, toDiceSpecs } from '../shared/diceUtils'
-import type { DiceSpec } from '../shared/diceUtils'
 import type { ChatMessage, MessageOrigin } from '../shared/chatTypes'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import type { WorkflowHandle } from '../workflow/types'
+import { getCommand } from '../workflow/commandRegistry'
+import { parseCommand } from '../shared/commandUtils'
 
 interface Suggestion {
   key: string
@@ -17,7 +17,7 @@ interface ChatInputProps {
   selectedTokenProps: { key: string; value: string }[]
   seatProperties: { key: string; value: string }[]
   onSend: (message: ChatMessage) => void
-  onRoll?: (formula: string, resolvedFormula?: string, dice?: DiceSpec[], rollType?: string) => void
+  onCommand?: (handle: WorkflowHandle, raw: string) => void
   onFocus?: () => void
   onCycleSpeaker?: () => void
 }
@@ -31,12 +31,11 @@ export function ChatInput({
   selectedTokenProps,
   seatProperties,
   onSend,
-  onRoll,
+  onCommand,
   onFocus,
   onCycleSpeaker,
 }: ChatInputProps) {
   const { t } = useTranslation('chat')
-  const plugin = useRulePlugin()
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -96,77 +95,21 @@ export function ChatInput({
     })
   }
 
-  const handleRoll = (formula: string) => {
-    let resolvedFormula: string | undefined
-    if (/@[\p{L}\p{N}_]+/u.test(formula)) {
-      const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
-      if ('error' in resolved) {
-        const hint = selectedTokenProps.length === 0 ? t('resolve_hint') : ''
-        setError(resolved.error + hint)
-        return
-      }
-      resolvedFormula = resolved.resolved
-    }
-    const terms = tokenizeExpression(resolvedFormula ?? formula)
-    if (!terms) {
-      setError(t('error_invalid_dice'))
-      return
-    }
-    const dice = toDiceSpecs(terms)
-    if (onRoll) onRoll(formula, resolvedFormula, dice, undefined)
-    setInput('')
-    setError('')
-  }
-
-  const handlePluginRoll = (
-    modifierExpr: string,
-    rollType: string,
-    rollCommand: { resolveFormula(modifierExpr?: string): string },
-  ) => {
-    const formula = rollCommand.resolveFormula(modifierExpr.trim() || undefined)
-    let resolvedFormula: string | undefined
-    if (/@[\p{L}\p{N}_]+/u.test(formula)) {
-      const resolved = resolveFormula(formula, selectedTokenProps, seatProperties)
-      if ('error' in resolved) {
-        setError(resolved.error)
-        return
-      }
-      resolvedFormula = resolved.resolved
-    }
-    const terms = tokenizeExpression(resolvedFormula ?? formula)
-    if (!terms) {
-      setError(t('error_invalid_formula'))
-      return
-    }
-    const dice = toDiceSpecs(terms)
-    if (onRoll) onRoll(formula, resolvedFormula, dice, rollType)
-    setInput('')
-    setError('')
-  }
-
   const handleSend = () => {
     const trimmed = input.trim()
     if (!trimmed) return
 
-    // Standard dice roll
-    const rollMatch = trimmed.match(/^\.r\s*(.+)$/i)
-    if (rollMatch) {
-      handleRoll((rollMatch[1] ?? '').trim())
-      return
-    }
-
-    // Plugin-registered roll commands (e.g., .dd → daggerheart:dd)
-    const cmdMatch = trimmed.match(/^\.([a-zA-Z][a-zA-Z0-9]*)\s*(.*)$/i)
-    if (cmdMatch) {
-      const cmd = (cmdMatch[1] ?? '').toLowerCase()
-      const rollCmds = plugin.diceSystem?.rollCommands
-      if (!rollCmds) return
-      const entry = Object.entries(rollCmds).find(([key]) => key.split(':').at(-1) === cmd)
-      if (entry) {
-        const [rollType, rollCommand] = entry
-        handlePluginRoll(cmdMatch[2] ?? '', rollType, rollCommand)
+    // Command detection via parseCommand utility
+    const cmd = parseCommand(trimmed)
+    if (cmd && onCommand) {
+      const handle = getCommand(cmd.name)
+      if (handle) {
+        onCommand(handle, cmd.raw)
+        setInput('')
+        setError('')
         return
       }
+      // Unknown command — fall through to text
     }
 
     // Text message

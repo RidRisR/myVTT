@@ -2,8 +2,9 @@
 import type { Entity } from '../shared/entityTypes'
 import type { EventHandle } from '../events/eventBus'
 import type { IUIRegistrationSDK } from '../ui-system/registrationTypes'
-import type { GameLogEntry, TriggerDefinition, Visibility } from '../shared/logTypes'
+import type { GameLogEntry, LogPayloadMap, TriggerDefinition, Visibility } from '../shared/logTypes'
 import type { DiceSpec } from '../shared/diceUtils'
+import type { ComponentTypeMap } from '../shared/componentTypes'
 
 // ── WorkflowHandle — phantom type for compile-time safety ─────────────────
 
@@ -111,8 +112,12 @@ export interface InternalState {
 
 export interface IDataReader {
   entity(id: string): Entity | undefined
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T required for caller type inference
-  component<T>(entityId: string, key: string): T | undefined
+  component<K extends keyof ComponentTypeMap>(
+    entityId: string,
+    key: K,
+  ): ComponentTypeMap[K] | undefined
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- fallback overload
+  component<T = unknown>(entityId: string, key: string): T | undefined
   query(spec: { has?: string[] }): Entity[]
   formulaTokens(entityId: string): Record<string, number>
 }
@@ -147,6 +152,14 @@ export interface WorkflowContext<TVars = Record<string, unknown>> {
 
   // ── Effects (side effects, fire-and-forget) ───────────────────────────
   /** Emit a log entry (fire-and-forget via Socket.io) */
+  emitEntry<T extends keyof LogPayloadMap>(partial: {
+    type: T
+    payload: LogPayloadMap[T]
+    triggerable: boolean
+    parentId?: string
+    chainDepth?: number
+    visibility?: Visibility
+  }): void
   emitEntry(partial: {
     type: string
     payload: Record<string, unknown>
@@ -155,6 +168,11 @@ export interface WorkflowContext<TVars = Record<string, unknown>> {
     chainDepth?: number
     visibility?: Visibility
   }): void
+  updateComponent<K extends keyof ComponentTypeMap>(
+    entityId: string,
+    key: K,
+    updater: (current: ComponentTypeMap[K] | undefined) => ComponentTypeMap[K],
+  ): void
   updateComponent<T>(entityId: string, key: string, updater: (current: T | undefined) => T): void
   /** @deprecated — will be removed when teamTracker is redesigned */
   updateTeamTracker(label: string, patch: { current?: number }): void
@@ -208,6 +226,8 @@ export interface IPluginSDK {
   removeStep(handle: WorkflowHandle<any, any>, targetStepId: string): void
   inspectWorkflow(handle: WorkflowHandle<any, any>): string[]
   /* eslint-enable @typescript-eslint/no-explicit-any */
+  /** Register a chat command (e.g., '.dd') that maps to a workflow */
+  registerCommand(name: string, handle: WorkflowHandle): void
   registerTrigger(trigger: TriggerDefinition): void
   ui: IUIRegistrationSDK
 }

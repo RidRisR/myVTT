@@ -37,6 +37,41 @@ export interface LogEntrySubmission {
   timestamp: number
 }
 
+// ── LogPayloadMap — maps log entry type → typed payload ──
+export interface LogPayloadMap {
+  'core:text': {
+    content: string
+    senderName?: string
+  }
+  'core:roll-result': {
+    formula: string
+    resolvedFormula?: string
+    dice: DiceSpec[]
+    rolls: number[][]
+    total: number
+    rollType?: string
+    actionName?: string
+  }
+  'core:tracker-update': {
+    label: string
+    current?: number
+    snapshot?: import('./storeTypes').TeamTracker
+  }
+  'core:component-update': {
+    entityId: string
+    key: string
+    data: unknown
+  }
+}
+
+/** Type guard — narrows GameLogEntry to typed payload within if/switch blocks */
+export function isLogType<T extends keyof LogPayloadMap>(
+  entry: GameLogEntry,
+  type: T,
+): entry is GameLogEntry & { type: T; payload: LogPayloadMap[T] } {
+  return entry.type === type
+}
+
 // ── RollRequest (client → server for RNG) ──
 export interface RollRequest {
   origin: MessageOrigin

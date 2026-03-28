@@ -4,6 +4,7 @@ import type { WorkflowHandle } from './types'
 import { tokenizeExpression, toDiceSpecs, buildCompoundResult } from '../shared/diceUtils'
 import { toastEvent, announceEvent } from '../events/systemEvents'
 import { _setSelection } from '../stores/sessionStore'
+import { registerCommand } from './commandRegistry'
 
 /** Base data shape for the roll workflow */
 export interface BaseRollData {
@@ -125,8 +126,16 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
     {
       id: 'roll',
       run: async (ctx) => {
+        // Support both direct calls (formula) and command system (raw)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- formula absent when invoked via command system
+        const formula = ctx.vars.formula ?? (ctx.vars.raw as string | undefined)
+        if (!formula) {
+          ctx.abort('Missing formula')
+          return
+        }
+        ctx.vars.formula = formula
         const result = await ctx.runWorkflow(getRollWorkflow(), {
-          formula: ctx.vars.formula,
+          formula,
           actorId: ctx.vars.actorId,
         })
         if (result.status === 'aborted') {
@@ -168,4 +177,8 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
       },
     },
   ])
+
+  // Register chat commands
+  registerCommand('.r', _quickRollWorkflow)
+  registerCommand('.roll', _quickRollWorkflow)
 }

@@ -2,14 +2,15 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ChatMessage, MessageOrigin } from '../shared/chatTypes'
 import { getDisplayIdentity } from '../shared/chatTypes'
-import type { DiceSpec } from '../shared/diceUtils'
+import { isLogType } from '../shared/logTypes'
 import type { GameLogEntry } from '../shared/logTypes'
 import type { Entity } from '../shared/entityTypes'
 import { getName, getColor, getImageUrl } from '../shared/coreComponents'
 import { useRulePlugin } from '../rules/useRulePlugin'
 import { useWorldStore } from '../stores/worldStore'
 import { useWorkflowRunner } from '../workflow/useWorkflowSDK'
-import { getRollWorkflow, getSendTextWorkflow } from '../workflow/baseWorkflows'
+import { getSendTextWorkflow } from '../workflow/baseWorkflows'
+import type { WorkflowHandle } from '../workflow/types'
 import { MessageScrollArea } from './MessageScrollArea'
 import { ToastStack, type ToastItem } from './ToastStack'
 import { ChatInput } from './ChatInput'
@@ -23,31 +24,30 @@ const EMPTY_FRESH_IDS = new Set<string>()
 
 /** Convert a GameLogEntry to a ChatMessage for rendering */
 function logEntryToChatMessage(entry: GameLogEntry): ChatMessage | null {
-  switch (entry.type) {
-    case 'core:text':
-      return {
-        type: 'text',
-        id: entry.id,
-        origin: entry.origin,
-        content: (entry.payload.content as string | undefined) ?? '',
-        timestamp: entry.timestamp,
-      }
-    case 'core:roll-result':
-      return {
-        type: 'roll',
-        id: entry.id,
-        origin: entry.origin,
-        timestamp: entry.timestamp,
-        formula: (entry.payload.formula as string | undefined) ?? '',
-        resolvedFormula: entry.payload.resolvedFormula as string | undefined,
-        dice: (entry.payload.dice as DiceSpec[] | undefined) ?? [],
-        rolls: (entry.payload.rolls as number[][] | undefined) ?? [],
-        rollType: entry.payload.rollType as string | undefined,
-        actionName: entry.payload.actionName as string | undefined,
-      }
-    default:
-      return null
+  if (isLogType(entry, 'core:text')) {
+    return {
+      type: 'text',
+      id: entry.id,
+      origin: entry.origin,
+      content: entry.payload.content,
+      timestamp: entry.timestamp,
+    }
   }
+  if (isLogType(entry, 'core:roll-result')) {
+    return {
+      type: 'roll',
+      id: entry.id,
+      origin: entry.origin,
+      timestamp: entry.timestamp,
+      formula: entry.payload.formula,
+      resolvedFormula: entry.payload.resolvedFormula,
+      dice: entry.payload.dice,
+      rolls: entry.payload.rolls,
+      rollType: entry.payload.rollType,
+      actionName: entry.payload.actionName,
+    }
+  }
+  return null
 }
 
 interface ChatPanelProps {
@@ -228,25 +228,17 @@ export function ChatPanel({
     [runner, senderName],
   )
 
-  const handleRoll = useCallback(
-    (formula: string, resolvedFormula?: string, _dice: DiceSpec[] = [], rollType?: string) => {
-      // Plugin roll command → use plugin's action-check workflow
-      if (rollType) {
-        const getWf = plugin.diceSystem?.rollWorkflows?.[rollType]
-        if (getWf) {
-          void runner.runWorkflow(getWf(), {
-            formula,
-            resolvedFormula,
-            actorId: senderId,
-            rollType,
-          })
-          return
-        }
-      }
-      // Generic roll (.r)
-      void runner.runWorkflow(getRollWorkflow(), { formula, resolvedFormula, actorId: senderId })
+  const handleCommand = useCallback(
+    (handle: WorkflowHandle, raw: string) => {
+      void runner.runWorkflow(handle, {
+        raw,
+        actorId: speakerCharId ?? senderId,
+        speakerId: speakerCharId,
+        seatId: senderId,
+        origin: activeOrigin,
+      })
     },
-    [runner, senderId, plugin],
+    [runner, senderId, speakerCharId, activeOrigin],
   )
 
   // Tab to cycle speaker: seat → entity1 → entity2 → ... → seat
@@ -356,7 +348,7 @@ export function ChatPanel({
           <ChatInput
             origin={activeOrigin}
             onSend={handleSend}
-            onRoll={handleRoll}
+            onCommand={handleCommand}
             selectedTokenProps={selectedTokenProps}
             seatProperties={activeSpeakerProps}
             onCycleSpeaker={speakerEntities.length > 0 ? handleCycleSpeaker : undefined}

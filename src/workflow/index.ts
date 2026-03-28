@@ -29,4 +29,6 @@ export {
   getWorkflowEngine,
   resetWorkflowEngine,
   registerWorkflowPlugins,
+  getCommand,
+  registerCommand,
 } from './useWorkflowSDK'

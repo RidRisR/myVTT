@@ -65,12 +65,11 @@ export function createWorkflowContext(
   // Imperative data reader backed by deps.getEntity
   const read: IDataReader = {
     entity: (id: string) => deps.getEntity(id),
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T required for caller type inference
-    component: <T>(entityId: string, key: string): T | undefined => {
+    component: ((entityId: string, key: string) => {
       const entity = deps.getEntity(entityId)
       if (!entity) return undefined
-      return entity.components[key] as T | undefined
-    },
+      return entity.components[key]
+    }) as IDataReader['component'],
     query: (spec: { has?: string[] }): Entity[] => {
       const entities = Object.values(deps.getAllEntities())
       const keys = spec.has
@@ -125,7 +124,7 @@ export function createWorkflowContext(
     requestInput: (interactionId: string) => sessionRequestInput(interactionId),
 
     // ── Effects (side effects) ────────────────────────────────────────────
-    emitEntry: (partial: {
+    emitEntry: ((partial: {
       type: string
       payload: Record<string, unknown>
       triggerable: boolean
@@ -146,15 +145,15 @@ export function createWorkflowContext(
         timestamp: Date.now(),
       }
       deps.emitEntry(submission)
-    },
+    }) as WorkflowContext['emitEntry'],
 
-    updateComponent: <T>(
+    updateComponent: ((
       entityId: string,
       key: string,
-      updater: (current: T | undefined) => T,
+      updater: (current: unknown) => unknown,
     ): void => {
       const entity = deps.getEntity(entityId)
-      const current = entity?.components[key] as T | undefined
+      const current = entity?.components[key]
       const next = updater(current)
       const submission: LogEntrySubmission = {
         id: uuidv7(),
@@ -168,7 +167,7 @@ export function createWorkflowContext(
         timestamp: Date.now(),
       }
       deps.emitEntry(submission)
-    },
+    }) as WorkflowContext['updateComponent'],
 
     updateTeamTracker: (label: string, patch: { current?: number }) => {
       const submission: LogEntrySubmission = {

@@ -1,5 +1,6 @@
 // src/data/dataReader.ts
 import type { IDataReader } from '../workflow/types'
+import type { ComponentTypeMap } from '../shared/componentTypes'
 import type { Entity } from '../shared/entityTypes'
 import { useWorldStore } from '../stores/worldStore'
 
@@ -14,11 +15,14 @@ export function createDataReader(): IDataReader {
       return useWorldStore.getState().entities[id]
     },
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T required for caller type inference
-    component: <T>(entityId: string, key: string): T | undefined => {
+    component: ((entityId: string, key: string) => {
       const entity = useWorldStore.getState().entities[entityId]
       if (!entity) return undefined
-      return entity.components[key] as T | undefined
+      return entity.components[key]
+    }) as {
+      <K extends keyof ComponentTypeMap>(entityId: string, key: K): ComponentTypeMap[K] | undefined
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- fallback overload
+      <T = unknown>(entityId: string, key: string): T | undefined
     },
 
     query: (spec: { has?: string[] }): Entity[] => {
