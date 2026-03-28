@@ -26,6 +26,7 @@ export interface LayoutEntry {
   y: number
   width: number
   height: number
+  zOrder: number
   visible?: boolean
   instanceProps?: InstancePropsOrFactory
 }

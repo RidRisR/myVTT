@@ -17,7 +17,7 @@ describe('PanelRenderer', () => {
     })
 
     const layout: LayoutConfig = {
-      'test.panel#1': { x: 50, y: 80, width: 200, height: 100 },
+      'test.panel#1': { x: 50, y: 80, width: 200, height: 100, zOrder: 0 },
     }
 
     render(
@@ -34,7 +34,7 @@ describe('PanelRenderer', () => {
   it('renders nothing for an unknown component id', () => {
     const registry = new UIRegistry()
     const layout: LayoutConfig = {
-      'unknown.panel#1': { x: 0, y: 0, width: 100, height: 100 },
+      'unknown.panel#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 },
     }
 
     const { container } = render(
@@ -67,8 +67,8 @@ describe('PanelRenderer', () => {
     })
 
     const layout: LayoutConfig = {
-      'test.crash#1': { x: 0, y: 0, width: 100, height: 100 },
-      'test.ok#1': { x: 110, y: 0, width: 100, height: 100 },
+      'test.crash#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 },
+      'test.ok#1': { x: 110, y: 0, width: 100, height: 100, zOrder: 0 },
     }
 
     // Suppress React's error boundary console.error in test
@@ -96,7 +96,7 @@ describe('PanelRenderer', () => {
     })
 
     const layout: LayoutConfig = {
-      'test.bare#1': { x: 0, y: 0, width: 100, height: 100 },
+      'test.bare#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 },
     }
 
     const { container } = render(
@@ -123,7 +123,7 @@ describe('PanelRenderer', () => {
       defaultSize: { width: 200, height: 100 },
     })
     const layout: LayoutConfig = {
-      'test.panel#1': { x: 0, y: 0, width: 200, height: 100 },
+      'test.panel#1': { x: 0, y: 0, width: 200, height: 100, zOrder: 0 },
     }
     const onDrag = vi.fn()
 
@@ -151,7 +151,7 @@ describe('PanelRenderer', () => {
       defaultSize: { width: 200, height: 100 },
     })
     const layout: LayoutConfig = {
-      'test.panel#1': { x: 0, y: 0, width: 200, height: 100 },
+      'test.panel#1': { x: 0, y: 0, width: 200, height: 100, zOrder: 0 },
     }
     const onDrag = vi.fn()
 

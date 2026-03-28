@@ -28,8 +28,8 @@ const MOCK_ENTITIES: Entity[] = [
 ]
 
 const INITIAL_LAYOUT: LayoutConfig = {
-  'poc-ui.hello#1': { x: 40, y: 40, width: 240, height: 200 },
-  'poc-ui.hello#2': { x: 320, y: 40, width: 240, height: 200, instanceProps: { entityId: 'e1' } },
+  'poc-ui.hello#1': { x: 40, y: 40, width: 240, height: 200, zOrder: 0 },
+  'poc-ui.hello#2': { x: 320, y: 40, width: 240, height: 200, zOrder: 0, instanceProps: { entityId: 'e1' } },
 }
 
 export default function PatternUISystem() {
