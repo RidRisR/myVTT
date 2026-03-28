@@ -9,7 +9,7 @@ export interface DnDPayload {
   data: unknown
 }
 
-export type { ZLayer, ComponentDef, LayerDef, IUIRegistrationSDK } from './registrationTypes'
+export type { ZLayer, PanelType, DefaultPlacement, ComponentDef, LayerDef, IUIRegistrationSDK } from './registrationTypes'
 
 /** Session snapshot passed to instanceProps factory functions */
 export interface SessionSnapshot {

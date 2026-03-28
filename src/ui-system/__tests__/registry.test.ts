@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { UIRegistry } from '../registry'
-import type { ComponentDef, LayerDef } from '../types'
+import type { ComponentDef, LayerDef, PanelType } from '../types'
 
 const mockComponent = () => null
 const mockLayer = () => null
@@ -8,6 +8,7 @@ const mockLayer = () => null
 const componentDef: ComponentDef = {
   id: 'test.hello',
   component: mockComponent as never,
+  type: 'panel',
   defaultSize: { width: 200, height: 100 },
 }
 
@@ -52,5 +53,41 @@ describe('UIRegistry', () => {
 
     const ids = registry.getLayers().map((l) => l.id)
     expect(ids).toEqual(['b', 'c', 'a'])
+  })
+
+  it('listComponents returns all registered components', () => {
+    registry.registerComponent(componentDef)
+    registry.registerComponent({
+      id: 'test.world',
+      component: mockComponent as never,
+      type: 'overlay',
+      defaultSize: { width: 100, height: 100 },
+    })
+    expect(registry.listComponents()).toHaveLength(2)
+  })
+
+  it('listComponentsByType filters by panel type', () => {
+    registry.registerComponent(componentDef) // type: 'panel'
+    registry.registerComponent({
+      id: 'test.bg',
+      component: mockComponent as never,
+      type: 'background',
+      defaultSize: { width: 100, height: 100 },
+    })
+    registry.registerComponent({
+      id: 'test.overlay',
+      component: mockComponent as never,
+      type: 'overlay',
+      defaultSize: { width: 100, height: 100 },
+    })
+
+    expect(registry.listComponentsByType('panel')).toHaveLength(1)
+    expect(registry.listComponentsByType('panel')[0].id).toBe('test.hello')
+    expect(registry.listComponentsByType('background')).toHaveLength(1)
+    expect(registry.listComponentsByType('overlay')).toHaveLength(1)
+  })
+
+  it('listComponents returns empty array when none registered', () => {
+    expect(registry.listComponents()).toEqual([])
   })
 })

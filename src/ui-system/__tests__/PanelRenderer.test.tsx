@@ -12,6 +12,7 @@ describe('PanelRenderer', () => {
     registry.registerComponent({
       id: 'test.panel',
       component: () => <div>hello panel</div>,
+      type: 'panel',
       defaultSize: { width: 200, height: 100 },
     })
 
@@ -55,11 +56,13 @@ describe('PanelRenderer', () => {
       component: () => {
         throw new Error('boom')
       },
+      type: 'panel',
       defaultSize: { width: 100, height: 100 },
     })
     registry.registerComponent({
       id: 'test.ok',
       component: () => <div>survivor</div>,
+      type: 'panel',
       defaultSize: { width: 100, height: 100 },
     })
 
@@ -88,6 +91,7 @@ describe('PanelRenderer', () => {
     registry.registerComponent({
       id: 'test.bare',
       component: () => <div>bare content</div>,
+      type: 'panel',
       defaultSize: { width: 100, height: 100 },
     })
 
@@ -115,6 +119,7 @@ describe('PanelRenderer', () => {
     registry.registerComponent({
       id: 'test.panel',
       component: () => <div>content</div>,
+      type: 'panel',
       defaultSize: { width: 200, height: 100 },
     })
     const layout: LayoutConfig = {
@@ -142,6 +147,7 @@ describe('PanelRenderer', () => {
     registry.registerComponent({
       id: 'test.panel',
       component: () => <div>content</div>,
+      type: 'panel',
       defaultSize: { width: 200, height: 100 },
     })
     const layout: LayoutConfig = {
