@@ -18,6 +18,7 @@ import type { IUIRegistrationSDK } from '../ui-system/registrationTypes'
 import type { UIRegistry } from '../ui-system/registry'
 import type { TriggerDefinition } from '../shared/logTypes'
 import { TriggerRegistry } from './triggerRegistry'
+import { registerCommand } from './commandRegistry'
 
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
 // PluginSDKDeps = { emitEntry, serverRoll, getEntity, getAllEntities, eventBus, getActiveOrigin, getSeatId, getLogWatermark }
@@ -131,6 +132,10 @@ export class PluginSDK implements IPluginSDK {
       throw new Error('TriggerRegistry not available')
     }
     this.triggerRegistry.register(trigger)
+  }
+
+  registerCommand(name: string, handle: WorkflowHandle): void {
+    registerCommand(name, handle)
   }
 }
 

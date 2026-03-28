@@ -9,6 +9,10 @@ import { getRulePluginSync } from '../rules/registry'
 import type { VTTPlugin } from '../rules/types'
 import type { IWorkflowRunner } from './types'
 import type { PluginSDKDeps } from './pluginSDK'
+import { clearCommands } from './commandRegistry'
+
+// Re-export command registry functions for convenience
+export { getCommand, registerCommand } from './commandRegistry'
 
 // Singleton engine instance — initialized once
 let _engine: WorkflowEngine | null = null
@@ -36,6 +40,7 @@ export function resetWorkflowEngine(): void {
   _engine = null
   _pluginsActivated = false
   _registeredPlugins = []
+  clearCommands()
 }
 
 /** Build the PluginSDKDeps from store actions. */

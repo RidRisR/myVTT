@@ -4,6 +4,7 @@ import type { WorkflowHandle } from './types'
 import { tokenizeExpression, toDiceSpecs, buildCompoundResult } from '../shared/diceUtils'
 import { toastEvent, announceEvent } from '../events/systemEvents'
 import { _setSelection } from '../stores/sessionStore'
+import { registerCommand } from './commandRegistry'
 
 /** Base data shape for the roll workflow */
 export interface BaseRollData {
@@ -168,4 +169,8 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
       },
     },
   ])
+
+  // Register chat commands
+  registerCommand('.r', _quickRollWorkflow!)
+  registerCommand('.roll', _quickRollWorkflow!)
 }

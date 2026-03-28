@@ -85,4 +85,6 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
       },
     },
   ])
+
+  sdk.registerCommand('.dd', _actionCheckWorkflow!)
 }
