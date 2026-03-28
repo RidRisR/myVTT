@@ -41,6 +41,7 @@ import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './ui/ToastProvider'
 import { PluginPanelContainer } from './layout/PluginPanelContainer'
 import { useRulePlugin } from './rules/useRulePlugin'
+import { initWorkflowSystem } from './workflow/useWorkflowSDK'
 
 // DEV-only: Sandbox pattern library. Vite replaces import.meta.env.DEV with
 // false in production builds, making the lazy import dead code that Rollup
@@ -69,6 +70,11 @@ function RoomSession({ roomId }: { roomId: string }) {
     cancelledRef.current = false
     let cleanupWorld: (() => void) | undefined
     let cleanupIdentity: (() => void) | undefined
+
+    // Initialize workflow system BEFORE store init — dispatcher must exist
+    // before the first log:new event arrives from worldStore.init()
+    const cleanupWorkflow = initWorkflowSystem()
+
     void (async () => {
       try {
         setInitError(null)
@@ -93,6 +99,7 @@ function RoomSession({ roomId }: { roomId: string }) {
 
     return () => {
       cancelledRef.current = true
+      cleanupWorkflow()
       cleanupWorld?.()
       cleanupIdentity?.()
       setIsLoading(true)

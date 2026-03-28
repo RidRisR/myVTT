@@ -7,7 +7,7 @@ import { genericPlugin } from '../../plugins/generic/index'
 import { daggerheartPlugin } from '../../plugins/daggerheart/index'
 import { daggerheartCorePlugin } from '../../plugins/daggerheart-core'
 import { daggerheartCosmeticPlugin } from '../../plugins/daggerheart-cosmetic'
-import { registerWorkflowPlugins } from '../workflow/useWorkflowSDK'
+import { registerWorkflowPlugins, _bindRuleRegistry } from '../workflow/useWorkflowSDK'
 
 function loadPluginI18n(plugin: RulePlugin): void {
   if (!plugin.i18n?.resources) return
@@ -48,3 +48,7 @@ export function getRulePluginSync(): RulePlugin {
 export function getAvailablePlugins(): Array<{ id: string; name: string }> {
   return Array.from(registry.entries()).map(([id, p]) => ({ id, name: p.name }))
 }
+
+// Late-bind getRulePluginSync into useWorkflowSDK — breaks circular dependency.
+// This runs after all module-level code above has completed.
+_bindRuleRegistry(getRulePluginSync)

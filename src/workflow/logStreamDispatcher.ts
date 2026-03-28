@@ -22,10 +22,17 @@ export class LogStreamDispatcher {
     this.getWatermark = opts.getWatermark
   }
 
-  /** Called for each incoming log:new entry */
-  async dispatch(entry: GameLogEntry): Promise<void> {
+  /**
+   * Called for each incoming log:new entry.
+   * @param watermarkOverride — when provided, used instead of this.getWatermark()
+   *   for the historical-entry check. This is needed when the caller already knows
+   *   the pre-update watermark (e.g., from a zustand subscribe callback where the
+   *   store's watermark has already been updated in the same batch).
+   */
+  async dispatch(entry: GameLogEntry, watermarkOverride?: number): Promise<void> {
     // Skip historical entries (loaded during reconnect)
-    if (entry.seq <= this.getWatermark()) return
+    const watermark = watermarkOverride ?? this.getWatermark()
+    if (entry.seq <= watermark) return
     // Only triggerable entries
     if (!entry.triggerable) return
     // Cascade protection

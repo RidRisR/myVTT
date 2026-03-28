@@ -5,11 +5,12 @@ import { registerBaseWorkflows } from './baseWorkflows'
 import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
 import { eventBus } from '../events/eventBus'
-import { getRulePluginSync } from '../rules/registry'
 import type { VTTPlugin } from '../rules/types'
 import type { IWorkflowRunner } from './types'
 import type { PluginSDKDeps } from './pluginSDK'
 import { clearCommands } from './commandRegistry'
+import { TriggerRegistry } from './triggerRegistry'
+import { LogStreamDispatcher } from './logStreamDispatcher'
 
 // Re-export command registry functions for convenience
 export { getCommand, registerCommand } from './commandRegistry'
@@ -18,6 +19,33 @@ export { getCommand, registerCommand } from './commandRegistry'
 let _engine: WorkflowEngine | null = null
 let _pluginsActivated = false
 let _registeredPlugins: VTTPlugin[] = []
+let _triggerRegistry: TriggerRegistry | null = null
+let _workflowSystemInitialized = false
+
+// Lazy accessor for getRulePluginSync — breaks circular dependency with registry.ts.
+// registry.ts imports registerWorkflowPlugins (from this file) at module level,
+// so a static top-level import creates a TDZ error. This late-binding accessor
+// is only called at runtime (inside buildDeps), after all modules are initialized.
+type RulePlugin = import('../rules/types').RulePlugin
+let _getRulePluginSyncFn: (() => RulePlugin) | null = null
+function getRulePluginSyncLazy(): RulePlugin {
+  if (!_getRulePluginSyncFn) {
+    // Dynamically import at first use — by runtime all modules are fully initialized
+    // so the circular reference is no longer a problem.
+    throw new Error(
+      'getRulePluginSync not available — ensure _bindRuleRegistry() has been called',
+    )
+  }
+  return _getRulePluginSyncFn()
+}
+
+/**
+ * Late-bind the rule registry reference. Called from registry.ts after its
+ * module body has finished executing, breaking the circular init dependency.
+ */
+export function _bindRuleRegistry(fn: () => RulePlugin): void {
+  _getRulePluginSyncFn = fn
+}
 
 /**
  * Register workflow plugins for activation. Must be called before useWorkflowRunner.
@@ -40,6 +68,8 @@ export function resetWorkflowEngine(): void {
   _engine = null
   _pluginsActivated = false
   _registeredPlugins = []
+  _triggerRegistry = null
+  _workflowSystemInitialized = false
   clearCommands()
 }
 
@@ -82,7 +112,7 @@ function buildDeps(): PluginSDKDeps {
     },
     getSeatId: () => useIdentityStore.getState().mySeatId ?? '',
     getLogWatermark: () => useWorldStore.getState().logWatermark,
-    getFormulaTokens: (entity) => getRulePluginSync().adapters.getFormulaTokens(entity),
+    getFormulaTokens: (entity) => getRulePluginSyncLazy().adapters.getFormulaTokens(entity),
   }
 }
 
@@ -102,6 +132,58 @@ function ensurePluginsActivated(engine: WorkflowEngine): void {
   if (import.meta.env.DEV) {
     ;(globalThis as Record<string, unknown>).__wfEngine = engine
   }
+}
+
+/**
+ * Initialize the entire workflow system: engine, plugins, triggers, dispatcher.
+ * Synchronous — all structures are pure construction with lazy getters.
+ * Must be called BEFORE store init (Promise.all) to ensure dispatcher
+ * exists before the first log:new event arrives.
+ */
+export function initWorkflowSystem(): () => void {
+  if (_workflowSystemInitialized) return () => {}
+
+  const engine = getWorkflowEngine()
+  _triggerRegistry = new TriggerRegistry()
+
+  // Activate plugins with trigger registry
+  if (!_pluginsActivated) {
+    for (const plugin of _registeredPlugins) {
+      const sdk = new PluginSDK(engine, plugin.id, undefined, _triggerRegistry)
+      plugin.onActivate(sdk)
+    }
+    _pluginsActivated = true
+
+    if (import.meta.env.DEV) {
+      ;(globalThis as Record<string, unknown>).__wfEngine = engine
+    }
+  }
+
+  // Create runner + dispatcher with lazy getters
+  const deps = buildDeps()
+  const runner = new WorkflowRunner(engine, deps)
+  const dispatcher = new LogStreamDispatcher({
+    triggerRegistry: _triggerRegistry,
+    runner,
+    getSeatId: () => useIdentityStore.getState().mySeatId ?? '',
+    getWatermark: () => useWorldStore.getState().logWatermark,
+  })
+
+  // Subscribe to log stream — dispatch new entries as they arrive.
+  // We pass prevState.logWatermark as the "watermark at dispatch time" so the
+  // dispatcher can correctly distinguish new entries from historical ones,
+  // even when the store's watermark is updated in the same setState batch.
+  const unsubscribe = useWorldStore.subscribe((state, prevState) => {
+    if (state.logEntries.length > prevState.logEntries.length) {
+      const prevWatermark = prevState.logWatermark
+      for (let i = prevState.logEntries.length; i < state.logEntries.length; i++) {
+        void dispatcher.dispatch(state.logEntries[i]!, prevWatermark)
+      }
+    }
+  })
+
+  _workflowSystemInitialized = true
+  return unsubscribe
 }
 
 /**
