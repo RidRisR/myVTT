@@ -126,8 +126,15 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
     {
       id: 'roll',
       run: async (ctx) => {
+        // Support both direct calls (formula) and command system (raw)
+        const formula = ctx.vars.formula ?? (ctx.vars.raw as string | undefined)
+        if (!formula) {
+          ctx.abort('Missing formula')
+          return
+        }
+        ctx.vars.formula = formula
         const result = await ctx.runWorkflow(getRollWorkflow(), {
-          formula: ctx.vars.formula,
+          formula,
           actorId: ctx.vars.actorId,
         })
         if (result.status === 'aborted') {

@@ -17,12 +17,12 @@
 
 ## 1 任务总览
 
-| 任务 | 工作量 | 状态 | 依赖 |
-|------|--------|------|------|
-| A1: Dispatcher 运行时接入 | S | 🟡 设计中 | 无 |
-| C1: 命令系统 | M | 🟡 设计中 | 无 |
-| T1: ComponentTypeMap + LogPayloadMap | S | ✅ 已确认 | 无 |
-| D1: 偏差文档清理 | S | ✅ 已确认 | 无 |
+| 任务                                 | 工作量 | 状态      | 依赖 |
+| ------------------------------------ | ------ | --------- | ---- |
+| A1: Dispatcher 运行时接入            | S      | 🟡 设计中 | 无   |
+| C1: 命令系统                         | M      | 🟡 设计中 | 无   |
+| T1: ComponentTypeMap + LogPayloadMap | S      | ✅ 已确认 | 无   |
+| D1: 偏差文档清理                     | S      | ✅ 已确认 | 无   |
 
 ---
 
@@ -32,13 +32,13 @@
 
 `LogStreamDispatcher` 和 `TriggerRegistry` 两个类已完整实现并有测试，但未接入运行时：
 
-| 组件 | 代码 | 运行时 |
-|------|------|--------|
-| `LogStreamDispatcher` | 完整（dispatch, updateWatermark） | 从未实例化 |
-| `TriggerRegistry` | 完整（register, getMatchingTriggers） | 从未实例化 |
-| `PluginSDK.registerTrigger()` | 方法已实现 | 构造时未传入 TriggerRegistry，调用会 throw |
-| `worldStore` 的 `log:new` handler | 做数据存储 + snapshot 同步 | 不触发任何 workflow |
-| `WorkflowEngine` | 模块级懒加载单例 | 首次由 ChatPanel 的 `useWorkflowRunner()` 触发创建 |
+| 组件                              | 代码                                  | 运行时                                             |
+| --------------------------------- | ------------------------------------- | -------------------------------------------------- |
+| `LogStreamDispatcher`             | 完整（dispatch, updateWatermark）     | 从未实例化                                         |
+| `TriggerRegistry`                 | 完整（register, getMatchingTriggers） | 从未实例化                                         |
+| `PluginSDK.registerTrigger()`     | 方法已实现                            | 构造时未传入 TriggerRegistry，调用会 throw         |
+| `worldStore` 的 `log:new` handler | 做数据存储 + snapshot 同步            | 不触发任何 workflow                                |
+| `WorkflowEngine`                  | 模块级懒加载单例                      | 首次由 ChatPanel 的 `useWorkflowRunner()` 触发创建 |
 
 ### 2.2 已确定的设计决策
 
@@ -65,6 +65,7 @@ App.tsx useEffect (socket 就绪):
 ```
 
 **理由**：
+
 - `onActivate(sdk)` 只做声明式注册（defineWorkflow、registerTrigger），不需要异步操作，不需要 store 数据
 - `WorkflowRunner` 的 `buildDeps()` 全部是懒 getter（执行时从 store 读取），构造时不需要 store 已初始化
 - 保证 Dispatcher 在第一个 socket 事件到达之前就存在，零时序缝隙
@@ -133,14 +134,14 @@ useWorldStore.subscribe((state, prevState) => {
 
 ### 2.4 涉及文件
 
-| 文件 | 变更 |
-|------|------|
-| `src/workflow/logStreamDispatcher.ts` | localSeatId / watermark 改为 getter；删除 updateWatermark() |
-| `src/workflow/useWorkflowSDK.ts` | 新增 `initWorkflowSystem()` 导出；TriggerRegistry 单例；修改 ensurePluginsActivated 签名 |
-| `src/workflow/pluginSDK.ts` | 无变化（已支持 triggerRegistry 参数） |
-| `src/App.tsx` | useEffect 中调用 initWorkflowSystem() |
-| `src/stores/worldStore.ts` | 无变化（Dispatcher 通过 subscribe 解耦） |
-| 测试文件 | logStreamDispatcher 测试适配新 getter 签名 |
+| 文件                                  | 变更                                                                                     |
+| ------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `src/workflow/logStreamDispatcher.ts` | localSeatId / watermark 改为 getter；删除 updateWatermark()                              |
+| `src/workflow/useWorkflowSDK.ts`      | 新增 `initWorkflowSystem()` 导出；TriggerRegistry 单例；修改 ensurePluginsActivated 签名 |
+| `src/workflow/pluginSDK.ts`           | 无变化（已支持 triggerRegistry 参数）                                                    |
+| `src/App.tsx`                         | useEffect 中调用 initWorkflowSystem()                                                    |
+| `src/stores/worldStore.ts`            | 无变化（Dispatcher 通过 subscribe 解耦）                                                 |
+| 测试文件                              | logStreamDispatcher 测试适配新 getter 签名                                               |
 
 ---
 
@@ -175,17 +176,18 @@ ChatInput 通过 `useRulePlugin()` 读取 `diceSystem.rollCommands` 解析聊天
 ```typescript
 // ChatInput 检测到命令后
 runner.runWorkflow(handle, {
-  raw: '@agility',              // 用户输入的参数
-  actorId: currentActorId,      // 当前活跃角色
-  speakerId: speakerCharId,     // 当前说话者（Tab 切换的 speaker）
-  seatId: mySeatId,             // 座位
-  origin: activeOrigin,         // 消息来源（头像、颜色等）
+  raw: '@agility', // 用户输入的参数
+  actorId: currentActorId, // 当前活跃角色
+  speakerId: speakerCharId, // 当前说话者（Tab 切换的 speaker）
+  seatId: mySeatId, // 座位
+  origin: activeOrigin, // 消息来源（头像、颜色等）
 })
 ```
 
 Workflow 拿到的是一个闭包——既有显式参数（raw），又有隐式上下文。Workflow step 用 `ctx.vars.actorId` + `ctx.read.entity()` 来解析 `@agility`，不需要从全局 store 去摸。
 
 **理由**：
+
 - ChatInput 不需要知道参数含义，只提供执行环境
 - 不同命令共享同一套环境结构，但各自解析 raw 部分
 - Workflow 像 main 函数收到 argv + env，完全自主控制解析和执行
@@ -222,15 +224,15 @@ sdk.registerCommand('.roll', rollWorkflow)
 
 ### 3.4 涉及文件
 
-| 文件 | 变更 |
-|------|------|
-| `src/workflow/pluginSDK.ts` | 新增 `registerCommand()` 方法 |
-| `src/workflow/useWorkflowSDK.ts` | 命令 Map 存储 + `getCommand()` 导出 |
-| `src/chat/ChatInput.tsx` | 大幅简化：删除所有 formula/dice 处理逻辑 |
-| `src/chat/ChatPanel.tsx` | 简化 `handleRoll`，删除 rollType 二次查找 |
-| `plugins/daggerheart-core/` | 在 `onActivate` 中 `sdk.registerCommand('.dd', ...)` |
-| `src/workflow/baseWorkflows.ts` | 注册 `.r` 命令 |
-| `plugins/daggerheart/diceSystem.ts` | `rollCommands` 导出可标记废弃 |
+| 文件                                | 变更                                                 |
+| ----------------------------------- | ---------------------------------------------------- |
+| `src/workflow/pluginSDK.ts`         | 新增 `registerCommand()` 方法                        |
+| `src/workflow/useWorkflowSDK.ts`    | 命令 Map 存储 + `getCommand()` 导出                  |
+| `src/chat/ChatInput.tsx`            | 大幅简化：删除所有 formula/dice 处理逻辑             |
+| `src/chat/ChatPanel.tsx`            | 简化 `handleRoll`，删除 rollType 二次查找            |
+| `plugins/daggerheart-core/`         | 在 `onActivate` 中 `sdk.registerCommand('.dd', ...)` |
+| `src/workflow/baseWorkflows.ts`     | 注册 `.r` 命令                                       |
+| `plugins/daggerheart/diceSystem.ts` | `rollCommands` 导出可标记废弃                        |
 
 ---
 
@@ -242,9 +244,9 @@ sdk.registerCommand('.roll', rollWorkflow)
 
 **问题**：两大核心数据结构的"值"部分都是 `Record<string, unknown>`，每次读取都需要手动 `as` 强转：
 
-| 数据结构 | 当前类型 | 强转点 |
-|----------|----------|--------|
-| `Entity.components` | `Record<string, unknown>` | `useComponent<T>()` 调用者手动传 T |
+| 数据结构               | 当前类型                  | 强转点                                   |
+| ---------------------- | ------------------------- | ---------------------------------------- |
+| `Entity.components`    | `Record<string, unknown>` | `useComponent<T>()` 调用者手动传 T       |
 | `GameLogEntry.payload` | `Record<string, unknown>` | ChatPanel、worldStore 等 10+ 处手动 `as` |
 
 编译器无法校验 key → value 类型是否匹配，字段重命名时不会报错。
@@ -282,6 +284,7 @@ emitEntry<T extends keyof LogPayloadMap>(partial: { type: T; payload: LogPayload
 ```
 
 **效果**：
+
 - `useComponent(id, 'core:health')` 自动推导返回类型，写错 key 编译报红
 - `emitEntry({ type: 'core:text', payload: { delta: 5 } })` 编译报红（payload 结构不匹配）
 
@@ -302,27 +305,27 @@ declare module '../../src/shared/componentTypes' {
 
 #### 决策 3：三阶段实施
 
-| Phase | 内容 | 工作量 | 依赖 |
-|-------|------|--------|------|
-| 1 | `ComponentTypeMap` + `useComponent` 改签名 + 消费端删 `as` | ~50 行 | 无 |
-| 2 | `LogPayloadMap` + `emitEntry` 泛型化 + 消费端删 `as` | ~80 行 | 无 |
-| 3 | `ctx.updateComponent` 泛型约束 | ~30 行 | Phase 1 |
+| Phase | 内容                                                       | 工作量 | 依赖    |
+| ----- | ---------------------------------------------------------- | ------ | ------- |
+| 1     | `ComponentTypeMap` + `useComponent` 改签名 + 消费端删 `as` | ~50 行 | 无      |
+| 2     | `LogPayloadMap` + `emitEntry` 泛型化 + 消费端删 `as`       | ~80 行 | 无      |
+| 3     | `ctx.updateComponent` 泛型约束                             | ~30 行 | Phase 1 |
 
 纯类型层改造，零运行时影响。
 
 ### 4.3 涉及文件
 
-| 文件 | 变更 |
-|------|------|
-| `src/shared/componentTypes.ts` | **新建**：ComponentTypeMap 接口 |
-| `src/shared/logTypes.ts` | 新增 LogPayloadMap 接口 |
-| `src/shared/entityTypes.ts` | Entity.components 类型引用 ComponentTypeMap（可选） |
-| `src/data/hooks.ts` | `useComponent` 泛型约束改签名 |
-| `src/data/dataReader.ts` | `component` 方法签名更新 |
-| `src/workflow/context.ts` | `emitEntry`、`updateComponent` 泛型化 |
-| `src/chat/ChatPanel.tsx` | 删除 `logEntryToChatMessage()` 中的 `as` 强转 |
-| `src/stores/worldStore.ts` | 删除 tracker-update / component-update 的 `as` 强转 |
-| `plugins/daggerheart/types.ts` | 添加 module augmentation 声明 |
+| 文件                           | 变更                                                |
+| ------------------------------ | --------------------------------------------------- |
+| `src/shared/componentTypes.ts` | **新建**：ComponentTypeMap 接口                     |
+| `src/shared/logTypes.ts`       | 新增 LogPayloadMap 接口                             |
+| `src/shared/entityTypes.ts`    | Entity.components 类型引用 ComponentTypeMap（可选） |
+| `src/data/hooks.ts`            | `useComponent` 泛型约束改签名                       |
+| `src/data/dataReader.ts`       | `component` 方法签名更新                            |
+| `src/workflow/context.ts`      | `emitEntry`、`updateComponent` 泛型化               |
+| `src/chat/ChatPanel.tsx`       | 删除 `logEntryToChatMessage()` 中的 `as` 强转       |
+| `src/stores/worldStore.ts`     | 删除 tracker-update / component-update 的 `as` 强转 |
+| `plugins/daggerheart/types.ts` | 添加 module augmentation 声明                       |
 
 ---
 
@@ -336,18 +339,18 @@ Doc 17 §15 已完成主要归档工作（16a 合并入 16 并归档到 `docs/ar
 
 ### 5.2 偏差现状（12 条）
 
-| # | 内容 | 状态 | 备注 |
-|---|------|------|------|
-| 1-2 | tracker-update 格式 / 重复 ack | ✅ 已接受 | 设计妥协 |
-| 3 | 原子 workflow 未实现 | 📋 延后 | TTRPG 低频操作不需要 |
-| 4-5 | visibility 过滤限制 | ⚠️ v1 限制 | 社交信任模型可接受 |
-| 6 | 输入校验 | ✅ 防御性编程 | |
-| 7 | EventBus 迁移 | 📋 延后 | 依赖 Doc 17 Track A |
-| 8 | roll-result 缺 total | ✅ **PR #169 修复** | 状态图标需更新 |
-| 9 | rowToEntry 提取 | ✅ DRY | |
-| 10 | transport wiring | ✅ **PR #169 修复** | 已标记 |
-| 11 | Dispatcher 未实例化 | ❌ **Sprint 1 A1** | 需加交叉引用 |
-| 12 | 因果链未传播 | ❌ **Sprint 1 A2** | 需加交叉引用 |
+| #   | 内容                           | 状态                | 备注                 |
+| --- | ------------------------------ | ------------------- | -------------------- |
+| 1-2 | tracker-update 格式 / 重复 ack | ✅ 已接受           | 设计妥协             |
+| 3   | 原子 workflow 未实现           | 📋 延后             | TTRPG 低频操作不需要 |
+| 4-5 | visibility 过滤限制            | ⚠️ v1 限制          | 社交信任模型可接受   |
+| 6   | 输入校验                       | ✅ 防御性编程       |                      |
+| 7   | EventBus 迁移                  | 📋 延后             | 依赖 Doc 17 Track A  |
+| 8   | roll-result 缺 total           | ✅ **PR #169 修复** | 状态图标需更新       |
+| 9   | rowToEntry 提取                | ✅ DRY              |                      |
+| 10  | transport wiring               | ✅ **PR #169 修复** | 已标记               |
+| 11  | Dispatcher 未实例化            | ❌ **Sprint 1 A1**  | 需加交叉引用         |
+| 12  | 因果链未传播                   | ❌ **Sprint 1 A2**  | 需加交叉引用         |
 
 ### 5.3 清理工作
 
