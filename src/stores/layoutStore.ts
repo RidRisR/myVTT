@@ -92,3 +92,11 @@ export function createLayoutStore() {
     },
   }))
 }
+
+// Singleton layout store for production use
+let _layoutStore: ReturnType<typeof createLayoutStore> | null = null
+
+export function getLayoutStore() {
+  if (!_layoutStore) _layoutStore = createLayoutStore()
+  return _layoutStore
+}
