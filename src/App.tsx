@@ -187,6 +187,60 @@ function RoomSession({ roomId }: { roomId: string }) {
   const selectToken = useUiStore((s) => s.selectToken)
   const clearSelection = useUiStore((s) => s.clearSelection)
   const toggleSelection = useUiStore((s) => s.toggleSelection)
+
+  // ── UI System: plugin panels + layout ──
+  // Hooks must be before early returns to satisfy Rules of Hooks
+  const isGM = mySeat?.role === 'GM'
+  const layoutStore = useMemo(() => getLayoutStore(), [])
+  const uiRegistry = useMemo(() => getUIRegistry(), [])
+  const activeLayout = useStore(layoutStore, (s) => s.activeLayout)
+  const layoutMode = useStore(layoutStore, (s) => s.layoutMode)
+
+  // Sync layoutStore.isTactical with worldStore tactical state
+  useEffect(() => {
+    layoutStore.getState().setIsTactical(isTactical)
+  }, [isTactical, layoutStore])
+
+  // Debounced layout persistence
+  useLayoutSync(layoutStore, roomId, !!socket)
+
+  // Layout drag handler for edit mode
+  const handleLayoutDrag = useCallback(
+    (instanceKey: string, delta: { dx: number; dy: number }) => {
+      const current = layoutStore.getState()
+      const modeKey = current.isTactical ? 'tactical' : 'narrative'
+      const layout = current.isTactical ? current.tactical : current.narrative
+      const updated = applyDrag(layout, instanceKey, delta)
+      layoutStore.setState({
+        [modeKey]: updated,
+        activeLayout: updated,
+      })
+    },
+    [layoutStore],
+  )
+
+  // Production makeSDK factory for PanelRenderer
+  const makeSDK = useCallback(
+    (instanceKey: string, instanceProps: Record<string, unknown>) =>
+      createProductionSDK({
+        instanceKey,
+        instanceProps,
+        role: isGM ? 'GM' : 'Player',
+        layoutMode,
+        read: {
+          entity: (id) => (id ? entities[id] : undefined),
+          component: () => undefined,
+          query: () => Object.values(entities),
+          formulaTokens: () => ({}),
+        },
+        workflow: { runWorkflow: () => Promise.resolve({} as never) },
+        awarenessManager: null,
+        layoutActions: null,
+        logSubscribe: null,
+        onDrag: handleLayoutDrag,
+      }),
+    [isGM, layoutMode, entities, handleLayoutDrag],
+  )
   const setSelectedTokenIds = useUiStore((s) => s.setSelectedTokenIds)
   const setBgContextMenu = useUiStore((s) => s.setBgContextMenu)
   const setEditingHandout = useUiStore((s) => s.setEditingHandout)
@@ -302,60 +356,6 @@ function RoomSession({ roomId }: { roomId: string }) {
       />
     )
   }
-
-  const isGM = mySeat.role === 'GM'
-
-  // ── UI System: plugin panels + layout ──
-  const layoutStore = useMemo(() => getLayoutStore(), [])
-  const uiRegistry = useMemo(() => getUIRegistry(), [])
-  const activeLayout = useStore(layoutStore, (s) => s.activeLayout)
-  const layoutMode = useStore(layoutStore, (s) => s.layoutMode)
-
-  // Sync layoutStore.isTactical with worldStore tactical state
-  useEffect(() => {
-    layoutStore.getState().setIsTactical(isTactical)
-  }, [isTactical, layoutStore])
-
-  // Debounced layout persistence
-  useLayoutSync(layoutStore, roomId, !!socket)
-
-  // Layout drag handler for edit mode
-  const handleLayoutDrag = useCallback(
-    (instanceKey: string, delta: { dx: number; dy: number }) => {
-      const current = layoutStore.getState()
-      const modeKey = current.isTactical ? 'tactical' : 'narrative'
-      const layout = current.isTactical ? current.tactical : current.narrative
-      const updated = applyDrag(layout, instanceKey, delta)
-      layoutStore.setState({
-        [modeKey]: updated,
-        activeLayout: updated,
-      })
-    },
-    [layoutStore],
-  )
-
-  // Production makeSDK factory for PanelRenderer
-  const makeSDK = useCallback(
-    (instanceKey: string, instanceProps: Record<string, unknown>) =>
-      createProductionSDK({
-        instanceKey,
-        instanceProps,
-        role: isGM ? 'GM' : 'Player',
-        layoutMode,
-        read: {
-          entity: (id) => (id ? entities[id] : undefined),
-          component: () => undefined,
-          query: () => Object.values(entities),
-          formulaTokens: () => ({}),
-        },
-        workflow: { runWorkflow: () => Promise.resolve({} as never) },
-        awarenessManager: null,
-        layoutActions: null,
-        logSubscribe: null,
-        onDrag: handleLayoutDrag,
-      }),
-    [isGM, layoutMode, entities, handleLayoutDrag],
-  )
 
   const handleRemoveFromScene = (entityId: string) => {
     if (room.activeSceneId) void removeEntityFromScene(room.activeSceneId, entityId)

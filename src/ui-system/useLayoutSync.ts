@@ -9,11 +9,7 @@ const DEBOUNCE_MS = 500
  * Hook that subscribes to layoutStore and debounces REST PUT on changes.
  * Skips saving in edit mode — saves on transition back to play mode.
  */
-export function useLayoutSync(
-  store: StoreApi<LayoutStoreState>,
-  roomId: string,
-  enabled: boolean,
-) {
+export function useLayoutSync(store: StoreApi<LayoutStoreState>, roomId: string, enabled: boolean) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prevModeRef = useRef<'play' | 'edit'>('play')
 

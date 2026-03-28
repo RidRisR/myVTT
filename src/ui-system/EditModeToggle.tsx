@@ -8,10 +8,7 @@ interface Props {
 }
 
 export function EditModeToggle({ store }: Props) {
-  const layoutMode = useSyncExternalStore(
-    store.subscribe,
-    () => store.getState().layoutMode,
-  )
+  const layoutMode = useSyncExternalStore(store.subscribe, () => store.getState().layoutMode)
 
   return (
     <button

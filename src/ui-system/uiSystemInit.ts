@@ -43,6 +43,8 @@ interface SDKFactoryArgs {
 }
 
 export function createProductionSDK(args: SDKFactoryArgs): IComponentSDK {
+  const mgr = args.awarenessManager
+
   return {
     read: args.read,
     workflow: args.workflow,
@@ -62,20 +64,22 @@ export function createProductionSDK(args: SDKFactoryArgs): IComponentSDK {
             dnd: makeDnDSDK(),
           }
         : undefined,
-    awareness: args.awarenessManager
+    awareness: mgr
       ? {
-          subscribe: (channel, handler) => args.awarenessManager!.subscribe(channel, handler),
-          broadcast: (channel, data) => args.awarenessManager!.broadcast(channel, data),
-          clear: (channel) => args.awarenessManager!.clear(channel),
+          subscribe: (channel, handler) => mgr.subscribe(channel, handler),
+          broadcast: (channel, data) => {
+            mgr.broadcast(channel, data)
+          },
+          clear: (channel) => {
+            mgr.clear(channel)
+          },
         }
       : {
           subscribe: () => () => {},
           broadcast: () => {},
           clear: () => {},
         },
-    log: args.logSubscribe
-      ? { subscribe: args.logSubscribe }
-      : { subscribe: () => () => {} },
+    log: args.logSubscribe ? { subscribe: args.logSubscribe } : { subscribe: () => () => {} },
     ui: args.layoutActions ?? {
       openPanel: () => '',
       closePanel: () => {},

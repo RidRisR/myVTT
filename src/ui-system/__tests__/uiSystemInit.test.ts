@@ -76,9 +76,9 @@ describe('createProductionSDK', () => {
       awarenessManager: mockManager as never,
     })
     expect(sdk.awareness).toBeDefined()
-    expect(sdk.awareness!.subscribe).toBeDefined()
-    expect(sdk.awareness!.broadcast).toBeDefined()
-    expect(sdk.awareness!.clear).toBeDefined()
+    expect(sdk.awareness.subscribe).toBeDefined()
+    expect(sdk.awareness.broadcast).toBeDefined()
+    expect(sdk.awareness.clear).toBeDefined()
   })
 
   it('awareness is a no-op object when no manager', () => {
@@ -96,7 +96,7 @@ describe('createProductionSDK', () => {
       logSubscribe: mockLogSub,
     })
     expect(sdk.log).toBeDefined()
-    expect(sdk.log!.subscribe).toBe(mockLogSub)
+    expect(sdk.log.subscribe).toBe(mockLogSub)
   })
 
   it('wires ui when layoutActions is provided', () => {
@@ -109,8 +109,8 @@ describe('createProductionSDK', () => {
       layoutActions: mockActions,
     })
     expect(sdk.ui).toBeDefined()
-    expect(sdk.ui!.openPanel).toBe(mockActions.openPanel)
-    expect(sdk.ui!.closePanel).toBe(mockActions.closePanel)
+    expect(sdk.ui.openPanel).toBe(mockActions.openPanel)
+    expect(sdk.ui.closePanel).toBe(mockActions.closePanel)
   })
 
   it('ui is a no-op object when no layoutActions', () => {

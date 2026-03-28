@@ -5,7 +5,12 @@ import { UIRegistry } from '../registry'
 import type { LayoutConfig, IComponentSDK } from '../types'
 
 const mockSDK: IComponentSDK = {
-  read: { entity: () => undefined, component: () => undefined, query: () => [], formulaTokens: () => ({}) },
+  read: {
+    entity: () => undefined,
+    component: () => undefined,
+    query: () => [],
+    formulaTokens: () => ({}),
+  },
   workflow: { runWorkflow: () => Promise.resolve({} as never) },
   context: { instanceProps: {}, role: 'GM', layoutMode: 'play' },
   awareness: {

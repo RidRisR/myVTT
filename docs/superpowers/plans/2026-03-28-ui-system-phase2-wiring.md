@@ -10,21 +10,21 @@ Phase 1 built the infrastructure (ExtensionRegistry, layoutStore, AwarenessManag
 
 ## File Structure
 
-| Action | File | What |
-|--------|------|------|
-| Create | `src/ui-system/uiSystemInit.ts` | UIRegistry + ExtensionRegistry singletons, production makeSDK factory, AwarenessManager wiring |
-| Create | `src/ui-system/__tests__/uiSystemInit.test.ts` | Unit tests for makeSDK, registry singletons |
-| Modify | `src/shared/bundleTypes.ts` | Add `layout` field to BundleResponse |
-| Modify | `server/routes/bundle.ts` | Include layout in bundle response |
-| Modify | `src/stores/worldStore.ts` | Hydrate layoutStore from bundle, register `layout:updated` socket listener |
-| Create | `src/ui-system/useLayoutSync.ts` | Hook: debounced PUT on layout changes, edit-mode conflict handling |
-| Create | `src/ui-system/__tests__/useLayoutSync.test.ts` | Tests for debounce, conflict handling |
-| Modify | `src/workflow/useWorkflowSDK.ts` | Pass UIRegistry + ExtensionRegistry to PluginSDK on activation |
-| Modify | `src/ui-system/types.ts` | Promote IComponentSDK optional fields |
-| Modify | `src/App.tsx` | Mount PanelRenderer + LayerRenderer in RoomSession |
-| Create | `src/ui-system/EditModeToggle.tsx` | GM-only edit mode toggle button |
-| Create | `src/ui-system/__tests__/EditModeToggle.test.tsx` | Tests for toggle behavior |
-| Create | `src/ui-system/__tests__/production-wiring.test.ts` | E2E integration tests |
+| Action | File                                                | What                                                                                           |
+| ------ | --------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Create | `src/ui-system/uiSystemInit.ts`                     | UIRegistry + ExtensionRegistry singletons, production makeSDK factory, AwarenessManager wiring |
+| Create | `src/ui-system/__tests__/uiSystemInit.test.ts`      | Unit tests for makeSDK, registry singletons                                                    |
+| Modify | `src/shared/bundleTypes.ts`                         | Add `layout` field to BundleResponse                                                           |
+| Modify | `server/routes/bundle.ts`                           | Include layout in bundle response                                                              |
+| Modify | `src/stores/worldStore.ts`                          | Hydrate layoutStore from bundle, register `layout:updated` socket listener                     |
+| Create | `src/ui-system/useLayoutSync.ts`                    | Hook: debounced PUT on layout changes, edit-mode conflict handling                             |
+| Create | `src/ui-system/__tests__/useLayoutSync.test.ts`     | Tests for debounce, conflict handling                                                          |
+| Modify | `src/workflow/useWorkflowSDK.ts`                    | Pass UIRegistry + ExtensionRegistry to PluginSDK on activation                                 |
+| Modify | `src/ui-system/types.ts`                            | Promote IComponentSDK optional fields                                                          |
+| Modify | `src/App.tsx`                                       | Mount PanelRenderer + LayerRenderer in RoomSession                                             |
+| Create | `src/ui-system/EditModeToggle.tsx`                  | GM-only edit mode toggle button                                                                |
+| Create | `src/ui-system/__tests__/EditModeToggle.test.tsx`   | Tests for toggle behavior                                                                      |
+| Create | `src/ui-system/__tests__/production-wiring.test.ts` | E2E integration tests                                                                          |
 
 ## Dependency Graph
 
@@ -49,6 +49,7 @@ Task 7 (E2E integration tests)
 Include layout in the room bundle so it loads with a single request on room init, and hydrate the layoutStore from it.
 
 **Files:**
+
 - Modify: `src/shared/bundleTypes.ts`
 - Modify: `server/routes/bundle.ts`
 - Modify: `src/stores/worldStore.ts`
@@ -97,7 +98,10 @@ describe('layout in bundle', () => {
 In `src/shared/bundleTypes.ts`, add after `logWatermark`:
 
 ```typescript
-  layout: { narrative: Record<string, unknown>; tactical: Record<string, unknown> }
+layout: {
+  narrative: Record<string, unknown>
+  tactical: Record<string, unknown>
+}
 ```
 
 ### Step 3: Add layout to getBundle
@@ -105,12 +109,15 @@ In `src/shared/bundleTypes.ts`, add after `logWatermark`:
 In `server/routes/bundle.ts`, inside the `getBundle` function, read the layout table:
 
 ```typescript
-  const layoutRow = db.prepare('SELECT config FROM layout WHERE id = 1').get() as
-    | { config: string }
-    | undefined
-  const layout = layoutRow
-    ? (JSON.parse(layoutRow.config) as { narrative: Record<string, unknown>; tactical: Record<string, unknown> })
-    : { narrative: {}, tactical: {} }
+const layoutRow = db.prepare('SELECT config FROM layout WHERE id = 1').get() as
+  | { config: string }
+  | undefined
+const layout = layoutRow
+  ? (JSON.parse(layoutRow.config) as {
+      narrative: Record<string, unknown>
+      tactical: Record<string, unknown>
+    })
+  : { narrative: {}, tactical: {} }
 ```
 
 Add `layout` to the return object.
@@ -118,10 +125,12 @@ Add `layout` to the return object.
 ### Step 4: Hydrate layoutStore from worldStore
 
 In `src/stores/worldStore.ts`, inside the `init` function after `loadAll`:
+
 - Import `createLayoutStore` from `../stores/layoutStore`
 - After the bundle data is loaded, call `layoutStore.getState().loadLayout(bundle.layout)`
 
 Also register `layout:updated` socket listener:
+
 ```typescript
 socket.on('layout:updated', (data) => {
   layoutStore.getState().loadLayout(data as RoomLayoutConfig)
@@ -148,6 +157,7 @@ feat: include layout in room bundle and hydrate layoutStore on init
 Create the production initialization module that provides UIRegistry, ExtensionRegistry, AwarenessManager, and the makeSDK factory.
 
 **Files:**
+
 - Create: `src/ui-system/uiSystemInit.ts`
 - Create: `src/ui-system/__tests__/uiSystemInit.test.ts`
 
@@ -199,7 +209,12 @@ describe('createProductionSDK', () => {
       instanceProps: {},
       role: 'GM',
       layoutMode: 'play',
-      read: { entity: () => undefined, component: () => undefined, query: () => [], formulaTokens: () => ({}) },
+      read: {
+        entity: () => undefined,
+        component: () => undefined,
+        query: () => [],
+        formulaTokens: () => ({}),
+      },
       workflow: { runWorkflow: vi.fn() } as never,
       awarenessManager: null,
       layoutActions: null,
@@ -214,7 +229,12 @@ describe('createProductionSDK', () => {
       instanceProps: {},
       role: 'GM',
       layoutMode: 'edit',
-      read: { entity: () => undefined, component: () => undefined, query: () => [], formulaTokens: () => ({}) },
+      read: {
+        entity: () => undefined,
+        component: () => undefined,
+        query: () => [],
+        formulaTokens: () => ({}),
+      },
       workflow: { runWorkflow: vi.fn() } as never,
       awarenessManager: null,
       layoutActions: null,
@@ -234,7 +254,12 @@ describe('createProductionSDK', () => {
       instanceProps: {},
       role: 'GM',
       layoutMode: 'play',
-      read: { entity: () => undefined, component: () => undefined, query: () => [], formulaTokens: () => ({}) },
+      read: {
+        entity: () => undefined,
+        component: () => undefined,
+        query: () => [],
+        formulaTokens: () => ({}),
+      },
       workflow: { runWorkflow: vi.fn() } as never,
       awarenessManager: mockManager as never,
       layoutActions: null,
@@ -256,7 +281,12 @@ describe('createProductionSDK', () => {
       instanceProps: {},
       role: 'GM',
       layoutMode: 'play',
-      read: { entity: () => undefined, component: () => undefined, query: () => [], formulaTokens: () => ({}) },
+      read: {
+        entity: () => undefined,
+        component: () => undefined,
+        query: () => [],
+        formulaTokens: () => ({}),
+      },
       workflow: { runWorkflow: vi.fn() } as never,
       awarenessManager: null,
       layoutActions: mockActions,
@@ -334,9 +364,7 @@ export function createProductionSDK(args: SDKFactoryArgs): IComponentSDK {
           clear: (channel) => args.awarenessManager!.clear(channel),
         }
       : undefined,
-    log: args.logSubscribe
-      ? { subscribe: args.logSubscribe }
-      : undefined,
+    log: args.logSubscribe ? { subscribe: args.logSubscribe } : undefined,
     ui: args.layoutActions ?? undefined,
   }
 }
@@ -360,6 +388,7 @@ feat: uiSystemInit — registry singletons and production makeSDK factory
 Pass the production UIRegistry and ExtensionRegistry to PluginSDK during `initWorkflowSystem()`, so `sdk.ui.registerComponent()` and `sdk.ui.contribute()` populate the real registries.
 
 **Files:**
+
 - Modify: `src/workflow/useWorkflowSDK.ts`
 - Modify: `src/workflow/__tests__/initWorkflowSystem.test.ts` (if exists, update to verify registry wiring)
 
@@ -374,7 +403,13 @@ import { getUIRegistry, getExtensionRegistry } from '../ui-system/uiSystemInit'
 Update the plugin activation loop (line ~150):
 
 ```typescript
-const sdk = new PluginSDK(engine, plugin.id, getUIRegistry(), _triggerRegistry, getExtensionRegistry())
+const sdk = new PluginSDK(
+  engine,
+  plugin.id,
+  getUIRegistry(),
+  _triggerRegistry,
+  getExtensionRegistry(),
+)
 ```
 
 ### Step 2: Verify
@@ -397,6 +432,7 @@ feat: wire UIRegistry + ExtensionRegistry into plugin activation
 Hook that handles debounced PUT on layout changes and edit-mode conflict handling.
 
 **Files:**
+
 - Create: `src/ui-system/useLayoutSync.ts`
 - Create: `src/ui-system/__tests__/useLayoutSync.test.ts`
 
@@ -408,8 +444,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createLayoutStore } from '../../stores/layoutStore'
 
 describe('layout sync logic', () => {
-  beforeEach(() => { vi.useFakeTimers() })
-  afterEach(() => { vi.useRealTimers() })
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
 
   it('debounces save calls', () => {
     const saveFn = vi.fn()
@@ -466,11 +506,7 @@ const DEBOUNCE_MS = 500
  * Hook that subscribes to layoutStore and debounces REST PUT on changes.
  * Skips saving when in edit mode (local authority).
  */
-export function useLayoutSync(
-  store: StoreApi<LayoutStoreState>,
-  roomId: string,
-  enabled: boolean,
-) {
+export function useLayoutSync(store: StoreApi<LayoutStoreState>, roomId: string, enabled: boolean) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -522,6 +558,7 @@ feat: useLayoutSync — debounced layout persistence with edit-mode handling
 Remove the `?` from `awareness`, `log`, `ui` fields in IComponentSDK, and update all downstream code that constructs IComponentSDK objects.
 
 **Files:**
+
 - Modify: `src/ui-system/types.ts`
 - Modify: `src/ui-system/__tests__/PanelRenderer.test.tsx` (update mockSDK)
 - Modify: `src/sandbox/PatternUISystem.tsx` (update makeSDK)
@@ -547,6 +584,7 @@ To:
 ### Step 2: Fix all type errors
 
 1. `src/ui-system/__tests__/PanelRenderer.test.tsx` — update `mockSDK`:
+
 ```typescript
 const mockSDK = {
   awareness: { subscribe: () => () => {}, broadcast: () => {}, clear: () => {} },
@@ -556,6 +594,7 @@ const mockSDK = {
 ```
 
 2. `src/sandbox/PatternUISystem.tsx` — update makeSDK to include all fields:
+
 ```typescript
 awareness: { subscribe: () => () => {}, broadcast: () => {}, clear: () => {} },
 log: { subscribe: () => () => {} },
@@ -582,6 +621,7 @@ feat: promote IComponentSDK awareness/log/ui from optional to required
 Mount PanelRenderer and LayerRenderer in RoomSession. Add GM-only edit mode toggle.
 
 **Files:**
+
 - Modify: `src/App.tsx`
 - Create: `src/ui-system/EditModeToggle.tsx`
 - Create: `src/ui-system/__tests__/EditModeToggle.test.tsx`
@@ -641,6 +681,7 @@ describe('EditModeToggle', () => {
 ### Step 3: Mount in App.tsx
 
 In `src/App.tsx`, inside the RoomSession component's render:
+
 - Import PanelRenderer, LayerRenderer, getUIRegistry, createProductionSDK
 - Import layoutStore singleton, useLayoutSync
 - After the existing UI rendering, add PanelRenderer and LayerRenderer
@@ -649,6 +690,7 @@ In `src/App.tsx`, inside the RoomSession component's render:
 The PanelRenderer should be rendered inside the existing layout container, positioned over the scene/canvas area.
 
 Key wiring:
+
 ```tsx
 // Inside RoomSession render:
 const uiRegistry = getUIRegistry()
@@ -699,6 +741,7 @@ layout edit mode to drag/reposition panels. Changes are debounce-saved.
 Verify the entire wiring works end-to-end.
 
 **Files:**
+
 - Create: `src/ui-system/__tests__/production-wiring.test.ts`
 
 ### Test Cases
@@ -850,11 +893,11 @@ Final verification round.
 
 ## Testing Summary
 
-| Test File | Coverage | Type |
-|-----------|----------|------|
-| `server/__tests__/scenarios/layout-in-bundle.test.ts` | Bundle includes layout | Integration |
-| `src/ui-system/__tests__/uiSystemInit.test.ts` | Registry singletons, makeSDK factory | Unit |
-| `src/ui-system/__tests__/useLayoutSync.test.ts` | Debounce, edit-mode conflict | Unit |
-| `src/ui-system/__tests__/EditModeToggle.test.tsx` | Toggle rendering + state change | Component |
-| `src/ui-system/__tests__/production-wiring.test.ts` | Full stack: registry → layout → SDK → awareness | E2E Integration |
-| All existing tests (1204+) | Regression | Full suite |
+| Test File                                             | Coverage                                        | Type            |
+| ----------------------------------------------------- | ----------------------------------------------- | --------------- |
+| `server/__tests__/scenarios/layout-in-bundle.test.ts` | Bundle includes layout                          | Integration     |
+| `src/ui-system/__tests__/uiSystemInit.test.ts`        | Registry singletons, makeSDK factory            | Unit            |
+| `src/ui-system/__tests__/useLayoutSync.test.ts`       | Debounce, edit-mode conflict                    | Unit            |
+| `src/ui-system/__tests__/EditModeToggle.test.tsx`     | Toggle rendering + state change                 | Component       |
+| `src/ui-system/__tests__/production-wiring.test.ts`   | Full stack: registry → layout → SDK → awareness | E2E Integration |
+| All existing tests (1204+)                            | Regression                                      | Full suite      |
