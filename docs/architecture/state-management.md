@@ -12,12 +12,12 @@ Socket.io events ───────┘ (real-time updates)
 
 ## Store 职责划分
 
-| Store              | 文件               | 职责                                                                     | 大小     |
-| ------------------ | ------------------ | ------------------------------------------------------------------------ | -------- |
-| `useWorldStore`    | `worldStore.ts`    | 核心数据：scenes, entities, tactical, chat, showcase, archives, trackers | ~1000 行 |
-| `useIdentityStore` | `identityStore.ts` | 座位/身份：seats, mySeatId, onlineSeatIds                                | ~200 行  |
-| `useAssetStore`    | `assetStore.ts`    | 素材管理：assets CRUD + upload                                           | ~100 行  |
-| `useUiStore`       | `uiStore.ts`       | 客户端 UI 状态（不持久化）：选中 Token、活动工具、主题等                 | ~100 行  |
+| Store              | 文件               | 职责                                                                                     | 大小     |
+| ------------------ | ------------------ | ---------------------------------------------------------------------------------------- | -------- |
+| `useWorldStore`    | `worldStore.ts`    | 核心数据：scenes, entities, tactical, assets, blueprints, tags, showcase, archives, logs | ~1000 行 |
+| `useIdentityStore` | `identityStore.ts` | 座位/身份：seats, mySeatId, onlineSeatIds                                                | ~200 行  |
+| `useSessionStore`  | `sessionStore.ts`  | 客户端 session 状态：selection + pending interactions（plugin system Phase 6）           | ~60 行   |
+| `useUiStore`       | `uiStore.ts`       | 客户端 UI 状态（不持久化）：选中 Token、活动工具、主题等                                 | ~320 行  |
 
 ### worldStore 概要
 
@@ -30,12 +30,16 @@ Socket.io events ───────┘ (real-time updates)
 - `sceneEntityMap: Record<string, SceneEntityEntry[]>` — 每个场景的实体关联
 - `entities: Record<string, Entity>` — 实体表（id → Entity）
 - `tacticalInfo: TacticalInfo | null` — 当前战术状态
-- `chatMessages: ChatMessage[]` — 聊天消息
-- `freshChatIds: Set<string>` — 新消息高亮（2500ms 后清除）
 - `showcaseItems: ShowcaseItem[]` — 展示材料
-- `pinnedShowcaseId: string | null` — 置顶展示
+- `showcasePinnedItemId: string | null` — 置顶展示
 - `teamTrackers: TeamTracker[]` — 团队追踪器
-- `archives: Record<string, ArchiveRecord[]>` — 按场景分组的存档
+- `archives: ArchiveRecord[]` — 战术存档（扁平数组）
+- `assets: AssetMeta[]` — 素材列表
+- `blueprints: Blueprint[]` — 蓝图列表
+- `tags: TagMeta[]` — 标签列表
+- `logEntries: GameLogEntry[]` — 游戏日志
+- `logEntriesById: Record<string, GameLogEntry>` — 日志索引（id → entry）
+- `logWatermark: number` — 已同步的最大 seq
 - `handoutAssets: HandoutAsset[]` — Handout（纯本地状态）
 
 **Actions 分类**：
@@ -62,21 +66,23 @@ Socket.io events ───────┘ (real-time updates)
 
 **Actions**：`init(roomId, socket)`, `claimSeat`, `createSeat`, `leaveSeat`, `deleteSeat`, `updateSeat`
 
+**Socket.io 事件**：`seat:created`, `seat:updated`, `seat:deleted`, `seat:online`, `seat:offline`
+
 **特殊机制**：座位 ID 持久化到 `sessionStorage`（key: `myvtt-seat-id`），刷新页面自动恢复。
 
-### assetStore 概要
+### sessionStore 概要
 
-素材文件管理。
+客户端 session 状态，用于 plugin system Phase 6 交互。
 
-**Actions**：`init(roomId)`, `refresh`, `upload`, `update`, `remove`, `softRemove`
+**状态**：`selection: string[]`（选中实体 ID 列表）、`pendingInteractions: Map<string, PendingInteraction>`
 
-**`softRemove`**：UI 立即移除 → 延迟后服务端删除 → 返回撤销函数。用于「删除 + Toast 撤销」模式。
+**API**：`_setSelection(entityIds)`, `requestInput(interactionId)`, `resolveInput(interactionId, value)`, `cancelInput(interactionId)`
 
 ### uiStore 概要
 
 纯客户端状态，不与服务端同步。
 
-**状态**：`openCardId`, `pinnedCards`, `selectedTokenId`, `bgContextMenu`, `activeTool`, `gmViewAsPlayer`, `theme`, `portraitBarVisible`, `teamPanelVisible`, `gmSidebarTab`, `gmSidebarCollapsed`
+**状态**：`openCardId`, `pinnedCards`, `selectedTokenIds: string[]`, `primarySelectedTokenId`, `bgContextMenu`, `editingHandout`, `activeTool`, `gmViewAsPlayer`, `theme`, `portraitBarVisible`, `teamPanelVisible`, `lastMeasureTool`, `toolPersist`, `gridConfigOpen`, `gmSidebarTab`, `gmSidebarCollapsed`, `gmDockTab`, `activePluginPanels`
 
 ## 初始化流程
 
@@ -84,28 +90,20 @@ Socket.io events ───────┘ (real-time updates)
 App.tsx mount
   │
   ├─ worldStore.init(roomId, socket)
-  │   ├─ REST: GET /api/rooms/:roomId/state    → room
-  │   ├─ REST: GET /api/rooms/:roomId/scenes   → scenes
-  │   ├─ REST: GET /api/rooms/:roomId/entities → entities
-  │   ├─ REST: GET .../scenes/:id/entities      → sceneEntityMap (per-scene)
-  │   ├─ REST: GET .../tactical                 → tacticalInfo
-  │   ├─ REST: GET .../chat                     → chatMessages
-  │   ├─ REST: GET .../showcase                 → showcaseItems
-  │   ├─ REST: GET .../trackers                 → teamTrackers
-  │   └─ registerSocketEvents(socket)            → 28 个事件监听器
+  │   ├─ REST: GET /api/rooms/:roomId/bundle   → 批量加载所有数据
+  │   │   (room, scenes, entities, sceneEntityMap, tactical,
+  │   │    showcase, trackers, assets, blueprints, tags, logEntries)
+  │   └─ registerSocketEvents(socket)            → 35 个事件监听器
   │
-  ├─ identityStore.init(roomId, socket)
-  │   ├─ REST: GET .../seats                    → seats
-  │   ├─ sessionStorage → 恢复 mySeatId
-  │   └─ registerSocketEvents                    → seat:*, awareness:*
-  │
-  └─ assetStore.init(roomId)
-      └─ REST: GET .../assets                   → assets
+  └─ identityStore.init(roomId, socket)
+      ├─ REST: GET .../seats                    → seats
+      ├─ sessionStorage → 恢复 mySeatId
+      └─ registerSocketEvents                    → seat:created/updated/deleted, seat:online/offline
 ```
 
 ## Socket.io 事件处理
 
-worldStore 监听 28 个 Socket.io 事件，每个事件对应一个 `set()` 调用更新 store。
+worldStore 监听 35 个 Socket.io 事件，每个事件对应一个 `set()` 调用更新 store。
 
 ```typescript
 // 典型的事件处理模式
@@ -125,16 +123,18 @@ socket.on('entity:deleted', ({ id }: { id: string }) => {
 | 事件                                       | store 更新                                         |
 | ------------------------------------------ | -------------------------------------------------- |
 | `scene:created/updated/deleted`            | `scenes[]`                                         |
+| `scene:entity:linked/unlinked/updated`     | `sceneEntityMap{}`                                 |
 | `entity:created/updated/deleted`           | `entities{}`                                       |
-| `tactical:activated/updated/ended`         | `tacticalInfo`                                     |
+| `tactical:updated`                         | `tacticalInfo`                                     |
 | `tactical:token:added/updated/removed`     | `tacticalInfo.tokens[]`                            |
-| `chat:new`                                 | `chatMessages[]` + `freshChatIds`                  |
-| `chat:retracted`                           | `chatMessages[]`                                   |
 | `room:state:updated`                       | `room`                                             |
 | `tracker:created/updated/deleted`          | `teamTrackers[]`                                   |
 | `showcase:created/updated/deleted/cleared` | `showcaseItems[]`                                  |
-| `asset:created/updated/deleted`            | （转发给 assetStore 或 worldStore 的 assets 字段） |
-| `archive:created/updated/deleted`          | `archives{}`                                       |
+| `asset:created/updated/deleted/reordered`  | `assets[]`                                         |
+| `blueprint:created/updated/deleted`        | `blueprints[]`                                     |
+| `tag:created/updated/deleted`              | `tags[]`                                           |
+| `archive:created/updated/deleted`          | `archives[]`                                       |
+| `log:new`                                  | `logEntries[]` + `logEntriesById{}` + `logWatermark` |
 
 ## 乐观更新
 
@@ -174,4 +174,3 @@ socket.on('entity:deleted', ({ id }: { id: string }) => {
 
 1. **禁止在 store 中定义派生方法** — `.filter()` / `.sort()` 返回新引用 → 无限重渲染。用 `useMemo`。
 2. **模块级常量做 fallback** — `?? []` 或 `?? {}` 内联创建新引用，破坏 `Object.is()` 相等性。用 `const EMPTY: X[] = []` 模块级常量。
-3. **freshChatIds 机制** — 新消息高亮动画：Socket.io `chat:new` 事件在同一个 `set()` 调用中原子性更新 `chatMessages` + `freshChatIds`，2500ms 后 `setTimeout` 清除。硬编码 2500ms 与 CSS 动画时长对应。
