@@ -232,7 +232,7 @@ export function ChatPanel({
     (handle: WorkflowHandle, raw: string) => {
       void runner.runWorkflow(handle, {
         raw,
-        actorId: senderId,
+        actorId: speakerCharId ?? senderId,
         speakerId: speakerCharId,
         seatId: senderId,
         origin: activeOrigin,
