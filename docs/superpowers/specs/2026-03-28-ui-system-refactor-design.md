@@ -12,7 +12,8 @@
 
 ### 核心理念
 
-- 插件声明"我有什么"，不声明"我在哪里"
+- 插件声明"我有什么"，建议"我在哪里"，用户决定最终布局
+- 数据与渲染分离：插件产出语义化日志数据，渲染是可选的附加层
 - GM 通过编辑模式自由编排面板布局
 - 每个 UI 组件严格在自己的容器内工作，不影响外部
 
@@ -32,14 +33,17 @@
 ┌─────────────────────────────────────────────────────────┐
 │  Plugin Layer                                           │
 │  onActivate(sdk) → registerComponent / registerLayer    │
-│                  → contributeToSlot                     │
-│                  → sdk.log.subscribe('*.attack', cb)    │
+│                  → contribute(extensionPoint, component) │
+│                  → sdk.log.subscribe(pattern, handler)   │
 └──────────────────────┬──────────────────────────────────┘
                        ↓
 ┌─────────────────────────────────────────────────────────┐
 │  Registry Layer                                         │
-│  UIRegistry        SlotRegistry       LogStreamDispatcher│
-│  (组件/层定义)     (碎片贡献)        (日志广播+订阅)     │
+│  UIRegistry          ExtensionRegistry                   │
+│  (面板/层定义)       (扩展点贡献:                        │
+│                       日志渲染器 + UI碎片 + 视图替换)     │
+│                      LogStreamDispatcher                 │
+│                      (日志广播+订阅)                      │
 └──────────────────────┬──────────────────────────────────┘
                        ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -51,7 +55,7 @@
                        ↓
 ┌─────────────────────────────────────────────────────────┐
 │  Render Layer                                           │
-│  LayerRenderer     PanelRenderer      SlotRenderer      │
+│  LayerRenderer     PanelRenderer                         │
 │                    (容器壳自动注入                       │
 │                     @scope + contain:                    │
 │                     layout paint)                        │
@@ -76,13 +80,13 @@
 
 ## 三、V1 注册原语
 
-### 3.1 三类注册原语
+### 3.1 两类注册 + 一类贡献
 
 | 类别 | 特征 | 例子 |
 |---|---|---|
-| **Panel（容器型）** | 有位置/尺寸，插件控制内部渲染 | 角色卡、聊天面板、骰子面板 |
-| **Layer（图层型）** | 全屏/画布级，按层叠顺序排列 | 粒子效果、天气、全屏公告 |
-| **碎片型贡献（Slot）** | 嵌入宿主 UI 的小块内容，宿主控制位置和渲染 | 右键菜单项、工具栏按钮 |
+| **Panel（容器型）** | 有位置/尺寸，插件控制内部渲染，进 UIRegistry | 角色卡、聊天面板、骰子面板 |
+| **Layer（图层型）** | 全屏/画布级，按层叠顺序排列，进 UIRegistry | 粒子效果、天气、全屏公告 |
+| **Extension Point 贡献** | 向 UI 声明的扩展点贡献组件，进 ExtensionRegistry | 日志渲染器、右键菜单项、悬浮卡、工具栏按钮 |
 
 ### 3.2 布局面板 vs 按需面板
 
@@ -145,25 +149,59 @@ interface ComponentDef {
   type: 'background' | 'panel' | 'overlay'   // z-order 分组
   defaultSize: { width: number; height: number }
   minSize?: { width: number; height: number }
+  defaultPlacement?: DefaultPlacement          // 建议位置（可选）
+}
+
+interface DefaultPlacement {
+  anchor: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+  offsetX?: number
+  offsetY?: number
+  modes?: ('narrative' | 'tactical')[]   // 不声明 = 两个模式都建议
 }
 ```
 
-### 4.2 SlotRegistry
+`defaultPlacement` 用于"一键应用默认布局"功能：系统遍历所有有 `defaultPlacement` 的组件，按锚点 + 偏移计算实际像素坐标，写入 LayoutConfig。GM 可随时覆盖。重新挂载面板时，优先级：GM 手动调整过的位置 > 组件声明的默认位置 > 居中放置。
 
-新增。处理静态 UI 碎片贡献（不处理日志渲染——日志走 Dispatcher）：
+### 4.2 ExtensionRegistry
+
+统一替代原 SlotRegistry 和 RendererRegistry（Doc 17 §14）。用类型化 token 保证编译时类型安全：
 
 ```typescript
-class SlotRegistry {
-  contribute(slotId: string, contribution: SlotContribution): void
-  getContributions(slotId: string): SlotContribution[]
+// 创建类型化扩展点（类似 React createContext<T>()）
+function createExtensionPoint<TProps>(key: string): ExtensionPoint<TProps> {
+  return { key } as ExtensionPoint<TProps>
 }
 
-interface SlotContribution {
-  pluginId: string
-  component: React.ComponentType
-  priority?: number
+class ExtensionRegistry {
+  contribute<T>(point: ExtensionPoint<T>, component: ComponentType<T>, priority?: number): void
+  get<T>(point: ExtensionPoint<T>): ComponentType<T> | undefined       // 取优先级最高的一个
+  getAll<T>(point: ExtensionPoint<T>): ComponentType<T>[]              // 取全部
 }
 ```
+
+**扩展点命名规约**：
+
+- `:` = 命名空间分隔（谁拥有）
+- `.` = 路径层级（结构位置）
+
+```
+core:token.hover-card        → core 定义，token 区域，悬浮卡
+core:token.context-menu      → core 定义，token 区域，右键菜单
+core:toolbar.tactical.left   → core 定义，战术工具栏，左侧
+dh:character.summary         → dh 插件定义，角色摘要视图
+```
+
+**日志渲染器**直接复用日志条目的 `type` 作为 key（无 `.`）：
+
+```
+dh:judgment                  → 日志 type 本身
+core:text                    → 日志 type 本身
+core:roll-result             → 日志 type 本身
+```
+
+**区分规则**：有 `.` 的是 UI 扩展点，无 `.` 的是日志渲染器 key。两者共用同一个 ExtensionRegistry，key 空间天然不碰撞。
+
+**扩展点由消费者定义**：UI 组件在代码中调用 `registry.get(point)` 就隐式创建了扩展点。插件向扩展点 contribute 组件。双方通过扩展点 key（稳定契约）连接，不直接耦合。
 
 两个 Registry 都是纯数据结构，不做渲染，不持有 React 状态。
 
@@ -242,29 +280,59 @@ function injectPluginCSS(pluginId: string, cssString: string) {
 
 ---
 
-## 六、日志/事件渲染
+## 六、数据通路与日志渲染
 
-### 6.1 广播 + 隐式监听
+### 6.1 三条数据通路
 
-**日志是广播，不是路由。** 不需要显式注册 renderer。
+| 数据性质 | 来源 | 插件消费方式 | 例子 |
+|---|---|---|---|
+| **持久状态**（HP、属性） | zustand store | `sdk.read`（`useEntity` / `useComponent`） | 角色卡显示当前 HP |
+| **日志流**（游戏事件记录） | game_log | `sdk.log.subscribe` / ExtensionRegistry 渲染器 | 战斗日志面板、ChatPanel |
+| **实时感知**（光标、拖拽） | awareness Socket.io | ⚠️ V1 待设计（`sdk.awareness`） | Token 拖拽预览、在线状态 |
+
+**关键原则**：持久状态变更（如 HP 减少）应通过 store 订阅感知，不应通过日志订阅。日志是事件记录，store 是状态权威。
+
+### 6.2 日志渲染：数据与渲染分离
+
+**日志条目是语义化数据**，插件 Workflow 产出日志后数据职责即结束：
+
+```typescript
+// 插件只管产出语义化数据
+ctx.emitEntry({
+  type: 'dh:judgment',
+  payload: { outcome: 'success_hope', hopeDie: 5, fearDie: 7 }
+})
+```
+
+**渲染是可选的附加层**，通过 ExtensionRegistry contribute：
+
+```typescript
+// 插件可选择性地告诉 UI 怎么画（高级接口）
+sdk.ui.contribute(logRenderer('dh:judgment'), JudgmentCard)
+```
+
+如果不 contribute 渲染器，ChatPanel 使用 DefaultLogCard 兜底展示 payload 结构化数据。功能完整，只是不定制。
+
+**ChatPanel 的渲染流程**：
+
+```tsx
+function LogEntryView({ entry }: { entry: GameLogEntry }) {
+  const Card = extensionRegistry.get(logRenderer(entry.type))
+  return Card ? <Card entry={entry} /> : <DefaultLogCard entry={entry} />
+}
+```
+
+### 6.3 sdk.log.subscribe 的使用场景
+
+`sdk.log.subscribe` 的正确用途是：**构建自定义日志视图**（如过滤后的战斗日志面板），不是监听状态变更。
 
 ```
-Workflow 产生日志 → LogStreamDispatcher 广播
-  → 角色卡组件：我关心 *.damage → 更新血量显示
-  → 聊天面板组件：我关心 *.attack → 渲染攻击卡片
-  → 不关心的组件：忽略
+✅ 战斗日志面板 subscribe('dh:judgment') → 构建自己的日志滚动列表
+✅ 统计面板 subscribe('core:roll-result') → 统计骰子分布
+❌ 角色卡 subscribe('*.damage') → 更新 HP  ← 应该用 sdk.read 订阅 store
 ```
 
-UI 组件通过 `sdk.log.subscribe(pattern, handler)` 监听，底层走 LogStreamDispatcher。多个组件监听同一事件完全正常——各自在隔离容器内渲染。
-
-### 6.2 与 Slot 的职责分离
-
-| 场景 | 机制 | 原因 |
-|---|---|---|
-| 日志/事件渲染 | `sdk.log.subscribe`（Dispatcher 广播） | 数据已有结构，天然适合隐式监听 |
-| 菜单项、工具栏按钮 | `sdk.ui.contributeToSlot`（SlotRegistry） | 没有数据流可匹配，必须主动注册 |
-
-### 6.3 协议分层
+### 6.4 协议分层
 
 | 层级 | 协议来源 | 例子 |
 |---|---|---|
@@ -274,7 +342,7 @@ UI 组件通过 `sdk.log.subscribe(pattern, handler)` 监听，底层走 LogStre
 
 框架不强制协议，只提供便利。
 
-### 6.4 关键规则
+### 6.5 关键规则
 
 - **不允许 `return false` 阻断广播**（Foundry VTT 教训）
 - 事件 payload 建议加 `source` 字段（CloudEvents 实践），方便调试
@@ -337,7 +405,7 @@ GM 编辑模式拖拽面板
 
 | SDK | 阶段 | 谁拿到 | 用途 |
 |---|---|---|---|
-| `IPluginSDK` | `onActivate` 插件激活时 | 插件入口 | 注册组件、层、slot 贡献 |
+| `IPluginSDK` | `onActivate` 插件激活时 | 插件入口 | 注册组件、层、扩展点贡献 |
 | `IComponentSDK` | 面板渲染时 | 每个面板实例 | 读数据、触发 workflow、监听日志、开关面板 |
 
 ### 8.2 IPluginSDK（插件激活阶段）
@@ -347,12 +415,13 @@ interface IPluginSDK {
   ui: {
     registerComponent(def: ComponentDef): void
     registerLayer(def: LayerDef): void
-    contributeToSlot(slotId: string, contribution: SlotContribution): void
+    contribute<T>(point: ExtensionPoint<T>, component: ComponentType<T>, priority?: number): void
     openPanel(componentId: string, instanceProps?: Record<string, unknown>): string
     closePanel(instanceKey: string): void
   }
   workflow: IWorkflowRunner
-  commands: ICommandRegistry    // Track C
+  commands: ICommandRegistry       // Track C
+  registerTrigger: ITriggerRegistrar  // Track A
 }
 ```
 
@@ -377,31 +446,38 @@ interface IComponentSDK {
 ### 8.4 插件开发者完整体验
 
 ```typescript
+// ---- 扩展点定义（可由核心或插件导出） ----
+const tokenContextMenu = createExtensionPoint<{ token: Token }>('core:token.context-menu')
+const tokenHoverCard = createExtensionPoint<{ entity: Entity }>('core:entity.hover-card')
+
+// ---- 插件注册 ----
 const myPlugin: VTTPlugin = {
-  id: 'daggerheart',
+  id: 'dh',
 
   onActivate(sdk: IPluginSDK) {
+    // 注册面板组件（有布局属性，进 UIRegistry）
     sdk.ui.registerComponent({
-      id: 'character-card',
+      id: 'dh:character-card',
       type: 'panel',
       component: CharacterCard,
       defaultSize: { width: 320, height: 480 },
+      defaultPlacement: { anchor: 'top-right', offsetX: 20, offsetY: 20 },
     })
 
-    sdk.ui.contributeToSlot('token:context-menu', {
-      component: SmiteMenuItem,
-    })
+    // 向扩展点贡献（无布局，进 ExtensionRegistry）
+    sdk.ui.contribute(tokenContextMenu, SmiteMenuItem)           // 右键菜单项
+    sdk.ui.contribute(tokenHoverCard, DHCharacterHoverCard)      // 悬浮卡
+    sdk.ui.contribute(logRenderer('dh:judgment'), JudgmentCard)  // 日志渲染器（可选）
   }
 }
 
+// ---- 面板组件 ----
 function CharacterCard({ sdk }: { sdk: IComponentSDK }) {
+  // 持久状态通过 store 订阅（不是日志订阅）
   const entity = sdk.read.entity(sdk.context.instanceProps.entityId as string)
+  const health = sdk.read.component(entity?.id, 'daggerheart:health')
 
-  sdk.log.subscribe('*.damage', (entry) => {
-    if (entry.data.target === entity?.id) { /* 受击反馈 */ }
-  })
-
-  return <div className="bg-glass p-4">...</div>
+  return <div className="bg-glass p-4">HP: {health?.current}/{health?.max}</div>
 }
 ```
 
@@ -434,7 +510,7 @@ function CharacterCard({ sdk }: { sdk: IComponentSDK }) {
 
 ### 阶段 1：基础设施就位
 
-- 扩展 UIRegistry，新增 SlotRegistry
+- 扩展 UIRegistry，新增 ExtensionRegistry
 - PanelRenderer 加入隔离容器（`contain: layout paint`）
 - App.tsx 中插入 PanelRenderer + LayerRenderer（与现有 UI 并列）
 - LayoutConfig 持久化（room.db 新表 + REST/Socket.io）
@@ -494,7 +570,21 @@ V1 无浏览器兼容性阻断问题。
 
 ---
 
-## 十二、未来扩展方向
+## 十二、与 Track A 的依赖关系
+
+本 spec 为 Doc 17 轨道 B（UI 插件化），与轨道 A（事件日志）有以下依赖：
+
+| 本 spec 功能 | 依赖 Track A | 说明 |
+|---|---|---|
+| 日志渲染器（ExtensionRegistry 的 `logRenderer` 扩展点） | A1 Dispatcher 运行时接入 | Dispatcher 将日志广播到客户端 |
+| `sdk.log.subscribe` | A1 Dispatcher 运行时接入 | subscribe 底层走 Dispatcher |
+| ChatPanel 迁移到 ExtensionRegistry 渲染 | A3 日志条目渲染器 | 需要 RendererRegistry → ExtensionRegistry 统一 |
+
+**布局引擎、PanelRenderer、编辑模式、CSS 隔离等核心基础设施不依赖 Track A，可独立先行。**
+
+---
+
+## 十三、未来扩展方向
 
 以下为 V1 之后的渐进增强，不影响 V1 架构：
 
@@ -504,3 +594,4 @@ V1 无浏览器兼容性阻断问题。
 4. **响应式布局** — 像素定位迁移到视口百分比或相对单位
 5. **编辑模式 UX 细化** — 组件目录、对齐/网格、撤销/重做
 6. **`sdk.events`** — 非日志的插件间通信，等出现明确使用场景后引入
+7. **`sdk.awareness`** — 实时感知数据（光标位置、拖拽预览、在线状态）暴露给插件，V1 未覆盖
