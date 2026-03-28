@@ -64,8 +64,8 @@ describe('LogStreamDispatcher', () => {
     dispatcher = new LogStreamDispatcher({
       triggerRegistry: mockRegistry,
       runner: mockRunner,
-      localSeatId: 'seat-a',
-      watermark: 5,
+      getSeatId: () => 'seat-a',
+      getWatermark: () => 5,
     })
   })
 
@@ -136,23 +136,54 @@ describe('LogStreamDispatcher', () => {
     expect(runWorkflow).not.toHaveBeenCalled()
   })
 
-  it('updateWatermark() updates the watermark to the larger value', async () => {
-    dispatcher.updateWatermark(20)
+  it('respects dynamic watermark from getter', async () => {
+    let watermark = 5
+    dispatcher = new LogStreamDispatcher({
+      triggerRegistry: mockRegistry,
+      runner: mockRunner,
+      getSeatId: () => 'seat-a',
+      getWatermark: () => watermark,
+    })
 
-    // Entry with seq=15 should now be below the new watermark and be skipped
-    const entry = makeEntry({ seq: 15 })
-    await dispatcher.dispatch(entry)
+    // Entry with seq=10 dispatches normally
+    getMatchingTriggers.mockReturnValue([makeTrigger('t1')])
+    await dispatcher.dispatch(makeEntry({ seq: 10 }))
+    expect(runWorkflow).toHaveBeenCalledTimes(1)
 
+    // Watermark advances externally
+    watermark = 15
+    runWorkflow.mockClear()
+
+    // Entry with seq=12 now below watermark — skipped
+    await dispatcher.dispatch(makeEntry({ seq: 12 }))
     expect(runWorkflow).not.toHaveBeenCalled()
   })
 
-  it('updateWatermark() does not decrease the watermark', async () => {
-    dispatcher.updateWatermark(3)
+  it('respects dynamic seatId from getter', async () => {
+    let seatId = 'seat-a'
+    dispatcher = new LogStreamDispatcher({
+      triggerRegistry: mockRegistry,
+      runner: mockRunner,
+      getSeatId: () => seatId,
+      getWatermark: () => 5,
+    })
 
-    // Watermark should remain at 5 (original), so seq=5 should still be skipped
-    const entry = makeEntry({ seq: 5 })
-    await dispatcher.dispatch(entry)
+    getMatchingTriggers.mockReturnValue([makeTrigger('t1')])
 
+    // Matches seat-a
+    await dispatcher.dispatch(makeEntry({ executor: 'seat-a', seq: 10 }))
+    expect(runWorkflow).toHaveBeenCalledTimes(1)
+
+    // seatId changes
+    seatId = 'seat-b'
+    runWorkflow.mockClear()
+
+    // Now seat-a doesn't match
+    await dispatcher.dispatch(makeEntry({ executor: 'seat-a', seq: 11 }))
     expect(runWorkflow).not.toHaveBeenCalled()
+
+    // seat-b matches
+    await dispatcher.dispatch(makeEntry({ executor: 'seat-b', seq: 12 }))
+    expect(runWorkflow).toHaveBeenCalledTimes(1)
   })
 })
