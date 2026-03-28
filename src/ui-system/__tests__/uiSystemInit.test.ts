@@ -81,9 +81,12 @@ describe('createProductionSDK', () => {
     expect(sdk.awareness!.clear).toBeDefined()
   })
 
-  it('awareness is undefined when no manager', () => {
+  it('awareness is a no-op object when no manager', () => {
     const sdk = createProductionSDK(baseArgs)
-    expect(sdk.awareness).toBeUndefined()
+    expect(sdk.awareness).toBeDefined()
+    expect(typeof sdk.awareness.subscribe).toBe('function')
+    expect(typeof sdk.awareness.broadcast).toBe('function')
+    expect(typeof sdk.awareness.clear).toBe('function')
   })
 
   it('wires log when logSubscribe is provided', () => {
@@ -110,8 +113,10 @@ describe('createProductionSDK', () => {
     expect(sdk.ui!.closePanel).toBe(mockActions.closePanel)
   })
 
-  it('ui is undefined when no layoutActions', () => {
+  it('ui is a no-op object when no layoutActions', () => {
     const sdk = createProductionSDK(baseArgs)
-    expect(sdk.ui).toBeUndefined()
+    expect(sdk.ui).toBeDefined()
+    expect(typeof sdk.ui.openPanel).toBe('function')
+    expect(typeof sdk.ui.closePanel).toBe('function')
   })
 })

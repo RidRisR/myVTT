@@ -68,8 +68,17 @@ export function createProductionSDK(args: SDKFactoryArgs): IComponentSDK {
           broadcast: (channel, data) => args.awarenessManager!.broadcast(channel, data),
           clear: (channel) => args.awarenessManager!.clear(channel),
         }
-      : undefined,
-    log: args.logSubscribe ? { subscribe: args.logSubscribe } : undefined,
-    ui: args.layoutActions ?? undefined,
+      : {
+          subscribe: () => () => {},
+          broadcast: () => {},
+          clear: () => {},
+        },
+    log: args.logSubscribe
+      ? { subscribe: args.logSubscribe }
+      : { subscribe: () => () => {} },
+    ui: args.layoutActions ?? {
+      openPanel: () => '',
+      closePanel: () => {},
+    },
   }
 }

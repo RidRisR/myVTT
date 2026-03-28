@@ -4,7 +4,18 @@ import { PanelRenderer } from '../PanelRenderer'
 import { UIRegistry } from '../registry'
 import type { LayoutConfig, IComponentSDK } from '../types'
 
-const mockSDK = {} as IComponentSDK
+const mockSDK: IComponentSDK = {
+  read: { entity: () => undefined, component: () => undefined, query: () => [], formulaTokens: () => ({}) },
+  workflow: { runWorkflow: () => Promise.resolve({} as never) },
+  context: { instanceProps: {}, role: 'GM', layoutMode: 'play' },
+  awareness: {
+    subscribe: () => () => {},
+    broadcast: () => {},
+    clear: () => {},
+  },
+  log: { subscribe: () => () => {} },
+  ui: { openPanel: () => '', closePanel: () => {} },
+}
 
 describe('PanelRenderer', () => {
   it('renders a registered component at the specified position', () => {

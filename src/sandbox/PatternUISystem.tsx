@@ -92,6 +92,13 @@ export default function PatternUISystem() {
               dnd: makeDnDSDK(),
             }
           : undefined,
+      awareness: {
+        subscribe: () => () => {},
+        broadcast: () => {},
+        clear: () => {},
+      },
+      log: { subscribe: () => () => {} },
+      ui: { openPanel: () => '', closePanel: () => {} },
     }),
     [runner, handleDrag],
   )
