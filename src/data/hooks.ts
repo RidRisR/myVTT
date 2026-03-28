@@ -1,6 +1,7 @@
 // src/data/hooks.ts
 import { useWorldStore } from '../stores/worldStore'
 import type { Entity } from '../shared/entityTypes'
+import type { ComponentTypeMap } from '../shared/componentTypes'
 
 /**
  * Reactive hook: subscribes to a single entity by ID.
@@ -12,13 +13,18 @@ export function useEntity(id: string): Entity | undefined {
 
 /**
  * Reactive hook: subscribes to a single component value on an entity.
- * Re-renders only when that component value changes.
+ * Known keys (in ComponentTypeMap) auto-infer return type.
+ * Unknown keys fall back to explicit generic T.
  */
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T required for caller type inference
-export function useComponent<T>(entityId: string, key: string): T | undefined {
+export function useComponent<K extends keyof ComponentTypeMap>(
+  entityId: string,
+  key: K,
+): ComponentTypeMap[K] | undefined
+export function useComponent<T = unknown>(entityId: string, key: string): T | undefined
+export function useComponent(entityId: string, key: string) {
   return useWorldStore((s) => {
     const entity = s.entities[entityId]
     if (!entity) return undefined
-    return entity.components[key] as T | undefined
+    return entity.components[key]
   })
 }

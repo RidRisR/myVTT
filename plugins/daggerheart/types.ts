@@ -36,3 +36,14 @@ export const DH_KEYS = {
   meta: 'daggerheart:meta',
   extras: 'daggerheart:extras',
 } as const
+
+// Module augmentation — extends core ComponentTypeMap with Daggerheart keys
+declare module '../../src/shared/componentTypes' {
+  interface ComponentTypeMap {
+    'daggerheart:health': DHHealth
+    'daggerheart:stress': DHStress
+    'daggerheart:attributes': DHAttributes
+    'daggerheart:meta': DHMeta
+    'daggerheart:extras': DHExtras
+  }
+}

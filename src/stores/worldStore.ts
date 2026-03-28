@@ -17,6 +17,7 @@ import { generateTokenId } from '../shared/idUtils'
 import { defaultNPCPermissions } from '../shared/permissions'
 import type { AssetMeta, TagMeta } from '../shared/assetTypes'
 import type { GameLogEntry } from '../shared/logTypes'
+import { isLogType } from '../shared/logTypes'
 import { uploadAsset as uploadAssetFile, uploadBlueprintFromFile } from '../shared/assetUpload'
 import {
   updateAsset as patchAsset,
@@ -484,18 +485,14 @@ function registerSocketEvents(
       }
 
       // Snapshot sync: tracker-update
-      if (entry.type === 'core:tracker-update' && entry.payload.snapshot) {
-        const snap = entry.payload.snapshot as TeamTracker
+      if (isLogType(entry, 'core:tracker-update') && entry.payload.snapshot) {
+        const snap = entry.payload.snapshot
         updates.teamTrackers = s.teamTrackers.map((t) => (t.id === snap.id ? snap : t))
       }
 
       // Snapshot sync: component-update
-      if (entry.type === 'core:component-update') {
-        const { entityId, key, data } = entry.payload as {
-          entityId: string
-          key: string
-          data: unknown
-        }
+      if (isLogType(entry, 'core:component-update')) {
+        const { entityId, key, data } = entry.payload
         const entity = s.entities[entityId]
         if (entity) {
           updates.entities = {
