@@ -35,6 +35,7 @@
 │  onActivate(sdk) → registerComponent / registerLayer    │
 │                  → contribute(extensionPoint, component) │
 │                  → sdk.log.subscribe(pattern, handler)   │
+│                  → sdk.awareness.subscribe/broadcast     │
 └──────────────────────┬──────────────────────────────────┘
                        ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -44,6 +45,8 @@
 │                       日志渲染器 + UI碎片 + 视图替换)     │
 │                      LogStreamDispatcher                 │
 │                      (日志广播+订阅)                      │
+│                      AwarenessChannelRelay               │
+│                      (通道中继 + TTL 过期)                │
 └──────────────────────┬──────────────────────────────────┘
                        ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -288,11 +291,53 @@ function injectPluginCSS(pluginId: string, cssString: string) {
 |---|---|---|---|
 | **持久状态**（HP、属性） | zustand store | `sdk.read`（`useEntity` / `useComponent`） | 角色卡显示当前 HP |
 | **日志流**（游戏事件记录） | game_log | `sdk.log.subscribe` / ExtensionRegistry 渲染器 | 战斗日志面板、ChatPanel |
-| **实时感知**（光标、拖拽） | awareness Socket.io | ⚠️ V1 待设计（`sdk.awareness`） | Token 拖拽预览、在线状态 |
+| **实时感知**（光标、拖拽） | awareness Socket.io | `sdk.awareness`（通道机制） | Token 拖拽预览、在线状态、法术瞄准 |
 
 **关键原则**：持久状态变更（如 HP 减少）应通过 store 订阅感知，不应通过日志订阅。日志是事件记录，store 是状态权威。
 
-### 6.2 日志渲染：数据与渲染分离
+### 6.2 Awareness 通道机制
+
+现有 awareness 实现（`awareness:editing`、`awareness:tokenDrag` 等）各走独立 socket 事件，每加一种类型需改服务端。泛化为**通道（channel）机制**：
+
+```typescript
+// 类型化通道（类似 createExtensionPoint）
+function createAwarenessChannel<T>(key: string): AwarenessChannel<T> {
+  return { key } as AwarenessChannel<T>
+}
+
+// 预定义通道
+const tokenDrag = createAwarenessChannel<{ tokenId: string; x: number; y: number }>('core:token.drag')
+const resourceEdit = createAwarenessChannel<{ entityId: string; field: string; value: number }>('core:resource.edit')
+
+// 插件自定义通道
+const spellTargeting = createAwarenessChannel<{ tokenIds: string[]; range: number }>('dh:spell.targeting')
+```
+
+**SDK API**：
+
+```typescript
+sdk.awareness.subscribe<T>(channel: AwarenessChannel<T>, handler: (seatId: string, state: T | null) => void): () => void
+sdk.awareness.broadcast<T>(channel: AwarenessChannel<T>, data: T): void
+sdk.awareness.clear(channel: AwarenessChannel<T>): void   // 可选，立即清除
+```
+
+**服务端**：通用中继，不关心通道语义：
+
+```
+awareness:broadcast { channel, payload }  →  注入 seatId → 转发同房间
+awareness:clear { channel }               →  注入 seatId → 转发同房间
+disconnect                                →  awareness:remove { seatId } 清所有通道
+```
+
+**TTL 自动过期**：接收端对每个通道维护 TTL（默认 5s）。持续广播的通道（如拖拽）天然保持活跃；停止广播后自动过期消失。`clear()` 是快捷方式，不是必须调用的 — 插件忘了 clear 也不会留下幽灵状态。
+
+**节流策略**：V1 不在 SDK 级别暴露采样率控制。基础设施层面可保留服务端总体速率限制的能力，待真正遇到带宽问题时再设计。
+
+**命名规约**：复用 ExtensionRegistry 的 `namespace:path` 约定（如 `core:token.drag`、`dh:spell.targeting`）。
+
+**迁移**：现有 `useTokenAwareness`、`useAwarenessResource` 等 hook 可逐步内部迁移到通道 API，不需要一次性替换。
+
+### 6.3 日志渲染：数据与渲染分离
 
 **日志条目是语义化数据**，插件 Workflow 产出日志后数据职责即结束：
 
@@ -322,7 +367,7 @@ function LogEntryView({ entry }: { entry: GameLogEntry }) {
 }
 ```
 
-### 6.3 sdk.log.subscribe 的使用场景
+### 6.4 sdk.log.subscribe 的使用场景
 
 `sdk.log.subscribe` 的正确用途是：**构建自定义日志视图**（如过滤后的战斗日志面板），不是监听状态变更。
 
@@ -332,7 +377,7 @@ function LogEntryView({ entry }: { entry: GameLogEntry }) {
 ❌ 角色卡 subscribe('*.damage') → 更新 HP  ← 应该用 sdk.read 订阅 store
 ```
 
-### 6.4 协议分层
+### 6.5 协议分层
 
 | 层级 | 协议来源 | 例子 |
 |---|---|---|
@@ -342,7 +387,7 @@ function LogEntryView({ entry }: { entry: GameLogEntry }) {
 
 框架不强制协议，只提供便利。
 
-### 6.5 关键规则
+### 6.6 关键规则
 
 - **不允许 `return false` 阻断广播**（Foundry VTT 教训）
 - 事件 payload 建议加 `source` 字段（CloudEvents 实践），方便调试
@@ -436,6 +481,11 @@ interface IComponentSDK {
   log: {
     subscribe(pattern: string, handler: (entry: LogEntry) => void): () => void
   }
+  awareness: {
+    subscribe<T>(channel: AwarenessChannel<T>, handler: (seatId: string, state: T | null) => void): () => void
+    broadcast<T>(channel: AwarenessChannel<T>, data: T): void
+    clear(channel: AwarenessChannel<T>): void
+  }
   ui: {
     openPanel(componentId: string, instanceProps?: Record<string, unknown>): string
     closePanel(instanceKey: string): void
@@ -471,11 +521,22 @@ const myPlugin: VTTPlugin = {
   }
 }
 
+// ---- awareness 通道（插件自定义） ----
+const spellTargeting = createAwarenessChannel<{ tokenIds: string[]; range: number }>('dh:spell.targeting')
+
 // ---- 面板组件 ----
 function CharacterCard({ sdk }: { sdk: IComponentSDK }) {
   // 持久状态通过 store 订阅（不是日志订阅）
   const entity = sdk.read.entity(sdk.context.instanceProps.entityId as string)
   const health = sdk.read.component(entity?.id, 'daggerheart:health')
+
+  // awareness 订阅（实时感知其他玩家的法术瞄准）
+  useEffect(() => {
+    return sdk.awareness.subscribe(spellTargeting, (seatId, state) => {
+      // state 为 null 表示该 seat 已清除/过期
+      highlightTargets(state?.tokenIds ?? [])
+    })
+  }, [])
 
   return <div className="bg-glass p-4">HP: {health?.current}/{health?.max}</div>
 }
@@ -515,8 +576,9 @@ function CharacterCard({ sdk }: { sdk: IComponentSDK }) {
 - App.tsx 中插入 PanelRenderer + LayerRenderer（与现有 UI 并列）
 - LayoutConfig 持久化（room.db 新表 + REST/Socket.io）
 - 编辑/运行模式切换
+- Awareness 通道基础设施（服务端通用中继 + `createAwarenessChannel` + `sdk.awareness`）
 
-此阶段结束后：框架可用，但未迁移任何现有组件。
+此阶段结束后：框架可用，但未迁移任何现有组件。Awareness 通道与 UI Registry 可并行推进。
 
 ### 阶段 2：逐组件迁移
 
@@ -580,7 +642,7 @@ V1 无浏览器兼容性阻断问题。
 | `sdk.log.subscribe` | A1 Dispatcher 运行时接入 | subscribe 底层走 Dispatcher |
 | ChatPanel 迁移到 ExtensionRegistry 渲染 | A3 日志条目渲染器 | 需要 RendererRegistry → ExtensionRegistry 统一 |
 
-**布局引擎、PanelRenderer、编辑模式、CSS 隔离等核心基础设施不依赖 Track A，可独立先行。**
+**布局引擎、PanelRenderer、编辑模式、CSS 隔离、Awareness 通道等核心基础设施不依赖 Track A，可独立先行。**
 
 ---
 
@@ -594,4 +656,4 @@ V1 无浏览器兼容性阻断问题。
 4. **响应式布局** — 像素定位迁移到视口百分比或相对单位
 5. **编辑模式 UX 细化** — 组件目录、对齐/网格、撤销/重做
 6. **`sdk.events`** — 非日志的插件间通信，等出现明确使用场景后引入
-7. **`sdk.awareness`** — 实时感知数据（光标位置、拖拽预览、在线状态）暴露给插件，V1 未覆盖
+7. **Awareness 高级能力** — SDK 级别采样率控制、通道优先级、服务端选择性转发（仅在带宽成为问题时设计）
