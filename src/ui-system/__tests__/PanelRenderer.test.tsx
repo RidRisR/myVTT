@@ -3,6 +3,12 @@ import { render, screen } from '@testing-library/react'
 import { PanelRenderer } from '../PanelRenderer'
 import { UIRegistry } from '../registry'
 import type { LayoutConfig, IComponentSDK } from '../types'
+import {
+  FixedEscapePanel,
+  ZIndexEscapePanel,
+  EventThiefPanel,
+  CrashPanel,
+} from '../../sandbox/AdversarialPanels'
 
 const mockSDK: IComponentSDK = {
   read: {
@@ -324,5 +330,147 @@ describe('PanelRenderer isolation guarantees', () => {
     const { container } = renderPanel({ component: () => <div>test</div> })
     const panel = container.querySelector('.plugin-panel')
     expect(panel).toHaveAttribute('data-type', 'panel')
+  })
+})
+
+// ── Adversarial panel scenarios ──
+// These tests use the actual adversarial panel components from the sandbox
+// to verify that real-world attack patterns are contained by infrastructure.
+
+describe('PanelRenderer adversarial containment', () => {
+  function renderAdversarial(
+    component: React.ComponentType<{ sdk: unknown }>,
+    layoutMode: 'play' | 'edit' = 'edit',
+  ) {
+    const registry = new UIRegistry()
+    registry.registerComponent({
+      id: 'adv.panel',
+      component,
+      type: 'panel',
+      defaultSize: { width: 240, height: 120 },
+    })
+    const layout: LayoutConfig = {
+      'adv.panel#1': { x: 50, y: 50, width: 240, height: 120, zOrder: 1 },
+    }
+    return render(
+      <PanelRenderer
+        registry={registry}
+        layout={layout}
+        makeSDK={() => mockSDK}
+        layoutMode={layoutMode}
+        onDrag={vi.fn()}
+      />,
+    )
+  }
+
+  describe('position:fixed escape attempt', () => {
+    it('contain:paint traps fixed-position elements inside panel', () => {
+      const { container } = renderAdversarial(FixedEscapePanel)
+      const panel = container.querySelector('.plugin-panel')
+      // contain:paint creates a containing block for fixed children
+      expect(panel).toHaveStyle({ contain: 'layout paint' })
+      // The fixed element exists in DOM but is trapped by containment
+      expect(panel?.querySelector('div[style*="fixed"]')).not.toBeNull()
+    })
+
+    it('DragHandle is present despite fixed-escape content', () => {
+      const { container } = renderAdversarial(FixedEscapePanel)
+      const dragHandle = container.querySelector('[title="adv.panel"]')
+      expect(dragHandle).toBeInTheDocument()
+    })
+  })
+
+  describe('zIndex escape attempt', () => {
+    it('isolation:isolate contains zIndex:999999 within content layer', () => {
+      const { container } = renderAdversarial(ZIndexEscapePanel)
+      const panel = container.querySelector('.plugin-panel')
+      const contentWrapper = panel?.firstElementChild as HTMLElement
+      // isolation:isolate creates a stacking context — z-index 999999 inside
+      // cannot escape to the .plugin-panel stacking context
+      expect(contentWrapper).toHaveStyle({ isolation: 'isolate' })
+      // The high-zIndex element exists but is isolated
+      expect(panel?.querySelector('div[style*="999999"]')).not.toBeNull()
+    })
+
+    it('DragHandle is present despite zIndex-escape content', () => {
+      const { container } = renderAdversarial(ZIndexEscapePanel)
+      const dragHandle = container.querySelector('[title="adv.panel"]')
+      expect(dragHandle).toBeInTheDocument()
+    })
+  })
+
+  describe('event theft attempt', () => {
+    it('pointerEvents:none blocks event-stealing panel in edit mode', () => {
+      const { container } = renderAdversarial(EventThiefPanel, 'edit')
+      const panel = container.querySelector('.plugin-panel')
+      const contentWrapper = panel?.firstElementChild as HTMLElement
+      // pointerEvents:none on content wrapper means stopPropagation
+      // handlers on panel content never fire — events go to DragHandle
+      expect(contentWrapper).toHaveStyle({ pointerEvents: 'none' })
+    })
+
+    it('panel content is interactive in play mode', () => {
+      const { container } = renderAdversarial(EventThiefPanel, 'play')
+      const panel = container.querySelector('.plugin-panel')
+      const contentWrapper = panel?.firstElementChild as HTMLElement
+      // In play mode, panel content receives events normally
+      expect(contentWrapper.style.pointerEvents).toBe('')
+    })
+
+    it('DragHandle is present despite event-stealing content', () => {
+      const { container } = renderAdversarial(EventThiefPanel, 'edit')
+      const dragHandle = container.querySelector('[title="adv.panel"]')
+      expect(dragHandle).toBeInTheDocument()
+    })
+  })
+
+  describe('render crash', () => {
+    it('ErrorBoundary catches crash without affecting DragHandle', () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { container } = renderAdversarial(CrashPanel)
+      spy.mockRestore()
+
+      // DragHandle must render — crash is caught by ErrorBoundary
+      const dragHandle = container.querySelector('[title="adv.panel"]')
+      expect(dragHandle).toBeInTheDocument()
+      expect(dragHandle).toHaveStyle({ position: 'absolute', cursor: 'move' })
+    })
+
+    it('crashed panel does not break sibling panels', () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const registry = new UIRegistry()
+      registry.registerComponent({
+        id: 'adv.crash',
+        component: CrashPanel,
+        type: 'panel',
+        defaultSize: { width: 100, height: 100 },
+      })
+      registry.registerComponent({
+        id: 'adv.healthy',
+        component: () => <div>healthy panel</div>,
+        type: 'panel',
+        defaultSize: { width: 100, height: 100 },
+      })
+      const layout: LayoutConfig = {
+        'adv.crash#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 },
+        'adv.healthy#1': { x: 110, y: 0, width: 100, height: 100, zOrder: 0 },
+      }
+      render(
+        <PanelRenderer
+          registry={registry}
+          layout={layout}
+          makeSDK={() => mockSDK}
+          layoutMode="edit"
+          onDrag={vi.fn()}
+        />,
+      )
+      spy.mockRestore()
+
+      // Healthy panel renders normally
+      expect(screen.getByText('healthy panel')).toBeInTheDocument()
+      // Both DragHandles are present
+      const handles = document.querySelectorAll('[title]')
+      expect(handles).toHaveLength(2)
+    })
   })
 })

@@ -7,6 +7,12 @@ import { applyDrag, createDragInitiator } from '../ui-system/LayoutEditor'
 import { makeDnDSDK } from '../ui-system/dnd'
 // eslint-disable-next-line no-restricted-imports -- sandbox: direct plugin import for demo, no registry needed
 import { pocUIPlugin } from '../../plugins/poc-ui'
+import {
+  FixedEscapePanel,
+  ZIndexEscapePanel,
+  EventThiefPanel,
+  CrashPanel,
+} from './AdversarialPanels'
 import { PluginSDK, WorkflowRunner } from '../workflow/pluginSDK'
 import { getWorkflowEngine } from '../workflow/useWorkflowSDK'
 import { EventBus } from '../events/eventBus'
@@ -37,6 +43,11 @@ const INITIAL_LAYOUT: LayoutConfig = {
     zOrder: 0,
     instanceProps: { entityId: 'e1' },
   },
+  // Adversarial panels — each tries to break containment in a specific way
+  'test.fixed-escape#1': { x: 40, y: 280, width: 240, height: 120, zOrder: 1 },
+  'test.zindex-escape#1': { x: 320, y: 280, width: 240, height: 120, zOrder: 1 },
+  'test.event-thief#1': { x: 600, y: 280, width: 240, height: 160, zOrder: 1 },
+  'test.crash#1': { x: 600, y: 40, width: 240, height: 80, zOrder: 1 },
 }
 
 export default function PatternUISystem() {
@@ -51,6 +62,31 @@ export default function PatternUISystem() {
     const engine = getWorkflowEngine()
     const sdk = new PluginSDK(engine, pocUIPlugin.id, reg)
     pocUIPlugin.onActivate(sdk)
+    // Adversarial panels for isolation testing
+    reg.registerComponent({
+      id: 'test.fixed-escape',
+      component: FixedEscapePanel as React.ComponentType<{ sdk: unknown }>,
+      type: 'panel',
+      defaultSize: { width: 240, height: 120 },
+    })
+    reg.registerComponent({
+      id: 'test.zindex-escape',
+      component: ZIndexEscapePanel as React.ComponentType<{ sdk: unknown }>,
+      type: 'panel',
+      defaultSize: { width: 240, height: 120 },
+    })
+    reg.registerComponent({
+      id: 'test.event-thief',
+      component: EventThiefPanel as React.ComponentType<{ sdk: unknown }>,
+      type: 'panel',
+      defaultSize: { width: 240, height: 160 },
+    })
+    reg.registerComponent({
+      id: 'test.crash',
+      component: CrashPanel as React.ComponentType<{ sdk: unknown }>,
+      type: 'panel',
+      defaultSize: { width: 240, height: 80 },
+    })
     const wfRunner = new WorkflowRunner(engine, {
       emitEntry: () => {},
       serverRoll: () => Promise.reject(new Error('serverRoll not available in sandbox')),
