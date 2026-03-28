@@ -304,11 +304,11 @@ erDiagram
 
 ### blueprints（实体模板工厂）
 
-| 列         | 类型       | 说明                                     |
-| ---------- | ---------- | ---------------------------------------- |
-| id         | TEXT PK    | 蓝图 ID                                  |
+| 列         | 类型       | 说明                                       |
+| ---------- | ---------- | ------------------------------------------ |
+| id         | TEXT PK    | 蓝图 ID                                    |
 | defaults   | TEXT(JSON) | 默认组件集（结构：`{"components":{...}}`） |
-| created_at | INTEGER    | 创建时间戳                               |
+| created_at | INTEGER    | 创建时间戳                                 |
 
 从蓝图创建实体时，`defaults.components` 中的每个 key-value 对会写入 `entity_components` 表。
 
@@ -338,15 +338,16 @@ erDiagram
 
 ### entity_components（ECS 组件存储）
 
-| 列            | 类型       | 说明                            |
-| ------------- | ---------- | ------------------------------- |
-| entity_id     | TEXT FK    | → entities.id（CASCADE）        |
+| 列            | 类型       | 说明                                               |
+| ------------- | ---------- | -------------------------------------------------- |
+| entity_id     | TEXT FK    | → entities.id（CASCADE）                           |
 | component_key | TEXT       | 组件标识符（如 'identity'、'appearance'、'stats'） |
-| data          | TEXT(JSON) | 组件数据                        |
+| data          | TEXT(JSON) | 组件数据                                           |
 
 **复合主键**：`(entity_id, component_key)` — 每个实体的每个组件类型最多一行。
 
 常见 component_key 示例：
+
 - `identity`：名称、笔记等身份信息
 - `appearance`：图片 URL、颜色、尺寸等外观数据
 - `rule_data`：由规则插件定义的数据（HP、AC 等）
@@ -361,22 +362,22 @@ erDiagram
 
 ### tags（一等标签实体）
 
-| 列         | 类型    | 说明                                 |
-| ---------- | ------- | ------------------------------------ |
-| id         | TEXT PK | 标签 ID                              |
-| name       | TEXT    | 标签名（UNIQUE, COLLATE NOCASE）     |
-| color      | TEXT    | 标签颜色                             |
-| sort_order | INTEGER | 排序                                 |
-| created_at | INTEGER | 创建时间戳                           |
+| 列         | 类型    | 说明                             |
+| ---------- | ------- | -------------------------------- |
+| id         | TEXT PK | 标签 ID                          |
+| name       | TEXT    | 标签名（UNIQUE, COLLATE NOCASE） |
+| color      | TEXT    | 标签颜色                         |
+| sort_order | INTEGER | 排序                             |
+| created_at | INTEGER | 创建时间戳                       |
 
 ### asset_tags / entity_tags / blueprint_tags（标签关联表）
 
 三张结构相同的 junction table，分别关联 assets、entities、blueprints 到 tags。
 
-| 列                                        | 类型    | 说明                        |
-| ----------------------------------------- | ------- | --------------------------- |
-| asset_id / entity_id / blueprint_id       | TEXT FK | → 对应主表.id（CASCADE）    |
-| tag_id                                    | TEXT FK | → tags.id（CASCADE）        |
+| 列                                  | 类型    | 说明                     |
+| ----------------------------------- | ------- | ------------------------ |
+| asset_id / entity_id / blueprint_id | TEXT FK | → 对应主表.id（CASCADE） |
+| tag_id                              | TEXT FK | → tags.id（CASCADE）     |
 
 每张表均以 `(主体_id, tag_id)` 为复合主键。
 
@@ -441,35 +442,35 @@ erDiagram
 
 ### assets
 
-| 列         | 类型       | 说明                             |
-| ---------- | ---------- | -------------------------------- |
-| id         | TEXT PK    | 素材 ID                          |
-| url        | TEXT       | 文件 URL                         |
-| name       | TEXT       | 显示名                           |
-| media_type | TEXT       | 媒体类型（'image' / 'handout'）  |
-| category   | TEXT       | 用途分类（'map' / 'token'）      |
-| sort_order | INTEGER    | 排序                             |
-| created_at | INTEGER    | 时间戳                           |
-| extra      | TEXT(JSON) | 额外数据（handout 的内容等）     |
+| 列         | 类型       | 说明                            |
+| ---------- | ---------- | ------------------------------- |
+| id         | TEXT PK    | 素材 ID                         |
+| url        | TEXT       | 文件 URL                        |
+| name       | TEXT       | 显示名                          |
+| media_type | TEXT       | 媒体类型（'image' / 'handout'） |
+| category   | TEXT       | 用途分类（'map' / 'token'）     |
+| sort_order | INTEGER    | 排序                            |
+| created_at | INTEGER    | 时间戳                          |
+| extra      | TEXT(JSON) | 额外数据（handout 的内容等）    |
 
 标签通过 `asset_tags` junction table 关联，不再内嵌 JSON。
 
 ### game_log（统一事件流）
 
-| 列           | 类型       | 说明                                        |
-| ------------ | ---------- | ------------------------------------------- |
-| seq          | INTEGER PK | 自增序列号（AUTOINCREMENT）                 |
-| id           | TEXT UK    | 客户端生成的唯一 ID（UNIQUE）               |
-| type         | TEXT       | 事件类型（如 'chat'、'roll'、'system'）      |
-| origin       | TEXT       | 消息来源（seat ID 或 system identifier）    |
-| executor     | TEXT       | 执行者 seat ID                              |
-| parent_id    | TEXT       | 父事件 ID（用于事件链）                     |
-| chain_depth  | INTEGER    | 事件链深度                                  |
-| triggerable  | INTEGER    | 是否可触发后续事件                          |
-| visibility   | TEXT(JSON) | 可见性规则（见下方）                        |
-| base_seq     | INTEGER    | 客户端基准 seq（乐观并发控制）              |
-| payload      | TEXT(JSON) | 事件数据载荷                                |
-| timestamp    | INTEGER    | 时间戳                                      |
+| 列          | 类型       | 说明                                     |
+| ----------- | ---------- | ---------------------------------------- |
+| seq         | INTEGER PK | 自增序列号（AUTOINCREMENT）              |
+| id          | TEXT UK    | 客户端生成的唯一 ID（UNIQUE）            |
+| type        | TEXT       | 事件类型（如 'chat'、'roll'、'system'）  |
+| origin      | TEXT       | 消息来源（seat ID 或 system identifier） |
+| executor    | TEXT       | 执行者 seat ID                           |
+| parent_id   | TEXT       | 父事件 ID（用于事件链）                  |
+| chain_depth | INTEGER    | 事件链深度                               |
+| triggerable | INTEGER    | 是否可触发后续事件                       |
+| visibility  | TEXT(JSON) | 可见性规则（见下方）                     |
+| base_seq    | INTEGER    | 客户端基准 seq（乐观并发控制）           |
+| payload     | TEXT(JSON) | 事件数据载荷                             |
+| timestamp   | INTEGER    | 时间戳                                   |
 
 **双 ID 设计**：`seq` 用于排序和分页查询（单调递增），`id` 用于幂等去重和事件链引用。
 
@@ -505,17 +506,17 @@ erDiagram
 
 ## JSON 字段策略
 
-| 字段          | 表                       | 存储方式  | 理由                                  |
-| ------------- | ------------------------ | --------- | ------------------------------------- |
-| atmosphere    | scenes                   | JSON blob | 字段组合固定，不需要单独查询          |
-| grid          | tactical_state, archives | JSON blob | 6 个子字段，不需要索引                |
-| permissions   | entities                 | JSON blob | 结构灵活（动态 seat ID）              |
-| data          | entity_components        | JSON blob | 组件数据由插件定义，schema 未知       |
-| defaults      | blueprints               | JSON blob | 组件模板，结构同 entity_components    |
-| payload       | game_log                 | JSON blob | 事件载荷因 type 而异，结构不固定      |
-| visibility    | game_log                 | JSON blob | 三种模式（公开/白名单/黑名单）        |
-| snapshot_data | archive_tokens           | JSON blob | 完整实体快照                          |
-| extra, data   | assets, showcase_items   | JSON blob | 灵活扩展字段                          |
+| 字段          | 表                       | 存储方式  | 理由                               |
+| ------------- | ------------------------ | --------- | ---------------------------------- |
+| atmosphere    | scenes                   | JSON blob | 字段组合固定，不需要单独查询       |
+| grid          | tactical_state, archives | JSON blob | 6 个子字段，不需要索引             |
+| permissions   | entities                 | JSON blob | 结构灵活（动态 seat ID）           |
+| data          | entity_components        | JSON blob | 组件数据由插件定义，schema 未知    |
+| defaults      | blueprints               | JSON blob | 组件模板，结构同 entity_components |
+| payload       | game_log                 | JSON blob | 事件载荷因 type 而异，结构不固定   |
+| visibility    | game_log                 | JSON blob | 三种模式（公开/白名单/黑名单）     |
+| snapshot_data | archive_tokens           | JSON blob | 完整实体快照                       |
+| extra, data   | assets, showcase_items   | JSON blob | 灵活扩展字段                       |
 
 ## 命名转换约定
 
@@ -530,33 +531,33 @@ erDiagram
 
 前端类型定义分布在 `src/shared/` 下：
 
-| 类型                | 文件                    | 对应表/字段                      |
-| ------------------- | ----------------------- | -------------------------------- |
-| `Entity`            | `entityTypes.ts`        | entities + entity_components     |
-| `MapToken`          | `entityTypes.ts`        | tactical_tokens                  |
-| `Blueprint`         | `entityTypes.ts`        | blueprints + blueprint_tags      |
-| `Atmosphere`        | `entityTypes.ts`        | scenes.atmosphere JSON           |
-| `EntityPermissions` | `entityTypes.ts`        | entities.permissions JSON        |
-| `SceneEntityEntry`  | `entityTypes.ts`        | scene_entities                   |
-| `AssetMeta`         | `assetTypes.ts`         | assets + asset_tags              |
-| `TagMeta`           | `assetTypes.ts`         | tags                             |
-| `GameLogEntry`      | `logTypes.ts`           | game_log                         |
-| `Visibility`        | `logTypes.ts`           | game_log.visibility JSON         |
+| 类型                | 文件             | 对应表/字段                  |
+| ------------------- | ---------------- | ---------------------------- |
+| `Entity`            | `entityTypes.ts` | entities + entity_components |
+| `MapToken`          | `entityTypes.ts` | tactical_tokens              |
+| `Blueprint`         | `entityTypes.ts` | blueprints + blueprint_tags  |
+| `Atmosphere`        | `entityTypes.ts` | scenes.atmosphere JSON       |
+| `EntityPermissions` | `entityTypes.ts` | entities.permissions JSON    |
+| `SceneEntityEntry`  | `entityTypes.ts` | scene_entities               |
+| `AssetMeta`         | `assetTypes.ts`  | assets + asset_tags          |
+| `TagMeta`           | `assetTypes.ts`  | tags                         |
+| `GameLogEntry`      | `logTypes.ts`    | game_log                     |
+| `Visibility`        | `logTypes.ts`    | game_log.visibility JSON     |
 
 ## 索引
 
-| 索引                          | 表               | 列          |
-| ----------------------------- | ---------------- | ----------- |
-| idx_game_log_type             | game_log         | type        |
-| idx_game_log_executor         | game_log         | executor    |
-| idx_game_log_parent           | game_log         | parent_id   |
-| idx_scene_entities_scene      | scene_entities   | scene_id    |
-| idx_entities_lifecycle        | entities         | lifecycle   |
-| idx_tactical_tokens_scene     | tactical_tokens  | scene_id    |
-| idx_tactical_tokens_entity    | tactical_tokens  | entity_id   |
-| idx_archive_tokens_archive    | archive_tokens   | archive_id  |
-| idx_blueprints_created        | blueprints       | created_at  |
-| idx_asset_tags_tag            | asset_tags       | tag_id      |
-| idx_blueprint_tags_tag        | blueprint_tags   | tag_id      |
-| idx_entity_components_entity  | entity_components| entity_id   |
-| idx_entity_tags_tag           | entity_tags      | tag_id      |
+| 索引                         | 表                | 列         |
+| ---------------------------- | ----------------- | ---------- |
+| idx_game_log_type            | game_log          | type       |
+| idx_game_log_executor        | game_log          | executor   |
+| idx_game_log_parent          | game_log          | parent_id  |
+| idx_scene_entities_scene     | scene_entities    | scene_id   |
+| idx_entities_lifecycle       | entities          | lifecycle  |
+| idx_tactical_tokens_scene    | tactical_tokens   | scene_id   |
+| idx_tactical_tokens_entity   | tactical_tokens   | entity_id  |
+| idx_archive_tokens_archive   | archive_tokens    | archive_id |
+| idx_blueprints_created       | blueprints        | created_at |
+| idx_asset_tags_tag           | asset_tags        | tag_id     |
+| idx_blueprint_tags_tag       | blueprint_tags    | tag_id     |
+| idx_entity_components_entity | entity_components | entity_id  |
+| idx_entity_tags_tag          | entity_tags       | tag_id     |

@@ -123,16 +123,19 @@ interface WorkflowContext<TVars> {
   readonly read: IDataReader // entity(), component<T>(), query({ has }), formulaTokens()
 
   // ── Input（需要返回值） ──
-  serverRoll(formula: string, options?: {
-    dice?: DiceSpec[]           // pre-parsed dice specs
-    resolvedFormula?: string    // formula with @-tokens resolved
-    rollType?: string           // plugin-defined roll type tag
-    actionName?: string         // display name for the action
-    parentId?: string           // parent log entry (for chaining)
-    chainDepth?: number         // cascade depth counter
-    triggerable?: boolean       // whether triggers can fire on this roll
-    visibility?: Visibility     // public | include | exclude
-  }): Promise<GameLogEntry>     // full log entry with rolls in payload
+  serverRoll(
+    formula: string,
+    options?: {
+      dice?: DiceSpec[] // pre-parsed dice specs
+      resolvedFormula?: string // formula with @-tokens resolved
+      rollType?: string // plugin-defined roll type tag
+      actionName?: string // display name for the action
+      parentId?: string // parent log entry (for chaining)
+      chainDepth?: number // cascade depth counter
+      triggerable?: boolean // whether triggers can fire on this roll
+      visibility?: Visibility // public | include | exclude
+    },
+  ): Promise<GameLogEntry> // full log entry with rolls in payload
   requestInput(interactionId): Promise<unknown> // 暂停执行等待 UI 输入
 
   // ── Effects（副作用） ──
@@ -143,7 +146,7 @@ interface WorkflowContext<TVars> {
     parentId?: string
     chainDepth?: number
     visibility?: Visibility
-  }): void                                     // fire-and-forget log entry emission
+  }): void // fire-and-forget log entry emission
   updateComponent<T>(entityId, key, updater): void // 原子更新 entity 组件
   updateTeamTracker(label, patch): void // @deprecated
 
@@ -396,12 +399,12 @@ Triggers enable declarative reactive workflows: when a matching game log entry a
 
 ```typescript
 interface TriggerDefinition {
-  id: string                                       // unique trigger ID
-  on: string                                       // log entry type to match
-  filter?: Record<string, unknown>                 // shallow payload filter (all keys must match)
-  workflow: string                                 // workflow name to execute
-  mapInput: (entry: GameLogEntry) => Record<string, unknown>  // transform entry to workflow input
-  executeAs: 'triggering-executor'                 // runs on the same client that originated the entry
+  id: string // unique trigger ID
+  on: string // log entry type to match
+  filter?: Record<string, unknown> // shallow payload filter (all keys must match)
+  workflow: string // workflow name to execute
+  mapInput: (entry: GameLogEntry) => Record<string, unknown> // transform entry to workflow input
+  executeAs: 'triggering-executor' // runs on the same client that originated the entry
 }
 ```
 

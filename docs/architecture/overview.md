@@ -91,21 +91,21 @@ src/
 
 ### 路由模块
 
-| 文件                    | 前缀                             | 职责                    |
-| ----------------------- | -------------------------------- | ----------------------- |
-| `routes/rooms.ts`       | `/api/rooms`                     | 房间 CRUD（全局库）     |
-| `routes/seats.ts`       | `/api/rooms/:roomId/seats`       | 座位管理                |
-| `routes/scenes.ts`      | `/api/rooms/:roomId/scenes`      | 场景 CRUD + Entity 关联 |
-| `routes/entities.ts`    | `/api/rooms/:roomId/entities`    | Entity CRUD             |
-| `routes/archives.ts`    | `/api/rooms/:roomId/archives`    | 战术存档 save/load      |
-| `routes/tactical.ts`    | `/api/rooms/:roomId/tactical`    | 战术状态 + Token CRUD   |
-| `routes/assets.ts`      | `/api/rooms/:roomId/assets`      | 文件上传 + 素材管理     |
-| `routes/blueprints.ts`  | `/api/rooms/:roomId/blueprints`  | 蓝图 CRUD               |
-| `routes/trackers.ts`    | `/api/rooms/:roomId/trackers`    | 团队追踪器              |
-| `routes/showcase.ts`    | `/api/rooms/:roomId/showcase`    | 展示材料                |
-| `routes/state.ts`       | `/api/rooms/:roomId/state`       | 房间状态（活动场景等）  |
-| `routes/bundle.ts`      | `/api/rooms/:roomId/bundle`      | 初始化批量加载          |
-| `routes/tags.ts`        | `/api/rooms/:roomId/tags`        | 标签 CRUD               |
+| 文件                   | 前缀                            | 职责                    |
+| ---------------------- | ------------------------------- | ----------------------- |
+| `routes/rooms.ts`      | `/api/rooms`                    | 房间 CRUD（全局库）     |
+| `routes/seats.ts`      | `/api/rooms/:roomId/seats`      | 座位管理                |
+| `routes/scenes.ts`     | `/api/rooms/:roomId/scenes`     | 场景 CRUD + Entity 关联 |
+| `routes/entities.ts`   | `/api/rooms/:roomId/entities`   | Entity CRUD             |
+| `routes/archives.ts`   | `/api/rooms/:roomId/archives`   | 战术存档 save/load      |
+| `routes/tactical.ts`   | `/api/rooms/:roomId/tactical`   | 战术状态 + Token CRUD   |
+| `routes/assets.ts`     | `/api/rooms/:roomId/assets`     | 文件上传 + 素材管理     |
+| `routes/blueprints.ts` | `/api/rooms/:roomId/blueprints` | 蓝图 CRUD               |
+| `routes/trackers.ts`   | `/api/rooms/:roomId/trackers`   | 团队追踪器              |
+| `routes/showcase.ts`   | `/api/rooms/:roomId/showcase`   | 展示材料                |
+| `routes/state.ts`      | `/api/rooms/:roomId/state`      | 房间状态（活动场景等）  |
+| `routes/bundle.ts`     | `/api/rooms/:roomId/bundle`     | 初始化批量加载          |
+| `routes/tags.ts`       | `/api/rooms/:roomId/tags`       | 标签 CRUD               |
 
 ### 核心服务
 

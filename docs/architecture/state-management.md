@@ -120,20 +120,20 @@ socket.on('entity:deleted', ({ id }: { id: string }) => {
 
 **worldStore 监听的事件**：
 
-| 事件                                       | store 更新                                         |
-| ------------------------------------------ | -------------------------------------------------- |
-| `scene:created/updated/deleted`            | `scenes[]`                                         |
-| `scene:entity:linked/unlinked/updated`     | `sceneEntityMap{}`                                 |
-| `entity:created/updated/deleted`           | `entities{}`                                       |
-| `tactical:updated`                         | `tacticalInfo`                                     |
-| `tactical:token:added/updated/removed`     | `tacticalInfo.tokens[]`                            |
-| `room:state:updated`                       | `room`                                             |
-| `tracker:created/updated/deleted`          | `teamTrackers[]`                                   |
-| `showcase:created/updated/deleted/cleared` | `showcaseItems[]`                                  |
-| `asset:created/updated/deleted/reordered`  | `assets[]`                                         |
-| `blueprint:created/updated/deleted`        | `blueprints[]`                                     |
-| `tag:created/updated/deleted`              | `tags[]`                                           |
-| `archive:created/updated/deleted`          | `archives[]`                                       |
+| 事件                                       | store 更新                                           |
+| ------------------------------------------ | ---------------------------------------------------- |
+| `scene:created/updated/deleted`            | `scenes[]`                                           |
+| `scene:entity:linked/unlinked/updated`     | `sceneEntityMap{}`                                   |
+| `entity:created/updated/deleted`           | `entities{}`                                         |
+| `tactical:updated`                         | `tacticalInfo`                                       |
+| `tactical:token:added/updated/removed`     | `tacticalInfo.tokens[]`                              |
+| `room:state:updated`                       | `room`                                               |
+| `tracker:created/updated/deleted`          | `teamTrackers[]`                                     |
+| `showcase:created/updated/deleted/cleared` | `showcaseItems[]`                                    |
+| `asset:created/updated/deleted/reordered`  | `assets[]`                                           |
+| `blueprint:created/updated/deleted`        | `blueprints[]`                                       |
+| `tag:created/updated/deleted`              | `tags[]`                                             |
+| `archive:created/updated/deleted`          | `archives[]`                                         |
 | `log:new`                                  | `logEntries[]` + `logEntriesById{}` + `logWatermark` |
 
 ## 乐观更新
