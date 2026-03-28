@@ -33,6 +33,7 @@ export function PanelRenderer({
 
         // Parse componentId from "componentId#instance"
         const componentId = instanceKey.replace(/#[^#]*$/, '')
+        const pluginId = componentId.split(/[:.]/)[0]
         const def = registry.getComponent(componentId)
         if (!def) return null
 
@@ -46,12 +47,17 @@ export function PanelRenderer({
         return (
           <div
             key={instanceKey}
+            className="plugin-panel"
+            data-plugin={pluginId}
+            data-type={def.type}
             style={{
               position: 'absolute',
               left: entry.x,
               top: entry.y,
               width: entry.width,
               height: entry.height,
+              contain: 'layout paint',
+              zIndex: entry.zOrder,
             }}
           >
             <div style={{ position: 'absolute', inset: 0 }}>

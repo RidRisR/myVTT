@@ -45,6 +45,23 @@ export function setupAwareness(io: TypedServer): void {
       socket.to(roomId).emit('awareness:tokenDragEnd', { seatId: socket.data.seatId })
     })
 
+    // Generic awareness channel relay (new plugin-extensible channels)
+    socket.on('awareness:ch:broadcast', (data: { channel: string; payload: unknown }) => {
+      if (!socket.data.seatId) return
+      socket.to(roomId).emit('awareness:ch:broadcast', {
+        ...data,
+        seatId: socket.data.seatId,
+      })
+    })
+
+    socket.on('awareness:ch:clear', (data: { channel: string }) => {
+      if (!socket.data.seatId) return
+      socket.to(roomId).emit('awareness:ch:clear', {
+        channel: data.channel,
+        seatId: socket.data.seatId,
+      })
+    })
+
     // Notify room when a client disconnects
     socket.on('disconnect', () => {
       if (socket.data.seatId) {
