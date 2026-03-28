@@ -212,9 +212,9 @@ export function initRoomSchema(db: Database.Database): void {
     -- Layout config (singleton row, JSON blob)
     CREATE TABLE IF NOT EXISTS layout (
       id INTEGER PRIMARY KEY CHECK (id = 1),
-      config TEXT NOT NULL DEFAULT '{"narrative":{},"tactical":{}}'
+      config TEXT NOT NULL DEFAULT '{"narrative":{"core-ui.session-info#1":{"x":20,"y":60,"width":200,"height":260,"zOrder":0}},"tactical":{}}'
     );
-    INSERT OR IGNORE INTO layout (id, config) VALUES (1, '{"narrative":{},"tactical":{}}');
+    INSERT OR IGNORE INTO layout (id, config) VALUES (1, '{"narrative":{"core-ui.session-info#1":{"x":20,"y":60,"width":200,"height":260,"zOrder":0}},"tactical":{}}');
 
     -- Indexes for common queries
     CREATE INDEX IF NOT EXISTS idx_game_log_type ON game_log(type);
