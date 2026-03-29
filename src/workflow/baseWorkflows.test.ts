@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
 import { WorkflowEngine } from './engine'
-import { registerBaseWorkflows, getQuickRollWorkflow } from './baseWorkflows'
+import {
+  registerBaseWorkflows,
+  getQuickRollWorkflow,
+  getRollWorkflow,
+} from './baseWorkflows'
+import type { RollOutput } from './baseWorkflows'
 import { createWorkflowContext } from './context'
 import { createEventBus } from '../events/eventBus'
 import { announceEvent } from '../events/systemEvents'
@@ -13,23 +18,10 @@ function makeInternal(): InternalState {
   }
 }
 
-describe('base workflows', () => {
-  it('quick-roll has roll + display steps (no separate roll workflow)', () => {
-    const engine = new WorkflowEngine()
-    registerBaseWorkflows(engine)
-    expect(engine.inspectWorkflow('quick-roll')).toEqual(['roll', 'display'])
-    expect(getQuickRollWorkflow().name).toBe('quick-roll')
-  })
-
-  it('quick-roll inlines roll logic and displays result', async () => {
-    const engine = new WorkflowEngine()
-    registerBaseWorkflows(engine)
-
-    const bus = createEventBus()
-    const announcements: unknown[] = []
-    bus.on(announceEvent, (p) => announcements.push(p))
-
-    const deps = {
+function makeMockDeps(engine: WorkflowEngine) {
+  const bus = createEventBus()
+  return {
+    deps: {
       emitEntry: vi.fn(),
       serverRoll: vi.fn().mockResolvedValue({
         seq: 1,
@@ -52,13 +44,117 @@ describe('base workflows', () => {
       getSeatId: vi.fn().mockReturnValue('s1'),
       getLogWatermark: vi.fn().mockReturnValue(0),
       getFormulaTokens: vi.fn().mockReturnValue({}),
-    }
-    const internal = makeInternal()
-    const ctx = createWorkflowContext(deps, { formula: '2d12+1', actorId: 'a1' }, internal)
-    await engine.runWorkflow('quick-roll', ctx, internal)
-    expect(announcements).toEqual([
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- vitest matcher returns any
-      expect.objectContaining({ message: expect.stringContaining('2d12+1') }),
-    ])
+    },
+    bus,
+  }
+}
+
+describe('base workflows', () => {
+  describe('roll workflow', () => {
+    it('has a single generate step', () => {
+      const engine = new WorkflowEngine()
+      registerBaseWorkflows(engine)
+      expect(engine.inspectWorkflow('roll')).toEqual(['generate'])
+      expect(getRollWorkflow().name).toBe('roll')
+    })
+
+    it('computes total from formula + rolls and returns RollOutput', async () => {
+      const engine = new WorkflowEngine()
+      registerBaseWorkflows(engine)
+
+      const { deps } = makeMockDeps(engine)
+      const internal = makeInternal()
+      const ctx = createWorkflowContext(deps, { formula: '2d12+1', actorId: 'a1' }, internal)
+      const result = await engine.runWorkflow('roll', ctx, internal)
+
+      expect(result.status).toBe('completed')
+      if (result.status === 'completed') {
+        const output = result.output as RollOutput
+        expect(output.rolls).toEqual([[8, 5]])
+        // 2d12+1 with rolls [8, 5] => 8 + 5 + 1 = 14
+        expect(output.total).toBe(14)
+      }
+    })
+
+    it('aborts on missing formula', async () => {
+      const engine = new WorkflowEngine()
+      registerBaseWorkflows(engine)
+
+      const { deps } = makeMockDeps(engine)
+      const internal = makeInternal()
+      const ctx = createWorkflowContext(deps, { formula: '', actorId: 'a1' }, internal)
+      const result = await engine.runWorkflow('roll', ctx, internal)
+
+      expect(result.status).toBe('aborted')
+    })
+
+    it('resolves @tokens in formula', async () => {
+      const engine = new WorkflowEngine()
+      registerBaseWorkflows(engine)
+
+      const { deps } = makeMockDeps(engine)
+      const fakeEntity = { id: 'a1', components: {} }
+      deps.getEntity.mockReturnValue(fakeEntity)
+      deps.getFormulaTokens.mockReturnValue({ str: 3 })
+      // 1d20+3 needs only 1 roll for the d20
+      deps.serverRoll.mockResolvedValue({
+        seq: 1,
+        id: 'roll-1',
+        type: 'core:roll-result',
+        origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
+        executor: 's1',
+        chainDepth: 0,
+        triggerable: true,
+        visibility: {},
+        baseSeq: 0,
+        timestamp: Date.now(),
+        payload: { rolls: [[15]], formula: '1d20+@str', dice: [{ sides: 20, count: 1 }] },
+      })
+      const internal = makeInternal()
+      const ctx = createWorkflowContext(
+        deps,
+        { formula: '1d20+@str', actorId: 'a1' },
+        internal,
+      )
+      const result = await engine.runWorkflow('roll', ctx, internal)
+
+      expect(deps.serverRoll).toHaveBeenCalled()
+      // The resolved formula should have replaced @str with 3
+      const callArgs = deps.serverRoll.mock.calls[0] as unknown[]
+      const request = callArgs[0] as { resolvedFormula?: string }
+      expect(request.resolvedFormula).toBe('1d20+3')
+      // 1d20+3 with roll [15] => 15 + 3 = 18
+      expect(result.status).toBe('completed')
+      if (result.status === 'completed') {
+        const output = result.output as RollOutput
+        expect(output.total).toBe(18)
+      }
+    })
+  })
+
+  describe('quick-roll workflow', () => {
+    it('has roll + display steps', () => {
+      const engine = new WorkflowEngine()
+      registerBaseWorkflows(engine)
+      expect(engine.inspectWorkflow('quick-roll')).toEqual(['roll', 'display'])
+      expect(getQuickRollWorkflow().name).toBe('quick-roll')
+    })
+
+    it('delegates to roll workflow and displays result', async () => {
+      const engine = new WorkflowEngine()
+      registerBaseWorkflows(engine)
+
+      const { deps, bus } = makeMockDeps(engine)
+      const announcements: unknown[] = []
+      bus.on(announceEvent, (p) => announcements.push(p))
+
+      const internal = makeInternal()
+      const ctx = createWorkflowContext(deps, { formula: '2d12+1', actorId: 'a1' }, internal)
+      await engine.runWorkflow('quick-roll', ctx, internal)
+      expect(announcements).toEqual([
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- vitest matcher returns any
+        expect.objectContaining({ message: expect.stringContaining('2d12+1') }),
+      ])
+    })
   })
 })

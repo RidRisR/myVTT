@@ -1,7 +1,7 @@
 // plugins/daggerheart-core/rollSteps.ts
 import type React from 'react'
 import type { IPluginSDK, WorkflowHandle, JudgmentResult } from '@myvtt/sdk'
-import { tokenizeExpression, toDiceSpecs, buildCompoundResult, toastEvent } from '@myvtt/sdk'
+import { getRollWorkflow, toastEvent } from '@myvtt/sdk'
 import { dhEvaluateRoll } from '../daggerheart/diceSystem'
 import { DHJudgmentRenderer } from './DHJudgmentRenderer'
 
@@ -37,37 +37,19 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
         }
         ctx.vars.formula = formula
 
-        // Resolve @tokens if present
-        let resolved = ctx.vars.resolvedFormula as string | undefined
-        if (!resolved && /@[\p{L}\p{N}_]+/u.test(formula)) {
-          const tokens = ctx.read.formulaTokens(ctx.vars.actorId)
-          resolved = formula.replace(/@([\p{L}\p{N}_]+)/gu, (_, key: string) => {
-            const val = tokens[key]
-            return val !== undefined ? String(val) : `@${key}`
-          })
-          ctx.vars.resolvedFormula = resolved
-        }
-
-        // Tokenize + server roll
-        const finalFormula = resolved ?? formula
-        const terms = tokenizeExpression(finalFormula)
-        if (!terms) {
-          ctx.abort(`Cannot parse: ${finalFormula}`)
-          return
-        }
-        const dice = toDiceSpecs(terms)
-
-        const entry = await ctx.serverRoll(formula, {
-          dice,
-          resolvedFormula: resolved,
+        const result = await ctx.runWorkflow(getRollWorkflow(), {
+          formula,
+          actorId: ctx.vars.actorId,
+          resolvedFormula: ctx.vars.resolvedFormula as string | undefined,
           rollType: ctx.vars.rollType as string | undefined,
           actionName: ctx.vars.actionName as string | undefined,
         })
-
-        const rolls = entry.payload.rolls as number[][]
-        const { total } = buildCompoundResult(terms, rolls)
-        ctx.vars.rolls = rolls
-        ctx.vars.total = total
+        if (result.status === 'completed') {
+          ctx.vars.rolls = result.output.rolls
+          ctx.vars.total = result.output.total
+        } else {
+          ctx.abort(result.reason ?? 'Roll failed')
+        }
       },
     },
     {

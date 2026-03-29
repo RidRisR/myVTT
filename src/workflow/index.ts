@@ -24,8 +24,8 @@ export type {
 export { output } from './helpers'
 export { getRenderer, registerRenderer, clearRenderers } from '../log/rendererRegistry'
 export type { LogEntryRendererProps, LogEntryRenderer } from '../log/rendererRegistry'
-export { registerBaseWorkflows, getQuickRollWorkflow } from './baseWorkflows'
-export type { BaseRollData } from './baseWorkflows'
+export { registerBaseWorkflows, getQuickRollWorkflow, getRollWorkflow } from './baseWorkflows'
+export type { BaseRollData, RollOutput } from './baseWorkflows'
 export {
   useWorkflowRunner,
   getWorkflowEngine,

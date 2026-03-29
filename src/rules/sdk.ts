@@ -81,8 +81,8 @@ export type {
   SoundPayload,
 } from '../events/systemEvents'
 export type { VTTPlugin } from './types'
-export { getQuickRollWorkflow } from '../workflow/baseWorkflows'
-export type { BaseRollData } from '../workflow/baseWorkflows'
+export { getQuickRollWorkflow, getRollWorkflow } from '../workflow/baseWorkflows'
+export type { BaseRollData, RollOutput } from '../workflow/baseWorkflows'
 export { useWorkflowRunner } from '../workflow/useWorkflowSDK'
 
 // ── Log renderer types ──────────────────────────────────────────────────────
