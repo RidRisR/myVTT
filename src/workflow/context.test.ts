@@ -29,7 +29,7 @@ function makeRollEntry(overrides: Record<string, unknown> = {}) {
     visibility: {},
     baseSeq: 0,
     timestamp: Date.now(),
-    payload: { rolls: [[4]], total: 4, formula: '1d6', dice: [{ sides: 6, count: 1 }] },
+    payload: { rolls: [[4]], formula: '1d6', dice: [{ sides: 6, count: 1 }] },
     ...overrides,
   }
 }
@@ -91,7 +91,6 @@ describe('createWorkflowContext', () => {
       }),
     )
     expect(result.payload.rolls).toEqual([[4]])
-    expect(result.payload.total).toBe(4)
   })
 
   it('updateComponent emits core:component-update log entry', () => {

@@ -87,6 +87,7 @@ describe('initRoomSchema', () => {
       'origin',
       'executor',
       'parent_id',
+      'group_id',
       'chain_depth',
       'triggerable',
       'visibility',

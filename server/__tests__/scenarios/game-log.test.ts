@@ -224,8 +224,6 @@ describe('Game Log Handlers', () => {
       expect(roll).toBeGreaterThanOrEqual(1)
       expect(roll).toBeLessThanOrEqual(6)
     }
-    // Total should be sum of all rolls
-    expect(payload.total).toBe(rolls[0]!.reduce((a: number, b: number) => a + b, 0))
 
     // Second client should receive broadcast
     const broadcast = await broadcastPromise

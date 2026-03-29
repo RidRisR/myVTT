@@ -63,8 +63,8 @@ export function setupLogHandlers(io: TypedServer, dataDir: string): void {
         const info = db
           .prepare(
             `INSERT OR IGNORE INTO game_log
-             (id, type, origin, executor, parent_id, chain_depth, triggerable, visibility, base_seq, payload, timestamp)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (id, type, origin, executor, parent_id, group_id, chain_depth, triggerable, visibility, base_seq, payload, timestamp)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .run(
             submission.id,
@@ -72,6 +72,7 @@ export function setupLogHandlers(io: TypedServer, dataDir: string): void {
             JSON.stringify(submission.origin),
             executor,
             submission.parentId ?? null,
+            submission.groupId ?? null,
             submission.chainDepth,
             submission.triggerable ? 1 : 0,
             JSON.stringify(submission.visibility),
@@ -141,12 +142,9 @@ export function setupLogHandlers(io: TypedServer, dataDir: string): void {
       const executor = socket.data.seatId
       const timestamp = Date.now()
 
-      const total = rolls.flat().reduce((a, b) => a + b, 0)
-
       const payload: Record<string, unknown> = {
         dice: request.dice,
         rolls,
-        total,
         formula: request.formula,
       }
       if (request.resolvedFormula) payload.resolvedFormula = request.resolvedFormula
@@ -157,14 +155,15 @@ export function setupLogHandlers(io: TypedServer, dataDir: string): void {
       const entry = db.transaction(() => {
         db.prepare(
           `INSERT INTO game_log
-           (id, type, origin, executor, parent_id, chain_depth, triggerable, visibility, base_seq, payload, timestamp)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, type, origin, executor, parent_id, group_id, chain_depth, triggerable, visibility, base_seq, payload, timestamp)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         ).run(
           id,
           'core:roll-result',
           JSON.stringify(request.origin),
           executor,
           request.parentId ?? null,
+          request.groupId ?? null,
           request.chainDepth,
           request.triggerable ? 1 : 0,
           JSON.stringify(request.visibility),

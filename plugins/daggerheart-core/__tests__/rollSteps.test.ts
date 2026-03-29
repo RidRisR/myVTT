@@ -7,7 +7,7 @@ import { registerDHCoreSteps, getDHActionCheckWorkflow } from '../rollSteps'
 import type { ContextDeps } from '../../../src/workflow/context'
 import { EventBus } from '../../../src/events/eventBus'
 
-function makeRollEntry(rolls: number[][] = [[4, 9]], total = 15) {
+function makeRollEntry(rolls: number[][] = [[4, 9]]) {
   return {
     seq: 1,
     id: 'roll-1',
@@ -19,7 +19,7 @@ function makeRollEntry(rolls: number[][] = [[4, 9]], total = 15) {
     visibility: {},
     baseSeq: 0,
     timestamp: Date.now(),
-    payload: { rolls, total, formula: '2d12', dice: [{ sides: 12, count: 2 }] },
+    payload: { rolls, formula: '2d12', dice: [{ sides: 12, count: 2 }] },
   }
 }
 
@@ -68,7 +68,7 @@ describe('registerDHCoreSteps', () => {
 
   it('dh:resolve emits tracker-update for Fear on success_fear outcome (rolls [[4,9]])', async () => {
     const { runner, deps } = makeSetup({
-      serverRoll: vi.fn().mockResolvedValue(makeRollEntry([[4, 9]], 15)),
+      serverRoll: vi.fn().mockResolvedValue(makeRollEntry([[4, 9]])),
     })
     await runner.runWorkflow(getDHActionCheckWorkflow(), { formula: '2d12', actorId: '' })
     expect(deps.emitEntry).toHaveBeenCalledWith(
@@ -81,7 +81,7 @@ describe('registerDHCoreSteps', () => {
 
   it('dh:resolve emits tracker-update for Hope on success_hope outcome (rolls [[9,4]])', async () => {
     const { runner, deps } = makeSetup({
-      serverRoll: vi.fn().mockResolvedValue(makeRollEntry([[9, 4]], 15)),
+      serverRoll: vi.fn().mockResolvedValue(makeRollEntry([[9, 4]])),
     })
     await runner.runWorkflow(getDHActionCheckWorkflow(), { formula: '2d12', actorId: '' })
     expect(deps.emitEntry).toHaveBeenCalledWith(

@@ -48,7 +48,6 @@ export interface LogPayloadMap {
     resolvedFormula?: string
     dice: DiceSpec[]
     rolls: number[][]
-    total: number
     rollType?: string
     actionName?: string
   }
