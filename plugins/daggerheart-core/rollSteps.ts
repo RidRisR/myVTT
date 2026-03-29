@@ -1,6 +1,6 @@
 // plugins/daggerheart-core/rollSteps.ts
 import type { IPluginSDK, WorkflowHandle, JudgmentResult } from '@myvtt/sdk'
-import { tokenizeExpression, toDiceSpecs, buildCompoundResult, toastEvent, announceEvent } from '@myvtt/sdk'
+import { tokenizeExpression, toDiceSpecs, buildCompoundResult, toastEvent } from '@myvtt/sdk'
 import { dhEvaluateRoll } from '../daggerheart/diceSystem'
 
 /** Data shape for the dh:action-check workflow */
@@ -74,6 +74,23 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
       },
     },
     {
+      id: 'dh:emit-judgment',
+      run: (ctx) => {
+        const judgment = ctx.vars.judgment as { type: string; outcome: string } | undefined
+        if (!judgment) return
+        ctx.emitEntry({
+          type: 'dh:judgment',
+          payload: {
+            formula: ctx.vars.formula as string,
+            rolls: ctx.vars.rolls as number[][],
+            total: ctx.vars.total as number,
+            judgment,
+          },
+          triggerable: true,
+        })
+      },
+    },
+    {
       id: 'dh:resolve',
       run: (ctx) => {
         const judgment = ctx.vars.judgment as { type: string; outcome: string } | undefined
@@ -98,9 +115,6 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
         ctx.events.emit(toastEvent, {
           text: `🎲 ${formula} = ${total}${judgmentStr}`,
           variant: 'success',
-        })
-        ctx.events.emit(announceEvent, {
-          message: `🎲 ${formula} = ${total}${judgmentStr}`,
         })
       },
     },

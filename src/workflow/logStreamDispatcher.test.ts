@@ -77,7 +77,30 @@ describe('LogStreamDispatcher', () => {
     await dispatcher.dispatch(entry)
 
     expect(getMatchingTriggers).toHaveBeenCalledWith(entry)
-    expect(runWorkflow).toHaveBeenCalledWith({ name: 'wf1' }, entry.payload)
+    expect(runWorkflow).toHaveBeenCalledWith(
+      { name: 'wf1' },
+      entry.payload,
+      { groupId: expect.any(String), causedBy: entry.id, chainDepth: entry.chainDepth + 1 },
+    )
+  })
+
+  it('passes ChainContext with new groupId, causedBy, and incremented chainDepth', async () => {
+    const trigger = makeTrigger('t1', 'wf1')
+    getMatchingTriggers.mockReturnValue([trigger])
+
+    const entry = makeEntry({ id: 'entry-abc', chainDepth: 3, seq: 10, executor: 'seat-a' })
+    await dispatcher.dispatch(entry)
+
+    expect(runWorkflow).toHaveBeenCalledTimes(1)
+    const chainCtx = (runWorkflow.mock.calls[0] as unknown[])[2] as Record<string, unknown>
+    expect(chainCtx).toEqual({
+      groupId: expect.any(String),
+      causedBy: 'entry-abc',
+      chainDepth: 4,
+    })
+    // groupId should be a non-empty string (uuidv7)
+    expect(typeof chainCtx.groupId).toBe('string')
+    expect((chainCtx.groupId as string).length).toBeGreaterThan(0)
   })
 
   it('skips dispatch when entry is not triggerable', async () => {

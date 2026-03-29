@@ -52,13 +52,32 @@ describe('registerDHCoreSteps', () => {
   it('defines dh:action-check with roll, dh:judge, dh:resolve, display steps', () => {
     const { sdk } = makeSetup()
     const steps = sdk.inspectWorkflow(getDHActionCheckWorkflow())
-    expect(steps).toEqual(['roll', 'dh:judge', 'dh:resolve', 'display'])
+    expect(steps).toEqual(['roll', 'dh:judge', 'dh:emit-judgment', 'dh:resolve', 'display'])
   })
 
   it('dh:action-check calls ctx.serverRoll directly (no nested roll workflow)', async () => {
     const { runner, deps } = makeSetup()
     await runner.runWorkflow(getDHActionCheckWorkflow(), { formula: '2d12', actorId: '' })
     expect(deps.serverRoll).toHaveBeenCalledWith(expect.objectContaining({ formula: '2d12' }))
+  })
+
+  it('dh:emit-judgment emits dh:judgment log entry with judgment payload', async () => {
+    const { runner, deps } = makeSetup({
+      serverRoll: vi.fn().mockResolvedValue(makeRollEntry([[4, 9]])),
+    })
+    await runner.runWorkflow(getDHActionCheckWorkflow(), { formula: '2d12', actorId: '' })
+    expect(deps.emitEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'dh:judgment',
+        payload: {
+          formula: '2d12',
+          rolls: [[4, 9]],
+          total: 13,
+          judgment: expect.objectContaining({ type: 'daggerheart', outcome: 'success_fear' }),
+        },
+        triggerable: true,
+      }),
+    )
   })
 
   it('dh:resolve emits tracker-update for Fear on success_fear outcome (rolls [[4,9]])', async () => {
