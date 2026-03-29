@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { getRenderer } from './rendererRegistry'
+import { getRenderer, type LogEntryRenderer } from './rendererRegistry'
+import type { LogEntryRendererProps } from './rendererRegistry'
 import type { GameLogEntry } from '../shared/logTypes'
 import { isLogType } from '../shared/logTypes'
 import type { ChatMessage } from '../shared/chatTypes'
@@ -35,6 +36,18 @@ function logEntryToChatMessage(entry: GameLogEntry): ChatMessage | null {
   return null
 }
 
+/** Stable wrapper — receives a resolved renderer as a prop so React sees a static component type */
+function RendererBridge({
+  renderer: Renderer,
+  entry,
+  isNew,
+  animationStyle,
+}: {
+  renderer: LogEntryRenderer
+} & LogEntryRendererProps) {
+  return <Renderer entry={entry} isNew={isNew} animationStyle={animationStyle} />
+}
+
 export function LogEntryCard({
   entry,
   isNew,
@@ -44,8 +57,17 @@ export function LogEntryCard({
   isNew?: boolean
   animationStyle?: 'toast' | 'scroll'
 }) {
-  const Renderer = useMemo(() => getRenderer('chat', entry.type), [entry.type])
-  if (Renderer) return <Renderer entry={entry} isNew={isNew} animationStyle={animationStyle} />
+  const renderer = useMemo(() => getRenderer('chat', entry.type), [entry.type])
+  if (renderer) {
+    return (
+      <RendererBridge
+        renderer={renderer}
+        entry={entry}
+        isNew={isNew}
+        animationStyle={animationStyle}
+      />
+    )
+  }
 
   // Temporary fallback for types not yet migrated
   const chatMsg = logEntryToChatMessage(entry)

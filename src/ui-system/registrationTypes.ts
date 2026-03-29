@@ -25,10 +25,10 @@ export interface LayerDef {
 export interface IUIRegistrationSDK {
   registerComponent(def: ComponentDef): void
   registerLayer(def: LayerDef): void
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- avoids circular import of GameLogEntry
   registerRenderer(
     surface: string,
     type: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- avoids circular import of GameLogEntry
     renderer: React.ComponentType<{ entry: any; isNew?: boolean }>,
   ): void
 }

@@ -80,6 +80,7 @@ describe('LogStreamDispatcher', () => {
     expect(runWorkflow).toHaveBeenCalledWith(
       { name: 'wf1' },
       entry.payload,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- vitest matcher returns any
       { groupId: expect.any(String), causedBy: entry.id, chainDepth: entry.chainDepth + 1 },
     )
   })
@@ -94,6 +95,7 @@ describe('LogStreamDispatcher', () => {
     expect(runWorkflow).toHaveBeenCalledTimes(1)
     const chainCtx = (runWorkflow.mock.calls[0] as unknown[])[2] as Record<string, unknown>
     expect(chainCtx).toEqual({
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- vitest matcher returns any
       groupId: expect.any(String),
       causedBy: 'entry-abc',
       chainDepth: 4,

@@ -175,7 +175,11 @@ export class WorkflowRunner implements IWorkflowRunner {
       (data ?? {}) as Record<string, unknown>,
       internal,
       chainCtx
-        ? { groupId: chainCtx.groupId, chainDepth: chainCtx.chainDepth, causedBy: chainCtx.causedBy }
+        ? {
+            groupId: chainCtx.groupId,
+            chainDepth: chainCtx.chainDepth,
+            causedBy: chainCtx.causedBy,
+          }
         : undefined,
     )
     return this.engine.runWorkflow(handle.name, ctx, internal) as Promise<

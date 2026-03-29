@@ -231,9 +231,7 @@ describe('createWorkflowContext', () => {
     const ctx = createWorkflowContext(deps, undefined, makeInternal(), { groupId: 'g-test' })
     ctx.emitEntry({ type: 'test:entry', payload: { x: 1 }, triggerable: false })
 
-    expect(deps.emitEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ groupId: 'g-test' }),
-    )
+    expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-test' }))
   })
 
   it('serverRoll auto-injects groupId from context options', async () => {
@@ -241,9 +239,7 @@ describe('createWorkflowContext', () => {
     const ctx = createWorkflowContext(deps, undefined, makeInternal(), { groupId: 'g-roll' })
     await ctx.serverRoll('1d6')
 
-    expect(deps.serverRoll).toHaveBeenCalledWith(
-      expect.objectContaining({ groupId: 'g-roll' }),
-    )
+    expect(deps.serverRoll).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-roll' }))
   })
 
   it('updateComponent auto-injects groupId from context options', () => {
@@ -262,21 +258,16 @@ describe('createWorkflowContext', () => {
       return { ...val, current: val.current - 1 }
     })
 
-    expect(deps.emitEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ groupId: 'g-comp' }),
-    )
+    expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-comp' }))
   })
 
   it('updateTeamTracker auto-injects groupId from context options', () => {
     const deps = makeDeps()
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
     const ctx = createWorkflowContext(deps, undefined, makeInternal(), { groupId: 'g-tracker' })
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
     ctx.updateTeamTracker('HP', { current: 3 })
 
-    expect(deps.emitEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ groupId: 'g-tracker' }),
-    )
+    expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-tracker' }))
   })
 
   it('default groupId is generated when not provided (uuid string)', () => {
@@ -284,9 +275,11 @@ describe('createWorkflowContext', () => {
     const ctx = createWorkflowContext(deps, undefined, makeInternal())
     ctx.emitEntry({ type: 'test:entry', payload: {}, triggerable: false })
 
-    const submission = (deps.emitEntry as ReturnType<typeof vi.fn>).mock.calls[0]![0]
-    expect(typeof submission.groupId).toBe('string')
-    expect(submission.groupId.length).toBeGreaterThan(0)
+    expect(deps.emitEntry).toHaveBeenCalledTimes(1)
+    const submission = (deps.emitEntry as ReturnType<typeof vi.fn>).mock
+      .calls[0] as unknown as [Record<string, unknown>]
+    expect(typeof submission[0].groupId).toBe('string')
+    expect((submission[0].groupId as string).length).toBeGreaterThan(0)
   })
 
   it('nested runWorkflow inherits parent groupId', async () => {
@@ -306,9 +299,7 @@ describe('createWorkflowContext', () => {
     await ctx.runWorkflow({ name: 'inner' } as never, {})
 
     // The inner workflow's emitEntry should use the same groupId as parent
-    expect(deps.emitEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ groupId: 'g-parent' }),
-    )
+    expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-parent' }))
   })
 
   it('causedBy is injected as parentId when provided', () => {
@@ -358,9 +349,7 @@ describe('createWorkflowContext', () => {
     const ctx = createWorkflowContext(deps, undefined, makeInternal(), { chainDepth: 3 })
     ctx.emitEntry({ type: 'test:depth', payload: {}, triggerable: false })
 
-    expect(deps.emitEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ chainDepth: 3 }),
-    )
+    expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ chainDepth: 3 }))
   })
 
   it('nested workflow has independent abort', async () => {

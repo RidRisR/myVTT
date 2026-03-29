@@ -42,7 +42,7 @@ describe('base workflows', () => {
         visibility: {},
         baseSeq: 0,
         timestamp: Date.now(),
-        payload: { rolls: [[8, 5]], total: 13, formula: '2d12+1', dice: [{ sides: 12, count: 2 }] },
+        payload: { rolls: [[8, 5]], formula: '2d12+1', dice: [{ sides: 12, count: 2 }] },
       }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),

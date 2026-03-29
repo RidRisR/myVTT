@@ -70,7 +70,7 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
         ctx.vars.formula = formula
 
         // 1. Resolve @tokens
-        let resolved = ctx.vars.resolvedFormula as string | undefined
+        let resolved = ctx.vars.resolvedFormula
         if (!resolved && /@[\p{L}\p{N}_]+/u.test(formula)) {
           const tokens = ctx.read.formulaTokens(ctx.vars.actorId)
           resolved = formula.replace(/@([\p{L}\p{N}_]+)/gu, (_, key: string) => {

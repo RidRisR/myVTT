@@ -29,8 +29,12 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
     {
       id: 'roll',
       run: async (ctx) => {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- formula absent when invoked via command system
         const formula = ctx.vars.formula ?? (ctx.vars.raw as string | undefined)
-        if (!formula) { ctx.abort('Missing formula'); return }
+        if (!formula) {
+          ctx.abort('Missing formula')
+          return
+        }
         ctx.vars.formula = formula
 
         // Resolve @tokens if present
@@ -47,7 +51,10 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
         // Tokenize + server roll
         const finalFormula = resolved ?? formula
         const terms = tokenizeExpression(finalFormula)
-        if (!terms) { ctx.abort(`Cannot parse: ${finalFormula}`); return }
+        if (!terms) {
+          ctx.abort(`Cannot parse: ${finalFormula}`)
+          return
+        }
         const dice = toDiceSpecs(terms)
 
         const entry = await ctx.serverRoll(formula, {
@@ -83,7 +90,7 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
         ctx.emitEntry({
           type: 'dh:judgment',
           payload: {
-            formula: ctx.vars.formula as string,
+            formula: ctx.vars.formula,
             rolls: ctx.vars.rolls as number[][],
             total: ctx.vars.total as number,
             judgment,

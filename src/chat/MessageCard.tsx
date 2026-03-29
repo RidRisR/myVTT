@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Star } from 'lucide-react'
-import type { ChatMessage, ChatRollMessage } from '../shared/chatTypes'
+import type { ChatMessage } from '../shared/chatTypes'
 import { getDisplayIdentity } from '../shared/chatTypes'
 import { Avatar } from './Avatar'
 import { DiceResultCard, DiceAnimContent } from './DiceResultCard'
@@ -38,7 +38,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
       : undefined
 
   // Inject renderDice — plugin calls this to get the base animation with optional per-die config
-  const rollMsg = message.type === 'roll' ? (message as ChatRollMessage) : null
+  const rollMsg = message.type === 'roll' ? message : null
   const renderDice = useCallback(
     (configs?: DieConfig[], options?: RenderDiceOptions) => (
       <DiceAnimContent

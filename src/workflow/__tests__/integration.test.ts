@@ -63,14 +63,20 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
         id: 'roll',
         run: async (ctx) => {
           const formula = ctx.vars.formula
-          if (!formula) { ctx.abort('Missing formula'); return }
+          if (!formula) {
+            ctx.abort('Missing formula')
+            return
+          }
 
-          const finalFormula = formula as string
+          const finalFormula = formula
           const terms = tokenizeExpression(finalFormula)
-          if (!terms) { ctx.abort(`Cannot parse: ${finalFormula}`); return }
+          if (!terms) {
+            ctx.abort(`Cannot parse: ${finalFormula}`)
+            return
+          }
           const dice = toDiceSpecs(terms)
 
-          const entry = await ctx.serverRoll(formula as string, { dice })
+          const entry = await ctx.serverRoll(formula, { dice })
           const rolls = entry.payload.rolls as number[][]
           const { total } = buildCompoundResult(terms, rolls)
           ctx.vars.rolls = rolls

@@ -19,7 +19,9 @@ function key(surface: string, type: string): string {
 export function registerRenderer(surface: string, type: string, renderer: LogEntryRenderer): void {
   const k = key(surface, type)
   if (registry.has(k)) {
-    console.warn(`[RendererRegistry] Renderer for "${surface}::${type}" already registered, skipping`)
+    console.warn(
+      `[RendererRegistry] Renderer for "${surface}::${type}" already registered, skipping`,
+    )
     return
   }
   registry.set(k, renderer)
