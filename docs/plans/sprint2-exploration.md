@@ -1,6 +1,6 @@
 # Sprint 2 探索文档
 
-> **状态**：探索中 | 2026-03-29
+> **状态**：已完成 | 2026-03-29 | PR #174
 > **范围**：Sprint 2 任务的设计讨论与决策记录
 > **前置**：Sprint 1 探索文档、Doc 17 插件系统演进路线
 
@@ -23,13 +23,13 @@
 
 Sprint 2 的范围在讨论中经历了重大调整。Doc 17 原定的 Sprint 2 是"A2 因果链传播 + A3 渲染器 Step1-4"，但经过设计讨论，parentId 因果链被 groupId 分组替代，同时发现了 roll workflow 和服务端 total 的架构问题。
 
-| 任务                    | 工作量 | 状态      | 依赖 | 来源                      |
-| ----------------------- | ------ | --------- | ---- | ------------------------- |
-| R1: 服务端 RNG 纯化     | S      | ✅ 已确认 | 无   | 新增（讨论中发现）        |
-| R2: roll workflow 退役  | M      | ✅ 已确认 | R1   | 新增（讨论中发现）        |
-| G1: groupId 分组机制    | S      | ✅ 已确认 | 无   | 替代 Doc 17 A2 因果链传播 |
-| J1: judgment emitEntry  | S      | ✅ 已确认 | G1   | 新增（讨论中发现）        |
-| A3: RendererRegistry    | L      | 🟡 设计中 | J1   | Doc 17 A3 Step 1-4        |
+| 任务                    | 工作量 | 状态                          | 依赖 | 来源                      |
+| ----------------------- | ------ | ----------------------------- | ---- | ------------------------- |
+| R1: 服务端 RNG 纯化     | S      | ✅ 已完成                     | 无   | 新增（讨论中发现）        |
+| R2: roll workflow 退役  | M      | ❌ 已推翻（恢复为独立 workflow）| R1   | 新增（讨论中发现）        |
+| G1: groupId 分组机制    | S      | ✅ 已完成                     | 无   | 替代 Doc 17 A2 因果链传播 |
+| J1: judgment emitEntry  | S      | ✅ 已完成                     | G1   | 新增（讨论中发现）        |
+| A3: RendererRegistry    | L      | ✅ 已完成（Step 1-4）         | J1   | Doc 17 A3 Step 1-4        |
 
 ### 与 Doc 17 Sprint 路线图的偏差
 
@@ -147,7 +147,7 @@ if (request.actionName) payload.actionName = request.actionName
 
 ## 4 R2: roll workflow 退役
 
-> **状态**：✅ 已确认
+> **状态**：❌ 已推翻 — 实现后决定恢复 roll workflow，详见 `sprint2-deviations.md` 偏差 8
 
 ### 4.1 为什么 roll 不需要是独立 workflow
 
