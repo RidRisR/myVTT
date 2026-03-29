@@ -27,11 +27,11 @@
 - `causedBy` 映射到 `parentId`（复用已有列，无需新增）
 - `LogStreamDispatcher` 在 trigger 边界：新 groupId + `causedBy = entry.id` + `chainDepth + 1`
 
-### R2: roll workflow 退役
-- 删除 `roll` workflow 定义、`getRollWorkflow()` 导出、`RollOutput` 类型
-- `quick-roll` 内联：@token 解析 → tokenize → toDiceSpecs → serverRoll → buildCompoundResult
-- `dh:action-check` 直接调用 `ctx.serverRoll()` + 自己的 judgment 逻辑
-- SDK 导出更新（`toDiceSpecs` 新增导出，`getRollWorkflow` 移除）
+### R2: roll workflow 退役 → 已撤销，恢复为独立 workflow
+- 初始实现按探索文档删除了 roll workflow 并内联逻辑
+- **后经讨论决定恢复**：服务端不再算 total（R1），roll workflow 是唯一计算 total 的地方；公式求值系统复用性强；workflow 提供可 hook 的切面能力
+- 恢复了 `roll` workflow、`getRollWorkflow()`、`RollOutput` 类型
+- `quick-roll` 和 `dh:action-check` 恢复为 `ctx.runWorkflow(getRollWorkflow(), ...)`
 
 ### J1: judgment emitEntry
 - `dh:judgment` 添加到 `LogPayloadMap`（module augmentation in `plugins/daggerheart/types.ts`）
@@ -57,15 +57,13 @@
 
 ---
 
-### 偏差 2：roll 逻辑在两处重复
+### 偏差 2：~~roll 逻辑在两处重复~~ → 已通过恢复 roll workflow 解决
 
 **探索文档描述**：§4.2 说"各业务 workflow 直接调用 `ctx.serverRoll()`"。
 
-**实际实现**：@token 解析 → tokenizeExpression → toDiceSpecs → serverRoll → buildCompoundResult 的完整序列在 `baseWorkflows.ts`（quick-roll）和 `rollSteps.ts`（dh:action-check）各出现一次。
+**初始实现**：@token 解析 → tokenize → serverRoll → buildCompoundResult 在 quick-roll 和 dh:action-check 各重复一次。
 
-**原因**：探索文档的设计意图是"公式解析和求和是业务假设，各调用方应自己处理"。这是正确的——但实际上 @token 解析和 tokenize 的逻辑完全相同。可以提取一个工具函数（如 `resolveAndRoll(ctx, formula)` → `{ rolls, terms, total }`）来消除重复，同时保持各调用方对业务结果的独立控制。
-
-**影响**：代码重复，不影响功能。列入后续优化。
+**修复**：恢复 roll workflow 后，公式求值逻辑集中在 roll workflow 的 `generate` step 中，quick-roll 和 dh:action-check 均通过 `ctx.runWorkflow(getRollWorkflow(), ...)` 调用。重复消除。
 
 ---
 
@@ -119,17 +117,18 @@
 
 ---
 
-### 偏差 8：roll workflow 退役可能过早 — 待重新评估
+### 偏差 8：roll workflow 退役决策撤销 — 已恢复
 
 **探索文档描述**：§4 确认 roll workflow 退役，理由是"观察用 trigger，业务逻辑属于调用方，没有消费者 hook 它"。
 
-**实际实现**：按照探索文档执行——删除了 `roll` workflow，各调用方内联 roll 逻辑。
+**最终决策**：恢复 roll workflow。探索文档 §4 R2 决策被推翻。
 
-**问题**：讨论中同时确认了 pre-execution modification 的不可替代价值（§8 Foundry VTT 调研）。roll workflow 作为独立 workflow 提供的切面能力（插件在掷骰前修改骰子，如优势/劣势骰）正是这种 pre-execution modification。退役它等于放弃了这个切面点。
+**原因**（三个互相加强的理由）：
+1. **服务端纯 RNG 后，roll workflow 是唯一计算 total 的地方**——R1 删除了服务端 total，调用方必须通过 runWorkflow 拿到计算结果
+2. **公式求值系统复用性强**——即使 Daggerheart 也需要加法（Hope+Fear+modifier），不同游戏系统都复用同一套 @token 解析 + tokenize + serverRoll + buildCompoundResult 流程
+3. **workflow 提供可 hook 的切面**——§8 确认了 pre-execution modification 的不可替代价值，roll workflow 正是掷骰前修改骰子的切面点
 
-此外，退役导致 @token 解析 + tokenize + serverRoll + buildCompoundResult 在 `baseWorkflows.ts` 和 `rollSteps.ts` 中完全重复（偏差 2）。如果 roll 仍是 workflow，这个重复就不存在。
-
-**需要重新评估**：roll workflow 是否应该恢复？或者保持退役但提供一个共享工具函数？这涉及对 Sprint 2 探索文档 §4 决策的修正。
+**影响**：偏差 2（代码重复）同时解决。探索文档 §4 R2 决策标记为"已推翻"。
 
 ---
 
