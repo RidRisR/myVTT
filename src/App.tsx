@@ -48,7 +48,6 @@ import { LayerRenderer } from './ui-system/LayerRenderer'
 import { getLayoutStore } from './stores/layoutStore'
 import { getUIRegistry, createProductionSDK } from './ui-system/uiSystemInit'
 import { useLayoutSync } from './ui-system/useLayoutSync'
-import { applyDrag } from './ui-system/LayoutEditor'
 
 // DEV-only: Sandbox pattern library. Vite replaces import.meta.env.DEV with
 // false in production builds, making the lazy import dead code that Rollup
@@ -206,13 +205,11 @@ function RoomSession({ roomId }: { roomId: string }) {
   // Layout drag handler for edit mode
   const handleLayoutDrag = useCallback(
     (instanceKey: string, delta: { dx: number; dy: number }) => {
-      const current = layoutStore.getState()
-      const modeKey = current.isTactical ? 'tactical' : 'narrative'
-      const layout = current.isTactical ? current.tactical : current.narrative
-      const updated = applyDrag(layout, instanceKey, delta)
-      layoutStore.setState({
-        [modeKey]: updated,
-        activeLayout: updated,
+      const entry = layoutStore.getState().activeLayout[instanceKey]
+      if (!entry) return
+      layoutStore.getState().updateEntry(instanceKey, {
+        x: entry.x + delta.dx,
+        y: entry.y + delta.dy,
       })
     },
     [layoutStore],

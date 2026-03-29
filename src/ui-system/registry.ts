@@ -30,6 +30,10 @@ export class UIRegistry {
     return [...this.components.values()]
   }
 
+  /**
+   * Returns components filtered by type. Creates a new array on each call —
+   * do NOT use inside zustand selectors or React render paths without memoization.
+   */
   listComponentsByType(type: PanelType): ComponentDef[] {
     return [...this.components.values()].filter((c) => c.type === type)
   }

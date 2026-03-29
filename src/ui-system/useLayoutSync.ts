@@ -28,6 +28,8 @@ export function useLayoutSync(store: StoreApi<LayoutStoreState>, roomId: string,
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(config),
+        }).catch((err: unknown) => {
+          console.error('Layout save failed:', err)
         })
       }
       prevModeRef.current = state.layoutMode
@@ -46,6 +48,8 @@ export function useLayoutSync(store: StoreApi<LayoutStoreState>, roomId: string,
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(config),
+        }).catch((err: unknown) => {
+          console.error('Layout save failed:', err)
         })
       }, DEBOUNCE_MS)
     })

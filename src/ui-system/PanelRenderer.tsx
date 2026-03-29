@@ -57,6 +57,7 @@ export function PanelRenderer({
               width: entry.width,
               height: entry.height,
               contain: 'layout paint',
+              overflow: 'hidden',
               zIndex: entry.zOrder,
               pointerEvents: 'auto',
             }}

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useStore } from 'zustand'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '../ui/useToast'
 import { Menu, LogOut, Sun, Moon, Globe, Library, LayoutGrid } from 'lucide-react'
@@ -301,11 +302,9 @@ function LanguageSwitcher() {
 }
 
 function EditLayoutToggle() {
+  const { t } = useTranslation('layout')
   const store = getLayoutStore()
-  const layoutMode = useSyncExternalStore(
-    store.subscribe,
-    () => store.getState().layoutMode,
-  )
+  const layoutMode = useStore(store, (s) => s.layoutMode)
   const isEditing = layoutMode === 'edit'
 
   return (
@@ -318,7 +317,7 @@ function EditLayoutToggle() {
       }`}
     >
       <LayoutGrid size={14} strokeWidth={1.5} />
-      {isEditing ? 'Lock Layout' : 'Edit Layout'}
+      {isEditing ? t('menu.lock_layout') : t('menu.edit_layout')}
     </button>
   )
 }
