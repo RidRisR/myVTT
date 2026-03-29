@@ -75,6 +75,49 @@ test.describe('Cross-client judgment and groupId', () => {
     await playerCtx.close()
   })
 
+  test('toast appears when chat is collapsed and message arrives', async ({ browser }) => {
+    // Setup: GM creates room and joins
+    const gmPage = await browser.newPage()
+    const admin = new AdminPage(gmPage)
+    await admin.goto()
+    const toastRoom = `toast-e2e-${Date.now()}`
+    await admin.createRoom(toastRoom)
+    await admin.enterRoom(toastRoom)
+    const gmSeat = new SeatSelectPage(gmPage)
+    await gmSeat.createAndJoin('GM', 'GM')
+    const gmRoom = new RoomPage(gmPage)
+    await gmRoom.expectInRoom()
+
+    // Setup: Player joins
+    const playerCtx = await browser.newContext()
+    const playerPage = await playerCtx.newPage()
+    await playerPage.goto(gmPage.url())
+    const playerSeat = new SeatSelectPage(playerPage)
+    await playerSeat.createAndJoin('Fighter', 'PL')
+    const playerRoom = new RoomPage(playerPage)
+    await playerRoom.expectInRoom()
+
+    // Player's chat starts collapsed (default state).
+    // Ensure it is collapsed — collapseChat() is a safe no-op if already collapsed.
+    await playerRoom.chat.collapseChat()
+
+    // GM expands chat and sends a message
+    await gmRoom.chat.expandChat()
+    await gmRoom.chat.sendMessage('Hello from GM')
+
+    // Player should see a toast notification with the message text.
+    // ToastStack renders LogEntryCard → TextEntryRenderer with data-testid="entry-text".
+    // The toast appears as a fixed overlay when chat is collapsed.
+    await expect(
+      playerPage.getByTestId('entry-text').filter({ hasText: 'Hello from GM' }).first(),
+    ).toBeVisible({ timeout: 5000 })
+
+    // Cleanup
+    await gmPage.close()
+    await playerPage.close()
+    await playerCtx.close()
+  })
+
   test('entries from same workflow share groupId', async ({ page }) => {
     // Setup: create room and join as GM
     const admin = new AdminPage(page)
