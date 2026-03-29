@@ -9,6 +9,7 @@ export const pocUIPlugin: VTTPlugin = {
     sdk.ui.registerComponent({
       id: 'poc-ui.hello',
       component: HelloPanel as React.ComponentType<{ sdk: unknown }>,
+      type: 'panel',
       defaultSize: { width: 240, height: 140 },
     })
     sdk.ui.registerLayer({

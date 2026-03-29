@@ -29,4 +29,5 @@ export interface BundleResponse {
   tags: TagMeta[]
   logEntries: GameLogEntry[]
   logWatermark: number
+  layout: { narrative: Record<string, unknown>; tactical: Record<string, unknown> }
 }

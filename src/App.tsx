@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState, useRef, useMemo } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSocket } from './hooks/useSocket'
 import { AdminPanel } from './admin/AdminPanel'
@@ -42,6 +42,12 @@ import { ToastProvider } from './ui/ToastProvider'
 import { PluginPanelContainer } from './layout/PluginPanelContainer'
 import { useRulePlugin } from './rules/useRulePlugin'
 import { initWorkflowSystem } from './workflow/useWorkflowSDK'
+import { useStore } from 'zustand'
+import { PanelRenderer } from './ui-system/PanelRenderer'
+import { LayerRenderer } from './ui-system/LayerRenderer'
+import { getLayoutStore } from './stores/layoutStore'
+import { getUIRegistry, createProductionSDK } from './ui-system/uiSystemInit'
+import { useLayoutSync } from './ui-system/useLayoutSync'
 
 // DEV-only: Sandbox pattern library. Vite replaces import.meta.env.DEV with
 // false in production builds, making the lazy import dead code that Rollup
@@ -179,6 +185,58 @@ function RoomSession({ roomId }: { roomId: string }) {
   const selectToken = useUiStore((s) => s.selectToken)
   const clearSelection = useUiStore((s) => s.clearSelection)
   const toggleSelection = useUiStore((s) => s.toggleSelection)
+
+  // ── UI System: plugin panels + layout ──
+  // Hooks must be before early returns to satisfy Rules of Hooks
+  const isGM = mySeat?.role === 'GM'
+  const layoutStore = useMemo(() => getLayoutStore(), [])
+  const uiRegistry = useMemo(() => getUIRegistry(), [])
+  const activeLayout = useStore(layoutStore, (s) => s.activeLayout)
+  const layoutMode = useStore(layoutStore, (s) => s.layoutMode)
+
+  // Sync layoutStore.isTactical with worldStore tactical state
+  useEffect(() => {
+    layoutStore.getState().setIsTactical(isTactical)
+  }, [isTactical, layoutStore])
+
+  // Debounced layout persistence
+  useLayoutSync(layoutStore, roomId, !!socket)
+
+  // Layout drag handler for edit mode
+  const handleLayoutDrag = useCallback(
+    (instanceKey: string, delta: { dx: number; dy: number }) => {
+      const entry = layoutStore.getState().activeLayout[instanceKey]
+      if (!entry) return
+      layoutStore.getState().updateEntry(instanceKey, {
+        x: entry.x + delta.dx,
+        y: entry.y + delta.dy,
+      })
+    },
+    [layoutStore],
+  )
+
+  // Production makeSDK factory for PanelRenderer
+  const makeSDK = useCallback(
+    (instanceKey: string, instanceProps: Record<string, unknown>) =>
+      createProductionSDK({
+        instanceKey,
+        instanceProps,
+        role: isGM ? 'GM' : 'Player',
+        layoutMode,
+        read: {
+          entity: (id) => (id ? entities[id] : undefined),
+          component: () => undefined,
+          query: () => Object.values(entities),
+          formulaTokens: () => ({}),
+        },
+        workflow: { runWorkflow: () => Promise.resolve({} as never) },
+        awarenessManager: null,
+        layoutActions: null,
+        logSubscribe: null,
+        onDrag: handleLayoutDrag,
+      }),
+    [isGM, layoutMode, entities, handleLayoutDrag],
+  )
   const setSelectedTokenIds = useUiStore((s) => s.setSelectedTokenIds)
   const setBgContextMenu = useUiStore((s) => s.setBgContextMenu)
   const setEditingHandout = useUiStore((s) => s.setEditingHandout)
@@ -294,8 +352,6 @@ function RoomSession({ roomId }: { roomId: string }) {
       />
     )
   }
-
-  const isGM = mySeat.role === 'GM'
 
   const handleRemoveFromScene = (entityId: string) => {
     if (room.activeSceneId) void removeEntityFromScene(room.activeSceneId, entityId)
@@ -583,6 +639,18 @@ function RoomSession({ roomId }: { roomId: string }) {
             }}
           />
         )}
+      </div>
+
+      {/* UI System: plugin panels rendered via layout */}
+      <div className="pointer-events-none fixed inset-0 z-[900]">
+        <LayerRenderer registry={uiRegistry} layoutMode={layoutMode} />
+        <PanelRenderer
+          registry={uiRegistry}
+          layout={activeLayout}
+          makeSDK={makeSDK}
+          layoutMode={layoutMode}
+          onDrag={layoutMode === 'edit' ? handleLayoutDrag : undefined}
+        />
       </div>
 
       {/* Plugin panel portal — renders active plugin panels at high z-index */}

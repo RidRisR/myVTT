@@ -45,6 +45,28 @@ export function setupAwareness(io: TypedServer): void {
       socket.to(roomId).emit('awareness:tokenDragEnd', { seatId: socket.data.seatId })
     })
 
+    // Generic awareness channel relay (new plugin-extensible channels)
+    // Max payload size: 4KB — prevents abuse via oversized messages
+    const MAX_AWARENESS_PAYLOAD_BYTES = 4096
+
+    socket.on('awareness:ch:broadcast', (data: { channel: string; payload: unknown }) => {
+      if (!socket.data.seatId) return
+      const serialized = JSON.stringify(data.payload)
+      if (serialized.length > MAX_AWARENESS_PAYLOAD_BYTES) return
+      socket.to(roomId).emit('awareness:ch:broadcast', {
+        ...data,
+        seatId: socket.data.seatId,
+      })
+    })
+
+    socket.on('awareness:ch:clear', (data: { channel: string }) => {
+      if (!socket.data.seatId) return
+      socket.to(roomId).emit('awareness:ch:clear', {
+        channel: data.channel,
+        seatId: socket.data.seatId,
+      })
+    })
+
     // Notify room when a client disconnects
     socket.on('disconnect', () => {
       if (socket.data.seatId) {

@@ -104,6 +104,16 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
       ? getTacticalState(roomDb, stateRow.activeSceneId as string)
       : null
 
+    const layoutRow = roomDb.prepare('SELECT config FROM layout WHERE id = 1').get() as
+      | { config: string }
+      | undefined
+    const layout = layoutRow
+      ? (JSON.parse(layoutRow.config) as {
+          narrative: Record<string, unknown>
+          tactical: Record<string, unknown>
+        })
+      : { narrative: {}, tactical: {} }
+
     return {
       state: stateRow,
       scenes,
@@ -118,6 +128,7 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
       tags: allTags,
       logEntries,
       logWatermark,
+      layout,
     }
   })()
 
@@ -140,6 +151,7 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
     tags: data.tags,
     logEntries: data.logEntries,
     logWatermark: data.logWatermark,
+    layout: data.layout,
   } as unknown as BundleResponse
 }
 

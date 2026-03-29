@@ -7,6 +7,7 @@ import { genericPlugin } from '../../plugins/generic/index'
 import { daggerheartPlugin } from '../../plugins/daggerheart/index'
 import { daggerheartCorePlugin } from '../../plugins/daggerheart-core'
 import { daggerheartCosmeticPlugin } from '../../plugins/daggerheart-cosmetic'
+import { coreUIPlugin } from '../../plugins/core-ui'
 import { registerWorkflowPlugins, _bindRuleRegistry } from '../workflow/useWorkflowSDK'
 
 function loadPluginI18n(plugin: RulePlugin): void {
@@ -28,7 +29,7 @@ for (const plugin of registry.values()) {
 }
 
 // POC: register workflow plugins (will be replaced by dynamic discovery from room's rule system)
-registerWorkflowPlugins([daggerheartCorePlugin, daggerheartCosmeticPlugin])
+registerWorkflowPlugins([daggerheartCorePlugin, daggerheartCosmeticPlugin, coreUIPlugin])
 
 export function registerPlugin(plugin: RulePlugin): void {
   registry.set(plugin.id, plugin)

@@ -11,6 +11,7 @@ import type { PluginSDKDeps } from './pluginSDK'
 import { clearCommands } from './commandRegistry'
 import { TriggerRegistry } from './triggerRegistry'
 import { LogStreamDispatcher } from './logStreamDispatcher'
+import { getUIRegistry, getExtensionRegistry } from '../ui-system/uiSystemInit'
 
 // Re-export command registry functions for convenience
 export { getCommand, registerCommand } from './commandRegistry'
@@ -147,7 +148,13 @@ export function initWorkflowSystem(): () => void {
   // Activate plugins with trigger registry
   if (!_pluginsActivated) {
     for (const plugin of _registeredPlugins) {
-      const sdk = new PluginSDK(engine, plugin.id, undefined, _triggerRegistry)
+      const sdk = new PluginSDK(
+        engine,
+        plugin.id,
+        getUIRegistry(),
+        _triggerRegistry,
+        getExtensionRegistry(),
+      )
       plugin.onActivate(sdk)
     }
     _pluginsActivated = true

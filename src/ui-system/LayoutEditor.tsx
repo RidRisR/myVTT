@@ -16,6 +16,7 @@ export function applyDrag(
     y: entry.y + delta.dy,
     width: entry.width,
     height: entry.height,
+    zOrder: entry.zOrder,
     visible: entry.visible,
     instanceProps: entry.instanceProps,
   }

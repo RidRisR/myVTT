@@ -5,7 +5,9 @@
     "system_fixed": "Set at room creation, cannot be changed",
     "leave_seat": "Leave Seat",
     "language": "Language",
-    "upload_failed": "Portrait upload failed"
+    "upload_failed": "Portrait upload failed",
+    "lock_layout": "Lock Layout",
+    "edit_layout": "Edit Layout"
   },
   "role": {
     "game_master": "Game Master",

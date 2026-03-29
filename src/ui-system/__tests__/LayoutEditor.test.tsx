@@ -4,7 +4,7 @@ import type { LayoutConfig } from '../types'
 
 describe('applyDrag', () => {
   const layout: LayoutConfig = {
-    'test.panel#1': { x: 100, y: 100, width: 200, height: 100 },
+    'test.panel#1': { x: 100, y: 100, width: 200, height: 100, zOrder: 0 },
   }
 
   it('moves a panel by the drag delta', () => {

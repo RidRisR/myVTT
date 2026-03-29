@@ -5,7 +5,9 @@
     "system_fixed": "建房时确定，不可更改",
     "leave_seat": "离开座位",
     "language": "语言",
-    "upload_failed": "头像上传失败"
+    "upload_failed": "头像上传失败",
+    "lock_layout": "锁定布局",
+    "edit_layout": "编辑布局"
   },
   "role": {
     "game_master": "Game Master",

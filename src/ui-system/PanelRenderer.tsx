@@ -33,6 +33,7 @@ export function PanelRenderer({
 
         // Parse componentId from "componentId#instance"
         const componentId = instanceKey.replace(/#[^#]*$/, '')
+        const pluginId = componentId.split(/[:.]/)[0]
         const def = registry.getComponent(componentId)
         if (!def) return null
 
@@ -46,15 +47,33 @@ export function PanelRenderer({
         return (
           <div
             key={instanceKey}
+            className="plugin-panel"
+            data-plugin={pluginId}
+            data-type={def.type}
             style={{
               position: 'absolute',
               left: entry.x,
               top: entry.y,
               width: entry.width,
               height: entry.height,
+              contain: 'layout paint',
+              overflow: 'hidden',
+              zIndex: entry.zOrder,
+              pointerEvents: 'auto',
             }}
           >
-            <div style={{ position: 'absolute', inset: 0 }}>
+            {/* Content layer: isolation: isolate creates a stacking context so
+                panel-internal zIndex cannot escape and cover the DragHandle.
+                pointerEvents: none in edit mode ensures the system DragHandle
+                always receives events regardless of panel content. */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                isolation: 'isolate',
+                pointerEvents: layoutMode === 'edit' ? 'none' : undefined,
+              }}
+            >
               <PanelErrorBoundary panelId={instanceKey}>
                 <PanelComponent sdk={sdk} />
               </PanelErrorBoundary>

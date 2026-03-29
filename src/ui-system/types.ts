@@ -9,7 +9,14 @@ export interface DnDPayload {
   data: unknown
 }
 
-export type { ZLayer, ComponentDef, LayerDef, IUIRegistrationSDK } from './registrationTypes'
+export type {
+  ZLayer,
+  PanelType,
+  DefaultPlacement,
+  ComponentDef,
+  LayerDef,
+  IUIRegistrationSDK,
+} from './registrationTypes'
 
 /** Session snapshot passed to instanceProps factory functions */
 export interface SessionSnapshot {
@@ -26,6 +33,7 @@ export interface LayoutEntry {
   y: number
   width: number
   height: number
+  zOrder: number
   visible?: boolean
   instanceProps?: InstancePropsOrFactory
 }
@@ -83,6 +91,24 @@ export interface IComponentSDK {
   context: ComponentContext
   /** play 模式下注入；edit 模式下系统浮层接管所有交互，不注入 */
   interaction?: IInteractionSDK
+  /** AwarenessManager channel API for ephemeral real-time state */
+  awareness: {
+    subscribe<T>(
+      channel: { readonly key: string; readonly __phantom?: T },
+      handler: (seatId: string, state: T | null) => void,
+    ): () => void
+    broadcast<T>(channel: { readonly key: string; readonly __phantom?: T }, data: T): void
+    clear(channel: { readonly key: string }): void
+  }
+  /** Log stream subscription for reacting to game log entries */
+  log: {
+    subscribe(pattern: string, handler: (entry: unknown) => void): () => void
+  }
+  /** Panel management API */
+  ui: {
+    openPanel(componentId: string, instanceProps?: Record<string, unknown>): string
+    closePanel(instanceKey: string): void
+  }
 }
 
 export interface ComponentProps {

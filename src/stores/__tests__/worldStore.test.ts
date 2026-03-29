@@ -244,6 +244,7 @@ function setupInitMockResponses(overrides: Record<string, unknown> = {}) {
       tactical: null,
       logEntries: [],
       logWatermark: 0,
+      layout: { narrative: {}, tactical: {} },
     },
   }
   Object.assign(mockResponses, defaults, overrides)
@@ -1076,6 +1077,7 @@ describe('loadAll() via bundle endpoint', () => {
       tactical: null,
       logEntries: [],
       logWatermark: 0,
+      layout: { narrative: {}, tactical: {} },
     }
     const socket = createMockSocket()
     await useWorldStore.getState().init(ROOM_ID, socket as never)
