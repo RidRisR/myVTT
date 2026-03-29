@@ -11,6 +11,7 @@ import type { PluginSDKDeps } from './pluginSDK'
 import { clearCommands } from './commandRegistry'
 import { TriggerRegistry } from './triggerRegistry'
 import { LogStreamDispatcher } from './logStreamDispatcher'
+import { registerBaseRenderers } from '../log/registerBaseRenderers'
 
 // Re-export command registry functions for convenience
 export { getCommand, registerCommand } from './commandRegistry'
@@ -140,6 +141,9 @@ function ensurePluginsActivated(engine: WorkflowEngine): void {
  */
 export function initWorkflowSystem(): () => void {
   if (_workflowSystemInitialized) return () => {}
+
+  // Register base log entry renderers before plugin activation
+  registerBaseRenderers()
 
   const engine = getWorkflowEngine()
   _triggerRegistry = new TriggerRegistry()

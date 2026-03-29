@@ -38,17 +38,20 @@ export const MessageCard: React.FC<MessageCardProps> = ({
       : undefined
 
   // Inject renderDice — plugin calls this to get the base animation with optional per-die config
+  const rollMsg = message.type === 'roll' ? (message as ChatRollMessage) : null
   const renderDice = useCallback(
     (configs?: DieConfig[], options?: RenderDiceOptions) => (
       <DiceAnimContent
-        message={message as ChatRollMessage}
+        formula={rollMsg?.formula ?? ''}
+        resolvedFormula={rollMsg?.resolvedFormula}
+        rolls={rollMsg?.rolls ?? []}
         isNew={isNew}
         dieConfigs={configs}
         footer={options?.footer}
         totalColor={options?.totalColor}
       />
     ),
-    [message, isNew],
+    [rollMsg, isNew],
   )
 
   const display = getDisplayIdentity(message.origin)
