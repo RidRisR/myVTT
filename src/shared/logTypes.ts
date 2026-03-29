@@ -15,7 +15,7 @@ export interface GameLogEntry {
   origin: MessageOrigin
   executor: string
   parentId?: string
-  groupId?: string
+  groupId: string
   chainDepth: number
   triggerable: boolean
   visibility: Visibility
@@ -30,7 +30,7 @@ export interface LogEntrySubmission {
   type: string
   origin: MessageOrigin
   parentId?: string
-  groupId?: string
+  groupId: string
   chainDepth: number
   triggerable: boolean
   visibility: Visibility
@@ -77,7 +77,7 @@ export function isLogType<T extends keyof LogPayloadMap>(
 export interface RollRequest {
   origin: MessageOrigin
   parentId?: string
-  groupId?: string
+  groupId: string
   chainDepth: number
   triggerable: boolean
   visibility: Visibility

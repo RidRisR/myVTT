@@ -69,13 +69,13 @@
 
 ---
 
-### 偏差 3：groupId 类型为可选
+### 偏差 3：~~groupId 类型为可选~~ → 已修复
 
 **探索文档描述**：§5.2.1 说"每次用户发起的 workflow 执行生成一个 groupId"。
 
-**实际实现**：`GameLogEntry.groupId?: string`（可选）。
+**初始实现**：`GameLogEntry.groupId?: string`（可选），理由是"兼容旧数据"。
 
-**原因**：数据库中已有旧 entry 没有 group_id（NULL）。类型层面保持可选以兼容旧数据。`createWorkflowContext` 始终生成 groupId，所以新 entry 永远有值。这是过渡期的预期行为，不是设计缺陷。
+**修复**：数据库中没有旧 entry（每个房间使用独立数据库，schema 已包含 `group_id` 列）。"兼容旧数据"是毫无根据的假设。已改为 `groupId: string`（必选）。类型检查和全部测试通过。
 
 ---
 
@@ -109,13 +109,27 @@
 
 ---
 
-### 偏差 7：RendererRegistry 接口使用 `any` 而非 `unknown`
+### 偏差 7：~~RendererRegistry 接口使用 `any`~~ → 已修复
 
 **探索文档描述**：§7.4 RendererRegistry API 用 `LogEntryRenderer = React.ComponentType<LogEntryRendererProps>` 注册。
 
-**实际实现**：`IUIRegistrationSDK.registerRenderer` 的 `renderer` 参数类型用 `React.ComponentType<{ entry: any; isNew?: boolean }>` 而非 `{ entry: unknown }`。
+**初始实现**：`IUIRegistrationSDK.registerRenderer` 的 `renderer` 参数类型用 `{ entry: any }`。
 
-**原因**：`registrationTypes.ts` 不能导入 `GameLogEntry`（会创建循环依赖）。用 `unknown` 时，接受 `LogEntryRendererProps`（`entry: GameLogEntry`）的渲染器无法赋值（`unknown` 不兼容 `GameLogEntry`）。`any` 在此处是唯一不引入循环依赖的解法。实际类型安全由 `rendererRegistry.ts` 的 `registerRenderer` 函数保证（它接受 `LogEntryRenderer`）。
+**修复**：改为 `{ entry: unknown }`，与项目中 `ComponentDef` 的 `sdk: unknown` 模式一致。注册点使用 `as React.ComponentType<{ entry: unknown; isNew?: boolean }>` cast（`rollSteps.ts` 已在这样做）。`any` 不应出现在项目类型定义中。
+
+---
+
+### 偏差 8：roll workflow 退役可能过早 — 待重新评估
+
+**探索文档描述**：§4 确认 roll workflow 退役，理由是"观察用 trigger，业务逻辑属于调用方，没有消费者 hook 它"。
+
+**实际实现**：按照探索文档执行——删除了 `roll` workflow，各调用方内联 roll 逻辑。
+
+**问题**：讨论中同时确认了 pre-execution modification 的不可替代价值（§8 Foundry VTT 调研）。roll workflow 作为独立 workflow 提供的切面能力（插件在掷骰前修改骰子，如优势/劣势骰）正是这种 pre-execution modification。退役它等于放弃了这个切面点。
+
+此外，退役导致 @token 解析 + tokenize + serverRoll + buildCompoundResult 在 `baseWorkflows.ts` 和 `rollSteps.ts` 中完全重复（偏差 2）。如果 roll 仍是 workflow，这个重复就不存在。
+
+**需要重新评估**：roll workflow 是否应该恢复？或者保持退役但提供一个共享工具函数？这涉及对 Sprint 2 探索文档 §4 决策的修正。
 
 ---
 

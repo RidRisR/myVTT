@@ -28,7 +28,8 @@ export interface IUIRegistrationSDK {
   registerRenderer(
     surface: string,
     type: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- avoids circular import of GameLogEntry
-    renderer: React.ComponentType<{ entry: any; isNew?: boolean }>,
+    // entry typed as unknown: avoids importing GameLogEntry here (circular dep).
+    // Plugin registration sites cast: `MyRenderer as React.ComponentType<{ entry: unknown; isNew?: boolean }>`.
+    renderer: React.ComponentType<{ entry: unknown; isNew?: boolean }>,
   ): void
 }
