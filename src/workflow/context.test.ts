@@ -276,8 +276,9 @@ describe('createWorkflowContext', () => {
     ctx.emitEntry({ type: 'test:entry', payload: {}, triggerable: false })
 
     expect(deps.emitEntry).toHaveBeenCalledTimes(1)
-    const submission = (deps.emitEntry as ReturnType<typeof vi.fn>).mock
-      .calls[0] as unknown as [Record<string, unknown>]
+    const submission = (deps.emitEntry as ReturnType<typeof vi.fn>).mock.calls[0] as unknown as [
+      Record<string, unknown>,
+    ]
     expect(typeof submission[0].groupId).toBe('string')
     expect((submission[0].groupId as string).length).toBeGreaterThan(0)
   })
