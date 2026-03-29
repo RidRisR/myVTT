@@ -24,6 +24,8 @@ import {
   deleteAsset,
   reorderAssets as reorderAssetsApi,
 } from '../shared/assetApi'
+import { getLayoutStore } from './layoutStore'
+import type { RoomLayoutConfig } from './layoutStore'
 
 // ── Types (re-exported from shared/storeTypes for backward compat) ──
 
@@ -255,6 +257,7 @@ async function loadAll(roomId: string) {
     logEntries: bundle.logEntries,
     logEntriesById: Object.fromEntries(bundle.logEntries.map((e) => [e.id, e])),
     logWatermark: bundle.logWatermark,
+    layout: bundle.layout,
   }
 }
 
@@ -469,6 +472,14 @@ function registerSocketEvents(
     set((s) => ({ archives: s.archives.filter((a) => a.id !== id) }))
   })
 
+  // ── Layout sync ──
+  socket.on('layout:updated', (data) => {
+    const layoutStore = getLayoutStore()
+    // Skip remote updates in edit mode (local authority)
+    if (layoutStore.getState().layoutMode === 'edit') return
+    layoutStore.getState().loadLayout(data as RoomLayoutConfig)
+  })
+
   // ── Game log events ──
   socket.on('log:new', (entry: GameLogEntry) => {
     set((s) => {
@@ -543,6 +554,7 @@ const WS_EVENTS = [
   'tag:updated',
   'tag:deleted',
   'log:new',
+  'layout:updated',
 ] as const
 
 // ── Store creation ──
@@ -579,6 +591,10 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const data = await loadAll(roomId)
     set(data)
 
+    // Hydrate layout store
+    const layoutStore = getLayoutStore()
+    layoutStore.getState().loadLayout(data.layout as RoomLayoutConfig)
+
     // Register WS event listeners
     registerSocketEvents(socket, set as (fn: (s: WorldState) => Partial<WorldState>) => void)
 
@@ -593,6 +609,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     if (!roomId) return
     const data = await loadAll(roomId)
     set(data)
+    const layoutStore = getLayoutStore()
+    layoutStore.getState().loadLayout(data.layout as RoomLayoutConfig)
   },
 
   // ── Room actions ──

@@ -4,14 +4,26 @@ import type React from 'react'
 
 export type ZLayer = 'below-canvas' | 'above-canvas' | 'above-ui'
 
+/** Panel z-order grouping: background < panel < overlay */
+export type PanelType = 'background' | 'panel' | 'overlay'
+
+export interface DefaultPlacement {
+  anchor: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+  offsetX?: number
+  offsetY?: number
+  modes?: ('narrative' | 'tactical')[]
+}
+
 export interface ComponentDef {
   id: string
   // sdk typed as unknown: avoids importing IComponentSDK here (which would create a
   // cycle: types.ts → workflow/types.ts → registrationTypes.ts → types.ts).
   // Plugin registration sites cast their component: `MyPanel as React.ComponentType<{ sdk: unknown }>`.
   component: React.ComponentType<{ sdk: unknown }>
+  type: PanelType
   defaultSize: { width: number; height: number }
   minSize?: { width: number; height: number }
+  defaultPlacement?: DefaultPlacement
   chromeVisible?: boolean // default true; false = chrome hidden in play mode
 }
 
@@ -31,5 +43,10 @@ export interface IUIRegistrationSDK {
     // entry typed as unknown: avoids importing GameLogEntry here (circular dep).
     // Plugin registration sites cast: `MyRenderer as React.ComponentType<{ entry: unknown; isNew?: boolean }>`.
     renderer: React.ComponentType<{ entry: unknown; isNew?: boolean }>,
+  ): void
+  contribute<T>(
+    point: { readonly key: string },
+    component: React.ComponentType<T>,
+    priority?: number,
   ): void
 }

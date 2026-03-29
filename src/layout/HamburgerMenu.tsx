@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { useStore } from 'zustand'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '../ui/useToast'
-import { Menu, LogOut, Sun, Moon, Globe, Library } from 'lucide-react'
+import { Menu, LogOut, Sun, Moon, Globe, Library, LayoutGrid } from 'lucide-react'
 import * as Popover from '@radix-ui/react-popover'
 import { SEAT_COLORS, type Seat } from '../stores/identityStore'
 import { uploadAsset } from '../shared/assetUpload'
@@ -10,6 +11,7 @@ import { useWorldStore } from '../stores/worldStore'
 import { getAvailablePlugins } from '../rules/registry'
 import { PopoverContent } from '../ui/primitives/PopoverContent'
 import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
+import { getLayoutStore } from '../stores/layoutStore'
 
 interface HamburgerMenuProps {
   mySeat: Seat
@@ -226,6 +228,7 @@ export function HamburgerMenu({ mySeat, onUpdateSeat, onLeaveSeat }: HamburgerMe
                 <Library size={14} strokeWidth={1.5} />
                 {tDock('asset_library')}
               </button>
+              <EditLayoutToggle />
               <div className="h-px bg-border-glass mx-2 my-0.5" />
               <div className="px-3 py-2">
                 <div className="text-[10px] text-text-muted/40 uppercase tracking-wider mb-1">
@@ -294,6 +297,27 @@ function LanguageSwitcher() {
     >
       <Globe size={14} strokeWidth={1.5} />
       {t('menu.language')}: {isZh ? '中文' : 'English'}
+    </button>
+  )
+}
+
+function EditLayoutToggle() {
+  const { t } = useTranslation('layout')
+  const store = getLayoutStore()
+  const layoutMode = useStore(store, (s) => s.layoutMode)
+  const isEditing = layoutMode === 'edit'
+
+  return (
+    <button
+      onClick={() => {
+        store.getState().setLayoutMode(isEditing ? 'play' : 'edit')
+      }}
+      className={`w-full px-3 py-2 bg-transparent border-none rounded-lg cursor-pointer text-xs font-medium text-left flex items-center gap-2 transition-colors duration-fast hover:bg-hover ${
+        isEditing ? 'text-accent' : 'text-text-muted hover:text-text-primary'
+      }`}
+    >
+      <LayoutGrid size={14} strokeWidth={1.5} />
+      {isEditing ? t('menu.lock_layout') : t('menu.edit_layout')}
     </button>
   )
 }

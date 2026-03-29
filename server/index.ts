@@ -24,6 +24,7 @@ import { showcaseRoutes } from './routes/showcase'
 import { stateRoutes } from './routes/state'
 import { bundleRoutes } from './routes/bundle'
 import { tagRoutes } from './routes/tags'
+import { layoutRoutes } from './routes/layout'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -40,7 +41,7 @@ app.use(express.json())
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173'
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', CORS_ORIGIN)
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
   res.header('Access-Control-Allow-Headers', 'Content-Type, X-MyVTT-Role')
   res.header('Access-Control-Allow-Credentials', 'true')
   if (req.method === 'OPTIONS') {
@@ -105,6 +106,7 @@ app.use(showcaseRoutes(DATA_DIR, io))
 app.use(stateRoutes(DATA_DIR, io))
 app.use(bundleRoutes(DATA_DIR, io))
 app.use(tagRoutes(DATA_DIR, io))
+app.use(layoutRoutes(DATA_DIR, io))
 
 // Serve built frontend in production
 const distPath = path.join(__dirname, '..', 'dist')

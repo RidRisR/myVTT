@@ -1,5 +1,5 @@
 // src/ui-system/registry.ts
-import type { ComponentDef, LayerDef, ZLayer } from './types'
+import type { ComponentDef, LayerDef, ZLayer, PanelType } from './types'
 
 const Z_ORDER: ZLayer[] = ['below-canvas', 'above-canvas', 'above-ui']
 
@@ -24,5 +24,17 @@ export class UIRegistry {
 
   getLayers(): LayerDef[] {
     return [...this.layers].sort((a, b) => Z_ORDER.indexOf(a.zLayer) - Z_ORDER.indexOf(b.zLayer))
+  }
+
+  listComponents(): ComponentDef[] {
+    return [...this.components.values()]
+  }
+
+  /**
+   * Returns components filtered by type. Creates a new array on each call —
+   * do NOT use inside zustand selectors or React render paths without memoization.
+   */
+  listComponentsByType(type: PanelType): ComponentDef[] {
+    return [...this.components.values()].filter((c) => c.type === type)
   }
 }

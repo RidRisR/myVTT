@@ -13,6 +13,9 @@ export function initGlobalSchema(db: Database.Database): void {
   `)
 }
 
+const DEFAULT_LAYOUT =
+  '{"narrative":{"core-ui.session-info#1":{"x":20,"y":60,"width":200,"height":260,"zOrder":0}},"tactical":{}}'
+
 export function initRoomSchema(db: Database.Database): void {
   db.exec(`
     -- Room-level state (singleton row)
@@ -209,6 +212,13 @@ export function initRoomSchema(db: Database.Database): void {
       payload TEXT NOT NULL DEFAULT '{}',
       timestamp INTEGER NOT NULL
     );
+
+    -- Layout config (singleton row, JSON blob)
+    CREATE TABLE IF NOT EXISTS layout (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      config TEXT NOT NULL DEFAULT '${DEFAULT_LAYOUT}'
+    );
+    INSERT OR IGNORE INTO layout (id, config) VALUES (1, '${DEFAULT_LAYOUT}');
 
     -- Indexes for common queries
     CREATE INDEX IF NOT EXISTS idx_game_log_type ON game_log(type);

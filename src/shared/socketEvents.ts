@@ -128,6 +128,16 @@ export interface ServerToClientEvents {
   }) => void
   'awareness:tokenDragEnd': (data: { seatId: string }) => void
   'awareness:remove': (data: { seatId: string; clientId: string }) => void
+
+  // ── Layout sync ──
+  'layout:updated': (layout: {
+    narrative: Record<string, unknown>
+    tactical: Record<string, unknown>
+  }) => void
+
+  // ── Awareness channel (generic) ──
+  'awareness:ch:broadcast': (data: { channel: string; payload: unknown; seatId: string }) => void
+  'awareness:ch:clear': (data: { channel: string; seatId: string }) => void
 }
 
 /** Events the client emits → server listens for */
@@ -166,4 +176,8 @@ export interface ClientToServerEvents {
     query: { beforeSeq?: number; limit?: number },
     ack: (entries: GameLogEntry[]) => void,
   ) => void
+
+  // ── Awareness channel (generic) ──
+  'awareness:ch:broadcast': (data: { channel: string; payload: unknown }) => void
+  'awareness:ch:clear': (data: { channel: string }) => void
 }

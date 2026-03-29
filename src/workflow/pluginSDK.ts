@@ -24,6 +24,7 @@ import {
   registerRenderer as registerRendererFn,
   type LogEntryRenderer,
 } from '../log/rendererRegistry'
+import type { ExtensionRegistry } from '../ui-system/extensionRegistry'
 
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
 // PluginSDKDeps = { emitEntry, serverRoll, getEntity, getAllEntities, eventBus, getActiveOrigin, getSeatId, getLogWatermark }
@@ -43,6 +44,7 @@ export class PluginSDK implements IPluginSDK {
     pluginId: string,
     uiRegistry?: UIRegistry,
     triggerRegistry?: TriggerRegistry,
+    extensionRegistry?: ExtensionRegistry,
   ) {
     this.engine = engine
     this.pluginId = pluginId
@@ -58,12 +60,16 @@ export class PluginSDK implements IPluginSDK {
           registerRenderer: (surface, type, renderer) => {
             registerRendererFn(surface, type, renderer as LogEntryRenderer)
           },
+          contribute: (point, component, priority) => {
+            extensionRegistry?.contribute(point as never, component as never, priority)
+          },
         }
       : {
           // no-op: existing tests do not pass a registry
           registerComponent: () => {},
           registerLayer: () => {},
           registerRenderer: () => {},
+          contribute: () => {},
         }
   }
 
