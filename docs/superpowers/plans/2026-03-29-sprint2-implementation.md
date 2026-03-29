@@ -110,12 +110,36 @@ In `src/shared/logTypes.ts`:
 
 In `server/schema.ts`, add `group_id TEXT` column to the `game_log` CREATE TABLE statement, and add an index.
 
-- [ ] **Step 3: Update server handlers to accept/store groupId**
+- [ ] **Step 3: Update server INSERT statements to include group_id**
 
-In `server/logHandler.ts`:
-- `log:entry` handler: read `submission.groupId` and pass to INSERT
-- `log:roll-request` handler: read `request.groupId` and pass to INSERT
-- Update `rowToEntry` in `server/logUtils.ts` to include `groupId` from the `group_id` column
+In `server/logHandler.ts`, BOTH INSERT statements (~line 66 and ~line 160) need:
+- Add `group_id` to the column list
+- Add `submission.groupId ?? null` (or `request.groupId ?? null`) to the VALUES
+
+Specifically, the column list changes from:
+`(id, type, origin, executor, parent_id, chain_depth, triggerable, visibility, base_seq, payload, timestamp)`
+to:
+`(id, type, origin, executor, parent_id, group_id, chain_depth, triggerable, visibility, base_seq, payload, timestamp)`
+
+And add the corresponding value parameter after `parentId ?? null`.
+
+- [ ] **Step 4: Update rowToEntry to read group_id**
+
+In `server/logUtils.ts`, add to the `rowToEntry` function:
+```typescript
+groupId: (row.group_id as string | null) ?? undefined,
+```
+
+- [ ] **Step 5: Update schema test**
+
+In `server/__tests__/schema.test.ts`, update the expected column list to include `group_id`.
+
+- [ ] **Step 6: Design note on nullability**
+
+`groupId` is `?: string` (optional) because:
+- Old entries in the database don't have group_id (NULL)
+- The client `createWorkflowContext` will ALWAYS generate a groupId for new entries (Task 3)
+- This is a transitional design — NOT a sign that groupId can be omitted
 
 - [ ] **Step 4: Run all tests**
 
