@@ -85,6 +85,9 @@ export { getQuickRollWorkflow } from '../workflow/baseWorkflows'
 export type { BaseRollData } from '../workflow/baseWorkflows'
 export { useWorkflowRunner } from '../workflow/useWorkflowSDK'
 
+// ── Log renderer types ──────────────────────────────────────────────────────
+export type { LogEntryRendererProps, LogEntryRenderer } from '../log/rendererRegistry'
+
 // ── Data layer (reactive hooks + imperative reader) ────────────────────────
 export { useEntity, useComponent } from '../data/hooks'
 export { createDataReader } from '../data/dataReader'

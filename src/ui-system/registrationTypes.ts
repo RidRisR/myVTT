@@ -25,4 +25,9 @@ export interface LayerDef {
 export interface IUIRegistrationSDK {
   registerComponent(def: ComponentDef): void
   registerLayer(def: LayerDef): void
+  registerRenderer(
+    surface: string,
+    type: string,
+    renderer: React.ComponentType<{ entry: unknown; isNew?: boolean }>,
+  ): void
 }

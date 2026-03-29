@@ -20,6 +20,10 @@ import type { UIRegistry } from '../ui-system/registry'
 import type { TriggerDefinition } from '../shared/logTypes'
 import { TriggerRegistry } from './triggerRegistry'
 import { registerCommand } from './commandRegistry'
+import {
+  registerRenderer as registerRendererFn,
+  type LogEntryRenderer,
+} from '../log/rendererRegistry'
 
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
 // PluginSDKDeps = { emitEntry, serverRoll, getEntity, getAllEntities, eventBus, getActiveOrigin, getSeatId, getLogWatermark }
@@ -51,11 +55,15 @@ export class PluginSDK implements IPluginSDK {
           registerLayer: (def) => {
             uiRegistry.registerLayer(def)
           },
+          registerRenderer: (surface, type, renderer) => {
+            registerRendererFn(surface, type, renderer as LogEntryRenderer)
+          },
         }
       : {
           // no-op: existing tests do not pass a registry
           registerComponent: () => {},
           registerLayer: () => {},
+          registerRenderer: () => {},
         }
   }
 

@@ -22,6 +22,8 @@ export type {
   IWorkflowRunner,
 } from './types'
 export { output } from './helpers'
+export { getRenderer, registerRenderer, clearRenderers } from '../log/rendererRegistry'
+export type { LogEntryRendererProps, LogEntryRenderer } from '../log/rendererRegistry'
 export { registerBaseWorkflows, getQuickRollWorkflow } from './baseWorkflows'
 export type { BaseRollData } from './baseWorkflows'
 export {
