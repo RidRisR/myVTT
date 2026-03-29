@@ -10,6 +10,7 @@ import type {
   ReplaceStepOptions,
   WorkflowHandle,
   WorkflowResult,
+  ChainContext,
 } from './types'
 import type { WorkflowEngine } from './engine'
 import type { ContextDeps } from './context'
@@ -155,6 +156,7 @@ export class WorkflowRunner implements IWorkflowRunner {
   runWorkflow<TData extends Record<string, unknown> = Record<string, unknown>, TOut = TData>(
     handle: WorkflowHandle<TData, TOut>,
     data?: Partial<TData>,
+    chainCtx?: ChainContext,
   ): Promise<WorkflowResult<TData, TOut>> {
     const internal: import('./types').InternalState = {
       depth: 0,
@@ -164,6 +166,9 @@ export class WorkflowRunner implements IWorkflowRunner {
       { ...this.deps, engine: this.engine },
       (data ?? {}) as Record<string, unknown>,
       internal,
+      chainCtx
+        ? { groupId: chainCtx.groupId, chainDepth: chainCtx.chainDepth, causedBy: chainCtx.causedBy }
+        : undefined,
     )
     return this.engine.runWorkflow(handle.name, ctx, internal) as Promise<
       WorkflowResult<TData, TOut>

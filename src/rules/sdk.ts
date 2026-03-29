@@ -41,7 +41,7 @@ export { useHoldRepeat } from '../shared/useHoldRepeat'
 export { useAwarenessResource } from '../hooks/useAwarenessResource'
 export { usePluginPanels } from './usePluginPanels'
 
-export { tokenizeExpression, buildCompoundResult } from '../shared/diceUtils'
+export { tokenizeExpression, toDiceSpecs, buildCompoundResult } from '../shared/diceUtils'
 export type { ChatRollMessage } from '../shared/chatTypes'
 export type { RollCardProps } from './types'
 
@@ -81,8 +81,8 @@ export type {
   SoundPayload,
 } from '../events/systemEvents'
 export type { VTTPlugin } from './types'
-export { getRollWorkflow, getQuickRollWorkflow } from '../workflow/baseWorkflows'
-export type { BaseRollData, RollOutput } from '../workflow/baseWorkflows'
+export { getQuickRollWorkflow } from '../workflow/baseWorkflows'
+export type { BaseRollData } from '../workflow/baseWorkflows'
 export { useWorkflowRunner } from '../workflow/useWorkflowSDK'
 
 // ── Data layer (reactive hooks + imperative reader) ────────────────────────

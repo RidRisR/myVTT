@@ -22,8 +22,8 @@ export type {
   IWorkflowRunner,
 } from './types'
 export { output } from './helpers'
-export { registerBaseWorkflows, getRollWorkflow, getQuickRollWorkflow } from './baseWorkflows'
-export type { BaseRollData, RollOutput } from './baseWorkflows'
+export { registerBaseWorkflows, getQuickRollWorkflow } from './baseWorkflows'
+export type { BaseRollData } from './baseWorkflows'
 export {
   useWorkflowRunner,
   getWorkflowEngine,

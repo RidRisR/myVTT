@@ -16,12 +16,6 @@ export interface BaseRollData {
   total?: number
 }
 
-/** Structured output from the roll workflow */
-export interface RollOutput {
-  rolls: number[][]
-  total: number
-}
-
 /** Data shape for the set-selection workflow */
 export interface SetSelectionState {
   [key: string]: unknown
@@ -35,18 +29,9 @@ export interface SendTextData {
   senderName?: string
 }
 
-/** Typed handle — plugins import this to add/attach steps to the roll workflow */
-let _rollWorkflow: WorkflowHandle<BaseRollData, RollOutput> | undefined
 let _quickRollWorkflow: WorkflowHandle<BaseRollData> | undefined
 let _setSelectionWorkflow: WorkflowHandle<SetSelectionState> | undefined
 let _sendTextWorkflow: WorkflowHandle<SendTextData> | undefined
-
-export function getRollWorkflow(): WorkflowHandle<BaseRollData, RollOutput> {
-  if (!_rollWorkflow) {
-    throw new Error('rollWorkflow not initialized — call registerBaseWorkflows first')
-  }
-  return _rollWorkflow
-}
 
 export function getQuickRollWorkflow(): WorkflowHandle<BaseRollData> {
   if (!_quickRollWorkflow) {
@@ -70,58 +55,7 @@ export function getSendTextWorkflow(): WorkflowHandle<SendTextData> {
 }
 
 export function registerBaseWorkflows(engine: WorkflowEngine): void {
-  // roll: pure dice generation with structured output, no display
-  _rollWorkflow = engine.defineWorkflow<BaseRollData, RollOutput>(
-    'roll',
-    [
-      {
-        id: 'generate',
-        run: async (ctx) => {
-          const formula = ctx.vars.formula
-          if (typeof formula !== 'string' || formula.length === 0) {
-            ctx.abort('Missing or invalid formula')
-            return
-          }
-
-          // 1. Resolve @tokens (skip if resolvedFormula already provided)
-          let resolved = ctx.vars.resolvedFormula
-          if (!resolved && /@[\p{L}\p{N}_]+/u.test(formula)) {
-            const tokens = ctx.read.formulaTokens(ctx.vars.actorId)
-            resolved = formula.replace(/@([\p{L}\p{N}_]+)/gu, (_, key: string) => {
-              const val = tokens[key]
-              return val !== undefined ? String(val) : `@${key}`
-            })
-            ctx.vars.resolvedFormula = resolved
-          }
-
-          // 2. Tokenize + compute DiceSpecs
-          const finalFormula = resolved ?? formula
-          const terms = tokenizeExpression(finalFormula)
-          if (!terms) {
-            ctx.abort(`Cannot parse formula: ${finalFormula}`)
-            return
-          }
-          const dice = toDiceSpecs(terms)
-
-          // 3. Server roll
-          const entry = await ctx.serverRoll(formula, {
-            dice,
-            resolvedFormula: resolved,
-            rollType: ctx.vars.rollType as string | undefined,
-          })
-
-          // 4. Full total (includes modifiers, not just dice sum)
-          const rolls = entry.payload.rolls as number[][]
-          const { total } = buildCompoundResult(terms, rolls)
-          ctx.vars.rolls = rolls
-          ctx.vars.total = total
-        },
-      },
-    ],
-    (vars) => ({ rolls: vars.rolls ?? [], total: vars.total ?? 0 }),
-  )
-
-  // quick-roll: compose roll + display (chat box, general use)
+  // quick-roll: inline roll logic + display (chat box, general use)
   _quickRollWorkflow = engine.defineWorkflow<BaseRollData>('quick-roll', [
     {
       id: 'roll',
@@ -134,16 +68,35 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
           return
         }
         ctx.vars.formula = formula
-        const result = await ctx.runWorkflow(getRollWorkflow(), {
-          formula,
-          actorId: ctx.vars.actorId,
-        })
-        if (result.status === 'aborted') {
-          ctx.abort(result.reason)
+
+        // 1. Resolve @tokens
+        let resolved = ctx.vars.resolvedFormula as string | undefined
+        if (!resolved && /@[\p{L}\p{N}_]+/u.test(formula)) {
+          const tokens = ctx.read.formulaTokens(ctx.vars.actorId)
+          resolved = formula.replace(/@([\p{L}\p{N}_]+)/gu, (_, key: string) => {
+            const val = tokens[key]
+            return val !== undefined ? String(val) : `@${key}`
+          })
+          ctx.vars.resolvedFormula = resolved
+        }
+
+        // 2. Tokenize + DiceSpecs
+        const finalFormula = resolved ?? formula
+        const terms = tokenizeExpression(finalFormula)
+        if (!terms) {
+          ctx.abort(`Cannot parse formula: ${finalFormula}`)
           return
         }
-        ctx.vars.rolls = result.output.rolls
-        ctx.vars.total = result.output.total
+        const dice = toDiceSpecs(terms)
+
+        // 3. Server roll (pure RNG)
+        const entry = await ctx.serverRoll(formula, { dice, resolvedFormula: resolved })
+
+        // 4. Compute total with modifiers
+        const rolls = entry.payload.rolls as number[][]
+        const { total } = buildCompoundResult(terms, rolls)
+        ctx.vars.rolls = rolls
+        ctx.vars.total = total
       },
     },
     {

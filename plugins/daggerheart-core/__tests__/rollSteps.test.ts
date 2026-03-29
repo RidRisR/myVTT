@@ -55,12 +55,7 @@ describe('registerDHCoreSteps', () => {
     expect(steps).toEqual(['roll', 'dh:judge', 'dh:resolve', 'display'])
   })
 
-  it('base roll workflow remains pure (no dh steps injected)', () => {
-    const { engine } = makeSetup()
-    expect(engine.inspectWorkflow('roll')).toEqual(['generate'])
-  })
-
-  it('dh:action-check internally calls roll workflow and gets output', async () => {
+  it('dh:action-check calls ctx.serverRoll directly (no nested roll workflow)', async () => {
     const { runner, deps } = makeSetup()
     await runner.runWorkflow(getDHActionCheckWorkflow(), { formula: '2d12', actorId: '' })
     expect(deps.serverRoll).toHaveBeenCalledWith(expect.objectContaining({ formula: '2d12' }))

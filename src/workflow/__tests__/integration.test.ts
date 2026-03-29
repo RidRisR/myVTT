@@ -1,10 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
 import { WorkflowEngine } from '../engine'
 import { PluginSDK, WorkflowRunner } from '../pluginSDK'
-import { registerBaseWorkflows, getRollWorkflow } from '../baseWorkflows'
+import { registerBaseWorkflows } from '../baseWorkflows'
 import { createEventBus } from '../../events/eventBus'
 import { toastEvent, announceEvent, animationEvent } from '../../events/systemEvents'
 import type { WorkflowHandle } from '../types'
+import { tokenizeExpression, toDiceSpecs, buildCompoundResult } from '../../shared/diceUtils'
 
 describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
   function setup() {
@@ -50,7 +51,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     bus.on(toastEvent, (p) => toasts.push(p))
     bus.on(announceEvent, (p) => announcements.push(p))
 
-    // daggerheart-core defines its own workflow
+    // daggerheart-core defines its own workflow with inlined roll logic
     const dhWorkflow = coreSDK.defineWorkflow<{
       [key: string]: unknown
       formula: string
@@ -61,16 +62,19 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       {
         id: 'roll',
         run: async (ctx) => {
-          const result = await ctx.runWorkflow(getRollWorkflow(), {
-            formula: ctx.vars.formula,
-            actorId: ctx.vars.actorId,
-          })
-          if (result.status === 'aborted') {
-            ctx.abort(result.reason)
-            return
-          }
-          ctx.vars.rolls = result.output.rolls
-          ctx.vars.total = result.output.total
+          const formula = ctx.vars.formula
+          if (!formula) { ctx.abort('Missing formula'); return }
+
+          const finalFormula = formula as string
+          const terms = tokenizeExpression(finalFormula)
+          if (!terms) { ctx.abort(`Cannot parse: ${finalFormula}`); return }
+          const dice = toDiceSpecs(terms)
+
+          const entry = await ctx.serverRoll(formula as string, { dice })
+          const rolls = entry.payload.rolls as number[][]
+          const { total } = buildCompoundResult(terms, rolls)
+          ctx.vars.rolls = rolls
+          ctx.vars.total = total
         },
       },
       {
@@ -138,9 +142,6 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       'dh:resolve',
       'display',
     ])
-
-    // base roll workflow stays clean
-    expect(coreSDK.inspectWorkflow(getRollWorkflow())).toEqual(['generate'])
 
     // Execute
     const result = await runner.runWorkflow(dhWorkflow, {

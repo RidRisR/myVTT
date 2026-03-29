@@ -30,6 +30,9 @@ export interface ContextDeps {
 
 export interface ContextOptions {
   readonly?: boolean // true = vars frozen via Proxy (set/delete throw)
+  groupId?: string
+  chainDepth?: number
+  causedBy?: string // maps to parentId on all entries in this context
 }
 
 export function createWorkflowContext(
@@ -38,6 +41,10 @@ export function createWorkflowContext(
   internal: InternalState,
   options?: ContextOptions,
 ): WorkflowContext {
+  const groupId = options?.groupId ?? uuidv7()
+  const chainDepth = options?.chainDepth ?? 0
+  const causedBy = options?.causedBy // maps to parentId on all entries
+
   const _inner: Record<string, unknown> = { ...initialData }
 
   const state = options?.readonly
@@ -109,8 +116,9 @@ export function createWorkflowContext(
     ) => {
       const request: RollRequest = {
         origin: deps.getActiveOrigin(),
-        parentId: options?.parentId,
-        chainDepth: options?.chainDepth ?? 0,
+        parentId: options?.parentId ?? causedBy,
+        groupId,
+        chainDepth: options?.chainDepth ?? chainDepth,
         triggerable: options?.triggerable ?? true,
         visibility: options?.visibility ?? {},
         dice: options?.dice ?? [{ sides: 6, count: 1 }], // fallback if not provided
@@ -136,8 +144,9 @@ export function createWorkflowContext(
         id: uuidv7(),
         type: partial.type,
         origin: deps.getActiveOrigin(),
-        parentId: partial.parentId,
-        chainDepth: partial.chainDepth ?? 0,
+        parentId: partial.parentId ?? causedBy,
+        groupId,
+        chainDepth: partial.chainDepth ?? chainDepth,
         triggerable: partial.triggerable,
         visibility: partial.visibility ?? {},
         baseSeq: deps.getLogWatermark(),
@@ -159,7 +168,9 @@ export function createWorkflowContext(
         id: uuidv7(),
         type: 'core:component-update',
         origin: deps.getActiveOrigin(),
-        chainDepth: 0,
+        parentId: causedBy,
+        groupId,
+        chainDepth,
         triggerable: false,
         visibility: {},
         baseSeq: deps.getLogWatermark(),
@@ -174,7 +185,9 @@ export function createWorkflowContext(
         id: uuidv7(),
         type: 'core:tracker-update',
         origin: deps.getActiveOrigin(),
-        chainDepth: 0,
+        parentId: causedBy,
+        groupId,
+        chainDepth,
         triggerable: false,
         visibility: {},
         baseSeq: deps.getLogWatermark(),
@@ -201,7 +214,7 @@ export function createWorkflowContext(
       handle: WorkflowHandle<T, TOut>,
       nestedData?: Partial<T>,
     ): Promise<WorkflowResult<T, TOut>> => {
-      // Nested workflow: inherit depth, independent abort
+      // Nested workflow: inherit depth + groupId, independent abort
       const nestedInternal: InternalState = {
         depth: internal.depth,
         abortCtrl: { aborted: false },
@@ -210,6 +223,7 @@ export function createWorkflowContext(
         deps,
         (nestedData ?? {}) as Record<string, unknown>,
         nestedInternal,
+        { groupId, chainDepth }, // inherit parent's groupId
       )
       return deps.engine.runWorkflow(handle.name, nestedCtx, nestedInternal) as Promise<
         WorkflowResult<T, TOut>

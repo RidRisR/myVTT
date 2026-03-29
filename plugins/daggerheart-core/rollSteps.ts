@@ -1,6 +1,6 @@
 // plugins/daggerheart-core/rollSteps.ts
 import type { IPluginSDK, WorkflowHandle, JudgmentResult } from '@myvtt/sdk'
-import { getRollWorkflow, toastEvent, announceEvent } from '@myvtt/sdk'
+import { tokenizeExpression, toDiceSpecs, buildCompoundResult, toastEvent, announceEvent } from '@myvtt/sdk'
 import { dhEvaluateRoll } from '../daggerheart/diceSystem'
 
 /** Data shape for the dh:action-check workflow */
@@ -27,18 +27,38 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
     {
       id: 'roll',
       run: async (ctx) => {
-        const result = await ctx.runWorkflow(getRollWorkflow(), {
-          formula: ctx.vars.formula,
-          actorId: ctx.vars.actorId,
-          resolvedFormula: ctx.vars.resolvedFormula as string | undefined,
-          rollType: ctx.vars.rollType as string | undefined,
-        })
-        if (result.status === 'aborted') {
-          ctx.abort(result.reason)
-          return
+        const formula = ctx.vars.formula ?? (ctx.vars.raw as string | undefined)
+        if (!formula) { ctx.abort('Missing formula'); return }
+        ctx.vars.formula = formula
+
+        // Resolve @tokens if present
+        let resolved = ctx.vars.resolvedFormula as string | undefined
+        if (!resolved && /@[\p{L}\p{N}_]+/u.test(formula)) {
+          const tokens = ctx.read.formulaTokens(ctx.vars.actorId)
+          resolved = formula.replace(/@([\p{L}\p{N}_]+)/gu, (_, key: string) => {
+            const val = tokens[key]
+            return val !== undefined ? String(val) : `@${key}`
+          })
+          ctx.vars.resolvedFormula = resolved
         }
-        ctx.vars.rolls = result.output.rolls
-        ctx.vars.total = result.output.total
+
+        // Tokenize + server roll
+        const finalFormula = resolved ?? formula
+        const terms = tokenizeExpression(finalFormula)
+        if (!terms) { ctx.abort(`Cannot parse: ${finalFormula}`); return }
+        const dice = toDiceSpecs(terms)
+
+        const entry = await ctx.serverRoll(formula, {
+          dice,
+          resolvedFormula: resolved,
+          rollType: ctx.vars.rollType as string | undefined,
+          actionName: ctx.vars.actionName as string | undefined,
+        })
+
+        const rolls = entry.payload.rolls as number[][]
+        const { total } = buildCompoundResult(terms, rolls)
+        ctx.vars.rolls = rolls
+        ctx.vars.total = total
       },
     },
     {
