@@ -1,7 +1,9 @@
 // plugins/daggerheart-core/rollSteps.ts
+import type React from 'react'
 import type { IPluginSDK, WorkflowHandle, JudgmentResult } from '@myvtt/sdk'
 import { tokenizeExpression, toDiceSpecs, buildCompoundResult, toastEvent } from '@myvtt/sdk'
 import { dhEvaluateRoll } from '../daggerheart/diceSystem'
+import { DHJudgmentRenderer } from './DHJudgmentRenderer'
 
 /** Data shape for the dh:action-check workflow */
 export interface DHActionCheckData {
@@ -121,4 +123,9 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
   ])
 
   sdk.registerCommand('.dd', _actionCheckWorkflow)
+  sdk.ui.registerRenderer(
+    'chat',
+    'dh:judgment',
+    DHJudgmentRenderer as React.ComponentType<{ entry: unknown; isNew?: boolean }>,
+  )
 }
