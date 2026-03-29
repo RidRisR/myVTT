@@ -24,13 +24,13 @@ test.describe('Chat and Dice', () => {
     await room.chat.sendMessage('Roll for initiative')
     await room.chat.expectMessageVisible('Roll for initiative')
 
-    // Roll dice with .r command
+    // Roll dice with .r command — DiceAnimContent renders dice reels, not formula text
     await room.chat.sendMessage('.r 1d20')
-    await room.chat.expectMessageVisible('1d20')
+    await expect(page.getByTestId('entry-roll-result').first()).toBeVisible({ timeout: 5000 })
 
-    // Roll dice with formula
+    // Roll dice with formula — second roll-result card appears
     await room.chat.sendMessage('.r 2d6+3')
-    await room.chat.expectMessageVisible('2d6+3')
+    await expect(page.getByTestId('entry-roll-result')).toHaveCount(2, { timeout: 10000 })
   })
 })
 
@@ -138,23 +138,26 @@ test.describe('Cross-client judgment and groupId', () => {
     await room.chat.expectJudgmentVisible()
 
     // Verify groupId in store: roll-result and dh:judgment should share the same groupId
-    const groupCheck = await page.waitForFunction(() => {
-      const store = (window as any).__MYVTT_STORES__?.world()
-      if (!store?.logEntries?.length) return null
+    const groupCheck = await page.waitForFunction(
+      () => {
+        const store = (window as any).__MYVTT_STORES__?.world()
+        if (!store?.logEntries?.length) return null
 
-      const entries = store.logEntries
-      const rollEntry = entries.find((e: any) => e.type === 'core:roll-result')
-      const judgmentEntry = entries.find((e: any) => e.type === 'dh:judgment')
+        const entries = store.logEntries
+        const rollEntry = entries.find((e: any) => e.type === 'core:roll-result')
+        const judgmentEntry = entries.find((e: any) => e.type === 'dh:judgment')
 
-      if (!rollEntry || !judgmentEntry) return null
+        if (!rollEntry || !judgmentEntry) return null
 
-      return {
-        rollGroupId: rollEntry.groupId,
-        judgmentGroupId: judgmentEntry.groupId,
-        match: rollEntry.groupId === judgmentEntry.groupId,
-        notEmpty: rollEntry.groupId != null && rollEntry.groupId !== '',
-      }
-    }, { timeout: 10000 })
+        return {
+          rollGroupId: rollEntry.groupId,
+          judgmentGroupId: judgmentEntry.groupId,
+          match: rollEntry.groupId === judgmentEntry.groupId,
+          notEmpty: rollEntry.groupId != null && rollEntry.groupId !== '',
+        }
+      },
+      { timeout: 10000 },
+    )
 
     const result = await groupCheck.jsonValue()
     expect(result.match).toBe(true)

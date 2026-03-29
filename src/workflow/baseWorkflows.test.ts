@@ -1,10 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { WorkflowEngine } from './engine'
-import {
-  registerBaseWorkflows,
-  getQuickRollWorkflow,
-  getRollWorkflow,
-} from './baseWorkflows'
+import { registerBaseWorkflows, getQuickRollWorkflow, getRollWorkflow } from './baseWorkflows'
 import type { RollOutput } from './baseWorkflows'
 import { createWorkflowContext } from './context'
 import { createEventBus } from '../events/eventBus'
@@ -111,11 +107,7 @@ describe('base workflows', () => {
         payload: { rolls: [[15]], formula: '1d20+@str', dice: [{ sides: 20, count: 1 }] },
       })
       const internal = makeInternal()
-      const ctx = createWorkflowContext(
-        deps,
-        { formula: '1d20+@str', actorId: 'a1' },
-        internal,
-      )
+      const ctx = createWorkflowContext(deps, { formula: '1d20+@str', actorId: 'a1' }, internal)
       const result = await engine.runWorkflow('roll', ctx, internal)
 
       expect(deps.serverRoll).toHaveBeenCalled()

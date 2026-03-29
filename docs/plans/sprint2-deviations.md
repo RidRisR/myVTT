@@ -10,11 +10,13 @@
 以下设计要素已完整实现，与探索文档一致：
 
 ### R1: 服务端 RNG 纯化
+
 - 从 `server/logHandler.ts` 删除 `total` 计算
 - 从 `LogPayloadMap['core:roll-result']` 删除 `total` 字段
 - 服务端 `core:roll-result` payload 仅包含 `{ dice, rolls, formula, resolvedFormula?, rollType?, actionName? }`
 
 ### G1: groupId 分组机制
+
 - `groupId?: string` 添加到 `GameLogEntry`、`LogEntrySubmission`、`RollRequest`
 - `group_id TEXT` 列 + 索引添加到 `game_log` 表
 - 服务端两处 INSERT 语句均更新
@@ -28,17 +30,20 @@
 - `LogStreamDispatcher` 在 trigger 边界：新 groupId + `causedBy = entry.id` + `chainDepth + 1`
 
 ### R2: roll workflow 退役 → 已撤销，恢复为独立 workflow
+
 - 初始实现按探索文档删除了 roll workflow 并内联逻辑
 - **后经讨论决定恢复**：服务端不再算 total（R1），roll workflow 是唯一计算 total 的地方；公式求值系统复用性强；workflow 提供可 hook 的切面能力
 - 恢复了 `roll` workflow、`getRollWorkflow()`、`RollOutput` 类型
 - `quick-roll` 和 `dh:action-check` 恢复为 `ctx.runWorkflow(getRollWorkflow(), ...)`
 
 ### J1: judgment emitEntry
+
 - `dh:judgment` 添加到 `LogPayloadMap`（module augmentation in `plugins/daggerheart/types.ts`）
 - `dh:emit-judgment` step 添加到 `dh:action-check`（在 `dh:judge` 之后）
 - `display` step 中 `announceEvent` 删除，`toastEvent` 保留
 
 ### §8: Workflow 切面 vs 日志切面
+
 - 确认 workflow 切面三种模式均保留（修改行为、搭便车发日志、最终状态发日志）
 - `phase: 'post'` 保留（保证看到 vars 最终状态）
 - 日志触发用于观察/响应
@@ -124,6 +129,7 @@
 **最终决策**：恢复 roll workflow。探索文档 §4 R2 决策被推翻。
 
 **原因**（三个互相加强的理由）：
+
 1. **服务端纯 RNG 后，roll workflow 是唯一计算 total 的地方**——R1 删除了服务端 total，调用方必须通过 runWorkflow 拿到计算结果
 2. **公式求值系统复用性强**——即使 Daggerheart 也需要加法（Hope+Fear+modifier），不同游戏系统都复用同一套 @token 解析 + tokenize + serverRoll + buildCompoundResult 流程
 3. **workflow 提供可 hook 的切面**——§8 确认了 pre-execution modification 的不可替代价值，roll workflow 正是掷骰前修改骰子的切面点
@@ -134,9 +140,9 @@
 
 ## 与 16a 偏差文档的交叉更新
 
-| 16a 偏差 # | 原状态 | Sprint 2 后状态 | 说明 |
-|-------------|--------|-----------------|------|
-| 8 | ✅ PR #169 修复（加了 total） | ⚠️ 重新设计 | Sprint 2 R1 删除了 total——这不是回退，而是架构升级。total 由业务 entry 承载，不属于 RNG 层 |
-| 11 | ✅ Sprint 1 A1 修复 | ✅ 保持 | Dispatcher 已接入运行时 |
-| 12 | ❌ 因果链未传播 | ✅ Sprint 2 G1 替代 | parentId chain 被 groupId + causedBy 替代。groupId 用于组内分组，causedBy（复用 parentId 列）用于跨组因果 |
-| 7 | 📋 延后 | 🔄 部分进行 | J1 开始了 EventBus → 日志的迁移（dh:judgment 走 emitEntry 而非 EventBus） |
+| 16a 偏差 # | 原状态                        | Sprint 2 后状态     | 说明                                                                                                      |
+| ---------- | ----------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------- |
+| 8          | ✅ PR #169 修复（加了 total） | ⚠️ 重新设计         | Sprint 2 R1 删除了 total——这不是回退，而是架构升级。total 由业务 entry 承载，不属于 RNG 层                |
+| 11         | ✅ Sprint 1 A1 修复           | ✅ 保持             | Dispatcher 已接入运行时                                                                                   |
+| 12         | ❌ 因果链未传播               | ✅ Sprint 2 G1 替代 | parentId chain 被 groupId + causedBy 替代。groupId 用于组内分组，causedBy（复用 parentId 列）用于跨组因果 |
+| 7          | 📋 延后                       | 🔄 部分进行         | J1 开始了 EventBus → 日志的迁移（dh:judgment 走 emitEntry 而非 EventBus）                                 |

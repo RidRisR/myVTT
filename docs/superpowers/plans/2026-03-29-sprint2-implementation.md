@@ -22,6 +22,7 @@
 ## File Structure
 
 ### New Files
+
 - `src/log/rendererRegistry.ts` — RendererRegistry with (surface, type) keying
 - `src/log/rendererRegistry.test.ts` — Registry unit tests
 - `src/log/CardShell.tsx` — Shared card shell component (Avatar + name + time + border)
@@ -31,6 +32,7 @@
 - `plugins/daggerheart-core/DHJudgmentRenderer.tsx` — dh:judgment renderer
 
 ### Modified Files
+
 - `server/logHandler.ts` — Remove total from roll-request; accept/store groupId
 - `server/schema.ts` — Add group_id column to game_log
 - `src/shared/logTypes.ts` — Add groupId to types; remove total from core:roll-result payload
@@ -56,6 +58,7 @@
 ## Task 1: R1 — Server RNG Purification
 
 **Files:**
+
 - Modify: `server/logHandler.ts:140-155`
 - Modify: `src/shared/logTypes.ts:41-65`
 - Modify: `server/__tests__/scenarios/game-log.test.ts`
@@ -101,6 +104,7 @@ feat(R1): remove total from server core:roll-result — pure RNG
 ## Task 2: G1 — groupId Types + Schema
 
 **Files:**
+
 - Modify: `src/shared/logTypes.ts`
 - Modify: `server/schema.ts`
 - Modify: `server/logHandler.ts`
@@ -109,6 +113,7 @@ feat(R1): remove total from server core:roll-result — pure RNG
 - [x] **Step 1: Add groupId to type definitions**
 
 In `src/shared/logTypes.ts`:
+
 - Add `groupId?: string` to `GameLogEntry`
 - Add `groupId?: string` to `LogEntrySubmission`
 - Add `groupId?: string` to `RollRequest`
@@ -120,6 +125,7 @@ In `server/schema.ts`, add `group_id TEXT` column to the `game_log` CREATE TABLE
 - [x] **Step 3: Update server INSERT statements to include group_id**
 
 In `server/logHandler.ts`, BOTH INSERT statements (~line 66 and ~line 160) need:
+
 - Add `group_id` to the column list
 - Add `submission.groupId ?? null` (or `request.groupId ?? null`) to the VALUES
 
@@ -133,6 +139,7 @@ And add the corresponding value parameter after `parentId ?? null`.
 - [x] **Step 4: Update rowToEntry to read group_id**
 
 In `server/logUtils.ts`, add to the `rowToEntry` function:
+
 ```typescript
 groupId: (row.group_id as string | null) ?? undefined,
 ```
@@ -144,6 +151,7 @@ In `server/__tests__/schema.test.ts`, update the expected column list to include
 - [x] **Step 6: Design note on nullability**
 
 `groupId` is `?: string` (optional) because:
+
 - Old entries in the database don't have group_id (NULL)
 - The client `createWorkflowContext` will ALWAYS generate a groupId for new entries (Task 3)
 - This is a transitional design — NOT a sign that groupId can be omitted
@@ -163,6 +171,7 @@ feat(G1): add groupId to log types and schema
 ## Task 3: G1 — Context groupId Auto-Injection
 
 **Files:**
+
 - Modify: `src/workflow/context.ts`
 - Modify: `src/workflow/context.test.ts`
 - Modify: `src/workflow/types.ts`
@@ -171,6 +180,7 @@ feat(G1): add groupId to log types and schema
 - [x] **Step 1: Write tests for groupId auto-injection**
 
 In `src/workflow/context.test.ts`, add tests:
+
 - `emitEntry auto-injects groupId from context options`
 - `serverRoll auto-injects groupId from context options`
 - `nested runWorkflow inherits parent groupId`
@@ -183,6 +193,7 @@ Run: `npx vitest run src/workflow/context.test.ts`
 - [x] **Step 3: Add ChainContext to context options**
 
 In `src/workflow/context.ts`:
+
 - Add to `ContextOptions`: `groupId?: string`, `chainDepth?: number`, `causedBy?: string`
 - At the top of `createWorkflowContext`, generate groupId if not provided: `const groupId = options?.groupId ?? uuidv7()`
 - In `emitEntry`: auto-inject `groupId` into submission
@@ -193,6 +204,7 @@ In `src/workflow/context.ts`:
 - [x] **Step 4: Extend IWorkflowRunner with ChainContext**
 
 In `src/workflow/types.ts`, add:
+
 ```typescript
 export interface ChainContext {
   groupId?: string
@@ -222,6 +234,7 @@ feat(G1): auto-inject groupId in workflow context
 ## Task 4: G1 — Dispatcher causedBy at Trigger Boundary
 
 **Files:**
+
 - Modify: `src/workflow/logStreamDispatcher.ts`
 - Modify: `src/workflow/logStreamDispatcher.test.ts`
 - Modify: `src/workflow/useWorkflowSDK.ts`
@@ -230,17 +243,19 @@ feat(G1): auto-inject groupId in workflow context
 - [x] **Step 1: Write test for causedBy propagation**
 
 In `src/workflow/logStreamDispatcher.test.ts`, add test:
+
 - When dispatcher triggers a workflow, `runWorkflow` is called with `chainCtx` containing: new groupId, causedBy = entry.id, chainDepth = entry.chainDepth + 1
 
 - [x] **Step 2: Update LogStreamDispatcher to pass ChainContext**
 
 In `src/workflow/logStreamDispatcher.ts`:
+
 ```typescript
-await this.runner.runWorkflow(
-  { name: trigger.workflow } as WorkflowHandle,
-  input,
-  { groupId: uuidv7(), causedBy: entry.id, chainDepth: entry.chainDepth + 1 },
-)
+await this.runner.runWorkflow({ name: trigger.workflow } as WorkflowHandle, input, {
+  groupId: uuidv7(),
+  causedBy: entry.id,
+  chainDepth: entry.chainDepth + 1,
+})
 ```
 
 Add `import { uuidv7 } from '../shared/uuidv7'` at top.
@@ -264,6 +279,7 @@ feat(G1): dispatcher creates new groupId + causedBy at trigger boundary
 ## Task 5: R2 — Roll Workflow Retirement
 
 **Files:**
+
 - Modify: `src/workflow/baseWorkflows.ts`
 - Modify: `plugins/daggerheart-core/rollSteps.ts`
 - Modify: `src/workflow/index.ts`
@@ -274,6 +290,7 @@ feat(G1): dispatcher creates new groupId + causedBy at trigger boundary
 - [x] **Step 1: Inline roll logic into quick-roll**
 
 In `src/workflow/baseWorkflows.ts`:
+
 - Remove the entire `roll` workflow definition (`_rollWorkflow`, `getRollWorkflow`)
 - Rewrite `quick-roll` step 'roll' to directly: resolve @tokens, tokenize expression, call `ctx.serverRoll()`, compute total via `buildCompoundResult()`
 - Remove `RollOutput` interface (no longer used as workflow output)
@@ -281,6 +298,7 @@ In `src/workflow/baseWorkflows.ts`:
 - [x] **Step 2: Update dh:action-check to use direct serverRoll**
 
 In `plugins/daggerheart-core/rollSteps.ts`:
+
 - Remove import of `getRollWorkflow`
 - Rewrite step 'roll' to: resolve @tokens, tokenize, call `ctx.serverRoll()` directly
 - The step should set `ctx.vars.rolls` and `ctx.vars.total` from the server response + `buildCompoundResult`
@@ -309,12 +327,14 @@ feat(R2): retire roll workflow — direct ctx.serverRoll() calls
 ## Task 6: J1 — Judgment emitEntry
 
 **Files:**
+
 - Modify: `plugins/daggerheart/types.ts`
 - Modify: `plugins/daggerheart-core/rollSteps.ts`
 
 - [x] **Step 1: Add dh:judgment to LogPayloadMap**
 
 In `plugins/daggerheart/types.ts`, add module augmentation for `LogPayloadMap`:
+
 ```typescript
 declare module '../../src/shared/logTypes' {
   interface LogPayloadMap {
@@ -331,6 +351,7 @@ declare module '../../src/shared/logTypes' {
 - [x] **Step 2: Add emit step to dh:action-check**
 
 In `plugins/daggerheart-core/rollSteps.ts`, add a new step `'dh:emit-judgment'` after `'dh:judge'`:
+
 ```typescript
 {
   id: 'dh:emit-judgment',
@@ -370,6 +391,7 @@ feat(J1): dh:judgment emitEntry for cross-client visibility
 ## Task 7: A3 Step 1 — RendererRegistry
 
 **Files:**
+
 - Create: `src/log/rendererRegistry.ts`
 - Create: `src/log/rendererRegistry.test.ts`
 - Modify: `src/ui-system/registrationTypes.ts`
@@ -378,6 +400,7 @@ feat(J1): dh:judgment emitEntry for cross-client visibility
 - [x] **Step 1: Write RendererRegistry tests**
 
 Create `src/log/rendererRegistry.test.ts`:
+
 - `register and get renderer by (surface, type)`
 - `get returns undefined for unregistered (surface, type)`
 - `first registration wins (no overwrite)`
@@ -391,6 +414,7 @@ Run: `npx vitest run src/log/rendererRegistry.test.ts`
 - [x] **Step 3: Implement RendererRegistry**
 
 Create `src/log/rendererRegistry.ts`:
+
 ```typescript
 import type { GameLogEntry } from '../shared/logTypes'
 
@@ -428,6 +452,7 @@ export function clearRenderers(): void {
 - [x] **Step 4: Add registerRenderer to IUIRegistrationSDK**
 
 In `src/ui-system/registrationTypes.ts`, add:
+
 ```typescript
 registerRenderer(surface: string, type: string, renderer: React.ComponentType<{ entry: unknown; isNew?: boolean }>): void
 ```
@@ -451,6 +476,7 @@ feat(A3-1): RendererRegistry with (surface, type) keying
 ## Task 8: A3 Step 2 — Base Renderers + CardShell
 
 **Files:**
+
 - Create: `src/log/CardShell.tsx`
 - Create: `src/log/renderers/TextEntryRenderer.tsx`
 - Create: `src/log/renderers/RollResultRenderer.tsx`
@@ -460,6 +486,7 @@ feat(A3-1): RendererRegistry with (surface, type) keying
 - [x] **Step 1: Refactor DiceAnimContent props**
 
 In `src/chat/DiceResultCard.tsx`, change `DiceAnimContentProps` from `{ message: ChatRollMessage, ... }` to independent fields:
+
 ```typescript
 interface DiceAnimContentProps {
   formula: string
@@ -489,6 +516,7 @@ Create `src/log/renderers/RollResultRenderer.tsx` — renders `core:roll-result`
 - [x] **Step 5: Register base renderers**
 
 In `src/workflow/baseWorkflows.ts` (or a new `src/log/registerBaseRenderers.ts`), register the base renderers for the 'chat' surface:
+
 ```typescript
 registerRenderer('chat', 'core:text', TextEntryRenderer)
 registerRenderer('chat', 'core:roll-result', RollResultRenderer)
@@ -509,6 +537,7 @@ feat(A3-2): base renderers for core:text and core:roll-result
 ## Task 9: A3 Step 3 — Plugin Renderer (dh:judgment)
 
 **Files:**
+
 - Create: `plugins/daggerheart-core/DHJudgmentRenderer.tsx`
 - Modify: `plugins/daggerheart-core/rollSteps.ts` — register renderer
 
@@ -519,6 +548,7 @@ Create `plugins/daggerheart-core/DHJudgmentRenderer.tsx` — renders dh:judgment
 - [x] **Step 2: Register renderer in plugin activation**
 
 In `plugins/daggerheart-core/rollSteps.ts`, in `registerDHCoreSteps`:
+
 ```typescript
 sdk.ui.registerRenderer('chat', 'dh:judgment', DHJudgmentRenderer)
 ```
@@ -538,6 +568,7 @@ feat(A3-3): dh:judgment renderer replaces rollCardRenderers
 ## Task 10: A3 Step 4 — ChatPanel Migration
 
 **Files:**
+
 - Create: `src/log/LogEntryCard.tsx`
 - Modify: `src/chat/ChatPanel.tsx`
 - Modify: `src/chat/MessageScrollArea.tsx`
@@ -546,6 +577,7 @@ feat(A3-3): dh:judgment renderer replaces rollCardRenderers
 - [x] **Step 1: Create LogEntryCard with fallback**
 
 Create `src/log/LogEntryCard.tsx`:
+
 ```typescript
 export function LogEntryCard({ entry, isNew }: { entry: GameLogEntry; isNew?: boolean }) {
   const Renderer = getRenderer('chat', entry.type)
@@ -572,7 +604,7 @@ Change `ToastItem` to `{ entry: GameLogEntry; timestamp: number }`. Render `LogE
   ```typescript
   const CHAT_TYPES = new Set(['core:text', 'core:roll-result', 'dh:judgment'])
   const visibleEntries = useMemo(
-    () => logEntries.filter(e => CHAT_TYPES.has(e.type)),
+    () => logEntries.filter((e) => CHAT_TYPES.has(e.type)),
     [logEntries],
   )
   ```
@@ -582,6 +614,7 @@ Change `ToastItem` to `{ entry: GameLogEntry; timestamp: number }`. Render `LogE
 - [x] **Step 5: Remove old code**
 
 Once all types render through the registry:
+
 - Delete `logEntryToChatMessage()` from ChatPanel
 - Remove fallback path from LogEntryCard
 - Remove `ChatMessage` types from `src/shared/chatTypes.ts` (keep `MessageOrigin` and `getDisplayIdentity`)
@@ -602,6 +635,7 @@ feat(A3-4): ChatPanel migrated to RendererRegistry
 ## Task 11: Deviation Documentation + Final Cleanup
 
 **Files:**
+
 - Create: `docs/plans/sprint2-deviations.md`
 - Modify: `docs/archive/design-history/16a-实现偏差说明.md`
 

@@ -6,7 +6,10 @@ export function TextEntryRenderer({ entry, isNew, animationStyle }: LogEntryRend
   if (!isLogType(entry, 'core:text')) return null
   return (
     <CardShell entry={entry} isNew={isNew} variant="default" animationStyle={animationStyle}>
-      <div data-testid="entry-text" className="text-sm text-text-primary leading-relaxed break-words">
+      <div
+        data-testid="entry-text"
+        className="text-sm text-text-primary leading-relaxed break-words"
+      >
         {entry.payload.content}
       </div>
     </CardShell>
