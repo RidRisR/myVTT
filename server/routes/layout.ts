@@ -1,7 +1,7 @@
 // server/routes/layout.ts
 import { Router } from 'express'
 import type { TypedServer } from '../socketTypes'
-import { withRoom } from '../middleware'
+import { withRoom, withRole } from '../middleware'
 
 export function layoutRoutes(dataDir: string, io: TypedServer) {
   const router = Router()
@@ -21,8 +21,12 @@ export function layoutRoutes(dataDir: string, io: TypedServer) {
     res.json(config)
   })
 
-  // PUT /api/rooms/:roomId/layout — save layout config (GM only in future)
-  router.put('/api/rooms/:roomId/layout', room, (req, res) => {
+  // PUT /api/rooms/:roomId/layout — save layout config (GM only)
+  router.put('/api/rooms/:roomId/layout', room, withRole, (req, res) => {
+    if (req.role !== 'GM') {
+      res.status(403).json({ error: 'Only GM can modify layout' })
+      return
+    }
     const body = req.body as {
       narrative: Record<string, unknown>
       tactical: Record<string, unknown>
