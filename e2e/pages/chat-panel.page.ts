@@ -33,4 +33,21 @@ export class ChatPanelPage {
   async expectMessageVisible(text: string) {
     await expect(this.page.getByText(text).first()).toBeVisible({ timeout: 5000 })
   }
+
+  /** Wait for at least N log entry cards to be visible */
+  async expectEntryCount(n: number) {
+    await expect(this.page.getByTestId('log-entry-card')).toHaveCount(n, { timeout: 10000 })
+  }
+
+  /** Expect a dice roll card showing the given formula text */
+  async expectDiceRollVisible(formula: string) {
+    await expect(
+      this.page.getByTestId('entry-roll-result').filter({ hasText: formula }).first(),
+    ).toBeVisible({ timeout: 5000 })
+  }
+
+  /** Expect a dh:judgment card to be visible */
+  async expectJudgmentVisible() {
+    await expect(this.page.getByTestId('entry-dh-judgment').first()).toBeVisible({ timeout: 5000 })
+  }
 }

@@ -26,6 +26,7 @@ export function DHJudgmentRenderer({ entry, isNew, animationStyle }: LogEntryRen
 
   return (
     <CardShell entry={entry} isNew={isNew} animationStyle={animationStyle} variant="accent">
+      <div data-testid="entry-dh-judgment">
       <DiceAnimContent
         formula={payload.formula}
         rolls={payload.rolls}
@@ -34,6 +35,7 @@ export function DHJudgmentRenderer({ entry, isNew, animationStyle }: LogEntryRen
         footer={{ text: display.text, color: display.color }}
         totalColor={display.color}
       />
+      </div>
     </CardShell>
   )
 }

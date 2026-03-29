@@ -450,4 +450,98 @@ describe('Game Log Handlers', () => {
       unclaimed.disconnect()
     }
   })
+
+  // ── groupId support ──
+
+  describe('groupId support', () => {
+    it('log:entry with groupId is stored and returned in ack', async () => {
+      // Drain the broadcast so it does not bleed into the next test
+      const broadcastPromise = waitForSocketEvent<GameLogEntry>(secondClient, 'log:new')
+
+      const submission = {
+        id: 'test-groupid-entry-001',
+        type: 'core:text',
+        origin: { seat: { id: seatId, name: 'GM', color: '#ff6600' } },
+        chainDepth: 0,
+        triggerable: false,
+        visibility: {},
+        baseSeq: 0,
+        payload: { text: 'Entry with groupId' },
+        timestamp: Date.now(),
+        groupId: 'test-group-1',
+      }
+
+      const ack = await emitLogEntry(ctx.socket, submission)
+      expect('error' in ack).toBe(false)
+      const entry = ack as GameLogEntry
+      expect(entry.groupId).toBe('test-group-1')
+
+      await broadcastPromise
+    })
+
+    it('log:entry groupId is broadcast to other clients', async () => {
+      const broadcastPromise = waitForSocketEvent<GameLogEntry>(secondClient, 'log:new')
+
+      const submission = {
+        id: 'test-groupid-broadcast-001',
+        type: 'core:text',
+        origin: { seat: { id: seatId, name: 'GM', color: '#ff6600' } },
+        chainDepth: 0,
+        triggerable: false,
+        visibility: {},
+        baseSeq: 0,
+        payload: { text: 'Broadcast with groupId' },
+        timestamp: Date.now(),
+        groupId: 'test-group-1',
+      }
+
+      await emitLogEntry(ctx.socket, submission)
+
+      const broadcast = await broadcastPromise
+      expect(broadcast.id).toBe('test-groupid-broadcast-001')
+      expect(broadcast.groupId).toBe('test-group-1')
+    })
+
+    it('log:roll-request with groupId is stored and returned', async () => {
+      // Drain the broadcast so it does not bleed into the next test
+      const broadcastPromise = waitForSocketEvent<GameLogEntry>(secondClient, 'log:new')
+
+      const request = {
+        origin: { seat: { id: seatId, name: 'GM', color: '#ff6600' } },
+        chainDepth: 0,
+        triggerable: false,
+        visibility: {},
+        dice: [{ sides: 6, count: 1 }],
+        formula: '1d6',
+        groupId: 'test-group-2',
+      }
+
+      const ack = await emitRollRequest(ctx.socket, request)
+      expect('error' in ack).toBe(false)
+      const entry = ack as GameLogEntry
+      expect(entry.groupId).toBe('test-group-2')
+
+      await broadcastPromise
+    })
+
+    it('log:entry without groupId defaults to undefined', async () => {
+      const submission = {
+        id: 'test-groupid-missing-001',
+        type: 'core:text',
+        origin: { seat: { id: seatId, name: 'GM', color: '#ff6600' } },
+        chainDepth: 0,
+        triggerable: false,
+        visibility: {},
+        baseSeq: 0,
+        payload: { text: 'No groupId' },
+        timestamp: Date.now(),
+        // groupId intentionally omitted
+      }
+
+      const ack = await emitLogEntry(ctx.socket, submission)
+      expect('error' in ack).toBe(false)
+      const entry = ack as GameLogEntry
+      expect(entry.groupId).toBeUndefined()
+    })
+  })
 })

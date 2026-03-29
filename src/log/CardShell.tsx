@@ -33,6 +33,8 @@ export function CardShell({
   if (variant === 'accent') {
     return (
       <div
+        data-testid="log-entry-card"
+        data-entry-type={entry.type}
         className="relative flex gap-2.5 px-4 py-3 bg-glass backdrop-blur-[20px] border border-accent/40 shadow-[0_4px_16px_rgba(212,160,85,0.15),inset_0_1px_0_rgba(232,184,106,0.1)] rounded-xl"
         style={{ animation }}
       >
@@ -57,6 +59,8 @@ export function CardShell({
   // variant === 'default'
   return (
     <div
+      data-testid="log-entry-card"
+      data-entry-type={entry.type}
       className="flex gap-2.5 px-3.5 py-2.5 bg-glass backdrop-blur-[20px] border border-border-glass shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)] rounded-[10px]"
       style={{ animation }}
     >
