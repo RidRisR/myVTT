@@ -5,6 +5,7 @@ import type { GameLogEntry } from '../shared/logTypes'
 export interface LogEntryRendererProps {
   entry: GameLogEntry
   isNew?: boolean
+  animationStyle?: 'toast' | 'scroll'
 }
 
 export type LogEntryRenderer = React.ComponentType<LogEntryRendererProps>

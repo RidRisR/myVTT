@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { getRenderer } from './rendererRegistry'
 import type { GameLogEntry } from '../shared/logTypes'
 import { isLogType } from '../shared/logTypes'
@@ -43,8 +44,8 @@ export function LogEntryCard({
   isNew?: boolean
   animationStyle?: 'toast' | 'scroll'
 }) {
-  const Renderer = getRenderer('chat', entry.type)
-  if (Renderer) return <Renderer entry={entry} isNew={isNew} />
+  const Renderer = useMemo(() => getRenderer('chat', entry.type), [entry.type])
+  if (Renderer) return <Renderer entry={entry} isNew={isNew} animationStyle={animationStyle} />
 
   // Temporary fallback for types not yet migrated
   const chatMsg = logEntryToChatMessage(entry)

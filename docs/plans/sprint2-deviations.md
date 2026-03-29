@@ -99,7 +99,17 @@
 
 ---
 
-### 偏差 6：RendererRegistry 接口使用 `any` 而非 `unknown`
+### 偏差 6：`LogEntryRendererProps` 包含 `animationStyle`
+
+**探索文档描述**：§7.4 渲染器接口只有 `{ entry, isNew }`��
+
+**实际实现**：增加了 `animationStyle?: 'toast' | 'scroll'`。所有渲染器透传给 `CardShell`。
+
+**原因**：Code review 发现 toast 场景需要不同的入场动画。不传递 `animationStyle` 会导致 toast 和 scroll 区域的 entry 使用相同动画（视觉回退）。`CardShell` 已支持该 prop，渲染器只需透传，不增加渲染器的业务复杂度。
+
+---
+
+### 偏差 7：RendererRegistry 接口使用 `any` 而非 `unknown`
 
 **探索文档描述**：§7.4 RendererRegistry API 用 `LogEntryRenderer = React.ComponentType<LogEntryRendererProps>` 注册。
 

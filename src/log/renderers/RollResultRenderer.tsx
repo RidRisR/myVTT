@@ -3,10 +3,10 @@ import { isLogType } from '../../shared/logTypes'
 import { CardShell } from '../CardShell'
 import { DiceAnimContent } from '../../chat/DiceResultCard'
 
-export function RollResultRenderer({ entry, isNew }: LogEntryRendererProps) {
+export function RollResultRenderer({ entry, isNew, animationStyle }: LogEntryRendererProps) {
   if (!isLogType(entry, 'core:roll-result')) return null
   return (
-    <CardShell entry={entry} isNew={isNew} variant="accent">
+    <CardShell entry={entry} isNew={isNew} variant="accent" animationStyle={animationStyle}>
       <DiceAnimContent
         formula={entry.payload.formula}
         resolvedFormula={entry.payload.resolvedFormula}
