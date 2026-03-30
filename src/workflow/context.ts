@@ -8,7 +8,6 @@ import type {
 } from './types'
 import type { Entity } from '../shared/entityTypes'
 import type { WorkflowEngine } from './engine'
-import type { EventBus } from '../events/eventBus'
 import type { GameLogEntry, LogEntrySubmission, RollRequest, Visibility } from '../shared/logTypes'
 import type { MessageOrigin } from '../shared/chatTypes'
 import type { DiceSpec } from '../shared/diceUtils'
@@ -20,7 +19,6 @@ export interface ContextDeps {
   serverRoll: (request: RollRequest) => Promise<GameLogEntry>
   getEntity: (id: string) => Entity | undefined
   getAllEntities: () => Record<string, Entity>
-  eventBus: EventBus
   engine: WorkflowEngine
   getActiveOrigin: () => MessageOrigin
   getSeatId: () => string
@@ -221,13 +219,6 @@ export function createWorkflowContext(
         timestamp: Date.now(),
       }
       deps.emitEntry(submission)
-    },
-
-    // ── Events (decoupled side effects via EventBus) ─────────────────────
-    events: {
-      emit: <T>(handle: { key: string; __type?: T }, payload: T): void => {
-        deps.eventBus.emit(handle, payload)
-      },
     },
 
     // ── Flow Control ──────────────────────────────────────────────────────

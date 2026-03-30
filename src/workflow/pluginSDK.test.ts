@@ -2,7 +2,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { PluginSDK, WorkflowRunner } from './pluginSDK'
 import { WorkflowEngine } from './engine'
-import { createEventBus } from '../events/eventBus'
 import type { ContextDeps } from './context'
 
 function makeDeps(): Omit<ContextDeps, 'engine'> {
@@ -23,7 +22,6 @@ function makeDeps(): Omit<ContextDeps, 'engine'> {
     }),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
-    eventBus: createEventBus(),
     getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
     getSeatId: vi.fn().mockReturnValue('s1'),
     getLogWatermark: vi.fn().mockReturnValue(0),

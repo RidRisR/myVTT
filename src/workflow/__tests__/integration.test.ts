@@ -2,8 +2,6 @@ import { describe, it, expect, vi } from 'vitest'
 import { WorkflowEngine } from '../engine'
 import { PluginSDK, WorkflowRunner } from '../pluginSDK'
 import { registerBaseWorkflows } from '../baseWorkflows'
-import { createEventBus } from '../../events/eventBus'
-import { toastEvent, announceEvent, animationEvent } from '../../events/systemEvents'
 import type { WorkflowHandle } from '../types'
 import { tokenizeExpression, toDiceSpecs, buildCompoundResult } from '../../shared/diceUtils'
 
@@ -12,7 +10,6 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     const engine = new WorkflowEngine()
     registerBaseWorkflows(engine)
 
-    const bus = createEventBus()
     const deps = {
       emitEntry: vi.fn(),
       serverRoll: vi.fn().mockResolvedValue({
@@ -30,7 +27,6 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
-      eventBus: bus,
       getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
       getSeatId: vi.fn().mockReturnValue('s1'),
       getLogWatermark: vi.fn().mockReturnValue(0),
@@ -39,17 +35,12 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     const coreSDK = new PluginSDK(engine, 'daggerheart-core')
     const cosmeticSDK = new PluginSDK(engine, 'daggerheart-cosmetic')
     const runner = new WorkflowRunner(engine, deps)
-    return { engine, coreSDK, cosmeticSDK, runner, deps, bus }
+    return { engine, coreSDK, cosmeticSDK, runner, deps }
   }
 
-  it('full POC flow: dh:action-check composes roll + judge + resolve + display', async () => {
-    const { coreSDK, cosmeticSDK, runner, deps, bus } = setup()
+  it('full POC flow: dh:action-check composes roll + judge + resolve', async () => {
+    const { coreSDK, cosmeticSDK, runner, deps } = setup()
     const executionOrder: string[] = []
-
-    const toasts: unknown[] = []
-    const announcements: unknown[] = []
-    bus.on(toastEvent, (p) => toasts.push(p))
-    bus.on(announceEvent, (p) => announcements.push(p))
 
     // daggerheart-core defines its own workflow with inlined roll logic
     const dhWorkflow = coreSDK.defineWorkflow<{
@@ -107,21 +98,6 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
           }
         },
       },
-      {
-        id: 'display',
-        run: (ctx) => {
-          executionOrder.push('display')
-          const total = ctx.vars.total
-          if (typeof total !== 'number') return
-          ctx.events.emit(toastEvent, {
-            text: `🎲 ${ctx.vars.formula} = ${total}`,
-            variant: 'success' as const,
-          })
-          ctx.events.emit(announceEvent, {
-            message: `🎲 ${ctx.vars.formula} = ${total}`,
-          })
-        },
-      },
     ])
 
     // cosmetic attaches to dh:action-check, not roll
@@ -132,11 +108,8 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       critical: false,
       run: (ctx) => {
         executionOrder.push('cos:dice-animation')
-        ctx.events.emit(animationEvent, {
-          type: 'dice-roll',
-          data: { rolls: ctx.vars.rolls },
-          durationMs: 100,
-        })
+        // Animation is now renderer-driven, step is a no-op placeholder
+        void ctx.vars.rolls
       },
     })
 
@@ -146,7 +119,6 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       'dh:judge',
       'cos:dice-animation',
       'dh:resolve',
-      'display',
     ])
 
     // Execute
@@ -156,9 +128,8 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     })
 
     expect(result.status).toBe('completed')
-    expect(executionOrder).toEqual(['dh:judge', 'cos:dice-animation', 'dh:resolve', 'display'])
+    expect(executionOrder).toEqual(['dh:judge', 'cos:dice-animation', 'dh:resolve'])
     expect(deps.serverRoll).toHaveBeenCalledWith(expect.objectContaining({ formula: '2d12+2' }))
-    expect(toasts).toEqual([expect.objectContaining({ text: expect.stringContaining('2d12+2') })])
   })
 
   it('wrapStep: auto-modifier wraps dh step', async () => {

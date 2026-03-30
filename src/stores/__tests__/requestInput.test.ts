@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useSessionStore, requestInput, resolveInput, cancelInput } from '../sessionStore'
 import { WorkflowEngine } from '../../workflow/engine'
 import { createWorkflowContext } from '../../workflow/context'
-import { createEventBus } from '../../events/eventBus'
 import type { InternalState } from '../../workflow/types'
 
 beforeEach(() => {
@@ -69,7 +68,6 @@ describe('requestInput — pause/resume/cancel', () => {
 describe('ctx.requestInput — workflow integration', () => {
   it('async step can pause via ctx.requestInput and resume on resolveInput', async () => {
     const engine = new WorkflowEngine()
-    const bus = createEventBus()
     const deps = {
       emitEntry: vi.fn(),
       serverRoll: vi.fn().mockResolvedValue({
@@ -87,7 +85,6 @@ describe('ctx.requestInput — workflow integration', () => {
       }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
-      eventBus: bus,
       engine,
       getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: '', name: '', color: '' } }),
       getSeatId: vi.fn().mockReturnValue(''),

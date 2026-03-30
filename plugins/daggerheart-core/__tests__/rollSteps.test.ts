@@ -5,7 +5,6 @@ import { PluginSDK, WorkflowRunner } from '../../../src/workflow/pluginSDK'
 import { registerBaseWorkflows } from '../../../src/workflow/baseWorkflows'
 import { registerDHCoreSteps, getDHActionCheckWorkflow } from '../rollSteps'
 import type { ContextDeps } from '../../../src/workflow/context'
-import { EventBus } from '../../../src/events/eventBus'
 
 function makeRollEntry(rolls: number[][] = [[4, 9]]) {
   return {
@@ -29,7 +28,6 @@ function makeDeps(overrides: Partial<ContextDeps> = {}): Omit<ContextDeps, 'engi
     serverRoll: vi.fn().mockResolvedValue(makeRollEntry()),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
-    eventBus: new EventBus(),
     getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
     getSeatId: vi.fn().mockReturnValue('s1'),
     getLogWatermark: vi.fn().mockReturnValue(0),
@@ -52,7 +50,7 @@ describe('registerDHCoreSteps', () => {
   it('defines dh:action-check with roll, judgment, display steps', () => {
     const { sdk } = makeSetup()
     const steps = sdk.inspectWorkflow(getDHActionCheckWorkflow())
-    expect(steps).toEqual(['roll', 'judgment', 'display'])
+    expect(steps).toEqual(['roll', 'judgment'])
   })
 
   it('dh:action-check calls ctx.serverRoll directly (no nested roll workflow)', async () => {

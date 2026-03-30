@@ -1,6 +1,5 @@
 // src/workflow/types.ts
 import type { Entity } from '../shared/entityTypes'
-import type { EventHandle } from '../events/eventBus'
 import type { IUIRegistrationSDK } from '../ui-system/registrationTypes'
 import type { GameLogEntry, LogPayloadMap, TriggerDefinition, Visibility } from '../shared/logTypes'
 import type { DiceSpec } from '../shared/diceUtils'
@@ -184,11 +183,6 @@ export interface WorkflowContext<TVars = Record<string, unknown>> {
   updateComponent<T>(entityId: string, key: string, updater: (current: T | undefined) => T): void
   /** @deprecated — will be removed when teamTracker is redesigned */
   updateTeamTracker(label: string, patch: { current?: number }): void
-
-  // ── Events (decoupled side effects via EventBus) ──────────────────────
-  events: {
-    emit<T>(handle: EventHandle<T>, payload: T): void
-  }
 
   // ── Flow Control ──────────────────────────────────────────────────────
   abort(reason?: string): void

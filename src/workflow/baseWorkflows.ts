@@ -2,7 +2,7 @@
 import type { WorkflowEngine } from './engine'
 import type { WorkflowHandle } from './types'
 import { tokenizeExpression, toDiceSpecs, buildCompoundResult } from '../shared/diceUtils'
-import { toastEvent, announceEvent } from '../events/systemEvents'
+
 import { _setSelection } from '../stores/sessionStore'
 import { registerCommand } from './commandRegistry'
 
@@ -141,16 +141,6 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
         } else {
           ctx.abort(result.reason ?? 'Roll failed')
         }
-      },
-    },
-    {
-      id: 'display',
-      run: (ctx) => {
-        const formula = ctx.vars.formula
-        const total = ctx.vars.total
-        if (typeof total !== 'number') return
-        ctx.events.emit(toastEvent, { text: `🎲 ${formula} = ${total}`, variant: 'success' })
-        ctx.events.emit(announceEvent, { message: `🎲 ${formula} = ${total}` })
       },
     },
   ])

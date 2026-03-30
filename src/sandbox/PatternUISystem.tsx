@@ -15,7 +15,6 @@ import {
 } from './AdversarialPanels'
 import { PluginSDK, WorkflowRunner } from '../workflow/pluginSDK'
 import { getWorkflowEngine } from '../workflow/useWorkflowSDK'
-import { EventBus } from '../events/eventBus'
 import type { IComponentSDK, LayoutConfig } from '../ui-system/types'
 import type { Entity } from '../shared/entityTypes'
 
@@ -92,7 +91,6 @@ export default function PatternUISystem() {
       serverRoll: () => Promise.reject(new Error('serverRoll not available in sandbox')),
       getEntity: () => undefined,
       getAllEntities: () => ({}),
-      eventBus: new EventBus(),
       getActiveOrigin: () => ({ seat: { id: '', name: '', color: '' } }),
       getSeatId: () => '',
       getLogWatermark: () => 0,

@@ -2,7 +2,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createWorkflowContext } from './context'
 import { WorkflowEngine } from './engine'
-import { createEventBus, defineEvent } from '../events/eventBus'
 import type { InternalState } from './types'
 import type { Entity } from '../shared/entityTypes'
 
@@ -40,7 +39,6 @@ function makeDeps(overrides: Partial<Parameters<typeof createWorkflowContext>[0]
     serverRoll: vi.fn().mockResolvedValue(makeRollEntry()),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
-    eventBus: createEventBus(),
     engine: makeEngine(),
     getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
     getSeatId: vi.fn().mockReturnValue('s1'),
@@ -68,7 +66,6 @@ describe('createWorkflowContext', () => {
     expect(typeof ctx.updateComponent).toBe('function')
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
     expect(typeof ctx.updateTeamTracker).toBe('function')
-    expect(typeof ctx.events.emit).toBe('function')
     expect(typeof ctx.abort).toBe('function')
     expect(typeof ctx.runWorkflow).toBe('function')
   })
@@ -128,19 +125,6 @@ describe('createWorkflowContext', () => {
         payload: { label: 'HP', current: 5 },
       }),
     )
-  })
-
-  it('events.emit delegates to deps.eventBus', () => {
-    const bus = createEventBus()
-    const deps = makeDeps({ eventBus: bus })
-    const ctx = createWorkflowContext(deps, undefined, makeInternal())
-
-    const handle = defineEvent<string>('test:event')
-    const received: string[] = []
-    bus.on(handle, (p) => received.push(p))
-
-    ctx.events.emit(handle, 'hello')
-    expect(received).toEqual(['hello'])
   })
 
   it('abort sets internal state', () => {
