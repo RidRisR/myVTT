@@ -65,9 +65,10 @@ export function getRenderer<T>(
   type?: string,
 ): T | LogEntryRenderer | undefined {
   if (typeof pointOrSurface === 'string') {
-    return registry.get(key(pointOrSurface, type!))
+    // String overload guarantees type is defined; registry stores heterogeneous values
+    return registry.get(key(pointOrSurface, type ?? '')) as LogEntryRenderer | undefined
   }
-  return registry.get(key(pointOrSurface.surface, pointOrSurface.type))
+  return registry.get(key(pointOrSurface.surface, pointOrSurface.type)) as T | undefined
 }
 
 export function clearRenderers(): void {

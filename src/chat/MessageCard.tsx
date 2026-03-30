@@ -1,5 +1,4 @@
 import React from 'react'
-import { useTranslation } from 'react-i18next'
 import type { ChatMessage } from '../shared/chatTypes'
 import { getDisplayIdentity } from '../shared/chatTypes'
 import { Avatar } from './Avatar'
@@ -22,8 +21,6 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   isNew = false,
   animationStyle = 'scroll',
 }) => {
-  const { t: _t } = useTranslation('chat')
-
   const display = getDisplayIdentity(message.origin)
 
   const animation = isNew

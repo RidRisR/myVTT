@@ -24,12 +24,12 @@ Sprint 2 (#174) 和 UI System Phase 1+2 (#173) 合并后，掷骰卡片的渲染
 
 Judgment（Hope/Fear）是从 rolls 数据纯计算得出的确定性结果。同一个计算存在两个消费场景：
 
-| 消费场景 | 性质 | 复用方式 |
-| --- | --- | --- |
-| UI 渲染（卡片显示 Hope/Fear） | 只读，无副作用 | `dhEvaluateRoll()` 纯函数 — 任何组件按需调用 |
-| Tracker 更新（Hope/Fear ±1） | 写操作，有副作用 | `dh:judgment` 子 workflow — 任何 workflow 按需组合 |
+| 消费场景                      | 性质             | 复用方式                                           |
+| ----------------------------- | ---------------- | -------------------------------------------------- |
+| UI 渲染（卡片显示 Hope/Fear） | 只读，无副作用   | `dhEvaluateRoll()` 纯函数 — 任何组件按需调用       |
+| Tracker 更新（Hope/Fear ±1）  | 写操作，有副作用 | `dh:judgment` 子 workflow — 任何 workflow 按需组合 |
 
-**提取 \****`dh:judgment`**\*\* 为独立子 workflow**，与现有的 `roll` 子 workflow 模式一致：
+**提取 \*\***`dh:judgment`**\*\* 为独立子 workflow**，与现有的 `roll` 子 workflow 模式一致：
 
 ```typescript
 // 现有模式：roll 是可复用子 workflow
@@ -40,6 +40,7 @@ const result = await ctx.runWorkflow(getDHJudgmentWorkflow(), { rolls, total })
 ```
 
 `dh:judgment` workflow 内部包含两步：
+
 1. `judge` — 调用 `dhEvaluateRoll()` 计算 judgment
 2. `resolve` — 根据 judgment 更新 Hope/Fear tracker
 
@@ -60,6 +61,7 @@ dh:action-check = [
 未来任何需要 Hope/Fear 判定 + tracker 更新的 workflow 都可以直接组合 `getDHJudgmentWorkflow()`。
 
 **删除范围**：
+
 - workflow 步骤 `dh:emit-judgment`（冗余日志条目的来源）
 - `DHJudgmentRenderer` 组件
 - ChatPanel 的 groupId 过滤逻辑和 `CHAT_TYPES` 中的 `'dh:judgment'`
@@ -81,7 +83,7 @@ sdk.registerRenderer(rollResult('daggerheart:dd'), {
   dieConfigs: [
     { color: '#fbbf24', label: 'die.hope' },
     { color: '#dc2626', label: 'die.fear' },
-  ]
+  ],
 })
 
 // 高级路径：完整组件覆盖（escape hatch）
@@ -156,16 +158,17 @@ registry (统一的 Map<string, T>):
 
 两套注册系统对比：
 
-|  | `registerRenderer` | `ExtensionRegistry` |
-| --- | --- | --- |
-| 当前使用 | 生产代码 | 仅测试 |
-| surface 维度 | 内建 | 无 |
-| 多优先级注册 | 不支持 | 支持 |
-| 类型安全 | 字符串键 | 泛型 token |
+|              | `registerRenderer` | `ExtensionRegistry` |
+| ------------ | ------------------ | ------------------- |
+| 当前使用     | 生产代码           | 仅测试              |
+| surface 维度 | 内建               | 无                  |
+| 多优先级注册 | 不支持             | 支持                |
+| 类型安全     | 字符串键           | 泛型 token          |
 
 **方案**：保留 `registerRenderer` 并吸收 `ExtensionRegistry` 的类型安全能力，然后删除 `ExtensionRegistry`。
 
 选择保留 `registerRenderer` 的理由：
+
 - 是当前唯一的生产路径，改动最小
 - 多优先级注册目前无使用场景（YAGNI）
 - surface 维度已内建，无需手动编码
@@ -177,7 +180,7 @@ registry (统一的 Map<string, T>):
 interface RendererPoint<T> {
   readonly surface: string
   readonly type: string
-  readonly __phantom?: T  // 编译时类型约束，运行时不存在
+  readonly __phantom?: T // 编译时类型约束，运行时不存在
 }
 
 function createRendererPoint<T>(surface: string, type: string): RendererPoint<T> {
@@ -204,10 +207,12 @@ export const chatText = createRendererPoint<LogEntryRendererProps>('chat', 'core
 ```
 
 类型安全分为两层：
+
 - **系统层**：`chatRollResult` 等 token 保证系统 renderer 的 props 匹配
 - **插件层**：`rollResult()` 返回的 token 保证插件提供的数据匹配 `RollResultConfig | ComponentType<RollCardProps>`
 
 **删除范围**：
+
 - `src/ui-system/extensionRegistry.ts`
 - `src/ui-system/__tests__/extensionRegistry.test.ts`
 - `PluginSDK` 构造函数中的 `extensionRegistry` 参数
@@ -218,10 +223,12 @@ export const chatText = createRendererPoint<LogEntryRendererProps>('chat', 'core
 ### 决策 4：清理 `LogEntryCard` 的 fallback 路径
 
 当前 `LogEntryCard` 有两条路径：
+
 1. RendererRegistry 查找 → 使用注册的 renderer
 2. Fallback → `logEntryToChatMessage()` → `MessageCard`
 
 改造后，所有 chat-visible 类型都通过 RendererRegistry 注册了 renderer：
+
 - `core:text` → `TextEntryRenderer`（已有）
 - `core:roll-result` → `RollResultRenderer`（增强后）
 
@@ -269,54 +276,57 @@ registerRenderer()        — 统一注册 API，系统和插件共用
 
 ### 删除
 
-| 文件 | 理由 |
-| --- | --- |
-| `plugins/daggerheart-core/DHJudgmentRenderer.tsx` | 不再有 `dh:judgment` 条目 |
-| `src/ui-system/extensionRegistry.ts` | 统一到 `registerRenderer` |
+| 文件                                                | 理由                      |
+| --------------------------------------------------- | ------------------------- |
+| `plugins/daggerheart-core/DHJudgmentRenderer.tsx`   | 不再有 `dh:judgment` 条目 |
+| `src/ui-system/extensionRegistry.ts`                | 统一到 `registerRenderer` |
 | `src/ui-system/__tests__/extensionRegistry.test.ts` | 随 extensionRegistry 删除 |
 
 ### 修改
 
-| 文件 | 改动 |
-| --- | --- |
-| `src/log/rendererRegistry.ts` | API 改为泛型 `RendererPoint<T>` token，运行时行为不变 |
-| `src/log/renderers/RollResultRenderer.tsx` | 增加 rollType → 插件委托逻辑（config 优先 → 组件 → 默认） |
-| `src/rules/types.ts` | 新增 `RollResultConfig` 接口 |
-| SDK 导出（`@myvtt/sdk`） | 新增 `rollResult()` token 工厂函数 |
-| `src/log/LogEntryCard.tsx` | 移除临时 console.log |
-| `src/chat/MessageCard.tsx` | 删除 dice 渲染路径（`CustomCard` / `DiceResultCard` 分支），保留 text 渲染 |
-| `src/chat/ChatPanel.tsx` | 删除 groupId 过滤、`dh:judgment` 从 `CHAT_TYPES`、临时 console.log |
-| `plugins/daggerheart-core/rollSteps.ts` | 提取 `dh:judgment` 为独立子 workflow（judge + resolve），删除 `dh:emit-judgment`，`dh:action-check` 改为组合两个子 workflow |
-| `src/workflow/pluginSDK.ts` | 移除 `extensionRegistry` 参数和 `contribute` |
-| `src/workflow/useWorkflowSDK.ts` | `initWorkflowSystem` 不再传 `getExtensionRegistry()` |
-| `src/ui-system/uiSystemInit.ts` | 移除 `getExtensionRegistry()` |
-| `src/ui-system/registrationTypes.ts` | 移除 `IUIRegistrationSDK.contribute` |
+| 文件                                       | 改动                                                                                                                        |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `src/log/rendererRegistry.ts`              | API 改为泛型 `RendererPoint<T>` token，运行时行为不变                                                                       |
+| `src/log/renderers/RollResultRenderer.tsx` | 增加 rollType → 插件委托逻辑（config 优先 → 组件 → 默认）                                                                   |
+| `src/rules/types.ts`                       | 新增 `RollResultConfig` 接口                                                                                                |
+| SDK 导出（`@myvtt/sdk`）                   | 新增 `rollResult()` token 工厂函数                                                                                          |
+| `src/log/LogEntryCard.tsx`                 | 移除临时 console.log                                                                                                        |
+| `src/chat/MessageCard.tsx`                 | 删除 dice 渲染路径（`CustomCard` / `DiceResultCard` 分支），保留 text 渲染                                                  |
+| `src/chat/ChatPanel.tsx`                   | 删除 groupId 过滤、`dh:judgment` 从 `CHAT_TYPES`、临时 console.log                                                          |
+| `plugins/daggerheart-core/rollSteps.ts`    | 提取 `dh:judgment` 为独立子 workflow（judge + resolve），删除 `dh:emit-judgment`，`dh:action-check` 改为组合两个子 workflow |
+| `src/workflow/pluginSDK.ts`                | 移除 `extensionRegistry` 参数和 `contribute`                                                                                |
+| `src/workflow/useWorkflowSDK.ts`           | `initWorkflowSystem` 不再传 `getExtensionRegistry()`                                                                        |
+| `src/ui-system/uiSystemInit.ts`            | 移除 `getExtensionRegistry()`                                                                                               |
+| `src/ui-system/registrationTypes.ts`       | 移除 `IUIRegistrationSDK.contribute`                                                                                        |
 
 ### 保留不变
 
-| 文件 | 理由 |
-| --- | --- |
-| `plugins/daggerheart/ui/DHRollCard.tsx` | 保留作为高级路径 escape hatch；Daggerheart 可选择迁移到纯配置 |
-| `src/log/CardShell.tsx` | 通用卡片外壳 |
-| `src/chat/DiceResultCard.tsx` | `DiceAnimContent` 被 RollResultRenderer 使用 |
-| `plugins/daggerheart/diceSystem.ts` 中的 `dhEvaluateRoll` | 可复用纯函数，UI 和 workflow 共享 |
+| 文件                                                      | 理由                                                          |
+| --------------------------------------------------------- | ------------------------------------------------------------- |
+| `plugins/daggerheart/ui/DHRollCard.tsx`                   | 保留作为高级路径 escape hatch；Daggerheart 可选择迁移到纯配置 |
+| `src/log/CardShell.tsx`                                   | 通用卡片外壳                                                  |
+| `src/chat/DiceResultCard.tsx`                             | `DiceAnimContent` 被 RollResultRenderer 使用                  |
+| `plugins/daggerheart/diceSystem.ts` 中的 `dhEvaluateRoll` | 可复用纯函数，UI 和 workflow 共享                             |
 
 ## 测试策略
 
 ### 单元测试
+
 - `RollResultRenderer`：验证有 rollType 时委托给插件、无 rollType 时渲染纯骰子
 - `DHRollCard`：验证 judgment 计算和渲染（已有测试）
 
 ### 集成测试
+
 - workflow 只产生 `core:roll-result` + `core:tracker-update`，不产生 `dh:judgment`
 
 ### E2E 测试
+
 - `.dd` 命令 → 聊天面板显示带 Hope/Fear 的骰子卡片
 - `.r` 命令 → 聊天面板显示纯骰子卡片（无 judgment）
 - 双客户端 → 两端看到相同的 judgment 卡片
 
 ## 已决定事项（原开放问题）
 
-1. **历史 \****`dh:judgment`**\*\* 条目** — 保留不迁移，从 `CHAT_TYPES` 移除后自然不再显示
+1. **历史 \*\***`dh:judgment`**\*\* 条目** — 保留不迁移，从 `CHAT_TYPES` 移除后自然不再显示
 2. **`MessageCard` dice 路径** — 删除。`RollResultRenderer` 内部已有三层 fallback（config → component → 默认纯骰子），`MessageCard` 的 dice 路径是死代码
-3. **`renderDice`**** 回调** — 简单路径（配置注册）完全不暴露 `renderDice`，系统内部处理。高级路径（组件注册）仍需提供 `renderDice`，由 `RollResultRenderer` 内部构建（从 MessageCard 搬运逻辑）
+3. **`renderDice`\*\*** 回调\*\* — 简单路径（配置注册）完全不暴露 `renderDice`，系统内部处理。高级路径（组件注册）仍需提供 `renderDice`，由 `RollResultRenderer` 内部构建（从 MessageCard 搬运逻辑）

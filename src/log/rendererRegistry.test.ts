@@ -52,7 +52,7 @@ describe('RendererPoint<T> typed API', () => {
   })
 
   it('register and get via RendererPoint token', () => {
-    const point = createRendererPoint<{ entry: unknown }>('chat', 'core:text')
+    const point = createRendererPoint<() => null>('chat', 'core:text')
     const Dummy = () => null
     registerRenderer(point, Dummy)
     expect(getRenderer(point)).toBe(Dummy)

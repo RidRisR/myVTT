@@ -9,7 +9,6 @@ import type {
   RollCardProps,
   DieConfig,
   RenderDiceOptions,
-  RulePlugin,
 } from '../../rules/types'
 import type { ChatRollMessage } from '../../shared/chatTypes'
 import type { ComponentType } from 'react'
@@ -19,45 +18,47 @@ import { _getUseRulePlugin, _getUsePluginTranslation } from './rollResultDeps'
 type RollResultSlot = RollResultConfig | ComponentType<RollCardProps>
 
 export function RollResultRenderer({ entry, isNew, animationStyle }: LogEntryRendererProps) {
-  if (!isLogType(entry, 'core:roll-result')) return null
-
   const plugin = _getUseRulePlugin()()
   const { t } = _getUsePluginTranslation()()
-  const { formula, resolvedFormula, rolls, dice, rollType, actionName } = entry.payload
+
+  // Extract payload — hooks must be called unconditionally (rules-of-hooks)
+  const rollPayload = isLogType(entry, 'core:roll-result') ? entry.payload : null
 
   // Compute total for judgment evaluation
   const total = useMemo(() => {
-    const finalFormula = resolvedFormula ?? formula
+    if (!rollPayload) return 0
+    const finalFormula = rollPayload.resolvedFormula ?? rollPayload.formula
     const terms = tokenizeExpression(finalFormula)
-    return buildCompoundResult(terms ?? [], rolls).total
-  }, [formula, resolvedFormula, rolls])
-
-  // Query registry for plugin-registered slot
-  const slot = useMemo(
-    () =>
-      rollType ? (getRenderer('rollResult', rollType) as RollResultSlot | undefined) : undefined,
-    [rollType],
-  )
+    return buildCompoundResult(terms ?? [], rollPayload.rolls).total
+  }, [rollPayload])
 
   // Build renderDice callback for component escape hatch
   const renderDice = useCallback(
     (configs?: DieConfig[], options?: RenderDiceOptions) => (
       <DiceAnimContent
-        formula={formula}
-        resolvedFormula={resolvedFormula}
-        rolls={rolls}
+        formula={rollPayload?.formula ?? ''}
+        resolvedFormula={rollPayload?.resolvedFormula}
+        rolls={rollPayload?.rolls ?? []}
         isNew={!!isNew}
         dieConfigs={configs}
         footer={options?.footer}
         totalColor={options?.totalColor}
       />
     ),
-    [formula, resolvedFormula, rolls, isNew],
+    [rollPayload, isNew],
   )
+
+  if (!rollPayload) return null
+
+  const { formula, resolvedFormula, rolls, dice, rollType, actionName } = rollPayload
+
+  // Query registry for plugin-registered slot (Map lookup — no memo needed)
+  const slot = rollType
+    ? (getRenderer('rollResult', rollType) as RollResultSlot | undefined)
+    : undefined
 
   // 1. Semantic config (simple path)
   if (slot && typeof slot !== 'function') {
-    const config = slot as RollResultConfig
     const judgment = plugin.diceSystem?.evaluateRoll(rolls, total) ?? null
     const display = judgment ? plugin.diceSystem?.getJudgmentDisplay(judgment) : null
     return (
@@ -68,7 +69,7 @@ export function RollResultRenderer({ entry, isNew, animationStyle }: LogEntryRen
             resolvedFormula={resolvedFormula}
             rolls={rolls}
             isNew={!!isNew}
-            dieConfigs={config.dieConfigs}
+            dieConfigs={slot.dieConfigs}
             footer={display ? { text: t(display.text), color: display.color } : undefined}
             totalColor={display?.color}
           />
@@ -77,9 +78,9 @@ export function RollResultRenderer({ entry, isNew, animationStyle }: LogEntryRen
     )
   }
 
-  // 2. Component override (escape hatch)
+  // 2. Component override (escape hatch — dynamic component from registry is intentional)
   if (slot && typeof slot === 'function') {
-    const CustomCard = slot as ComponentType<RollCardProps>
+    const CustomCard = slot
     const chatMsg: ChatRollMessage = {
       type: 'roll',
       id: entry.id,

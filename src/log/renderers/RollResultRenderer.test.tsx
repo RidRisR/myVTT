@@ -12,7 +12,7 @@ const mockUseRulePlugin = () => ({
   diceSystem: {
     evaluateRoll: (rolls: number[][]) => {
       if (!rolls[0] || rolls[0].length < 2) return null
-      if (rolls[0][0]! > rolls[0][1]!)
+      if ((rolls[0][0] ?? 0) > (rolls[0][1] ?? 0))
         return {
           type: 'daggerheart',
           hopeDie: rolls[0][0],
@@ -32,6 +32,7 @@ const mockUseRulePlugin = () => ({
 
 const mockUsePluginTranslation = () => ({ t: (k: string) => k })
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
 _bindRollResultDeps(mockUseRulePlugin as any, mockUsePluginTranslation)
 
 // Mock CardShell to just render children
@@ -53,9 +54,16 @@ function makeRollEntry(
   overrides: Partial<{ payload: Record<string, unknown> }> = {},
 ): GameLogEntry {
   return {
+    seq: 0,
     id: 'test-001',
     type: 'core:roll-result',
     origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
+    executor: 's1',
+    groupId: 'g1',
+    chainDepth: 0,
+    triggerable: true,
+    visibility: {},
+    baseSeq: 0,
     timestamp: Date.now(),
     payload: {
       formula: '2d12+3',
@@ -75,8 +83,8 @@ describe('RollResultRenderer', () => {
   it('renders default DiceAnimContent when no rollType', () => {
     const entry = makeRollEntry()
     render(<RollResultRenderer entry={entry} />)
-    expect(screen.getByTestId('entry-roll-result')).toBeInTheDocument()
-    expect(screen.getByTestId('dice-anim')).toBeInTheDocument()
+    expect(screen.getByTestId('entry-roll-result')).toBeDefined()
+    expect(screen.getByTestId('dice-anim')).toBeDefined()
     // No footer in default mode
     expect(screen.queryByTestId('dice-footer')).toBeNull()
   })
@@ -86,7 +94,7 @@ describe('RollResultRenderer', () => {
       payload: { formula: '2d12', rolls: [[5, 3]], dice: [], rollType: 'unknown:type' },
     })
     render(<RollResultRenderer entry={entry} />)
-    expect(screen.getByTestId('entry-roll-result')).toBeInTheDocument()
+    expect(screen.getByTestId('entry-roll-result')).toBeDefined()
   })
 
   it('uses RollResultConfig when registered for rollType', () => {
@@ -104,9 +112,9 @@ describe('RollResultRenderer', () => {
       payload: { formula: '2d12', rolls: [[9, 3]], dice: [], rollType: 'test:dd' },
     })
     render(<RollResultRenderer entry={entry} />)
-    expect(screen.getByTestId('entry-roll-result')).toBeInTheDocument()
+    expect(screen.getByTestId('entry-roll-result')).toBeDefined()
     // Config path evaluates judgment → footer is rendered
-    expect(screen.getByTestId('dice-footer')).toBeInTheDocument()
+    expect(screen.getByTestId('dice-footer')).toBeDefined()
   })
 
   it('uses custom component when function registered for rollType', () => {
@@ -122,18 +130,15 @@ describe('RollResultRenderer', () => {
       payload: { formula: '3d6', rolls: [[2, 4, 1]], dice: [], rollType: 'custom:roll' },
     })
     render(<RollResultRenderer entry={entry} />)
-    expect(screen.getByTestId('custom-card')).toBeInTheDocument()
-    expect(screen.getByTestId('custom-card')).toHaveTextContent('3d6')
+    expect(screen.getByTestId('custom-card')).toBeDefined()
+    expect(screen.getByTestId('custom-card').textContent).toBe('3d6')
   })
 
   it('returns null for non-roll entries', () => {
-    const entry = {
-      id: 'test-002',
-      type: 'core:text',
-      origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
-      timestamp: Date.now(),
-      payload: { content: 'hello' },
-    } as GameLogEntry
+    const entry = makeRollEntry()
+    // Override type to non-roll
+    ;(entry as unknown as Record<string, unknown>).type = 'core:text'
+    ;(entry as unknown as Record<string, unknown>).payload = { content: 'hello' }
     const { container } = render(<RollResultRenderer entry={entry} />)
     expect(container.innerHTML).toBe('')
   })

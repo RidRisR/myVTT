@@ -59,14 +59,14 @@ _bindRuleRegistry(getRulePluginSync)
 // Inlined here because importing useRulePlugin/usePluginTranslation would create new cycles.
 import { useTranslation } from 'react-i18next'
 
-function _useRulePluginForRenderer(): RulePlugin {
+function useRulePluginForRenderer(): RulePlugin {
   const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
   return getRulePlugin(ruleSystemId)
 }
 
-function _usePluginTranslationForRenderer() {
+function usePluginTranslationForRenderer() {
   const { i18n } = useTranslation()
-  const plugin = _useRulePluginForRenderer()
+  const plugin = useRulePluginForRenderer()
   const lng = i18n.language
 
   const t = (key: string): string => {
@@ -78,4 +78,4 @@ function _usePluginTranslationForRenderer() {
   return { t }
 }
 
-_bindRollResultDeps(_useRulePluginForRenderer, _usePluginTranslationForRenderer)
+_bindRollResultDeps(useRulePluginForRenderer, usePluginTranslationForRenderer)

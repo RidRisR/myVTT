@@ -70,7 +70,8 @@ export function createWorkflowContext(
   // Caller-provided origin (e.g. ChatPanel speaker selection) takes priority.
   // If not provided but actorId points to an entity, auto-build entity origin.
   const callerOrigin = initialData.origin as MessageOrigin | undefined
-  const resolvedOrigin = callerOrigin ?? buildOriginFromActor(deps, initialData.actorId as string | undefined)
+  const resolvedOrigin =
+    callerOrigin ?? buildOriginFromActor(deps, initialData.actorId as string | undefined)
 
   const state = options?.readonly
     ? new Proxy(_inner, {

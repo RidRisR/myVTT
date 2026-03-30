@@ -44,9 +44,7 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
     {
       id: 'judge',
       run: (ctx) => {
-        const rolls = ctx.vars.rolls
-        const total = ctx.vars.total
-        if (!rolls || total == null) return
+        const { rolls, total } = ctx.vars
         const judgment = dhEvaluateRoll(rolls, total)
         if (judgment) {
           ctx.vars.judgment = judgment

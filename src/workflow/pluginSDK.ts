@@ -55,9 +55,9 @@ export class PluginSDK implements IPluginSDK {
           registerLayer: (def) => {
             uiRegistry.registerLayer(def)
           },
-          registerRenderer: (...args: [any, any, any?]) => {
+          registerRenderer: (...args: [unknown, unknown, unknown?]) => {
             if (typeof args[0] === 'string') {
-              registerRendererFn(args[0], args[1], args[2] as LogEntryRenderer)
+              registerRendererFn(args[0], args[1] as string, args[2] as LogEntryRenderer)
             } else {
               // RendererPoint<T> token path
               registerRendererFn(args[0] as { surface: string; type: string }, args[1])

@@ -103,10 +103,6 @@ export function rollResult(
   return createRendererPoint<RollResultSlot>('rollResult', rollType)
 }
 
-// ── Daggerheart workflow exports (for plugin composition) ────────────────────
-export { getDHJudgmentWorkflow } from '../../plugins/daggerheart-core/rollSteps'
-export type { DHJudgmentData } from '../../plugins/daggerheart-core/rollSteps'
-
 // ── Data layer (reactive hooks + imperative reader) ────────────────────────
 export { useEntity, useComponent } from '../data/hooks'
 export { createDataReader } from '../data/dataReader'
