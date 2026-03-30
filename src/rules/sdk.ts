@@ -16,12 +16,8 @@ export type {
   DockTabDef,
   GMTabDef,
   HideableElement,
-  RollAction,
-  ModifierOption,
   JudgmentResult,
   JudgmentDisplay,
-  DieStyle,
-  RollContext,
   DaggerheartOutcome,
   DieConfig,
   RenderDiceOptions,
@@ -33,7 +29,7 @@ export type {
   ContextMenuContext,
   KeyBinding,
 } from './types'
-export type { DiceTermResult, DiceSpec } from '../shared/diceUtils'
+export type { DiceSpec } from '../shared/diceUtils'
 
 // ── Utility hook exports ─────────────────────────────────────────────────────
 export { usePluginTranslation } from '../i18n/pluginI18n'
@@ -43,7 +39,6 @@ export { usePluginPanels } from './usePluginPanels'
 
 export { tokenizeExpression, toDiceSpecs, buildCompoundResult } from '../shared/diceUtils'
 export type { ChatRollMessage } from '../shared/chatTypes'
-export type { RollCardProps } from './types'
 
 // ── Tool types for plugin map integration ───────────────────────────────────
 export type { ToolDefinition, ToolCategory, ToolLayerProps } from '../combat/tools/types'
@@ -86,7 +81,31 @@ export type { BaseRollData, RollOutput } from '../workflow/baseWorkflows'
 export { useWorkflowRunner } from '../workflow/useWorkflowSDK'
 
 // ── Log renderer types ──────────────────────────────────────────────────────
-export type { LogEntryRendererProps, LogEntryRenderer } from '../log/rendererRegistry'
+export type {
+  LogEntryRendererProps,
+  LogEntryRenderer,
+  RendererPoint,
+} from '../log/rendererRegistry'
+export { createRendererPoint } from '../log/rendererRegistry'
+export type { RollResultConfig, RollCardProps } from './types'
+
+// Pre-defined token factory for roll result configs
+import { createRendererPoint } from '../log/rendererRegistry'
+import type { RollResultConfig } from './types'
+import type { RollCardProps } from './types'
+import type { ComponentType } from 'react'
+
+type RollResultSlot = RollResultConfig | ComponentType<RollCardProps>
+
+export function rollResult(
+  rollType: string,
+): import('../log/rendererRegistry').RendererPoint<RollResultSlot> {
+  return createRendererPoint<RollResultSlot>('rollResult', rollType)
+}
+
+// ── Daggerheart workflow exports (for plugin composition) ────────────────────
+export { getDHJudgmentWorkflow } from '../../plugins/daggerheart-core/rollSteps'
+export type { DHJudgmentData } from '../../plugins/daggerheart-core/rollSteps'
 
 // ── Data layer (reactive hooks + imperative reader) ────────────────────────
 export { useEntity, useComponent } from '../data/hooks'

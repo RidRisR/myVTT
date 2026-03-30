@@ -21,7 +21,7 @@ import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 const EMPTY_FRESH_IDS = new Set<string>()
 
 // Entry types visible in the chat panel
-const CHAT_TYPES = new Set(['core:text', 'core:roll-result', 'dh:judgment'])
+const CHAT_TYPES = new Set(['core:text', 'core:roll-result'])
 
 interface ChatPanelProps {
   roomId: string
@@ -96,7 +96,6 @@ export function ChatPanel({
   const plugin = useRulePlugin()
   const runner = useWorkflowRunner()
 
-  // Filter game_log entries for chat-visible types
   const logEntries = useWorldStore((s) => s.logEntries)
   const visibleEntries = useMemo(
     () => logEntries.filter((e) => CHAT_TYPES.has(e.type)),

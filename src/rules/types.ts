@@ -1,6 +1,5 @@
 import type React from 'react'
 import type { Entity } from '../shared/entityTypes'
-import type { DiceTermResult } from '../shared/diceUtils'
 import type { TeamTracker } from '../stores/worldStore'
 import type { ChatRollMessage } from '../shared/chatTypes'
 import type { ToolDefinition } from '../combat/tools/types'
@@ -20,21 +19,6 @@ export interface StatusView {
 
 // ── Dice types ──────────────────────────────────────────────────────────────
 
-export interface RollAction {
-  id: string
-  name: string // "Agility Check"
-  formula: string // "2d12+@Agility"
-  category?: string
-  targetAttributeKey?: string
-}
-
-export interface ModifierOption {
-  id: string
-  label: string
-  type: 'toggle'
-  mutuallyExclusiveWith?: string
-}
-
 export type DaggerheartOutcome =
   | 'critical_success'
   | 'success_hope'
@@ -51,20 +35,6 @@ export interface JudgmentDisplay {
   text: string
   color: string
   severity: 'critical' | 'success' | 'partial' | 'failure' | 'fumble'
-}
-
-export interface DieStyle {
-  termIndex: number
-  dieIndex: number
-  label?: string
-  color?: string
-}
-
-export interface RollContext {
-  dc?: number
-  targetValue?: number
-  activeModifierIds: string[]
-  tempModifier: number
 }
 
 // ── UI prop types ───────────────────────────────────────────────────────────
@@ -122,6 +92,11 @@ export type HideableElement = 'dock' | 'portrait-bar' | 'chat-panel' | 'gm-panel
 export interface DieConfig {
   color?: string // hex color, e.g. '#fbbf24'
   label?: string // label shown above die, e.g. '希望'
+}
+
+/** Semantic configuration for a roll type's display. Plugins register this via rollResult() token. */
+export interface RollResultConfig {
+  dieConfigs: DieConfig[]
 }
 
 export interface RenderDiceOptions {
@@ -231,15 +206,8 @@ export interface RulePlugin {
 
   // Layer 3: Dice system (optional)
   diceSystem?: {
-    getRollActions(entity: Entity): RollAction[]
-    evaluateRoll(rolls: number[][], total: number): JudgmentResult | null // 改：纯 rolls 输入
-    getDieStyles(terms: DiceTermResult[]): DieStyle[]
+    evaluateRoll(rolls: number[][], total: number): JudgmentResult | null
     getJudgmentDisplay(result: JudgmentResult): JudgmentDisplay
-    getModifierOptions(): ModifierOption[]
-    // Plugin-registered roll commands (e.g., .dd → daggerheart:dd)
-    rollCommands?: Record<string, { resolveFormula(modifierExpr?: string): string }>
-    // Plugin-registered workflow per rollType (getter to avoid init-order issues)
-    rollWorkflows?: Record<string, () => import('../workflow/types').WorkflowHandle>
   }
 
   // Layer 4: Data templates (optional)
@@ -254,7 +222,6 @@ export interface RulePlugin {
     dockTabs?: DockTabDef[]
     gmTabs?: GMTabDef[]
     teamPanel?: React.ComponentType<TeamPanelProps>
-    rollCardRenderers?: Record<string, React.ComponentType<RollCardProps>>
 
     // ── map integration ──
     tools?: ToolDefinition[]

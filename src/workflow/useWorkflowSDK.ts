@@ -12,7 +12,7 @@ import { clearCommands } from './commandRegistry'
 import { TriggerRegistry } from './triggerRegistry'
 import { LogStreamDispatcher } from './logStreamDispatcher'
 import { registerBaseRenderers } from '../log/registerBaseRenderers'
-import { getUIRegistry, getExtensionRegistry } from '../ui-system/uiSystemInit'
+import { getUIRegistry } from '../ui-system/uiSystemInit'
 
 // Re-export command registry functions for convenience
 export { getCommand, registerCommand } from './commandRegistry'
@@ -152,13 +152,7 @@ export function initWorkflowSystem(): () => void {
   // Activate plugins with trigger registry
   if (!_pluginsActivated) {
     for (const plugin of _registeredPlugins) {
-      const sdk = new PluginSDK(
-        engine,
-        plugin.id,
-        getUIRegistry(),
-        _triggerRegistry,
-        getExtensionRegistry(),
-      )
+      const sdk = new PluginSDK(engine, plugin.id, getUIRegistry(), _triggerRegistry)
       plugin.onActivate(sdk)
     }
     _pluginsActivated = true

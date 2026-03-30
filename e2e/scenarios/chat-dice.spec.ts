@@ -118,6 +118,27 @@ test.describe('Cross-client judgment and groupId', () => {
     await playerCtx.close()
   })
 
+  test('.r shows plain dice without judgment', async ({ page }) => {
+    const admin = new AdminPage(page)
+    await admin.goto()
+    const plainRoom = `plain-roll-e2e-${Date.now()}`
+    await admin.createRoom(plainRoom)
+    await admin.enterRoom(plainRoom)
+    const seatSelect = new SeatSelectPage(page)
+    await seatSelect.createAndJoin('GM', 'GM')
+    const room = new RoomPage(page)
+    await room.expectInRoom()
+
+    await room.chat.expandChat()
+    await room.chat.sendMessage('.r 2d6+3')
+
+    // Roll result card appears without Hope/Fear text
+    await expect(page.getByTestId('entry-roll-result').first()).toBeVisible({ timeout: 5000 })
+    const card = page.getByTestId('entry-roll-result').first()
+    await expect(card).not.toContainText('Hope')
+    await expect(card).not.toContainText('Fear')
+  })
+
   test('entries from same workflow share groupId', async ({ page }) => {
     // Setup: create room and join as GM
     const admin = new AdminPage(page)
@@ -137,7 +158,7 @@ test.describe('Cross-client judgment and groupId', () => {
     // Wait for judgment to appear (ensures all entries are in store)
     await room.chat.expectJudgmentVisible()
 
-    // Verify groupId in store: roll-result and dh:judgment should share the same groupId
+    // Verify: roll-result and tracker-update share groupId (dh:judgment no longer emitted)
     const groupCheck = await page.waitForFunction(
       () => {
         const store = (window as any).__MYVTT_STORES__?.world()
@@ -145,14 +166,14 @@ test.describe('Cross-client judgment and groupId', () => {
 
         const entries = store.logEntries
         const rollEntry = entries.find((e: any) => e.type === 'core:roll-result')
-        const judgmentEntry = entries.find((e: any) => e.type === 'dh:judgment')
+        const trackerEntry = entries.find((e: any) => e.type === 'core:tracker-update')
 
-        if (!rollEntry || !judgmentEntry) return null
+        if (!rollEntry || !trackerEntry) return null
 
         return {
           rollGroupId: rollEntry.groupId,
-          judgmentGroupId: judgmentEntry.groupId,
-          match: rollEntry.groupId === judgmentEntry.groupId,
+          trackerGroupId: trackerEntry.groupId,
+          match: rollEntry.groupId === trackerEntry.groupId,
           notEmpty: rollEntry.groupId != null && rollEntry.groupId !== '',
         }
       },

@@ -6,20 +6,12 @@ import {
   dhGetStatuses,
   dhGetFormulaTokens,
 } from './adapters'
-import {
-  dhGetRollActions,
-  dhEvaluateRoll,
-  dhGetDieStylesFromTerms,
-  dhGetJudgmentDisplay,
-  rollCommands,
-} from './diceSystem'
+import { dhEvaluateRoll, dhGetJudgmentDisplay } from './diceSystem'
 import { createDefaultDHEntityData } from './templates'
 import { DaggerHeartCard } from './DaggerHeartCard'
-import { DHRollCard } from './ui/DHRollCard'
 import { FullCharacterSheet } from './ui/FullCharacterSheet'
 import { DHTeamPanel } from './ui/DHTeamPanel'
 import { daggerheartI18n } from './i18n'
-import { getDHActionCheckWorkflow } from '../daggerheart-core/rollSteps'
 
 export const daggerheartPlugin: RulePlugin = {
   id: 'daggerheart',
@@ -37,15 +29,8 @@ export const daggerheartPlugin: RulePlugin = {
   characterUI: { EntityCard: DaggerHeartCard },
 
   diceSystem: {
-    getRollActions: dhGetRollActions,
     evaluateRoll: dhEvaluateRoll,
-    getDieStyles: dhGetDieStylesFromTerms,
     getJudgmentDisplay: dhGetJudgmentDisplay,
-    getModifierOptions: () => [],
-    rollCommands,
-    rollWorkflows: {
-      'daggerheart:dd': () => getDHActionCheckWorkflow(),
-    },
   },
 
   dataTemplates: { createDefaultEntityData: createDefaultDHEntityData },
@@ -58,9 +43,6 @@ export const daggerheartPlugin: RulePlugin = {
         placement: 'fullscreen-overlay' as const,
       },
     ],
-    rollCardRenderers: {
-      'daggerheart:dd': DHRollCard,
-    },
     teamPanel: DHTeamPanel,
   },
 }

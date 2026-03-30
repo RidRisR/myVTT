@@ -24,7 +24,6 @@ import {
   registerRenderer as registerRendererFn,
   type LogEntryRenderer,
 } from '../log/rendererRegistry'
-import type { ExtensionRegistry } from '../ui-system/extensionRegistry'
 
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
 // PluginSDKDeps = { emitEntry, serverRoll, getEntity, getAllEntities, eventBus, getActiveOrigin, getSeatId, getLogWatermark }
@@ -44,7 +43,6 @@ export class PluginSDK implements IPluginSDK {
     pluginId: string,
     uiRegistry?: UIRegistry,
     triggerRegistry?: TriggerRegistry,
-    extensionRegistry?: ExtensionRegistry,
   ) {
     this.engine = engine
     this.pluginId = pluginId
@@ -57,11 +55,13 @@ export class PluginSDK implements IPluginSDK {
           registerLayer: (def) => {
             uiRegistry.registerLayer(def)
           },
-          registerRenderer: (surface, type, renderer) => {
-            registerRendererFn(surface, type, renderer as LogEntryRenderer)
-          },
-          contribute: (point, component, priority) => {
-            extensionRegistry?.contribute(point as never, component as never, priority)
+          registerRenderer: (...args: [any, any, any?]) => {
+            if (typeof args[0] === 'string') {
+              registerRendererFn(args[0], args[1], args[2] as LogEntryRenderer)
+            } else {
+              // RendererPoint<T> token path
+              registerRendererFn(args[0] as { surface: string; type: string }, args[1])
+            }
           },
         }
       : {
@@ -69,7 +69,6 @@ export class PluginSDK implements IPluginSDK {
           registerComponent: () => {},
           registerLayer: () => {},
           registerRenderer: () => {},
-          contribute: () => {},
         }
   }
 

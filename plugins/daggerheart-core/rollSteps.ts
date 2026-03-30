@@ -1,9 +1,15 @@
 // plugins/daggerheart-core/rollSteps.ts
-import type React from 'react'
 import type { IPluginSDK, WorkflowHandle, JudgmentResult } from '@myvtt/sdk'
-import { getRollWorkflow, toastEvent } from '@myvtt/sdk'
+import { getRollWorkflow, toastEvent, rollResult } from '@myvtt/sdk'
 import { dhEvaluateRoll } from '../daggerheart/diceSystem'
-import { DHJudgmentRenderer } from './DHJudgmentRenderer'
+
+/** Data shape for the dh:judgment sub-workflow */
+export interface DHJudgmentData {
+  [key: string]: unknown
+  rolls: number[][]
+  total: number
+  judgment?: JudgmentResult
+}
 
 /** Data shape for the dh:action-check workflow */
 export interface DHActionCheckData {
@@ -15,7 +21,15 @@ export interface DHActionCheckData {
   judgment?: JudgmentResult
 }
 
+let _judgmentWorkflow: WorkflowHandle<DHJudgmentData> | undefined
 let _actionCheckWorkflow: WorkflowHandle<DHActionCheckData> | undefined
+
+export function getDHJudgmentWorkflow(): WorkflowHandle<DHJudgmentData> {
+  if (!_judgmentWorkflow) {
+    throw new Error('dh:judgment not initialized — call registerDHCoreSteps first')
+  }
+  return _judgmentWorkflow
+}
 
 export function getDHActionCheckWorkflow(): WorkflowHandle<DHActionCheckData> {
   if (!_actionCheckWorkflow) {
@@ -25,15 +39,54 @@ export function getDHActionCheckWorkflow(): WorkflowHandle<DHActionCheckData> {
 }
 
 export function registerDHCoreSteps(sdk: IPluginSDK): void {
+  // Reusable sub-workflow: judgment computation + tracker update
+  _judgmentWorkflow = sdk.defineWorkflow<DHJudgmentData>('dh:judgment', [
+    {
+      id: 'judge',
+      run: (ctx) => {
+        const rolls = ctx.vars.rolls
+        const total = ctx.vars.total
+        if (!rolls || total == null) return
+        const judgment = dhEvaluateRoll(rolls, total)
+        if (judgment) {
+          ctx.vars.judgment = judgment
+        }
+      },
+    },
+    {
+      id: 'resolve',
+      run: (ctx) => {
+        const judgment = ctx.vars.judgment as { type: string; outcome: string } | undefined
+        if (!judgment || judgment.type !== 'daggerheart') return
+        const outcome = judgment.outcome
+        if (outcome === 'success_hope' || outcome === 'failure_hope') {
+          // eslint-disable-next-line @typescript-eslint/no-deprecated -- will be removed when teamTracker is redesigned
+          ctx.updateTeamTracker('Hope', { current: 1 })
+        } else if (outcome === 'success_fear' || outcome === 'failure_fear') {
+          // eslint-disable-next-line @typescript-eslint/no-deprecated -- will be removed when teamTracker is redesigned
+          ctx.updateTeamTracker('Fear', { current: 1 })
+        }
+      },
+    },
+  ])
+
+  // Composite workflow: roll + judgment + display
   _actionCheckWorkflow = sdk.defineWorkflow<DHActionCheckData>('dh:action-check', [
     {
       id: 'roll',
       run: async (ctx) => {
+        // When invoked via command system (.dd), raw is the modifier expression (e.g., "@agility" or "+3").
+        // When invoked via character card, formula is already complete (e.g., "2d12+@agility").
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- formula absent when invoked via command system
-        const formula = ctx.vars.formula ?? (ctx.vars.raw as string | undefined)
+        let formula = ctx.vars.formula ?? (ctx.vars.raw as string | undefined)
         if (!formula) {
-          ctx.abort('Missing formula')
-          return
+          // No argument at all — default Daggerheart roll
+          formula = '2d12'
+        }
+        // If formula doesn't contain dice notation, treat it as a modifier to 2d12
+        if (!/\d+d\d+/i.test(formula)) {
+          const mod = formula.trim()
+          formula = mod.startsWith('+') || mod.startsWith('-') ? `2d12${mod}` : `2d12+${mod}`
         }
         ctx.vars.formula = formula
 
@@ -53,46 +106,14 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
       },
     },
     {
-      id: 'dh:judge',
-      run: (ctx) => {
+      id: 'judgment',
+      run: async (ctx) => {
         const rolls = ctx.vars.rolls
         const total = ctx.vars.total
         if (!rolls || total == null) return
-        const judgment = dhEvaluateRoll(rolls, total)
-        if (judgment) {
-          ctx.vars.judgment = judgment
-        }
-      },
-    },
-    {
-      id: 'dh:emit-judgment',
-      run: (ctx) => {
-        const judgment = ctx.vars.judgment as { type: string; outcome: string } | undefined
-        if (!judgment) return
-        ctx.emitEntry({
-          type: 'dh:judgment',
-          payload: {
-            formula: ctx.vars.formula,
-            rolls: ctx.vars.rolls as number[][],
-            total: ctx.vars.total as number,
-            judgment,
-          },
-          triggerable: true,
-        })
-      },
-    },
-    {
-      id: 'dh:resolve',
-      run: (ctx) => {
-        const judgment = ctx.vars.judgment as { type: string; outcome: string } | undefined
-        if (!judgment || judgment.type !== 'daggerheart') return
-        const outcome = judgment.outcome
-        if (outcome === 'success_hope' || outcome === 'failure_hope') {
-          // eslint-disable-next-line @typescript-eslint/no-deprecated -- will be removed when teamTracker is redesigned
-          ctx.updateTeamTracker('Hope', { current: 1 })
-        } else if (outcome === 'success_fear' || outcome === 'failure_fear') {
-          // eslint-disable-next-line @typescript-eslint/no-deprecated -- will be removed when teamTracker is redesigned
-          ctx.updateTeamTracker('Fear', { current: 1 })
+        const result = await ctx.runWorkflow(getDHJudgmentWorkflow(), { rolls, total })
+        if (result.status === 'completed') {
+          ctx.vars.judgment = result.output.judgment
         }
       },
     },
@@ -112,9 +133,12 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
   ])
 
   sdk.registerCommand('.dd', _actionCheckWorkflow)
-  sdk.ui.registerRenderer(
-    'chat',
-    'dh:judgment',
-    DHJudgmentRenderer as React.ComponentType<{ entry: unknown; isNew?: boolean }>,
-  )
+
+  // Register rollResult config for daggerheart:dd
+  sdk.ui.registerRenderer(rollResult('daggerheart:dd'), {
+    dieConfigs: [
+      { color: '#fbbf24', label: 'die.hope' },
+      { color: '#dc2626', label: 'die.fear' },
+    ],
+  })
 }

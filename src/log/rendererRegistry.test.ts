@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { registerRenderer, getRenderer, clearRenderers } from './rendererRegistry'
+import {
+  registerRenderer,
+  getRenderer,
+  clearRenderers,
+  createRendererPoint,
+} from './rendererRegistry'
 
 // Minimal React component mocks — only testing Map logic, not rendering
 const DummyA = () => null
@@ -38,5 +43,40 @@ describe('rendererRegistry', () => {
     clearRenderers()
     expect(getRenderer('chat', 'core:text')).toBeUndefined()
     expect(getRenderer('toast', 'core:roll-result')).toBeUndefined()
+  })
+})
+
+describe('RendererPoint<T> typed API', () => {
+  beforeEach(() => {
+    clearRenderers()
+  })
+
+  it('register and get via RendererPoint token', () => {
+    const point = createRendererPoint<{ entry: unknown }>('chat', 'core:text')
+    const Dummy = () => null
+    registerRenderer(point, Dummy)
+    expect(getRenderer(point)).toBe(Dummy)
+  })
+
+  it('string API and token API share the same registry', () => {
+    const Dummy = () => null
+    registerRenderer('chat', 'core:text', Dummy)
+    const point = createRendererPoint<{ entry: unknown }>('chat', 'core:text')
+    expect(getRenderer(point)).toBe(Dummy)
+  })
+
+  it('token get returns undefined for unregistered', () => {
+    const point = createRendererPoint<{ entry: unknown }>('chat', 'missing')
+    expect(getRenderer(point)).toBeUndefined()
+  })
+
+  it('non-component values can be registered (config objects)', () => {
+    const point = createRendererPoint<{ dieConfigs: { color: string }[] }>(
+      'rollResult',
+      'test:roll',
+    )
+    const config = { dieConfigs: [{ color: '#fff' }] }
+    registerRenderer(point, config)
+    expect(getRenderer(point)).toBe(config)
   })
 })

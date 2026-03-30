@@ -46,8 +46,14 @@ export class ChatPanelPage {
     ).toBeVisible({ timeout: 5000 })
   }
 
-  /** Expect a dh:judgment card to be visible */
+  /** Expect a roll card with judgment footer to be visible (Hope/Fear text) */
   async expectJudgmentVisible() {
-    await expect(this.page.getByTestId('entry-dh-judgment').first()).toBeVisible({ timeout: 5000 })
+    // After unification, judgment renders as part of the roll-result card
+    await expect(
+      this.page
+        .getByTestId('entry-roll-result')
+        .filter({ hasText: /Hope|Fear|希望|恐惧/ })
+        .first(),
+    ).toBeVisible({ timeout: 5000 })
   }
 }

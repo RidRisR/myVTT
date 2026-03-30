@@ -38,9 +38,4 @@ describe('daggerheartPlugin registration', () => {
     const r = plugin.diceSystem?.evaluateRoll([[8, 5]], 15)
     expect(r?.type).toBe('daggerheart')
   })
-
-  it('surfaces.rollCardRenderers has daggerheart:dd', () => {
-    const plugin = getRulePlugin('daggerheart')
-    expect(plugin.surfaces?.rollCardRenderers?.['daggerheart:dd']).toBeDefined()
-  })
 })

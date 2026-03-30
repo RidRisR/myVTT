@@ -1,10 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import {
-  getUIRegistry,
-  getExtensionRegistry,
-  createProductionSDK,
-  _resetRegistriesForTesting,
-} from '../uiSystemInit'
+import { getUIRegistry, createProductionSDK, _resetRegistriesForTesting } from '../uiSystemInit'
 
 beforeEach(() => {
   _resetRegistriesForTesting()
@@ -13,10 +8,6 @@ beforeEach(() => {
 describe('registry singletons', () => {
   it('getUIRegistry returns the same instance', () => {
     expect(getUIRegistry()).toBe(getUIRegistry())
-  })
-
-  it('getExtensionRegistry returns the same instance', () => {
-    expect(getExtensionRegistry()).toBe(getExtensionRegistry())
   })
 
   it('reset creates new instances', () => {

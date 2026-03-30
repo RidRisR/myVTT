@@ -44,9 +44,8 @@ export interface IUIRegistrationSDK {
     // Plugin registration sites cast: `MyRenderer as React.ComponentType<{ entry: unknown; isNew?: boolean }>`.
     renderer: React.ComponentType<{ entry: unknown; isNew?: boolean }>,
   ): void
-  contribute<T>(
-    point: { readonly key: string },
-    component: React.ComponentType<T>,
-    priority?: number,
+  registerRenderer<T>(
+    point: { readonly surface: string; readonly type: string; readonly __phantom?: T },
+    value: T,
   ): void
 }

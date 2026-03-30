@@ -50,7 +50,7 @@ export interface ChatRollMessage {
   dice: DiceSpec[] // client sends, server passes through
   rolls: number[][] // server-generated raw random numbers
 
-  rollType?: string // 'daggerheart:dd' etc., for looking up rollCardRenderers
+  rollType?: string // 'daggerheart:dd' etc., for looking up plugin-specific rendering
   actionName?: string
 }
 
