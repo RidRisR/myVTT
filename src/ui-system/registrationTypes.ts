@@ -37,9 +37,15 @@ export interface LayerDef {
 export interface IUIRegistrationSDK {
   registerComponent(def: ComponentDef): void
   registerLayer(def: LayerDef): void
-  contribute<T>(
-    point: { readonly key: string },
-    component: React.ComponentType<T>,
-    priority?: number,
+  registerRenderer(
+    surface: string,
+    type: string,
+    // entry typed as unknown: avoids importing GameLogEntry here (circular dep).
+    // Plugin registration sites cast: `MyRenderer as React.ComponentType<{ entry: unknown; isNew?: boolean }>`.
+    renderer: React.ComponentType<{ entry: unknown; isNew?: boolean }>,
+  ): void
+  registerRenderer<T>(
+    point: { readonly surface: string; readonly type: string; readonly __phantom?: T },
+    value: T,
   ): void
 }

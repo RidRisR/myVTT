@@ -1,6 +1,5 @@
 // src/ui-system/uiSystemInit.ts
 import { UIRegistry } from './registry'
-import { ExtensionRegistry } from './extensionRegistry'
 import { createDragInitiator } from './LayoutEditor'
 import { makeDnDSDK } from './dnd'
 import type { IComponentSDK } from './types'
@@ -8,22 +7,15 @@ import type { IDataReader, IWorkflowRunner } from '../workflow/types'
 import type { AwarenessManager } from './awarenessChannel'
 
 let _uiRegistry: UIRegistry | null = null
-let _extensionRegistry: ExtensionRegistry | null = null
 
 export function getUIRegistry(): UIRegistry {
   if (!_uiRegistry) _uiRegistry = new UIRegistry()
   return _uiRegistry
 }
 
-export function getExtensionRegistry(): ExtensionRegistry {
-  if (!_extensionRegistry) _extensionRegistry = new ExtensionRegistry()
-  return _extensionRegistry
-}
-
 /** Reset singletons for test isolation */
 export function _resetRegistriesForTesting(): void {
   _uiRegistry = null
-  _extensionRegistry = null
 }
 
 interface SDKFactoryArgs {

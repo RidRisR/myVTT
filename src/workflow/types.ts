@@ -76,6 +76,14 @@ export interface ReplaceStepOptions {
   run: (ctx: WorkflowContext) => Promise<void> | void
 }
 
+// ── ChainContext — passed at trigger boundaries for groupId/causedBy ──────
+
+export interface ChainContext {
+  groupId?: string
+  causedBy?: string
+  chainDepth?: number
+}
+
 // ── WorkflowResult ────────────────────────────────────────────────────────
 
 export interface StepError {
@@ -238,5 +246,6 @@ export interface IWorkflowRunner {
   runWorkflow<TData extends Record<string, unknown> = Record<string, unknown>, TOut = TData>(
     handle: WorkflowHandle<TData, TOut>,
     data?: Partial<TData>,
+    chainCtx?: ChainContext,
   ): Promise<WorkflowResult<TData, TOut>>
 }

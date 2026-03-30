@@ -9,6 +9,7 @@ import { daggerheartCorePlugin } from '../../plugins/daggerheart-core'
 import { daggerheartCosmeticPlugin } from '../../plugins/daggerheart-cosmetic'
 import { coreUIPlugin } from '../../plugins/core-ui'
 import { registerWorkflowPlugins, _bindRuleRegistry } from '../workflow/useWorkflowSDK'
+import { _bindRollResultDeps } from '../log/renderers/rollResultDeps'
 
 function loadPluginI18n(plugin: RulePlugin): void {
   if (!plugin.i18n?.resources) return
@@ -53,3 +54,28 @@ export function getAvailablePlugins(): Array<{ id: string; name: string }> {
 // Late-bind getRulePluginSync into useWorkflowSDK — breaks circular dependency.
 // This runs after all module-level code above has completed.
 _bindRuleRegistry(getRulePluginSync)
+
+// Late-bind hooks for RollResultRenderer (breaks circular dep — see rollResultDeps.ts).
+// Inlined here because importing useRulePlugin/usePluginTranslation would create new cycles.
+import { useTranslation } from 'react-i18next'
+
+function useRulePluginForRenderer(): RulePlugin {
+  const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
+  return getRulePlugin(ruleSystemId)
+}
+
+function usePluginTranslationForRenderer() {
+  const { i18n } = useTranslation()
+  const plugin = useRulePluginForRenderer()
+  const lng = i18n.language
+
+  const t = (key: string): string => {
+    const resources = plugin.i18n?.resources
+    if (!resources) return key
+    const dict = resources[lng] ?? resources['zh-CN'] ?? {}
+    return dict[key] ?? key
+  }
+  return { t }
+}
+
+_bindRollResultDeps(useRulePluginForRenderer, usePluginTranslationForRenderer)

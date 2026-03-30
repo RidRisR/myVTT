@@ -7,7 +7,7 @@ import { registerDHCoreSteps, getDHActionCheckWorkflow } from '../rollSteps'
 import type { ContextDeps } from '../../../src/workflow/context'
 import { EventBus } from '../../../src/events/eventBus'
 
-function makeRollEntry(rolls: number[][] = [[4, 9]], total = 15) {
+function makeRollEntry(rolls: number[][] = [[4, 9]]) {
   return {
     seq: 1,
     id: 'roll-1',
@@ -19,7 +19,7 @@ function makeRollEntry(rolls: number[][] = [[4, 9]], total = 15) {
     visibility: {},
     baseSeq: 0,
     timestamp: Date.now(),
-    payload: { rolls, total, formula: '2d12', dice: [{ sides: 12, count: 2 }] },
+    payload: { rolls, formula: '2d12', dice: [{ sides: 12, count: 2 }] },
   }
 }
 
@@ -49,26 +49,32 @@ function makeSetup(depsOverrides: Partial<ContextDeps> = {}) {
 }
 
 describe('registerDHCoreSteps', () => {
-  it('defines dh:action-check with roll, dh:judge, dh:resolve, display steps', () => {
+  it('defines dh:action-check with roll, judgment, display steps', () => {
     const { sdk } = makeSetup()
     const steps = sdk.inspectWorkflow(getDHActionCheckWorkflow())
-    expect(steps).toEqual(['roll', 'dh:judge', 'dh:resolve', 'display'])
+    expect(steps).toEqual(['roll', 'judgment', 'display'])
   })
 
-  it('base roll workflow remains pure (no dh steps injected)', () => {
-    const { engine } = makeSetup()
-    expect(engine.inspectWorkflow('roll')).toEqual(['generate'])
-  })
-
-  it('dh:action-check internally calls roll workflow and gets output', async () => {
+  it('dh:action-check calls ctx.serverRoll directly (no nested roll workflow)', async () => {
     const { runner, deps } = makeSetup()
     await runner.runWorkflow(getDHActionCheckWorkflow(), { formula: '2d12', actorId: '' })
     expect(deps.serverRoll).toHaveBeenCalledWith(expect.objectContaining({ formula: '2d12' }))
   })
 
+  it('no dh:judgment entry emitted — judgment renders via RollResultRenderer config', async () => {
+    const { runner, deps } = makeSetup({
+      serverRoll: vi.fn().mockResolvedValue(makeRollEntry([[4, 9]])),
+    })
+    await runner.runWorkflow(getDHActionCheckWorkflow(), { formula: '2d12', actorId: '' })
+    // Should NOT emit dh:judgment — only core:roll-result (from base roll) + core:tracker-update
+    const calls = (deps.emitEntry as ReturnType<typeof vi.fn>).mock.calls
+    const emittedTypes = calls.map((c) => (c[0] as { type: string }).type)
+    expect(emittedTypes).not.toContain('dh:judgment')
+  })
+
   it('dh:resolve emits tracker-update for Fear on success_fear outcome (rolls [[4,9]])', async () => {
     const { runner, deps } = makeSetup({
-      serverRoll: vi.fn().mockResolvedValue(makeRollEntry([[4, 9]], 15)),
+      serverRoll: vi.fn().mockResolvedValue(makeRollEntry([[4, 9]])),
     })
     await runner.runWorkflow(getDHActionCheckWorkflow(), { formula: '2d12', actorId: '' })
     expect(deps.emitEntry).toHaveBeenCalledWith(
@@ -81,7 +87,7 @@ describe('registerDHCoreSteps', () => {
 
   it('dh:resolve emits tracker-update for Hope on success_hope outcome (rolls [[9,4]])', async () => {
     const { runner, deps } = makeSetup({
-      serverRoll: vi.fn().mockResolvedValue(makeRollEntry([[9, 4]], 15)),
+      serverRoll: vi.fn().mockResolvedValue(makeRollEntry([[9, 4]])),
     })
     await runner.runWorkflow(getDHActionCheckWorkflow(), { formula: '2d12', actorId: '' })
     expect(deps.emitEntry).toHaveBeenCalledWith(

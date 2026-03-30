@@ -204,6 +204,7 @@ export function initRoomSchema(db: Database.Database): void {
       origin TEXT NOT NULL,
       executor TEXT NOT NULL,
       parent_id TEXT,
+      group_id TEXT,
       chain_depth INTEGER NOT NULL DEFAULT 0,
       triggerable INTEGER NOT NULL DEFAULT 0,
       visibility TEXT NOT NULL DEFAULT '{}',
@@ -223,6 +224,7 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_game_log_type ON game_log(type);
     CREATE INDEX IF NOT EXISTS idx_game_log_executor ON game_log(executor);
     CREATE INDEX IF NOT EXISTS idx_game_log_parent ON game_log(parent_id);
+    CREATE INDEX IF NOT EXISTS idx_game_log_group ON game_log(group_id);
     CREATE INDEX IF NOT EXISTS idx_scene_entities_scene ON scene_entities(scene_id);
     CREATE INDEX IF NOT EXISTS idx_entities_lifecycle ON entities(lifecycle);
     CREATE INDEX IF NOT EXISTS idx_tactical_tokens_scene ON tactical_tokens(scene_id);

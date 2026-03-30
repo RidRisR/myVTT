@@ -1,12 +1,7 @@
-import React, { useState, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Star } from 'lucide-react'
-import type { ChatMessage, ChatRollMessage } from '../shared/chatTypes'
+import React from 'react'
+import type { ChatMessage } from '../shared/chatTypes'
 import { getDisplayIdentity } from '../shared/chatTypes'
 import { Avatar } from './Avatar'
-import { DiceResultCard, DiceAnimContent } from './DiceResultCard'
-import { useRulePlugin } from '../rules/useRulePlugin'
-import type { DieConfig, RenderDiceOptions } from '../rules/types'
 
 interface MessageCardProps {
   message: ChatMessage
@@ -25,32 +20,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   message,
   isNew = false,
   animationStyle = 'scroll',
-  isFavorited = false,
-  onToggleFavorite,
 }) => {
-  const { t } = useTranslation('chat')
-  const [cardHover, setCardHover] = useState(false)
-  const plugin = useRulePlugin()
-
-  const CustomCard =
-    message.type === 'roll' && message.rollType
-      ? plugin.surfaces?.rollCardRenderers?.[message.rollType]
-      : undefined
-
-  // Inject renderDice — plugin calls this to get the base animation with optional per-die config
-  const renderDice = useCallback(
-    (configs?: DieConfig[], options?: RenderDiceOptions) => (
-      <DiceAnimContent
-        message={message as ChatRollMessage}
-        isNew={isNew}
-        dieConfigs={configs}
-        footer={options?.footer}
-        totalColor={options?.totalColor}
-      />
-    ),
-    [message, isNew],
-  )
-
   const display = getDisplayIdentity(message.origin)
 
   const animation = isNew
@@ -106,60 +76,6 @@ export const MessageCard: React.FC<MessageCardProps> = ({
     )
   }
 
-  // Dice message
-  return (
-    <div
-      onMouseEnter={() => {
-        setCardHover(true)
-      }}
-      onMouseLeave={() => {
-        setCardHover(false)
-      }}
-      className="relative flex gap-2.5 px-4 py-3 bg-glass backdrop-blur-[20px] border border-accent/40 shadow-[0_4px_16px_rgba(212,160,85,0.15),inset_0_1px_0_rgba(232,184,106,0.1)] rounded-xl"
-      style={{ animation }}
-    >
-      {/* Favorite toggle */}
-      {onToggleFavorite && cardHover && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onToggleFavorite(message.formula)
-          }}
-          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/40 border-none cursor-pointer flex items-center justify-center transition-colors duration-fast z-[1]"
-          style={{ color: isFavorited ? '#fbbf24' : 'rgba(255,255,255,0.6)' }}
-          aria-label={isFavorited ? t('remove_favorite') : t('add_favorite')}
-        >
-          <Star size={14} strokeWidth={1.5} fill={isFavorited ? 'currentColor' : 'none'} />
-        </button>
-      )}
-      <Avatar
-        portraitUrl={display.portraitUrl}
-        senderName={display.name}
-        senderColor={display.color}
-      />
-      <div className="flex-1 flex flex-col gap-1.5">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold" style={{ color: display.color }}>
-              {display.name}
-            </span>
-            <span className="text-xs text-text-muted/50 font-mono">
-              {message.rollType
-                ? `.${message.rollType.split(':').at(-1) ?? 'r'} ${message.formula}`
-                : `.r ${message.formula}`}
-              {message.resolvedFormula && (
-                <span className="text-text-muted/30"> ({message.resolvedFormula})</span>
-              )}
-            </span>
-          </div>
-          <span className="text-[11px] text-text-muted/40">{formatTime(message.timestamp)}</span>
-        </div>
-        {CustomCard ? (
-          <CustomCard message={message} isNew={isNew} renderDice={renderDice} />
-        ) : (
-          <DiceResultCard message={message} isNew={isNew} />
-        )}
-      </div>
-    </div>
-  )
+  // Fallback: unknown message type — render nothing
+  return null
 }

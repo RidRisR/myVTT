@@ -47,3 +47,15 @@ declare module '../../src/shared/componentTypes' {
     'daggerheart:extras': DHExtras
   }
 }
+
+// Module augmentation — extends core LogPayloadMap with Daggerheart log entries
+declare module '../../src/shared/logTypes' {
+  interface LogPayloadMap {
+    'dh:judgment': {
+      formula: string
+      rolls: number[][]
+      total: number
+      judgment: { type: string; outcome: string }
+    }
+  }
+}

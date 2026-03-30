@@ -10,6 +10,7 @@ import type {
   ReplaceStepOptions,
   WorkflowHandle,
   WorkflowResult,
+  ChainContext,
 } from './types'
 import type { WorkflowEngine } from './engine'
 import type { ContextDeps } from './context'
@@ -19,7 +20,10 @@ import type { UIRegistry } from '../ui-system/registry'
 import type { TriggerDefinition } from '../shared/logTypes'
 import { TriggerRegistry } from './triggerRegistry'
 import { registerCommand } from './commandRegistry'
-import type { ExtensionRegistry } from '../ui-system/extensionRegistry'
+import {
+  registerRenderer as registerRendererFn,
+  type LogEntryRenderer,
+} from '../log/rendererRegistry'
 
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
 // PluginSDKDeps = { emitEntry, serverRoll, getEntity, getAllEntities, eventBus, getActiveOrigin, getSeatId, getLogWatermark }
@@ -39,7 +43,6 @@ export class PluginSDK implements IPluginSDK {
     pluginId: string,
     uiRegistry?: UIRegistry,
     triggerRegistry?: TriggerRegistry,
-    extensionRegistry?: ExtensionRegistry,
   ) {
     this.engine = engine
     this.pluginId = pluginId
@@ -52,15 +55,20 @@ export class PluginSDK implements IPluginSDK {
           registerLayer: (def) => {
             uiRegistry.registerLayer(def)
           },
-          contribute: (point, component, priority) => {
-            extensionRegistry?.contribute(point as never, component as never, priority)
+          registerRenderer: (...args: [unknown, unknown, unknown?]) => {
+            if (typeof args[0] === 'string') {
+              registerRendererFn(args[0], args[1] as string, args[2] as LogEntryRenderer)
+            } else {
+              // RendererPoint<T> token path
+              registerRendererFn(args[0] as { surface: string; type: string }, args[1])
+            }
           },
         }
       : {
           // no-op: existing tests do not pass a registry
           registerComponent: () => {},
           registerLayer: () => {},
-          contribute: () => {},
+          registerRenderer: () => {},
         }
   }
 
@@ -161,6 +169,7 @@ export class WorkflowRunner implements IWorkflowRunner {
   runWorkflow<TData extends Record<string, unknown> = Record<string, unknown>, TOut = TData>(
     handle: WorkflowHandle<TData, TOut>,
     data?: Partial<TData>,
+    chainCtx?: ChainContext,
   ): Promise<WorkflowResult<TData, TOut>> {
     const internal: import('./types').InternalState = {
       depth: 0,
@@ -170,6 +179,13 @@ export class WorkflowRunner implements IWorkflowRunner {
       { ...this.deps, engine: this.engine },
       (data ?? {}) as Record<string, unknown>,
       internal,
+      chainCtx
+        ? {
+            groupId: chainCtx.groupId,
+            chainDepth: chainCtx.chainDepth,
+            causedBy: chainCtx.causedBy,
+          }
+        : undefined,
     )
     return this.engine.runWorkflow(handle.name, ctx, internal) as Promise<
       WorkflowResult<TData, TOut>

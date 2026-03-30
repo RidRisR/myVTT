@@ -2,15 +2,15 @@ import { useRef, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MessageSquare } from 'lucide-react'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
-import type { ChatMessage } from '../shared/chatTypes'
-import { MessageCard } from './MessageCard'
+import type { GameLogEntry } from '../shared/logTypes'
+import { LogEntryCard } from '../log/LogEntryCard'
 
 interface MessageScrollAreaProps {
-  messages: ChatMessage[]
-  newMessageIds: Set<string>
+  entries: GameLogEntry[]
+  newEntryIds: Set<string>
 }
 
-export function MessageScrollArea({ messages, newMessageIds }: MessageScrollAreaProps) {
+export function MessageScrollArea({ entries, newEntryIds }: MessageScrollAreaProps) {
   const { t } = useTranslation('chat')
   const scrollRef = useRef<HTMLDivElement>(null)
   const [isAtBottom, setIsAtBottom] = useState(true)
@@ -21,12 +21,12 @@ export function MessageScrollArea({ messages, newMessageIds }: MessageScrollArea
     setIsAtBottom(scrollHeight - scrollTop - clientHeight < 50)
   }
 
-  // Auto-scroll to bottom when new message arrives (if already at bottom)
+  // Auto-scroll to bottom when new entry arrives (if already at bottom)
   useEffect(() => {
     if (isAtBottom && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages.length, isAtBottom])
+  }, [entries.length, isAtBottom])
 
   // Scroll to bottom on first mount
   useEffect(() => {
@@ -96,18 +96,18 @@ export function MessageScrollArea({ messages, newMessageIds }: MessageScrollArea
             e.stopPropagation()
           }}
         >
-          {messages.length === 0 ? (
+          {entries.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
               <MessageSquare size={32} strokeWidth={1} className="text-text-muted/40" />
               <p className="text-text-muted text-sm">{t('no_messages')}</p>
               <p className="text-text-muted/50 text-xs">{t('start_adventure')}</p>
             </div>
           ) : (
-            messages.map((msg) => (
-              <MessageCard
-                key={msg.id}
-                message={msg}
-                isNew={newMessageIds.has(msg.id)}
+            entries.map((entry) => (
+              <LogEntryCard
+                key={entry.id}
+                entry={entry}
+                isNew={newEntryIds.has(entry.id)}
                 animationStyle="scroll"
               />
             ))

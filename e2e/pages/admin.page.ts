@@ -19,8 +19,11 @@ export class AdminPage {
     await this.heading.waitFor()
   }
 
-  async createRoom(name: string) {
+  async createRoom(name: string, ruleSystemId?: string) {
     await this.roomNameInput.fill(name)
+    if (ruleSystemId) {
+      await this.page.locator('select').selectOption(ruleSystemId)
+    }
     const responsePromise = this.page.waitForResponse(
       (resp) => resp.url().includes('/api/rooms') && resp.request().method() === 'POST',
     )

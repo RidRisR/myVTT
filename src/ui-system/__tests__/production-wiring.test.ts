@@ -1,14 +1,8 @@
 // src/ui-system/__tests__/production-wiring.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import {
-  getUIRegistry,
-  getExtensionRegistry,
-  createProductionSDK,
-  _resetRegistriesForTesting,
-} from '../uiSystemInit'
+import { getUIRegistry, createProductionSDK, _resetRegistriesForTesting } from '../uiSystemInit'
 import { createLayoutStore } from '../../stores/layoutStore'
 import { AwarenessManager, createAwarenessChannel } from '../awarenessChannel'
-import { createExtensionPoint } from '../extensionRegistry'
 
 beforeEach(() => {
   _resetRegistriesForTesting()
@@ -19,10 +13,6 @@ describe('production wiring integration', () => {
     const ui1 = getUIRegistry()
     const ui2 = getUIRegistry()
     expect(ui1).toBe(ui2)
-
-    const ext1 = getExtensionRegistry()
-    const ext2 = getExtensionRegistry()
-    expect(ext1).toBe(ext2)
   })
 
   it('layoutStore hydrated from bundle feeds activeLayout', () => {
@@ -123,16 +113,6 @@ describe('production wiring integration', () => {
     })
 
     manager.dispose()
-  })
-
-  it('ExtensionRegistry contribute + get round-trip', () => {
-    const registry = getExtensionRegistry()
-    const point = createExtensionPoint<{ entry: unknown }>('test:log.damage')
-    const DamageRenderer = () => null
-    registry.contribute(point, DamageRenderer as never, 10)
-
-    expect(registry.get(point)).toBe(DamageRenderer)
-    expect(registry.getAll(point)).toHaveLength(1)
   })
 
   it('layout edit cycle: load → edit → update → exit preserves changes', () => {

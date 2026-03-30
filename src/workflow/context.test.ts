@@ -29,7 +29,7 @@ function makeRollEntry(overrides: Record<string, unknown> = {}) {
     visibility: {},
     baseSeq: 0,
     timestamp: Date.now(),
-    payload: { rolls: [[4]], total: 4, formula: '1d6', dice: [{ sides: 6, count: 1 }] },
+    payload: { rolls: [[4]], formula: '1d6', dice: [{ sides: 6, count: 1 }] },
     ...overrides,
   }
 }
@@ -91,7 +91,6 @@ describe('createWorkflowContext', () => {
       }),
     )
     expect(result.payload.rolls).toEqual([[4]])
-    expect(result.payload.total).toBe(4)
   })
 
   it('updateComponent emits core:component-update log entry', () => {
@@ -223,6 +222,135 @@ describe('createWorkflowContext', () => {
     expect(ctx.vars.b).toBe('hello')
     expect('a' in ctx.vars).toBe(true)
     expect(Object.keys(ctx.vars)).toEqual(['a', 'b'])
+  })
+
+  // ── groupId auto-injection tests ──────────────────────────────────────
+
+  it('emitEntry auto-injects groupId from context options', () => {
+    const deps = makeDeps()
+    const ctx = createWorkflowContext(deps, undefined, makeInternal(), { groupId: 'g-test' })
+    ctx.emitEntry({ type: 'test:entry', payload: { x: 1 }, triggerable: false })
+
+    expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-test' }))
+  })
+
+  it('serverRoll auto-injects groupId from context options', async () => {
+    const deps = makeDeps()
+    const ctx = createWorkflowContext(deps, undefined, makeInternal(), { groupId: 'g-roll' })
+    await ctx.serverRoll('1d6')
+
+    expect(deps.serverRoll).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-roll' }))
+  })
+
+  it('updateComponent auto-injects groupId from context options', () => {
+    const entity: Entity = {
+      id: 'e1',
+      tags: [],
+      components: { hp: { current: 10, max: 20 } },
+      permissions: { default: 'none' as const, seats: {} },
+      lifecycle: 'persistent' as const,
+    }
+    const deps = makeDeps({ getEntity: vi.fn().mockReturnValue(entity) })
+    const ctx = createWorkflowContext(deps, undefined, makeInternal(), { groupId: 'g-comp' })
+
+    ctx.updateComponent<{ current: number; max: number }>('e1', 'hp', (c) => {
+      const val = c ?? { current: 0, max: 0 }
+      return { ...val, current: val.current - 1 }
+    })
+
+    expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-comp' }))
+  })
+
+  it('updateTeamTracker auto-injects groupId from context options', () => {
+    const deps = makeDeps()
+    const ctx = createWorkflowContext(deps, undefined, makeInternal(), { groupId: 'g-tracker' })
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
+    ctx.updateTeamTracker('HP', { current: 3 })
+
+    expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-tracker' }))
+  })
+
+  it('default groupId is generated when not provided (uuid string)', () => {
+    const deps = makeDeps()
+    const ctx = createWorkflowContext(deps, undefined, makeInternal())
+    ctx.emitEntry({ type: 'test:entry', payload: {}, triggerable: false })
+
+    expect(deps.emitEntry).toHaveBeenCalledTimes(1)
+    const submission = (deps.emitEntry as ReturnType<typeof vi.fn>).mock.calls[0] as unknown as [
+      Record<string, unknown>,
+    ]
+    expect(typeof submission[0].groupId).toBe('string')
+    expect((submission[0].groupId as string).length).toBeGreaterThan(0)
+  })
+
+  it('nested runWorkflow inherits parent groupId', async () => {
+    const engine = makeEngine()
+    const deps = makeDeps({ engine })
+
+    engine.defineWorkflow('inner', [
+      {
+        id: 'emit-inner',
+        run: (innerCtx) => {
+          innerCtx.emitEntry({ type: 'test:inner', payload: {}, triggerable: false })
+        },
+      },
+    ])
+
+    const ctx = createWorkflowContext(deps, undefined, makeInternal(), { groupId: 'g-parent' })
+    await ctx.runWorkflow({ name: 'inner' } as never, {})
+
+    // The inner workflow's emitEntry should use the same groupId as parent
+    expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-parent' }))
+  })
+
+  it('causedBy is injected as parentId when provided', () => {
+    const deps = makeDeps()
+    const ctx = createWorkflowContext(deps, undefined, makeInternal(), {
+      groupId: 'g-caused',
+      causedBy: 'entry-trigger-id',
+    })
+    ctx.emitEntry({ type: 'test:caused', payload: {}, triggerable: false })
+
+    expect(deps.emitEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ parentId: 'entry-trigger-id' }),
+    )
+  })
+
+  it('causedBy is injected as parentId on serverRoll', async () => {
+    const deps = makeDeps()
+    const ctx = createWorkflowContext(deps, undefined, makeInternal(), {
+      causedBy: 'roll-trigger-id',
+    })
+    await ctx.serverRoll('1d6')
+
+    expect(deps.serverRoll).toHaveBeenCalledWith(
+      expect.objectContaining({ parentId: 'roll-trigger-id' }),
+    )
+  })
+
+  it('explicit parentId in emitEntry overrides causedBy', () => {
+    const deps = makeDeps()
+    const ctx = createWorkflowContext(deps, undefined, makeInternal(), {
+      causedBy: 'trigger-id',
+    })
+    ctx.emitEntry({
+      type: 'test:explicit',
+      payload: {},
+      triggerable: false,
+      parentId: 'explicit-parent',
+    })
+
+    expect(deps.emitEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ parentId: 'explicit-parent' }),
+    )
+  })
+
+  it('chainDepth from context options is used as default in emitEntry', () => {
+    const deps = makeDeps()
+    const ctx = createWorkflowContext(deps, undefined, makeInternal(), { chainDepth: 3 })
+    ctx.emitEntry({ type: 'test:depth', payload: {}, triggerable: false })
+
+    expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ chainDepth: 3 }))
   })
 
   it('nested workflow has independent abort', async () => {

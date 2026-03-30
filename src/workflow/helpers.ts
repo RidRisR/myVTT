@@ -4,10 +4,10 @@
  * Sugar for defining output extractors that pick fields from vars.
  *
  * Usage:
- *   defineWorkflow<BaseRollData, RollOutput>('roll', steps, output<RollOutput>('rolls', 'total'))
+ *   defineWorkflow<Data, Out>('name', steps, output<Out>('fieldA', 'fieldB'))
  *
  * Equivalent to:
- *   (vars) => ({ rolls: vars.rolls, total: vars.total })
+ *   (vars) => ({ fieldA: vars.fieldA, fieldB: vars.fieldB })
  */
 export function output<TOutput>(
   ...keys: (keyof TOutput)[]

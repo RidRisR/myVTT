@@ -1,6 +1,7 @@
 // src/workflow/logStreamDispatcher.ts
 import type { GameLogEntry } from '../shared/logTypes'
 import { MAX_CHAIN_DEPTH } from '../shared/logTypes'
+import { uuidv7 } from '../shared/uuidv7'
 import type { TriggerRegistry } from './triggerRegistry'
 import type { IWorkflowRunner, WorkflowHandle } from './types'
 
@@ -44,7 +45,11 @@ export class LogStreamDispatcher {
     // Serial execution — no parallel to avoid race conditions
     for (const trigger of triggers) {
       const input = trigger.mapInput(entry)
-      await this.runner.runWorkflow({ name: trigger.workflow } as WorkflowHandle, input)
+      await this.runner.runWorkflow({ name: trigger.workflow } as WorkflowHandle, input, {
+        groupId: uuidv7(),
+        causedBy: entry.id,
+        chainDepth: entry.chainDepth + 1,
+      })
     }
   }
 }

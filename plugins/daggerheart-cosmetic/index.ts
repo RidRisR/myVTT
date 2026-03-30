@@ -6,11 +6,11 @@ export const daggerheartCosmeticPlugin: VTTPlugin = {
   dependencies: ['daggerheart-core'],
   onActivate(sdk) {
     const dhActionCheck = sdk.getWorkflow('dh:action-check')
-    // Lifecycle-bound to dh:judge — if core plugin is deactivated, this step
+    // Lifecycle-bound to judgment — if core plugin is deactivated, this step
     // is automatically cascade-removed
     sdk.attachStep(dhActionCheck, {
       id: 'cos:dice-animation',
-      to: 'dh:judge',
+      to: 'judgment',
       readonly: true,
       critical: false,
       run: cosmeticDiceAnimationStep,

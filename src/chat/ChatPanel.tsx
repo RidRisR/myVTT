@@ -2,8 +2,6 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ChatMessage, MessageOrigin } from '../shared/chatTypes'
 import { getDisplayIdentity } from '../shared/chatTypes'
-import { isLogType } from '../shared/logTypes'
-import type { GameLogEntry } from '../shared/logTypes'
 import type { Entity } from '../shared/entityTypes'
 import { getName, getColor, getImageUrl } from '../shared/coreComponents'
 import { useRulePlugin } from '../rules/useRulePlugin'
@@ -22,33 +20,8 @@ import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 // Module-level constants for stable references
 const EMPTY_FRESH_IDS = new Set<string>()
 
-/** Convert a GameLogEntry to a ChatMessage for rendering */
-function logEntryToChatMessage(entry: GameLogEntry): ChatMessage | null {
-  if (isLogType(entry, 'core:text')) {
-    return {
-      type: 'text',
-      id: entry.id,
-      origin: entry.origin,
-      content: entry.payload.content,
-      timestamp: entry.timestamp,
-    }
-  }
-  if (isLogType(entry, 'core:roll-result')) {
-    return {
-      type: 'roll',
-      id: entry.id,
-      origin: entry.origin,
-      timestamp: entry.timestamp,
-      formula: entry.payload.formula,
-      resolvedFormula: entry.payload.resolvedFormula,
-      dice: entry.payload.dice,
-      rolls: entry.payload.rolls,
-      rollType: entry.payload.rollType,
-      actionName: entry.payload.actionName,
-    }
-  }
-  return null
-}
+// Entry types visible in the chat panel
+const CHAT_TYPES = new Set(['core:text', 'core:roll-result'])
 
 interface ChatPanelProps {
   roomId: string
@@ -114,7 +87,7 @@ export function ChatPanel({
   const initialLoadRef = useRef(true)
   const expandedRef = useRef(expanded)
   expandedRef.current = expanded
-  const prevMessageCountRef = useRef(0)
+  const prevEntryCountRef = useRef(0)
 
   // Speaker switching
   const [speakerCharId, setSpeakerCharId] = useState<string | null>(null)
@@ -123,10 +96,9 @@ export function ChatPanel({
   const plugin = useRulePlugin()
   const runner = useWorkflowRunner()
 
-  // Map game_log entries to ChatMessage for rendering
   const logEntries = useWorldStore((s) => s.logEntries)
-  const messages = useMemo(
-    () => logEntries.map(logEntryToChatMessage).filter((m): m is ChatMessage => m !== null),
+  const visibleEntries = useMemo(
+    () => logEntries.filter((e) => CHAT_TYPES.has(e.type)),
     [logEntries],
   )
   const freshChatIds = EMPTY_FRESH_IDS
@@ -174,30 +146,30 @@ export function ChatPanel({
     return Object.entries(tokens).map(([key, value]) => ({ key, value: String(value) }))
   }, [speakerEntity, seatProperties, plugin])
 
-  // Detect new messages (from worldStore updates via Socket.io)
+  // Detect new entries (from worldStore updates via Socket.io)
   useEffect(() => {
     // Skip initial load
     if (initialLoadRef.current) {
-      prevMessageCountRef.current = messages.length
+      prevEntryCountRef.current = visibleEntries.length
       requestAnimationFrame(() => {
         initialLoadRef.current = false
       })
       return
     }
 
-    // Detect newly added messages
-    if (messages.length > prevMessageCountRef.current) {
-      const newMsgs = messages.slice(prevMessageCountRef.current)
+    // Detect newly added entries
+    if (visibleEntries.length > prevEntryCountRef.current) {
+      const newEntries = visibleEntries.slice(prevEntryCountRef.current)
 
       // Add to toast queue if collapsed
       if (!expandedRef.current) {
-        for (const msg of newMsgs) {
-          setToastQueue((prev) => [...prev, { message: msg, timestamp: Date.now() }])
+        for (const entry of newEntries) {
+          setToastQueue((prev) => [...prev, { entry, timestamp: Date.now() }])
         }
       }
     }
-    prevMessageCountRef.current = messages.length
-  }, [messages])
+    prevEntryCountRef.current = visibleEntries.length
+  }, [visibleEntries])
 
   // Limit to max 3 toasts
   useEffect(() => {
@@ -214,7 +186,7 @@ export function ChatPanel({
   }, [expanded])
 
   const handleToastRemove = useCallback((id: string) => {
-    setToastQueue((prev) => prev.filter((item) => item.message.id !== id))
+    setToastQueue((prev) => prev.filter((item) => item.entry.id !== id))
   }, [])
 
   const handleSend = useCallback(
@@ -259,7 +231,7 @@ export function ChatPanel({
   return (
     <>
       {expanded ? (
-        <MessageScrollArea messages={messages} newMessageIds={freshChatIds} />
+        <MessageScrollArea entries={visibleEntries} newEntryIds={freshChatIds} />
       ) : (
         <ToastStack toastQueue={toastQueue} onRemove={handleToastRemove} />
       )}

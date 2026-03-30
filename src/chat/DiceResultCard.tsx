@@ -10,8 +10,10 @@ interface DiceResultCardProps {
   isNew?: boolean
 }
 
-interface DiceAnimContentProps {
-  message: ChatRollMessage
+export interface DiceAnimContentProps {
+  formula: string
+  resolvedFormula?: string
+  rolls: number[][]
   isNew: boolean
   dieConfigs?: DieConfig[]
   footer?: { text: string; color: string }
@@ -27,7 +29,9 @@ function hexGlow(hex: string): string {
 
 /** Shared animation body — used by DiceResultCard (base) and injected as renderDice for plugins */
 export function DiceAnimContent({
-  message,
+  formula,
+  resolvedFormula,
+  rolls,
   isNew,
   dieConfigs,
   footer,
@@ -38,10 +42,10 @@ export function DiceAnimContent({
 
   // Reconstruct termResults + total from server-generated rolls (client-side computation)
   const { termResults, total } = useMemo(() => {
-    const formula = message.resolvedFormula ?? message.formula
-    const terms = tokenizeExpression(formula)
-    return buildCompoundResult(terms ?? [], message.rolls)
-  }, [message.formula, message.resolvedFormula, message.rolls])
+    const finalFormula = resolvedFormula ?? formula
+    const terms = tokenizeExpression(finalFormula)
+    return buildCompoundResult(terms ?? [], rolls)
+  }, [formula, resolvedFormula, rolls])
 
   const [totalRevealed, setTotalRevealed] = useState(!shouldAnimate.current)
 
@@ -151,5 +155,12 @@ export function DiceAnimContent({
 }
 
 export function DiceResultCard({ message, isNew }: DiceResultCardProps) {
-  return <DiceAnimContent message={message} isNew={!!isNew} />
+  return (
+    <DiceAnimContent
+      formula={message.formula}
+      resolvedFormula={message.resolvedFormula}
+      rolls={message.rolls}
+      isNew={!!isNew}
+    />
+  )
 }

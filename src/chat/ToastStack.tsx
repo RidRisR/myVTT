@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react'
-import type { ChatMessage } from '../shared/chatTypes'
-import { MessageCard } from './MessageCard'
+import type { GameLogEntry } from '../shared/logTypes'
+import { LogEntryCard } from '../log/LogEntryCard'
 
 export interface ToastItem {
-  message: ChatMessage
+  entry: GameLogEntry
   timestamp: number
 }
 
@@ -39,7 +39,7 @@ export function ToastStack({ toastQueue, onRemove }: ToastStackProps) {
     const now = Date.now()
     for (const item of toastQueue) {
       if (now - item.timestamp >= TOAST_LIFETIME) {
-        onRemove(item.message.id)
+        onRemove(item.entry.id)
       }
     }
   })
@@ -102,14 +102,14 @@ export function ToastStack({ toastQueue, onRemove }: ToastStackProps) {
 
           return (
             <div
-              key={item.message.id}
+              key={item.entry.id}
               style={{
                 opacity: finalOpacity,
                 pointerEvents: 'auto',
                 transition: 'opacity 0.15s ease-out, transform 0.3s ease-out',
               }}
             >
-              <MessageCard message={item.message} isNew={isNew} animationStyle="toast" />
+              <LogEntryCard entry={item.entry} isNew={isNew} animationStyle="toast" />
             </div>
           )
         })}

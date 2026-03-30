@@ -1,15 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
-import {
-  dhEvaluateRoll,
-  dhGetDieStyles,
-  dhGetJudgmentDisplay,
-  dhGetRollActions,
-  rollCommands,
-} from '../diceSystem'
-import { makeEntity } from '../../../src/__test-utils__/fixtures'
-import type { DHAttributes, DHMeta, DHHealth, DHStress, DHExtras } from '../types'
-import { DH_KEYS } from '../types'
+import { dhEvaluateRoll, dhGetJudgmentDisplay } from '../diceSystem'
 
 function asDH(r: ReturnType<typeof dhEvaluateRoll>) {
   expect(r).not.toBeNull()
@@ -43,22 +34,6 @@ describe('dhEvaluateRoll', () => {
   })
   it('failure_fear: fear > hope, total < 12', () => {
     expect(asDH(dhEvaluateRoll([[3, 6]], 7)).outcome).toBe('failure_fear')
-  })
-})
-
-describe('dhGetDieStyles', () => {
-  it('returns empty for non-DH rolls', () => {
-    expect(dhGetDieStyles([[7]])).toEqual([])
-  })
-  it('marks index 0 as Hope (gold) and index 1 as Fear (red)', () => {
-    const styles = dhGetDieStyles([[8, 5]])
-    expect(styles).toHaveLength(2)
-    expect(styles[0]?.dieIndex).toBe(0)
-    expect(styles[0]?.label).toBe('die.hope')
-    expect(styles[0]?.color).toBe('#fbbf24')
-    expect(styles[1]?.dieIndex).toBe(1)
-    expect(styles[1]?.label).toBe('die.fear')
-    expect(styles[1]?.color).toBe('#dc2626')
   })
 })
 
@@ -96,52 +71,5 @@ describe('dhGetJudgmentDisplay', () => {
       dhGetJudgmentDisplay({ type: 'daggerheart', hopeDie: 3, fearDie: 6, outcome: 'failure_fear' })
         .severity,
     ).toBe('fumble')
-  })
-})
-
-describe('dhGetRollActions', () => {
-  it('returns empty for entity with no attributes component', () => {
-    expect(dhGetRollActions(makeEntity())).toEqual([])
-  })
-  it('returns 6 actions with 2d12+@attr formulas', () => {
-    const entity = makeEntity({
-      components: {
-        'core:identity': { name: 'Test', imageUrl: '', color: '#3b82f6' },
-        'core:token': { width: 1, height: 1 },
-        [DH_KEYS.attributes]: {
-          agility: 2,
-          strength: 1,
-          finesse: 3,
-          instinct: 0,
-          presence: 1,
-          knowledge: 2,
-        } satisfies DHAttributes,
-        [DH_KEYS.meta]: {
-          tier: 1,
-          proficiency: 1,
-          className: '',
-          ancestry: '',
-        } satisfies DHMeta,
-        [DH_KEYS.health]: { current: 0, max: 0 } satisfies DHHealth,
-        [DH_KEYS.stress]: { current: 0, max: 0 } satisfies DHStress,
-        [DH_KEYS.extras]: { hope: 0, armor: 0 } satisfies DHExtras,
-      },
-    })
-    const actions = dhGetRollActions(entity)
-    expect(actions).toHaveLength(6)
-    expect(actions.every((a) => a.formula.startsWith('2d12+@'))).toBe(true)
-  })
-})
-
-describe('rollCommands', () => {
-  it('daggerheart:dd resolveFormula with no modifier gives 2d12', () => {
-    expect(rollCommands['daggerheart:dd']?.resolveFormula()).toBe('2d12')
-    expect(rollCommands['daggerheart:dd']?.resolveFormula('')).toBe('2d12')
-  })
-  it('daggerheart:dd resolveFormula with +2 gives 2d12+2', () => {
-    expect(rollCommands['daggerheart:dd']?.resolveFormula('+2')).toBe('2d12+2')
-  })
-  it('daggerheart:dd resolveFormula with @agility stays as-is', () => {
-    expect(rollCommands['daggerheart:dd']?.resolveFormula('+@agility')).toBe('2d12+@agility')
   })
 })
