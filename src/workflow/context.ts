@@ -35,6 +35,27 @@ export interface ContextOptions {
   causedBy?: string // maps to parentId on all entries in this context
 }
 
+/** Build origin from seat + optional actorId entity lookup */
+function buildOriginFromActor(deps: ContextDeps, actorId?: string): MessageOrigin {
+  const base = deps.getActiveOrigin()
+  if (!actorId) return base
+  const entity = deps.getEntity(actorId)
+  if (!entity) return base
+  const identity = entity.components['core:identity'] as
+    | { name: string; color: string; imageUrl?: string }
+    | undefined
+  if (!identity) return base
+  return {
+    ...base,
+    entity: {
+      id: entity.id,
+      name: identity.name,
+      color: identity.color,
+      portraitUrl: identity.imageUrl,
+    },
+  }
+}
+
 export function createWorkflowContext(
   deps: ContextDeps,
   initialData: Record<string, unknown> = {},
@@ -46,6 +67,10 @@ export function createWorkflowContext(
   const causedBy = options?.causedBy // maps to parentId on all entries
 
   const _inner: Record<string, unknown> = { ...initialData }
+  // Caller-provided origin (e.g. ChatPanel speaker selection) takes priority.
+  // If not provided but actorId points to an entity, auto-build entity origin.
+  const callerOrigin = initialData.origin as MessageOrigin | undefined
+  const resolvedOrigin = callerOrigin ?? buildOriginFromActor(deps, initialData.actorId as string | undefined)
 
   const state = options?.readonly
     ? new Proxy(_inner, {
@@ -115,7 +140,7 @@ export function createWorkflowContext(
       },
     ) => {
       const request: RollRequest = {
-        origin: deps.getActiveOrigin(),
+        origin: resolvedOrigin,
         parentId: options?.parentId ?? causedBy,
         groupId,
         chainDepth: options?.chainDepth ?? chainDepth,
@@ -143,7 +168,7 @@ export function createWorkflowContext(
       const submission: LogEntrySubmission = {
         id: uuidv7(),
         type: partial.type,
-        origin: deps.getActiveOrigin(),
+        origin: resolvedOrigin,
         parentId: partial.parentId ?? causedBy,
         groupId,
         chainDepth: partial.chainDepth ?? chainDepth,
@@ -167,7 +192,7 @@ export function createWorkflowContext(
       const submission: LogEntrySubmission = {
         id: uuidv7(),
         type: 'core:component-update',
-        origin: deps.getActiveOrigin(),
+        origin: resolvedOrigin,
         parentId: causedBy,
         groupId,
         chainDepth,
@@ -184,7 +209,7 @@ export function createWorkflowContext(
       const submission: LogEntrySubmission = {
         id: uuidv7(),
         type: 'core:tracker-update',
-        origin: deps.getActiveOrigin(),
+        origin: resolvedOrigin,
         parentId: causedBy,
         groupId,
         chainDepth,
@@ -219,9 +244,12 @@ export function createWorkflowContext(
         depth: internal.depth,
         abortCtrl: { aborted: false },
       }
+      // Inherit caller-provided origin so nested workflows use the same speaker
+      const nestedRecord = (nestedData ?? {}) as Record<string, unknown>
+      if (!nestedRecord.origin && callerOrigin) nestedRecord.origin = callerOrigin
       const nestedCtx = createWorkflowContext(
         deps,
-        (nestedData ?? {}) as Record<string, unknown>,
+        nestedRecord,
         nestedInternal,
         { groupId, chainDepth }, // inherit parent's groupId
       )

@@ -89,12 +89,13 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
           formula = mod.startsWith('+') || mod.startsWith('-') ? `2d12${mod}` : `2d12+${mod}`
         }
         ctx.vars.formula = formula
+        ctx.vars.rollType = 'daggerheart:dd'
 
         const result = await ctx.runWorkflow(getRollWorkflow(), {
           formula,
           actorId: ctx.vars.actorId,
           resolvedFormula: ctx.vars.resolvedFormula as string | undefined,
-          rollType: ctx.vars.rollType as string | undefined,
+          rollType: 'daggerheart:dd',
           actionName: ctx.vars.actionName as string | undefined,
         })
         if (result.status === 'completed') {
