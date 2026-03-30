@@ -65,16 +65,6 @@ export type {
 // ── Workflow helpers ─────────────────────────────────────────────────────────
 export { output } from '../workflow/helpers'
 
-// ── EventBus (decoupled side effects) ──────────────────────────────────────
-export { defineEvent } from '../events/eventBus'
-export type { EventHandle } from '../events/eventBus'
-export { toastEvent, announceEvent, animationEvent, soundEvent } from '../events/systemEvents'
-export type {
-  ToastPayload,
-  AnnouncePayload,
-  AnimationPayload,
-  SoundPayload,
-} from '../events/systemEvents'
 export type { VTTPlugin } from './types'
 export { getQuickRollWorkflow, getRollWorkflow } from '../workflow/baseWorkflows'
 export type { BaseRollData, RollOutput } from '../workflow/baseWorkflows'

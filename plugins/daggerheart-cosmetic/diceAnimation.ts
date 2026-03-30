@@ -1,24 +1,5 @@
 import type { WorkflowContext } from '@myvtt/sdk'
-import { toastEvent, animationEvent } from '../../src/events/systemEvents'
 
-export function cosmeticDiceAnimationStep(ctx: WorkflowContext): void {
-  const rolls = ctx.vars.rolls as number[][] | undefined
-  if (!rolls || rolls.length === 0) return
-
-  const judgment = ctx.vars.judgment as { type: string; outcome: string } | undefined
-
-  const outcome = judgment?.outcome ?? 'unknown'
-  ctx.events.emit(toastEvent, {
-    text: `🎲 Dice animation: ${JSON.stringify(rolls.flat())} — ${outcome}`,
-    variant: 'info',
-  })
-
-  ctx.events.emit(animationEvent, {
-    type: 'dice-roll',
-    data: {
-      rolls,
-      judgment: judgment ?? null,
-    },
-    durationMs: 1500,
-  })
+export function cosmeticDiceAnimationStep(_ctx: WorkflowContext): void {
+  // TODO: implement renderer-driven dice animation (log entry → useEffect in renderer)
 }

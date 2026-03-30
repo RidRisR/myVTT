@@ -26,7 +26,7 @@ import {
 } from '../log/rendererRegistry'
 
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
-// PluginSDKDeps = { emitEntry, serverRoll, getEntity, getAllEntities, eventBus, getActiveOrigin, getSeatId, getLogWatermark }
+// PluginSDKDeps = { emitEntry, serverRoll, getEntity, getAllEntities, getActiveOrigin, getSeatId, getLogWatermark }
 
 /**
  * Registration-time API for plugins. No runWorkflow — plugins must use

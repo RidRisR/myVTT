@@ -4,7 +4,6 @@ import { PluginSDK, WorkflowRunner } from './pluginSDK'
 import { registerBaseWorkflows } from './baseWorkflows'
 import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
-import { eventBus } from '../events/eventBus'
 import type { VTTPlugin } from '../rules/types'
 import type { IWorkflowRunner } from './types'
 import type { PluginSDKDeps } from './pluginSDK'
@@ -104,7 +103,6 @@ function buildDeps(): PluginSDKDeps {
     getAllEntities: () => {
       return useWorldStore.getState().entities
     },
-    eventBus,
     getActiveOrigin: () => {
       const seat = useIdentityStore.getState().getMySeat()
       if (!seat) return { seat: { id: '', name: '', color: '' } }

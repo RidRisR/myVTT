@@ -17,7 +17,6 @@ function makeCtx(data: Record<string, unknown> = {}): WorkflowContext {
     emitEntry: vi.fn(),
     updateComponent: vi.fn(),
     updateTeamTracker: vi.fn(),
-    events: { emit: vi.fn() },
     abort: vi.fn(),
     runWorkflow: vi.fn(),
   }
@@ -468,7 +467,6 @@ describe('WorkflowEngine', () => {
 
     // Use real createWorkflowContext for proper depth tracking (no mock needed)
     const { createWorkflowContext } = await import('./context')
-    const { EventBus } = await import('../events/eventBus')
     const sharedInternal = makeInternal()
     const deps = {
       emitEntry: vi.fn(),
@@ -487,7 +485,6 @@ describe('WorkflowEngine', () => {
       }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
-      eventBus: new EventBus(),
       engine,
       getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
       getSeatId: vi.fn().mockReturnValue('s1'),
@@ -1103,7 +1100,6 @@ describe('WorkflowEngine', () => {
     ])
     // Use real createWorkflowContext + shared internal for proper depth tracking
     const { createWorkflowContext } = await import('./context')
-    const { EventBus } = await import('../events/eventBus')
     const internal = makeInternal()
     const deps = {
       emitEntry: vi.fn(),
@@ -1122,7 +1118,6 @@ describe('WorkflowEngine', () => {
       }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
-      eventBus: new EventBus(),
       engine,
       getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
       getSeatId: vi.fn().mockReturnValue('s1'),

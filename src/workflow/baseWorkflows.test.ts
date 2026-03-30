@@ -3,8 +3,6 @@ import { WorkflowEngine } from './engine'
 import { registerBaseWorkflows, getQuickRollWorkflow, getRollWorkflow } from './baseWorkflows'
 import type { RollOutput } from './baseWorkflows'
 import { createWorkflowContext } from './context'
-import { createEventBus } from '../events/eventBus'
-import { announceEvent } from '../events/systemEvents'
 import type { InternalState } from './types'
 
 function makeInternal(): InternalState {
@@ -15,7 +13,6 @@ function makeInternal(): InternalState {
 }
 
 function makeMockDeps(engine: WorkflowEngine) {
-  const bus = createEventBus()
   return {
     deps: {
       emitEntry: vi.fn(),
@@ -34,14 +31,12 @@ function makeMockDeps(engine: WorkflowEngine) {
       }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
-      eventBus: bus,
       engine,
       getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
       getSeatId: vi.fn().mockReturnValue('s1'),
       getLogWatermark: vi.fn().mockReturnValue(0),
       getFormulaTokens: vi.fn().mockReturnValue({}),
     },
-    bus,
   }
 }
 
@@ -125,28 +120,24 @@ describe('base workflows', () => {
   })
 
   describe('quick-roll workflow', () => {
-    it('has roll + display steps', () => {
+    it('has roll step only', () => {
       const engine = new WorkflowEngine()
       registerBaseWorkflows(engine)
-      expect(engine.inspectWorkflow('quick-roll')).toEqual(['roll', 'display'])
+      expect(engine.inspectWorkflow('quick-roll')).toEqual(['roll'])
       expect(getQuickRollWorkflow().name).toBe('quick-roll')
     })
 
-    it('delegates to roll workflow and displays result', async () => {
+    it('delegates to roll workflow and computes total', async () => {
       const engine = new WorkflowEngine()
       registerBaseWorkflows(engine)
 
-      const { deps, bus } = makeMockDeps(engine)
-      const announcements: unknown[] = []
-      bus.on(announceEvent, (p) => announcements.push(p))
+      const { deps } = makeMockDeps(engine)
 
       const internal = makeInternal()
       const ctx = createWorkflowContext(deps, { formula: '2d12+1', actorId: 'a1' }, internal)
-      await engine.runWorkflow('quick-roll', ctx, internal)
-      expect(announcements).toEqual([
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- vitest matcher returns any
-        expect.objectContaining({ message: expect.stringContaining('2d12+1') }),
-      ])
+      const result = await engine.runWorkflow('quick-roll', ctx, internal)
+      expect(result.status).toBe('completed')
+      expect(ctx.vars.total).toBe(14) // 8 + 5 + 1
     })
   })
 })

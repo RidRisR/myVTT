@@ -1,6 +1,6 @@
 // plugins/daggerheart-core/rollSteps.ts
 import type { IPluginSDK, WorkflowHandle, JudgmentResult } from '@myvtt/sdk'
-import { getRollWorkflow, toastEvent, rollResult } from '@myvtt/sdk'
+import { getRollWorkflow, rollResult } from '@myvtt/sdk'
 import { dhEvaluateRoll } from '../daggerheart/diceSystem'
 
 /** Data shape for the dh:judgment sub-workflow */
@@ -114,19 +114,6 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
         if (result.status === 'completed') {
           ctx.vars.judgment = result.output.judgment
         }
-      },
-    },
-    {
-      id: 'display',
-      run: (ctx) => {
-        const { formula, total, judgment } = ctx.vars
-        if (typeof total !== 'number') return
-        const dh = judgment as { type: string; outcome: string } | undefined
-        const judgmentStr = dh?.type === 'daggerheart' ? ` (${dh.outcome})` : ''
-        ctx.events.emit(toastEvent, {
-          text: `🎲 ${formula} = ${total}${judgmentStr}`,
-          variant: 'success',
-        })
       },
     },
   ])

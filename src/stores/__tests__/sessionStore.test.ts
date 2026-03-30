@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { WorkflowEngine } from '../../workflow/engine'
 import { WorkflowRunner } from '../../workflow/pluginSDK'
 import { registerBaseWorkflows, getSetSelectionWorkflow } from '../../workflow/baseWorkflows'
-import { createEventBus } from '../../events/eventBus'
 import { useSessionStore, _setSelection } from '../sessionStore'
 
 describe('Session State', () => {
@@ -12,7 +11,6 @@ describe('Session State', () => {
   beforeEach(() => {
     engine = new WorkflowEngine()
     registerBaseWorkflows(engine)
-    const bus = createEventBus()
     const deps = {
       emitEntry: vi.fn(),
       serverRoll: vi.fn().mockResolvedValue({
@@ -30,7 +28,6 @@ describe('Session State', () => {
       }),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
-      eventBus: bus,
       getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: '', name: '', color: '' } }),
       getSeatId: vi.fn().mockReturnValue(''),
       getLogWatermark: vi.fn().mockReturnValue(0),
