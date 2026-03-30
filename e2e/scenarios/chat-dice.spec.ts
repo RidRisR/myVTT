@@ -42,7 +42,7 @@ test.describe('Cross-client judgment and groupId', () => {
     const gmPage = await browser.newPage()
     const admin = new AdminPage(gmPage)
     await admin.goto()
-    await admin.createRoom(roomName)
+    await admin.createRoom(roomName, 'daggerheart')
     await admin.enterRoom(roomName)
     const gmSeat = new SeatSelectPage(gmPage)
     await gmSeat.createAndJoin('GM', 'GM')
@@ -144,7 +144,7 @@ test.describe('Cross-client judgment and groupId', () => {
     const admin = new AdminPage(page)
     await admin.goto()
     const groupRoom = `groupid-e2e-${Date.now()}`
-    await admin.createRoom(groupRoom)
+    await admin.createRoom(groupRoom, 'daggerheart')
     await admin.enterRoom(groupRoom)
     const seatSelect = new SeatSelectPage(page)
     await seatSelect.createAndJoin('GM', 'GM')

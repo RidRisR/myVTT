@@ -524,7 +524,7 @@ describe('Game Log Handlers', () => {
       await broadcastPromise
     })
 
-    it('log:entry without groupId defaults to undefined', async () => {
+    it('log:entry without groupId defaults to empty string', async () => {
       const submission = {
         id: 'test-groupid-missing-001',
         type: 'core:text',
@@ -541,7 +541,7 @@ describe('Game Log Handlers', () => {
       const ack = await emitLogEntry(ctx.socket, submission)
       expect('error' in ack).toBe(false)
       const entry = ack as GameLogEntry
-      expect(entry.groupId).toBeUndefined()
+      expect(entry.groupId).toBe('')
     })
   })
 })
