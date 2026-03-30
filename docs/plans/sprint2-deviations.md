@@ -1,7 +1,7 @@
 # Sprint 2 实现偏差记录
 
 > 对照设计文档 `docs/plans/sprint2-exploration.md`，记录实现中的偏差及原因。
-> **状态**：定稿 | 2026-03-29 | PR #174
+> **状态**：更新 | 2026-03-30 | PR #174 + 渲染统一追加
 
 ---
 
@@ -135,6 +135,46 @@
 3. **workflow 提供可 hook 的切面**——§8 确认了 pre-execution modification 的不可替代价值，roll workflow 正是掷骰前修改骰子的切面点
 
 **影响**：偏差 2（代码重复）同时解决。探索文档 §4 R2 决策标记为"已推翻"。
+
+---
+
+### 偏差 9：ExtensionRegistry 删除，合并进 RendererRegistry
+
+**探索文档描述**：§7.4 提到新建 `ExtensionRegistry` 类，ChatPanel 通过 `ExtensionRegistry.get(type)` 查询渲染器。
+
+**实际实现**：`ExtensionRegistry` 在 Sprint 2 A3 中创建后，在渲染统一重构中被删除。渲染器注册直接使用 `RendererRegistry` 的 `(surface, type)` keying + `RendererPoint<T>` typed token API。
+
+**原因**：`ExtensionRegistry` 的 `contribute()` API 是为通用 Slot 设计的，但实际只有渲染器在用。将两个 registry 合并为一个更简单。typed token 提供编译时类型安全，避免 string key 拼写错误。
+
+---
+
+### 偏差 10：dh:judgment 不再作为独立日志发出
+
+**探索文档描述**：J1 设计 `dh:judgment` 为独立日志条目，由 `dh:emit-judgment` step 在 `dh:action-check` 中发出。
+
+**实际实现**：`dh:judgment` 改为 reusable sub-workflow（`judge` + `resolve` steps），被 `dh:action-check` 的 `judgment` step 内部调用。判定结果存储在 `ctx.vars.judgment` 中供 `display` step 使用，但不发独立日志。渲染时由 `RollResultRenderer` 调用 `plugin.diceSystem.evaluateRoll()` 实时计算。
+
+**原因**：一次掷骰发 3 条日志（roll + judgment + tracker）导致聊天面板显示 3 张卡。用户期望一次掷骰只看到一张卡。判定是从骰子结果确定性推导的纯函数，不必持久化。
+
+---
+
+### 偏差 11：diceSystem 接口大幅精简
+
+**探索文档描述**：未涉及 `diceSystem` 接口变更。
+
+**实际实现**：删除 `getRollActions`、`getDieStyles`、`getModifierOptions`、`rollCommands`、`rollWorkflows` 五个方法。删除 `surfaces.rollCardRenderers`。仅保留 `evaluateRoll` + `getJudgmentDisplay`。
+
+**原因**：这些方法在 `src/` 中没有任何消费者（全是死代码）。`rollCommands` 被 `commandRegistry` 替代（Sprint 1 C1）；`rollCardRenderers` 被 `RendererRegistry` typed token 替代。
+
+---
+
+### 偏差 12：context.ts origin 自动解析
+
+**探索文档描述**：未涉及 origin 传播机制。
+
+**实际实现**：`createWorkflowContext` 新增 `buildOriginFromActor()` 逻辑：当 `initialData` 包含 `origin` 时直接使用（ChatPanel speaker picker 路径）；否则从 `actorId` 查 entity 构建完整的 `{ seat, entity }` origin（角色卡路径）。嵌套 workflow 继承父级 caller-provided origin。
+
+**原因**：角色卡掷骰传 `actorId` 但不传 `origin`，导致日志显示 seat 而非 entity。ChatPanel 传 `origin` 但被 `getActiveOrigin()` 覆盖。两个 bug 统一修复。
 
 ---
 

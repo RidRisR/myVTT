@@ -1,6 +1,6 @@
 # Roll Rendering Unification Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **状态**：✅ 已完成 | 2026-03-30
 
 **Goal:** Eliminate redundant `dh:judgment` log entries, unify two rendering registration systems into one typed system, and make `RollResultRenderer` plugin-aware with dual-mode (config/component) registration.
 
@@ -14,34 +14,35 @@
 
 ## File Map
 
-| File | Action | Responsibility |
-|------|--------|---------------|
-| `src/log/rendererRegistry.ts` | Modify | `RendererPoint<T>` generic API, backward-compat string overloads |
-| `src/log/rendererRegistry.test.ts` | Modify | Add typed token tests |
-| `src/rules/types.ts` | Modify | Add `RollResultConfig` interface |
-| `src/rules/sdk.ts` | Modify | Export `rollResult` token factory + `RollResultConfig` |
-| `src/log/renderers/RollResultRenderer.tsx` | Modify | Plugin-aware routing: config → component → default |
-| `src/log/renderers/RollResultRenderer.test.tsx` | Create | Unit tests for routing logic |
-| `plugins/daggerheart-core/rollSteps.ts` | Modify | Extract `dh:judgment` sub-workflow, delete `dh:emit-judgment` |
-| `plugins/daggerheart-core/rollSteps.test.ts` | Modify | Update workflow tests |
-| `src/chat/ChatPanel.tsx` | Modify | Remove groupId filtering + debug logs |
-| `src/log/LogEntryCard.tsx` | Modify | Remove debug console.log |
-| `src/chat/MessageCard.tsx` | Modify | Remove dice rendering path |
-| `src/workflow/pluginSDK.ts` | Modify | Remove `extensionRegistry` param + `contribute` |
-| `src/workflow/useWorkflowSDK.ts` | Modify | Remove `getExtensionRegistry()` call |
-| `src/ui-system/registrationTypes.ts` | Modify | Remove `contribute` from `IUIRegistrationSDK` |
-| `src/ui-system/uiSystemInit.ts` | Modify | Remove `getExtensionRegistry()` |
-| `src/ui-system/extensionRegistry.ts` | Delete | Unified into rendererRegistry |
-| `src/ui-system/__tests__/extensionRegistry.test.ts` | Delete | Follows source deletion |
-| `plugins/daggerheart-core/DHJudgmentRenderer.tsx` | Delete | No more `dh:judgment` entries |
-| `e2e/scenarios/chat-dice.spec.ts` | Modify | Update E2E for new behavior |
-| `e2e/pages/chat-panel.page.ts` | Modify | Update page object helpers |
+| File                                                | Action | Responsibility                                                   |
+| --------------------------------------------------- | ------ | ---------------------------------------------------------------- |
+| `src/log/rendererRegistry.ts`                       | Modify | `RendererPoint<T>` generic API, backward-compat string overloads |
+| `src/log/rendererRegistry.test.ts`                  | Modify | Add typed token tests                                            |
+| `src/rules/types.ts`                                | Modify | Add `RollResultConfig` interface                                 |
+| `src/rules/sdk.ts`                                  | Modify | Export `rollResult` token factory + `RollResultConfig`           |
+| `src/log/renderers/RollResultRenderer.tsx`          | Modify | Plugin-aware routing: config → component → default               |
+| `src/log/renderers/RollResultRenderer.test.tsx`     | Create | Unit tests for routing logic                                     |
+| `plugins/daggerheart-core/rollSteps.ts`             | Modify | Extract `dh:judgment` sub-workflow, delete `dh:emit-judgment`    |
+| `plugins/daggerheart-core/rollSteps.test.ts`        | Modify | Update workflow tests                                            |
+| `src/chat/ChatPanel.tsx`                            | Modify | Remove groupId filtering + debug logs                            |
+| `src/log/LogEntryCard.tsx`                          | Modify | Remove debug console.log                                         |
+| `src/chat/MessageCard.tsx`                          | Modify | Remove dice rendering path                                       |
+| `src/workflow/pluginSDK.ts`                         | Modify | Remove `extensionRegistry` param + `contribute`                  |
+| `src/workflow/useWorkflowSDK.ts`                    | Modify | Remove `getExtensionRegistry()` call                             |
+| `src/ui-system/registrationTypes.ts`                | Modify | Remove `contribute` from `IUIRegistrationSDK`                    |
+| `src/ui-system/uiSystemInit.ts`                     | Modify | Remove `getExtensionRegistry()`                                  |
+| `src/ui-system/extensionRegistry.ts`                | Delete | Unified into rendererRegistry                                    |
+| `src/ui-system/__tests__/extensionRegistry.test.ts` | Delete | Follows source deletion                                          |
+| `plugins/daggerheart-core/DHJudgmentRenderer.tsx`   | Delete | No more `dh:judgment` entries                                    |
+| `e2e/scenarios/chat-dice.spec.ts`                   | Modify | Update E2E for new behavior                                      |
+| `e2e/pages/chat-panel.page.ts`                      | Modify | Update page object helpers                                       |
 
 ---
 
 ### Task 1: Enhance `rendererRegistry` with `RendererPoint<T>`
 
 **Files:**
+
 - Modify: `src/log/rendererRegistry.ts`
 - Modify: `src/log/rendererRegistry.test.ts`
 
@@ -50,7 +51,12 @@
 Add tests to `src/log/rendererRegistry.test.ts`:
 
 ```typescript
-import { registerRenderer, getRenderer, clearRenderers, createRendererPoint } from './rendererRegistry'
+import {
+  registerRenderer,
+  getRenderer,
+  clearRenderers,
+  createRendererPoint,
+} from './rendererRegistry'
 
 // ... existing tests unchanged ...
 
@@ -79,7 +85,10 @@ describe('RendererPoint<T> typed API', () => {
   })
 
   it('non-component values can be registered (config objects)', () => {
-    const point = createRendererPoint<{ dieConfigs: { color: string }[] }>('rollResult', 'test:roll')
+    const point = createRendererPoint<{ dieConfigs: { color: string }[] }>(
+      'rollResult',
+      'test:roll',
+    )
     const config = { dieConfigs: [{ color: '#fff' }] }
     registerRenderer(point, config)
     expect(getRenderer(point)).toBe(config)
@@ -195,6 +204,7 @@ feat: enhance rendererRegistry with RendererPoint<T> typed token API
 ### Task 2: Add `RollResultConfig` type + SDK `rollResult` token export
 
 **Files:**
+
 - Modify: `src/rules/types.ts:134` (after `RenderDiceOptions`)
 - Modify: `src/rules/sdk.ts`
 
@@ -227,7 +237,9 @@ import type { ComponentType } from 'react'
 
 type RollResultSlot = RollResultConfig | ComponentType<RollCardProps>
 
-export function rollResult(rollType: string): import('../log/rendererRegistry').RendererPoint<RollResultSlot> {
+export function rollResult(
+  rollType: string,
+): import('../log/rendererRegistry').RendererPoint<RollResultSlot> {
   return createRendererPoint<RollResultSlot>('rollResult', rollType)
 }
 ```
@@ -248,6 +260,7 @@ feat: add RollResultConfig type and rollResult() SDK token factory
 ### Task 3: Make `RollResultRenderer` plugin-aware
 
 **Files:**
+
 - Modify: `src/log/renderers/RollResultRenderer.tsx`
 - Create: `src/log/renderers/RollResultRenderer.test.tsx`
 
@@ -486,6 +499,7 @@ feat: make RollResultRenderer plugin-aware with config/component dual routing
 ### Task 4: Register Daggerheart rollResult config via SDK
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/rollSteps.ts:121-127`
 
 - [ ] **Step 1: Replace DHJudgmentRenderer registration with rollResult config**
@@ -493,25 +507,25 @@ feat: make RollResultRenderer plugin-aware with config/component dual routing
 In `plugins/daggerheart-core/rollSteps.ts`, replace lines 121-126:
 
 ```typescript
-  sdk.ui.registerRenderer(
-    'chat',
-    'dh:judgment',
-    DHJudgmentRenderer as React.ComponentType<{ entry: unknown; isNew?: boolean }>,
-  )
+sdk.ui.registerRenderer(
+  'chat',
+  'dh:judgment',
+  DHJudgmentRenderer as React.ComponentType<{ entry: unknown; isNew?: boolean }>,
+)
 ```
 
 with:
 
 ```typescript
-  import { rollResult } from '@myvtt/sdk'
-  // ... (move import to top of file)
+import { rollResult } from '@myvtt/sdk'
+// ... (move import to top of file)
 
-  sdk.ui.registerRenderer(rollResult('daggerheart:dd'), {
-    dieConfigs: [
-      { color: '#fbbf24', label: 'die.hope' },
-      { color: '#dc2626', label: 'die.fear' },
-    ],
-  })
+sdk.ui.registerRenderer(rollResult('daggerheart:dd'), {
+  dieConfigs: [
+    { color: '#fbbf24', label: 'die.hope' },
+    { color: '#dc2626', label: 'die.fear' },
+  ],
+})
 ```
 
 Also remove the `import { DHJudgmentRenderer } from './DHJudgmentRenderer'` at the top.
@@ -519,6 +533,7 @@ Also remove the `import { DHJudgmentRenderer } from './DHJudgmentRenderer'` at t
 Note: `sdk.ui.registerRenderer` currently only accepts `(string, string, Component)`. The typed token overload added in Task 1 to the registry function needs to be reflected in the `IUIRegistrationSDK` interface. Update `src/ui-system/registrationTypes.ts` to add the overload:
 
 In `IUIRegistrationSDK`:
+
 ```typescript
   registerRenderer(
     surface: string,
@@ -561,6 +576,7 @@ feat: register daggerheart:dd via rollResult() typed token instead of DHJudgment
 ### Task 5: Extract `dh:judgment` sub-workflow + delete `dh:emit-judgment`
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/rollSteps.ts`
 
 - [ ] **Step 1: Write failing test for the extracted judgment workflow**
@@ -750,6 +766,7 @@ refactor: extract dh:judgment as reusable sub-workflow, delete dh:emit-judgment 
 ### Task 6: Clean up ChatPanel — remove groupId filtering + debug logs
 
 **Files:**
+
 - Modify: `src/chat/ChatPanel.tsx:24,103-118`
 
 - [ ] **Step 1: Remove `dh:judgment` from CHAT_TYPES and groupId filtering**
@@ -769,10 +786,7 @@ const CHAT_TYPES = new Set(['core:text', 'core:roll-result'])
 Replace lines 103-118 (the entire `visibleEntries` useMemo):
 
 ```typescript
-  const visibleEntries = useMemo(
-    () => logEntries.filter((e) => CHAT_TYPES.has(e.type)),
-    [logEntries],
-  )
+const visibleEntries = useMemo(() => logEntries.filter((e) => CHAT_TYPES.has(e.type)), [logEntries])
 ```
 
 - [ ] **Step 2: Type check**
@@ -791,6 +805,7 @@ refactor: remove groupId judgment filtering and debug logs from ChatPanel
 ### Task 7: Clean up LogEntryCard — remove debug log
 
 **Files:**
+
 - Modify: `src/log/LogEntryCard.tsx:61`
 
 - [ ] **Step 1: Remove console.log**
@@ -798,7 +813,12 @@ refactor: remove groupId judgment filtering and debug logs from ChatPanel
 Delete line 61:
 
 ```typescript
-  console.log('[LogEntryCard]', entry.type, entry.id.slice(0, 8), renderer ? renderer.name || 'anonymous' : 'NO_RENDERER')
+console.log(
+  '[LogEntryCard]',
+  entry.type,
+  entry.id.slice(0, 8),
+  renderer ? renderer.name || 'anonymous' : 'NO_RENDERER',
+)
 ```
 
 - [ ] **Step 2: Commit**
@@ -812,6 +832,7 @@ chore: remove debug console.log from LogEntryCard
 ### Task 8: Remove MessageCard dice rendering path
 
 **Files:**
+
 - Modify: `src/chat/MessageCard.tsx`
 
 - [ ] **Step 1: Remove dice rendering code**
@@ -843,6 +864,7 @@ refactor: remove dice rendering path from MessageCard — RollResultRenderer han
 ### Task 9: Delete ExtensionRegistry + clean up all references
 
 **Files:**
+
 - Delete: `src/ui-system/extensionRegistry.ts`
 - Delete: `src/ui-system/__tests__/extensionRegistry.test.ts`
 - Modify: `src/ui-system/registrationTypes.ts` — remove `contribute` method
@@ -873,6 +895,7 @@ In `src/ui-system/registrationTypes.ts`, remove lines 47-51:
 - [ ] **Step 3: Remove extensionRegistry from PluginSDK constructor**
 
 In `src/workflow/pluginSDK.ts`:
+
 - Remove import of `ExtensionRegistry` (line 27)
 - Remove `extensionRegistry` parameter from constructor (line 47)
 - Remove `contribute` implementation (lines 63-65)
@@ -883,17 +906,13 @@ In `src/workflow/pluginSDK.ts`:
 In `src/workflow/useWorkflowSDK.ts`, remove `getExtensionRegistry()` from the `PluginSDK` constructor call (line 160). The constructor now takes 4 args:
 
 ```typescript
-      const sdk = new PluginSDK(
-        engine,
-        plugin.id,
-        getUIRegistry(),
-        _triggerRegistry,
-      )
+const sdk = new PluginSDK(engine, plugin.id, getUIRegistry(), _triggerRegistry)
 ```
 
 - [ ] **Step 5: Remove getExtensionRegistry() from uiSystemInit.ts**
 
 In `src/ui-system/uiSystemInit.ts`:
+
 - Remove import of `ExtensionRegistry` (line 3)
 - Remove `_extensionRegistry` variable (line 11)
 - Remove `getExtensionRegistry()` function (lines 18-21)
@@ -926,6 +945,7 @@ refactor: delete ExtensionRegistry and DHJudgmentRenderer — unified into rende
 ### Task 10: Export `getDHJudgmentWorkflow` from SDK
 
 **Files:**
+
 - Modify: `src/rules/sdk.ts`
 
 - [ ] **Step 1: Add export for reusable judgment workflow**
@@ -955,6 +975,7 @@ feat: export getDHJudgmentWorkflow from SDK for workflow composition
 ### Task 11: Update E2E tests
 
 **Files:**
+
 - Modify: `e2e/scenarios/chat-dice.spec.ts`
 - Modify: `e2e/pages/chat-panel.page.ts`
 
@@ -982,49 +1003,49 @@ Update `e2e/pages/chat-panel.page.ts`:
 The test `entries from same workflow share groupId` at line 121 currently looks for `dh:judgment` entries. After the refactor, no `dh:judgment` entries are emitted. Update to check for `core:roll-result` + `core:tracker-update` sharing a groupId:
 
 ```typescript
-  test('entries from same workflow share groupId', async ({ page }) => {
-    const admin = new AdminPage(page)
-    await admin.goto()
-    const groupRoom = `groupid-e2e-${Date.now()}`
-    await admin.createRoom(groupRoom)
-    await admin.enterRoom(groupRoom)
-    const seatSelect = new SeatSelectPage(page)
-    await seatSelect.createAndJoin('GM', 'GM')
-    const room = new RoomPage(page)
-    await room.expectInRoom()
+test('entries from same workflow share groupId', async ({ page }) => {
+  const admin = new AdminPage(page)
+  await admin.goto()
+  const groupRoom = `groupid-e2e-${Date.now()}`
+  await admin.createRoom(groupRoom)
+  await admin.enterRoom(groupRoom)
+  const seatSelect = new SeatSelectPage(page)
+  await seatSelect.createAndJoin('GM', 'GM')
+  const room = new RoomPage(page)
+  await room.expectInRoom()
 
-    await room.chat.expandChat()
-    await room.chat.sendMessage('.dd 2d12+3')
+  await room.chat.expandChat()
+  await room.chat.sendMessage('.dd 2d12+3')
 
-    // Wait for roll result with judgment footer
-    await room.chat.expectJudgmentVisible()
+  // Wait for roll result with judgment footer
+  await room.chat.expectJudgmentVisible()
 
-    // Verify: roll-result and tracker-update share groupId (dh:judgment no longer emitted)
-    const groupCheck = await page.waitForFunction(
-      () => {
-        const store = (window as any).__MYVTT_STORES__?.world()
-        if (!store?.logEntries?.length) return null
+  // Verify: roll-result and tracker-update share groupId (dh:judgment no longer emitted)
+  const groupCheck = await page.waitForFunction(
+    () => {
+      const store = (window as any).__MYVTT_STORES__?.world()
+      if (!store?.logEntries?.length) return null
 
-        const entries = store.logEntries
-        const rollEntry = entries.find((e: any) => e.type === 'core:roll-result')
-        const trackerEntry = entries.find((e: any) => e.type === 'core:tracker-update')
+      const entries = store.logEntries
+      const rollEntry = entries.find((e: any) => e.type === 'core:roll-result')
+      const trackerEntry = entries.find((e: any) => e.type === 'core:tracker-update')
 
-        if (!rollEntry || !trackerEntry) return null
+      if (!rollEntry || !trackerEntry) return null
 
-        return {
-          rollGroupId: rollEntry.groupId,
-          trackerGroupId: trackerEntry.groupId,
-          match: rollEntry.groupId === trackerEntry.groupId,
-          notEmpty: rollEntry.groupId != null && rollEntry.groupId !== '',
-        }
-      },
-      { timeout: 10000 },
-    )
+      return {
+        rollGroupId: rollEntry.groupId,
+        trackerGroupId: trackerEntry.groupId,
+        match: rollEntry.groupId === trackerEntry.groupId,
+        notEmpty: rollEntry.groupId != null && rollEntry.groupId !== '',
+      }
+    },
+    { timeout: 10000 },
+  )
 
-    const result = await groupCheck.jsonValue()
-    expect(result.match).toBe(true)
-    expect(result.notEmpty).toBe(true)
-  })
+  const result = await groupCheck.jsonValue()
+  expect(result.match).toBe(true)
+  expect(result.notEmpty).toBe(true)
+})
 ```
 
 - [ ] **Step 3: Add new E2E test — basic roll (.r) shows plain dice**
@@ -1032,27 +1053,27 @@ The test `entries from same workflow share groupId` at line 121 currently looks 
 Add to `e2e/scenarios/chat-dice.spec.ts`:
 
 ```typescript
-  test('.r shows plain dice without judgment', async ({ page }) => {
-    const admin = new AdminPage(page)
-    await admin.goto()
-    const plainRoom = `plain-roll-e2e-${Date.now()}`
-    await admin.createRoom(plainRoom)
-    await admin.enterRoom(plainRoom)
-    const seatSelect = new SeatSelectPage(page)
-    await seatSelect.createAndJoin('GM', 'GM')
-    const room = new RoomPage(page)
-    await room.expectInRoom()
+test('.r shows plain dice without judgment', async ({ page }) => {
+  const admin = new AdminPage(page)
+  await admin.goto()
+  const plainRoom = `plain-roll-e2e-${Date.now()}`
+  await admin.createRoom(plainRoom)
+  await admin.enterRoom(plainRoom)
+  const seatSelect = new SeatSelectPage(page)
+  await seatSelect.createAndJoin('GM', 'GM')
+  const room = new RoomPage(page)
+  await room.expectInRoom()
 
-    await room.chat.expandChat()
-    await room.chat.sendMessage('.r 2d6+3')
+  await room.chat.expandChat()
+  await room.chat.sendMessage('.r 2d6+3')
 
-    // Roll result card appears without Hope/Fear text
-    await expect(page.getByTestId('entry-roll-result').first()).toBeVisible({ timeout: 5000 })
-    // Verify no judgment text in the card
-    const card = page.getByTestId('entry-roll-result').first()
-    await expect(card).not.toContainText('Hope')
-    await expect(card).not.toContainText('Fear')
-  })
+  // Roll result card appears without Hope/Fear text
+  await expect(page.getByTestId('entry-roll-result').first()).toBeVisible({ timeout: 5000 })
+  // Verify no judgment text in the card
+  const card = page.getByTestId('entry-roll-result').first()
+  await expect(card).not.toContainText('Hope')
+  await expect(card).not.toContainText('Fear')
+})
 ```
 
 - [ ] **Step 4: Commit**
@@ -1078,10 +1099,12 @@ Expected: ALL PASS
 - [ ] **Step 3: E2E tests (requires preview)**
 
 Run:
+
 ```bash
 ./scripts/preview start
 npx playwright test e2e/scenarios/chat-dice.spec.ts
 ```
+
 Expected: ALL PASS
 
 - [ ] **Step 4: Final commit if any fixups needed**

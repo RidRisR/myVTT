@@ -497,15 +497,13 @@ interface RulePlugin {
   // Layer 2: 角色 UI（必需）
   characterUI: { EntityCard: React.ComponentType<EntityCardProps> }
 
-  // Layer 3: 骰子系统（可选）
+  // Layer 3: 骰子系统（可选，已精简 — 2026-03-30）
+  // 已删除: getRollActions, getDieStyles, getModifierOptions, rollCommands, rollWorkflows
+  // 命令注册 → commandRegistry (Sprint 1 C1)
+  // 渲染器注册 → RendererRegistry typed token (Sprint 2b)
   diceSystem?: {
-    getRollActions(entity): RollAction[]
     evaluateRoll(rolls, total): JudgmentResult | null
-    getDieStyles(terms): DieStyle[]
     getJudgmentDisplay(result): JudgmentDisplay
-    getModifierOptions(): ModifierOption[]
-    rollCommands?: Record<string, { resolveFormula(expr?): string }>
-    rollWorkflows?: Record<string, () => WorkflowHandle> // per-rollType workflow getter
   }
 
   // Layer 4: 数据模板（可选）
@@ -520,7 +518,7 @@ interface RulePlugin {
     dockTabs?: DockTabDef[]
     gmTabs?: GMTabDef[]
     teamPanel?: React.ComponentType<TeamPanelProps>
-    rollCardRenderers?: Record<string, React.ComponentType<RollCardProps>>
+    // rollCardRenderers 已删除 (2026-03-30) → RendererRegistry typed token
     tools?: ToolDefinition[]
     getTokenActions?: (ctx: TokenActionContext) => TokenAction[]
     getContextMenuItems?: (ctx: ContextMenuContext) => ContextMenuItem[]
@@ -735,7 +733,7 @@ plugins/
 
 - **RulePlugin 将被 VTTPlugin 完全替代** — 没有"基座 UI 需要读插件数据"的场景，adapter 层不需要存在
 - **每个插件的 UI 组件直接读自己的组件数据** — DH 的 portrait-bar 读 `daggerheart:health`，不需要通过 adapter 转译
-- **diceSystem 拆解** — `evaluateRoll` 已是 workflow step；`getRollActions`/`getDieStyles` 变成 chat 面板插件内的配置
+- **diceSystem 拆解** — 已删除 `getRollActions`/`getDieStyles`/`getModifierOptions`/`rollCommands`/`rollWorkflows`（死代码）；`evaluateRoll`+`getJudgmentDisplay` 保留供 RollResultRenderer 调用，待后续迁移为 workflow step
 - **dataTemplates 拆解** — 变成 entity creation workflow 的 step（见下文）
 
 ### 命令系统
