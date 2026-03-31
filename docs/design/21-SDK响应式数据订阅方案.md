@@ -11,11 +11,11 @@
 
 UI 组件需要对三种数据变化做出响应：
 
-| 变化模式 | 语义 | 当前 SDK 接口 | 响应式？ |
-|---------|------|-------------|---------|
-| 日志到达 | 事件流（不断追加） | `sdk.log.subscribe(pattern, handler)` | ✅ 回调式 |
-| Awareness 变化 | 状态型（各 peer 的瞬态值） | `sdk.awareness.subscribe(channel, handler)` | ✅ 回调式 |
-| 数据变化 | 状态型（entity/component 的持久值） | `sdk.read.entity(id)` 等 | ❌ 仅命令式拉取 |
+| 变化模式       | 语义                                | 当前 SDK 接口                               | 响应式？        |
+| -------------- | ----------------------------------- | ------------------------------------------- | --------------- |
+| 日志到达       | 事件流（不断追加）                  | `sdk.log.subscribe(pattern, handler)`       | ✅ 回调式       |
+| Awareness 变化 | 状态型（各 peer 的瞬态值）          | `sdk.awareness.subscribe(channel, handler)` | ✅ 回调式       |
+| 数据变化       | 状态型（entity/component 的持久值） | `sdk.read.entity(id)` 等                    | ❌ 仅命令式拉取 |
 
 三种模式中，**数据变化缺少响应式接口**。组件无法通过 SDK 订阅 entity 或 component 的变更。
 
@@ -24,6 +24,7 @@ UI 组件需要对三种数据变化做出响应：
 `sdk.read`（`IDataReader`）只提供命令式快照读取。React 组件需要在数据变化时重渲染，但 SDK 没有提供这种能力。
 
 当前组件如果需要响应式数据，只能：
+
 - 在 `useEffect` 中轮询 `sdk.read`（错误模式，无法感知变化时机）
 - 绕过 SDK 直接 `import { useWorldStore }`（破坏 SDK 作为唯一交互点的架构约束）
 
@@ -86,7 +87,10 @@ interface ILogSDK {
   subscribe(pattern: string, handler: (entry: unknown) => void): () => void
 
   // 新增：React hook
-  useEntries(pattern: string, options?: { limit?: number }): {
+  useEntries(
+    pattern: string,
+    options?: { limit?: number },
+  ): {
     /** 匹配的条目（按时间排序，最多 limit 条） */
     entries: GameLogEntry[]
     /** 组件挂载后到达的条目 id 集合（用于入场动画等） */
@@ -153,26 +157,26 @@ interface IComponentSDK {
 
 ### 什么在 workflow context 上，什么只在组件 SDK 上
 
-| 接口 | `WorkflowContext` | `IComponentSDK` | 理由 |
-|------|:---:|:---:|------|
-| `read`（命令式） | ✅ | ✅ | 两者都需要读取数据 |
-| `data`（响应式 hooks） | ❌ | ✅ | Hooks 是 React 概念，workflow 是命令式 |
-| `log.subscribe` | ❌ | ✅ | 组件订阅日志流 |
-| `log.useEntries` | ❌ | ✅ | React hook |
-| `awareness.*` | ❌ | ✅ | 组件间瞬态状态 |
-| `workflow.runWorkflow` | ✅（`ctx.runWorkflow`） | ✅ | 两者都可触发工作流 |
+| 接口                   |    `WorkflowContext`    | `IComponentSDK` | 理由                                   |
+| ---------------------- | :---------------------: | :-------------: | -------------------------------------- |
+| `read`（命令式）       |           ✅            |       ✅        | 两者都需要读取数据                     |
+| `data`（响应式 hooks） |           ❌            |       ✅        | Hooks 是 React 概念，workflow 是命令式 |
+| `log.subscribe`        |           ❌            |       ✅        | 组件订阅日志流                         |
+| `log.useEntries`       |           ❌            |       ✅        | React hook                             |
+| `awareness.*`          |           ❌            |       ✅        | 组件间瞬态状态                         |
+| `workflow.runWorkflow` | ✅（`ctx.runWorkflow`） |       ✅        | 两者都可触发工作流                     |
 
 ---
 
 ## 设计决策
 
-| 决策 | 理由 |
-|------|------|
-| 新增 `sdk.data` 而非扩展 `sdk.read` | `read` 是 `IDataReader`，同时被 workflow context 使用；hooks 只对 React 组件有意义，放在 `data` 上避免污染命令式接口 |
-| hooks 放在 SDK 对象上而非独立 import | 维持「SDK 是唯一交互点」原则；`sdk.data.useEntity(id)` 符合 React hook 调用规则 |
-| 日志 hook 返回 `{ entries, newIds }` | 日志是事件流，组件需要区分「历史条目」和「新到达条目」以决定动画行为 |
-| 日志 hook 包含历史查询 | 组件挂载时需要显示已有条目，不应额外调用 query API |
-| 保留所有现有 subscribe 回调 | hooks 是便利层，底层 subscribe 仍可用于非 React 场景或需要细粒度控制的情况 |
+| 决策                                 | 理由                                                                                                                 |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| 新增 `sdk.data` 而非扩展 `sdk.read`  | `read` 是 `IDataReader`，同时被 workflow context 使用；hooks 只对 React 组件有意义，放在 `data` 上避免污染命令式接口 |
+| hooks 放在 SDK 对象上而非独立 import | 维持「SDK 是唯一交互点」原则；`sdk.data.useEntity(id)` 符合 React hook 调用规则                                      |
+| 日志 hook 返回 `{ entries, newIds }` | 日志是事件流，组件需要区分「历史条目」和「新到达条目」以决定动画行为                                                 |
+| 日志 hook 包含历史查询               | 组件挂载时需要显示已有条目，不应额外调用 query API                                                                   |
+| 保留所有现有 subscribe 回调          | hooks 是便利层，底层 subscribe 仍可用于非 React 场景或需要细粒度控制的情况                                           |
 
 ---
 
@@ -232,24 +236,24 @@ function createProductionSDK(args: SDKFactoryArgs): IComponentSDK {
 
 ### 新增
 
-| 文件 | 内容 |
-|------|------|
-| `src/ui-system/reactiveHooks.ts` | 所有 hook 的实现（useEntity, useComponent, useQuery, useEntries, usePeers） |
-| `src/ui-system/__tests__/reactiveHooks.test.ts` | hook 单元测试 |
+| 文件                                            | 内容                                                                        |
+| ----------------------------------------------- | --------------------------------------------------------------------------- |
+| `src/ui-system/reactiveHooks.ts`                | 所有 hook 的实现（useEntity, useComponent, useQuery, useEntries, usePeers） |
+| `src/ui-system/__tests__/reactiveHooks.test.ts` | hook 单元测试                                                               |
 
 ### 修改
 
-| 文件 | 改动 |
-|------|------|
-| `src/ui-system/types.ts` | `IComponentSDK` 新增 `data: IReactiveDataSDK`；`log` 和 `awareness` 接口扩展 |
-| `src/ui-system/uiSystemInit.ts` | `createProductionSDK` 构建 `data`、扩展 `log`/`awareness` |
-| `src/workflow/types.ts` | 新增 `IReactiveDataSDK`、`ILogSDK`、`IAwarenessSDK` 接口定义 |
+| 文件                            | 改动                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------- |
+| `src/ui-system/types.ts`        | `IComponentSDK` 新增 `data: IReactiveDataSDK`；`log` 和 `awareness` 接口扩展 |
+| `src/ui-system/uiSystemInit.ts` | `createProductionSDK` 构建 `data`、扩展 `log`/`awareness`                    |
+| `src/workflow/types.ts`         | 新增 `IReactiveDataSDK`、`ILogSDK`、`IAwarenessSDK` 接口定义                 |
 
 ### 不变
 
-| 文件 | 理由 |
-|------|------|
-| `src/workflow/context.ts` | workflow context 不需要 hooks |
-| `src/workflow/pluginSDK.ts` | 注册时 SDK 不涉及响应式 |
-| `src/log/rendererRegistry.ts` | 渲染器注册不受影响 |
-| `src/stores/*` | store 内部结构不变，hooks 通过现有 subscribe 机制桥接 |
+| 文件                          | 理由                                                  |
+| ----------------------------- | ----------------------------------------------------- |
+| `src/workflow/context.ts`     | workflow context 不需要 hooks                         |
+| `src/workflow/pluginSDK.ts`   | 注册时 SDK 不涉及响应式                               |
+| `src/log/rendererRegistry.ts` | 渲染器注册不受影响                                    |
+| `src/stores/*`                | store 内部结构不变，hooks 通过现有 subscribe 机制桥接 |

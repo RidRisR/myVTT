@@ -126,12 +126,21 @@ export default function PatternUISystem() {
               dnd: makeDnDSDK(),
             }
           : undefined,
+      data: {
+        useEntity: () => undefined,
+        useComponent: () => undefined,
+        useQuery: () => [],
+      },
       awareness: {
         subscribe: () => () => {},
         broadcast: () => {},
         clear: () => {},
+        usePeers: () => new Map(),
       },
-      log: { subscribe: () => () => {} },
+      log: {
+        subscribe: () => () => {},
+        useEntries: () => ({ entries: [], newIds: new Set<string>() }),
+      },
       ui: { openPanel: () => '', closePanel: () => {} },
     }),
     [runner, handleDrag],

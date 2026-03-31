@@ -3,11 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import type { Entity } from '../../shared/entityTypes'
 import type { GameLogEntry } from '../../shared/logTypes'
-import {
-  createReactiveDataSDK,
-  createLogHooks,
-  createAwarenessHooks,
-} from '../reactiveHooks'
+import { createReactiveDataSDK, createLogHooks, createAwarenessHooks } from '../reactiveHooks'
 
 // ── Helpers ──
 
@@ -21,10 +17,12 @@ function makeEntity(id: string, components: Record<string, unknown> = {}): Entit
   }
 }
 
-function makeLogEntry(overrides: Partial<GameLogEntry> & { id: string; type: string }): GameLogEntry {
+function makeLogEntry(
+  overrides: Partial<GameLogEntry> & { id: string; type: string },
+): GameLogEntry {
   return {
     seq: 1,
-    origin: { seat: 'seat-1' },
+    origin: { seat: { id: 'seat-1', name: 'Test', color: '#fff' } },
     executor: 'seat-1',
     groupId: 'g1',
     chainDepth: 0,
@@ -58,10 +56,7 @@ describe('createReactiveDataSDK', () => {
   }
 
   function makeSDK() {
-    return createReactiveDataSDK(
-      () => entities,
-      subscribe,
-    )
+    return createReactiveDataSDK(() => entities, subscribe)
   }
 
   describe('useEntity', () => {
@@ -88,7 +83,9 @@ describe('createReactiveDataSDK', () => {
 
       const updated = makeEntity('hero-1', { 'core:identity': { name: 'Updated' } })
       entities['hero-1'] = updated
-      act(() => notify())
+      act(() => {
+        notify()
+      })
 
       expect(result.current).toBe(updated)
     })
@@ -106,7 +103,9 @@ describe('createReactiveDataSDK', () => {
 
       // Add unrelated entity — hero-1 reference unchanged
       entities['npc-1'] = makeEntity('npc-1')
-      act(() => notify())
+      act(() => {
+        notify()
+      })
 
       // Should not cause extra render since hero-1 is same reference
       expect(renderCount).toBe(1)
@@ -142,7 +141,9 @@ describe('createReactiveDataSDK', () => {
 
       const newIdentity = { name: 'Kael' }
       entities['hero-1'] = makeEntity('hero-1', { 'core:identity': newIdentity })
-      act(() => notify())
+      act(() => {
+        notify()
+      })
 
       expect(result.current).toBe(newIdentity)
     })
@@ -181,7 +182,9 @@ describe('createReactiveDataSDK', () => {
 
       // Unrelated change — tracker entities unchanged
       entities['hero'] = makeEntity('hero', { 'core:identity': {} })
-      act(() => notify())
+      act(() => {
+        notify()
+      })
 
       expect(result.current).toBe(first)
     })
@@ -193,7 +196,9 @@ describe('createReactiveDataSDK', () => {
       expect(result.current).toHaveLength(1)
 
       entities['t2'] = makeEntity('t2', { 'core:tracker': { current: 5 } })
-      act(() => notify())
+      act(() => {
+        notify()
+      })
 
       expect(result.current).toHaveLength(2)
     })
@@ -258,7 +263,9 @@ describe('createLogHooks', () => {
     // New entry arrives
     const newEntry = makeLogEntry({ id: 'new', type: 'core:roll-result', seq: 2 })
     logEntries = [...logEntries, newEntry]
-    act(() => notify())
+    act(() => {
+      notify()
+    })
 
     expect(result.current.entries.map((e) => e.id)).toEqual(['old', 'new'])
     expect(result.current.newIds.has('old')).toBe(false)
@@ -285,11 +292,10 @@ describe('createLogHooks', () => {
     const hooks = makeHooks()
     const { result } = renderHook(() => hooks.useEntries('core:roll-result', { limit: 2 }))
 
-    logEntries = [
-      ...logEntries,
-      makeLogEntry({ id: 'c', type: 'core:roll-result', seq: 3 }),
-    ]
-    act(() => notify())
+    logEntries = [...logEntries, makeLogEntry({ id: 'c', type: 'core:roll-result', seq: 3 })]
+    act(() => {
+      notify()
+    })
 
     expect(result.current.entries.map((e) => e.id)).toEqual(['b', 'c'])
   })
@@ -298,6 +304,8 @@ describe('createLogHooks', () => {
 // ── createAwarenessHooks tests ──
 
 describe('createAwarenessHooks', () => {
+  type AwarenessHandler = (seatId: string, state: unknown) => void
+
   it('returns empty map initially', () => {
     const subscribeAwareness = vi.fn().mockReturnValue(() => {})
     const hooks = createAwarenessHooks(subscribeAwareness)
@@ -319,39 +327,8 @@ describe('createAwarenessHooks', () => {
   })
 
   it('updates map when peer state arrives', () => {
-    let handler: ((seatId: string, state: unknown) => void) | undefined
-    const subscribeAwareness = vi.fn().mockImplementation((_ch, h) => {
-      handler = h
-      return () => {}
-    })
-    const hooks = createAwarenessHooks(subscribeAwareness)
-    const channel = { key: 'cursor' }
-    const { result } = renderHook(() => hooks.usePeers(channel))
-
-    act(() => handler!('seat-1', { x: 100, y: 200 }))
-    expect(result.current.get('seat-1')).toEqual({ x: 100, y: 200 })
-  })
-
-  it('removes peer when state is null', () => {
-    let handler: ((seatId: string, state: unknown) => void) | undefined
-    const subscribeAwareness = vi.fn().mockImplementation((_ch, h) => {
-      handler = h
-      return () => {}
-    })
-    const hooks = createAwarenessHooks(subscribeAwareness)
-    const channel = { key: 'cursor' }
-    const { result } = renderHook(() => hooks.usePeers(channel))
-
-    act(() => handler!('seat-1', { x: 100 }))
-    expect(result.current.has('seat-1')).toBe(true)
-
-    act(() => handler!('seat-1', null))
-    expect(result.current.has('seat-1')).toBe(false)
-  })
-
-  it('tracks multiple peers independently', () => {
-    let handler: ((seatId: string, state: unknown) => void) | undefined
-    const subscribeAwareness = vi.fn().mockImplementation((_ch, h) => {
+    let handler: AwarenessHandler | undefined
+    const subscribeAwareness = vi.fn().mockImplementation((_ch: unknown, h: AwarenessHandler) => {
       handler = h
       return () => {}
     })
@@ -360,8 +337,47 @@ describe('createAwarenessHooks', () => {
     const { result } = renderHook(() => hooks.usePeers(channel))
 
     act(() => {
-      handler!('seat-1', { x: 10 })
-      handler!('seat-2', { x: 20 })
+      if (handler) handler('seat-1', { x: 100, y: 200 })
+    })
+    expect(result.current.get('seat-1')).toEqual({ x: 100, y: 200 })
+  })
+
+  it('removes peer when state is null', () => {
+    let handler: AwarenessHandler | undefined
+    const subscribeAwareness = vi.fn().mockImplementation((_ch: unknown, h: AwarenessHandler) => {
+      handler = h
+      return () => {}
+    })
+    const hooks = createAwarenessHooks(subscribeAwareness)
+    const channel = { key: 'cursor' }
+    const { result } = renderHook(() => hooks.usePeers(channel))
+
+    act(() => {
+      if (handler) handler('seat-1', { x: 100 })
+    })
+    expect(result.current.has('seat-1')).toBe(true)
+
+    act(() => {
+      if (handler) handler('seat-1', null)
+    })
+    expect(result.current.has('seat-1')).toBe(false)
+  })
+
+  it('tracks multiple peers independently', () => {
+    let handler: AwarenessHandler | undefined
+    const subscribeAwareness = vi.fn().mockImplementation((_ch: unknown, h: AwarenessHandler) => {
+      handler = h
+      return () => {}
+    })
+    const hooks = createAwarenessHooks(subscribeAwareness)
+    const channel = { key: 'cursor' }
+    const { result } = renderHook(() => hooks.usePeers(channel))
+
+    act(() => {
+      if (handler) {
+        handler('seat-1', { x: 10 })
+        handler('seat-2', { x: 20 })
+      }
     })
 
     expect(result.current.size).toBe(2)

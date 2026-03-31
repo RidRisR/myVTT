@@ -82,7 +82,8 @@ export function createLogHooks(
       const mountSeqRef = useRef<number>(-1)
       if (mountSeqRef.current === -1) {
         const entries = getLogEntries()
-        mountSeqRef.current = entries.length > 0 ? entries[entries.length - 1].seq : 0
+        const last = entries[entries.length - 1]
+        mountSeqRef.current = last ? last.seq : 0
       }
 
       const getSnapshot = useCallback(() => {

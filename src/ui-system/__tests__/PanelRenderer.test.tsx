@@ -26,12 +26,21 @@ const mockSDK: IComponentSDK = {
   },
   workflow: { runWorkflow: () => Promise.resolve({} as never) },
   context: { instanceProps: {}, role: 'GM', layoutMode: 'play' },
+  data: {
+    useEntity: () => undefined,
+    useComponent: () => undefined,
+    useQuery: () => [],
+  },
   awareness: {
     subscribe: () => () => {},
     broadcast: () => {},
     clear: () => {},
+    usePeers: () => new Map(),
   },
-  log: { subscribe: () => () => {} },
+  log: {
+    subscribe: () => () => {},
+    useEntries: () => ({ entries: [], newIds: new Set<string>() }),
+  },
   ui: { openPanel: () => '', closePanel: () => {} },
 }
 
