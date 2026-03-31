@@ -120,15 +120,15 @@ describe('Archive gmOnly filtering', () => {
   })
 })
 
-describe('Archive load when reusable entity deleted', () => {
-  it('load skips tokens whose reusable entity was deleted', async () => {
+describe('Archive load when persistent entity deleted', () => {
+  it('load skips tokens whose persistent entity was deleted', async () => {
     // Ensure active scene
     await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: sceneId })
 
     // Create a reusable entity + place as token
     const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Fragile Dragon',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
       color: '#ef4444',
     })
     const reusableEntityId = (entity as { id: string }).id

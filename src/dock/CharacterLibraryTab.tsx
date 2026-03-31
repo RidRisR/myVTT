@@ -26,10 +26,10 @@ export function CharacterLibraryTab() {
   const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set())
   const deleteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
-  // Filter: reusable or persistent, no owner seat (not PCs), not pending delete
+  // Filter: persistent only (exclude tactical and scene), no owner seat (not PCs), not pending delete
   const libraryEntities = useMemo(() => {
     const list = Object.values(entities).filter((e) => {
-      if (e.lifecycle === 'ephemeral') return false
+      if (e.lifecycle !== 'persistent') return false
       if (pendingDeletes.has(e.id)) return false
       const hasOwner = Object.entries(e.permissions.seats).some(
         ([seatId, perm]) => perm === 'owner' && seats.some((s) => s.id === seatId),
@@ -49,7 +49,7 @@ export function CharacterLibraryTab() {
       id: generateTokenId(),
       blueprintId: undefined,
       permissions: defaultNPCPermissions(),
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
       tags: [],
       components: {
         'core:identity': { name: t('character.default_name'), imageUrl: '', color: '#3b82f6' },
@@ -165,9 +165,7 @@ export function CharacterLibraryTab() {
                     <div className="flex-1 min-w-0">
                       <div className="text-xs text-text-primary truncate">{eName}</div>
                       <div className="text-[10px] text-text-muted/50">
-                        {entity.lifecycle === 'persistent'
-                          ? t('character.persistent')
-                          : t('character.reusable')}
+                        {t('character.persistent')}
                       </div>
                     </div>
                   </button>

@@ -46,17 +46,6 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
 
       // Auto-create tactical_state for this scene
       req.roomDb!.prepare('INSERT INTO tactical_state (scene_id) VALUES (?)').run(id)
-
-      // Auto-link persistent entities
-      const persistentEntities = req
-        .roomDb!.prepare("SELECT id FROM entities WHERE lifecycle = 'persistent'")
-        .all() as { id: string }[]
-      const linkStmt = req.roomDb!.prepare(
-        'INSERT OR IGNORE INTO scene_entities (scene_id, entity_id, visible) VALUES (?, ?, 1)',
-      )
-      for (const e of persistentEntities) {
-        linkStmt.run(id, e.id)
-      }
     })
     createScene()
 
@@ -127,19 +116,31 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
       return
     }
 
-    // Find ephemeral entities linked only to this scene
-    const ephemeralEntities = req
+    // Find scene/tactical entities linked to this scene (via scene_entities)
+    const linkedCleanupEntities = req
       .roomDb!.prepare(
         `SELECT e.id FROM entities e
          JOIN scene_entities se ON se.entity_id = e.id
-         WHERE se.scene_id = ? AND e.lifecycle = 'ephemeral'`,
+         WHERE se.scene_id = ? AND e.lifecycle IN ('scene', 'tactical')`,
       )
       .all(req.params.id) as { id: string }[]
 
+    // Find tactical-only orphans (have tactical_tokens but no scene_entities link)
+    const tacticalOrphans = req
+      .roomDb!.prepare(
+        `SELECT DISTINCT e.id FROM entities e
+         JOIN tactical_tokens t ON t.entity_id = e.id
+         WHERE t.scene_id = ? AND e.lifecycle = 'tactical'
+           AND NOT EXISTS (SELECT 1 FROM scene_entities se WHERE se.entity_id = e.id)`,
+      )
+      .all(req.params.id) as { id: string }[]
+
+    const entitiesToClean = [...linkedCleanupEntities, ...tacticalOrphans]
+
     const deleteScene = req.roomDb!.transaction(() => {
-      // Degrade token references and delete ephemeral entities
+      // Degrade token references and delete scoped entities
       // (CASCADE handles entity_components + entity_tags)
-      for (const e of ephemeralEntities) {
+      for (const e of entitiesToClean) {
         degradeTokenReferences(req.roomDb!, e.id)
         req.roomDb!.prepare('DELETE FROM entities WHERE id = ?').run(e.id)
       }
@@ -156,8 +157,8 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
     })
     deleteScene()
 
-    // Emit entity:deleted for each ephemeral entity
-    for (const e of ephemeralEntities) {
+    // Emit entity:deleted for each cleaned-up entity
+    for (const e of entitiesToClean) {
       io.to(req.roomId!).emit('entity:deleted', { id: e.id })
     }
     io.to(req.roomId!).emit('scene:deleted', { id: req.params.id as string })
@@ -175,13 +176,13 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
       return
     }
 
-    // Ephemeral entities can only be in one scene
-    if (entity.lifecycle === 'ephemeral') {
+    // Tactical and scene entities can only be in one scene
+    if (entity.lifecycle === 'tactical' || entity.lifecycle === 'scene') {
       const existing = req
         .roomDb!.prepare('SELECT scene_id FROM scene_entities WHERE entity_id = ?')
         .get(req.params.entityId) as { scene_id: string } | undefined
       if (existing && existing.scene_id !== req.params.sceneId) {
-        res.status(400).json({ error: 'Ephemeral entity is already linked to another scene' })
+        res.status(400).json({ error: 'This entity is already linked to another scene' })
         return
       }
     }
@@ -208,20 +209,20 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
     const entity = req
       .roomDb!.prepare('SELECT lifecycle FROM entities WHERE id = ?')
       .get(req.params.entityId) as { lifecycle: string } | undefined
-    const isEphemeral = entity?.lifecycle === 'ephemeral'
+    const isScoped = entity?.lifecycle === 'tactical' || entity?.lifecycle === 'scene'
 
-    // Keep ephemeral entities alive if they still have a tactical token (demotion case)
+    // Keep scoped entities alive if they still have a tactical token (demotion case)
     const hasTacticalToken = req
       .roomDb!.prepare('SELECT 1 FROM tactical_tokens WHERE entity_id = ? LIMIT 1')
       .get(req.params.entityId)
-    const shouldDeleteEntity = isEphemeral && !hasTacticalToken
+    const shouldDeleteEntity = isScoped && !hasTacticalToken
 
     const unlinkEntity = req.roomDb!.transaction(() => {
       req
         .roomDb!.prepare('DELETE FROM scene_entities WHERE scene_id = ? AND entity_id = ?')
         .run(req.params.sceneId, req.params.entityId)
 
-      // Only delete ephemeral entities that have no tactical tokens
+      // Only delete scoped entities that have no tactical tokens
       // (CASCADE handles entity_components + entity_tags)
       if (shouldDeleteEntity) {
         degradeTokenReferences(req.roomDb!, req.params.entityId as string)
@@ -307,7 +308,7 @@ export function sceneRoutes(dataDir: string, io: TypedServer): Router {
     const spawnEntity = db.transaction(() => {
       db.prepare(
         `INSERT INTO entities (id, permissions, lifecycle, blueprint_id)
-         VALUES (?, ?, 'ephemeral', ?)`,
+         VALUES (?, ?, 'tactical', ?)`,
       ).run(entityId, JSON.stringify({ default: 'observer', seats: {} }), blueprintId)
 
       // Insert components from blueprint defaults, override name with spawn counter

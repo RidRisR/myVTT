@@ -23,7 +23,7 @@ describe('Tactical Token Cascade', () => {
 
     const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Doomed Warrior',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
     })
     const entityId = (entity as { id: string }).id
 
@@ -61,7 +61,7 @@ describe('Tactical Token Cascade', () => {
     // Create entity and token
     const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Scout',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
     })
     const entityId = (entity as { id: string }).id
 

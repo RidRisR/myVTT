@@ -101,7 +101,7 @@ export function EntityPanel() {
       id: generateTokenId(),
       blueprintId: undefined,
       permissions: defaultNPCPermissions(),
-      lifecycle: 'ephemeral',
+      lifecycle: 'tactical',
       tags: [],
       components: {
         'core:identity': { name: t('entity.default_npc_name'), imageUrl: '', color: '#3b82f6' },
@@ -130,15 +130,15 @@ export function EntityPanel() {
     void addEntityToScene(activeSceneId, entity.id)
   }
 
-  // Demote scene entity -> tactical object (only ephemeral entities with tokens)
+  // Demote scene entity -> tactical object (only tactical/scene entities with tokens)
   const handleDemote = (entity: Entity) => {
     if (!activeSceneId) return
     void removeEntityFromScene(activeSceneId, entity.id)
   }
 
-  // Check if entity can be demoted (ephemeral + has tactical token)
+  // Check if entity can be demoted (tactical/scene + has tactical token)
   const canDemote = (entity: Entity): boolean => {
-    if (entity.lifecycle !== 'ephemeral') return false
+    if (entity.lifecycle !== 'tactical' && entity.lifecycle !== 'scene') return false
     if (!tacticalInfo) return false
     return tacticalInfo.tokens.some((t) => t.entityId === entity.id)
   }

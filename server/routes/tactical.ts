@@ -170,12 +170,12 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
     }
 
     const doClear = db.transaction(() => {
-      // Delete orphan ephemeral entities (tactical-only, not in any scene)
+      // Delete orphan tactical entities (tactical-only, not in any scene)
       const orphans = db
         .prepare(
           `SELECT e.id FROM entities e
            JOIN tactical_tokens t ON t.entity_id = e.id
-           WHERE t.scene_id = ? AND e.lifecycle = 'ephemeral'
+           WHERE t.scene_id = ? AND e.lifecycle = 'tactical'
              AND NOT EXISTS (SELECT 1 FROM scene_entities se WHERE se.entity_id = e.id)`,
         )
         .all(sceneId) as { id: string }[]
@@ -268,7 +268,7 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
     res.status(201).json(token)
   })
 
-  // POST /tactical/tokens/quick — atomic create: ephemeral entity + token
+  // POST /tactical/tokens/quick — atomic create: tactical entity + token
   router.post('/api/rooms/:roomId/tactical/tokens/quick', room, (req, res) => {
     const {
       x = 0,
@@ -294,7 +294,7 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
       // Insert slim entity
       db.prepare(
         `INSERT INTO entities (id, permissions, lifecycle)
-         VALUES (?, '{"default":"observer","seats":{}}', 'ephemeral')`,
+         VALUES (?, '{"default":"observer","seats":{}}', 'tactical')`,
       ).run(entityId)
 
       // Insert components
@@ -426,7 +426,7 @@ export function tacticalRoutes(dataDir: string, io: TypedServer): Router {
       // Insert slim entity copy
       db.prepare(
         `INSERT INTO entities (id, permissions, lifecycle)
-         VALUES (?, ?, 'ephemeral')`,
+         VALUES (?, ?, 'tactical')`,
       ).run(newEntityId, entityRow.permissions)
 
       // Copy all components from source entity

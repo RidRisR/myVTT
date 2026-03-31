@@ -20,7 +20,7 @@ beforeAll(async () => {
   await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: sceneId })
 
   const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-    lifecycle: 'reusable',
+    lifecycle: 'persistent',
     components: {
       'core:identity': { name: 'Fighter', imageUrl: '', color: '#ef4444' },
     },
@@ -55,7 +55,7 @@ describe('Tactical Tokens CRUD', () => {
       token: { id: string; entityId: string; x: number; y: number }
     }
     expect(getName(result.entity)).toBe('Goblin')
-    expect(result.entity.lifecycle).toBe('ephemeral')
+    expect(result.entity.lifecycle).toBe('tactical')
     expect(result.token.entityId).toBe(result.entity.id)
     expect(result.token.x).toBe(5)
     expect(result.token.y).toBe(10)
@@ -81,7 +81,7 @@ describe('Tactical Tokens CRUD', () => {
   it('POST /tactical/tokens/from-entity places entity on map', async () => {
     // Create a second entity for from-entity test
     const { data: e2 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
       components: {
         'core:identity': { name: 'Mage', imageUrl: '', color: '#888888' },
       },

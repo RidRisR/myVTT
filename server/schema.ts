@@ -58,7 +58,7 @@ export function initRoomSchema(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS entities (
       id TEXT PRIMARY KEY,
       permissions TEXT DEFAULT '{"default":"none","seats":{}}',
-      lifecycle TEXT DEFAULT 'ephemeral' CHECK(lifecycle IN ('ephemeral','reusable','persistent')),
+      lifecycle TEXT DEFAULT 'persistent' CHECK(lifecycle IN ('persistent','tactical','scene')),
       blueprint_id TEXT REFERENCES blueprints(id) ON DELETE SET NULL
     );
 
@@ -102,7 +102,7 @@ export function initRoomSchema(db: Database.Database): void {
       height REAL NOT NULL DEFAULT 1,
       image_scale_x REAL NOT NULL DEFAULT 1,
       image_scale_y REAL NOT NULL DEFAULT 1,
-      snapshot_lifecycle TEXT NOT NULL CHECK(snapshot_lifecycle IN ('ephemeral','reusable','persistent')),
+      snapshot_lifecycle TEXT NOT NULL CHECK(snapshot_lifecycle IN ('persistent','tactical','scene')),
       original_entity_id TEXT,
       snapshot_data TEXT
     );

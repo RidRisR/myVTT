@@ -50,7 +50,7 @@ describe('Spawn from Blueprint Journey', () => {
       sceneEntity: { visible: boolean }
     }
     expect(getName(result.entity)).toBe('\u54E5\u5E03\u6797 1')
-    expect(result.entity.lifecycle).toBe('ephemeral')
+    expect(result.entity.lifecycle).toBe('tactical')
     expect(getColor(result.entity)).toBe('#22c55e')
     expect(result.sceneEntity.visible).toBe(true)
   })

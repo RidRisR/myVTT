@@ -25,7 +25,7 @@ beforeAll(async () => {
 
   const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
     name: 'Warrior',
-    lifecycle: 'reusable',
+    lifecycle: 'persistent',
     color: '#ef4444',
     width: 1,
     height: 1,
@@ -73,12 +73,12 @@ describe('Tactical Token Duplicate', () => {
     duplicatedEntityId = result.entity.id
   })
 
-  it('copied entity has lifecycle = ephemeral (even if original was reusable)', async () => {
+  it('copied entity has lifecycle = tactical (even if original was persistent)', async () => {
     const { data: entity } = await ctx.api(
       'GET',
       `/api/rooms/${ctx.roomId}/entities/${duplicatedEntityId}`,
     )
-    expect((entity as { lifecycle: string }).lifecycle).toBe('ephemeral')
+    expect((entity as { lifecycle: string }).lifecycle).toBe('tactical')
   })
 
   it('offset position: new token position = original + offset', async () => {
@@ -149,7 +149,7 @@ describe('Tactical Token Duplicate', () => {
 
     expect(tokenEvent.id).toBe(result.token.id)
     expect(entityEvent.id).toBe(result.entity.id)
-    expect(entityEvent.lifecycle).toBe('ephemeral')
+    expect(entityEvent.lifecycle).toBe('tactical')
 
     socket2.disconnect()
   })

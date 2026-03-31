@@ -124,7 +124,7 @@ describe('Scene delete cascade', () => {
     // Create non-persistent entity (so it doesn't auto-link)
     const { data: entity } = await ctx.api('POST', `/api/rooms/${roomId}/entities`, {
       components: { 'core:identity': { name: 'Goblin' } },
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
     })
     const entityId = (entity as { id: string }).id
 

@@ -225,7 +225,7 @@ describe('Archive broadcast tests', () => {
 
     const payload = await entityCreatedPromise
     expect(payload.id).toBeTruthy()
-    expect(payload.lifecycle).toBe('ephemeral')
+    expect(payload.lifecycle).toBe('tactical')
 
     socket2.disconnect()
   })

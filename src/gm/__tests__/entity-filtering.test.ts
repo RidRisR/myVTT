@@ -70,7 +70,7 @@ function makeEntity(overrides: Partial<Entity> & { id: string; name: string }): 
       'core:notes': { text: '' },
     },
     permissions: { default: 'observer' as const, seats: {} },
-    lifecycle: 'ephemeral' as const,
+    lifecycle: 'tactical' as const,
     ...rest,
   }
 }
@@ -90,9 +90,9 @@ const pc2 = makeEntity({
   lifecycle: 'persistent' as const,
   permissions: { default: 'observer', seats: { [SEAT_B]: 'owner' } },
 })
-const npc1 = makeEntity({ id: 'npc1', name: 'Goblin', lifecycle: 'ephemeral' as const })
-const npc2 = makeEntity({ id: 'npc2', name: 'Dragon', lifecycle: 'ephemeral' as const })
-const npc3 = makeEntity({ id: 'npc3', name: 'Goblin Chief', lifecycle: 'ephemeral' as const })
+const npc1 = makeEntity({ id: 'npc1', name: 'Goblin', lifecycle: 'tactical' as const })
+const npc2 = makeEntity({ id: 'npc2', name: 'Dragon', lifecycle: 'tactical' as const })
+const npc3 = makeEntity({ id: 'npc3', name: 'Goblin Chief', lifecycle: 'tactical' as const })
 
 const allEntities = [pc1, pc2, npc1, npc2, npc3]
 

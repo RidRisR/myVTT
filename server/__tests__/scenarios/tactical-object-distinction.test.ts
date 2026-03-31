@@ -36,7 +36,7 @@ describe('Tactical Object vs Scene Entity distinction', () => {
       entity: { id: string; lifecycle: string }
       token: { id: string; entityId: string }
     }
-    expect(result.entity.lifecycle).toBe('ephemeral')
+    expect(result.entity.lifecycle).toBe('tactical')
     expect(result.token.entityId).toBe(result.entity.id)
 
     // Verify entity is NOT in scene_entities
@@ -121,7 +121,7 @@ describe('Tactical Object vs Scene Entity distinction', () => {
       const entityId = 'e-demote01'
       await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
         id: entityId,
-        lifecycle: 'ephemeral',
+        lifecycle: 'tactical',
         components: {
           'core:identity': { name: 'Demotable NPC', imageUrl: '', color: '#ff0000' },
           'core:token': { width: 1, height: 1 },
@@ -163,7 +163,7 @@ describe('Tactical Object vs Scene Entity distinction', () => {
       const entityId = 'e-cleanup1'
       await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
         id: entityId,
-        lifecycle: 'ephemeral',
+        lifecycle: 'tactical',
         components: {
           'core:identity': { name: 'Cleanup NPC', imageUrl: '', color: '#00ff00' },
           'core:token': { width: 1, height: 1 },

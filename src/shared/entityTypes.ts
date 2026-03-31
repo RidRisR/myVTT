@@ -2,7 +2,7 @@
 
 export type PermissionLevel = 'none' | 'observer' | 'owner'
 
-export type EntityLifecycle = 'ephemeral' | 'reusable' | 'persistent'
+export type EntityLifecycle = 'persistent' | 'tactical' | 'scene'
 
 export interface SceneEntityEntry {
   entityId: string

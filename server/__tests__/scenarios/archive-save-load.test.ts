@@ -44,7 +44,7 @@ describe('Archive save', () => {
     // Create a reusable entity and place it
     const { data: reusableEntity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Dragon',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
       color: '#ef4444',
     })
     const reusableEntityId = (reusableEntity as { id: string }).id

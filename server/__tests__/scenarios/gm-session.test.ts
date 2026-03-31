@@ -75,7 +75,7 @@ describe('GM Session Journey', () => {
     expect(scene.atmosphere.ambientPreset).toBe('rain') // Added
   })
 
-  it('1.6 creates persistent entity — auto-links to existing scene', async () => {
+  it('1.6 creates persistent entity — NOT auto-linked to scenes', async () => {
     const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Hero',
       lifecycle: 'persistent',
@@ -89,29 +89,29 @@ describe('GM Session Journey', () => {
     heroEntityId = entity.id
     expect(entity.lifecycle).toBe('persistent')
 
-    // Verify auto-linked to existing scene
+    // Persistent entities are NOT auto-linked (lifecycle redesign)
     const { data: sceneEntities } = await ctx.api(
       'GET',
       `/api/rooms/${ctx.roomId}/scenes/${sceneId}/entities`,
     )
     const ids = (sceneEntities as { entityId: string; visible: boolean }[]).map((r) => r.entityId)
-    expect(ids).toContain(heroEntityId)
+    expect(ids).not.toContain(heroEntityId)
   })
 
-  it('1.7 creates second scene — persistent entity auto-links', async () => {
+  it('1.7 creates second scene — persistent entity NOT auto-linked', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
       name: 'Dungeon',
       atmosphere: {},
     })
     dungeonId = (data as { id: string }).id
 
-    // Verify persistent entity auto-linked to new scene
+    // Persistent entities are NOT auto-linked to new scenes
     const { data: sceneEntities } = await ctx.api(
       'GET',
       `/api/rooms/${ctx.roomId}/scenes/${dungeonId}/entities`,
     )
     const ids = (sceneEntities as { entityId: string; visible: boolean }[]).map((r) => r.entityId)
-    expect(ids).toContain(heroEntityId)
+    expect(ids).not.toContain(heroEntityId)
   })
 
   it('1.8 deletes scene without affecting active scene', async () => {
