@@ -82,7 +82,7 @@ describe('Tactical Token Cascade', () => {
     const { status: afterStatus } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
     expect(afterStatus).toBe(404)
 
-    // Entity should still exist (reusable, not ephemeral-in-scene)
+    // Entity should still exist (persistent, not tactical-in-scene)
     const { status: entityStatus } = await ctx.api(
       'GET',
       `/api/rooms/${ctx.roomId}/entities/${entityId}`,

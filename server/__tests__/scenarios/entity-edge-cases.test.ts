@@ -38,7 +38,7 @@ describe('Entity Edge Cases', () => {
     expect(status).toBeGreaterThanOrEqual(400)
   })
 
-  it('ephemeral re-link to same scene is idempotent', async () => {
+  it('tactical re-link to same scene is idempotent', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Goblin',
       lifecycle: 'tactical',

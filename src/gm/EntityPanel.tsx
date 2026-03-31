@@ -205,7 +205,7 @@ export function EntityPanel() {
                       <EyeOff size={12} strokeWidth={1.5} />
                     )}
                   </button>
-                  {/* Demote button for ephemeral scene entities with tokens */}
+                  {/* Demote button for scoped (tactical/scene) entities with tokens */}
                   {canDemote(entity) && (
                     <button
                       onClick={(e) => {

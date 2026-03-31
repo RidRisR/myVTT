@@ -23,10 +23,10 @@ afterAll(async () => {
   await ctx.cleanup()
 })
 
-describe('POST /tactical/tokens/quick — atomic ephemeral entity + token', () => {
+describe('POST /tactical/tokens/quick — atomic tactical entity + token', () => {
   let createdEntityId: string
 
-  it('creates ephemeral entity + token atomically (status 201)', async () => {
+  it('creates tactical entity + token atomically (status 201)', async () => {
     const { status, data } = await ctx.api(
       'POST',
       `/api/rooms/${ctx.roomId}/tactical/tokens/quick`,

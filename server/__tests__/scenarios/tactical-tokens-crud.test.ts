@@ -167,7 +167,7 @@ describe('Tactical Tokens CRUD', () => {
     expect(status).toBe(409)
   })
 
-  it('deleting a token does NOT auto-delete the ephemeral entity', async () => {
+  it('deleting a token does NOT auto-delete the tactical entity', async () => {
     // quick-create gives us an entity + token
     const { data: created } = await ctx.api(
       'POST',

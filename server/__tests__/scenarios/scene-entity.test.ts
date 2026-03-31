@@ -28,7 +28,7 @@ describe('Scene-Entity Relationships Journey', () => {
     sceneBId = (b as { id: string }).id
   })
 
-  it('4.2 creates ephemeral entity', async () => {
+  it('4.2 creates tactical entity', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Goblin',
       lifecycle: 'tactical',
@@ -46,7 +46,7 @@ describe('Scene-Entity Relationships Journey', () => {
     expect(ids).toContain(goblinId)
   })
 
-  it('4.4 goblin is NOT in scene B (ephemeral)', async () => {
+  it('4.4 goblin is NOT in scene B (tactical = single-scene)', async () => {
     const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/scenes/${sceneBId}/entities`)
     const ids = (data as { entityId: string; visible: boolean }[]).map((r) => r.entityId)
     expect(ids).not.toContain(goblinId)
@@ -111,19 +111,19 @@ describe('Scene-Entity Relationships Journey', () => {
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneCId}/entities/${heroId}`)
   })
 
-  it('4.7 unlinks goblin from scene A — ephemeral entity is deleted', async () => {
+  it('4.7 unlinks goblin from scene A — tactical entity is deleted', async () => {
     await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities/${goblinId}`)
     const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities`)
     const ids = (data as { entityId: string; visible: boolean }[]).map((r) => r.entityId)
     expect(ids).not.toContain(goblinId)
 
-    // Ephemeral entity should be deleted from global store
+    // Tactical entity should be deleted from global store
     const { status } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/entities/${goblinId}`)
     expect(status).toBe(404)
   })
 
   it('4.8 deleting entity removes all scene links', async () => {
-    // Create a new reusable entity for this test
+    // Create a new persistent entity for this test
     const { data: newEntity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Orc',
       lifecycle: 'persistent',
