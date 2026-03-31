@@ -6,7 +6,6 @@ import { UIRegistry } from '../registry'
 import { useSessionStore } from '../../stores/sessionStore'
 import { WorkflowEngine } from '../../workflow/engine'
 import { createWorkflowContext } from '../../workflow/context'
-import { createEventBus } from '../../events/eventBus'
 import type { InternalState } from '../../workflow/types'
 import type { InputHandlerProps } from '../inputHandlerTypes'
 
@@ -61,7 +60,6 @@ describe('E2E: workflow → InputHandler → resolve → workflow continues', ()
     }),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
-    eventBus: createEventBus(),
     engine: eng,
     getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: '', name: '', color: '' } }),
     getSeatId: vi.fn().mockReturnValue(''),
