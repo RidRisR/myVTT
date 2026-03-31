@@ -235,6 +235,9 @@ function RoomSession({ roomId }: { roomId: string }) {
         layoutActions: null,
         logSubscribe: null,
         onDrag: handleLayoutDrag,
+        getEntities: () => useWorldStore.getState().entities,
+        getLogEntries: () => useWorldStore.getState().logEntries,
+        storeSubscribe: useWorldStore.subscribe,
       }),
     [isGM, layoutMode, entities, handleLayoutDrag],
   )

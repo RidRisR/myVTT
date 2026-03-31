@@ -1,6 +1,9 @@
 // src/ui-system/types.ts
 import type React from 'react'
 import type { IWorkflowRunner, IDataReader } from '../workflow/types'
+import type { Entity } from '../shared/entityTypes'
+import type { ComponentTypeMap } from '../shared/componentTypes'
+import type { GameLogEntry } from '../shared/logTypes'
 
 export interface DnDPayload {
   /** Identifies the type of dragged item; drop zones use this for filtering */
@@ -91,8 +94,37 @@ export interface IInteractionSDK {
   dnd: IDnDSDK
 }
 
+// ── Reactive data hooks (React component use only, not for workflows) ──
+
+/** Reactive data subscription hooks — only available on IComponentSDK, not WorkflowContext */
+export interface IReactiveDataSDK {
+  /** Subscribe to a single entity. Re-renders on change. */
+  useEntity(entityId: string): Entity | undefined
+  /** Subscribe to a component on an entity. Re-renders on change. */
+  useComponent<K extends keyof ComponentTypeMap>(
+    entityId: string,
+    key: K,
+  ): ComponentTypeMap[K] | undefined
+  /** Subscribe to entities matching a query. Re-renders when result set changes. */
+  useQuery(spec: { has?: string[] }): Entity[]
+}
+
+/** Log hook result — entries + set of IDs that arrived after component mount */
+export interface LogEntriesResult {
+  entries: GameLogEntry[]
+  newIds: ReadonlySet<string>
+}
+
+/** Awareness hook: reactive peer state map */
+export type UsePeersFn = <T>(channel: {
+  readonly key: string
+  readonly __phantom?: T
+}) => ReadonlyMap<string, T>
+
 export interface IComponentSDK {
   read: IDataReader
+  /** Reactive data hooks for React components */
+  data: IReactiveDataSDK
   workflow: IWorkflowRunner
   context: ComponentContext
   /** play 模式下注入；edit 模式下系统浮层接管所有交互，不注入 */
@@ -105,10 +137,14 @@ export interface IComponentSDK {
     ): () => void
     broadcast<T>(channel: { readonly key: string; readonly __phantom?: T }, data: T): void
     clear(channel: { readonly key: string }): void
+    /** React hook: subscribe to all peers' state on a channel */
+    usePeers: UsePeersFn
   }
   /** Log stream subscription for reacting to game log entries */
   log: {
     subscribe(pattern: string, handler: (entry: unknown) => void): () => void
+    /** React hook: get matching log entries with newness tracking */
+    useEntries(pattern: string, options?: { limit?: number }): LogEntriesResult
   }
   /** Panel management API */
   ui: {
