@@ -17,6 +17,7 @@ export type {
   LayerDef,
   IUIRegistrationSDK,
 } from './registrationTypes'
+export type { InputResult, InputHandlerProps, InputHandlerDef, RequestInputOptions } from './inputHandlerTypes'
 
 /** Session snapshot passed to instanceProps factory functions */
 export interface SessionSnapshot {
@@ -106,7 +107,11 @@ export interface IComponentSDK {
   }
   /** Panel management API */
   ui: {
-    openPanel(componentId: string, instanceProps?: Record<string, unknown>): string
+    openPanel(
+      componentId: string,
+      instanceProps?: Record<string, unknown>,
+      position?: { x: number; y: number },
+    ): string
     closePanel(instanceKey: string): void
   }
 }

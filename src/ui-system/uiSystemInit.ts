@@ -27,7 +27,11 @@ interface SDKFactoryArgs {
   workflow: IWorkflowRunner
   awarenessManager: AwarenessManager | null
   layoutActions: {
-    openPanel(componentId: string, instanceProps?: Record<string, unknown>): string
+    openPanel(
+      componentId: string,
+      instanceProps?: Record<string, unknown>,
+      position?: { x: number; y: number },
+    ): string
     closePanel(instanceKey: string): void
   } | null
   logSubscribe: ((pattern: string, handler: (entry: unknown) => void) => () => void) | null

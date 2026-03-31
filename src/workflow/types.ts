@@ -4,6 +4,7 @@ import type { IUIRegistrationSDK } from '../ui-system/registrationTypes'
 import type { GameLogEntry, LogPayloadMap, TriggerDefinition, Visibility } from '../shared/logTypes'
 import type { DiceSpec } from '../shared/diceUtils'
 import type { ComponentTypeMap } from '../shared/componentTypes'
+import type { InputResult, RequestInputOptions } from '../ui-system/inputHandlerTypes'
 
 // ── WorkflowHandle — phantom type for compile-time safety ─────────────────
 
@@ -155,7 +156,10 @@ export interface WorkflowContext<TVars = Record<string, unknown>> {
     },
   ): Promise<GameLogEntry>
   /** Pause workflow until UI resolves/cancels the interaction */
-  requestInput(interactionId: string): Promise<unknown>
+  requestInput<TResult = unknown>(
+    inputType: string,
+    options?: RequestInputOptions,
+  ): Promise<InputResult<TResult>>
 
   // ── Effects (side effects, fire-and-forget) ───────────────────────────
   /** Emit a log entry (fire-and-forget via Socket.io) */

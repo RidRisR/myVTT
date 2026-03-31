@@ -45,6 +45,7 @@ import { initWorkflowSystem } from './workflow/useWorkflowSDK'
 import { useStore } from 'zustand'
 import { PanelRenderer } from './ui-system/PanelRenderer'
 import { LayerRenderer } from './ui-system/LayerRenderer'
+import { InputHandlerHost } from './ui-system/InputHandlerHost'
 import { getLayoutStore } from './stores/layoutStore'
 import { getUIRegistry, createProductionSDK } from './ui-system/uiSystemInit'
 import { useLayoutSync } from './ui-system/useLayoutSync'
@@ -652,6 +653,9 @@ function RoomSession({ roomId }: { roomId: string }) {
           onDrag={layoutMode === 'edit' ? handleLayoutDrag : undefined}
         />
       </div>
+
+      {/* UI System: input handler overlays (modals, pickers) triggered by requestInput */}
+      <InputHandlerHost registry={uiRegistry} />
 
       {/* Plugin panel portal — renders active plugin panels at high z-index */}
       <PluginPanelContainer />

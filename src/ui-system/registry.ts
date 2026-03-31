@@ -1,11 +1,13 @@
 // src/ui-system/registry.ts
 import type { ComponentDef, LayerDef, ZLayer, PanelType } from './types'
+import type { InputHandlerDef } from './inputHandlerTypes'
 
 const Z_ORDER: ZLayer[] = ['below-canvas', 'above-canvas', 'above-ui']
 
 export class UIRegistry {
   private components = new Map<string, ComponentDef>()
   private layers: LayerDef[] = []
+  private inputHandlers = new Map<string, InputHandlerDef>()
 
   registerComponent(def: ComponentDef): void {
     if (this.components.has(def.id)) {
@@ -36,5 +38,16 @@ export class UIRegistry {
    */
   listComponentsByType(type: PanelType): ComponentDef[] {
     return [...this.components.values()].filter((c) => c.type === type)
+  }
+
+  registerInputHandler(inputType: string, def: InputHandlerDef): void {
+    if (this.inputHandlers.has(inputType)) {
+      throw new Error(`UIRegistry: input handler type "${inputType}" already registered`)
+    }
+    this.inputHandlers.set(inputType, def)
+  }
+
+  getInputHandler(inputType: string): InputHandlerDef | undefined {
+    return this.inputHandlers.get(inputType)
   }
 }
