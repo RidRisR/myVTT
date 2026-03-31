@@ -46,7 +46,7 @@ describe('requestInput — InputResult API', () => {
   })
 
   it('stores inputType and context in PendingInteraction', () => {
-    requestInput('test:modifier', { context: { attr: 'str' } })
+    void requestInput('test:modifier', { context: { attr: 'str' } })
 
     const [, pending] = [...useSessionStore.getState().pendingInteractions.entries()][0]!
     expect(pending.inputType).toBe('test:modifier')

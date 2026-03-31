@@ -11,13 +11,21 @@ import type { InternalState } from '../../workflow/types'
 import type { InputHandlerProps } from '../inputHandlerTypes'
 
 // Simulates a dice modifier panel
-function DiceModifierPanel({ context, resolve, cancel }: InputHandlerProps<{ attribute: string }, { bonus: number }>) {
+function DiceModifierPanel({
+  context,
+  resolve,
+  cancel,
+}: InputHandlerProps<{ attribute: string }, { bonus: number }>) {
   const attr = (context as { attribute: string }).attribute
   return (
     <div data-testid="dice-modifier">
       <span>Modifier for {attr}</span>
-      <button data-testid="add-2" onClick={() => resolve({ bonus: 2 })}>+2</button>
-      <button data-testid="cancel" onClick={() => cancel()}>Skip</button>
+      <button data-testid="add-2" onClick={() => { resolve({ bonus: 2 }); }}>
+        +2
+      </button>
+      <button data-testid="cancel" onClick={() => { cancel(); }}>
+        Skip
+      </button>
     </div>
   )
 }
@@ -29,10 +37,17 @@ describe('E2E: workflow → InputHandler → resolve → workflow continues', ()
   const makeDeps = (eng: WorkflowEngine) => ({
     emitEntry: vi.fn(),
     serverRoll: vi.fn().mockResolvedValue({
-      seq: 0, id: '', type: '',
+      seq: 0,
+      id: '',
+      type: '',
       origin: { seat: { id: '', name: '', color: '' } },
-      executor: '', chainDepth: 0, triggerable: false,
-      visibility: {}, baseSeq: 0, payload: {}, timestamp: 0,
+      executor: '',
+      chainDepth: 0,
+      triggerable: false,
+      visibility: {},
+      baseSeq: 0,
+      payload: {},
+      timestamp: 0,
     }),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
@@ -77,7 +92,9 @@ describe('E2E: workflow → InputHandler → resolve → workflow continues', ()
 
     await act(async () => {
       const promise = engine.runWorkflow('test:roll-with-modifier', ctx, internal)
-      promise.then((r) => { workflowResult = r })
+      void promise.then((r) => {
+        workflowResult = r
+      })
 
       // Wait for requestInput to register
       await Promise.resolve()
@@ -133,7 +150,9 @@ describe('E2E: workflow → InputHandler → resolve → workflow continues', ()
 
     await act(async () => {
       const promise = engine.runWorkflow('test:roll-cancel', ctx, internal)
-      promise.then((r) => { workflowResult = r })
+      void promise.then((r) => {
+        workflowResult = r
+      })
       await Promise.resolve()
       await Promise.resolve()
     })

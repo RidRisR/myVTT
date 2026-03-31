@@ -5,8 +5,8 @@ describe('inputHandlerTypes compile-time checks', () => {
   it('InputResult discriminates on ok field', () => {
     const success: InputResult<number> = { ok: true, value: 42 }
     const failure: InputResult<number> = { ok: false, reason: 'cancelled' }
-    expectTypeOf(success).toMatchTypeOf<InputResult<number>>()
-    expectTypeOf(failure).toMatchTypeOf<InputResult<number>>()
+    expectTypeOf(success).toExtend<InputResult<number>>()
+    expectTypeOf(failure).toExtend<InputResult<number>>()
   })
 
   it('InputHandlerProps has context, resolve, cancel', () => {

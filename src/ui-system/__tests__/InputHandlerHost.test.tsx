@@ -11,8 +11,8 @@ function TestHandler({ context, resolve, cancel }: InputHandlerProps<{ label: st
   return (
     <div data-testid="test-handler">
       <span>{(context as { label: string }).label}</span>
-      <button onClick={() => resolve('picked')}>Pick</button>
-      <button onClick={() => cancel()}>Cancel</button>
+      <button onClick={() => { resolve('picked'); }}>Pick</button>
+      <button onClick={() => { cancel(); }}>Cancel</button>
     </div>
   )
 }
@@ -30,26 +30,26 @@ describe('InputHandlerHost', () => {
     expect(container.innerHTML).toBe('')
   })
 
-  it('renders registered handler when interaction is pending', async () => {
+  it('renders registered handler when interaction is pending', () => {
     registry.registerInputHandler('test:choice', { component: TestHandler as never })
 
     render(<InputHandlerHost registry={registry} />)
 
     act(() => {
-      requestInput('test:choice', { context: { label: 'Choose one' } })
+      void requestInput('test:choice', { context: { label: 'Choose one' } })
     })
 
     expect(screen.getByTestId('test-handler')).toBeDefined()
     expect(screen.getByText('Choose one')).toBeDefined()
   })
 
-  it('unmounts handler after resolve', async () => {
+  it('unmounts handler after resolve', () => {
     registry.registerInputHandler('test:choice', { component: TestHandler as never })
 
     render(<InputHandlerHost registry={registry} />)
 
     act(() => {
-      requestInput('test:choice', { context: { label: 'Pick' } })
+      void requestInput('test:choice', { context: { label: 'Pick' } })
     })
 
     expect(screen.getByTestId('test-handler')).toBeDefined()
@@ -61,13 +61,13 @@ describe('InputHandlerHost', () => {
     expect(screen.queryByTestId('test-handler')).toBeNull()
   })
 
-  it('unmounts handler after cancel', async () => {
+  it('unmounts handler after cancel', () => {
     registry.registerInputHandler('test:choice', { component: TestHandler as never })
 
     render(<InputHandlerHost registry={registry} />)
 
     act(() => {
-      requestInput('test:choice', { context: { label: 'Pick' } })
+      void requestInput('test:choice', { context: { label: 'Pick' } })
     })
 
     act(() => {
@@ -81,7 +81,7 @@ describe('InputHandlerHost', () => {
     render(<InputHandlerHost registry={registry} />)
 
     act(() => {
-      requestInput('unregistered:type')
+      void requestInput('unregistered:type')
     })
 
     expect(screen.queryByTestId('test-handler')).toBeNull()
