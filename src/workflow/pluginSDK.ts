@@ -63,12 +63,16 @@ export class PluginSDK implements IPluginSDK {
               registerRendererFn(args[0] as { surface: string; type: string }, args[1])
             }
           },
+          registerInputHandler: (inputType, def) => {
+            uiRegistry.registerInputHandler(inputType, def)
+          },
         }
       : {
           // no-op: existing tests do not pass a registry
           registerComponent: () => {},
           registerLayer: () => {},
           registerRenderer: () => {},
+          registerInputHandler: () => {},
         }
   }
 

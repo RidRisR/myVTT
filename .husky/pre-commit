@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# ── Ensure Node/npm are on PATH (nvm, fnm, Homebrew, Volta) ──
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
 # ── Branch guard (runs everywhere — main worktree, worktrees, CI) ──
 # Blocks ALL local commits on main/master. GitHub PR merges happen server-side
 # and never trigger local hooks, so this only blocks direct local commits/merges.

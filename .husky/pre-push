@@ -1,4 +1,9 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
+
+# ── Ensure Node/npm are on PATH (nvm, fnm, Homebrew, Volta) ──
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
 npx prettier --check .
 npx tsc -b
 npx tsc -p server/tsconfig.json --noEmit

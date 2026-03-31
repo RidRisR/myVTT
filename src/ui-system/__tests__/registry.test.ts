@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { UIRegistry } from '../registry'
 import type { ComponentDef, LayerDef } from '../types'
+import type { InputHandlerDef } from '../inputHandlerTypes'
 
 const mockComponent = () => null
 const mockLayer = () => null
@@ -89,5 +90,33 @@ describe('UIRegistry', () => {
 
   it('listComponents returns empty array when none registered', () => {
     expect(registry.listComponents()).toEqual([])
+  })
+})
+
+const mockHandlerComponent = (() => null) as never
+
+describe('UIRegistry — input handlers', () => {
+  let registry: UIRegistry
+
+  beforeEach(() => {
+    registry = new UIRegistry()
+  })
+
+  it('stores and retrieves a registered input handler', () => {
+    const def: InputHandlerDef = { component: mockHandlerComponent }
+    registry.registerInputHandler('test:modifier', def)
+    expect(registry.getInputHandler('test:modifier')).toBe(def)
+  })
+
+  it('returns undefined for unknown input handler type', () => {
+    expect(registry.getInputHandler('unknown')).toBeUndefined()
+  })
+
+  it('throws on duplicate input handler type', () => {
+    const def: InputHandlerDef = { component: mockHandlerComponent }
+    registry.registerInputHandler('test:modifier', def)
+    expect(() => {
+      registry.registerInputHandler('test:modifier', def)
+    }).toThrow('test:modifier')
   })
 })

@@ -189,4 +189,69 @@ describe('production wiring integration', () => {
     store.getState().removeEntry('new#1')
     expect(store.getState().narrative).not.toHaveProperty('new#1')
   })
+
+  it('getUIRegistry().registerInputHandler stores handler retrievable by getInputHandler', () => {
+    const registry = getUIRegistry()
+    const mockComp = (() => null) as never
+    registry.registerInputHandler('test:input', { component: mockComp })
+    expect(registry.getInputHandler('test:input')).toEqual({ component: mockComp })
+  })
+
+  it('InputHandlerHost is importable and constructable', async () => {
+    const { InputHandlerHost } = await import('../InputHandlerHost')
+    expect(InputHandlerHost).toBeTypeOf('function')
+  })
+
+  it('openPanel passes initial position to layout addEntry', () => {
+    const store = createLayoutStore()
+    store.getState().loadLayout({ narrative: {}, tactical: {} })
+
+    const registry = getUIRegistry()
+    registry.registerComponent({
+      id: 'test.positioned',
+      component: (() => null) as never,
+      type: 'panel',
+      defaultSize: { width: 200, height: 150 },
+    })
+
+    const sdk = createProductionSDK({
+      instanceKey: 'test.positioned#1',
+      instanceProps: {},
+      role: 'GM',
+      layoutMode: 'play',
+      read: {
+        entity: () => undefined,
+        component: () => undefined,
+        query: () => [],
+        formulaTokens: () => ({}),
+      },
+      workflow: { runWorkflow: vi.fn() } as never,
+      awarenessManager: null,
+      layoutActions: {
+        openPanel: (componentId, instanceProps, position) => {
+          const def = registry.getComponent(componentId)
+          const key = `${componentId}#${Date.now()}`
+          store.getState().addEntry(key, {
+            x: position?.x ?? 100,
+            y: position?.y ?? 100,
+            width: def?.defaultSize.width ?? 200,
+            height: def?.defaultSize.height ?? 150,
+            zOrder: 0,
+            instanceProps: instanceProps,
+          })
+          return key
+        },
+        closePanel: () => {},
+      },
+      logSubscribe: null,
+    })
+
+    sdk.ui.openPanel('test.positioned', {}, { x: 300, y: 400 })
+
+    const layout = store.getState().activeLayout
+    const keys = Object.keys(layout)
+    expect(keys).toHaveLength(1)
+    expect(layout[keys[0]!]!.x).toBe(300)
+    expect(layout[keys[0]!]!.y).toBe(400)
+  })
 })

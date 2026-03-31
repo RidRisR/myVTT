@@ -1,6 +1,7 @@
 // src/ui-system/registrationTypes.ts
 // No imports from workflow/ — this file is imported by workflow/types.ts
 import type React from 'react'
+import type { InputHandlerDef } from './inputHandlerTypes'
 
 export type ZLayer = 'below-canvas' | 'above-canvas' | 'above-ui'
 
@@ -48,4 +49,5 @@ export interface IUIRegistrationSDK {
     point: { readonly surface: string; readonly type: string; readonly __phantom?: T },
     value: T,
   ): void
+  registerInputHandler(inputType: string, def: InputHandlerDef): void
 }

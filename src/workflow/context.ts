@@ -153,7 +153,8 @@ export function createWorkflowContext(
       }
       return deps.serverRoll(request)
     },
-    requestInput: (interactionId: string) => sessionRequestInput(interactionId),
+    requestInput: ((inputType: string, options?: { context?: unknown; timeout?: number }) =>
+      sessionRequestInput(inputType, options)) as WorkflowContext['requestInput'],
 
     // ── Effects (side effects) ────────────────────────────────────────────
     emitEntry: ((partial: {
