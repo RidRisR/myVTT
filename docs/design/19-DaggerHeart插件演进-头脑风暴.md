@@ -107,13 +107,13 @@ lifecycle 设为 `persistent`，无 owner（房间级全局）。
 
 目前 RulePlugin 承担的能力需要逐步迁移到 VTTPlugin：
 
-| RulePlugin 能力 | 迁移目标 | 状态 |
-|----------------|---------|------|
-| `adapters`（getMainResource, getFormulaTokens 等） | VTTPlugin 通过组件直接读取 | 未开始 |
-| `characterUI.EntityCard` | `sdk.ui.registerComponent` | 未开始 |
-| `diceSystem.evaluateRoll / getJudgmentDisplay` | 工作流步骤 + RendererRegistry | 部分完成 |
-| `surfaces.panels / teamPanel` | `sdk.ui.registerComponent` | 未开始 |
-| `dataTemplates` | Blueprint 系统 | 未开始 |
+| RulePlugin 能力                                    | 迁移目标                      | 状态     |
+| -------------------------------------------------- | ----------------------------- | -------- |
+| `adapters`（getMainResource, getFormulaTokens 等） | VTTPlugin 通过组件直接读取    | 未开始   |
+| `characterUI.EntityCard`                           | `sdk.ui.registerComponent`    | 未开始   |
+| `diceSystem.evaluateRoll / getJudgmentDisplay`     | 工作流步骤 + RendererRegistry | 部分完成 |
+| `surfaces.panels / teamPanel`                      | `sdk.ui.registerComponent`    | 未开始   |
+| `dataTemplates`                                    | Blueprint 系统                | 未开始   |
 
 ### 计划
 

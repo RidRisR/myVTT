@@ -20,10 +20,20 @@ function DiceModifierPanel({
   return (
     <div data-testid="dice-modifier">
       <span>Modifier for {attr}</span>
-      <button data-testid="add-2" onClick={() => { resolve({ bonus: 2 }); }}>
+      <button
+        data-testid="add-2"
+        onClick={() => {
+          resolve({ bonus: 2 })
+        }}
+      >
         +2
       </button>
-      <button data-testid="cancel" onClick={() => { cancel(); }}>
+      <button
+        data-testid="cancel"
+        onClick={() => {
+          cancel()
+        }}
+      >
         Skip
       </button>
     </div>

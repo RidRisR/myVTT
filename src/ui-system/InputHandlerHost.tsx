@@ -23,8 +23,12 @@ function InputHandlerInstance({
   return (
     <HandlerComponent
       context={pending.context}
-      resolve={(value: unknown) => pending.complete(value)}
-      cancel={() => pending.cancel()}
+      resolve={(value: unknown) => {
+        pending.complete(value)
+      }}
+      cancel={() => {
+        pending.cancel()
+      }}
     />
   )
 }
@@ -37,11 +41,7 @@ export function InputHandlerHost({ registry }: Props) {
   return createPortal(
     <>
       {[...pendingInteractions.values()].map((pending) => (
-        <InputHandlerInstance
-          key={pending.interactionId}
-          pending={pending}
-          registry={registry}
-        />
+        <InputHandlerInstance key={pending.interactionId} pending={pending} registry={registry} />
       ))}
     </>,
     document.body,

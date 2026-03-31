@@ -15,6 +15,7 @@
 ### Task 1: InputResult type + InputHandlerDef interface
 
 **Files:**
+
 - Create: `src/ui-system/inputHandlerTypes.ts`
 - Test: `src/ui-system/__tests__/inputHandlerTypes.test.ts`
 
@@ -25,9 +26,7 @@
 import type React from 'react'
 
 /** Discriminated result returned by requestInput */
-export type InputResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; reason: 'cancelled' | 'timeout' }
+export type InputResult<T> = { ok: true; value: T } | { ok: false; reason: 'cancelled' | 'timeout' }
 
 /** Props injected into input handler components */
 export interface InputHandlerProps<TContext = unknown, TResult = unknown> {
@@ -86,6 +85,7 @@ feat(ui-system): add InputResult, InputHandlerProps, InputHandlerDef types
 ### Task 2: Register and retrieve input handlers in UIRegistry
 
 **Files:**
+
 - Modify: `src/ui-system/registry.ts`
 - Modify: `src/ui-system/__tests__/registry.test.ts`
 
@@ -171,6 +171,7 @@ feat(ui-system): add registerInputHandler / getInputHandler to UIRegistry
 ### Task 3: Expose registerInputHandler on IUIRegistrationSDK
 
 **Files:**
+
 - Modify: `src/ui-system/registrationTypes.ts`
 - Modify: `src/ui-system/types.ts` (re-export)
 
@@ -212,6 +213,7 @@ feat(ui-system): expose registerInputHandler on IUIRegistrationSDK
 ### Task 4: Wire registerInputHandler into plugin SDK creation
 
 **Files:**
+
 - Modify: `src/ui-system/uiSystemInit.ts` (add method delegation)
 - Modify: `src/ui-system/__tests__/production-wiring.test.ts`
 
@@ -222,12 +224,12 @@ The `IUIRegistrationSDK` is wired in `plugins/daggerheart-core/index.ts` via `sd
 Append to `src/ui-system/__tests__/production-wiring.test.ts`:
 
 ```typescript
-  it('getUIRegistry().registerInputHandler stores handler retrievable by getInputHandler', () => {
-    const registry = getUIRegistry()
-    const mockComp = (() => null) as never
-    registry.registerInputHandler('test:input', { component: mockComp })
-    expect(registry.getInputHandler('test:input')).toEqual({ component: mockComp })
-  })
+it('getUIRegistry().registerInputHandler stores handler retrievable by getInputHandler', () => {
+  const registry = getUIRegistry()
+  const mockComp = (() => null) as never
+  registry.registerInputHandler('test:input', { component: mockComp })
+  expect(registry.getInputHandler('test:input')).toEqual({ component: mockComp })
+})
 ```
 
 - [ ] **Step 2: Run test to verify it passes**
@@ -254,6 +256,7 @@ feat(ui-system): wire registerInputHandler into production plugin SDK
 ### Task 5: Refactor sessionStore requestInput — InputResult + inputType tracking
 
 **Files:**
+
 - Modify: `src/stores/sessionStore.ts`
 - Modify: `src/stores/__tests__/requestInput.test.ts`
 
@@ -576,6 +579,7 @@ refactor(stores): requestInput returns InputResult<T> with inputType tracking
 ### Task 6: Update WorkflowContext to use new requestInput API
 
 **Files:**
+
 - Modify: `src/workflow/types.ts:159` (signature change)
 - Modify: `src/workflow/context.ts:158` (implementation)
 - Modify: `src/stores/__tests__/requestInput.test.ts` (workflow integration test)
@@ -594,10 +598,17 @@ describe('ctx.requestInput — workflow integration with InputResult', () => {
   const makeDeps = () => ({
     emitEntry: vi.fn(),
     serverRoll: vi.fn().mockResolvedValue({
-      seq: 0, id: '', type: '',
+      seq: 0,
+      id: '',
+      type: '',
       origin: { seat: { id: '', name: '', color: '' } },
-      executor: '', chainDepth: 0, triggerable: false,
-      visibility: {}, baseSeq: 0, payload: {}, timestamp: 0,
+      executor: '',
+      chainDepth: 0,
+      triggerable: false,
+      visibility: {},
+      baseSeq: 0,
+      payload: {},
+      timestamp: 0,
     }),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
@@ -741,6 +752,7 @@ refactor(workflow): ctx.requestInput returns InputResult<T> with typed context
 ### Task 7: InputHandlerHost — React Portal that renders active input handlers
 
 **Files:**
+
 - Create: `src/ui-system/InputHandlerHost.tsx`
 - Create: `src/ui-system/__tests__/InputHandlerHost.test.tsx`
 
@@ -925,6 +937,7 @@ feat(ui-system): add InputHandlerHost — Portal-based renderer for input handle
 ### Task 8: Mount InputHandlerHost in the app
 
 **Files:**
+
 - Modify: The root component or layout component that renders `PanelRenderer` (find via grep for `<PanelRenderer`)
 - Modify: `src/ui-system/__tests__/production-wiring.test.ts`
 
@@ -940,7 +953,7 @@ Import and render `<InputHandlerHost registry={registry} />` as a sibling of `Pa
 import { InputHandlerHost } from './ui-system/InputHandlerHost'
 
 // In the render tree, after PanelRenderer:
-<InputHandlerHost registry={registry} />
+;<InputHandlerHost registry={registry} />
 ```
 
 - [ ] **Step 3: Add integration test**
@@ -948,10 +961,10 @@ import { InputHandlerHost } from './ui-system/InputHandlerHost'
 Append to `src/ui-system/__tests__/production-wiring.test.ts`:
 
 ```typescript
-  it('InputHandlerHost is importable and constructable', async () => {
-    const { InputHandlerHost } = await import('../InputHandlerHost')
-    expect(InputHandlerHost).toBeTypeOf('function')
-  })
+it('InputHandlerHost is importable and constructable', async () => {
+  const { InputHandlerHost } = await import('../InputHandlerHost')
+  expect(InputHandlerHost).toBeTypeOf('function')
+})
 ```
 
 - [ ] **Step 4: Run full test suite**
@@ -970,6 +983,7 @@ feat(ui-system): mount InputHandlerHost in app root
 ### Task 9: E2E integration test — full workflow → InputHandler → resolve cycle
 
 **Files:**
+
 - Create: `src/ui-system/__tests__/inputHandler-e2e.test.tsx`
 
 This test validates the entire chain: workflow calls `requestInput` → `InputHandlerHost` renders the handler → user action resolves → workflow continues.
@@ -1159,6 +1173,7 @@ test(ui-system): E2E test — workflow → InputHandler → resolve cycle
 ### Task 10: openPanel initial position support
 
 **Files:**
+
 - Modify: `src/ui-system/types.ts:109` (openPanel signature)
 - Modify: `src/stores/layoutStore.ts` (addEntry called by openPanel)
 - Modify: `src/ui-system/uiSystemInit.ts` (SDK factory wiring)
@@ -1169,53 +1184,58 @@ test(ui-system): E2E test — workflow → InputHandler → resolve cycle
 Append to `src/ui-system/__tests__/production-wiring.test.ts`:
 
 ```typescript
-  it('openPanel passes initial position to layout addEntry', () => {
-    const store = createLayoutStore()
-    store.getState().loadLayout({ narrative: {}, tactical: {} })
+it('openPanel passes initial position to layout addEntry', () => {
+  const store = createLayoutStore()
+  store.getState().loadLayout({ narrative: {}, tactical: {} })
 
-    const registry = getUIRegistry()
-    registry.registerComponent({
-      id: 'test.positioned',
-      component: (() => null) as never,
-      type: 'panel',
-      defaultSize: { width: 200, height: 150 },
-    })
-
-    const sdk = createProductionSDK({
-      instanceKey: 'test.positioned#1',
-      instanceProps: {},
-      role: 'GM',
-      layoutMode: 'play',
-      read: { entity: () => undefined, component: () => undefined, query: () => [], formulaTokens: () => ({}) },
-      workflow: { runWorkflow: vi.fn() } as never,
-      awarenessManager: null,
-      layoutActions: {
-        openPanel: (componentId, instanceProps, position) => {
-          const def = registry.getComponent(componentId)
-          const key = `${componentId}#${Date.now()}`
-          store.getState().addEntry(key, {
-            x: position?.x ?? 100,
-            y: position?.y ?? 100,
-            width: def?.defaultSize.width ?? 200,
-            height: def?.defaultSize.height ?? 150,
-            zOrder: 0,
-            instanceProps: instanceProps,
-          })
-          return key
-        },
-        closePanel: () => {},
-      },
-      logSubscribe: null,
-    })
-
-    sdk.ui.openPanel('test.positioned', {}, { x: 300, y: 400 })
-
-    const layout = store.getState().activeLayout
-    const keys = Object.keys(layout)
-    expect(keys).toHaveLength(1)
-    expect(layout[keys[0]!]!.x).toBe(300)
-    expect(layout[keys[0]!]!.y).toBe(400)
+  const registry = getUIRegistry()
+  registry.registerComponent({
+    id: 'test.positioned',
+    component: (() => null) as never,
+    type: 'panel',
+    defaultSize: { width: 200, height: 150 },
   })
+
+  const sdk = createProductionSDK({
+    instanceKey: 'test.positioned#1',
+    instanceProps: {},
+    role: 'GM',
+    layoutMode: 'play',
+    read: {
+      entity: () => undefined,
+      component: () => undefined,
+      query: () => [],
+      formulaTokens: () => ({}),
+    },
+    workflow: { runWorkflow: vi.fn() } as never,
+    awarenessManager: null,
+    layoutActions: {
+      openPanel: (componentId, instanceProps, position) => {
+        const def = registry.getComponent(componentId)
+        const key = `${componentId}#${Date.now()}`
+        store.getState().addEntry(key, {
+          x: position?.x ?? 100,
+          y: position?.y ?? 100,
+          width: def?.defaultSize.width ?? 200,
+          height: def?.defaultSize.height ?? 150,
+          zOrder: 0,
+          instanceProps: instanceProps,
+        })
+        return key
+      },
+      closePanel: () => {},
+    },
+    logSubscribe: null,
+  })
+
+  sdk.ui.openPanel('test.positioned', {}, { x: 300, y: 400 })
+
+  const layout = store.getState().activeLayout
+  const keys = Object.keys(layout)
+  expect(keys).toHaveLength(1)
+  expect(layout[keys[0]!]!.x).toBe(300)
+  expect(layout[keys[0]!]!.y).toBe(400)
+})
 ```
 
 - [ ] **Step 2: Run test to verify it fails**

@@ -219,7 +219,12 @@ describe('production wiring integration', () => {
       instanceProps: {},
       role: 'GM',
       layoutMode: 'play',
-      read: { entity: () => undefined, component: () => undefined, query: () => [], formulaTokens: () => ({}) },
+      read: {
+        entity: () => undefined,
+        component: () => undefined,
+        query: () => [],
+        formulaTokens: () => ({}),
+      },
       workflow: { runWorkflow: vi.fn() } as never,
       awarenessManager: null,
       layoutActions: {

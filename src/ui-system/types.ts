@@ -17,7 +17,12 @@ export type {
   LayerDef,
   IUIRegistrationSDK,
 } from './registrationTypes'
-export type { InputResult, InputHandlerProps, InputHandlerDef, RequestInputOptions } from './inputHandlerTypes'
+export type {
+  InputResult,
+  InputHandlerProps,
+  InputHandlerDef,
+  RequestInputOptions,
+} from './inputHandlerTypes'
 
 /** Session snapshot passed to instanceProps factory functions */
 export interface SessionSnapshot {

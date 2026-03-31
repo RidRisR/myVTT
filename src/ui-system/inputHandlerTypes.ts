@@ -2,9 +2,7 @@
 import type React from 'react'
 
 /** Discriminated result returned by requestInput */
-export type InputResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; reason: 'cancelled' | 'timeout' }
+export type InputResult<T> = { ok: true; value: T } | { ok: false; reason: 'cancelled' | 'timeout' }
 
 /** Props injected into input handler components */
 export interface InputHandlerProps<TContext = unknown, TResult = unknown> {
@@ -16,7 +14,7 @@ export interface InputHandlerProps<TContext = unknown, TResult = unknown> {
 /** Definition registered by plugins via sdk.ui.registerInputHandler */
 export interface InputHandlerDef {
   /** React component to render. Receives InputHandlerProps with context/resolve/cancel. */
-  component: React.ComponentType<InputHandlerProps<unknown, unknown>>
+  component: React.ComponentType<InputHandlerProps>
 }
 
 /** Options for requestInput */

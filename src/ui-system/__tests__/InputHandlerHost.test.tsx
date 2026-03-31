@@ -11,8 +11,20 @@ function TestHandler({ context, resolve, cancel }: InputHandlerProps<{ label: st
   return (
     <div data-testid="test-handler">
       <span>{(context as { label: string }).label}</span>
-      <button onClick={() => { resolve('picked'); }}>Pick</button>
-      <button onClick={() => { cancel(); }}>Cancel</button>
+      <button
+        onClick={() => {
+          resolve('picked')
+        }}
+      >
+        Pick
+      </button>
+      <button
+        onClick={() => {
+          cancel()
+        }}
+      >
+        Cancel
+      </button>
     </div>
   )
 }
