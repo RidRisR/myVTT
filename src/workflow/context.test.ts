@@ -16,27 +16,15 @@ function makeInternal(): InternalState {
   }
 }
 
-function makeRollEntry(overrides: Record<string, unknown> = {}) {
-  return {
-    seq: 1,
-    id: 'roll-1',
-    type: 'core:roll-result',
-    origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
-    executor: 's1',
-    chainDepth: 0,
-    triggerable: true,
-    visibility: {},
-    baseSeq: 0,
-    timestamp: Date.now(),
-    payload: { rolls: [[4]], formula: '1d6', dice: [{ sides: 6, count: 1 }] },
-    ...overrides,
-  }
+/** serverRoll now returns number[][] (pure RNG, no GameLogEntry) */
+function makeRollResult(): number[][] {
+  return [[4]]
 }
 
 function makeDeps(overrides: Partial<Parameters<typeof createWorkflowContext>[0]> = {}) {
   return {
     emitEntry: vi.fn(),
-    serverRoll: vi.fn().mockResolvedValue(makeRollEntry()),
+    serverRoll: vi.fn().mockResolvedValue(makeRollResult()),
     createEntity: vi.fn().mockResolvedValue('test:entity-1'),
     deleteEntity: vi.fn().mockResolvedValue(undefined),
     getEntity: vi.fn(),
@@ -79,17 +67,13 @@ describe('createWorkflowContext', () => {
     expect(typeof ctx.read.query).toBe('function')
   })
 
-  it('serverRoll delegates to deps.serverRoll with RollRequest', async () => {
+  it('serverRoll delegates to deps.serverRoll with { dice }', async () => {
     const deps = makeDeps()
     const ctx = createWorkflowContext(deps, undefined, makeInternal())
-    const result = await ctx.serverRoll('1d6')
-    expect(deps.serverRoll).toHaveBeenCalledWith(
-      expect.objectContaining({
-        formula: '1d6',
-        origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
-      }),
-    )
-    expect(result.payload.rolls).toEqual([[4]])
+    const dice = [{ sides: 6, count: 1 }]
+    const result = await ctx.serverRoll(dice)
+    expect(deps.serverRoll).toHaveBeenCalledWith({ dice })
+    expect(result).toEqual([[4]])
   })
 
   it('updateComponent emits core:component-update log entry', () => {
@@ -220,12 +204,14 @@ describe('createWorkflowContext', () => {
     expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-test' }))
   })
 
-  it('serverRoll auto-injects groupId from context options', async () => {
+  it('serverRoll does not inject groupId (pure RNG passthrough)', async () => {
     const deps = makeDeps()
     const ctx = createWorkflowContext(deps, undefined, makeInternal(), { groupId: 'g-roll' })
-    await ctx.serverRoll('1d6')
+    const dice = [{ sides: 6, count: 1 }]
+    await ctx.serverRoll(dice)
 
-    expect(deps.serverRoll).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-roll' }))
+    // serverRoll is now a pure RNG passthrough — only { dice } is sent
+    expect(deps.serverRoll).toHaveBeenCalledWith({ dice })
   })
 
   it('updateComponent auto-injects groupId from context options', () => {
@@ -302,16 +288,16 @@ describe('createWorkflowContext', () => {
     )
   })
 
-  it('causedBy is injected as parentId on serverRoll', async () => {
+  it('causedBy is not injected on serverRoll (pure RNG passthrough)', async () => {
     const deps = makeDeps()
     const ctx = createWorkflowContext(deps, undefined, makeInternal(), {
       causedBy: 'roll-trigger-id',
     })
-    await ctx.serverRoll('1d6')
+    const dice = [{ sides: 6, count: 1 }]
+    await ctx.serverRoll(dice)
 
-    expect(deps.serverRoll).toHaveBeenCalledWith(
-      expect.objectContaining({ parentId: 'roll-trigger-id' }),
-    )
+    // serverRoll is pure RNG — no parentId injection
+    expect(deps.serverRoll).toHaveBeenCalledWith({ dice })
   })
 
   it('explicit parentId in emitEntry overrides causedBy', () => {

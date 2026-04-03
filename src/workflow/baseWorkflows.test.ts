@@ -16,19 +16,7 @@ function makeMockDeps(engine: WorkflowEngine) {
   return {
     deps: {
       emitEntry: vi.fn(),
-      serverRoll: vi.fn().mockResolvedValue({
-        seq: 1,
-        id: 'roll-1',
-        type: 'core:roll-result',
-        origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
-        executor: 's1',
-        chainDepth: 0,
-        triggerable: true,
-        visibility: {},
-        baseSeq: 0,
-        timestamp: Date.now(),
-        payload: { rolls: [[8, 5]], formula: '2d12+1', dice: [{ sides: 12, count: 2 }] },
-      }),
+      serverRoll: vi.fn().mockResolvedValue([[8, 5]]),
       createEntity: vi.fn().mockResolvedValue('test:entity-1'),
       deleteEntity: vi.fn().mockResolvedValue(undefined),
       getEntity: vi.fn(),
@@ -90,28 +78,16 @@ describe('base workflows', () => {
       deps.getEntity.mockReturnValue(fakeEntity)
       deps.getFormulaTokens.mockReturnValue({ str: 3 })
       // 1d20+3 needs only 1 roll for the d20
-      deps.serverRoll.mockResolvedValue({
-        seq: 1,
-        id: 'roll-1',
-        type: 'core:roll-result',
-        origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
-        executor: 's1',
-        chainDepth: 0,
-        triggerable: true,
-        visibility: {},
-        baseSeq: 0,
-        timestamp: Date.now(),
-        payload: { rolls: [[15]], formula: '1d20+@str', dice: [{ sides: 20, count: 1 }] },
-      })
+      deps.serverRoll.mockResolvedValue([[15]])
       const internal = makeInternal()
       const ctx = createWorkflowContext(deps, { formula: '1d20+@str', actorId: 'a1' }, internal)
       const result = await engine.runWorkflow('roll', ctx, internal)
 
       expect(deps.serverRoll).toHaveBeenCalled()
-      // The resolved formula should have replaced @str with 3
+      // serverRoll now receives { dice: [...] } — verify dice was passed
       const callArgs = deps.serverRoll.mock.calls[0] as unknown[]
-      const request = callArgs[0] as { resolvedFormula?: string }
-      expect(request.resolvedFormula).toBe('1d20+3')
+      const request = callArgs[0] as { dice: unknown[] }
+      expect(request.dice).toEqual([{ sides: 20, count: 1 }])
       // 1d20+3 with roll [15] => 15 + 3 = 18
       expect(result.status).toBe('completed')
       if (result.status === 'completed') {
@@ -122,10 +98,10 @@ describe('base workflows', () => {
   })
 
   describe('quick-roll workflow', () => {
-    it('has roll step only', () => {
+    it('has roll + emit steps', () => {
       const engine = new WorkflowEngine()
       registerBaseWorkflows(engine)
-      expect(engine.inspectWorkflow('quick-roll')).toEqual(['roll'])
+      expect(engine.inspectWorkflow('quick-roll')).toEqual(['roll', 'emit'])
       expect(getQuickRollWorkflow().name).toBe('quick-roll')
     })
 
