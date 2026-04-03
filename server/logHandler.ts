@@ -1,7 +1,6 @@
 // server/logHandler.ts — Socket.io handlers for game log events
 import type { TypedServer, TypedSocket } from './socketTypes'
 import { getRoomDb } from './db'
-import { uuidv7 } from './uuidv7'
 import { createEffectRegistry } from './effectRegistry'
 import { shouldReceive } from './visibility'
 import type { GameLogEntry, LogEntrySubmission, RollRequest } from '../src/shared/logTypes'
@@ -121,6 +120,10 @@ export function setupLogHandlers(io: TypedServer, dataDir: string): void {
       }
 
       // 2. Validate dice bounds
+      if (!request.dice || !Array.isArray(request.dice) || request.dice.length === 0) {
+        ack({ error: 'Missing or empty dice array' })
+        return
+      }
       for (const spec of request.dice) {
         if (spec.sides < 1 || spec.sides > 1000) {
           ack({ error: `Invalid dice sides: ${spec.sides} (must be 1-1000)` })
@@ -132,56 +135,13 @@ export function setupLogHandlers(io: TypedServer, dataDir: string): void {
         }
       }
 
-      // 3. Generate random rolls
+      // 3. Generate random rolls — pure RNG, no entry creation
       const rolls: number[][] = request.dice.map((spec) =>
         Array.from({ length: spec.count }, () => Math.floor(Math.random() * spec.sides) + 1),
       )
 
-      // 4. Create core:roll-result entry with server-generated UUIDv7
-      const id = uuidv7()
-      const executor = socket.data.seatId
-      const timestamp = Date.now()
-
-      const payload: Record<string, unknown> = {
-        dice: request.dice,
-        rolls,
-        formula: request.formula,
-      }
-      if (request.resolvedFormula) payload.resolvedFormula = request.resolvedFormula
-      if (request.rollType) payload.rollType = request.rollType
-      if (request.actionName) payload.actionName = request.actionName
-
-      // 5. Insert into game_log + get seq
-      const entry = db.transaction(() => {
-        db.prepare(
-          `INSERT INTO game_log
-           (id, type, origin, executor, parent_id, group_id, chain_depth, triggerable, visibility, base_seq, payload, timestamp)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        ).run(
-          id,
-          'core:roll-result',
-          JSON.stringify(request.origin),
-          executor,
-          request.parentId ?? null,
-          request.groupId,
-          request.chainDepth,
-          request.triggerable ? 1 : 0,
-          JSON.stringify(request.visibility),
-          0, // baseSeq: roll results don't reference a base
-          JSON.stringify(payload),
-          timestamp,
-        )
-
-        const row = db.prepare('SELECT * FROM game_log WHERE id = ?').get(id) as Record<
-          string,
-          unknown
-        >
-        return rowToEntry(row)
-      })()
-
-      // 6. Broadcast + ack
-      void broadcastLogEntry(io, roomId, entry)
-      ack(entry)
+      // 4. Return rolls directly (no game_log write, no broadcast)
+      ack({ rolls })
     })
 
     // ── log:history handler ──
