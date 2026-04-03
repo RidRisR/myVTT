@@ -74,3 +74,16 @@ export function getRenderer<T>(
 export function clearRenderers(): void {
   registry.clear()
 }
+
+const CHAT_SURFACE_PREFIX = 'chat::'
+
+/** Get all entry types that have a registered 'chat' surface renderer */
+export function getChatVisibleTypes(): Set<string> {
+  const types = new Set<string>()
+  for (const k of registry.keys()) {
+    if (k.startsWith(CHAT_SURFACE_PREFIX)) {
+      types.add(k.slice(CHAT_SURFACE_PREFIX.length))
+    }
+  }
+  return types
+}

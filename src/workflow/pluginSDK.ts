@@ -25,6 +25,20 @@ import {
   type LogEntryRenderer,
 } from '../log/rendererRegistry'
 
+/** Validate that a key uses the plugin's namespace prefix */
+function assertNamespaced(pluginId: string, key: string, label: string): void {
+  if (!key.startsWith(pluginId + ':')) {
+    throw new Error(`${label} "${key}" must be prefixed with "${pluginId}:"`)
+  }
+}
+
+/** Validate command name starts with dot */
+function assertCommandPrefix(name: string): void {
+  if (!name.startsWith('.')) {
+    throw new Error(`Command "${name}" must start with "."`)
+  }
+}
+
 export type PluginSDKDeps = Omit<ContextDeps, 'engine'>
 // PluginSDKDeps = { emitEntry, serverRoll, getEntity, getAllEntities, getActiveOrigin, getSeatId, getLogWatermark }
 
@@ -90,6 +104,7 @@ export class PluginSDK implements IPluginSDK {
     stepsOrRun?: Step<TData>[] | StepRunFn<TData>,
     outputFn?: (vars: TData) => unknown,
   ): WorkflowHandle<TData> {
+    assertNamespaced(this.pluginId, name, 'Workflow name')
     this.engine.setCurrentPluginOwner(this.pluginId)
     try {
       if (outputFn) {
@@ -146,6 +161,7 @@ export class PluginSDK implements IPluginSDK {
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
   registerTrigger(trigger: TriggerDefinition): void {
+    assertNamespaced(this.pluginId, trigger.id, 'Trigger ID')
     if (!this.triggerRegistry) {
       throw new Error('TriggerRegistry not available')
     }
@@ -153,6 +169,7 @@ export class PluginSDK implements IPluginSDK {
   }
 
   registerCommand(name: string, handle: WorkflowHandle): void {
+    assertCommandPrefix(name)
     registerCommand(name, handle)
   }
 }

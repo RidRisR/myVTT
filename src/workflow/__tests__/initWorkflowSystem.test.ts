@@ -67,13 +67,13 @@ describe('initWorkflowSystem', () => {
     const testPlugin: VTTPlugin = {
       id: 'test-trigger',
       onActivate(sdk) {
-        sdk.defineWorkflow('test:on-text', (ctx) => {
+        sdk.defineWorkflow('test-trigger:on-text', (ctx) => {
           capturedVars = { ...ctx.vars }
         })
         sdk.registerTrigger({
-          id: 'test-on-text',
+          id: 'test-trigger:on-text',
           on: 'core:text',
-          workflow: 'test:on-text',
+          workflow: 'test-trigger:on-text',
           mapInput: (entry) => ({ content: entry.payload.content }),
           executeAs: 'triggering-executor',
         })
@@ -102,13 +102,13 @@ describe('initWorkflowSystem', () => {
     const testPlugin: VTTPlugin = {
       id: 'test-skip',
       onActivate(sdk) {
-        sdk.defineWorkflow('test:should-skip', () => {
+        sdk.defineWorkflow('test-skip:should-skip', () => {
           triggered = true
         })
         sdk.registerTrigger({
-          id: 'test-skip-t',
+          id: 'test-skip:trigger',
           on: 'core:text',
-          workflow: 'test:should-skip',
+          workflow: 'test-skip:should-skip',
           mapInput: (entry) => entry.payload,
           executeAs: 'triggering-executor',
         })
@@ -136,13 +136,13 @@ describe('initWorkflowSystem', () => {
     const testPlugin: VTTPlugin = {
       id: 'test-cleanup',
       onActivate(sdk) {
-        sdk.defineWorkflow('test:count', () => {
+        sdk.defineWorkflow('test-cleanup:count', () => {
           triggerCount++
         })
         sdk.registerTrigger({
-          id: 'test-count-t',
+          id: 'test-cleanup:trigger',
           on: 'core:text',
-          workflow: 'test:count',
+          workflow: 'test-cleanup:count',
           mapInput: (entry) => entry.payload,
           executeAs: 'triggering-executor',
         })

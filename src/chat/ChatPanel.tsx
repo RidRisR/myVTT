@@ -9,6 +9,7 @@ import { useWorldStore } from '../stores/worldStore'
 import { useWorkflowRunner } from '../workflow/useWorkflowSDK'
 import { getSendTextWorkflow } from '../workflow/baseWorkflows'
 import type { WorkflowHandle } from '../workflow/types'
+import { getChatVisibleTypes } from '../log/rendererRegistry'
 import { MessageScrollArea } from './MessageScrollArea'
 import { ToastStack, type ToastItem } from './ToastStack'
 import { ChatInput } from './ChatInput'
@@ -19,9 +20,6 @@ import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
 
 // Module-level constants for stable references
 const EMPTY_FRESH_IDS = new Set<string>()
-
-// Entry types visible in the chat panel
-const CHAT_TYPES = new Set(['core:text', 'core:roll-result'])
 
 interface ChatPanelProps {
   roomId: string
@@ -97,9 +95,10 @@ export function ChatPanel({
   const runner = useWorkflowRunner()
 
   const logEntries = useWorldStore((s) => s.logEntries)
+  const chatTypes = useMemo(() => getChatVisibleTypes(), [])
   const visibleEntries = useMemo(
-    () => logEntries.filter((e) => CHAT_TYPES.has(e.type)),
-    [logEntries],
+    () => logEntries.filter((e) => chatTypes.has(e.type)),
+    [logEntries, chatTypes],
   )
   const freshChatIds = EMPTY_FRESH_IDS
 
