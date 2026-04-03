@@ -7,6 +7,7 @@ import { HopeResolver } from './HopeResolver'
 import { ModifierPanel } from './ui/ModifierPanel'
 import type { ModifierResult } from './ui/ModifierPanel'
 import { DHActionCheckCard } from './ui/DHActionCheckCard'
+import { FearPanel } from './ui/FearPanel'
 
 interface ActionCheckData {
   [key: string]: unknown
@@ -39,6 +40,16 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       'daggerheart-core:action-check',
       DHActionCheckCard as unknown as React.ComponentType<{ entry: unknown; isNew?: boolean }>,
     )
+
+    // Register Fear panel
+    sdk.ui.registerComponent({
+      id: 'daggerheart-core:fear-panel',
+      component: FearPanel as React.ComponentType<{ sdk: unknown }>,
+      type: 'panel',
+      defaultSize: { width: 160, height: 120 },
+      minSize: { width: 120, height: 80 },
+      defaultPlacement: { anchor: 'top-right', offsetX: -16, offsetY: 60 },
+    })
 
     // Define workflow with 5 steps: modifier → roll → judge → emit → resolve
     this.actionCheckHandle = sdk.defineWorkflow<ActionCheckData>('daggerheart-core:action-check', [
