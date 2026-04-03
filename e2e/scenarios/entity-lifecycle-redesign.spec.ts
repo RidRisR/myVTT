@@ -38,32 +38,26 @@ function evalActiveSceneId(page: import('@playwright/test').Page) {
 
 /** Helper: get sceneEntityMap entries for a scene */
 function evalSceneEntities(page: import('@playwright/test').Page, sceneId: string) {
-  return page.evaluate(
-    (sid: string) => {
-      const store = (window as any).__MYVTT_STORES__?.world()
-      return (store?.sceneEntityMap?.[sid] ?? []) as Array<{
-        entityId: string
-        visible: boolean
-      }>
-    },
-    sceneId,
-  )
+  return page.evaluate((sid: string) => {
+    const store = (window as any).__MYVTT_STORES__?.world()
+    return (store?.sceneEntityMap?.[sid] ?? []) as Array<{
+      entityId: string
+      visible: boolean
+    }>
+  }, sceneId)
 }
 
 /** Helper: find entity by name, return { id, lifecycle } */
 function evalEntityByName(page: import('@playwright/test').Page, name: string) {
-  return page.evaluate(
-    (n: string) => {
-      const store = (window as any).__MYVTT_STORES__?.world()
-      if (!store?.entities) return null
-      const entity = Object.values(store.entities).find(
-        (e: any) => e.components?.['core:identity']?.name === n,
-      )
-      if (!entity) return null
-      return { id: (entity as any).id, lifecycle: (entity as any).lifecycle }
-    },
-    name,
-  )
+  return page.evaluate((n: string) => {
+    const store = (window as any).__MYVTT_STORES__?.world()
+    if (!store?.entities) return null
+    const entity = Object.values(store.entities).find(
+      (e: any) => e.components?.['core:identity']?.name === n,
+    )
+    if (!entity) return null
+    return { id: (entity as any).id, lifecycle: (entity as any).lifecycle }
+  }, name)
 }
 
 test.describe('Entity Lifecycle Redesign', () => {
@@ -86,11 +80,11 @@ test.describe('Entity Lifecycle Redesign', () => {
 
     const entityInfo = await evalEntityByName(page, 'New Character')
     expect(entityInfo).toBeTruthy()
-    expect(entityInfo!.lifecycle).toBe('persistent')
+    expect(entityInfo?.lifecycle).toBe('persistent')
 
     // Assert: entity IS in the current scene (UI links it on creation)
-    const entries = await evalSceneEntities(page, sceneId!)
-    const linked = entries.some((e) => e.entityId === entityInfo!.id)
+    const entries = await evalSceneEntities(page, sceneId as string)
+    const linked = entries.some((e) => e.entityId === entityInfo?.id)
     expect(linked).toBe(true)
 
     // Create a new scene — persistent entity should NOT be auto-linked to it
@@ -108,8 +102,8 @@ test.describe('Entity Lifecycle Redesign', () => {
     )
 
     const newSceneId = await evalActiveSceneId(page)
-    const newEntries = await evalSceneEntities(page, newSceneId!)
-    const linkedInNew = newEntries.some((e) => e.entityId === entityInfo!.id)
+    const newEntries = await evalSceneEntities(page, newSceneId as string)
+    const linkedInNew = newEntries.some((e) => e.entityId === entityInfo?.id)
     expect(linkedInNew).toBe(false)
   })
 
@@ -146,8 +140,8 @@ test.describe('Entity Lifecycle Redesign', () => {
     expect(newSceneId).toBeTruthy()
 
     // Assert: persistent entity should NOT be in the new scene
-    const entries = await evalSceneEntities(page, newSceneId!)
-    const linked = entries.some((e) => e.entityId === entityInfo!.id)
+    const entries = await evalSceneEntities(page, newSceneId as string)
+    const linked = entries.some((e) => e.entityId === entityInfo?.id)
     expect(linked).toBe(false)
   })
 
@@ -181,7 +175,7 @@ test.describe('Entity Lifecycle Redesign', () => {
     const lifecycle = await page.evaluate((eid: string) => {
       const store = (window as any).__MYVTT_STORES__?.world()
       return store?.entities?.[eid]?.lifecycle
-    }, entityId as string)
+    }, String(entityId))
     expect(lifecycle).toBe('tactical')
   })
 
@@ -211,13 +205,10 @@ test.describe('Entity Lifecycle Redesign', () => {
     expect(tacticalEntityId).toBeTruthy()
 
     // Verify the entity is tactical
-    const lifecycle = await page.evaluate(
-      (eid: string) => {
-        const store = (window as any).__MYVTT_STORES__?.world()
-        return store?.entities?.[eid]?.lifecycle
-      },
-      tacticalEntityId as string,
-    )
+    const lifecycle = await page.evaluate((eid: string) => {
+      const store = (window as any).__MYVTT_STORES__?.world()
+      return store?.entities?.[eid]?.lifecycle
+    }, tacticalEntityId)
     expect(lifecycle).toBe('tactical')
 
     // Create a persistent entity via character library
@@ -227,14 +218,11 @@ test.describe('Entity Lifecycle Redesign', () => {
 
     // Verify tactical entity is NOT in the library by checking store filtering
     // The library only shows entities with lifecycle === 'persistent'
-    const libraryHasTactical = await page.evaluate(
-      (eid: string) => {
-        const store = (window as any).__MYVTT_STORES__?.world()
-        const entity = store?.entities?.[eid]
-        return entity?.lifecycle === 'persistent'
-      },
-      tacticalEntityId as string,
-    )
+    const libraryHasTactical = await page.evaluate((eid: string) => {
+      const store = (window as any).__MYVTT_STORES__?.world()
+      const entity = store?.entities?.[eid]
+      return entity?.lifecycle === 'persistent'
+    }, tacticalEntityId)
     expect(libraryHasTactical).toBe(false)
   })
 
@@ -289,14 +277,14 @@ test.describe('Entity Lifecycle Redesign', () => {
       return store?.scenes?.find((s: any) => s.name !== 'Battle Arena')?.name
     })
     expect(firstSceneName).toBeTruthy()
-    await room.scenes.selectScene(firstSceneName as string)
+    await room.scenes.selectScene(String(firstSceneName))
     await page.waitForFunction(
       (name: string) => {
         const store = (window as any).__MYVTT_STORES__?.world()
         const sceneId = store?.room?.activeSceneId
         return store?.scenes?.find((s: any) => s.id === sceneId)?.name === name
       },
-      firstSceneName as string,
+      String(firstSceneName),
       { timeout: 10_000 },
     )
 
@@ -310,7 +298,7 @@ test.describe('Entity Lifecycle Redesign', () => {
         const store = (window as any).__MYVTT_STORES__?.world()
         return store?.entities?.[eid] == null
       },
-      tacticalEntityId as string,
+      String(tacticalEntityId),
       { timeout: 10_000 },
     )
   })
@@ -347,14 +335,14 @@ test.describe('Entity Lifecycle Redesign', () => {
       const store = (window as any).__MYVTT_STORES__?.world()
       return store?.scenes?.find((s: any) => s.name !== 'Temp Scene')?.name
     })
-    await room.scenes.selectScene(firstSceneName as string)
+    await room.scenes.selectScene(String(firstSceneName))
     await page.waitForFunction(
       (name: string) => {
         const store = (window as any).__MYVTT_STORES__?.world()
         const sceneId = store?.room?.activeSceneId
         return store?.scenes?.find((s: any) => s.id === sceneId)?.name === name
       },
-      firstSceneName as string,
+      String(firstSceneName),
       { timeout: 10_000 },
     )
     await room.scenes.deleteScene('Temp Scene')
@@ -364,7 +352,7 @@ test.describe('Entity Lifecycle Redesign', () => {
     const entityStillExists = await page.evaluate((eid: string) => {
       const store = (window as any).__MYVTT_STORES__?.world()
       return store?.entities?.[eid] != null
-    }, entityInfo!.id)
+    }, String(entityInfo?.id))
     expect(entityStillExists).toBe(true)
   })
 
@@ -382,6 +370,6 @@ test.describe('Entity Lifecycle Redesign', () => {
     // Verify lifecycle
     const entityInfo = await evalEntityByName(page, 'New NPC')
     expect(entityInfo).toBeTruthy()
-    expect(entityInfo!.lifecycle).toBe('tactical')
+    expect(entityInfo?.lifecycle).toBe('tactical')
   })
 })
