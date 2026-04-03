@@ -28,7 +28,7 @@ const makeEntity = (id: string, overrides?: Partial<Entity>): Entity => ({
     'core:token': { width: 1, height: 1 },
     'core:notes': { text: '' },
   },
-  lifecycle: 'ephemeral' as const,
+  lifecycle: 'tactical' as const,
   permissions: { default: 'none', seats: {} },
   ...overrides,
 })

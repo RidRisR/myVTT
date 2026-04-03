@@ -23,10 +23,10 @@ afterAll(async () => {
   await ctx.cleanup()
 })
 
-describe('POST /tactical/tokens/quick — atomic ephemeral entity + token', () => {
+describe('POST /tactical/tokens/quick — atomic tactical entity + token', () => {
   let createdEntityId: string
 
-  it('creates ephemeral entity + token atomically (status 201)', async () => {
+  it('creates tactical entity + token atomically (status 201)', async () => {
     const { status, data } = await ctx.api(
       'POST',
       `/api/rooms/${ctx.roomId}/tactical/tokens/quick`,
@@ -47,7 +47,7 @@ describe('POST /tactical/tokens/quick — atomic ephemeral entity + token', () =
     // Entity assertions
     expect(result.entity.id).toBeTruthy()
     expect(getName(result.entity)).toBe('Skeleton')
-    expect(result.entity.lifecycle).toBe('ephemeral')
+    expect(result.entity.lifecycle).toBe('tactical')
     const identity = result.entity.components['core:identity'] as { color: string }
     expect(identity.color).toBe('#aaaaaa')
 

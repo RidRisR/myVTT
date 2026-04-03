@@ -459,16 +459,16 @@ export function PortraitBar({
               {t('portrait.save_as_blueprint')}
             </ContextMenuItem>
           )}
-          {isGM && entity.lifecycle === 'ephemeral' && (
+          {isGM && entity.lifecycle !== 'persistent' && (
             <ContextMenuItem
               onSelect={() => {
-                void updateEntity(entity.id, { lifecycle: 'reusable' })
+                void updateEntity(entity.id, { lifecycle: 'persistent' })
               }}
             >
               {t('portrait.save_as_character')}
             </ContextMenuItem>
           )}
-          {isGM && entity.lifecycle !== 'persistent' && (
+          {isGM && (
             <ContextMenuItem
               variant="danger"
               onSelect={() => {

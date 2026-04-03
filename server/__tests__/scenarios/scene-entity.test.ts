@@ -28,10 +28,10 @@ describe('Scene-Entity Relationships Journey', () => {
     sceneBId = (b as { id: string }).id
   })
 
-  it('4.2 creates ephemeral entity', async () => {
+  it('4.2 creates tactical entity', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Goblin',
-      lifecycle: 'ephemeral',
+      lifecycle: 'tactical',
       color: '#22c55e',
       size: 1,
       permissions: { default: 'observer', seats: {} },
@@ -46,13 +46,13 @@ describe('Scene-Entity Relationships Journey', () => {
     expect(ids).toContain(goblinId)
   })
 
-  it('4.4 goblin is NOT in scene B (ephemeral)', async () => {
+  it('4.4 goblin is NOT in scene B (tactical = single-scene)', async () => {
     const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/scenes/${sceneBId}/entities`)
     const ids = (data as { entityId: string; visible: boolean }[]).map((r) => r.entityId)
     expect(ids).not.toContain(goblinId)
   })
 
-  it('4.5 creates persistent entity — auto-links to both scenes', async () => {
+  it('4.5 creates persistent entity — manually links to both scenes', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Hero',
       lifecycle: 'persistent',
@@ -61,6 +61,19 @@ describe('Scene-Entity Relationships Journey', () => {
       permissions: { default: 'observer', seats: {} },
     })
     heroId = (data as { id: string }).id
+
+    // Persistent entities are NOT auto-linked — verify first
+    const { data: aBeforeLink } = await ctx.api(
+      'GET',
+      `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities`,
+    )
+    expect(
+      (aBeforeLink as { entityId: string; visible: boolean }[]).map((r) => r.entityId),
+    ).not.toContain(heroId)
+
+    // Manually link to both scenes
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities/${heroId}`)
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneBId}/entities/${heroId}`)
 
     const { data: aEntities } = await ctx.api(
       'GET',
@@ -79,7 +92,7 @@ describe('Scene-Entity Relationships Journey', () => {
     ).toContain(heroId)
   })
 
-  it('4.6 new scene auto-links persistent entities', async () => {
+  it('4.6 new scene does NOT auto-link persistent entities', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
       name: 'Scene C',
       atmosphere: {},
@@ -91,26 +104,29 @@ describe('Scene-Entity Relationships Journey', () => {
       `/api/rooms/${ctx.roomId}/scenes/${sceneCId}/entities`,
     )
     const ids = (entities as { entityId: string; visible: boolean }[]).map((r) => r.entityId)
-    expect(ids).toContain(heroId)
-    expect(ids).not.toContain(goblinId) // Ephemeral not auto-linked
+    expect(ids).not.toContain(heroId)
+    expect(ids).not.toContain(goblinId)
+
+    // Manually link hero for downstream tests
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneCId}/entities/${heroId}`)
   })
 
-  it('4.7 unlinks goblin from scene A — ephemeral entity is deleted', async () => {
+  it('4.7 unlinks goblin from scene A — tactical entity is deleted', async () => {
     await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities/${goblinId}`)
     const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities`)
     const ids = (data as { entityId: string; visible: boolean }[]).map((r) => r.entityId)
     expect(ids).not.toContain(goblinId)
 
-    // Ephemeral entity should be deleted from global store
+    // Tactical entity should be deleted from global store
     const { status } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/entities/${goblinId}`)
     expect(status).toBe(404)
   })
 
   it('4.8 deleting entity removes all scene links', async () => {
-    // Create a new reusable entity for this test
+    // Create a new persistent entity for this test
     const { data: newEntity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Orc',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
       color: '#ef4444',
       size: 1,
     })

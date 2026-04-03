@@ -808,7 +808,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const entity: Entity = {
       id: generateTokenId(),
       permissions: defaultNPCPermissions(),
-      lifecycle: 'ephemeral',
+      lifecycle: 'tactical',
       tags: [],
       components: {
         'core:identity': { name: 'New NPC', imageUrl: '', color: '#3b82f6' },

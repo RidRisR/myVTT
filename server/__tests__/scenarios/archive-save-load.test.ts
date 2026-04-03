@@ -33,7 +33,7 @@ afterAll(async () => {
 describe('Archive save', () => {
   it('POST /archives/:archiveId/save returns 200', async () => {
     // Put some tokens on the map first
-    // Place an ephemeral token on the map
+    // Place a tactical token on the map
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens/quick`, {
       x: 1,
       y: 2,
@@ -41,15 +41,15 @@ describe('Archive save', () => {
       color: '#22c55e',
     })
 
-    // Create a reusable entity and place it
-    const { data: reusableEntity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
+    // Create a persistent entity and place it
+    const { data: persistentEntity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Dragon',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
       color: '#ef4444',
     })
-    const reusableEntityId = (reusableEntity as { id: string }).id
+    const persistentEntityId = (persistentEntity as { id: string }).id
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens/from-entity`, {
-      entityId: reusableEntityId,
+      entityId: persistentEntityId,
       x: 5,
       y: 6,
     })

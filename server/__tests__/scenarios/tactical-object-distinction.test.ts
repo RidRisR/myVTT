@@ -36,7 +36,7 @@ describe('Tactical Object vs Scene Entity distinction', () => {
       entity: { id: string; lifecycle: string }
       token: { id: string; entityId: string }
     }
-    expect(result.entity.lifecycle).toBe('ephemeral')
+    expect(result.entity.lifecycle).toBe('tactical')
     expect(result.token.entityId).toBe(result.entity.id)
 
     // Verify entity is NOT in scene_entities
@@ -115,13 +115,13 @@ describe('Tactical Object vs Scene Entity distinction', () => {
     })
   })
 
-  describe('Unlink ephemeral entity with/without tactical token', () => {
-    it('unlink ephemeral entity WITH tactical token keeps entity alive (demotion)', async () => {
+  describe('Unlink tactical entity with/without tactical token', () => {
+    it('unlink tactical entity WITH tactical token keeps entity alive (demotion)', async () => {
       // 1. Create entity
       const entityId = 'e-demote01'
       await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
         id: entityId,
-        lifecycle: 'ephemeral',
+        lifecycle: 'tactical',
         components: {
           'core:identity': { name: 'Demotable NPC', imageUrl: '', color: '#ff0000' },
           'core:token': { width: 1, height: 1 },
@@ -158,12 +158,12 @@ describe('Tactical Object vs Scene Entity distinction', () => {
       expect(entityStatus).toBe(200)
     })
 
-    it('unlink ephemeral entity WITHOUT tactical token deletes entity', async () => {
+    it('unlink tactical entity WITHOUT tactical token deletes entity', async () => {
       // 1. Create entity
       const entityId = 'e-cleanup1'
       await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
         id: entityId,
-        lifecycle: 'ephemeral',
+        lifecycle: 'tactical',
         components: {
           'core:identity': { name: 'Cleanup NPC', imageUrl: '', color: '#00ff00' },
           'core:token': { width: 1, height: 1 },

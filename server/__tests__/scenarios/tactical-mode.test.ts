@@ -25,7 +25,7 @@ describe('Tactical Mode', () => {
     // Add a token so we can verify it persists across enter/exit
     const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Guard',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
     })
     const entityId = (entity as { id: string }).id
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens`, {

@@ -22,11 +22,11 @@ describe('Entity Edge Cases', () => {
     sceneId = (data as { id: string }).id
   })
 
-  it('default lifecycle is ephemeral when not specified', async () => {
+  it('default lifecycle is persistent when not specified', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Default Entity',
     })
-    expect((data as { lifecycle: string }).lifecycle).toBe('ephemeral')
+    expect((data as { lifecycle: string }).lifecycle).toBe('persistent')
     await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/entities/${(data as { id: string }).id}`)
   })
 
@@ -38,10 +38,10 @@ describe('Entity Edge Cases', () => {
     expect(status).toBeGreaterThanOrEqual(400)
   })
 
-  it('ephemeral re-link to same scene is idempotent', async () => {
+  it('tactical re-link to same scene is idempotent', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Goblin',
-      lifecycle: 'ephemeral',
+      lifecycle: 'tactical',
     })
     const id = (data as { id: string }).id
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneId}/entities/${id}`)
@@ -53,7 +53,7 @@ describe('Entity Edge Cases', () => {
     await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/scenes/${sceneId}/entities/${id}`)
   })
 
-  it('promoting ephemeral to reusable allows multi-scene', async () => {
+  it('promoting tactical to persistent allows multi-scene', async () => {
     const { data: scene2 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
       name: 'Scene 2',
       atmosphere: {},
@@ -62,13 +62,13 @@ describe('Entity Edge Cases', () => {
 
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Important NPC',
-      lifecycle: 'ephemeral',
+      lifecycle: 'tactical',
     })
     const id = (data as { id: string }).id
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneId}/entities/${id}`)
 
     await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/entities/${id}`, {
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
     })
 
     const { status } = await ctx.api(
@@ -92,7 +92,7 @@ describe('Entity Edge Cases', () => {
   it('link with visible=false creates backstage entry', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Assassin',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
     })
     const id = (data as { id: string }).id
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneId}/entities/${id}`, {
@@ -126,6 +126,8 @@ describe('Entity Edge Cases', () => {
       lifecycle: 'persistent',
     })
     const id = (data as { id: string }).id
+    // Manually link first (no auto-link)
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneId}/entities/${id}`)
     await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/scenes/${sceneId}/entities/${id}`)
     const { data: ents1 } = await ctx.api(
       'GET',

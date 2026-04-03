@@ -49,7 +49,7 @@ describe('Tactical broadcast tests', () => {
 
     // Create entity first
     const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
       components: {
         'core:identity': { name: 'Broadcast Fighter', imageUrl: '', color: '#ef4444' },
       },

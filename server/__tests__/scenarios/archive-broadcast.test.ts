@@ -139,7 +139,7 @@ describe('Archive broadcast tests', () => {
     socket2.disconnect()
   })
 
-  it('POST /archives/:id/load broadcasts entity:deleted for orphan ephemerals', async () => {
+  it('POST /archives/:id/load broadcasts entity:deleted for orphan tactical entities', async () => {
     const socket2 = await connectSecondClient(ctx.apiBase, ctx.roomId)
 
     // Clear existing tokens first by loading an empty archive
@@ -152,7 +152,7 @@ describe('Archive broadcast tests', () => {
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${emptyArchiveId}/save`)
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${emptyArchiveId}/load`)
 
-    // Now start fresh: quick-create token A (ephemeral entity)
+    // Now start fresh: quick-create token A (tactical entity)
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens/quick`, {
       x: 1,
       y: 1,
@@ -196,10 +196,10 @@ describe('Archive broadcast tests', () => {
     socket2.disconnect()
   })
 
-  it('POST /archives/:id/load broadcasts entity:created for restored ephemerals', async () => {
+  it('POST /archives/:id/load broadcasts entity:created for restored tactical entities', async () => {
     const socket2 = await connectSecondClient(ctx.apiBase, ctx.roomId)
 
-    // Quick-create an ephemeral token
+    // Quick-create a tactical token
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens/quick`, {
       x: 5,
       y: 5,
@@ -215,7 +215,7 @@ describe('Archive broadcast tests', () => {
     const archiveId = (archive as { id: string }).id
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${archiveId}/save`)
 
-    // Load the archive — ephemeral entities get recreated with new IDs
+    // Load the archive — tactical entities get recreated with new IDs
     const entityCreatedPromise = waitForSocketEvent<{ id: string; lifecycle: string }>(
       socket2,
       'entity:created',
@@ -225,7 +225,7 @@ describe('Archive broadcast tests', () => {
 
     const payload = await entityCreatedPromise
     expect(payload.id).toBeTruthy()
-    expect(payload.lifecycle).toBe('ephemeral')
+    expect(payload.lifecycle).toBe('tactical')
 
     socket2.disconnect()
   })

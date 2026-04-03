@@ -82,7 +82,7 @@ export function entityRoutes(dataDir: string, io: TypedServer): Router {
     const {
       components = {},
       permissions = { default: 'observer', seats: {} },
-      lifecycle = 'ephemeral',
+      lifecycle = 'persistent',
       blueprintId = null,
       tags = [],
     } = body
@@ -107,17 +107,6 @@ export function entityRoutes(dataDir: string, io: TypedServer): Router {
       const tagNames = Array.isArray(tags) ? (tags as string[]) : []
       if (tagNames.length > 0) {
         syncTags(db, 'entity_tags', 'entity_id', id, tagNames)
-      }
-
-      // Persistent entities auto-link to all existing scenes
-      if (lifecycle === 'persistent') {
-        const scenes = db.prepare('SELECT id FROM scenes').all() as { id: string }[]
-        const stmt = db.prepare(
-          'INSERT OR IGNORE INTO scene_entities (scene_id, entity_id, visible) VALUES (?, ?, 1)',
-        )
-        for (const s of scenes) {
-          stmt.run(s.id, id)
-        }
       }
     })
     createEntity()

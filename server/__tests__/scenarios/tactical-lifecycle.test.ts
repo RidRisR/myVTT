@@ -31,7 +31,7 @@ describe('Tactical Lifecycle', () => {
 
     const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Warrior',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
     })
     entityId = (entity as { id: string }).id
   })
@@ -55,7 +55,7 @@ describe('Tactical Lifecycle', () => {
     // Need a different entity for scene2 since entityId already has token in scene1
     const { data: e2 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Rogue',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
     })
     const entity2Id = (e2 as { id: string }).id
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens`, {

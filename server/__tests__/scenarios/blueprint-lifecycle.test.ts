@@ -78,7 +78,7 @@ describe('Blueprint Lifecycle Journey', () => {
     expect(getColor(result.entity)).toBe('#22c55e')
     expect(getToken(result.entity).width).toBe(1)
     expect(result.entity.blueprintId).toBe(blueprintId)
-    expect(result.entity.lifecycle).toBe('ephemeral')
+    expect(result.entity.lifecycle).toBe('tactical')
   })
 
   it('spawns second entity — name increments to "Goblin 2"', async () => {

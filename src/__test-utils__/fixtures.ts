@@ -4,7 +4,7 @@ export function makeEntity(overrides?: Partial<Entity>): Entity {
   return {
     id: 'entity-1',
     permissions: { default: 'observer', seats: {} },
-    lifecycle: 'ephemeral',
+    lifecycle: 'tactical',
     tags: [],
     components: {
       'core:identity': { name: 'Test Character', imageUrl: '', color: '#3b82f6' },

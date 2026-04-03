@@ -13,7 +13,7 @@ afterAll(async () => {
 
 describe('Entity Lifecycle Journey', () => {
   let sceneAId: string, sceneBId: string
-  let ephemeralId: string, reusableId: string, persistentId: string
+  let tacticalId: string, persistentId: string
 
   it('creates two scenes', async () => {
     const { data: a } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
@@ -28,28 +28,23 @@ describe('Entity Lifecycle Journey', () => {
     sceneBId = (b as { id: string }).id
   })
 
-  it('creates ephemeral entity', async () => {
+  it('creates tactical entity', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      name: 'Goblin',
-      lifecycle: 'ephemeral',
+      lifecycle: 'tactical',
+      components: {
+        'core:identity': { name: 'Goblin', imageUrl: '', color: '#888' },
+      },
     })
-    ephemeralId = (data as { id: string; lifecycle: string }).id
-    expect((data as { lifecycle: string }).lifecycle).toBe('ephemeral')
+    tacticalId = (data as { id: string; lifecycle: string }).id
+    expect((data as { lifecycle: string }).lifecycle).toBe('tactical')
   })
 
-  it('creates reusable entity', async () => {
+  it('creates persistent entity — does NOT auto-link to scenes', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      name: 'Merchant',
-      lifecycle: 'reusable',
-    })
-    reusableId = (data as { id: string }).id
-    expect((data as { lifecycle: string }).lifecycle).toBe('reusable')
-  })
-
-  it('creates persistent entity — auto-links to all scenes', async () => {
-    const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      name: 'Hero',
       lifecycle: 'persistent',
+      components: {
+        'core:identity': { name: 'Hero', imageUrl: '', color: '#888' },
+      },
     })
     persistentId = (data as { id: string }).id
 
@@ -58,17 +53,17 @@ describe('Entity Lifecycle Journey', () => {
       `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities`,
     )
     const ids = (aEnts as { entityId: string }[]).map((r) => r.entityId)
-    expect(ids).toContain(persistentId)
+    expect(ids).not.toContain(persistentId)
   })
 
-  it('links ephemeral to scene A', async () => {
-    await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities/${ephemeralId}`)
+  it('links tactical to scene A', async () => {
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities/${tacticalId}`)
   })
 
-  it('rejects ephemeral in second scene', async () => {
+  it('rejects tactical entity in second scene', async () => {
     const { status } = await ctx.api(
       'POST',
-      `/api/rooms/${ctx.roomId}/scenes/${sceneBId}/entities/${ephemeralId}`,
+      `/api/rooms/${ctx.roomId}/scenes/${sceneBId}/entities/${tacticalId}`,
     )
     expect(status).toBe(400)
   })
@@ -76,40 +71,42 @@ describe('Entity Lifecycle Journey', () => {
   it('visible defaults to true on link', async () => {
     const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities`)
     const entry = (data as { entityId: string; visible: boolean }[]).find(
-      (r) => r.entityId === ephemeralId,
+      (r) => r.entityId === tacticalId,
     )
     expect(entry?.visible).toBe(true)
   })
 
   it('toggles visible to false (backstage)', async () => {
-    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities/${ephemeralId}`, {
+    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities/${tacticalId}`, {
       visible: false,
     })
     const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities`)
     const entry = (data as { entityId: string; visible: boolean }[]).find(
-      (r) => r.entityId === ephemeralId,
+      (r) => r.entityId === tacticalId,
     )
     expect(entry?.visible).toBe(false)
   })
 
-  it('promotes ephemeral to reusable', async () => {
-    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/entities/${ephemeralId}`, {
-      lifecycle: 'reusable',
+  it('promotes tactical to persistent', async () => {
+    await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/entities/${tacticalId}`, {
+      lifecycle: 'persistent',
     })
-    const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/entities/${ephemeralId}`)
-    expect((data as { lifecycle: string }).lifecycle).toBe('reusable')
+    const { data } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/entities/${tacticalId}`)
+    expect((data as { lifecycle: string }).lifecycle).toBe('persistent')
   })
 
-  it('unlinks reusable from scene — entity preserved', async () => {
-    await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities/${ephemeralId}`)
-    const { status } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/entities/${ephemeralId}`)
+  it('unlinks persistent from scene — entity preserved', async () => {
+    await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities/${tacticalId}`)
+    const { status } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/entities/${tacticalId}`)
     expect(status).toBe(200)
   })
 
-  it('creates new ephemeral and unlinks — entity deleted', async () => {
+  it('creates tactical and unlinks — entity deleted', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      name: 'Temp NPC',
-      lifecycle: 'ephemeral',
+      lifecycle: 'tactical',
+      components: {
+        'core:identity': { name: 'Temp NPC', imageUrl: '', color: '#888' },
+      },
     })
     const tempId = (data as { id: string }).id
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities/${tempId}`)
@@ -118,7 +115,7 @@ describe('Entity Lifecycle Journey', () => {
     expect(status).toBe(404)
   })
 
-  it('new scene auto-links persistent entities', async () => {
+  it('new scene does NOT auto-link persistent entities', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
       name: 'Scene C',
       atmosphere: {},
@@ -129,14 +126,15 @@ describe('Entity Lifecycle Journey', () => {
       `/api/rooms/${ctx.roomId}/scenes/${sceneCId}/entities`,
     )
     const ids = (ents as { entityId: string }[]).map((r) => r.entityId)
-    expect(ids).toContain(persistentId)
-    expect(ids).not.toContain(reusableId)
+    expect(ids).not.toContain(persistentId)
   })
 
-  it('deleting scene cleans up ephemeral entities', async () => {
+  it('deleting scene cleans up tactical entities', async () => {
     const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      name: 'Scene Goblin',
-      lifecycle: 'ephemeral',
+      lifecycle: 'tactical',
+      components: {
+        'core:identity': { name: 'Scene Goblin', imageUrl: '', color: '#888' },
+      },
     })
     const sceneGoblinId = (data as { id: string }).id
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneAId}/entities/${sceneGoblinId}`)
@@ -148,5 +146,53 @@ describe('Entity Lifecycle Journey', () => {
       `/api/rooms/${ctx.roomId}/entities/${persistentId}`,
     )
     expect(heroStatus).toBe(200)
+  })
+
+  it('deleting scene cleans up scene-scoped entities', async () => {
+    const { data: sceneData } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
+      name: 'Scene D',
+      atmosphere: {},
+    })
+    const sceneDId = (sceneData as { id: string }).id
+
+    const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
+      lifecycle: 'scene',
+      components: {
+        'core:identity': { name: 'Scene NPC', imageUrl: '', color: '#888' },
+      },
+    })
+    const sceneNpcId = (data as { id: string }).id
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneDId}/entities/${sceneNpcId}`)
+    await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/scenes/${sceneDId}`)
+    const { status } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/entities/${sceneNpcId}`)
+    expect(status).toBe(404)
+  })
+
+  it('scene-scoped entity has single-scene constraint', async () => {
+    const { data: sceneData } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
+      name: 'Scene E',
+      atmosphere: {},
+    })
+    const sceneEId = (sceneData as { id: string }).id
+
+    const { data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
+      lifecycle: 'scene',
+      components: {
+        'core:identity': { name: 'Scene Guard', imageUrl: '', color: '#888' },
+      },
+    })
+    const guardId = (data as { id: string }).id
+    await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes/${sceneEId}/entities/${guardId}`)
+
+    const { data: sceneData2 } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/scenes`, {
+      name: 'Scene F',
+      atmosphere: {},
+    })
+    const sceneFId = (sceneData2 as { id: string }).id
+    const { status } = await ctx.api(
+      'POST',
+      `/api/rooms/${ctx.roomId}/scenes/${sceneFId}/entities/${guardId}`,
+    )
+    expect(status).toBe(400)
   })
 })

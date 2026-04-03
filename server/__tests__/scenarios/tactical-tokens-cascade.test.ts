@@ -23,7 +23,7 @@ describe('Tactical Token Cascade', () => {
 
     const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Doomed Warrior',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
     })
     const entityId = (entity as { id: string }).id
 
@@ -61,7 +61,7 @@ describe('Tactical Token Cascade', () => {
     // Create entity and token
     const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Scout',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
     })
     const entityId = (entity as { id: string }).id
 
@@ -82,7 +82,7 @@ describe('Tactical Token Cascade', () => {
     const { status: afterStatus } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/tactical`)
     expect(afterStatus).toBe(404)
 
-    // Entity should still exist (reusable, not ephemeral-in-scene)
+    // Entity should still exist (persistent, not tactical-in-scene)
     const { status: entityStatus } = await ctx.api(
       'GET',
       `/api/rooms/${ctx.roomId}/entities/${entityId}`,

@@ -76,7 +76,7 @@ describe('Multi-Client Sync Journey', () => {
   it('5.4 entity:created broadcasts to client B', async () => {
     const eventPromise = waitForSocketEvent<Entity>(clientB, 'entity:created')
     const { status, data } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      lifecycle: 'ephemeral',
+      lifecycle: 'tactical',
       components: {
         'core:identity': { name: 'Goblin', imageUrl: '', color: '#22c55e' },
         'core:token': { width: 1, height: 1 },

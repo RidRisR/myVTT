@@ -120,21 +120,21 @@ describe('Archive gmOnly filtering', () => {
   })
 })
 
-describe('Archive load when reusable entity deleted', () => {
-  it('load skips tokens whose reusable entity was deleted', async () => {
+describe('Archive load when persistent entity deleted', () => {
+  it('load skips tokens whose persistent entity was deleted', async () => {
     // Ensure active scene
     await ctx.api('PATCH', `/api/rooms/${ctx.roomId}/state`, { activeSceneId: sceneId })
 
-    // Create a reusable entity + place as token
+    // Create a persistent entity + place as token
     const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
       name: 'Fragile Dragon',
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
       color: '#ef4444',
     })
-    const reusableEntityId = (entity as { id: string }).id
+    const persistentEntityId = (entity as { id: string }).id
 
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens/from-entity`, {
-      entityId: reusableEntityId,
+      entityId: persistentEntityId,
       x: 50,
       y: 60,
     })
@@ -148,8 +148,8 @@ describe('Archive load when reusable entity deleted', () => {
     const archiveId = (archive as { id: string }).id
     await ctx.api('POST', `/api/rooms/${ctx.roomId}/archives/${archiveId}/save`)
 
-    // Delete the reusable entity
-    await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/entities/${reusableEntityId}`)
+    // Delete the persistent entity
+    await ctx.api('DELETE', `/api/rooms/${ctx.roomId}/entities/${persistentEntityId}`)
 
     // Load archive — should succeed, but token for deleted entity is skipped
     const { status, data: loaded } = await ctx.api(
@@ -160,7 +160,7 @@ describe('Archive load when reusable entity deleted', () => {
 
     // Verify no token references the deleted entity
     const tokens = (loaded as { tokens: { entityId: string }[] }).tokens
-    const found = tokens.find((t) => t.entityId === reusableEntityId)
+    const found = tokens.find((t) => t.entityId === persistentEntityId)
     expect(found).toBeUndefined()
   })
 })

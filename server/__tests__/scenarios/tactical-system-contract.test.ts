@@ -122,7 +122,7 @@ describe('Tactical System Contract', () => {
 
       const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
         name: 'Scene2 Fighter',
-        lifecycle: 'reusable',
+        lifecycle: 'persistent',
       })
       await ctx.api('POST', `/api/rooms/${ctx.roomId}/tactical/tokens`, {
         entityId: (entity as { id: string }).id,

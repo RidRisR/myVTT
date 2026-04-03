@@ -198,12 +198,12 @@ describe('Full room lifecycle', () => {
     entityId = data.id
   })
 
-  it('persistent entity auto-linked to existing scene', async () => {
+  it('persistent entity is NOT auto-linked to existing scene', async () => {
     const { data } = await api<{ entityId: string }[]>(
       'GET',
       `/api/rooms/${roomId}/scenes/${sceneId}/entities`,
     )
-    expect(data.map((r) => r.entityId)).toContain(entityId)
+    expect(data.map((r) => r.entityId)).not.toContain(entityId)
   })
 
   it('updates entity components via PATCH', async () => {
@@ -425,8 +425,8 @@ describe('Full room lifecycle', () => {
     expect(data.activeSceneId).toBe(sid)
   })
 
-  // Persistent entity auto-linking atomicity (regression: M3)
-  it('new scene auto-links all persistent entities', async () => {
+  // Persistent entities are NOT auto-linked (auto-link removed in lifecycle redesign)
+  it('new scene does NOT auto-link persistent entities', async () => {
     const ids = ['pers-a', 'pers-b', 'pers-c']
     for (const id of ids) {
       await api('POST', `/api/rooms/${roomId}/entities`, {
@@ -443,7 +443,7 @@ describe('Full room lifecycle', () => {
     )
     const linkedIds = linkedEntries.map((r) => r.entityId)
     for (const id of ids) {
-      expect(linkedIds).toContain(id)
+      expect(linkedIds).not.toContain(id)
     }
   })
 

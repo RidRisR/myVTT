@@ -169,7 +169,7 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
         const lifecycle = row.lifecycle as string
         const entityId = row.entity_id as string
 
-        if (lifecycle === 'ephemeral') {
+        if (lifecycle === 'tactical') {
           // Snapshot: store components + permissions, no reference
           const componentRows = db
             .prepare('SELECT component_key, data FROM entity_components WHERE entity_id = ?')
@@ -191,12 +191,12 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
             row.height,
             row.image_scale_x,
             row.image_scale_y,
-            'ephemeral',
+            'tactical',
             null,
             snapshotData,
           )
         } else {
-          // Reusable/persistent: store reference
+          // Persistent/scene: store reference
           insertStmt.run(
             tokenId,
             archiveId,
@@ -272,7 +272,7 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
       .prepare(
         `SELECT e.id FROM entities e
          JOIN tactical_tokens t ON t.entity_id = e.id
-         WHERE t.scene_id = ? AND e.lifecycle = 'ephemeral'
+         WHERE t.scene_id = ? AND e.lifecycle = 'tactical'
            AND NOT EXISTS (SELECT 1 FROM scene_entities se WHERE se.entity_id = e.id)`,
       )
       .all(sceneId) as { id: string }[]
@@ -285,20 +285,20 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
       // a. Delete all tactical_tokens for current scene
       db.prepare('DELETE FROM tactical_tokens WHERE scene_id = ?').run(sceneId)
 
-      // b. Delete orphan ephemeral entities (CASCADE handles entity_components + entity_tags)
+      // b. Delete orphan tactical entities (CASCADE handles entity_components + entity_tags)
       const deleteEntityStmt = db.prepare('DELETE FROM entities WHERE id = ?')
       for (const id of orphanIds) {
         deleteEntityStmt.run(id)
       }
 
-      // c. For each archive_token, recreate entity (if ephemeral) and token
+      // c. For each archive_token, recreate entity (if tactical) and token
       const insertTokenStmt = db.prepare(
         `INSERT INTO tactical_tokens (id, scene_id, entity_id, x, y, width, height, image_scale_x, image_scale_y)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       const insertEntityStmt = db.prepare(
         `INSERT INTO entities (id, permissions, lifecycle)
-         VALUES (?, ?, 'ephemeral')`,
+         VALUES (?, ?, 'tactical')`,
       )
       const insertCompStmt = db.prepare(
         'INSERT INTO entity_components (entity_id, component_key, data) VALUES (?, ?, ?)',
@@ -308,7 +308,7 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
         const lifecycle = at.snapshot_lifecycle as string
         const tokenId = crypto.randomUUID()
 
-        if (lifecycle === 'ephemeral') {
+        if (lifecycle === 'tactical') {
           // Create new entity from snapshot_data
           let snap: Record<string, unknown>
           try {
@@ -344,7 +344,7 @@ export function archiveRoutes(dataDir: string, io: TypedServer): Router {
             at.image_scale_y,
           )
         } else {
-          // Reusable/persistent: check original entity still exists
+          // Persistent/scene: check original entity still exists
           const originalEntity = db
             .prepare('SELECT id FROM entities WHERE id = ?')
             .get(at.original_entity_id)

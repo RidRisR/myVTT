@@ -128,10 +128,10 @@ describe('Archive round-trip: save then load restores full state', () => {
     expect(post.roundNumber).toBe(3)
   })
 
-  it('save + load preserves reusable entity tokens with exact entity reference', async () => {
-    // Create a reusable entity
+  it('save + load preserves persistent entity tokens with exact entity reference', async () => {
+    // Create a persistent entity
     const { data: entity } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/entities`, {
-      lifecycle: 'reusable',
+      lifecycle: 'persistent',
       components: {
         'core:identity': { name: 'Dragon Boss', imageUrl: '', color: '#ef4444' },
       },
