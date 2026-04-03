@@ -37,6 +37,8 @@ function makeDeps(overrides: Partial<Parameters<typeof createWorkflowContext>[0]
   return {
     emitEntry: vi.fn(),
     serverRoll: vi.fn().mockResolvedValue(makeRollEntry()),
+    createEntity: vi.fn().mockResolvedValue('test:entity-1'),
+    deleteEntity: vi.fn().mockResolvedValue(undefined),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
     engine: makeEngine(),

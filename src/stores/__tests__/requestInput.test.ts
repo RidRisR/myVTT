@@ -108,6 +108,8 @@ describe('ctx.requestInput — workflow integration with InputResult', () => {
       payload: {},
       timestamp: 0,
     }),
+    createEntity: vi.fn().mockResolvedValue('test:entity-1'),
+    deleteEntity: vi.fn().mockResolvedValue(undefined),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
     engine: new WorkflowEngine(),

@@ -26,6 +26,8 @@ describe('Session State', () => {
         payload: { rolls: [[1]], total: 1 },
         timestamp: 0,
       }),
+      createEntity: vi.fn().mockResolvedValue('test:entity-1'),
+      deleteEntity: vi.fn().mockResolvedValue(undefined),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
       getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: '', name: '', color: '' } }),

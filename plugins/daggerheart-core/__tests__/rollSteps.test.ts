@@ -10,6 +10,8 @@ function makeDeps(overrides: Partial<ContextDeps> = {}): Omit<ContextDeps, 'engi
   return {
     emitEntry: vi.fn(),
     serverRoll: vi.fn().mockResolvedValue([[4, 9]]),
+    createEntity: vi.fn().mockResolvedValue('test:entity-1'),
+    deleteEntity: vi.fn().mockResolvedValue(undefined),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
     getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),

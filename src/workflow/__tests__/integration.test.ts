@@ -13,6 +13,8 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     const deps = {
       emitEntry: vi.fn(),
       serverRoll: vi.fn().mockResolvedValue([[8, 5]]),
+      createEntity: vi.fn().mockResolvedValue('test:entity-1'),
+      deleteEntity: vi.fn().mockResolvedValue(undefined),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
       getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),

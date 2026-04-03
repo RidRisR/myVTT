@@ -89,6 +89,8 @@ export default function PatternUISystem() {
     const wfRunner = new WorkflowRunner(engine, {
       emitEntry: () => {},
       serverRoll: () => Promise.reject(new Error('serverRoll not available in sandbox')),
+      createEntity: () => Promise.reject(new Error('createEntity not available in sandbox')),
+      deleteEntity: () => Promise.reject(new Error('deleteEntity not available in sandbox')),
       getEntity: () => undefined,
       getAllEntities: () => ({}),
       getActiveOrigin: () => ({ seat: { id: '', name: '', color: '' } }),
