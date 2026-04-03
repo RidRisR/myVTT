@@ -2,7 +2,10 @@
 import { useMemo } from 'react'
 import type { RollCardProps } from '@myvtt/sdk'
 import { tokenizeExpression, buildCompoundResult, usePluginTranslation } from '@myvtt/sdk'
-import { dhEvaluateRoll, dhGetJudgmentDisplay } from '../diceSystem'
+import { DiceJudge } from '../../daggerheart-core/DiceJudge'
+
+const judge = new DiceJudge()
+const DH_DC = 12
 
 export function DHRollCard({ message, renderDice }: RollCardProps) {
   const rolls = message.rolls
@@ -14,8 +17,8 @@ export function DHRollCard({ message, renderDice }: RollCardProps) {
     return buildCompoundResult(terms, rolls).total
   }, [message.formula, message.resolvedFormula, rolls])
 
-  const judgment = useMemo(() => dhEvaluateRoll(rolls, total), [rolls, total])
-  const display = judgment ? dhGetJudgmentDisplay(judgment) : null
+  const judgment = useMemo(() => judge.evaluate(rolls, total, DH_DC), [rolls, total])
+  const display = judgment ? judge.getDisplay(judgment) : null
 
   return renderDice(
     [

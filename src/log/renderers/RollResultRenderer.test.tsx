@@ -2,38 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { RollResultRenderer } from './RollResultRenderer'
 import { registerRenderer, clearRenderers, createRendererPoint } from '../rendererRegistry'
-import { _bindRollResultDeps } from './rollResultDeps'
 import type { GameLogEntry } from '../../shared/logTypes'
 import type { RollResultConfig, RollCardProps } from '../../rules/types'
 import type { ComponentType } from 'react'
-
-// Bind deps before tests (no circular dep in test environment)
-const mockUseRulePlugin = () => ({
-  diceSystem: {
-    evaluateRoll: (rolls: number[][]) => {
-      if (!rolls[0] || rolls[0].length < 2) return null
-      if ((rolls[0][0] ?? 0) > (rolls[0][1] ?? 0))
-        return {
-          type: 'daggerheart',
-          hopeDie: rolls[0][0],
-          fearDie: rolls[0][1],
-          outcome: 'success_hope',
-        }
-      return {
-        type: 'daggerheart',
-        hopeDie: rolls[0][0],
-        fearDie: rolls[0][1],
-        outcome: 'success_fear',
-      }
-    },
-    getJudgmentDisplay: () => ({ text: 'dh.success_hope', color: '#22c55e', severity: 'success' }),
-  },
-})
-
-const mockUsePluginTranslation = () => ({ t: (k: string) => k })
-
-// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-_bindRollResultDeps(mockUseRulePlugin as any, mockUsePluginTranslation)
 
 // Mock CardShell to just render children
 vi.mock('../CardShell', () => ({
@@ -113,8 +84,8 @@ describe('RollResultRenderer', () => {
     })
     render(<RollResultRenderer entry={entry} />)
     expect(screen.getByTestId('entry-roll-result')).toBeDefined()
-    // Config path evaluates judgment → footer is rendered
-    expect(screen.getByTestId('dice-footer')).toBeDefined()
+    // Semantic config path renders dieConfigs only — no judgment footer
+    expect(screen.queryByTestId('dice-footer')).toBeNull()
   })
 
   it('uses custom component when function registered for rollType', () => {

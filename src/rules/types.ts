@@ -204,19 +204,13 @@ export interface RulePlugin {
     EntityCard: React.ComponentType<EntityCardProps>
   }
 
-  // Layer 3: Dice system (optional)
-  diceSystem?: {
-    evaluateRoll(rolls: number[][], total: number): JudgmentResult | null
-    getJudgmentDisplay(result: JudgmentResult): JudgmentDisplay
-  }
-
-  // Layer 4: Data templates (optional)
+  // Layer 3: Data templates (optional)
   dataTemplates?: {
     createDefaultEntityData(): Record<string, unknown>
     getPresetTemplates?(): PresetTemplate[]
   }
 
-  // Layer 5: UI surfaces (optional)
+  // Layer 4: UI surfaces (optional)
   surfaces?: {
     panels?: PluginPanelDef[]
     dockTabs?: DockTabDef[]
@@ -230,10 +224,10 @@ export interface RulePlugin {
     keyBindings?: KeyBinding[]
   }
 
-  // Layer 6: Declarative element hiding (optional)
+  // Layer 5: Declarative element hiding (optional)
   hideElements?: HideableElement[]
 
-  // Layer 7: Rule resolution — reserved, not implemented
+  // Layer 6: Rule resolution — reserved, not implemented
   // ruleResolution?: RuleResolutionModule
 }
 
