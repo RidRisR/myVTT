@@ -1,6 +1,6 @@
 // plugins/daggerheart-core/rollSteps.ts
 import type { IPluginSDK, WorkflowHandle, JudgmentResult } from '@myvtt/sdk'
-import { getRollWorkflow, rollResult } from '@myvtt/sdk'
+import { rollResult } from '@myvtt/sdk'
 import { dhEvaluateRoll } from '../daggerheart/diceSystem'
 
 /** Data shape for the dh:judgment sub-workflow */
@@ -89,19 +89,10 @@ export function registerDHCoreSteps(sdk: IPluginSDK): void {
         ctx.vars.formula = formula
         ctx.vars.rollType = 'daggerheart:dd'
 
-        const result = await ctx.runWorkflow(getRollWorkflow(), {
-          formula,
-          actorId: ctx.vars.actorId,
-          resolvedFormula: ctx.vars.resolvedFormula as string | undefined,
-          rollType: 'daggerheart:dd',
-          actionName: ctx.vars.actionName as string | undefined,
-        })
-        if (result.status === 'completed') {
-          ctx.vars.rolls = result.output.rolls
-          ctx.vars.total = result.output.total
-        } else {
-          ctx.abort(result.reason ?? 'Roll failed')
-        }
+        // Direct serverRoll — Daggerheart always rolls 2d12
+        const rolls = await ctx.serverRoll([{ sides: 12, count: 2 }])
+        ctx.vars.rolls = rolls
+        ctx.vars.total = rolls.flat().reduce((a, b) => a + b, 0)
       },
     },
     {
