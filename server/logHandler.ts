@@ -119,8 +119,9 @@ export function setupLogHandlers(io: TypedServer, dataDir: string): void {
         return
       }
 
-      // 2. Validate dice bounds
-      if (!request.dice || !Array.isArray(request.dice) || request.dice.length === 0) {
+      // 2. Validate dice bounds (runtime guard — socket payloads are untrusted)
+      const dice = request.dice as unknown
+      if (!dice || !Array.isArray(dice) || dice.length === 0) {
         ack({ error: 'Missing or empty dice array' })
         return
       }
