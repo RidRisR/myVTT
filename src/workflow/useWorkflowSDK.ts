@@ -7,6 +7,7 @@ import { useIdentityStore } from '../stores/identityStore'
 import type { VTTPlugin } from '../rules/types'
 import type { IWorkflowRunner } from './types'
 import type { PluginSDKDeps } from './pluginSDK'
+import { createWorkflowContext } from './context'
 import { clearCommands } from './commandRegistry'
 import { TriggerRegistry } from './triggerRegistry'
 import { LogStreamDispatcher } from './logStreamDispatcher'
@@ -193,6 +194,30 @@ export function initWorkflowSystem(): () => void {
 
     if (import.meta.env.DEV) {
       ;(globalThis as Record<string, unknown>).__wfEngine = engine
+    }
+  }
+
+  // Call onReady for all plugins (after all onActivate, deps available)
+  const readyDeps = buildDeps()
+  const readyEngine = engine
+  for (const plugin of _registeredPlugins) {
+    if (plugin.onReady) {
+      try {
+        const readyInternal = { depth: 0, abortCtrl: { aborted: false } }
+        const readyCtx = createWorkflowContext(
+          { ...readyDeps, engine: readyEngine },
+          {},
+          readyInternal,
+        )
+        const result = plugin.onReady(readyCtx)
+        if (result && typeof (result as Promise<void>).catch === 'function') {
+          void (result as Promise<void>).catch((err) => {
+            console.error(`[WorkflowSystem] Plugin "${plugin.id}" onReady failed:`, err)
+          })
+        }
+      } catch (err) {
+        console.error(`[WorkflowSystem] Plugin "${plugin.id}" onReady failed:`, err)
+      }
     }
   }
 

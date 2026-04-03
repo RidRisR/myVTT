@@ -243,5 +243,6 @@ export interface VTTPlugin {
   id: string
   dependencies?: string[]
   onActivate(sdk: import('../workflow/types').IPluginSDK): void
+  onReady?(ctx: import('../workflow/types').WorkflowContext): void | Promise<void>
   onDeactivate?(sdk: import('../workflow/types').IPluginSDK): void
 }
