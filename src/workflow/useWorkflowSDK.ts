@@ -210,8 +210,8 @@ export function initWorkflowSystem(): () => void {
           readyInternal,
         )
         const result = plugin.onReady(readyCtx)
-        if (result && typeof (result as Promise<void>).catch === 'function') {
-          void (result as Promise<void>).catch((err) => {
+        if (result && typeof (result).catch === 'function') {
+          void (result).catch((err: unknown) => {
             console.error(`[WorkflowSystem] Plugin "${plugin.id}" onReady failed:`, err)
           })
         }
