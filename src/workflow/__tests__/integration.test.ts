@@ -12,19 +12,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
 
     const deps = {
       emitEntry: vi.fn(),
-      serverRoll: vi.fn().mockResolvedValue({
-        seq: 1,
-        id: 'roll-1',
-        type: 'core:roll-result',
-        origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
-        executor: 's1',
-        chainDepth: 0,
-        triggerable: true,
-        visibility: {},
-        baseSeq: 0,
-        timestamp: Date.now(),
-        payload: { rolls: [[8, 5]], total: 15, formula: '2d12+2', dice: [{ sides: 12, count: 2 }] },
-      }),
+      serverRoll: vi.fn().mockResolvedValue([[8, 5]]),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
       getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
@@ -67,8 +55,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
           }
           const dice = toDiceSpecs(terms)
 
-          const entry = await ctx.serverRoll(formula, { dice })
-          const rolls = entry.payload.rolls as number[][]
+          const rolls = await ctx.serverRoll(dice)
           const { total } = buildCompoundResult(terms, rolls)
           ctx.vars.rolls = rolls
           ctx.vars.total = total
@@ -129,7 +116,9 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
 
     expect(result.status).toBe('completed')
     expect(executionOrder).toEqual(['dh:judge', 'cos:dice-animation', 'dh:resolve'])
-    expect(deps.serverRoll).toHaveBeenCalledWith(expect.objectContaining({ formula: '2d12+2' }))
+    expect(deps.serverRoll).toHaveBeenCalledWith(
+      expect.objectContaining({ dice: [{ sides: 12, count: 2 }] }),
+    )
   })
 
   it('wrapStep: auto-modifier wraps dh step', async () => {

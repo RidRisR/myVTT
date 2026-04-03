@@ -93,7 +93,7 @@ function buildDeps(): PluginSDKDeps {
             reject(new Error(ack.error))
             return
           }
-          resolve(ack)
+          resolve(ack.rolls)
         })
       })
     },
