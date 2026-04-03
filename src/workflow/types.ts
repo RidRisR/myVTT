@@ -176,6 +176,17 @@ export interface WorkflowContext<TVars = Record<string, unknown>> {
   /** @deprecated — will be removed when teamTracker is redesigned */
   updateTeamTracker(label: string, patch: { current?: number }): void
 
+  // ── Entity management ────────────────────────────────────────────────
+  /** Create a new entity via server (await ack) */
+  createEntity(data: {
+    id: string
+    components?: Record<string, unknown>
+    lifecycle?: import('../shared/entityTypes').EntityLifecycle
+    tags?: string[]
+  }): Promise<string>
+  /** Delete an entity via server (await ack) */
+  deleteEntity(entityId: string): Promise<void>
+
   // ── Flow Control ──────────────────────────────────────────────────────
   abort(reason?: string): void
   runWorkflow<T extends Record<string, unknown> = Record<string, unknown>, TOut = T>(

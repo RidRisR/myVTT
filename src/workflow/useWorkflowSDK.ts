@@ -97,6 +97,42 @@ function buildDeps(): PluginSDKDeps {
         })
       })
     },
+    createEntity: (data) => {
+      const socket = useWorldStore.getState()._socket
+      if (!socket) return Promise.reject(new Error('Socket not connected'))
+      return new Promise((resolve, reject) => {
+        socket.timeout(5000).emit('entity:create-request', data, (err, ack) => {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- err is null on success despite Socket.io TS typing
+          if (err) {
+            reject(new Error('Entity create timed out'))
+            return
+          }
+          if ('error' in ack) {
+            reject(new Error(ack.error))
+            return
+          }
+          resolve(ack.id)
+        })
+      })
+    },
+    deleteEntity: (entityId) => {
+      const socket = useWorldStore.getState()._socket
+      if (!socket) return Promise.reject(new Error('Socket not connected'))
+      return new Promise((resolve, reject) => {
+        socket.timeout(5000).emit('entity:delete-request', { id: entityId }, (err, ack) => {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- err is null on success despite Socket.io TS typing
+          if (err) {
+            reject(new Error('Entity delete timed out'))
+            return
+          }
+          if ('error' in ack) {
+            reject(new Error(ack.error))
+            return
+          }
+          resolve()
+        })
+      })
+    },
     getEntity: (id: string) => {
       return useWorldStore.getState().entities[id]
     },

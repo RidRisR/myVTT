@@ -177,6 +177,21 @@ export interface ClientToServerEvents {
     ack: (entries: GameLogEntry[]) => void,
   ) => void
 
+  // ── Entity management (workflow-driven) ──
+  'entity:create-request': (
+    data: {
+      id: string
+      components?: Record<string, unknown>
+      lifecycle?: import('./entityTypes').EntityLifecycle
+      tags?: string[]
+    },
+    ack: (response: import('./entityTypes').Entity | { error: string }) => void,
+  ) => void
+  'entity:delete-request': (
+    data: { id: string },
+    ack: (response: { ok: true } | { error: string }) => void,
+  ) => void
+
   // ── Awareness channel (generic) ──
   'awareness:ch:broadcast': (data: { channel: string; payload: unknown }) => void
   'awareness:ch:clear': (data: { channel: string }) => void

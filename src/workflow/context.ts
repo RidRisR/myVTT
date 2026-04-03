@@ -17,6 +17,13 @@ import { requestInput as sessionRequestInput } from '../stores/sessionStore'
 export interface ContextDeps {
   emitEntry: (entry: LogEntrySubmission) => void
   serverRoll: (request: RollRequest) => Promise<number[][]>
+  createEntity: (data: {
+    id: string
+    components?: Record<string, unknown>
+    lifecycle?: import('../shared/entityTypes').EntityLifecycle
+    tags?: string[]
+  }) => Promise<string>
+  deleteEntity: (entityId: string) => Promise<void>
   getEntity: (id: string) => Entity | undefined
   getAllEntities: () => Record<string, Entity>
   engine: WorkflowEngine
@@ -195,6 +202,15 @@ export function createWorkflowContext(
         timestamp: Date.now(),
       }
       deps.emitEntry(submission)
+    },
+
+    // ── Entity management ────────────────────────────────────────────────
+    createEntity: async (data) => {
+      const id = await deps.createEntity(data)
+      return id
+    },
+    deleteEntity: async (entityId) => {
+      await deps.deleteEntity(entityId)
     },
 
     // ── Flow Control ──────────────────────────────────────────────────────
