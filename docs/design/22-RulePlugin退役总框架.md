@@ -1,6 +1,6 @@
 # 22 — RulePlugin 退役总框架
 
-> **状态**：实施中 | 2026-04-05 更新
+> **状态**：✅ 已完成 | 2026-04-05 更新
 > **前置文档**：`17-插件系统演进路线.md`、`18-系统架构现状与演进分析.md`、`20-UI注册系统扩展方案.md`
 > **偏差文档**：`docs/superpowers/deviations/2026-04-05-ruleplugin-phase0-2.md`
 > **范围**：RulePlugin 接口的完整退役路径——消费点盘点、分阶段迁移方案、每阶段详细设计
@@ -18,12 +18,13 @@
 > **本 PR 已完成的退役工作**（偏差详见偏差文档）：
 >
 > - ✅ Phase 0：删除所有零消费接口属性（hideElements, dockTabs, gmTabs, keyBindings, getPresetTemplates）
-> - ✅ Phase 1a（部分）：删除 `PluginPanelContainer.tsx`，DH `surfaces.panels` 移除。**偏差 D1**：FullCharacterSheet 未适配 IComponentSDK（成为死代码，待 Phase 3）
+> - ✅ Phase 1a（部分）：删除 `PluginPanelContainer.tsx`，DH `surfaces.panels` 移除
+> - ✅ Phase 1b：TeamDashboard 迁移到 entity bindings（TEAM_PANEL_POINT）
 > - ✅ Phase 1d：i18n 迁移完成 — `usePluginTranslation()` 改为读 i18next namespace，`loadPluginI18n` 从 registry.ts 移除，DH 在 `onActivate` 中加载翻译
-> - ✅ Phase 2：RendererRegistry 多注册扩展 — `getAllRenderers()` API、`multiSurfaces` Set（`entity`/`combat`）、单注册 surface 保持 warn+skip
-> - ⏸️ Phase 1b：**偏差 D2** — TeamDashboard 未删除（需要 PanelRenderer 增强，issue #188）
-> - ⏸️ Phase 1c：**偏差 D3** — 实体创建工作流化推迟（L 级工作量，需独立设计和 PR）
-> - ⏸️ Phase 3/4：**偏差 D4** — 推迟到后续 PR
+> - ✅ Phase 2：surfaces 迁移（tools/tokenActions/contextMenu → RendererRegistry）、多注册扩展
+> - ✅ Phase 3：EntityCard + adapters 全部迁移到 entity bindings（24 消费点 → 0）
+> - ✅ Phase 4：RulePlugin 接口已删除、useRulePlugin.ts 已删除、旧 plugin 对象已删除
+> - ⏸️ Phase 1c：实体创建工作流化推迟（L 级工作量，需独立设计和 PR）— 不影响 RulePlugin 退役
 
 ---
 
