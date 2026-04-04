@@ -39,11 +39,13 @@ export function InputHandlerHost({ registry }: Props) {
   if (pendingInteractions.size === 0) return null
 
   return createPortal(
-    <>
+    <div className="fixed inset-0 z-overlay pointer-events-none flex items-center justify-center">
       {[...pendingInteractions.values()].map((pending) => (
-        <InputHandlerInstance key={pending.interactionId} pending={pending} registry={registry} />
+        <div key={pending.interactionId} className="pointer-events-auto">
+          <InputHandlerInstance pending={pending} registry={registry} />
+        </div>
       ))}
-    </>,
+    </div>,
     document.body,
   )
 }

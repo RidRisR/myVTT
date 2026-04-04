@@ -62,6 +62,9 @@ test.describe('Cross-client judgment and groupId', () => {
     await gmRoom.chat.expandChat()
     await gmRoom.chat.sendMessage('.dd 2d12+3')
 
+    // ModifierPanel appears — click "Roll" to confirm DC and proceed
+    await gmPage.getByRole('button', { name: 'Roll' }).click()
+
     // GM sees judgment card
     await gmRoom.chat.expectJudgmentVisible()
 
@@ -155,26 +158,36 @@ test.describe('Cross-client judgment and groupId', () => {
     await room.chat.expandChat()
     await room.chat.sendMessage('.dd 2d12+3')
 
+    // ModifierPanel appears — click "Roll" to confirm DC and proceed
+    await page.getByRole('button', { name: 'Roll' }).click()
+
     // Wait for judgment to appear (ensures all entries are in store)
     await room.chat.expectJudgmentVisible()
 
-    // Verify: roll-result and tracker-update share groupId (dh:judgment no longer emitted)
+    // Verify: action-check entry has non-empty groupId, and if component-update
+    // exists (hope/fear outcome), it shares the same groupId.
     const groupCheck = await page.waitForFunction(
       () => {
         const store = (window as any).__MYVTT_STORES__?.world()
         if (!store?.logEntries?.length) return null
 
         const entries = store.logEntries
-        const rollEntry = entries.find((e: any) => e.type === 'core:roll-result')
-        const trackerEntry = entries.find((e: any) => e.type === 'core:tracker-update')
+        const actionEntry = entries.find(
+          (e: any) => e.type === 'daggerheart-core:action-check',
+        )
+        if (!actionEntry) return null
 
-        if (!rollEntry || !trackerEntry) return null
+        const componentEntry = entries.find(
+          (e: any) => e.type === 'core:component-update',
+        )
 
         return {
-          rollGroupId: rollEntry.groupId,
-          trackerGroupId: trackerEntry.groupId,
-          match: rollEntry.groupId === trackerEntry.groupId,
-          notEmpty: rollEntry.groupId != null && rollEntry.groupId !== '',
+          actionGroupId: actionEntry.groupId,
+          componentGroupId: componentEntry?.groupId ?? null,
+          match: componentEntry
+            ? actionEntry.groupId === componentEntry.groupId
+            : true, // critical_success has no component-update
+          notEmpty: actionEntry.groupId != null && actionEntry.groupId !== '',
         }
       },
       { timeout: 10000 },

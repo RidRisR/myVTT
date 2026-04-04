@@ -9,31 +9,44 @@ export class LogStreamDispatcher {
   private triggerRegistry: TriggerRegistry
   private runner: IWorkflowRunner
   private getSeatId: () => string
-  private getWatermark: () => number
+  private _lastDispatchedSeq = 0
 
   constructor(opts: {
     triggerRegistry: TriggerRegistry
     runner: IWorkflowRunner
     getSeatId: () => string
-    getWatermark: () => number
   }) {
     this.triggerRegistry = opts.triggerRegistry
     this.runner = opts.runner
     this.getSeatId = opts.getSeatId
-    this.getWatermark = opts.getWatermark
+  }
+
+  /** Set the initial cursor — entries with seq <= watermark are considered historical. */
+  startFrom(watermark: number): void {
+    this._lastDispatchedSeq = watermark
   }
 
   /**
-   * Called for each incoming log:new entry.
-   * @param watermarkOverride — when provided, used instead of this.getWatermark()
-   *   for the historical-entry check. This is needed when the caller already knows
-   *   the pre-update watermark (e.g., from a zustand subscribe callback where the
-   *   store's watermark has already been updated in the same batch).
+   * Replay entries that may have arrived between store init and subscribe.
+   * Only processes entries with seq > _lastDispatchedSeq (safe to call with full store).
    */
-  async dispatch(entry: GameLogEntry, watermarkOverride?: number): Promise<void> {
-    // Skip historical entries (loaded during reconnect)
-    const watermark = watermarkOverride ?? this.getWatermark()
-    if (entry.seq <= watermark) return
+  catchUp(entries: GameLogEntry[]): void {
+    for (const entry of entries) {
+      if (entry.seq > this._lastDispatchedSeq) {
+        void this.dispatch(entry)
+      }
+    }
+  }
+
+  /**
+   * Called for each incoming log entry.
+   * Idempotent — entries with seq <= _lastDispatchedSeq are skipped.
+   */
+  async dispatch(entry: GameLogEntry): Promise<void> {
+    // Idempotent: skip already-processed or historical entries
+    if (entry.seq <= this._lastDispatchedSeq) return
+    // Advance cursor
+    this._lastDispatchedSeq = entry.seq
     // Only triggerable entries
     if (!entry.triggerable) return
     // Cascade protection

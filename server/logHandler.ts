@@ -58,49 +58,58 @@ export function setupLogHandlers(io: TypedServer, dataDir: string): void {
       const executor = socket.data.seatId
 
       // 4. Transaction: insert + effects + get seq
-      const { entry, isNew } = db.transaction(() => {
-        const info = db
-          .prepare(
-            `INSERT OR IGNORE INTO game_log
-             (id, type, origin, executor, parent_id, group_id, chain_depth, triggerable, visibility, base_seq, payload, timestamp)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          )
-          .run(
-            submission.id,
-            submission.type,
-            JSON.stringify(submission.origin),
-            executor,
-            submission.parentId ?? null,
-            submission.groupId,
-            submission.chainDepth,
-            submission.triggerable ? 1 : 0,
-            JSON.stringify(submission.visibility),
-            submission.baseSeq,
-            JSON.stringify(submission.payload),
-            submission.timestamp,
-          )
-
-        // Read row to get seq (works for both new inserts and duplicate attempts)
-        const row = db.prepare('SELECT * FROM game_log WHERE id = ?').get(submission.id) as Record<
-          string,
-          unknown
-        >
-        const parsed = rowToEntry(row)
-
-        // If new entry (not duplicate): run effects which may mutate payload
-        if (info.changes > 0) {
-          const hadEffect = effectRegistry.run(db, parsed)
-          // Only update payload in DB if an effect handler actually ran
-          if (hadEffect) {
-            db.prepare('UPDATE game_log SET payload = ? WHERE id = ?').run(
-              JSON.stringify(parsed.payload),
-              parsed.id,
+      let result: { entry: GameLogEntry; isNew: boolean }
+      try {
+        result = db.transaction(() => {
+          const info = db
+            .prepare(
+              `INSERT OR IGNORE INTO game_log
+               (id, type, origin, executor, parent_id, group_id, chain_depth, triggerable, visibility, base_seq, payload, timestamp)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             )
-          }
-        }
+            .run(
+              submission.id,
+              submission.type,
+              JSON.stringify(submission.origin),
+              executor,
+              submission.parentId ?? null,
+              submission.groupId,
+              submission.chainDepth,
+              submission.triggerable ? 1 : 0,
+              JSON.stringify(submission.visibility),
+              submission.baseSeq,
+              JSON.stringify(submission.payload),
+              submission.timestamp,
+            )
 
-        return { entry: parsed, isNew: info.changes > 0 }
-      })()
+          // Read row to get seq (works for both new inserts and duplicate attempts)
+          const row = db
+            .prepare('SELECT * FROM game_log WHERE id = ?')
+            .get(submission.id) as Record<string, unknown>
+          const parsed = rowToEntry(row)
+
+          // If new entry (not duplicate): run effects which may mutate payload
+          if (info.changes > 0) {
+            const hadEffect = effectRegistry.run(db, parsed)
+            // Only update payload in DB if an effect handler actually ran
+            if (hadEffect) {
+              db.prepare('UPDATE game_log SET payload = ? WHERE id = ?').run(
+                JSON.stringify(parsed.payload),
+                parsed.id,
+              )
+            }
+          }
+
+          return { entry: parsed, isNew: info.changes > 0 }
+        })()
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        console.error(`[logHandler] log:entry effect failed for ${submission.type}: ${message}`)
+        ack({ error: message })
+        return
+      }
+
+      const { entry, isNew } = result
 
       // 5. Only broadcast new entries (not duplicates)
       if (isNew) {

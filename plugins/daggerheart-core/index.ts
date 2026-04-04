@@ -70,6 +70,8 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       {
         id: 'roll',
         run: async (ctx) => {
+          // Action check always rolls 2d12 — formula is fixed regardless of user input
+          ctx.vars.formula = '2d12'
           const rolls = await ctx.serverRoll([{ sides: 12, count: 2 }])
           ctx.vars.rolls = rolls
           const total = rolls.flat().reduce((a, b) => a + b, 0)

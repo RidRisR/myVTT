@@ -41,7 +41,7 @@ import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './ui/ToastProvider'
 import { PluginPanelContainer } from './layout/PluginPanelContainer'
 import { useRulePlugin } from './rules/useRulePlugin'
-import { initWorkflowSystem } from './workflow/useWorkflowSDK'
+import { initWorkflowSystem, startWorkflowTriggers } from './workflow/useWorkflowSDK'
 import { useStore } from 'zustand'
 import { PanelRenderer } from './ui-system/PanelRenderer'
 import { LayerRenderer } from './ui-system/LayerRenderer'
@@ -77,14 +77,16 @@ function RoomSession({ roomId }: { roomId: string }) {
     cancelledRef.current = false
     let cleanupWorld: (() => void) | undefined
     let cleanupIdentity: (() => void) | undefined
+    let cleanupTriggers: (() => void) | undefined
 
-    // Initialize workflow system BEFORE store init — dispatcher must exist
-    // before the first log:new event arrives from worldStore.init()
-    const cleanupWorkflow = initWorkflowSystem()
+    // Phase 1: Construct workflow system (sync — no data dependencies)
+    const { cleanup: cleanupWorkflow } = initWorkflowSystem()
 
     void (async () => {
       try {
         setInitError(null)
+
+        // Phase 2: Load store data (world + identity in parallel)
         const [worldCleanup, identityCleanup] = await Promise.all([
           initWorld(roomId, socket),
           initIdentity(roomId, socket),
@@ -96,6 +98,23 @@ function RoomSession({ roomId }: { roomId: string }) {
         }
         cleanupWorld = worldCleanup
         cleanupIdentity = identityCleanup
+
+        // Capture watermark before any log:new events can push it higher.
+        // JS is single-threaded — no socket events fire between await resume and this read.
+        const historyWatermark = useWorldStore.getState().logWatermark
+
+        // Phase 3: Plugin onReady (stores have data) → catch up → trigger subscription.
+        // onReady failures are non-fatal — triggers still subscribe, room still loads.
+        try {
+          cleanupTriggers = await startWorkflowTriggers(historyWatermark)
+        } catch (triggerErr) {
+          // Extract cleanup from the error (triggers were subscribed despite onReady failures)
+          if (triggerErr instanceof AggregateError && 'cleanup' in triggerErr) {
+            cleanupTriggers = (triggerErr as AggregateError & { cleanup: () => void }).cleanup
+          }
+          console.warn('[Room] Some plugins failed onReady (non-fatal):', triggerErr)
+        }
+
         setIsLoading(false)
       } catch (err) {
         console.error('Failed to initialize room:', err)
@@ -106,6 +125,7 @@ function RoomSession({ roomId }: { roomId: string }) {
 
     return () => {
       cancelledRef.current = true
+      cleanupTriggers?.()
       cleanupWorkflow()
       cleanupWorld?.()
       cleanupIdentity?.()

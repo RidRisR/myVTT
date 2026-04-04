@@ -202,7 +202,7 @@ export function ChatPanel({
   const handleCommand = useCallback(
     (handle: WorkflowHandle, raw: string) => {
       void runner.runWorkflow(handle, {
-        raw,
+        formula: raw,
         actorId: speakerCharId ?? senderId,
         speakerId: speakerCharId,
         seatId: senderId,

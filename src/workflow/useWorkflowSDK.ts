@@ -22,6 +22,8 @@ let _engine: WorkflowEngine | null = null
 let _pluginsActivated = false
 let _registeredPlugins: VTTPlugin[] = []
 let _triggerRegistry: TriggerRegistry | null = null
+let _runner: WorkflowRunner | null = null
+let _dispatcher: LogStreamDispatcher | null = null
 let _workflowSystemInitialized = false
 
 // Lazy accessor for getRulePluginSync — breaks circular dependency with registry.ts.
@@ -69,6 +71,8 @@ export function resetWorkflowEngine(): void {
   _pluginsActivated = false
   _registeredPlugins = []
   _triggerRegistry = null
+  _runner = null
+  _dispatcher = null
   _workflowSystemInitialized = false
   clearCommands()
 }
@@ -169,14 +173,20 @@ function ensurePluginsActivated(engine: WorkflowEngine): void {
   }
 }
 
+/** Return type for initWorkflowSystem — sync construction only */
+export interface WorkflowSystemHandle {
+  /** Tear down the workflow system (engine, registries) */
+  cleanup: () => void
+}
+
 /**
- * Initialize the entire workflow system: engine, plugins, triggers, dispatcher.
- * Synchronous — all structures are pure construction with lazy getters.
- * Must be called BEFORE store init (Promise.all) to ensure dispatcher
- * exists before the first log:new event arrives.
+ * Phase 1: Construct the workflow system — engine, plugins (onActivate), runner, dispatcher.
+ * Purely synchronous. Does NOT start listening for events or call onReady.
+ *
+ * Call `startWorkflowTriggers()` after stores are initialized to complete startup.
  */
-export function initWorkflowSystem(): () => void {
-  if (_workflowSystemInitialized) return () => {}
+export function initWorkflowSystem(): WorkflowSystemHandle {
+  if (_workflowSystemInitialized) return { cleanup: () => {} }
 
   // Register base log entry renderers before plugin activation
   registerBaseRenderers()
@@ -184,7 +194,7 @@ export function initWorkflowSystem(): () => void {
   const engine = getWorkflowEngine()
   _triggerRegistry = new TriggerRegistry()
 
-  // Activate plugins with trigger registry
+  // Activate plugins with trigger registry (declarations only — no runtime effects)
   if (!_pluginsActivated) {
     for (const plugin of _registeredPlugins) {
       const sdk = new PluginSDK(engine, plugin.id, getUIRegistry(), _triggerRegistry)
@@ -197,55 +207,119 @@ export function initWorkflowSystem(): () => void {
     }
   }
 
-  // Call onReady for all plugins (after all onActivate, deps available)
+  // Create runner + dispatcher (wired but not yet listening)
+  const deps = buildDeps()
+  _runner = new WorkflowRunner(engine, deps)
+  _dispatcher = new LogStreamDispatcher({
+    triggerRegistry: _triggerRegistry,
+    runner: _runner,
+    getSeatId: () => useIdentityStore.getState().mySeatId ?? '',
+  })
+
+  _workflowSystemInitialized = true
+  return { cleanup: () => { /* engine/registry cleanup if needed */ } }
+}
+
+/**
+ * Phase 2: Activate plugins at runtime and start trigger dispatch.
+ * Must be called AFTER stores are initialized (entities, log history loaded).
+ *
+ * @param historyWatermark — the logWatermark captured immediately after store init.
+ *   Entries with seq <= historyWatermark are considered historical and won't trigger.
+ *   Entries that arrived between store init and this call are caught up automatically.
+ *
+ * Lifecycle:
+ *   1. Run onReady for all plugins — plugins can read store state, create entities
+ *   2. Catch up on any entries missed during the init window
+ *   3. Subscribe dispatcher to log stream — triggers start firing
+ *
+ * Returns a cleanup function that unsubscribes the dispatcher.
+ * Rejects if any plugin onReady fails (all are attempted via allSettled).
+ */
+export async function startWorkflowTriggers(historyWatermark: number): Promise<() => void> {
+  if (!_workflowSystemInitialized) {
+    throw new Error('startWorkflowTriggers called before initWorkflowSystem')
+  }
+
+  // ── Phase 2a: onReady ──
+  // Plugins can now read real store state (entities, components, etc.)
   const readyDeps = buildDeps()
-  const readyEngine = engine
+  const engine = getWorkflowEngine()
+  const readyPromises: Promise<void>[] = []
+
   for (const plugin of _registeredPlugins) {
     if (plugin.onReady) {
       try {
         const readyInternal = { depth: 0, abortCtrl: { aborted: false } }
         const readyCtx = createWorkflowContext(
-          { ...readyDeps, engine: readyEngine },
+          { ...readyDeps, engine },
           {},
           readyInternal,
         )
         const result = plugin.onReady(readyCtx)
-        if (result && typeof (result).catch === 'function') {
-          void (result).catch((err: unknown) => {
-            console.error(`[WorkflowSystem] Plugin "${plugin.id}" onReady failed:`, err)
-          })
+        if (result && typeof (result as Promise<void>).then === 'function') {
+          readyPromises.push(
+            (result as Promise<void>).catch((err: unknown) => {
+              throw new Error(
+                `Plugin "${plugin.id}" onReady failed: ${err instanceof Error ? err.message : String(err)}`,
+              )
+            }),
+          )
         }
       } catch (err) {
-        console.error(`[WorkflowSystem] Plugin "${plugin.id}" onReady failed:`, err)
+        readyPromises.push(
+          Promise.reject(
+            new Error(
+              `Plugin "${plugin.id}" onReady failed: ${err instanceof Error ? err.message : String(err)}`,
+            ),
+          ),
+        )
       }
     }
   }
 
-  // Create runner + dispatcher with lazy getters
-  const deps = buildDeps()
-  const runner = new WorkflowRunner(engine, deps)
-  const dispatcher = new LogStreamDispatcher({
-    triggerRegistry: _triggerRegistry,
-    runner,
-    getSeatId: () => useIdentityStore.getState().mySeatId ?? '',
-    getWatermark: () => useWorldStore.getState().logWatermark,
-  })
+  // Settle all — report all failures, not just the first
+  const results = await Promise.allSettled(readyPromises)
+  const failures = results.filter(
+    (r): r is PromiseRejectedResult => r.status === 'rejected',
+  )
+  if (failures.length > 0) {
+    for (const f of failures) {
+      console.error('[WorkflowSystem]', f.reason)
+    }
+  }
 
-  // Subscribe to log stream — dispatch new entries as they arrive.
-  // We pass prevState.logWatermark as the "watermark at dispatch time" so the
-  // dispatcher can correctly distinguish new entries from historical ones,
-  // even when the store's watermark is updated in the same setState batch.
+  // ── Phase 2b: Catch up + subscribe dispatcher to log stream ──
+  const dispatcher = _dispatcher!
+
+  // Set cursor to history boundary — entries at or below this seq are historical
+  dispatcher.startFrom(historyWatermark)
+
+  // Catch up on entries that arrived between store init and now (the init window).
+  // Safe to pass the full store — dispatcher's cursor skips historical entries.
+  dispatcher.catchUp(useWorldStore.getState().logEntries)
+
+  // Subscribe to future entries. Dispatcher's internal cursor handles idempotency,
+  // so no watermarkOverride is needed.
   const unsubscribe = useWorldStore.subscribe((state, prevState) => {
     if (state.logEntries.length > prevState.logEntries.length) {
-      const prevWatermark = prevState.logWatermark
       for (let i = prevState.logEntries.length; i < state.logEntries.length; i++) {
         const entry = state.logEntries[i]
-        if (entry) void dispatcher.dispatch(entry, prevWatermark)
+        if (entry) void dispatcher.dispatch(entry)
       }
     }
   })
 
-  _workflowSystemInitialized = true
+  // If onReady had failures, throw after subscribing (so triggers still work)
+  if (failures.length > 0) {
+    const err = new AggregateError(
+      failures.map((f) => f.reason as Error),
+      `${failures.length} plugin(s) failed onReady`,
+    )
+    ;(err as AggregateError & { cleanup: () => void }).cleanup = unsubscribe
+    throw err
+  }
+
   return unsubscribe
 }
 
