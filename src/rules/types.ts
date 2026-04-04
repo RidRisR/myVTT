@@ -144,8 +144,6 @@ export interface ContextMenuItem {
   separator?: 'before' | 'after'
 }
 
-// ── RulePlugin — the main interface ────────────────────────────────────────
-
 // ── i18n types ──────────────────────────────────────────────────────────────
 
 /** Plugin-provided translations. Keys are language codes, values are flat key-value maps. */
@@ -153,43 +151,7 @@ export interface PluginI18n {
   resources: Record<string, Record<string, string>>
 }
 
-export interface RulePlugin {
-  id: string
-  name: string
-  sdkVersion: '1'
-
-  // i18n translations (optional — falls back to key itself if not provided)
-  i18n?: PluginI18n
-
-  // Layer 1: Adapters — read entity data for generic base UI
-  adapters: {
-    getMainResource(entity: Entity): ResourceView | null
-    getPortraitResources(entity: Entity): ResourceView[]
-    getStatuses(entity: Entity): StatusView[]
-    getFormulaTokens(entity: Entity): Record<string, number>
-  }
-
-  // Layer 2: Character card UI slot
-  characterUI: {
-    EntityCard: React.ComponentType<EntityCardProps>
-  }
-
-  // Layer 3: Data templates (optional)
-  dataTemplates?: {
-    createDefaultEntityData(): Record<string, unknown>
-  }
-
-  // Layer 4: UI surfaces (optional)
-  surfaces?: {
-    panels?: PluginPanelDef[]
-    teamPanel?: React.ComponentType<TeamPanelProps>
-  }
-
-  // Layer 5: Rule resolution — reserved, not implemented
-  // ruleResolution?: RuleResolutionModule
-}
-
-// ── VTTPlugin — new imperative plugin interface (coexists with RulePlugin) ──
+// ── VTTPlugin — imperative plugin interface ──
 
 export interface VTTPlugin {
   id: string

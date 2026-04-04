@@ -4,7 +4,6 @@
 // ── Type exports ────────────────────────────────────────────────────────────
 export type { Entity } from '../shared/entityTypes'
 export type {
-  RulePlugin,
   PluginI18n,
   ResourceView,
   StatusView,
