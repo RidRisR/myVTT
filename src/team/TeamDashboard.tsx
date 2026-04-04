@@ -4,7 +4,7 @@ import { useWorldStore } from '../stores/worldStore'
 import { TeamMetricsTab } from './TeamMetricsTab'
 import { useUiStore } from '../stores/uiStore'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import { getTeamPanel } from '../log/entityBindings'
 import { useTranslation } from 'react-i18next'
 
 interface TeamDashboardProps {
@@ -35,8 +35,8 @@ export function TeamDashboard({ isGM }: TeamDashboardProps) {
     prevTrackerCount.current = trackers.length
   }, [trackers.length, setTeamPanelVisible])
 
-  const plugin = useRulePlugin()
-  const PluginTeamPanel = plugin.surfaces?.teamPanel
+  const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
+  const PluginTeamPanel = getTeamPanel(ruleSystemId)
 
   // Hide entire dashboard if no trackers and not GM
   if (trackers.length === 0 && !isGM) return null

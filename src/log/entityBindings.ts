@@ -6,7 +6,7 @@
 
 import type React from 'react'
 import type { Entity } from '../shared/entityTypes'
-import type { ResourceView, StatusView, EntityCardProps } from '../rules/types'
+import type { ResourceView, StatusView, EntityCardProps, TeamPanelProps } from '../rules/types'
 import { createRendererPoint, getAllRenderers } from './rendererRegistry'
 
 // ── Binding types ────────────────────────────────────────────────────────────
@@ -37,6 +37,11 @@ export interface DataTemplateBinding {
   createDefaultEntityData: () => Record<string, unknown>
 }
 
+export interface TeamPanelBinding {
+  ruleSystemId: string
+  component: React.ComponentType<TeamPanelProps>
+}
+
 // ── RendererPoints ───────────────────────────────────────────────────────────
 
 export const MAIN_RESOURCE_POINT = createRendererPoint<MainResourceBinding>(
@@ -57,6 +62,7 @@ export const DATA_TEMPLATE_POINT = createRendererPoint<DataTemplateBinding>(
   'entity',
   'data-template',
 )
+export const TEAM_PANEL_POINT = createRendererPoint<TeamPanelBinding>('entity', 'team-panel')
 
 // ── Data-driven utility functions ────────────────────────────────────────────
 // These iterate all registered bindings. Each binding's resolve() returns data
@@ -115,4 +121,12 @@ export function getDataTemplate(
 ): (() => Record<string, unknown>) | undefined {
   const bindings = getAllRenderers(DATA_TEMPLATE_POINT)
   return bindings.find((b) => b.ruleSystemId === ruleSystemId)?.createDefaultEntityData
+}
+
+/** Get team panel component for the given rule system. Returns null if none registered. */
+export function getTeamPanel(
+  ruleSystemId: string,
+): React.ComponentType<TeamPanelProps> | null {
+  const bindings = getAllRenderers(TEAM_PANEL_POINT)
+  return bindings.find((b) => b.ruleSystemId === ruleSystemId)?.component ?? null
 }

@@ -81,6 +81,7 @@ export type {
   FormulaTokensBinding,
   EntityCardBinding,
   DataTemplateBinding,
+  TeamPanelBinding,
 } from '../log/entityBindings'
 export {
   MAIN_RESOURCE_POINT,
@@ -89,6 +90,7 @@ export {
   FORMULA_TOKENS_POINT,
   ENTITY_CARD_POINT,
   DATA_TEMPLATE_POINT,
+  TEAM_PANEL_POINT,
 } from '../log/entityBindings'
 export type { RollResultConfig, RollCardProps } from './types'
 
