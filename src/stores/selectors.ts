@@ -5,7 +5,7 @@
 import type { Entity, MapToken } from '../shared/entityTypes'
 import type { Scene, RoomState, TacticalInfo } from './worldStore'
 import type { Seat } from './identityStore'
-import type { RulePlugin } from '../rules/types'
+import { getFormulaTokens } from '../log/entityBindings'
 
 // ── World store selectors ──
 
@@ -47,14 +47,13 @@ export function selectTokenById(id: string | null) {
 // ── Derived chat properties ──
 
 export function deriveSeatProperties(
-  plugin: RulePlugin,
   activeEntity: Entity | null,
   selectedTokenEntity: Entity | null,
 ): { key: string; value: string }[] {
   const allProps: { key: string; value: string }[] = []
   for (const entity of [activeEntity, selectedTokenEntity]) {
     if (!entity) continue
-    const tokens = plugin.adapters.getFormulaTokens(entity)
+    const tokens = getFormulaTokens(entity)
     for (const [key, value] of Object.entries(tokens)) {
       allProps.push({ key, value: String(value) })
     }

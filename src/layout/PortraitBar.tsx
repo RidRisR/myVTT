@@ -14,7 +14,12 @@ import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { FloatingCard } from '../ui/primitives/FloatingCard'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import {
+  getPortraitResources,
+  getStatuses,
+  getEntityCard,
+  getDataTemplate,
+} from '../log/entityBindings'
 
 type PortraitTabId = 'characters' | 'initiative'
 
@@ -120,8 +125,8 @@ export function PortraitBar({
   const updatePinnedCardPosition = useUiStore((s) => s.updatePinnedCardPosition)
 
   const { t } = useTranslation('layout')
-  const plugin = useRulePlugin()
-  const Card = plugin.characterUI.EntityCard
+  const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
+  const Card = getEntityCard(ruleSystemId)
 
   const [activeTab, setActiveTab] = useState<PortraitTabId>('characters')
 
@@ -203,7 +208,7 @@ export function PortraitBar({
         'core:identity': { name: t('portrait.my_character'), imageUrl: '', color: '#3b82f6' },
         'core:token': { width: 1, height: 1 },
         'core:notes': { text: '' },
-        ...(plugin.dataTemplates?.createDefaultEntityData() ?? {}),
+        ...(getDataTemplate(ruleSystemId)?.() ?? {}),
       },
     }
     void addEntity(newEntity)
@@ -273,9 +278,9 @@ export function PortraitBar({
       openCardId === entity.id || pinnedCards.some((p) => p.entityId === entity.id)
     const isActive = activeCharacterId === entity.id
 
-    const resources = plugin.adapters.getPortraitResources(entity).filter((r) => r.max > 0)
+    const resources = getPortraitResources(entity).filter((r) => r.max > 0)
     const displayResources = resources.slice(0, 2) // max 2 rings
-    const statuses = plugin.adapters.getStatuses(entity)
+    const statuses = getStatuses(entity)
     const maxStatusDots = 3
 
     const eName = getName(entity)
@@ -611,7 +616,7 @@ export function PortraitBar({
       )}
 
       {/* 2. Open card (unpinned, anchored below portrait) */}
-      {openCardId && openCardEntity && openCardRect && (
+      {openCardId && openCardEntity && openCardRect && Card && (
         <FloatingCard
           mode="anchored"
           anchor={openCardRect}
@@ -644,7 +649,7 @@ export function PortraitBar({
       )}
 
       {/* 3. Pinned cards (floating, draggable) */}
-      {pinnedCards.map((pc) => {
+      {Card && pinnedCards.map((pc) => {
         const entity =
           entities.find((e) => e.id === pc.entityId) ??
           visibleEntities.find((e) => e.id === pc.entityId)

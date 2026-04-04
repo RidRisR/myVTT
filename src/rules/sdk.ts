@@ -72,6 +72,24 @@ export type {
   RendererPoint,
 } from '../log/rendererRegistry'
 export { createRendererPoint, getAllRenderers } from '../log/rendererRegistry'
+
+// ── Entity binding types (adapter migration) ────────────────────────────────
+export type {
+  MainResourceBinding,
+  PortraitResourcesBinding,
+  StatusBinding,
+  FormulaTokensBinding,
+  EntityCardBinding,
+  DataTemplateBinding,
+} from '../log/entityBindings'
+export {
+  MAIN_RESOURCE_POINT,
+  PORTRAIT_RESOURCES_POINT,
+  STATUS_POINT,
+  FORMULA_TOKENS_POINT,
+  ENTITY_CARD_POINT,
+  DATA_TEMPLATE_POINT,
+} from '../log/entityBindings'
 export type { RollResultConfig, RollCardProps } from './types'
 
 // Pre-defined token factory for roll result configs

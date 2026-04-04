@@ -39,7 +39,6 @@ import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './ui/ToastProvider'
-import { useRulePlugin } from './rules/useRulePlugin'
 import { initWorkflowSystem, startWorkflowTriggers } from './workflow/useWorkflowSDK'
 import { useStore } from 'zustand'
 import { PanelRenderer } from './ui-system/PanelRenderer'
@@ -294,8 +293,7 @@ function RoomSession({ roomId }: { roomId: string }) {
     : null
   const selectedTokenEntity = selectedToken?.entityId ? getEntity(selectedToken.entityId) : null
 
-  const plugin = useRulePlugin()
-  const seatProperties = deriveSeatProperties(plugin, activeEntity, selectedTokenEntity)
+  const seatProperties = deriveSeatProperties(activeEntity, selectedTokenEntity)
   const isGMForSpeakers = mySeat?.role === 'GM'
   const speakerEntities = useMemo(
     () => selectSpeakerEntities(entities, mySeatId, isGMForSpeakers),

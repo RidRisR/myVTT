@@ -7,7 +7,8 @@ import { daggerheartPlugin } from '../../plugins/daggerheart/index'
 import { daggerheartCorePlugin } from '../../plugins/daggerheart-core'
 import { daggerheartCosmeticPlugin } from '../../plugins/daggerheart-cosmetic'
 import { coreUIPlugin } from '../../plugins/core-ui'
-import { registerWorkflowPlugins, _bindRuleRegistry } from '../workflow/useWorkflowSDK'
+import { genericVTTPlugin } from '../../plugins/generic/vttPlugin'
+import { registerWorkflowPlugins } from '../workflow/useWorkflowSDK'
 
 const registry = new Map<string, RulePlugin>([
   ['generic', genericPlugin],
@@ -15,7 +16,7 @@ const registry = new Map<string, RulePlugin>([
 ])
 
 // POC: register workflow plugins (will be replaced by dynamic discovery from room's rule system)
-registerWorkflowPlugins([daggerheartCorePlugin, daggerheartCosmeticPlugin, coreUIPlugin])
+registerWorkflowPlugins([genericVTTPlugin, daggerheartCorePlugin, daggerheartCosmeticPlugin, coreUIPlugin])
 
 export function registerPlugin(plugin: RulePlugin): void {
   registry.set(plugin.id, plugin)
@@ -35,6 +36,3 @@ export function getAvailablePlugins(): Array<{ id: string; name: string }> {
   return Array.from(registry.entries()).map(([id, p]) => ({ id, name: p.name }))
 }
 
-// Late-bind getRulePluginSync into useWorkflowSDK — breaks circular dependency.
-// This runs after all module-level code above has completed.
-_bindRuleRegistry(getRulePluginSync)

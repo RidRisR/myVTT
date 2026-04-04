@@ -2,7 +2,7 @@ import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { Entity } from '../shared/entityTypes'
 import { getName, getColor, getImageUrl, getNotes } from '../shared/coreComponents'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import { getPortraitResources, getFormulaTokens, getStatuses } from '../log/entityBindings'
 import { statusColor } from '../shared/tokenUtils'
 
 interface CharacterDetailPanelProps {
@@ -13,10 +13,9 @@ interface CharacterDetailPanelProps {
 
 export function CharacterDetailPanel({ character, isOnline, onClose }: CharacterDetailPanelProps) {
   const { t } = useTranslation('layout')
-  const plugin = useRulePlugin()
-  const resources = plugin.adapters.getPortraitResources(character)
-  const attributes = plugin.adapters.getFormulaTokens(character)
-  const statuses = plugin.adapters.getStatuses(character)
+  const resources = getPortraitResources(character)
+  const attributes = getFormulaTokens(character)
+  const statuses = getStatuses(character)
   const notes = getNotes(character).text
   const rd = character.components
   const handouts =

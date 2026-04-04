@@ -4,7 +4,7 @@ import type { ChatMessage, MessageOrigin } from '../shared/chatTypes'
 import { getDisplayIdentity } from '../shared/chatTypes'
 import type { Entity } from '../shared/entityTypes'
 import { getName, getColor, getImageUrl } from '../shared/coreComponents'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import { getFormulaTokens } from '../log/entityBindings'
 import { useWorldStore } from '../stores/worldStore'
 import { useWorkflowRunner } from '../workflow/useWorkflowSDK'
 import { getSendTextWorkflow } from '../workflow/baseWorkflows'
@@ -91,7 +91,6 @@ export function ChatPanel({
   const [speakerCharId, setSpeakerCharId] = useState<string | null>(null)
   const [showSpeakerPicker, setShowSpeakerPicker] = useState(false)
 
-  const plugin = useRulePlugin()
   const runner = useWorkflowRunner()
 
   const logEntries = useWorldStore((s) => s.logEntries)
@@ -141,9 +140,9 @@ export function ChatPanel({
   // When speaking as an entity, use that entity's properties for @ resolution
   const activeSpeakerProps = useMemo(() => {
     if (!speakerEntity) return seatProperties
-    const tokens = plugin.adapters.getFormulaTokens(speakerEntity)
+    const tokens = getFormulaTokens(speakerEntity)
     return Object.entries(tokens).map(([key, value]) => ({ key, value: String(value) }))
-  }, [speakerEntity, seatProperties, plugin])
+  }, [speakerEntity, seatProperties])
 
   // Detect new entries (from worldStore updates via Socket.io)
   useEffect(() => {

@@ -2,6 +2,14 @@
 import type React from 'react'
 import i18next from 'i18next'
 import type { VTTPlugin, IPluginSDK, WorkflowContext, WorkflowHandle } from '@myvtt/sdk'
+import {
+  MAIN_RESOURCE_POINT,
+  PORTRAIT_RESOURCES_POINT,
+  STATUS_POINT,
+  FORMULA_TOKENS_POINT,
+  ENTITY_CARD_POINT,
+  DATA_TEMPLATE_POINT,
+} from '@myvtt/sdk'
 import { DiceJudge } from './DiceJudge'
 import { FearManager } from './FearManager'
 import { HopeResolver } from './HopeResolver'
@@ -10,6 +18,14 @@ import type { ModifierResult } from './ui/ModifierPanel'
 import { DHActionCheckCard } from './ui/DHActionCheckCard'
 import { FearPanel } from './ui/FearPanel'
 import { daggerheartI18n } from '../daggerheart/i18n'
+import {
+  dhGetMainResource,
+  dhGetPortraitResources,
+  dhGetStatuses,
+  dhGetFormulaTokens,
+} from '../daggerheart/adapters'
+import { createDefaultDHEntityData } from '../daggerheart/templates'
+import { DaggerHeartCard } from '../daggerheart/DaggerHeartCard'
 
 interface ActionCheckData {
   [key: string]: unknown
@@ -49,6 +65,20 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       'daggerheart-core:action-check',
       DHActionCheckCard as unknown as React.ComponentType<{ entry: unknown; isNew?: boolean }>,
     )
+
+    // Register entity display bindings (adapter migration)
+    sdk.ui.registerRenderer(MAIN_RESOURCE_POINT, { resolve: dhGetMainResource })
+    sdk.ui.registerRenderer(PORTRAIT_RESOURCES_POINT, { resolve: dhGetPortraitResources })
+    sdk.ui.registerRenderer(STATUS_POINT, { resolve: dhGetStatuses })
+    sdk.ui.registerRenderer(FORMULA_TOKENS_POINT, { resolve: dhGetFormulaTokens })
+    sdk.ui.registerRenderer(ENTITY_CARD_POINT, {
+      ruleSystemId: 'daggerheart',
+      component: DaggerHeartCard,
+    })
+    sdk.ui.registerRenderer(DATA_TEMPLATE_POINT, {
+      ruleSystemId: 'daggerheart',
+      createDefaultEntityData: createDefaultDHEntityData,
+    })
 
     // Register Fear panel
     sdk.ui.registerComponent({

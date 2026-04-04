@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import type { Entity } from '../shared/entityTypes'
 import { getName, getColor, getImageUrl } from '../shared/coreComponents'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import { getEntityCard } from '../log/entityBindings'
+import { useWorldStore } from '../stores/worldStore'
 
 interface MyCharacterCardProps {
   entity: Entity
@@ -11,8 +12,8 @@ interface MyCharacterCardProps {
 
 export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps) {
   const [open, setOpen] = useState(false)
-  const plugin = useRulePlugin()
-  const Card = plugin.characterUI.EntityCard
+  const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
+  const Card = getEntityCard(ruleSystemId)
 
   const name = getName(entity)
   const imageUrl = getImageUrl(entity)
@@ -34,13 +35,15 @@ export function MyCharacterCard({ entity, onUpdateEntity }: MyCharacterCardProps
       >
         {/* Card panel -- content delegated to plugin's EntityCard */}
         <div className="w-[272px] bg-glass backdrop-blur-[16px] rounded-r-[14px] shadow-[4px_0_32px_rgba(0,0,0,0.3)] border border-border-glass border-l-0 overflow-y-auto max-h-[80vh]">
-          <Card
-            entity={entity}
-            onUpdate={(patch) => {
-              onUpdateEntity(entity.id, patch)
-            }}
-            readonly={false}
-          />
+          {Card && (
+            <Card
+              entity={entity}
+              onUpdate={(patch) => {
+                onUpdateEntity(entity.id, patch)
+              }}
+              readonly={false}
+            />
+          )}
         </div>
 
         {/* Tab handle -- always visible */}
