@@ -142,7 +142,7 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
         if (!rolls || total == null) return
 
         // Reconstruct dice specs for display
-        const finalFormula = (resolvedFormula) ?? (formula)
+        const finalFormula = resolvedFormula ?? formula
         const terms = tokenizeExpression(finalFormula)
         const dice = terms ? toDiceSpecs(terms) : []
 

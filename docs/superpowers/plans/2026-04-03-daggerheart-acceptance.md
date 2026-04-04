@@ -1,5 +1,6 @@
 # DaggerHeart 验收实现计划
 
+> **状态**：✅ 已完成 | 2026-04-04
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 实现完整的 DaggerHeart 掷骰流程（触发 → 交互 → 掷骰 → 判定 → 数据更新 → 渲染），验证 VTTPlugin 基础设施完备性，证明 OOP 可行性，退役 RulePlugin.diceSystem。
@@ -9,6 +10,52 @@
 **Tech Stack:** TypeScript, React, vitest, Socket.io, zustand, better-sqlite3
 
 **Design Spec:** `docs/superpowers/specs/2026-03-31-daggerheart-acceptance-design.md`
+
+---
+
+## 实现偏差记录
+
+> 以下偏差在实现过程中产生，记录于 2026-04-04。
+
+### 偏差 1：`raw` 变量名统一为 `formula`
+
+**计划描述**：Task 3 Step 3 使用 `ctx.vars.formula ?? (ctx.vars.raw as string)` 同时支持两个变量名。
+
+**实际实现**：`handleCommand` 统一传 `formula: raw`，从 workflow vars 中完全移除 `raw`。quick-roll 的 fallback 也已删除。
+
+**原因**：两个名字指同一个值是 bug 源头（导致 formula 为 undefined 时 React crash）。统一命名消除歧义。
+
+### 偏差 2：`rollSteps.ts` 删除，逻辑整合进 `index.ts`
+
+**计划描述**：Task 3 修改 `plugins/daggerheart-core/rollSteps.ts`。
+
+**实际实现**：该文件已删除，5 步 workflow 直接定义在 `index.ts` 的 `onActivate` 中。
+
+**原因**：workflow 步骤与 OOP 类（DiceJudge/FearManager/HopeResolver）紧密耦合，拆分到单独文件无额外收益。
+
+### 偏差 3：action-check 不走 roll workflow，直接 serverRoll
+
+**计划描述**：Task 3 Step 3 通过 `ctx.runWorkflow(getRollWorkflow(), ...)` 复用公式求值。
+
+**实际实现**：直接 `ctx.serverRoll([{sides:12, count:2}])`，formula 固定为 `'2d12'`。
+
+**原因**：action check 始终掷 2d12，不需要公式解析。未来 modifier 完善后，formula 应由 ModifierPanel 动态决定，届时可恢复走 roll workflow。
+
+### 偏差 4：服务端 effect handler 错误处理增强
+
+**计划中未涉及**，实现中发现 `core:component-update` 的 FK 约束失败会 crash 服务端。
+
+**修复**：effectRegistry 校验 entity 存在性并抛明确错误；logHandler try-catch 包裹 transaction，ack 返回错误而非 crash。
+
+### 偏差 5：InputHandlerHost z-index 修复
+
+**计划中未涉及**，e2e 测试发现 ModifierPanel 被 Konva canvas 遮挡。
+
+**修复**：InputHandlerHost portal 包裹 `z-overlay` 容器。
+
+### 已知遗留问题
+
+- `ctx.updateComponent` 是 fire-and-forget，无错误传播（GitHub issue #186）
 
 ---
 
@@ -798,12 +845,10 @@ vi.mock('../../stores/worldStore', () => ({
 }))
 vi.mock('../../stores/identityStore', () => ({
   useIdentityStore: {
-    getState: vi
-      .fn()
-      .mockReturnValue({
-        mySeatId: 's1',
-        getMySeat: () => ({ id: 's1', name: 'GM', color: '#fff' }),
-      }),
+    getState: vi.fn().mockReturnValue({
+      mySeatId: 's1',
+      getMySeat: () => ({ id: 's1', name: 'GM', color: '#fff' }),
+    }),
   },
 }))
 vi.mock('../../ui-system/uiSystemInit', () => ({
@@ -1404,15 +1449,13 @@ describe('FearManager', () => {
   it('skips creation if Fear entity already exists', async () => {
     const ctx = mockCtx({
       read: {
-        entity: vi
-          .fn()
-          .mockReturnValue({
-            id: 'daggerheart-core:fear',
-            components: {},
-            tags: [],
-            lifecycle: 'persistent',
-            permissions: { default: 'none', seats: {} },
-          }),
+        entity: vi.fn().mockReturnValue({
+          id: 'daggerheart-core:fear',
+          components: {},
+          tags: [],
+          lifecycle: 'persistent',
+          permissions: { default: 'none', seats: {} },
+        }),
         component: vi.fn(),
         query: vi.fn().mockReturnValue([]),
         formulaTokens: vi.fn().mockReturnValue({}),

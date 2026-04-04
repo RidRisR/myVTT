@@ -32,20 +32,26 @@ export function ModifierPanel({
           min={1}
           max={30}
           value={dc}
-          onChange={(e) => { setDc(Math.max(1, Math.min(30, Number(e.target.value) || 12))); }}
+          onChange={(e) => {
+            setDc(Math.max(1, Math.min(30, Number(e.target.value) || 12)))
+          }}
           className="w-16 bg-surface border border-border-glass rounded px-2 py-1 text-sm text-text-primary text-center outline-none focus:border-accent"
         />
       </div>
 
       <div className="flex gap-2 justify-end">
         <button
-          onClick={() => { cancel(); }}
+          onClick={() => {
+            cancel()
+          }}
           className="px-3 py-1.5 text-xs text-text-muted hover:text-text-primary rounded transition-colors cursor-pointer"
         >
           Cancel
         </button>
         <button
-          onClick={() => { resolve({ dc }); }}
+          onClick={() => {
+            resolve({ dc })
+          }}
           className="px-3 py-1.5 text-xs bg-accent/20 text-accent hover:bg-accent/30 rounded transition-colors cursor-pointer"
         >
           Roll

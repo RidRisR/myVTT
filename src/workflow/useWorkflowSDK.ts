@@ -217,7 +217,11 @@ export function initWorkflowSystem(): WorkflowSystemHandle {
   })
 
   _workflowSystemInitialized = true
-  return { cleanup: () => { /* engine/registry cleanup if needed */ } }
+  return {
+    cleanup: () => {
+      /* engine/registry cleanup if needed */
+    },
+  }
 }
 
 /**
@@ -251,15 +255,11 @@ export async function startWorkflowTriggers(historyWatermark: number): Promise<(
     if (plugin.onReady) {
       try {
         const readyInternal = { depth: 0, abortCtrl: { aborted: false } }
-        const readyCtx = createWorkflowContext(
-          { ...readyDeps, engine },
-          {},
-          readyInternal,
-        )
+        const readyCtx = createWorkflowContext({ ...readyDeps, engine }, {}, readyInternal)
         const result = plugin.onReady(readyCtx)
-        if (result && typeof (result as Promise<void>).then === 'function') {
+        if (result && typeof result.then === 'function') {
           readyPromises.push(
-            (result as Promise<void>).catch((err: unknown) => {
+            result.catch((err: unknown) => {
               throw new Error(
                 `Plugin "${plugin.id}" onReady failed: ${err instanceof Error ? err.message : String(err)}`,
               )
@@ -280,9 +280,7 @@ export async function startWorkflowTriggers(historyWatermark: number): Promise<(
 
   // Settle all — report all failures, not just the first
   const results = await Promise.allSettled(readyPromises)
-  const failures = results.filter(
-    (r): r is PromiseRejectedResult => r.status === 'rejected',
-  )
+  const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
   if (failures.length > 0) {
     for (const f of failures) {
       console.error('[WorkflowSystem]', f.reason)
@@ -290,7 +288,10 @@ export async function startWorkflowTriggers(historyWatermark: number): Promise<(
   }
 
   // ── Phase 2b: Catch up + subscribe dispatcher to log stream ──
-  const dispatcher = _dispatcher!
+  if (!_dispatcher) {
+    throw new Error('Dispatcher not initialized — initWorkflowSystem must be called first')
+  }
+  const dispatcher = _dispatcher
 
   // Set cursor to history boundary — entries at or below this seq are historical
   dispatcher.startFrom(historyWatermark)

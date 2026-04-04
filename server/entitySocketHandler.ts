@@ -42,7 +42,7 @@ export function setupEntitySocketHandlers(io: TypedServer, dataDir: string): voi
           }
 
           // Sync tags
-          const tagNames = Array.isArray(tags) ? (tags) : []
+          const tagNames = Array.isArray(tags) ? tags : []
           if (tagNames.length > 0) {
             syncTags(db, 'entity_tags', 'entity_id', id, tagNames)
           }

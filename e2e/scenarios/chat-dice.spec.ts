@@ -172,21 +172,15 @@ test.describe('Cross-client judgment and groupId', () => {
         if (!store?.logEntries?.length) return null
 
         const entries = store.logEntries
-        const actionEntry = entries.find(
-          (e: any) => e.type === 'daggerheart-core:action-check',
-        )
+        const actionEntry = entries.find((e: any) => e.type === 'daggerheart-core:action-check')
         if (!actionEntry) return null
 
-        const componentEntry = entries.find(
-          (e: any) => e.type === 'core:component-update',
-        )
+        const componentEntry = entries.find((e: any) => e.type === 'core:component-update')
 
         return {
           actionGroupId: actionEntry.groupId,
           componentGroupId: componentEntry?.groupId ?? null,
-          match: componentEntry
-            ? actionEntry.groupId === componentEntry.groupId
-            : true, // critical_success has no component-update
+          match: componentEntry ? actionEntry.groupId === componentEntry.groupId : true, // critical_success has no component-update
           notEmpty: actionEntry.groupId != null && actionEntry.groupId !== '',
         }
       },

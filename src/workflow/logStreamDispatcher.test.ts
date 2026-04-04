@@ -181,7 +181,7 @@ describe('LogStreamDispatcher', () => {
     expect(runWorkflow).toHaveBeenCalledTimes(1)
   })
 
-  it('catchUp dispatches only entries above cursor', async () => {
+  it('catchUp dispatches only entries above cursor', () => {
     getMatchingTriggers.mockReturnValue([makeTrigger('t1')])
 
     dispatcher.startFrom(10)

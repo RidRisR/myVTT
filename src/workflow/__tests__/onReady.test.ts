@@ -112,11 +112,7 @@ describe('VTTPlugin.onReady lifecycle', () => {
     handle = initWorkflowSystem()
     cleanupTriggers = await startWorkflowTriggers(0)
 
-    expect(callOrder).toEqual([
-      'activate-no-ready',
-      'activate-with-ready',
-      'ready-with-ready',
-    ])
+    expect(callOrder).toEqual(['activate-no-ready', 'activate-with-ready', 'ready-with-ready'])
   })
 
   it('surfaces sync errors from onReady but still subscribes triggers', async () => {
@@ -193,7 +189,7 @@ describe('VTTPlugin.onReady lifecycle', () => {
     const fail2: VTTPlugin = {
       id: 'fail-2',
       onActivate() {},
-      async onReady() {
+      onReady() {
         throw new Error('boom 2')
       },
     }
