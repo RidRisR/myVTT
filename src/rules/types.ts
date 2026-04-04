@@ -67,28 +67,6 @@ export interface TeamPanelProps {
   onDelete: (id: string) => void
 }
 
-/** Preset content bundled with the plugin (not stored in DB until GM imports it) */
-export interface PresetTemplate {
-  id: string // namespace ID e.g. 'dh:corrupt-elf-archer'
-  name: string
-  category: string // 'adversary' | 'pc-archetype' | ...
-  data: Partial<Entity>
-}
-
-export interface DockTabDef {
-  id: string
-  label: string
-  component: React.ComponentType
-}
-
-export interface GMTabDef {
-  id: string
-  label: string
-  component: React.ComponentType
-}
-
-export type HideableElement = 'dock' | 'portrait-bar' | 'chat-panel' | 'gm-panel' | 'scene-controls'
-
 export interface DieConfig {
   color?: string // hex color, e.g. '#fbbf24'
   label?: string // label shown above die, e.g. '希望'
@@ -167,13 +145,6 @@ export interface ContextMenuItem {
   separator?: 'before' | 'after'
 }
 
-export interface KeyBinding {
-  key: string
-  label: string
-  action: () => void
-  when?: 'always' | 'token-selected'
-}
-
 // ── RulePlugin — the main interface ────────────────────────────────────────
 
 // ── i18n types ──────────────────────────────────────────────────────────────
@@ -207,27 +178,20 @@ export interface RulePlugin {
   // Layer 3: Data templates (optional)
   dataTemplates?: {
     createDefaultEntityData(): Record<string, unknown>
-    getPresetTemplates?(): PresetTemplate[]
   }
 
   // Layer 4: UI surfaces (optional)
   surfaces?: {
     panels?: PluginPanelDef[]
-    dockTabs?: DockTabDef[]
-    gmTabs?: GMTabDef[]
     teamPanel?: React.ComponentType<TeamPanelProps>
 
     // ── map integration ──
     tools?: ToolDefinition[]
     getTokenActions?: (ctx: TokenActionContext) => TokenAction[]
     getContextMenuItems?: (ctx: ContextMenuContext) => ContextMenuItem[]
-    keyBindings?: KeyBinding[]
   }
 
-  // Layer 5: Declarative element hiding (optional)
-  hideElements?: HideableElement[]
-
-  // Layer 6: Rule resolution — reserved, not implemented
+  // Layer 5: Rule resolution — reserved, not implemented
   // ruleResolution?: RuleResolutionModule
 }
 

@@ -12,10 +12,6 @@ export type {
   PluginPanelDef,
   PluginPanelProps,
   TeamPanelProps,
-  PresetTemplate,
-  DockTabDef,
-  GMTabDef,
-  HideableElement,
   JudgmentResult,
   JudgmentDisplay,
   DaggerheartOutcome,
@@ -27,7 +23,6 @@ export type {
   TargetInfo,
   ContextMenuItem,
   ContextMenuContext,
-  KeyBinding,
 } from './types'
 export type { DiceSpec } from '../shared/diceUtils'
 
