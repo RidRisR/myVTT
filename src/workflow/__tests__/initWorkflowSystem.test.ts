@@ -3,8 +3,10 @@ import {
   resetWorkflowEngine,
   registerWorkflowPlugins,
   initWorkflowSystem,
+  startWorkflowTriggers,
   getCommand,
 } from '../useWorkflowSDK'
+import type { WorkflowSystemHandle } from '../useWorkflowSDK'
 import { useWorldStore } from '../../stores/worldStore'
 import { useIdentityStore } from '../../stores/identityStore'
 import type { VTTPlugin } from '../../rules/types'
@@ -28,7 +30,8 @@ function makeEntry(overrides: Partial<GameLogEntry> = {}): GameLogEntry {
 }
 
 describe('initWorkflowSystem', () => {
-  let cleanup: () => void
+  let handle: WorkflowSystemHandle
+  let cleanupTriggers: (() => void) | undefined
 
   beforeEach(() => {
     resetWorkflowEngine()
@@ -41,13 +44,15 @@ describe('initWorkflowSystem', () => {
   })
 
   afterEach(() => {
-    cleanup?.()
+    cleanupTriggers?.()
+    cleanupTriggers = undefined
+    handle?.cleanup()
     resetWorkflowEngine()
   })
 
   it('registers base commands (.r, .roll)', () => {
     registerWorkflowPlugins([])
-    cleanup = initWorkflowSystem()
+    handle = initWorkflowSystem()
 
     expect(getCommand('.r')).toBeDefined()
     expect(getCommand('.roll')).toBeDefined()
@@ -55,10 +60,10 @@ describe('initWorkflowSystem', () => {
 
   it('is idempotent — second call returns no-op', () => {
     registerWorkflowPlugins([])
-    cleanup = initWorkflowSystem()
-    const cleanup2 = initWorkflowSystem()
-    cleanup2() // should not throw
-    cleanup()
+    handle = initWorkflowSystem()
+    const handle2 = initWorkflowSystem()
+    handle2.cleanup() // should not throw
+    handle.cleanup()
   })
 
   it('dispatches new log entries to matching trigger workflows', async () => {
@@ -67,13 +72,13 @@ describe('initWorkflowSystem', () => {
     const testPlugin: VTTPlugin = {
       id: 'test-trigger',
       onActivate(sdk) {
-        sdk.defineWorkflow('test:on-text', (ctx) => {
+        sdk.defineWorkflow('test-trigger:on-text', (ctx) => {
           capturedVars = { ...ctx.vars }
         })
         sdk.registerTrigger({
-          id: 'test-on-text',
+          id: 'test-trigger:on-text',
           on: 'core:text',
-          workflow: 'test:on-text',
+          workflow: 'test-trigger:on-text',
           mapInput: (entry) => ({ content: entry.payload.content }),
           executeAs: 'triggering-executor',
         })
@@ -81,7 +86,8 @@ describe('initWorkflowSystem', () => {
     }
 
     registerWorkflowPlugins([testPlugin])
-    cleanup = initWorkflowSystem()
+    handle = initWorkflowSystem()
+    cleanupTriggers = await startWorkflowTriggers(0)
 
     const entry = makeEntry({ seq: 1, executor: 'seat-a' })
     useWorldStore.setState((s) => ({
@@ -102,13 +108,13 @@ describe('initWorkflowSystem', () => {
     const testPlugin: VTTPlugin = {
       id: 'test-skip',
       onActivate(sdk) {
-        sdk.defineWorkflow('test:should-skip', () => {
+        sdk.defineWorkflow('test-skip:should-skip', () => {
           triggered = true
         })
         sdk.registerTrigger({
-          id: 'test-skip-t',
+          id: 'test-skip:trigger',
           on: 'core:text',
-          workflow: 'test:should-skip',
+          workflow: 'test-skip:should-skip',
           mapInput: (entry) => entry.payload,
           executeAs: 'triggering-executor',
         })
@@ -116,9 +122,9 @@ describe('initWorkflowSystem', () => {
     }
 
     registerWorkflowPlugins([testPlugin])
-    cleanup = initWorkflowSystem()
+    handle = initWorkflowSystem()
+    cleanupTriggers = await startWorkflowTriggers(0)
 
-    // Entry from seat-b, local is seat-a -> skip
     const entry = makeEntry({ seq: 1, executor: 'seat-b' })
     useWorldStore.setState((s) => ({
       logEntries: [...s.logEntries, entry],
@@ -136,13 +142,13 @@ describe('initWorkflowSystem', () => {
     const testPlugin: VTTPlugin = {
       id: 'test-cleanup',
       onActivate(sdk) {
-        sdk.defineWorkflow('test:count', () => {
+        sdk.defineWorkflow('test-cleanup:count', () => {
           triggerCount++
         })
         sdk.registerTrigger({
-          id: 'test-count-t',
+          id: 'test-cleanup:trigger',
           on: 'core:text',
-          workflow: 'test:count',
+          workflow: 'test-cleanup:count',
           mapInput: (entry) => entry.payload,
           executeAs: 'triggering-executor',
         })
@@ -150,9 +156,9 @@ describe('initWorkflowSystem', () => {
     }
 
     registerWorkflowPlugins([testPlugin])
-    cleanup = initWorkflowSystem()
+    handle = initWorkflowSystem()
+    cleanupTriggers = await startWorkflowTriggers(0)
 
-    // First entry triggers
     const e1 = makeEntry({ seq: 1, id: 'e1' })
     useWorldStore.setState((s) => ({
       logEntries: [...s.logEntries, e1],
@@ -163,10 +169,9 @@ describe('initWorkflowSystem', () => {
       expect(triggerCount).toBe(1)
     })
 
-    // Cleanup
-    cleanup()
+    cleanupTriggers()
+    cleanupTriggers = undefined
 
-    // Second entry should NOT trigger
     const e2 = makeEntry({ seq: 2, id: 'e2' })
     useWorldStore.setState((s) => ({
       logEntries: [...s.logEntries, e2],
@@ -176,5 +181,90 @@ describe('initWorkflowSystem', () => {
 
     await new Promise((r) => setTimeout(r, 50))
     expect(triggerCount).toBe(1)
+  })
+
+  it('throws if startWorkflowTriggers called before initWorkflowSystem', async () => {
+    await expect(startWorkflowTriggers(0)).rejects.toThrow(
+      'startWorkflowTriggers called before initWorkflowSystem',
+    )
+  })
+
+  it('catches up entries from the init window via dispatcher cursor', async () => {
+    let capturedVars: Record<string, unknown> | undefined
+
+    const testPlugin: VTTPlugin = {
+      id: 'test-catchup',
+      onActivate(sdk) {
+        sdk.defineWorkflow('test-catchup:on-text', (ctx) => {
+          capturedVars = { ...ctx.vars }
+        })
+        sdk.registerTrigger({
+          id: 'test-catchup:trigger',
+          on: 'core:text',
+          workflow: 'test-catchup:on-text',
+          mapInput: (entry) => ({ content: entry.payload.content }),
+          executeAs: 'triggering-executor',
+        })
+      },
+    }
+
+    registerWorkflowPlugins([testPlugin])
+    handle = initWorkflowSystem()
+
+    // Simulate: entry arrives between store init and startWorkflowTriggers
+    const entry = makeEntry({ seq: 5, id: 'window-entry' })
+    useWorldStore.setState((s) => ({
+      logEntries: [...s.logEntries, entry],
+      logEntriesById: { ...s.logEntriesById, [entry.id]: entry },
+      logWatermark: 5,
+    }))
+
+    // historyWatermark was 0 (captured before the window entry arrived)
+    cleanupTriggers = await startWorkflowTriggers(0)
+
+    // catchUp should have dispatched the window entry
+    await vi.waitFor(() => {
+      expect(capturedVars).toBeDefined()
+    })
+    expect(capturedVars).toEqual({ content: 'hello' })
+  })
+
+  it('does not trigger on historical entries below historyWatermark', async () => {
+    let triggered = false
+
+    const testPlugin: VTTPlugin = {
+      id: 'test-history',
+      onActivate(sdk) {
+        sdk.defineWorkflow('test-history:on-text', () => {
+          triggered = true
+        })
+        sdk.registerTrigger({
+          id: 'test-history:trigger',
+          on: 'core:text',
+          workflow: 'test-history:on-text',
+          mapInput: (entry) => entry.payload,
+          executeAs: 'triggering-executor',
+        })
+      },
+    }
+
+    registerWorkflowPlugins([testPlugin])
+    handle = initWorkflowSystem()
+
+    // Store has historical entries (seq 1-5)
+    const entries = Array.from({ length: 5 }, (_, i) =>
+      makeEntry({ seq: i + 1, id: `hist-${i + 1}` }),
+    )
+    useWorldStore.setState({
+      logEntries: entries,
+      logEntriesById: Object.fromEntries(entries.map((e) => [e.id, e])),
+      logWatermark: 5,
+    })
+
+    // historyWatermark = 5 → all entries are historical
+    cleanupTriggers = await startWorkflowTriggers(5)
+
+    await new Promise((r) => setTimeout(r, 50))
+    expect(triggered).toBe(false)
   })
 })

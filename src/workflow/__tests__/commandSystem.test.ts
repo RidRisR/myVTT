@@ -14,7 +14,7 @@ describe('Command registration', () => {
     const engine = new WorkflowEngine()
     registerBaseWorkflows(engine)
     const sdk = new PluginSDK(engine, 'test-plugin')
-    const handle = sdk.defineWorkflow('test:cmd', () => {})
+    const handle = sdk.defineWorkflow('test-plugin:cmd', () => {})
     sdk.registerCommand('.test', handle)
 
     expect(getCommand('.test')).toBe(handle)
@@ -38,7 +38,7 @@ describe('Command registration', () => {
     const engine = new WorkflowEngine()
     registerBaseWorkflows(engine)
     const sdk = new PluginSDK(engine, 'test-cmd-plugin')
-    const wf = sdk.defineWorkflow('test:custom', () => {})
+    const wf = sdk.defineWorkflow('test-cmd-plugin:custom', () => {})
     sdk.registerCommand('.custom', wf)
 
     expect(getCommand('.custom')).toBeDefined()

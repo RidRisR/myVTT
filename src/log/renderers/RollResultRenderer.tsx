@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react'
+import { useCallback } from 'react'
 import type { LogEntryRendererProps } from '../rendererRegistry'
 import { getRenderer } from '../rendererRegistry'
 import { isLogType } from '../../shared/logTypes'
@@ -12,25 +12,12 @@ import type {
 } from '../../rules/types'
 import type { ChatRollMessage } from '../../shared/chatTypes'
 import type { ComponentType } from 'react'
-import { tokenizeExpression, buildCompoundResult } from '../../shared/diceUtils'
-import { _getUseRulePlugin, _getUsePluginTranslation } from './rollResultDeps'
 
 type RollResultSlot = RollResultConfig | ComponentType<RollCardProps>
 
 export function RollResultRenderer({ entry, isNew, animationStyle }: LogEntryRendererProps) {
-  const plugin = _getUseRulePlugin()()
-  const { t } = _getUsePluginTranslation()()
-
   // Extract payload — hooks must be called unconditionally (rules-of-hooks)
   const rollPayload = isLogType(entry, 'core:roll-result') ? entry.payload : null
-
-  // Compute total for judgment evaluation
-  const total = useMemo(() => {
-    if (!rollPayload) return 0
-    const finalFormula = rollPayload.resolvedFormula ?? rollPayload.formula
-    const terms = tokenizeExpression(finalFormula)
-    return buildCompoundResult(terms ?? [], rollPayload.rolls).total
-  }, [rollPayload])
 
   // Build renderDice callback for component escape hatch
   const renderDice = useCallback(
@@ -57,10 +44,8 @@ export function RollResultRenderer({ entry, isNew, animationStyle }: LogEntryRen
     ? (getRenderer('rollResult', rollType) as RollResultSlot | undefined)
     : undefined
 
-  // 1. Semantic config (simple path)
+  // 1. Semantic config (simple path — dieConfigs only, no judgment)
   if (slot && typeof slot !== 'function') {
-    const judgment = plugin.diceSystem?.evaluateRoll(rolls, total) ?? null
-    const display = judgment ? plugin.diceSystem?.getJudgmentDisplay(judgment) : null
     return (
       <CardShell entry={entry} isNew={isNew} variant="accent" animationStyle={animationStyle}>
         <div data-testid="entry-roll-result">
@@ -70,8 +55,6 @@ export function RollResultRenderer({ entry, isNew, animationStyle }: LogEntryRen
             rolls={rolls}
             isNew={!!isNew}
             dieConfigs={slot.dieConfigs}
-            footer={display ? { text: t(display.text), color: display.color } : undefined}
-            totalColor={display?.color}
           />
         </div>
       </CardShell>

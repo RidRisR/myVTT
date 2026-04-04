@@ -32,10 +32,4 @@ describe('daggerheartPlugin registration', () => {
     })
     expect(plugin.adapters.getMainResource(entity)?.current).toBe(12)
   })
-
-  it('diceSystem.evaluateRoll works', () => {
-    const plugin = getRulePlugin('daggerheart')
-    const r = plugin.diceSystem?.evaluateRoll([[8, 5]], 15)
-    expect(r?.type).toBe('daggerheart')
-  })
 })

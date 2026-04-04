@@ -41,7 +41,6 @@ describe('LogStreamDispatcher', () => {
   let mockRegistry: TriggerRegistry
   let mockRunner: IWorkflowRunner
   let dispatcher: LogStreamDispatcher
-  // Extract vi.fn() references to avoid @typescript-eslint/unbound-method on expect()
   let getMatchingTriggers: ReturnType<typeof vi.fn>
   let runWorkflow: ReturnType<typeof vi.fn>
 
@@ -65,7 +64,6 @@ describe('LogStreamDispatcher', () => {
       triggerRegistry: mockRegistry,
       runner: mockRunner,
       getSeatId: () => 'seat-a',
-      getWatermark: () => 5,
     })
   })
 
@@ -100,7 +98,6 @@ describe('LogStreamDispatcher', () => {
       causedBy: 'entry-abc',
       chainDepth: 4,
     })
-    // groupId should be a non-empty string (uuidv7)
     expect(typeof chainCtx.groupId).toBe('string')
     expect((chainCtx.groupId as string).length).toBeGreaterThan(0)
   })
@@ -138,50 +135,10 @@ describe('LogStreamDispatcher', () => {
     await dispatcher.dispatch(entry)
 
     expect(runWorkflow).toHaveBeenCalledTimes(2)
-    // Verify serial order: first call was wf1, second was wf2
     const firstHandle = (runWorkflow.mock.calls[0] as [{ name: string }, unknown])[0]
     const secondHandle = (runWorkflow.mock.calls[1] as [{ name: string }, unknown])[0]
     expect(firstHandle.name).toBe('wf1')
     expect(secondHandle.name).toBe('wf2')
-  })
-
-  it('skips dispatch when seq <= watermark (history replay protection)', async () => {
-    const entry = makeEntry({ seq: 5 })
-    await dispatcher.dispatch(entry)
-
-    expect(getMatchingTriggers).not.toHaveBeenCalled()
-    expect(runWorkflow).not.toHaveBeenCalled()
-  })
-
-  it('also skips dispatch when seq is strictly below watermark', async () => {
-    const entry = makeEntry({ seq: 3 })
-    await dispatcher.dispatch(entry)
-
-    expect(getMatchingTriggers).not.toHaveBeenCalled()
-    expect(runWorkflow).not.toHaveBeenCalled()
-  })
-
-  it('respects dynamic watermark from getter', async () => {
-    let watermark = 5
-    dispatcher = new LogStreamDispatcher({
-      triggerRegistry: mockRegistry,
-      runner: mockRunner,
-      getSeatId: () => 'seat-a',
-      getWatermark: () => watermark,
-    })
-
-    // Entry with seq=10 dispatches normally
-    getMatchingTriggers.mockReturnValue([makeTrigger('t1')])
-    await dispatcher.dispatch(makeEntry({ seq: 10 }))
-    expect(runWorkflow).toHaveBeenCalledTimes(1)
-
-    // Watermark advances externally
-    watermark = 15
-    runWorkflow.mockClear()
-
-    // Entry with seq=12 now below watermark — skipped
-    await dispatcher.dispatch(makeEntry({ seq: 12 }))
-    expect(runWorkflow).not.toHaveBeenCalled()
   })
 
   it('respects dynamic seatId from getter', async () => {
@@ -190,25 +147,97 @@ describe('LogStreamDispatcher', () => {
       triggerRegistry: mockRegistry,
       runner: mockRunner,
       getSeatId: () => seatId,
-      getWatermark: () => 5,
     })
 
     getMatchingTriggers.mockReturnValue([makeTrigger('t1')])
 
-    // Matches seat-a
     await dispatcher.dispatch(makeEntry({ executor: 'seat-a', seq: 10 }))
     expect(runWorkflow).toHaveBeenCalledTimes(1)
 
-    // seatId changes
     seatId = 'seat-b'
     runWorkflow.mockClear()
 
-    // Now seat-a doesn't match
     await dispatcher.dispatch(makeEntry({ executor: 'seat-a', seq: 11 }))
     expect(runWorkflow).not.toHaveBeenCalled()
 
-    // seat-b matches
     await dispatcher.dispatch(makeEntry({ executor: 'seat-b', seq: 12 }))
+    expect(runWorkflow).toHaveBeenCalledTimes(1)
+  })
+
+  // ── Cursor / startFrom / catchUp tests ──
+
+  it('startFrom sets initial cursor — entries at or below are skipped', async () => {
+    getMatchingTriggers.mockReturnValue([makeTrigger('t1')])
+
+    dispatcher.startFrom(10)
+
+    await dispatcher.dispatch(makeEntry({ seq: 8 }))
+    expect(runWorkflow).not.toHaveBeenCalled()
+
+    await dispatcher.dispatch(makeEntry({ seq: 10 }))
+    expect(runWorkflow).not.toHaveBeenCalled()
+
+    await dispatcher.dispatch(makeEntry({ seq: 11, id: 'e11' }))
+    expect(runWorkflow).toHaveBeenCalledTimes(1)
+  })
+
+  it('catchUp dispatches only entries above cursor', () => {
+    getMatchingTriggers.mockReturnValue([makeTrigger('t1')])
+
+    dispatcher.startFrom(10)
+
+    const entries = [
+      makeEntry({ seq: 3, id: 'e3' }),
+      makeEntry({ seq: 8, id: 'e8' }),
+      makeEntry({ seq: 12, id: 'e12' }),
+      makeEntry({ seq: 15, id: 'e15' }),
+    ]
+    dispatcher.catchUp(entries)
+
+    // Only seq 12 and 15 should be dispatched
+    expect(runWorkflow).toHaveBeenCalledTimes(2)
+  })
+
+  it('dispatch is idempotent — same seq dispatched twice only executes once', async () => {
+    getMatchingTriggers.mockReturnValue([makeTrigger('t1')])
+
+    const entry = makeEntry({ seq: 10 })
+    await dispatcher.dispatch(entry)
+    expect(runWorkflow).toHaveBeenCalledTimes(1)
+
+    runWorkflow.mockClear()
+    await dispatcher.dispatch(entry)
+    expect(runWorkflow).not.toHaveBeenCalled()
+  })
+
+  it('cursor advances — later dispatch of lower seq is skipped', async () => {
+    getMatchingTriggers.mockReturnValue([makeTrigger('t1')])
+
+    await dispatcher.dispatch(makeEntry({ seq: 10 }))
+    expect(runWorkflow).toHaveBeenCalledTimes(1)
+
+    runWorkflow.mockClear()
+    await dispatcher.dispatch(makeEntry({ seq: 8 }))
+    expect(runWorkflow).not.toHaveBeenCalled()
+  })
+
+  it('catchUp + subsequent dispatch have no overlap', async () => {
+    getMatchingTriggers.mockReturnValue([makeTrigger('t1')])
+
+    dispatcher.startFrom(5)
+
+    // catchUp processes seq 10
+    dispatcher.catchUp([makeEntry({ seq: 10, id: 'e10' })])
+    expect(runWorkflow).toHaveBeenCalledTimes(1)
+
+    runWorkflow.mockClear()
+
+    // subscribe callback also sees seq 10 — should be skipped
+    await dispatcher.dispatch(makeEntry({ seq: 10, id: 'e10' }))
+    expect(runWorkflow).not.toHaveBeenCalled()
+
+    // New entry seq 11 — should dispatch
+    await dispatcher.dispatch(makeEntry({ seq: 11, id: 'e11' }))
     expect(runWorkflow).toHaveBeenCalledTimes(1)
   })
 })

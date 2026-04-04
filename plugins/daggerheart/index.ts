@@ -6,7 +6,6 @@ import {
   dhGetStatuses,
   dhGetFormulaTokens,
 } from './adapters'
-import { dhEvaluateRoll, dhGetJudgmentDisplay } from './diceSystem'
 import { createDefaultDHEntityData } from './templates'
 import { DaggerHeartCard } from './DaggerHeartCard'
 import { FullCharacterSheet } from './ui/FullCharacterSheet'
@@ -27,11 +26,6 @@ export const daggerheartPlugin: RulePlugin = {
   },
 
   characterUI: { EntityCard: DaggerHeartCard },
-
-  diceSystem: {
-    evaluateRoll: dhEvaluateRoll,
-    getJudgmentDisplay: dhGetJudgmentDisplay,
-  },
 
   dataTemplates: { createDefaultEntityData: createDefaultDHEntityData },
 

@@ -12,7 +12,7 @@ describe('PluginSDK.registerTrigger', () => {
     const sdk = new PluginSDK(engine, 'test-plugin', undefined, registry)
 
     sdk.registerTrigger({
-      id: 'test-trigger',
+      id: 'test-plugin:trigger',
       on: 'core:roll-result',
       filter: { rollType: 'dh:action-check' },
       workflow: 'dh:interpret',
@@ -33,7 +33,7 @@ describe('PluginSDK.registerTrigger', () => {
 
     expect(() => {
       sdk.registerTrigger({
-        id: 'test',
+        id: 'test-plugin:trigger',
         on: 'core:roll-result',
         workflow: 'wf',
         mapInput: (e) => e.payload,

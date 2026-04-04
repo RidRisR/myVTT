@@ -49,6 +49,11 @@ export function createEffectRegistry(): EffectRegistry {
       key: string
       data: unknown
     }
+    // Verify entity exists before INSERT to produce a clear error instead of FK crash
+    const exists = db.prepare('SELECT 1 FROM entities WHERE id = ?').get(entityId)
+    if (!exists) {
+      throw new Error(`component-update failed: entity "${entityId}" not found`)
+    }
     db.prepare(
       'INSERT OR REPLACE INTO entity_components (entity_id, component_key, data) VALUES (?, ?, ?)',
     ).run(entityId, key, JSON.stringify(data))

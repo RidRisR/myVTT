@@ -100,13 +100,7 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
           }
           const dice = toDiceSpecs(terms)
 
-          const entry = await ctx.serverRoll(formula, {
-            dice,
-            resolvedFormula: resolved,
-            rollType: ctx.vars.rollType as string | undefined,
-          })
-
-          const rolls = entry.payload.rolls as number[][]
+          const rolls = await ctx.serverRoll(dice)
           const { total } = buildCompoundResult(terms, rolls)
           ctx.vars.rolls = rolls
           ctx.vars.total = total
@@ -121,9 +115,7 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
     {
       id: 'roll',
       run: async (ctx) => {
-        // Support both direct calls (formula) and command system (raw)
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- formula absent when invoked via command system
-        const formula = ctx.vars.formula ?? (ctx.vars.raw as string | undefined)
+        const formula = ctx.vars.formula
         if (!formula) {
           ctx.abort('Missing formula')
           return
@@ -141,6 +133,31 @@ export function registerBaseWorkflows(engine: WorkflowEngine): void {
         } else {
           ctx.abort(result.reason ?? 'Roll failed')
         }
+      },
+    },
+    {
+      id: 'emit',
+      run: (ctx) => {
+        const { formula, resolvedFormula, rolls, total } = ctx.vars
+        if (!rolls || total == null) return
+
+        // Reconstruct dice specs for display
+        const finalFormula = resolvedFormula ?? formula
+        const terms = tokenizeExpression(finalFormula)
+        const dice = terms ? toDiceSpecs(terms) : []
+
+        ctx.emitEntry({
+          type: 'core:roll-result',
+          payload: {
+            formula: formula,
+            resolvedFormula: resolvedFormula,
+            dice,
+            rolls,
+            rollType: undefined,
+            actionName: undefined,
+          },
+          triggerable: true,
+        })
       },
     },
   ])

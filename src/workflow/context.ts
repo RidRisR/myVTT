@@ -8,7 +8,7 @@ import type {
 } from './types'
 import type { Entity } from '../shared/entityTypes'
 import type { WorkflowEngine } from './engine'
-import type { GameLogEntry, LogEntrySubmission, RollRequest, Visibility } from '../shared/logTypes'
+import type { LogEntrySubmission, RollRequest, Visibility } from '../shared/logTypes'
 import type { MessageOrigin } from '../shared/chatTypes'
 import type { DiceSpec } from '../shared/diceUtils'
 import { uuidv7 } from '../shared/uuidv7'
@@ -16,7 +16,14 @@ import { requestInput as sessionRequestInput } from '../stores/sessionStore'
 
 export interface ContextDeps {
   emitEntry: (entry: LogEntrySubmission) => void
-  serverRoll: (request: RollRequest) => Promise<GameLogEntry>
+  serverRoll: (request: RollRequest) => Promise<number[][]>
+  createEntity: (data: {
+    id: string
+    components?: Record<string, unknown>
+    lifecycle?: import('../shared/entityTypes').EntityLifecycle
+    tags?: string[]
+  }) => Promise<string>
+  deleteEntity: (entityId: string) => Promise<void>
   getEntity: (id: string) => Entity | undefined
   getAllEntities: () => Record<string, Entity>
   engine: WorkflowEngine
@@ -125,33 +132,8 @@ export function createWorkflowContext(
     read,
 
     // ── Input (returns value, suspends execution) ────────────────────────
-    serverRoll: async (
-      formula: string,
-      options?: {
-        dice?: DiceSpec[]
-        resolvedFormula?: string
-        rollType?: string
-        actionName?: string
-        parentId?: string
-        chainDepth?: number
-        triggerable?: boolean
-        visibility?: Visibility
-      },
-    ) => {
-      const request: RollRequest = {
-        origin: resolvedOrigin,
-        parentId: options?.parentId ?? causedBy,
-        groupId,
-        chainDepth: options?.chainDepth ?? chainDepth,
-        triggerable: options?.triggerable ?? true,
-        visibility: options?.visibility ?? {},
-        dice: options?.dice ?? [{ sides: 6, count: 1 }], // fallback if not provided
-        formula,
-        resolvedFormula: options?.resolvedFormula,
-        rollType: options?.rollType,
-        actionName: options?.actionName,
-      }
-      return deps.serverRoll(request)
+    serverRoll: async (dice: DiceSpec[]) => {
+      return deps.serverRoll({ dice })
     },
     requestInput: ((inputType: string, options?: { context?: unknown; timeout?: number }) =>
       sessionRequestInput(inputType, options)) as WorkflowContext['requestInput'],
@@ -220,6 +202,15 @@ export function createWorkflowContext(
         timestamp: Date.now(),
       }
       deps.emitEntry(submission)
+    },
+
+    // ── Entity management ────────────────────────────────────────────────
+    createEntity: async (data) => {
+      const id = await deps.createEntity(data)
+      return id
+    },
+    deleteEntity: async (entityId) => {
+      await deps.deleteEntity(entityId)
     },
 
     // ── Flow Control ──────────────────────────────────────────────────────

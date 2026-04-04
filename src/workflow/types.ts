@@ -1,7 +1,7 @@
 // src/workflow/types.ts
 import type { Entity } from '../shared/entityTypes'
 import type { IUIRegistrationSDK } from '../ui-system/registrationTypes'
-import type { GameLogEntry, LogPayloadMap, TriggerDefinition, Visibility } from '../shared/logTypes'
+import type { LogPayloadMap, TriggerDefinition, Visibility } from '../shared/logTypes'
 import type { DiceSpec } from '../shared/diceUtils'
 import type { ComponentTypeMap } from '../shared/componentTypes'
 import type { InputResult, RequestInputOptions } from '../ui-system/inputHandlerTypes'
@@ -141,20 +141,8 @@ export interface WorkflowContext<TVars = Record<string, unknown>> {
   readonly read: IDataReader
 
   // ── Input (returns value, suspends execution) ──────────────────────────
-  /** Server-side dice roll via Socket.io (await ack) — returns full GameLogEntry with rolls */
-  serverRoll(
-    formula: string,
-    options?: {
-      dice?: DiceSpec[]
-      resolvedFormula?: string
-      rollType?: string
-      actionName?: string
-      parentId?: string
-      chainDepth?: number
-      triggerable?: boolean
-      visibility?: Visibility
-    },
-  ): Promise<GameLogEntry>
+  /** Server-side dice roll via Socket.io — returns raw random numbers */
+  serverRoll(dice: DiceSpec[]): Promise<number[][]>
   /** Pause workflow until UI resolves/cancels the interaction */
   requestInput<TResult = unknown>(
     inputType: string,
@@ -187,6 +175,17 @@ export interface WorkflowContext<TVars = Record<string, unknown>> {
   updateComponent<T>(entityId: string, key: string, updater: (current: T | undefined) => T): void
   /** @deprecated — will be removed when teamTracker is redesigned */
   updateTeamTracker(label: string, patch: { current?: number }): void
+
+  // ── Entity management ────────────────────────────────────────────────
+  /** Create a new entity via server (await ack) */
+  createEntity(data: {
+    id: string
+    components?: Record<string, unknown>
+    lifecycle?: import('../shared/entityTypes').EntityLifecycle
+    tags?: string[]
+  }): Promise<string>
+  /** Delete an entity via server (await ack) */
+  deleteEntity(entityId: string): Promise<void>
 
   // ── Flow Control ──────────────────────────────────────────────────────
   abort(reason?: string): void

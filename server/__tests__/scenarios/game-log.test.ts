@@ -191,44 +191,26 @@ describe('Game Log Handlers', () => {
 
   // ── log:roll-request ──
 
-  it('log:roll-request: ack has core:roll-result with rolls, seq, executor', async () => {
-    const broadcastPromise = waitForSocketEvent<GameLogEntry>(secondClient, 'log:new')
-
+  it('log:roll-request: ack has rolls array (pure RNG, no game_log entry)', async () => {
     const request = {
-      origin: { seat: { id: seatId, name: 'GM', color: '#ff6600' } },
-      chainDepth: 0,
-      triggerable: false,
-      visibility: {},
       dice: [{ sides: 6, count: 2 }],
-      formula: '2d6',
     }
 
     const ack = await emitRollRequest(ctx.socket, request)
     expect('error' in ack).toBe(false)
-    const entry = ack as GameLogEntry
+    const result = ack as { rolls: number[][] }
 
-    expect(entry.seq).toBeGreaterThan(0)
-    expect(entry.type).toBe('core:roll-result')
-    expect(entry.executor).toBe(seatId)
-    expect(entry.id).toBeTruthy()
-
-    // Payload should contain dice and rolls
-    const payload = entry.payload
-    expect(payload.formula).toBe('2d6')
-    expect(Array.isArray(payload.rolls)).toBe(true)
-    const rolls = payload.rolls as number[][]
-    expect(rolls).toHaveLength(1)
-    expect(rolls[0]).toHaveLength(2)
+    // Should return rolls directly — no seq, no type, no executor
+    expect(Array.isArray(result.rolls)).toBe(true)
+    expect(result.rolls).toHaveLength(1)
+    expect(result.rolls[0]).toHaveLength(2)
     // Each roll should be between 1 and 6
-    for (const roll of rolls[0]!) {
+    for (const roll of result.rolls[0]!) {
       expect(roll).toBeGreaterThanOrEqual(1)
       expect(roll).toBeLessThanOrEqual(6)
     }
 
-    // Second client should receive broadcast
-    const broadcast = await broadcastPromise
-    expect(broadcast.type).toBe('core:roll-result')
-    expect(broadcast.id).toBe(entry.id)
+    // No broadcast — pure RNG does not emit to other clients
   })
 
   // ── log:roll-request invalid dice ──
@@ -502,26 +484,17 @@ describe('Game Log Handlers', () => {
       expect(broadcast.groupId).toBe('test-group-1')
     })
 
-    it('log:roll-request with groupId is stored and returned', async () => {
-      // Drain the broadcast so it does not bleed into the next test
-      const broadcastPromise = waitForSocketEvent<GameLogEntry>(secondClient, 'log:new')
-
+    it('log:roll-request ignores groupId (pure RNG, no game_log entry)', async () => {
       const request = {
-        origin: { seat: { id: seatId, name: 'GM', color: '#ff6600' } },
-        chainDepth: 0,
-        triggerable: false,
-        visibility: {},
         dice: [{ sides: 6, count: 1 }],
-        formula: '1d6',
-        groupId: 'test-group-2',
       }
 
       const ack = await emitRollRequest(ctx.socket, request)
       expect('error' in ack).toBe(false)
-      const entry = ack as GameLogEntry
-      expect(entry.groupId).toBe('test-group-2')
-
-      await broadcastPromise
+      const result = ack as { rolls: number[][] }
+      // Only rolls returned — no groupId, no seq, no game_log storage
+      expect(Array.isArray(result.rolls)).toBe(true)
+      expect(result.rolls).toHaveLength(1)
     })
 
     it('log:entry without groupId defaults to empty string', async () => {

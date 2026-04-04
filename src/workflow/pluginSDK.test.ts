@@ -20,6 +20,8 @@ function makeDeps(): Omit<ContextDeps, 'engine'> {
       timestamp: Date.now(),
       payload: { rolls: [[4]], total: 4, formula: '1d6', dice: [{ sides: 6, count: 1 }] },
     }),
+    createEntity: vi.fn().mockResolvedValue('test:entity-1'),
+    deleteEntity: vi.fn().mockResolvedValue(undefined),
     getEntity: vi.fn(),
     getAllEntities: vi.fn().mockReturnValue({}),
     getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),

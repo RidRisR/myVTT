@@ -46,13 +46,13 @@ export class ChatPanelPage {
     ).toBeVisible({ timeout: 5000 })
   }
 
-  /** Expect a roll card with judgment footer to be visible (Hope/Fear text) */
+  /** Expect a daggerheart action-check card with judgment footer to be visible (Hope/Fear text) */
   async expectJudgmentVisible() {
-    // After unification, judgment renders as part of the roll-result card
+    // daggerheart-core emits 'daggerheart-core:action-check' rendered by DHActionCheckCard
     await expect(
       this.page
-        .getByTestId('entry-roll-result')
-        .filter({ hasText: /Hope|Fear|希望|恐惧/ })
+        .getByTestId('entry-action-check')
+        .filter({ hasText: /Hope|Fear|Critical|希望|恐惧|命运/ })
         .first(),
     ).toBeVisible({ timeout: 5000 })
   }

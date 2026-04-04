@@ -1,7 +1,6 @@
 // server/logHandler.ts — Socket.io handlers for game log events
 import type { TypedServer, TypedSocket } from './socketTypes'
 import { getRoomDb } from './db'
-import { uuidv7 } from './uuidv7'
 import { createEffectRegistry } from './effectRegistry'
 import { shouldReceive } from './visibility'
 import type { GameLogEntry, LogEntrySubmission, RollRequest } from '../src/shared/logTypes'
@@ -59,49 +58,58 @@ export function setupLogHandlers(io: TypedServer, dataDir: string): void {
       const executor = socket.data.seatId
 
       // 4. Transaction: insert + effects + get seq
-      const { entry, isNew } = db.transaction(() => {
-        const info = db
-          .prepare(
-            `INSERT OR IGNORE INTO game_log
-             (id, type, origin, executor, parent_id, group_id, chain_depth, triggerable, visibility, base_seq, payload, timestamp)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          )
-          .run(
-            submission.id,
-            submission.type,
-            JSON.stringify(submission.origin),
-            executor,
-            submission.parentId ?? null,
-            submission.groupId,
-            submission.chainDepth,
-            submission.triggerable ? 1 : 0,
-            JSON.stringify(submission.visibility),
-            submission.baseSeq,
-            JSON.stringify(submission.payload),
-            submission.timestamp,
-          )
-
-        // Read row to get seq (works for both new inserts and duplicate attempts)
-        const row = db.prepare('SELECT * FROM game_log WHERE id = ?').get(submission.id) as Record<
-          string,
-          unknown
-        >
-        const parsed = rowToEntry(row)
-
-        // If new entry (not duplicate): run effects which may mutate payload
-        if (info.changes > 0) {
-          const hadEffect = effectRegistry.run(db, parsed)
-          // Only update payload in DB if an effect handler actually ran
-          if (hadEffect) {
-            db.prepare('UPDATE game_log SET payload = ? WHERE id = ?').run(
-              JSON.stringify(parsed.payload),
-              parsed.id,
+      let result: { entry: GameLogEntry; isNew: boolean }
+      try {
+        result = db.transaction(() => {
+          const info = db
+            .prepare(
+              `INSERT OR IGNORE INTO game_log
+               (id, type, origin, executor, parent_id, group_id, chain_depth, triggerable, visibility, base_seq, payload, timestamp)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             )
-          }
-        }
+            .run(
+              submission.id,
+              submission.type,
+              JSON.stringify(submission.origin),
+              executor,
+              submission.parentId ?? null,
+              submission.groupId,
+              submission.chainDepth,
+              submission.triggerable ? 1 : 0,
+              JSON.stringify(submission.visibility),
+              submission.baseSeq,
+              JSON.stringify(submission.payload),
+              submission.timestamp,
+            )
 
-        return { entry: parsed, isNew: info.changes > 0 }
-      })()
+          // Read row to get seq (works for both new inserts and duplicate attempts)
+          const row = db
+            .prepare('SELECT * FROM game_log WHERE id = ?')
+            .get(submission.id) as Record<string, unknown>
+          const parsed = rowToEntry(row)
+
+          // If new entry (not duplicate): run effects which may mutate payload
+          if (info.changes > 0) {
+            const hadEffect = effectRegistry.run(db, parsed)
+            // Only update payload in DB if an effect handler actually ran
+            if (hadEffect) {
+              db.prepare('UPDATE game_log SET payload = ? WHERE id = ?').run(
+                JSON.stringify(parsed.payload),
+                parsed.id,
+              )
+            }
+          }
+
+          return { entry: parsed, isNew: info.changes > 0 }
+        })()
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        console.error(`[logHandler] log:entry effect failed for ${submission.type}: ${message}`)
+        ack({ error: message })
+        return
+      }
+
+      const { entry, isNew } = result
 
       // 5. Only broadcast new entries (not duplicates)
       if (isNew) {
@@ -120,7 +128,12 @@ export function setupLogHandlers(io: TypedServer, dataDir: string): void {
         return
       }
 
-      // 2. Validate dice bounds
+      // 2. Validate dice bounds (runtime guard — socket payloads are untrusted)
+      const dice = request.dice as unknown
+      if (!dice || !Array.isArray(dice) || dice.length === 0) {
+        ack({ error: 'Missing or empty dice array' })
+        return
+      }
       for (const spec of request.dice) {
         if (spec.sides < 1 || spec.sides > 1000) {
           ack({ error: `Invalid dice sides: ${spec.sides} (must be 1-1000)` })
@@ -132,56 +145,13 @@ export function setupLogHandlers(io: TypedServer, dataDir: string): void {
         }
       }
 
-      // 3. Generate random rolls
+      // 3. Generate random rolls — pure RNG, no entry creation
       const rolls: number[][] = request.dice.map((spec) =>
         Array.from({ length: spec.count }, () => Math.floor(Math.random() * spec.sides) + 1),
       )
 
-      // 4. Create core:roll-result entry with server-generated UUIDv7
-      const id = uuidv7()
-      const executor = socket.data.seatId
-      const timestamp = Date.now()
-
-      const payload: Record<string, unknown> = {
-        dice: request.dice,
-        rolls,
-        formula: request.formula,
-      }
-      if (request.resolvedFormula) payload.resolvedFormula = request.resolvedFormula
-      if (request.rollType) payload.rollType = request.rollType
-      if (request.actionName) payload.actionName = request.actionName
-
-      // 5. Insert into game_log + get seq
-      const entry = db.transaction(() => {
-        db.prepare(
-          `INSERT INTO game_log
-           (id, type, origin, executor, parent_id, group_id, chain_depth, triggerable, visibility, base_seq, payload, timestamp)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        ).run(
-          id,
-          'core:roll-result',
-          JSON.stringify(request.origin),
-          executor,
-          request.parentId ?? null,
-          request.groupId,
-          request.chainDepth,
-          request.triggerable ? 1 : 0,
-          JSON.stringify(request.visibility),
-          0, // baseSeq: roll results don't reference a base
-          JSON.stringify(payload),
-          timestamp,
-        )
-
-        const row = db.prepare('SELECT * FROM game_log WHERE id = ?').get(id) as Record<
-          string,
-          unknown
-        >
-        return rowToEntry(row)
-      })()
-
-      // 6. Broadcast + ack
-      void broadcastLogEntry(io, roomId, entry)
-      ack(entry)
+      // 4. Return rolls directly (no game_log write, no broadcast)
+      ack({ rolls })
     })
 
     // ── log:history handler ──

@@ -12,19 +12,9 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
 
     const deps = {
       emitEntry: vi.fn(),
-      serverRoll: vi.fn().mockResolvedValue({
-        seq: 1,
-        id: 'roll-1',
-        type: 'core:roll-result',
-        origin: { seat: { id: 's1', name: 'GM', color: '#fff' } },
-        executor: 's1',
-        chainDepth: 0,
-        triggerable: true,
-        visibility: {},
-        baseSeq: 0,
-        timestamp: Date.now(),
-        payload: { rolls: [[8, 5]], total: 15, formula: '2d12+2', dice: [{ sides: 12, count: 2 }] },
-      }),
+      serverRoll: vi.fn().mockResolvedValue([[8, 5]]),
+      createEntity: vi.fn().mockResolvedValue('test:entity-1'),
+      deleteEntity: vi.fn().mockResolvedValue(undefined),
       getEntity: vi.fn(),
       getAllEntities: vi.fn().mockReturnValue({}),
       getActiveOrigin: vi.fn().mockReturnValue({ seat: { id: 's1', name: 'GM', color: '#fff' } }),
@@ -38,7 +28,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     return { engine, coreSDK, cosmeticSDK, runner, deps }
   }
 
-  it('full POC flow: dh:action-check composes roll + judge + resolve', async () => {
+  it('full POC flow: daggerheart-core:action-check composes roll + judge + resolve', async () => {
     const { coreSDK, cosmeticSDK, runner, deps } = setup()
     const executionOrder: string[] = []
 
@@ -49,7 +39,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       actorId: string
       rolls?: number[][]
       total?: number
-    }>('dh:action-check', [
+    }>('daggerheart-core:action-check', [
       {
         id: 'roll',
         run: async (ctx) => {
@@ -67,8 +57,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
           }
           const dice = toDiceSpecs(terms)
 
-          const entry = await ctx.serverRoll(formula, { dice })
-          const rolls = entry.payload.rolls as number[][]
+          const rolls = await ctx.serverRoll(dice)
           const { total } = buildCompoundResult(terms, rolls)
           ctx.vars.rolls = rolls
           ctx.vars.total = total
@@ -129,7 +118,9 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
 
     expect(result.status).toBe('completed')
     expect(executionOrder).toEqual(['dh:judge', 'cos:dice-animation', 'dh:resolve'])
-    expect(deps.serverRoll).toHaveBeenCalledWith(expect.objectContaining({ formula: '2d12+2' }))
+    expect(deps.serverRoll).toHaveBeenCalledWith(
+      expect.objectContaining({ dice: [{ sides: 12, count: 2 }] }),
+    )
   })
 
   it('wrapStep: auto-modifier wraps dh step', async () => {
@@ -142,7 +133,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       actorId: string
       modifierApplied?: string
       autoMode?: boolean
-    }>('test:wrap', [
+    }>('daggerheart-core:wrap', [
       {
         id: 'modifier',
         run: (ctx) => {
@@ -177,7 +168,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
     const { engine, coreSDK, cosmeticSDK } = setup()
 
     // core defines dh:action-check
-    const dhWf = coreSDK.defineWorkflow('dh:action-check-deact', [
+    const dhWf = coreSDK.defineWorkflow('daggerheart-core:action-check-deact', [
       { id: 'roll', run: () => {} },
       { id: 'dh:judge', run: () => {} },
       { id: 'display', run: () => {} },
@@ -195,13 +186,17 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       },
     )
 
-    expect(engine.inspectWorkflow('dh:action-check-deact')).toContain('dh:judge')
-    expect(engine.inspectWorkflow('dh:action-check-deact')).toContain('cos:dice-animation')
+    expect(engine.inspectWorkflow('daggerheart-core:action-check-deact')).toContain('dh:judge')
+    expect(engine.inspectWorkflow('daggerheart-core:action-check-deact')).toContain(
+      'cos:dice-animation',
+    )
 
     // Deactivate core — should cascade remove cosmetic's dependent step
     engine.deactivatePlugin('daggerheart-core')
     // Core-owned steps removed, cosmetic dependent also removed
-    expect(engine.inspectWorkflow('dh:action-check-deact')).not.toContain('dh:judge')
-    expect(engine.inspectWorkflow('dh:action-check-deact')).not.toContain('cos:dice-animation')
+    expect(engine.inspectWorkflow('daggerheart-core:action-check-deact')).not.toContain('dh:judge')
+    expect(engine.inspectWorkflow('daggerheart-core:action-check-deact')).not.toContain(
+      'cos:dice-animation',
+    )
   })
 })

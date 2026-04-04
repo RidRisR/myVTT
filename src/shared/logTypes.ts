@@ -75,23 +75,13 @@ export function isLogType<T extends keyof LogPayloadMap>(
 
 // ── RollRequest (client → server for RNG) ──
 export interface RollRequest {
-  origin: MessageOrigin
-  parentId?: string
-  groupId: string
-  chainDepth: number
-  triggerable: boolean
-  visibility: Visibility
   dice: DiceSpec[]
-  formula: string
-  resolvedFormula?: string
-  rollType?: string
-  actionName?: string
 }
 
 // ── Ack types ──
 export type LogEntryAck = GameLogEntry | { error: string }
 
-export type RollRequestAck = GameLogEntry | { error: string }
+export type RollRequestAck = { rolls: number[][] } | { error: string }
 
 // ── Constants ──
 export const MAX_CHAIN_DEPTH = 10

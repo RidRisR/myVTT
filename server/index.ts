@@ -9,6 +9,7 @@ import rateLimit from 'express-rate-limit'
 import { setupSocketAuth } from './ws'
 import { setupAwareness } from './awareness'
 import { setupLogHandlers } from './logHandler'
+import { setupEntitySocketHandlers } from './entitySocketHandler'
 import type { TypedServer } from './socketTypes'
 import { getGlobalDb, closeAllDbs } from './db'
 import { roomRoutes } from './routes/rooms'
@@ -86,6 +87,7 @@ const io = new SocketIOServer(server, {
 setupSocketAuth(io, DATA_DIR)
 setupAwareness(io)
 setupLogHandlers(io, DATA_DIR)
+setupEntitySocketHandlers(io, DATA_DIR)
 
 // ── Health check ──
 app.get('/api/health', (_req, res) => {
