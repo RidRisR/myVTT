@@ -2,9 +2,11 @@ import { useEffect, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { MapToken, Entity } from '../shared/entityTypes'
 import { getName } from '../shared/coreComponents'
-import type { ContextMenuContext } from '../rules/types'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import type { ContextMenuItem } from '../rules/types'
 import { useClickOutside } from '../hooks/useClickOutside'
+import { getAllRenderers, createRendererPoint } from '../log/rendererRegistry'
+
+const CONTEXT_MENU_POINT = createRendererPoint<ContextMenuItem>('combat', 'context-menu-item')
 
 interface TokenContextMenuProps {
   x: number
@@ -45,7 +47,6 @@ export function TokenContextMenu({
 }: TokenContextMenuProps) {
   const { t } = useTranslation('combat')
   const ref = useRef<HTMLDivElement>(null)
-  const plugin = useRulePlugin()
 
   // Click-outside-to-close (Radix Portal-aware)
   useClickOutside(ref, onClose)
@@ -61,19 +62,10 @@ export function TokenContextMenu({
     }
   }, [onClose])
 
-  // Get plugin-provided context menu items
+  // Get plugin-provided context menu items from RendererRegistry
   const pluginItems = useMemo(() => {
-    if (!plugin.surfaces?.getContextMenuItems) return []
-    const menuCtx: ContextMenuContext = {
-      tokenId,
-      entity,
-      role,
-      selectedTokenIds,
-      mapX,
-      mapY,
-    }
-    return plugin.surfaces.getContextMenuItems(menuCtx)
-  }, [plugin, tokenId, entity, role, selectedTokenIds, mapX, mapY])
+    return getAllRenderers(CONTEXT_MENU_POINT)
+  }, [])
 
   // Filter plugin items by role
   const visiblePluginItems = useMemo(

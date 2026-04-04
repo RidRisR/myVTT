@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import type { MapToken, Entity } from '../shared/entityTypes'
-import type { TokenActionContext } from '../rules/types'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import type { TokenAction } from '../rules/types'
 import { useUiStore } from '../stores/uiStore'
+import { getAllRenderers, createRendererPoint } from '../log/rendererRegistry'
+
+const TOKEN_ACTION_POINT = createRendererPoint<TokenAction>('combat', 'token-action')
 
 interface SelectionActionBarProps {
   tokens: MapToken[]
@@ -27,33 +29,13 @@ export function SelectionActionBar({
   containerOffset,
   gridSize,
 }: SelectionActionBarProps) {
-  const plugin = useRulePlugin()
   const startTargeting = useUiStore((s) => s.startTargeting)
 
+  // Read token actions from RendererRegistry (plugins register via onActivate)
   const actions = useMemo(() => {
     if (selectedTokenIds.length === 0 || !primarySelectedTokenId) return []
-    if (!plugin.surfaces?.getTokenActions) return []
-
-    const selectedEntities = selectedTokenIds
-      .map((id) => {
-        const token = tokens.find((t) => t.id === id)
-        return token ? getEntity(token.entityId) : null
-      })
-      .filter((e): e is Entity => e !== null)
-
-    const primaryToken = tokens.find((t) => t.id === primarySelectedTokenId)
-    const primaryEntity = primaryToken ? getEntity(primaryToken.entityId) : null
-
-    const ctx: TokenActionContext = {
-      selectedTokenIds,
-      selectedEntities,
-      primaryTokenId: primarySelectedTokenId,
-      primaryEntity,
-      role,
-    }
-
-    return plugin.surfaces.getTokenActions(ctx)
-  }, [selectedTokenIds, primarySelectedTokenId, tokens, getEntity, role, plugin])
+    return getAllRenderers(TOKEN_ACTION_POINT)
+  }, [selectedTokenIds, primarySelectedTokenId])
 
   // Don't render if no selected tokens or no actions
   if (selectedTokenIds.length === 0 || !primarySelectedTokenId || actions.length === 0) {

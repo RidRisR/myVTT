@@ -2,7 +2,6 @@ import type React from 'react'
 import type { Entity } from '../shared/entityTypes'
 import type { TeamTracker } from '../stores/worldStore'
 import type { ChatRollMessage } from '../shared/chatTypes'
-import type { ToolDefinition } from '../combat/tools/types'
 
 // ── Adapter view types ─────────────────────────────────────────────────────
 
@@ -184,11 +183,6 @@ export interface RulePlugin {
   surfaces?: {
     panels?: PluginPanelDef[]
     teamPanel?: React.ComponentType<TeamPanelProps>
-
-    // ── map integration ──
-    tools?: ToolDefinition[]
-    getTokenActions?: (ctx: TokenActionContext) => TokenAction[]
-    getContextMenuItems?: (ctx: ContextMenuContext) => ContextMenuItem[]
   }
 
   // Layer 5: Rule resolution — reserved, not implemented
