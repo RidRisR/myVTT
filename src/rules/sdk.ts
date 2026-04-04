@@ -71,7 +71,7 @@ export type {
   LogEntryRenderer,
   RendererPoint,
 } from '../log/rendererRegistry'
-export { createRendererPoint } from '../log/rendererRegistry'
+export { createRendererPoint, getAllRenderers } from '../log/rendererRegistry'
 export type { RollResultConfig, RollCardProps } from './types'
 
 // Pre-defined token factory for roll result configs

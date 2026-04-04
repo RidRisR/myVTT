@@ -23,10 +23,20 @@ export function createRendererPoint<T>(surface: string, type: string): RendererP
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const registry = new Map<string, any>()
+const registry = new Map<string, any[]>()
+
+/** Surfaces that support multiple registrations under the same key. */
+const multiSurfaces = new Set(['entity', 'combat'])
 
 function key(surface: string, type: string): string {
   return `${surface}::${type}`
+}
+
+/** Check if a registry key belongs to a multi-registration surface. */
+function isMultiKey(k: string): boolean {
+  const colonIdx = k.indexOf('::')
+  if (colonIdx === -1) return false
+  return multiSurfaces.has(k.slice(0, colonIdx))
 }
 
 // Overload: typed token API
@@ -48,11 +58,19 @@ export function registerRenderer<T>(
     k = key(pointOrSurface.surface, pointOrSurface.type)
     val = valueOrType
   }
-  if (registry.has(k)) {
+
+  const existing = registry.get(k)
+  if (existing) {
+    if (isMultiKey(k)) {
+      // Multi-surface: accumulate
+      existing.push(val)
+      return
+    }
+    // Non-multi surface: warn and skip (backward compat)
     console.warn(`[RendererRegistry] "${k}" already registered, skipping`)
     return
   }
-  registry.set(k, val)
+  registry.set(k, [val])
 }
 
 // Overload: typed token API
@@ -64,11 +82,31 @@ export function getRenderer<T>(
   pointOrSurface: RendererPoint<T> | string,
   type?: string,
 ): T | LogEntryRenderer | undefined {
+  let arr: unknown[] | undefined
   if (typeof pointOrSurface === 'string') {
-    // String overload guarantees type is defined; registry stores heterogeneous values
-    return registry.get(key(pointOrSurface, type ?? '')) as LogEntryRenderer | undefined
+    arr = registry.get(key(pointOrSurface, type ?? ''))
+  } else {
+    arr = registry.get(key(pointOrSurface.surface, pointOrSurface.type))
   }
-  return registry.get(key(pointOrSurface.surface, pointOrSurface.type)) as T | undefined
+  return arr?.[0] as (T & LogEntryRenderer) | undefined
+}
+
+// Overload: typed token API
+export function getAllRenderers<T>(point: RendererPoint<T>): T[]
+// Overload: string API
+export function getAllRenderers(surface: string, type: string): unknown[]
+// Implementation
+export function getAllRenderers<T>(
+  pointOrSurface: RendererPoint<T> | string,
+  type?: string,
+): T[] | unknown[] {
+  let arr: unknown[] | undefined
+  if (typeof pointOrSurface === 'string') {
+    arr = registry.get(key(pointOrSurface, type ?? ''))
+  } else {
+    arr = registry.get(key(pointOrSurface.surface, pointOrSurface.type))
+  }
+  return (arr ?? []) as T[]
 }
 
 export function clearRenderers(): void {

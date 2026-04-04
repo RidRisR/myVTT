@@ -1,30 +1,14 @@
 import { useTranslation } from 'react-i18next'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import { useWorldStore } from '../stores/worldStore'
 
 /**
  * Translation hook for plugin components.
- * Reads from the active RulePlugin's i18n.resources.
- * Falls back to key itself if no translation found.
+ * Reads from the i18next namespace `plugin-{ruleSystemId}`.
+ * Translations are loaded by each VTTPlugin in its onActivate().
  */
 export function usePluginTranslation() {
-  const { i18n } = useTranslation()
-  const plugin = useRulePlugin()
-  const lng = i18n.language
-
-  const t = (key: string, params?: Record<string, string | number>): string => {
-    const resources = plugin.i18n?.resources
-    if (!resources) return key
-
-    const dict = resources[lng] ?? resources['zh-CN'] ?? {}
-    let result = dict[key] ?? key
-
-    if (params) {
-      for (const [k, v] of Object.entries(params)) {
-        result = result.replaceAll(`{{${k}}}`, String(v))
-      }
-    }
-    return result
-  }
-
-  return { t, language: lng }
+  const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
+  const ns = `plugin-${ruleSystemId}`
+  const { t, i18n } = useTranslation(ns)
+  return { t, language: i18n.language }
 }

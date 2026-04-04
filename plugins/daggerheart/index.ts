@@ -8,7 +8,6 @@ import {
 } from './adapters'
 import { createDefaultDHEntityData } from './templates'
 import { DaggerHeartCard } from './DaggerHeartCard'
-import { FullCharacterSheet } from './ui/FullCharacterSheet'
 import { DHTeamPanel } from './ui/DHTeamPanel'
 import { daggerheartI18n } from './i18n'
 
@@ -30,13 +29,6 @@ export const daggerheartPlugin: RulePlugin = {
   dataTemplates: { createDefaultEntityData: createDefaultDHEntityData },
 
   surfaces: {
-    panels: [
-      {
-        id: 'dh-full-sheet',
-        component: FullCharacterSheet,
-        placement: 'fullscreen-overlay' as const,
-      },
-    ],
     teamPanel: DHTeamPanel,
   },
 }

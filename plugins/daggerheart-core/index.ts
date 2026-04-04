@@ -1,5 +1,6 @@
 // plugins/daggerheart-core/index.ts
 import type React from 'react'
+import i18next from 'i18next'
 import type { VTTPlugin, IPluginSDK, WorkflowContext, WorkflowHandle } from '@myvtt/sdk'
 import { DiceJudge } from './DiceJudge'
 import { FearManager } from './FearManager'
@@ -8,6 +9,7 @@ import { ModifierPanel } from './ui/ModifierPanel'
 import type { ModifierResult } from './ui/ModifierPanel'
 import { DHActionCheckCard } from './ui/DHActionCheckCard'
 import { FearPanel } from './ui/FearPanel'
+import { daggerheartI18n } from '../daggerheart/i18n'
 
 interface ActionCheckData {
   [key: string]: unknown
@@ -29,6 +31,13 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
   private actionCheckHandle!: WorkflowHandle<ActionCheckData>
 
   onActivate(sdk: IPluginSDK): void {
+    // Load daggerheart i18n resources into i18next
+    if (daggerheartI18n?.resources && i18next.isInitialized) {
+      for (const [lng, translations] of Object.entries(daggerheartI18n.resources)) {
+        i18next.addResourceBundle(lng, 'plugin-daggerheart', translations, true, true)
+      }
+    }
+
     // Register input handler for modifier panel
     sdk.ui.registerInputHandler('daggerheart-core:modifier', {
       component: ModifierPanel as Parameters<typeof sdk.ui.registerInputHandler>[1]['component'],

@@ -39,7 +39,6 @@ import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './ui/ToastProvider'
-import { PluginPanelContainer } from './layout/PluginPanelContainer'
 import { useRulePlugin } from './rules/useRulePlugin'
 import { initWorkflowSystem, startWorkflowTriggers } from './workflow/useWorkflowSDK'
 import { useStore } from 'zustand'
@@ -680,8 +679,6 @@ function RoomSession({ roomId }: { roomId: string }) {
       {/* UI System: input handler overlays (modals, pickers) triggered by requestInput */}
       <InputHandlerHost registry={uiRegistry} />
 
-      {/* Plugin panel portal — renders active plugin panels at high z-index */}
-      <PluginPanelContainer />
     </ToastProvider>
   )
 }
