@@ -32,7 +32,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
 
   onActivate(sdk: IPluginSDK): void {
     // Load daggerheart i18n resources into i18next
-    if (daggerheartI18n?.resources && i18next.isInitialized) {
+    if (i18next.isInitialized) {
       for (const [lng, translations] of Object.entries(daggerheartI18n.resources)) {
         i18next.addResourceBundle(lng, 'plugin-daggerheart', translations, true, true)
       }
