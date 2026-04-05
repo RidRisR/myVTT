@@ -14,12 +14,6 @@ import { toolRegistry } from './toolRegistry'
 import { BuiltinToolId } from './builtinToolIds'
 import { MeasureToolCanvas } from './MeasureTool'
 import { RangeCircleCanvas, RangeConeCanvas, RangeRectCanvas } from './RangeTemplate'
-import { getAllRenderers, createRendererPoint } from '../../log/rendererRegistry'
-import type { ToolDefinition } from './types'
-
-/** Typed token for plugin-registered combat tools. */
-const PLUGIN_TOOL_POINT = createRendererPoint<ToolDefinition>('combat', 'tool')
-
 toolRegistry.register({
   id: BuiltinToolId.Select,
   category: 'interaction',
@@ -87,15 +81,3 @@ toolRegistry.register({
   defaultMode: 'persistent',
   // Internal tool — no shortcut, not shown in toolbar
 })
-
-// ── Register plugin-provided tools ──────────────────────────────────────────
-// Plugins register tools via sdk.ui.registerRenderer('combat', 'tool', toolDef) in onActivate.
-// This function reads from RendererRegistry and forwards to the local toolRegistry.
-
-export function registerPluginTools(): void {
-  const pluginTools = getAllRenderers(PLUGIN_TOOL_POINT)
-  for (const tool of pluginTools) {
-    const namespacedId = tool.id.startsWith('plugin:') ? tool.id : `plugin:${tool.id}`
-    toolRegistry.register({ ...tool, id: namespacedId, category: 'plugin' })
-  }
-}
