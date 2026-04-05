@@ -108,25 +108,19 @@ export function getFormulaTokens(entity: Entity): Record<string, number> {
 // ── Room-level lookups (ruleSystemId-based) ──────────────────────────────────
 
 /** Get EntityCard component for the given rule system. Returns null if none registered. */
-export function getEntityCard(
-  ruleSystemId: string,
-): React.ComponentType<EntityCardProps> | null {
+export function getEntityCard(ruleSystemId: string): React.ComponentType<EntityCardProps> | null {
   const bindings = getAllRenderers(ENTITY_CARD_POINT)
   return bindings.find((b) => b.ruleSystemId === ruleSystemId)?.component ?? null
 }
 
 /** Get data template factory for the given rule system. */
-export function getDataTemplate(
-  ruleSystemId: string,
-): (() => Record<string, unknown>) | undefined {
+export function getDataTemplate(ruleSystemId: string): (() => Record<string, unknown>) | undefined {
   const bindings = getAllRenderers(DATA_TEMPLATE_POINT)
   return bindings.find((b) => b.ruleSystemId === ruleSystemId)?.createDefaultEntityData
 }
 
 /** Get team panel component for the given rule system. Returns null if none registered. */
-export function getTeamPanel(
-  ruleSystemId: string,
-): React.ComponentType<TeamPanelProps> | null {
+export function getTeamPanel(ruleSystemId: string): React.ComponentType<TeamPanelProps> | null {
   const bindings = getAllRenderers(TEAM_PANEL_POINT)
   return bindings.find((b) => b.ruleSystemId === ruleSystemId)?.component ?? null
 }

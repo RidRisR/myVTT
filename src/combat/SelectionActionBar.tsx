@@ -23,7 +23,7 @@ export function SelectionActionBar({
   selectedTokenIds,
   primarySelectedTokenId,
   getEntity,
-  role,
+  role: _role,
   stageScale,
   stagePos,
   containerOffset,

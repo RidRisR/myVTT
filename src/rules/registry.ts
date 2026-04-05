@@ -7,7 +7,12 @@ import { genericVTTPlugin } from '../../plugins/generic/vttPlugin'
 import { registerWorkflowPlugins } from '../workflow/useWorkflowSDK'
 
 // Register VTT plugins for workflow activation
-registerWorkflowPlugins([genericVTTPlugin, daggerheartCorePlugin, daggerheartCosmeticPlugin, coreUIPlugin])
+registerWorkflowPlugins([
+  genericVTTPlugin,
+  daggerheartCorePlugin,
+  daggerheartCosmeticPlugin,
+  coreUIPlugin,
+])
 
 // Static list of available rule systems (used by AdminPanel, HamburgerMenu)
 const AVAILABLE_RULE_SYSTEMS: Array<{ id: string; name: string }> = [

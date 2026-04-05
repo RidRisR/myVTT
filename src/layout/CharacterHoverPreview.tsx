@@ -2,11 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Entity } from '../shared/entityTypes'
 import { getName } from '../shared/coreComponents'
-import {
-  getPortraitResources,
-  getFormulaTokens,
-  getStatuses,
-} from '../log/entityBindings'
+import { getPortraitResources, getFormulaTokens, getStatuses } from '../log/entityBindings'
 import type { ResourceView } from '../rules/types'
 import { statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../ui/ResourceBar'

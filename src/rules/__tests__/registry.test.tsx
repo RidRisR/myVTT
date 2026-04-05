@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { getAvailablePlugins } from '../registry'
 import { makeEntity } from '../../__test-utils__/fixtures'
 import {

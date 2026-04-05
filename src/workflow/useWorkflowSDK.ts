@@ -27,7 +27,6 @@ let _runner: WorkflowRunner | null = null
 let _dispatcher: LogStreamDispatcher | null = null
 let _workflowSystemInitialized = false
 
-
 /**
  * Register workflow plugins for activation. Must be called before useWorkflowRunner.
  * Designed to be called from the plugin registry boundary (src/rules/registry.ts).

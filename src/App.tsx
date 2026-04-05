@@ -676,7 +676,6 @@ function RoomSession({ roomId }: { roomId: string }) {
 
       {/* UI System: input handler overlays (modals, pickers) triggered by requestInput */}
       <InputHandlerHost registry={uiRegistry} />
-
     </ToastProvider>
   )
 }
