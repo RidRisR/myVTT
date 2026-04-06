@@ -114,11 +114,11 @@ test.describe('Chat @variable autocomplete (entity bindings)', () => {
     // Input should now contain @agility
     await expect(chatInput).toHaveValue('@agility')
 
-    // Now test formula substitution: type a dice formula using @agility
+    // Now test formula substitution: type a dice formula using @agility.
+    // fill() triggers autocomplete (trailing @agility matches the @ regex).
+    // First Enter accepts the autocomplete suggestion; second Enter submits.
     await chatInput.fill('.r 1d20+@agility')
-    // Dismiss autocomplete first (fill triggers it for trailing @agility),
-    // then Enter to submit the roll command
-    await page.keyboard.press('Escape')
+    await chatInput.press('Enter')
     await chatInput.press('Enter')
 
     // A roll result card should appear (formula was substituted and rolled)

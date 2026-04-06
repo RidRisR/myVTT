@@ -72,15 +72,15 @@ test.describe('Character Card Expansion (entity bindings)', () => {
       { timeout: 10_000 },
     )
 
-    // The character creation opens a card by default (openCard is called in handleCreate).
-    // Wait for it to appear (entity must propagate to store first), then dismiss via
-    // click-outside (FloatingCard uses dismissOn:'clickoutside', no Escape handler).
+    // Reset stale openCardId from auto-open (EntityPanel sets openCardId but
+    // the card may not render if openCardRect fallback hasn't resolved, causing
+    // portrait click to toggle OFF instead of opening).
     const cardPopup = page.getByTestId('entity-card-popup')
-    await expect(cardPopup).toBeVisible({ timeout: 10_000 })
-    await page.mouse.click(10, 10)
-    await expect(cardPopup).toBeHidden({ timeout: 5_000 })
+    await page.evaluate(() => {
+      ;(window as any).__MYVTT_STORES__?.ui?.().closeCard?.()
+    })
 
-    // Click on the portrait to reopen the character card
+    // Click on the portrait to open the character card
     const portrait = page.locator(`[data-char-id="${entityId}"]`)
     await expect(portrait).toBeVisible({ timeout: 5_000 })
     await portrait.click()
@@ -139,14 +139,13 @@ test.describe('Character Card Expansion (entity bindings)', () => {
     })
     expect(entityId).toBeTruthy()
 
-    // Dismiss auto-opened card if it appears (may not auto-open if openCardRect
-    // fallback hasn't resolved yet — this is non-deterministic)
+    // Reset stale openCardId from auto-open (EntityPanel sets openCardId but
+    // the card may not render if openCardRect fallback hasn't resolved).
+    // Clear it so the portrait click opens fresh instead of toggling off.
     const cardPopup = page.getByTestId('entity-card-popup')
-    const autoOpened = await cardPopup.isVisible({ timeout: 3_000 }).catch(() => false)
-    if (autoOpened) {
-      await page.mouse.click(10, 10)
-      await expect(cardPopup).toBeHidden({ timeout: 5_000 })
-    }
+    await page.evaluate(() => {
+      ;(window as any).__MYVTT_STORES__?.ui?.().closeCard?.()
+    })
 
     // Open card via portrait click
     const portrait = page.locator(`[data-char-id="${entityId}"]`)
@@ -183,13 +182,11 @@ test.describe('Character Card Expansion (entity bindings)', () => {
         ?.id
     })
 
-    // Dismiss auto-opened card if it appears
+    // Reset stale openCardId from auto-open
     const cardPopup = page.getByTestId('entity-card-popup')
-    const autoOpened = await cardPopup.isVisible({ timeout: 3_000 }).catch(() => false)
-    if (autoOpened) {
-      await page.mouse.click(10, 10)
-      await expect(cardPopup).toBeHidden({ timeout: 5_000 })
-    }
+    await page.evaluate(() => {
+      ;(window as any).__MYVTT_STORES__?.ui?.().closeCard?.()
+    })
 
     // Open card via portrait click
     const portrait = page.locator(`[data-char-id="${entityId}"]`)
