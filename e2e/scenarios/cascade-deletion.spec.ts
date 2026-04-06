@@ -102,18 +102,14 @@ test.describe('Cascade Deletion', () => {
     })
     expect(entityId).toBeTruthy()
 
-    // Open GmSidebar -> Entities tab
-    await room.gmSidebar.openEntities()
-
-    // Delete entity via EntityPanel (confirm immediately)
-    // The entity name comes from the auto-created ephemeral entity
-    // Find the entity name from the store
-    const entityName = await page.evaluate((eid: string) => {
-      const store = (window as any).__MYVTT_STORES__?.world()
-      return store?.entities?.[eid]?.components?.['core:identity']?.name
-    }, entityId as string)
-
-    await room.gmSidebar.entityPanel.deleteEntity(entityName as string)
+    // Delete entity via store action (bypasses UI name-matching ambiguity:
+    // quick-create tokens have name="" which matches any row, and the
+    // FearManager entity from workflow triggers adds a second row).
+    // This test verifies cascade behavior, not the delete UI.
+    await page.evaluate(
+      (eid) => (window as any).__MYVTT_STORES__?.world().deleteEntity(eid),
+      entityId as string,
+    )
 
     // Wait for entity to be removed from store
     await page.waitForFunction(
