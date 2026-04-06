@@ -115,11 +115,10 @@ test.describe('Chat @variable autocomplete (entity bindings)', () => {
     await expect(chatInput).toHaveValue('@agility')
 
     // Now test formula substitution: type a dice formula using @agility.
-    // fill() triggers autocomplete (trailing @agility matches the @ regex).
-    // First Enter accepts the autocomplete suggestion; second Enter submits.
+    // fill() triggers autocomplete for trailing @agility, which consumes Enter.
+    // Click the Send button instead (calls handleSend directly, bypasses autocomplete).
     await chatInput.fill('.r 1d20+@agility')
-    await chatInput.press('Enter')
-    await chatInput.press('Enter')
+    await page.getByLabel('Send').click()
 
     // A roll result card should appear (formula was substituted and rolled)
     await expect(page.getByTestId('entry-roll-result').first()).toBeVisible({ timeout: 5_000 })
