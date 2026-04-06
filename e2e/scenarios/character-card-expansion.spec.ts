@@ -27,10 +27,9 @@ test.describe('Character Card Expansion (entity bindings)', () => {
     // Get entity ID and set meaningful DH data
     const entityId = await page.evaluate(() => {
       const store = (window as any).__MYVTT_STORES__?.world()
-      const entities = Object.values(store.entities) as any[]
-      return entities.find(
-        (e: any) => e.components?.['core:identity']?.name === 'New Character',
-      )?.id
+      const entities = Object.values(store.entities)
+      return entities.find((e: any) => e.components?.['core:identity']?.name === 'New Character')
+        ?.id
     })
     expect(entityId).toBeTruthy()
 
@@ -133,10 +132,9 @@ test.describe('Character Card Expansion (entity bindings)', () => {
 
     const entityId = await page.evaluate(() => {
       const store = (window as any).__MYVTT_STORES__?.world()
-      const entities = Object.values(store.entities) as any[]
-      return entities.find(
-        (e: any) => e.components?.['core:identity']?.name === 'New Character',
-      )?.id
+      const entities = Object.values(store.entities)
+      return entities.find((e: any) => e.components?.['core:identity']?.name === 'New Character')
+        ?.id
     })
     expect(entityId).toBeTruthy()
 
@@ -176,10 +174,9 @@ test.describe('Character Card Expansion (entity bindings)', () => {
 
     const entityId = await page.evaluate(() => {
       const store = (window as any).__MYVTT_STORES__?.world()
-      const entities = Object.values(store.entities) as any[]
-      return entities.find(
-        (e: any) => e.components?.['core:identity']?.name === 'New Character',
-      )?.id
+      const entities = Object.values(store.entities)
+      return entities.find((e: any) => e.components?.['core:identity']?.name === 'New Character')
+        ?.id
     })
 
     // Close auto-opened card, then reopen

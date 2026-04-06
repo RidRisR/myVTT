@@ -26,10 +26,9 @@ test.describe('Chat @variable autocomplete (entity bindings)', () => {
 
     const entityId = await page.evaluate(() => {
       const store = (window as any).__MYVTT_STORES__?.world()
-      const entities = Object.values(store.entities) as any[]
-      return entities.find(
-        (e: any) => e.components?.['core:identity']?.name === 'New Character',
-      )?.id
+      const entities = Object.values(store.entities)
+      return entities.find((e: any) => e.components?.['core:identity']?.name === 'New Character')
+        ?.id
     })
     expect(entityId).toBeTruthy()
 
@@ -56,17 +55,6 @@ test.describe('Chat @variable autocomplete (entity bindings)', () => {
             },
           },
         })
-      },
-      { id: entityId },
-    )
-
-    // Set as active character (so formula tokens are available in chat)
-    await page.evaluate(
-      ({ id }) => {
-        const store = (window as any).__MYVTT_STORES__?.world()
-        // setActiveCharacter is on identityStore, but we can use the portrait click path.
-        // For simplicity, use the portrait click to set active character.
-        // Actually, we need to find the right store. Let's check if there's a direct setter.
       },
       { id: entityId },
     )
@@ -136,10 +124,9 @@ test.describe('Chat @variable autocomplete (entity bindings)', () => {
 
     const entityId = await page.evaluate(() => {
       const store = (window as any).__MYVTT_STORES__?.world()
-      const entities = Object.values(store.entities) as any[]
-      return entities.find(
-        (e: any) => e.components?.['core:identity']?.name === 'New Character',
-      )?.id
+      const entities = Object.values(store.entities)
+      return entities.find((e: any) => e.components?.['core:identity']?.name === 'New Character')
+        ?.id
     })
     expect(entityId).toBeTruthy()
 

@@ -8,15 +8,15 @@
 
 ## Completed as designed
 
-| Phase | Item | Status |
-|-------|------|--------|
-| Phase 0 | Delete `hideElements`, `dockTabs`, `gmTabs`, `keyBindings`, `getPresetTemplates` | ✅ Done |
-| Phase 1a | Delete `PluginPanelContainer.tsx` | ✅ Done |
-| Phase 1d | Migrate i18n from RulePlugin to VTTPlugin | ✅ Done |
-| Phase 2 | RendererRegistry multi-registration extension (`getAllRenderers`) | ✅ Done |
-| Phase 2a/2b/2c | surfaces.tools/tokenActions/contextMenu → RendererRegistry | ✅ Done |
-| Phase 3 | Entity bindings system (24 adapter consumption points → 0) | ✅ Done |
-| Phase 4 | Delete RulePlugin interface, useRulePlugin, old plugin objects | ✅ Done |
+| Phase          | Item                                                                             | Status  |
+| -------------- | -------------------------------------------------------------------------------- | ------- |
+| Phase 0        | Delete `hideElements`, `dockTabs`, `gmTabs`, `keyBindings`, `getPresetTemplates` | ✅ Done |
+| Phase 1a       | Delete `PluginPanelContainer.tsx`                                                | ✅ Done |
+| Phase 1d       | Migrate i18n from RulePlugin to VTTPlugin                                        | ✅ Done |
+| Phase 2        | RendererRegistry multi-registration extension (`getAllRenderers`)                | ✅ Done |
+| Phase 2a/2b/2c | surfaces.tools/tokenActions/contextMenu → RendererRegistry                       | ✅ Done |
+| Phase 3        | Entity bindings system (24 adapter consumption points → 0)                       | ✅ Done |
+| Phase 4        | Delete RulePlugin interface, useRulePlugin, old plugin objects                   | ✅ Done |
 
 ---
 
@@ -51,6 +51,7 @@
 **Actual:** Only the dataTemplates RulePlugin dependency was eliminated via `DATA_TEMPLATE_POINT` entity binding. The broader workflow-ization (route consolidation 9→3, REST endpoint deletion) was NOT done.
 
 **Reason:**
+
 1. RulePlugin dependency (`dataTemplates` 2 call sites) already eliminated via entity bindings — RulePlugin interface deletion is unblocked
 2. Full workflow-ization is L-sized: extends socket handler, deletes 2 REST endpoints, modifies 5+ UI files, creates base workflow — cross-cutting frontend/backend change
 3. Route consolidation changes user interaction patterns (GM/player creation flows) — needs independent UX design review

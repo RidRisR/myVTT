@@ -12,22 +12,23 @@
 
 ## Scope for this PR
 
-| Phase | Included | Reason |
-|-------|----------|--------|
-| Phase 0 | ✅ Done | Committed as `8e09329` |
-| Phase 1d (i18n) | ✅ This PR | S — straightforward i18n re-routing |
-| Phase 2 (RendererRegistry multi-reg) | ✅ This PR | M — infrastructure extension, no RulePlugin dependency |
-| Phase 1a (panels) | ⚠️ Partial | Delete PluginPanelContainer; FullCharacterSheet IComponentSDK adaptation is L, may defer |
-| Phase 1b (teamPanel) | ⏸️ Deferred | Blocked by PanelRenderer limitations (issue #188) |
-| Phase 1c (entity creation) | ⏸️ Deferred | L — needs its own design + PR |
-| Phase 3 (adapters) | ⏸️ Deferred | L-XL — depends on Phase 2 |
-| Phase 4 (cleanup) | ⏸️ Deferred | Depends on Phase 1-3 complete |
+| Phase                                | Included    | Reason                                                                                   |
+| ------------------------------------ | ----------- | ---------------------------------------------------------------------------------------- |
+| Phase 0                              | ✅ Done     | Committed as `8e09329`                                                                   |
+| Phase 1d (i18n)                      | ✅ This PR  | S — straightforward i18n re-routing                                                      |
+| Phase 2 (RendererRegistry multi-reg) | ✅ This PR  | M — infrastructure extension, no RulePlugin dependency                                   |
+| Phase 1a (panels)                    | ⚠️ Partial  | Delete PluginPanelContainer; FullCharacterSheet IComponentSDK adaptation is L, may defer |
+| Phase 1b (teamPanel)                 | ⏸️ Deferred | Blocked by PanelRenderer limitations (issue #188)                                        |
+| Phase 1c (entity creation)           | ⏸️ Deferred | L — needs its own design + PR                                                            |
+| Phase 3 (adapters)                   | ⏸️ Deferred | L-XL — depends on Phase 2                                                                |
+| Phase 4 (cleanup)                    | ⏸️ Deferred | Depends on Phase 1-3 complete                                                            |
 
 ---
 
 ### Task 1: Phase 1d — Migrate i18n from RulePlugin to VTTPlugin
 
 **Files:**
+
 - Modify: `src/i18n/pluginI18n.ts`
 - Modify: `src/rules/registry.ts`
 - Modify: `plugins/daggerheart-core/index.ts`
@@ -41,6 +42,7 @@ Migration: Make VTTPlugin load its own i18n in `onActivate`, and `usePluginTrans
 File: `src/i18n/pluginI18n.ts` — 30 lines. Hook calls `useRulePlugin()` to get `plugin.i18n?.resources`, then manually looks up keys. Need to replace with `useTranslation('plugin-{pluginId}')` from i18next.
 
 Problem: The hook doesn't know the pluginId — it gets translations from the active RulePlugin. After migration, we need a way to determine the active plugin's i18n namespace. Options:
+
 - A) Hardcode `plugin-daggerheart` (bad — defeats purpose)
 - B) Read room's ruleSystemId from worldStore (same as current, just different lookup)
 - C) Each consumer passes pluginId (breaks current API)
@@ -100,6 +102,7 @@ feat: migrate i18n from RulePlugin to VTTPlugin (Phase 1d)
 ### Task 2: Phase 2 — RendererRegistry multi-registration extension
 
 **Files:**
+
 - Modify: `src/log/rendererRegistry.ts`
 - Create: `src/log/__tests__/rendererRegistry-multi.test.ts`
 
@@ -110,7 +113,13 @@ Extend RendererRegistry to support same-key multiple registrations via `getAllRe
 ```typescript
 // src/log/__tests__/rendererRegistry-multi.test.ts
 import { describe, it, expect, beforeEach } from 'vitest'
-import { registerRenderer, getRenderer, getAllRenderers, clearRenderers, createRendererPoint } from '../rendererRegistry'
+import {
+  registerRenderer,
+  getRenderer,
+  getAllRenderers,
+  clearRenderers,
+  createRendererPoint,
+} from '../rendererRegistry'
 
 describe('getAllRenderers (multi-registration)', () => {
   beforeEach(() => clearRenderers())
@@ -168,6 +177,7 @@ Expected: FAIL — `getAllRenderers` not exported.
 - [ ] **Step 3: Implement multi-registration in rendererRegistry.ts**
 
 Change internal storage from `Map<string, any>` to `Map<string, any[]>`. Add `getAllRenderers` function. Keep `getRenderer` returning first item. The `registerRenderer` behavior changes:
+
 - For keys in multi-registration surfaces (`entity::*`), always append.
 - For other keys (`chat::*`, `rollResult::*`), keep existing warn-and-skip behavior.
 
@@ -189,6 +199,7 @@ registry.set(k, [val])
 ```
 
 Add `getAllRenderers` overloads matching existing pattern:
+
 ```typescript
 export function getAllRenderers<T>(point: RendererPoint<T>): T[]
 export function getAllRenderers(surface: string, type: string): unknown[]
@@ -215,6 +226,7 @@ feat: add multi-registration support to RendererRegistry (Phase 2)
 ### Task 3: Phase 1a — Delete PluginPanelContainer
 
 **Files:**
+
 - Delete: `src/layout/PluginPanelContainer.tsx`
 - Modify: `src/App.tsx` (remove PluginPanelContainer import and render)
 - Modify: `plugins/daggerheart/index.ts` (remove surfaces.panels)
@@ -250,6 +262,7 @@ refactor: delete PluginPanelContainer — panels now UIRegistry-driven (Phase 1a
 - [ ] **Step 1: Push branch and create PR**
 
 Push the worktree branch and create a PR against main with:
+
 - Summary of Phase 0 + 1a + 1d + 2 changes
 - Link to doc 22
 - Deviation doc reference
@@ -261,6 +274,7 @@ Push the worktree branch and create a PR against main with:
 - [ ] **Step 1: Create deviation document**
 
 Create `docs/superpowers/deviations/2026-04-05-ruleplugin-phase0-2.md` documenting:
+
 - What was planned vs what was implemented
 - Phase 1b deferred (PanelRenderer limitation, issue #188)
 - Phase 1c deferred (entity creation workflow-ization — scope too large)

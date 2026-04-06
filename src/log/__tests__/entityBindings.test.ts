@@ -1,8 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import {
-  registerRenderer,
-  clearRenderers,
-} from '../rendererRegistry'
+import { registerRenderer, clearRenderers } from '../rendererRegistry'
 import {
   MAIN_RESOURCE_POINT,
   PORTRAIT_RESOURCES_POINT,

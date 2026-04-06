@@ -162,16 +162,16 @@ graph TD
     style P4 fill:#D3D3D3
 ```
 
-| Phase | 前置依赖                        | 工作量 | 涉及消费点                                                      | 状态                                          |
-| ----- | ------------------------------- | ------ | --------------------------------------------------------------- | --------------------------------------------- |
-| 0     | 无                              | 0      | hideElements, dockTabs, gmTabs, keyBindings, getPresetTemplates | ✅ 完成                                       |
-| 1a    | 无                              | M      | panels (PluginPanelContainer)                                   | ✅ 完成（偏差 D1：FullCharacterSheet 未适配） |
-| 1b    | PanelRenderer 增强 (issue #188) | S      | teamPanel (TeamDashboard)                                       | ✅ 完成（保留容器，改数据源为 entity bindings）|
-| 1c    | 独立设计                        | L      | dataTemplates, 实体创建路径精简 9→3                             | ⏸️ 推迟（dataTemplates RulePlugin 依赖已消除，路径精简推迟为独立 PR）|
-| 1d    | 无                              | S      | i18n                                                            | ✅ 完成                                       |
-| 2     | 无                              | M      | RendererRegistry 多注册 (tools, tokenActions, contextMenu)      | ✅ 完成                                       |
-| 3     | Phase 2 完成                    | L-XL   | EntityCard, adapters 全部 (24 处)                               | ✅ 完成（entity bindings 系统）               |
-| 4     | Phase 0-3 全部完成              | S      | 基础设施删除                                                    | ✅ 完成                                       |
+| Phase | 前置依赖                        | 工作量 | 涉及消费点                                                      | 状态                                                                  |
+| ----- | ------------------------------- | ------ | --------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 0     | 无                              | 0      | hideElements, dockTabs, gmTabs, keyBindings, getPresetTemplates | ✅ 完成                                                               |
+| 1a    | 无                              | M      | panels (PluginPanelContainer)                                   | ✅ 完成（偏差 D1：FullCharacterSheet 未适配）                         |
+| 1b    | PanelRenderer 增强 (issue #188) | S      | teamPanel (TeamDashboard)                                       | ✅ 完成（保留容器，改数据源为 entity bindings）                       |
+| 1c    | 独立设计                        | L      | dataTemplates, 实体创建路径精简 9→3                             | ⏸️ 推迟（dataTemplates RulePlugin 依赖已消除，路径精简推迟为独立 PR） |
+| 1d    | 无                              | S      | i18n                                                            | ✅ 完成                                                               |
+| 2     | 无                              | M      | RendererRegistry 多注册 (tools, tokenActions, contextMenu)      | ✅ 完成                                                               |
+| 3     | Phase 2 完成                    | L-XL   | EntityCard, adapters 全部 (24 处)                               | ✅ 完成（entity bindings 系统）                                       |
+| 4     | Phase 0-3 全部完成              | S      | 基础设施删除                                                    | ✅ 完成                                                               |
 
 > **注**：`diceSystem` 层已在 PR #187 中完成退役，不再列入路线。
 

@@ -11,13 +11,6 @@ import {
   FORMULA_TOKENS_POINT,
   ENTITY_CARD_POINT,
 } from '../../../src/log/entityBindings'
-import type {
-  MainResourceBinding,
-  PortraitResourcesBinding,
-  StatusBinding,
-  FormulaTokensBinding,
-  EntityCardBinding,
-} from '../../../src/log/entityBindings'
 import { makeEntity } from '../../../src/__test-utils__/fixtures'
 import { genericVTTPlugin } from '../vttPlugin'
 
@@ -38,7 +31,7 @@ beforeEach(() => {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function resolveMain(components: Record<string, unknown>) {
-  const bindings = getAllRenderers(MAIN_RESOURCE_POINT) as MainResourceBinding[]
+  const bindings = getAllRenderers(MAIN_RESOURCE_POINT)
   const entity = makeEntity({ components })
   for (const b of bindings) {
     const r = b.resolve(entity)
@@ -48,19 +41,19 @@ function resolveMain(components: Record<string, unknown>) {
 }
 
 function resolvePortrait(components: Record<string, unknown>) {
-  const bindings = getAllRenderers(PORTRAIT_RESOURCES_POINT) as PortraitResourcesBinding[]
+  const bindings = getAllRenderers(PORTRAIT_RESOURCES_POINT)
   const entity = makeEntity({ components })
   return bindings.flatMap((b) => b.resolve(entity))
 }
 
 function resolveStatuses(components: Record<string, unknown>) {
-  const bindings = getAllRenderers(STATUS_POINT) as StatusBinding[]
+  const bindings = getAllRenderers(STATUS_POINT)
   const entity = makeEntity({ components })
   return bindings.flatMap((b) => b.resolve(entity))
 }
 
 function resolveFormula(components: Record<string, unknown>) {
-  const bindings = getAllRenderers(FORMULA_TOKENS_POINT) as FormulaTokensBinding[]
+  const bindings = getAllRenderers(FORMULA_TOKENS_POINT)
   const entity = makeEntity({ components })
   let result: Record<string, number> = {}
   for (const b of bindings) {
@@ -170,7 +163,7 @@ describe('Generic plugin — FORMULA_TOKENS_POINT', () => {
 
 describe('Generic plugin — ENTITY_CARD_POINT', () => {
   it('registers with ruleSystemId generic', () => {
-    const bindings = getAllRenderers(ENTITY_CARD_POINT) as EntityCardBinding[]
+    const bindings = getAllRenderers(ENTITY_CARD_POINT)
     const generic = bindings.find((b) => b.ruleSystemId === 'generic')
     expect(generic).toBeDefined()
     expect(generic?.component).toBeDefined()

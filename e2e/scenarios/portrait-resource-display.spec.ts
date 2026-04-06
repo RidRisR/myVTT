@@ -27,10 +27,9 @@ test.describe('Portrait Resource Display (entity bindings)', () => {
     // Read entity ID from store
     const entityId = await page.evaluate(() => {
       const store = (window as any).__MYVTT_STORES__?.world()
-      const entities = Object.values(store.entities) as any[]
-      return entities.find(
-        (e: any) => e.components?.['core:identity']?.name === 'New Character',
-      )?.id
+      const entities = Object.values(store.entities)
+      return entities.find((e: any) => e.components?.['core:identity']?.name === 'New Character')
+        ?.id
     })
     expect(entityId).toBeTruthy()
 
@@ -108,10 +107,9 @@ test.describe('Portrait Resource Display (entity bindings)', () => {
     // Read entity ID
     const entityId = await page.evaluate(() => {
       const store = (window as any).__MYVTT_STORES__?.world()
-      const entities = Object.values(store.entities) as any[]
-      return entities.find(
-        (e: any) => e.components?.['core:identity']?.name === 'New Character',
-      )?.id
+      const entities = Object.values(store.entities)
+      return entities.find((e: any) => e.components?.['core:identity']?.name === 'New Character')
+        ?.id
     })
     expect(entityId).toBeTruthy()
 
