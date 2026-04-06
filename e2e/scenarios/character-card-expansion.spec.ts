@@ -73,10 +73,11 @@ test.describe('Character Card Expansion (entity bindings)', () => {
     )
 
     // The character creation opens a card by default (openCard is called in handleCreate).
-    // Wait for it to appear (entity must propagate to store first), then close it.
+    // Wait for it to appear (entity must propagate to store first), then dismiss via
+    // click-outside (FloatingCard uses dismissOn:'clickoutside', no Escape handler).
     const cardPopup = page.getByTestId('entity-card-popup')
     await expect(cardPopup).toBeVisible({ timeout: 10_000 })
-    await page.keyboard.press('Escape')
+    await page.mouse.click(10, 10)
     await expect(cardPopup).toBeHidden({ timeout: 5_000 })
 
     // Click on the portrait to reopen the character card
@@ -138,10 +139,11 @@ test.describe('Character Card Expansion (entity bindings)', () => {
     })
     expect(entityId).toBeTruthy()
 
-    // Wait for auto-opened card (entity must propagate to store), then close it
+    // Wait for auto-opened card (entity must propagate to store), then dismiss via
+    // click-outside (FloatingCard uses dismissOn:'clickoutside', no Escape handler)
     const cardPopup = page.getByTestId('entity-card-popup')
     await expect(cardPopup).toBeVisible({ timeout: 10_000 })
-    await page.keyboard.press('Escape')
+    await page.mouse.click(10, 10)
     await expect(cardPopup).toBeHidden({ timeout: 5_000 })
 
     // Reopen via portrait click
@@ -181,10 +183,10 @@ test.describe('Character Card Expansion (entity bindings)', () => {
         ?.id
     })
 
-    // Wait for auto-opened card, then close it
+    // Wait for auto-opened card, then dismiss via click-outside
     const cardPopup = page.getByTestId('entity-card-popup')
     await expect(cardPopup).toBeVisible({ timeout: 10_000 })
-    await page.keyboard.press('Escape')
+    await page.mouse.click(10, 10)
     await expect(cardPopup).toBeHidden({ timeout: 5_000 })
 
     // Reopen via portrait click

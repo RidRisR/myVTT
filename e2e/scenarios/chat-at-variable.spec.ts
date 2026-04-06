@@ -69,18 +69,26 @@ test.describe('Chat @variable autocomplete (entity bindings)', () => {
       { timeout: 10_000 },
     )
 
-    // Click on the portrait to set as active character (via context menu)
+    // Set as active character via context menu
     const portrait = page.locator(`[data-char-id="${entityId}"]`)
     await expect(portrait).toBeVisible({ timeout: 5_000 })
     await portrait.click({ button: 'right' })
-    // Look for "Set Active" menu item — it sets the active character
-    const setActiveItem = page.getByText(/Set Active|设为活跃|アクティブ/)
-    if (await setActiveItem.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await setActiveItem.click()
-    } else {
-      // If not visible (e.g., already active), press Escape to dismiss menu
-      await page.keyboard.press('Escape')
-    }
+    const setActiveItem = page.getByText(/Set as active|设为活跃/)
+    await expect(setActiveItem).toBeVisible({ timeout: 3_000 })
+    await setActiveItem.click()
+
+    // Wait for seat activeCharacterId to propagate via WebSocket
+    await page.waitForFunction(
+      ({ id }) => {
+        const store = (window as any).__MYVTT_STORES__?.identity()
+        const mySeatId = store?.mySeatId
+        if (!mySeatId) return false
+        const seat = store?.seats?.find((s: any) => s.id === mySeatId)
+        return seat?.activeCharacterId === id
+      },
+      { id: entityId },
+      { timeout: 10_000 },
+    )
 
     // Expand chat and type @ to trigger autocomplete
     await room.chat.expandChat()
@@ -168,16 +176,26 @@ test.describe('Chat @variable autocomplete (entity bindings)', () => {
       { timeout: 10_000 },
     )
 
-    // Set as active character via portrait click
+    // Set as active character via context menu
     const portrait = page.locator(`[data-char-id="${entityId}"]`)
     await expect(portrait).toBeVisible({ timeout: 5_000 })
     await portrait.click({ button: 'right' })
-    const setActiveItem = page.getByText(/Set Active|设为活跃|アクティブ/)
-    if (await setActiveItem.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await setActiveItem.click()
-    } else {
-      await page.keyboard.press('Escape')
-    }
+    const setActiveItem = page.getByText(/Set as active|设为活跃/)
+    await expect(setActiveItem).toBeVisible({ timeout: 3_000 })
+    await setActiveItem.click()
+
+    // Wait for seat activeCharacterId to propagate via WebSocket
+    await page.waitForFunction(
+      ({ id }) => {
+        const store = (window as any).__MYVTT_STORES__?.identity()
+        const mySeatId = store?.mySeatId
+        if (!mySeatId) return false
+        const seat = store?.seats?.find((s: any) => s.id === mySeatId)
+        return seat?.activeCharacterId === id
+      },
+      { id: entityId },
+      { timeout: 10_000 },
+    )
 
     // Expand chat and trigger autocomplete
     await room.chat.expandChat()
