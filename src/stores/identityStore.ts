@@ -132,14 +132,17 @@ export const useIdentityStore = create<IdentityState>((set, get) => ({
   },
 
   claimSeat: (seatId: string) => {
-    set({ mySeatId: seatId })
-    sessionStorage.setItem(SEAT_STORAGE_KEY, seatId)
-
-    // Announce presence via socket
+    // Emit seat:claim BEFORE updating store. Zustand subscribers fire
+    // synchronously within set(), and startWorkflowTriggers (subscribed in
+    // App.tsx) may emit entity:create-request on the same socket. Socket.io
+    // delivers messages in order, so emitting seat:claim first guarantees the
+    // server has socket.data.seatId set before any plugin entity requests.
     const { _socket: socket } = get()
     if (socket) {
       socket.emit('seat:claim', { seatId })
     }
+    set({ mySeatId: seatId })
+    sessionStorage.setItem(SEAT_STORAGE_KEY, seatId)
   },
 
   createSeat: async (name: string, role: 'GM' | 'PL', color?: string) => {

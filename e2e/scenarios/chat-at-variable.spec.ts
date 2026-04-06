@@ -59,6 +59,16 @@ test.describe('Chat @variable autocomplete (entity bindings)', () => {
       { id: entityId },
     )
 
+    // Wait for attributes to propagate to store via WebSocket broadcast
+    await page.waitForFunction(
+      ({ id }) => {
+        const store = (window as any).__MYVTT_STORES__?.world()
+        return store?.entities?.[id]?.components?.['daggerheart:attributes']?.agility === 3
+      },
+      { id: entityId },
+      { timeout: 10_000 },
+    )
+
     // Click on the portrait to set as active character (via context menu)
     const portrait = page.locator(`[data-char-id="${entityId}"]`)
     await expect(portrait).toBeVisible({ timeout: 5_000 })
@@ -145,6 +155,17 @@ test.describe('Chat @variable autocomplete (entity bindings)', () => {
         })
       },
       { id: entityId },
+    )
+
+    // Wait for attributes to propagate to store via WebSocket broadcast
+    await page.waitForFunction(
+      ({ id }) => {
+        const store = (window as any).__MYVTT_STORES__?.world()
+        const attrs = store?.entities?.[id]?.components?.['rule:attributes']
+        return Array.isArray(attrs) && attrs.length === 2
+      },
+      { id: entityId },
+      { timeout: 10_000 },
     )
 
     // Set as active character via portrait click

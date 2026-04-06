@@ -73,18 +73,18 @@ test.describe('Character Card Expansion (entity bindings)', () => {
     )
 
     // The character creation opens a card by default (openCard is called in handleCreate).
-    // Close it first by clicking elsewhere, then reopen by clicking the portrait.
+    // Wait for it to appear (entity must propagate to store first), then close it.
+    const cardPopup = page.getByTestId('entity-card-popup')
+    await expect(cardPopup).toBeVisible({ timeout: 10_000 })
     await page.keyboard.press('Escape')
-    // Wait a bit for the card to close
-    await page.waitForTimeout(300)
+    await expect(cardPopup).toBeHidden({ timeout: 5_000 })
 
-    // Click on the portrait to open the character card
+    // Click on the portrait to reopen the character card
     const portrait = page.locator(`[data-char-id="${entityId}"]`)
     await expect(portrait).toBeVisible({ timeout: 5_000 })
     await portrait.click()
 
     // The entity card popup should appear
-    const cardPopup = page.getByTestId('entity-card-popup')
     await expect(cardPopup).toBeVisible({ timeout: 5_000 })
 
     // Card should display DH-specific content: HP, Stress, Hope
@@ -138,16 +138,18 @@ test.describe('Character Card Expansion (entity bindings)', () => {
     })
     expect(entityId).toBeTruthy()
 
-    // Close the auto-opened card and reopen via portrait click
+    // Wait for auto-opened card (entity must propagate to store), then close it
+    const cardPopup = page.getByTestId('entity-card-popup')
+    await expect(cardPopup).toBeVisible({ timeout: 10_000 })
     await page.keyboard.press('Escape')
-    await page.waitForTimeout(300)
+    await expect(cardPopup).toBeHidden({ timeout: 5_000 })
 
+    // Reopen via portrait click
     const portrait = page.locator(`[data-char-id="${entityId}"]`)
     await expect(portrait).toBeVisible({ timeout: 5_000 })
     await portrait.click()
 
     // The entity card popup should appear
-    const cardPopup = page.getByTestId('entity-card-popup')
     await expect(cardPopup).toBeVisible({ timeout: 5_000 })
 
     // Card should display the character name
@@ -179,13 +181,15 @@ test.describe('Character Card Expansion (entity bindings)', () => {
         ?.id
     })
 
-    // Close auto-opened card, then reopen
+    // Wait for auto-opened card, then close it
+    const cardPopup = page.getByTestId('entity-card-popup')
+    await expect(cardPopup).toBeVisible({ timeout: 10_000 })
     await page.keyboard.press('Escape')
-    await page.waitForTimeout(300)
+    await expect(cardPopup).toBeHidden({ timeout: 5_000 })
 
+    // Reopen via portrait click
     const portrait = page.locator(`[data-char-id="${entityId}"]`)
     await portrait.click()
-    const cardPopup = page.getByTestId('entity-card-popup')
     await expect(cardPopup).toBeVisible({ timeout: 5_000 })
 
     // Click on the page body (outside the card) to dismiss
