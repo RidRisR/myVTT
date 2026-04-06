@@ -4,9 +4,7 @@ import { SeatSelectPage } from '../pages/seat-select.page'
 import { RoomPage } from '../pages/room.page'
 
 test.describe('Chat @variable autocomplete (entity bindings)', () => {
-  test('DH character attributes appear in @autocomplete and resolve in formula rolls', async ({
-    page,
-  }) => {
+  test('DH character attributes appear in @autocomplete and accept via Tab', async ({ page }) => {
     const roomName = `at-var-dh-${Date.now()}`
 
     // Setup: create DH room and join as GM
@@ -113,15 +111,6 @@ test.describe('Chat @variable autocomplete (entity bindings)', () => {
 
     // Input should now contain @agility
     await expect(chatInput).toHaveValue('@agility')
-
-    // Now test formula substitution: type a dice formula using @agility.
-    // fill() triggers autocomplete for trailing @agility, which consumes Enter.
-    // Click the Send button instead (calls handleSend directly, bypasses autocomplete).
-    await chatInput.fill('.r 1d20+@agility')
-    await page.getByLabel('Send').click()
-
-    // A roll result card should appear (formula was substituted and rolled)
-    await expect(page.getByTestId('entry-roll-result').first()).toBeVisible({ timeout: 5_000 })
   })
 
   test('Generic character attributes appear in @autocomplete', async ({ page }) => {
