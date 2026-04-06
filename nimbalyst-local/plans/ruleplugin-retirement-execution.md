@@ -1,15 +1,15 @@
 ---
 planStatus:
   planId: plan-ruleplugin-retirement-execution
-  title: "RulePlugin 退役 — 全阶段执行总纲"
+  title: 'RulePlugin 退役 — 全阶段执行总纲'
   status: complete
   planType: refactor
   priority: high
   owner: claude
   stakeholders: []
   tags: [ruleplugin, retirement, refactor]
-  created: "2026-04-05"
-  updated: "2026-04-05"
+  created: '2026-04-05'
+  updated: '2026-04-05'
   progress: 95
 ---
 
@@ -24,17 +24,17 @@ planStatus:
 
 ## 当前状态
 
-| Phase | 状态 | 说明 |
-|-------|------|------|
-| 0 (零成本清理) | ✅ 完成 | hideElements/dockTabs/gmTabs/keyBindings/getPresetTemplates 已删 |
-| 1a (panels) | ✅ 完成 | PluginPanelContainer 已删（偏差 D1：FullCharacterSheet 未适配 IComponentSDK） |
-| 1b (TeamDashboard) | ✅ 完成 | 采用方案 2：保留容器，改数据源为 entity bindings（TEAM_PANEL_POINT） |
-| 1c (实体创建工作流化) | ⏸️ 推迟 | dataTemplates 依赖已通过 DATA_TEMPLATE_POINT 消除；路径精简 9→3 推迟为独立 PR |
-| 1d (i18n) | ✅ 完成 | usePluginTranslation 改为读 i18next namespace |
-| 2 (基础设施) | ✅ 完成 | RendererRegistry 多注册扩展 getAllRenderers |
-| 2a/2b/2c (surfaces 迁移) | ✅ 完成 | tools/tokenActions/contextMenu 改为 RendererRegistry |
-| 3 (角色卡系统) | ✅ 完成 | 24 消费点 → entity bindings（7 个 RendererPoint） |
-| 4 (基础设施清理) | ✅ 完成 | RulePlugin 接口、useRulePlugin、旧 plugin 对象全部删除 |
+| Phase                    | 状态    | 说明                                                                          |
+| ------------------------ | ------- | ----------------------------------------------------------------------------- |
+| 0 (零成本清理)           | ✅ 完成 | hideElements/dockTabs/gmTabs/keyBindings/getPresetTemplates 已删              |
+| 1a (panels)              | ✅ 完成 | PluginPanelContainer 已删（偏差 D1：FullCharacterSheet 未适配 IComponentSDK） |
+| 1b (TeamDashboard)       | ✅ 完成 | 采用方案 2：保留容器，改数据源为 entity bindings（TEAM_PANEL_POINT）          |
+| 1c (实体创建工作流化)    | ⏸️ 推迟 | dataTemplates 依赖已通过 DATA_TEMPLATE_POINT 消除；路径精简 9→3 推迟为独立 PR |
+| 1d (i18n)                | ✅ 完成 | usePluginTranslation 改为读 i18next namespace                                 |
+| 2 (基础设施)             | ✅ 完成 | RendererRegistry 多注册扩展 getAllRenderers                                   |
+| 2a/2b/2c (surfaces 迁移) | ✅ 完成 | tools/tokenActions/contextMenu 改为 RendererRegistry                          |
+| 3 (角色卡系统)           | ✅ 完成 | 24 消费点 → entity bindings（7 个 RendererPoint）                             |
+| 4 (基础设施清理)         | ✅ 完成 | RulePlugin 接口、useRulePlugin、旧 plugin 对象全部删除                        |
 
 ---
 
@@ -65,6 +65,7 @@ planStatus:
 ### 子代理审查协议
 
 每轮完成后派发的审查子代理必须：
+
 - **上下文独立**: 不继承执行上下文，从零开始读取 diff 和设计文档
 - **输入**: git diff (本轮 vs 上一轮 commit)、设计文档 `docs/design/22-RulePlugin退役总框架.md`、偏差文档
 - **检查清单**:
@@ -98,6 +99,7 @@ Final: 提交 PR
 > **superpowers 工作流**: `writing-plans` → `executing-plans` → `verification-before-completion` → `requesting-code-review`
 
 ### 范围
+
 - DH 当前**零实现**这三个 surface 属性（null guard 返回空数组）
 - 迁移 = 改消费端从 RendererRegistry 读取 + 删除 RulePlugin surface 属性
 - 未来插件通过 VTTPlugin onActivate 注册
@@ -114,6 +116,7 @@ Final: 提交 PR
 - [x] A8: 代码审查完成
 
 ### 涉及文件
+
 - `src/combat/tools/registerBuiltinTools.ts`
 - `src/combat/SelectionActionBar.tsx`
 - `src/combat/TokenContextMenu.tsx`
@@ -127,6 +130,7 @@ Final: 提交 PR
 > **superpowers 工作流**: `writing-plans` → `subagent-driven-development` (并行独立子任务) → `verification-before-completion` → `requesting-code-review`
 
 ### 范围
+
 - 24 个 adapter 消费点 + 2 个 EntityCard 消费点
 - 定义 Bar/Status/FormulaBinding/EntityCard 类型系统
 - DH + Generic 插件注册声明
@@ -135,16 +139,19 @@ Final: 提交 PR
 ### 执行步骤
 
 #### B-I: 类型系统 + SDK
+
 - [x] B1: 定义 entity binding 类型（MainResourceBinding, PortraitResourcesBinding, StatusBinding, FormulaTokensBinding, EntityCardBinding, DataTemplateBinding, TeamPanelBinding）
 - [x] B2: 创建 7 个 typed RendererPoints（MAIN_RESOURCE_POINT 等）
 - [x] B3: 从 SDK 导出新类型和 Points
 
 #### B-II: 插件注册
+
 - [x] B4: DH 插件在 onActivate 注册全部 7 个 binding
 - [x] B5: Generic 插件转为 VTTPlugin (`plugins/generic/vttPlugin.ts`)，注册 5 个 binding
 - [x] B6: 创建工具函数 `getMainResource()`, `getPortraitResources()`, `getStatuses()`, `getFormulaTokens()` 等
 
 #### B-III: 消费端迁移
+
 - [x] B7: `KonvaToken.tsx` — 改为 entity bindings
 - [x] B8: `TokenTooltip.tsx` — 同上
 - [x] B9: `PortraitBar.tsx` — 改为 entity bindings
@@ -157,6 +164,7 @@ Final: 提交 PR
 - [x] B16: `useWorkflowSDK.ts` — 改为 entity bindings
 
 #### B-IV: 清理 + 验证
+
 - [x] B17: 删除 `RulePlugin.adapters` 和 `characterUI` 类型
 - [x] B18: 删除 `plugins/daggerheart/adapters.ts`
 - [x] B19: `npx tsc --noEmit` + `npx vitest run`
@@ -164,6 +172,7 @@ Final: 提交 PR
 - [x] B21: 代码审查完成
 
 ### 涉及文件
+
 **插件侧**: `plugins/daggerheart-core/index.ts`, `plugins/daggerheart/index.ts`, `plugins/generic/index.ts`
 **基座侧**: KonvaToken, TokenTooltip, PortraitBar, MyCharacterCard, CharacterDetailPanel, ChatPanel, selectors, useWorkflowSDK
 **迁移**: CharacterEditPanel → plugins/generic/, CharacterHoverPreview → plugins/generic/
@@ -176,15 +185,18 @@ Final: 提交 PR
 > **superpowers 工作流**: `brainstorming` (评估方案) → 如执行: `executing-plans` → `verification-before-completion` → `requesting-code-review`
 
 ### 阻塞分析
+
 - issue #188: PanelRenderer 不支持固定定位 + 可折叠模式
 - TeamDashboard 有独立逻辑：collapse/expand, auto-show on tracker, fixed positioning
 
 ### 评估选项
+
 1. **增强 PanelRenderer** — 添加 fixed positioning + collapse 支持，然后迁移
 2. **保持 TeamDashboard 但改为从 RendererRegistry 读取** — 不删容器，改数据源
 3. **继续推迟** — 记录偏差
 
 ### 执行结果
+
 - [x] C1: 评估 PanelRenderer 增强的工作量 — issue #188 仍阻塞
 - [x] C2: 选择方案 2（保留 TeamDashboard 容器，改数据源为 TEAM_PANEL_POINT entity binding）
 - [x] C3: 测试 + 审查通过，commit `6f565e5`
@@ -196,16 +208,19 @@ Final: 提交 PR
 > **superpowers 工作流**: `brainstorming` (评估方案)
 
 ### 范围
+
 - 9 条创建路径 → 2 核心 + 2 保留
 - 涉及 5+ UI 文件 + 2 服务端 endpoint 删除
 - L 级工作量
 
 ### 评估选项
+
 1. **完整实现** — 定义 core:create-entity workflow，全部迁移
 2. **最小迁移** — 仅将 dataTemplates 用法改为 entity bindings，不做路径精简
 3. **继续推迟** — 记录偏差
 
 ### 执行结果
+
 - [x] D1: 评估工作量和风险
 - [x] D2: **采用混合方案（2+3）**：
   - dataTemplates 的 RulePlugin 依赖已通过 `DATA_TEMPLATE_POINT` entity binding 消除（方案 2）
@@ -229,10 +244,12 @@ Final: 提交 PR
 > **superpowers 工作流**: `executing-plans` → `verification-before-completion` → `requesting-code-review`
 
 ### 前置条件
+
 - Phase 0-3 消费点全部归零 ✅
 - Phase 1b/1c 消费点归零或有替代方案 ✅（1b 迁移到 entity bindings，1c dataTemplates 迁移到 entity bindings）
 
 ### 执行步骤
+
 - [x] E1: 删除 RulePlugin 接口（`src/rules/types.ts` 重写为纯 VTTPlugin 类型）
 - [x] E2: 清理 `src/rules/registry.ts`（仅保留 VTTPlugin 注册逻辑）
 - [x] E3: 删除 `src/rules/useRulePlugin.ts`
@@ -245,6 +262,7 @@ Final: 提交 PR
 - [x] E10: 清理死代码 registerPluginTools (`42179dd`)
 
 ### 涉及文件
+
 - `src/rules/types.ts` (删除)
 - `src/rules/registry.ts` (删除)
 - `src/rules/useRulePlugin.ts` (删除)
@@ -262,25 +280,25 @@ Final: 提交 PR
 
 ### 每轮测试（三层验证）
 
-| 层级 | 工具 | 目的 |
-|------|------|------|
-| **编译期** | `npx tsc --noEmit` | 类型安全、import 正确 |
-| **单元/集成** | `npx vitest run` | 逻辑正确性、RendererPoint 注册行为 |
-| **E2E (Playwright)** | `npm run test:e2e -- <spec>` | 真实浏览器功能验证 |
+| 层级                 | 工具                         | 目的                               |
+| -------------------- | ---------------------------- | ---------------------------------- |
+| **编译期**           | `npx tsc --noEmit`           | 类型安全、import 正确              |
+| **单元/集成**        | `npx vitest run`             | 逻辑正确性、RendererPoint 注册行为 |
+| **E2E (Playwright)** | `npm run test:e2e -- <spec>` | 真实浏览器功能验证                 |
 
 ### Playwright E2E 验证矩阵
 
-| Round | 必跑 E2E 场景 | 验证目标 |
-|-------|---------------|---------|
-| A | `tactical-combat.spec.ts` | Token 工具栏、右键菜单、操作栏不回归 |
-| A | `smoke.spec.ts` | 基本流程不崩溃 |
-| B | `chat-dice.spec.ts` | @公式变量解析、骰子判定卡片渲染 |
-| B | `entity-lifecycle.spec.ts` | 角色创建/删除、肖像条资源显示 |
-| B | `tactical-combat.spec.ts` | Token HP 条、状态圆点、悬浮提示 |
-| B | `smoke.spec.ts` | 全局冒烟 |
-| C | Team panel 相关 (如有) | TeamDashboard 折叠/展开 |
-| D | Entity creation 相关 | 角色创建路径 |
-| E | **全部 23 个 spec** | 全面回归 |
+| Round | 必跑 E2E 场景              | 验证目标                             |
+| ----- | -------------------------- | ------------------------------------ |
+| A     | `tactical-combat.spec.ts`  | Token 工具栏、右键菜单、操作栏不回归 |
+| A     | `smoke.spec.ts`            | 基本流程不崩溃                       |
+| B     | `chat-dice.spec.ts`        | @公式变量解析、骰子判定卡片渲染      |
+| B     | `entity-lifecycle.spec.ts` | 角色创建/删除、肖像条资源显示        |
+| B     | `tactical-combat.spec.ts`  | Token HP 条、状态圆点、悬浮提示      |
+| B     | `smoke.spec.ts`            | 全局冒烟                             |
+| C     | Team panel 相关 (如有)     | TeamDashboard 折叠/展开              |
+| D     | Entity creation 相关       | 角色创建路径                         |
+| E     | **全部 23 个 spec**        | 全面回归                             |
 
 ### E2E 失败处理
 
@@ -292,6 +310,7 @@ Final: 提交 PR
 ### 代码审查协议
 
 每轮完成后派发**独立上下文子代理**:
+
 - 使用 `superpowers:requesting-code-review` 技能
 - 传入本轮 git diff、设计文档、偏差文档
 - 检查清单：类型安全、向后兼容、遗漏消费点、测试覆盖、偏差合理性
@@ -308,10 +327,10 @@ Final: 提交 PR
 
 ## 风险
 
-| 风险 | 影响 | 缓解 |
-|------|------|------|
-| Phase 3 消费点遗漏 | 运行时错误 | grep 验证 + E2E |
+| 风险                           | 影响               | 缓解              |
+| ------------------------------ | ------------------ | ----------------- |
+| Phase 3 消费点遗漏             | 运行时错误         | grep 验证 + E2E   |
 | Generic 插件 fallback 行为变化 | 无规则系统房间异常 | 测试 generic 模式 |
-| KonvaToken Canvas 渲染 | Token 显示异常 | E2E tactical 测试 |
-| _bindRuleRegistry 删除 | 循环依赖重现 | 编译验证 |
-| FormulaBinding 改造 | @变量解析失败 | chat-dice E2E |
+| KonvaToken Canvas 渲染         | Token 显示异常     | E2E tactical 测试 |
+| \_bindRuleRegistry 删除        | 循环依赖重现       | 编译验证          |
+| FormulaBinding 改造            | @变量解析失败      | chat-dice E2E     |
