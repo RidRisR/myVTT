@@ -76,6 +76,7 @@ function RoomSession({ roomId }: { roomId: string }) {
     let cleanupWorld: (() => void) | undefined
     let cleanupIdentity: (() => void) | undefined
     let cleanupTriggers: (() => void) | undefined
+    let cleanupSeatWatch: (() => void) | undefined
 
     // Phase 1: Construct workflow system (sync — no data dependencies)
     const { cleanup: cleanupWorkflow } = initWorkflowSystem()
@@ -101,16 +102,37 @@ function RoomSession({ roomId }: { roomId: string }) {
         // JS is single-threaded — no socket events fire between await resume and this read.
         const historyWatermark = useWorldStore.getState().logWatermark
 
-        // Phase 3: Plugin onReady (stores have data) → catch up → trigger subscription.
-        // onReady failures are non-fatal — triggers still subscribe, room still loads.
-        try {
-          cleanupTriggers = await startWorkflowTriggers(historyWatermark)
-        } catch (triggerErr) {
-          // Extract cleanup from the error (triggers were subscribed despite onReady failures)
-          if (triggerErr instanceof AggregateError && 'cleanup' in triggerErr) {
-            cleanupTriggers = (triggerErr as AggregateError & { cleanup: () => void }).cleanup
+        // Phase 3: Plugin onReady + trigger subscription.
+        // Deferred until seat is claimed — plugin onReady may create entities
+        // (e.g. FearManager.ensureEntity) which requires socket.data.seatId on server.
+        // For returning users (auto-claim from cache), mySeatId is already set here.
+        // For new users, triggers start after they pick a seat in SeatSelect.
+        const startTriggers = async () => {
+          if (cancelledRef.current) return
+          try {
+            cleanupTriggers = await startWorkflowTriggers(historyWatermark)
+          } catch (triggerErr) {
+            if (triggerErr instanceof AggregateError && 'cleanup' in triggerErr) {
+              cleanupTriggers = (triggerErr as AggregateError & { cleanup: () => void }).cleanup
+            }
+            console.warn('[Room] Some plugins failed onReady (non-fatal):', triggerErr)
           }
-          console.warn('[Room] Some plugins failed onReady (non-fatal):', triggerErr)
+        }
+
+        if (useIdentityStore.getState().mySeatId) {
+          // Seat already claimed (auto-claim from sessionStorage) — start immediately.
+          // Socket.io guarantees ordering: seat:claim was emitted during initIdentity,
+          // so server has seatId by the time onReady sends entity:create-request.
+          await startTriggers()
+        } else {
+          // No seat yet — subscribe and start triggers when seat is claimed.
+          const unsub = useIdentityStore.subscribe((state) => {
+            if (state.mySeatId && !cancelledRef.current) {
+              unsub()
+              void startTriggers()
+            }
+          })
+          cleanupSeatWatch = unsub
         }
 
         setIsLoading(false)
@@ -123,6 +145,7 @@ function RoomSession({ roomId }: { roomId: string }) {
 
     return () => {
       cancelledRef.current = true
+      cleanupSeatWatch?.()
       cleanupTriggers?.()
       cleanupWorkflow()
       cleanupWorld?.()

@@ -106,7 +106,7 @@ export function getAllRenderers<T>(
   } else {
     arr = registry.get(key(pointOrSurface.surface, pointOrSurface.type))
   }
-  return (arr ?? []) as T[]
+  return (arr ? [...arr] : []) as T[]
 }
 
 export function clearRenderers(): void {

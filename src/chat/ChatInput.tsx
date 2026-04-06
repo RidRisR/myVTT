@@ -208,7 +208,7 @@ export function ChatInput({
 
       {/* @ autocomplete dropdown */}
       {showSuggestions && filteredSuggestions.length > 0 && (
-        <div className="absolute bottom-full left-0 right-0 mb-1.5 bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_-4px_16px_rgba(0,0,0,0.3)] max-h-[180px] overflow-y-auto">
+        <div data-testid="autocomplete-dropdown" className="absolute bottom-full left-0 right-0 mb-1.5 bg-glass backdrop-blur-[12px] rounded-lg border border-border-glass shadow-[0_-4px_16px_rgba(0,0,0,0.3)] max-h-[180px] overflow-y-auto">
           {filteredSuggestions.map((s, i) => (
             <div
               key={s.key}

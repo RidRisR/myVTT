@@ -625,7 +625,7 @@ export function PortraitBar({
           onClose={closeCard}
           width={openCardWidth}
         >
-          <div className="relative">
+          <div className="relative" data-testid="entity-card-popup">
             <button
               onClick={() => {
                 pinCard(openCardId, {

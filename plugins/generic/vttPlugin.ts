@@ -47,7 +47,7 @@ export const genericVTTPlugin: VTTPlugin = {
         if (!attrs) return {}
         const result: Record<string, number> = {}
         for (const attr of attrs) {
-          if (attr.key) result[attr.key] = attr.value
+          if (attr.key && typeof attr.value === 'number') result[attr.key] = attr.value
         }
         return result
       },
