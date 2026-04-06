@@ -13,6 +13,7 @@ import { TriggerRegistry } from './triggerRegistry'
 import { LogStreamDispatcher } from './logStreamDispatcher'
 import { registerBaseRenderers } from '../log/registerBaseRenderers'
 import { getUIRegistry } from '../ui-system/uiSystemInit'
+import { getFormulaTokens } from '../log/entityBindings'
 
 // Re-export command registry functions for convenience
 export { getCommand, registerCommand } from './commandRegistry'
@@ -25,29 +26,6 @@ let _triggerRegistry: TriggerRegistry | null = null
 let _runner: WorkflowRunner | null = null
 let _dispatcher: LogStreamDispatcher | null = null
 let _workflowSystemInitialized = false
-
-// Lazy accessor for getRulePluginSync — breaks circular dependency with registry.ts.
-// registry.ts imports registerWorkflowPlugins (from this file) at module level,
-// so a static top-level import creates a TDZ error. This late-binding accessor
-// is only called at runtime (inside buildDeps), after all modules are initialized.
-type RulePlugin = import('../rules/types').RulePlugin
-let _getRulePluginSyncFn: (() => RulePlugin) | null = null
-function getRulePluginSyncLazy(): RulePlugin {
-  if (!_getRulePluginSyncFn) {
-    // Dynamically import at first use — by runtime all modules are fully initialized
-    // so the circular reference is no longer a problem.
-    throw new Error('getRulePluginSync not available — ensure _bindRuleRegistry() has been called')
-  }
-  return _getRulePluginSyncFn()
-}
-
-/**
- * Late-bind the rule registry reference. Called from registry.ts after its
- * module body has finished executing, breaking the circular init dependency.
- */
-export function _bindRuleRegistry(fn: () => RulePlugin): void {
-  _getRulePluginSyncFn = fn
-}
 
 /**
  * Register workflow plugins for activation. Must be called before useWorkflowRunner.
@@ -151,7 +129,7 @@ function buildDeps(): PluginSDKDeps {
     },
     getSeatId: () => useIdentityStore.getState().mySeatId ?? '',
     getLogWatermark: () => useWorldStore.getState().logWatermark,
-    getFormulaTokens: (entity) => getRulePluginSyncLazy().adapters.getFormulaTokens(entity),
+    getFormulaTokens: (entity) => getFormulaTokens(entity),
   }
 }
 

@@ -2,7 +2,6 @@ import type React from 'react'
 import type { Entity } from '../shared/entityTypes'
 import type { TeamTracker } from '../stores/worldStore'
 import type { ChatRollMessage } from '../shared/chatTypes'
-import type { ToolDefinition } from '../combat/tools/types'
 
 // ── Adapter view types ─────────────────────────────────────────────────────
 
@@ -66,28 +65,6 @@ export interface TeamPanelProps {
   onCreate: (data: Partial<TeamTracker>) => void
   onDelete: (id: string) => void
 }
-
-/** Preset content bundled with the plugin (not stored in DB until GM imports it) */
-export interface PresetTemplate {
-  id: string // namespace ID e.g. 'dh:corrupt-elf-archer'
-  name: string
-  category: string // 'adversary' | 'pc-archetype' | ...
-  data: Partial<Entity>
-}
-
-export interface DockTabDef {
-  id: string
-  label: string
-  component: React.ComponentType
-}
-
-export interface GMTabDef {
-  id: string
-  label: string
-  component: React.ComponentType
-}
-
-export type HideableElement = 'dock' | 'portrait-bar' | 'chat-panel' | 'gm-panel' | 'scene-controls'
 
 export interface DieConfig {
   color?: string // hex color, e.g. '#fbbf24'
@@ -167,15 +144,6 @@ export interface ContextMenuItem {
   separator?: 'before' | 'after'
 }
 
-export interface KeyBinding {
-  key: string
-  label: string
-  action: () => void
-  when?: 'always' | 'token-selected'
-}
-
-// ── RulePlugin — the main interface ────────────────────────────────────────
-
 // ── i18n types ──────────────────────────────────────────────────────────────
 
 /** Plugin-provided translations. Keys are language codes, values are flat key-value maps. */
@@ -183,55 +151,7 @@ export interface PluginI18n {
   resources: Record<string, Record<string, string>>
 }
 
-export interface RulePlugin {
-  id: string
-  name: string
-  sdkVersion: '1'
-
-  // i18n translations (optional — falls back to key itself if not provided)
-  i18n?: PluginI18n
-
-  // Layer 1: Adapters — read entity data for generic base UI
-  adapters: {
-    getMainResource(entity: Entity): ResourceView | null
-    getPortraitResources(entity: Entity): ResourceView[]
-    getStatuses(entity: Entity): StatusView[]
-    getFormulaTokens(entity: Entity): Record<string, number>
-  }
-
-  // Layer 2: Character card UI slot
-  characterUI: {
-    EntityCard: React.ComponentType<EntityCardProps>
-  }
-
-  // Layer 3: Data templates (optional)
-  dataTemplates?: {
-    createDefaultEntityData(): Record<string, unknown>
-    getPresetTemplates?(): PresetTemplate[]
-  }
-
-  // Layer 4: UI surfaces (optional)
-  surfaces?: {
-    panels?: PluginPanelDef[]
-    dockTabs?: DockTabDef[]
-    gmTabs?: GMTabDef[]
-    teamPanel?: React.ComponentType<TeamPanelProps>
-
-    // ── map integration ──
-    tools?: ToolDefinition[]
-    getTokenActions?: (ctx: TokenActionContext) => TokenAction[]
-    getContextMenuItems?: (ctx: ContextMenuContext) => ContextMenuItem[]
-    keyBindings?: KeyBinding[]
-  }
-
-  // Layer 5: Declarative element hiding (optional)
-  hideElements?: HideableElement[]
-
-  // Layer 6: Rule resolution — reserved, not implemented
-  // ruleResolution?: RuleResolutionModule
-}
-
-// ── VTTPlugin — new imperative plugin interface (coexists with RulePlugin) ──
+// ── VTTPlugin — imperative plugin interface ──
 
 export interface VTTPlugin {
   id: string

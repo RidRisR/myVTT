@@ -6,7 +6,7 @@ import type { Entity } from '../shared/entityTypes'
 import { getName, getColor, getImageUrl, getIdentity, getNotes } from '../shared/coreComponents'
 import type { CoreIdentity } from '../shared/coreComponents'
 import { AssetPickerPanel } from '../asset-picker/AssetPickerPanel'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import { getPortraitResources, getFormulaTokens, getStatuses } from '../log/entityBindings'
 import type { ResourceView } from '../rules/types'
 import { barColorForKey, statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../ui/ResourceBar'
@@ -84,8 +84,6 @@ export function CharacterEditPanel({
   const [pickerOpen, setPickerOpen] = useState(false)
   const colorPickerRef = useRef<HTMLDivElement>(null)
 
-  const plugin = useRulePlugin()
-
   // Awareness for resource drag broadcasting
   const mySeatId = useIdentityStore((s) => s.mySeatId)
   const mySeat = useIdentityStore((s) => s.getMySeat())
@@ -110,9 +108,9 @@ export function CharacterEditPanel({
   const identity = getIdentity(character)
   const notes = getNotes(character).text
 
-  const resources = plugin.adapters.getPortraitResources(character)
-  const attributes = plugin.adapters.getFormulaTokens(character)
-  const statuses = plugin.adapters.getStatuses(character)
+  const resources = getPortraitResources(character)
+  const attributes = getFormulaTokens(character)
+  const statuses = getStatuses(character)
   const attrEntries = Object.entries(attributes)
 
   const updateIdentity = (patch: Partial<CoreIdentity>) => {

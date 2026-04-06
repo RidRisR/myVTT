@@ -188,6 +188,7 @@ test.describe('Cross-client judgment and groupId', () => {
     )
 
     const result = await groupCheck.jsonValue()
+    expect(result).toBeTruthy()
     expect(result.match).toBe(true)
     expect(result.notEmpty).toBe(true)
   })

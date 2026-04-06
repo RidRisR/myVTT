@@ -4,8 +4,9 @@ import { useWorldStore } from '../stores/worldStore'
 import { TeamMetricsTab } from './TeamMetricsTab'
 import { useUiStore } from '../stores/uiStore'
 import { RIGHT_PANEL_WIDTH } from '../shared/layoutConstants'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import { getTeamPanel } from '../log/entityBindings'
 import { useTranslation } from 'react-i18next'
+import type { TeamPanelProps } from '../rules/types'
 
 interface TeamDashboardProps {
   roomId: string
@@ -15,6 +16,17 @@ interface TeamDashboardProps {
 type TabId = 'metrics'
 
 const TABS: { id: TabId; labelKey: string }[] = [{ id: 'metrics', labelKey: 'metrics_tab' }]
+
+/** Wrapper that resolves the plugin team panel from the registry, avoiding
+ *  "component created during render" lint violations. */
+/* eslint-disable react-hooks/static-components -- plugin system: component resolved from RendererRegistry, stable per ruleSystemId */
+function PluginTeamPanelSlot(props: TeamPanelProps) {
+  const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
+  const Panel = getTeamPanel(ruleSystemId)
+  if (!Panel) return null
+  return <Panel {...props} />
+}
+/* eslint-enable react-hooks/static-components */
 
 export function TeamDashboard({ isGM }: TeamDashboardProps) {
   const { t } = useTranslation('team')
@@ -35,8 +47,8 @@ export function TeamDashboard({ isGM }: TeamDashboardProps) {
     prevTrackerCount.current = trackers.length
   }, [trackers.length, setTeamPanelVisible])
 
-  const plugin = useRulePlugin()
-  const PluginTeamPanel = plugin.surfaces?.teamPanel
+  const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
+  const hasPluginTeamPanel = getTeamPanel(ruleSystemId) !== null
 
   // Hide entire dashboard if no trackers and not GM
   if (trackers.length === 0 && !isGM) return null
@@ -130,8 +142,8 @@ export function TeamDashboard({ isGM }: TeamDashboardProps) {
             if (!expanded && isGM) setExpanded(true)
           }}
         >
-          {PluginTeamPanel ? (
-            <PluginTeamPanel
+          {hasPluginTeamPanel ? (
+            <PluginTeamPanelSlot
               trackers={trackers}
               onUpdate={(id, updates) => {
                 void updateTracker(id, updates)

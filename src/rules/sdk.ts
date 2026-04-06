@@ -4,7 +4,6 @@
 // ── Type exports ────────────────────────────────────────────────────────────
 export type { Entity } from '../shared/entityTypes'
 export type {
-  RulePlugin,
   PluginI18n,
   ResourceView,
   StatusView,
@@ -12,10 +11,6 @@ export type {
   PluginPanelDef,
   PluginPanelProps,
   TeamPanelProps,
-  PresetTemplate,
-  DockTabDef,
-  GMTabDef,
-  HideableElement,
   JudgmentResult,
   JudgmentDisplay,
   DaggerheartOutcome,
@@ -27,7 +22,6 @@ export type {
   TargetInfo,
   ContextMenuItem,
   ContextMenuContext,
-  KeyBinding,
 } from './types'
 export type { DiceSpec } from '../shared/diceUtils'
 
@@ -76,7 +70,27 @@ export type {
   LogEntryRenderer,
   RendererPoint,
 } from '../log/rendererRegistry'
-export { createRendererPoint } from '../log/rendererRegistry'
+export { createRendererPoint, getAllRenderers } from '../log/rendererRegistry'
+
+// ── Entity binding types (adapter migration) ────────────────────────────────
+export type {
+  MainResourceBinding,
+  PortraitResourcesBinding,
+  StatusBinding,
+  FormulaTokensBinding,
+  EntityCardBinding,
+  DataTemplateBinding,
+  TeamPanelBinding,
+} from '../log/entityBindings'
+export {
+  MAIN_RESOURCE_POINT,
+  PORTRAIT_RESOURCES_POINT,
+  STATUS_POINT,
+  FORMULA_TOKENS_POINT,
+  ENTITY_CARD_POINT,
+  DATA_TEMPLATE_POINT,
+  TEAM_PANEL_POINT,
+} from '../log/entityBindings'
 export type { RollResultConfig, RollCardProps } from './types'
 
 // Pre-defined token factory for roll result configs

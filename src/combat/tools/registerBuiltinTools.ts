@@ -14,8 +14,6 @@ import { toolRegistry } from './toolRegistry'
 import { BuiltinToolId } from './builtinToolIds'
 import { MeasureToolCanvas } from './MeasureTool'
 import { RangeCircleCanvas, RangeConeCanvas, RangeRectCanvas } from './RangeTemplate'
-import { getAvailablePlugins, getRulePlugin } from '../../rules/registry'
-
 toolRegistry.register({
   id: BuiltinToolId.Select,
   category: 'interaction',
@@ -83,16 +81,3 @@ toolRegistry.register({
   defaultMode: 'persistent',
   // Internal tool — no shortcut, not shown in toolbar
 })
-
-// ── Register plugin-provided tools ──────────────────────────────────────────
-
-export function registerPluginTools(): void {
-  for (const { id: pluginId } of getAvailablePlugins()) {
-    const plugin = getRulePlugin(pluginId)
-    const pluginTools = plugin.surfaces?.tools ?? []
-    for (const tool of pluginTools) {
-      const namespacedId = tool.id.startsWith('plugin:') ? tool.id : `plugin:${pluginId}:${tool.id}`
-      toolRegistry.register({ ...tool, id: namespacedId, category: 'plugin' })
-    }
-  }
-}

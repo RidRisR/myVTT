@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Entity } from '../shared/entityTypes'
 import { getName } from '../shared/coreComponents'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import { getPortraitResources, getFormulaTokens, getStatuses } from '../log/entityBindings'
 import type { ResourceView } from '../rules/types'
 import { statusColor } from '../shared/tokenUtils'
 import { ResourceBar } from '../ui/ResourceBar'
@@ -29,8 +29,6 @@ export function CharacterHoverPreview({
   onUpdateCharacter,
 }: CharacterHoverPreviewProps) {
   const { t } = useTranslation('layout')
-  const plugin = useRulePlugin()
-
   // Awareness for resource drag broadcasting
   const mySeatId = useIdentityStore((s) => s.mySeatId)
   const mySeat = useIdentityStore((s) => s.getMySeat())
@@ -39,10 +37,10 @@ export function CharacterHoverPreview({
     mySeat?.color ?? null,
   )
 
-  const allResources = plugin.adapters.getPortraitResources(character)
+  const allResources = getPortraitResources(character)
   const resources = allResources.filter((r) => r.max > 0)
-  const attributes = plugin.adapters.getFormulaTokens(character)
-  const statuses = plugin.adapters.getStatuses(character)
+  const attributes = getFormulaTokens(character)
+  const statuses = getStatuses(character)
   const attrEntries = Object.entries(attributes)
   const [activeTab, setActiveTab] = useState<Tab>('stats')
   const [editingStatusIdx, setEditingStatusIdx] = useState<number | null>(null)

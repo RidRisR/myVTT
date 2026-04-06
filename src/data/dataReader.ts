@@ -3,6 +3,7 @@ import type { IDataReader } from '../workflow/types'
 import type { ComponentTypeMap } from '../shared/componentTypes'
 import type { Entity } from '../shared/entityTypes'
 import { useWorldStore } from '../stores/worldStore'
+import { getFormulaTokens } from '../log/entityBindings'
 
 /**
  * Create a production IDataReader backed by worldStore.
@@ -32,11 +33,10 @@ export function createDataReader(): IDataReader {
       return entities.filter((e) => keys.every((key) => key in e.components))
     },
 
-    formulaTokens: (_entityId: string): Record<string, number> => {
-      // Production dataReader delegates to getRulePluginSync — but that creates
-      // a circular dependency. Workflow context.ts already wires this via deps.
-      // This stub satisfies the IDataReader interface for non-workflow callers.
-      return {}
+    formulaTokens: (entityId: string): Record<string, number> => {
+      const entity = useWorldStore.getState().entities[entityId]
+      if (!entity) return {}
+      return getFormulaTokens(entity)
     },
   }
 }

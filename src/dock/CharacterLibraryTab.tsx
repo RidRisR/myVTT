@@ -9,7 +9,7 @@ import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
 import { useUiStore } from '../stores/uiStore'
 import { useToast } from '../ui/useToast'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import { getDataTemplate } from '../log/entityBindings'
 
 export function CharacterLibraryTab() {
   const { t } = useTranslation('dock')
@@ -21,7 +21,7 @@ export function CharacterLibraryTab() {
   const seats = useIdentityStore((s) => s.seats)
   const openCard = useUiStore((s) => s.openCard)
   const { toast } = useToast()
-  const plugin = useRulePlugin()
+  const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
   const [search, setSearch] = useState('')
   const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set())
   const deleteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
@@ -44,7 +44,7 @@ export function CharacterLibraryTab() {
   }, [entities, seats, search, pendingDeletes])
 
   const handleCreate = () => {
-    const defaultComponents = plugin.dataTemplates?.createDefaultEntityData() ?? {}
+    const defaultComponents = getDataTemplate(ruleSystemId)?.() ?? {}
     const newEntity: Entity = {
       id: generateTokenId(),
       blueprintId: undefined,

@@ -14,7 +14,13 @@ import { ContextMenuContent } from '../ui/primitives/ContextMenuContent'
 import { ContextMenuItem } from '../ui/primitives/ContextMenuItem'
 import { FloatingCard } from '../ui/primitives/FloatingCard'
 import { CharacterHoverPreview } from './CharacterHoverPreview'
-import { useRulePlugin } from '../rules/useRulePlugin'
+import {
+  getPortraitResources,
+  getStatuses,
+  getEntityCard,
+  getDataTemplate,
+} from '../log/entityBindings'
+import { EntityCardSlot } from '../log/EntityCardSlot'
 
 type PortraitTabId = 'characters' | 'initiative'
 
@@ -120,8 +126,8 @@ export function PortraitBar({
   const updatePinnedCardPosition = useUiStore((s) => s.updatePinnedCardPosition)
 
   const { t } = useTranslation('layout')
-  const plugin = useRulePlugin()
-  const Card = plugin.characterUI.EntityCard
+  const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
+  const hasCard = getEntityCard(ruleSystemId) !== null
 
   const [activeTab, setActiveTab] = useState<PortraitTabId>('characters')
 
@@ -203,7 +209,7 @@ export function PortraitBar({
         'core:identity': { name: t('portrait.my_character'), imageUrl: '', color: '#3b82f6' },
         'core:token': { width: 1, height: 1 },
         'core:notes': { text: '' },
-        ...(plugin.dataTemplates?.createDefaultEntityData() ?? {}),
+        ...(getDataTemplate(ruleSystemId)?.() ?? {}),
       },
     }
     void addEntity(newEntity)
@@ -273,9 +279,9 @@ export function PortraitBar({
       openCardId === entity.id || pinnedCards.some((p) => p.entityId === entity.id)
     const isActive = activeCharacterId === entity.id
 
-    const resources = plugin.adapters.getPortraitResources(entity).filter((r) => r.max > 0)
+    const resources = getPortraitResources(entity).filter((r) => r.max > 0)
     const displayResources = resources.slice(0, 2) // max 2 rings
-    const statuses = plugin.adapters.getStatuses(entity)
+    const statuses = getStatuses(entity)
     const maxStatusDots = 3
 
     const eName = getName(entity)
@@ -611,7 +617,7 @@ export function PortraitBar({
       )}
 
       {/* 2. Open card (unpinned, anchored below portrait) */}
-      {openCardId && openCardEntity && openCardRect && (
+      {openCardId && openCardEntity && openCardRect && hasCard && (
         <FloatingCard
           mode="anchored"
           anchor={openCardRect}
@@ -619,7 +625,7 @@ export function PortraitBar({
           onClose={closeCard}
           width={openCardWidth}
         >
-          <div className="relative">
+          <div className="relative" data-testid="entity-card-popup">
             <button
               onClick={() => {
                 pinCard(openCardId, {
@@ -632,7 +638,7 @@ export function PortraitBar({
             >
               <Pin size={12} strokeWidth={1.5} />
             </button>
-            <Card
+            <EntityCardSlot
               entity={openCardEntity}
               onUpdate={(patch) => {
                 onUpdateEntity(openCardEntity.id, patch)
@@ -644,48 +650,49 @@ export function PortraitBar({
       )}
 
       {/* 3. Pinned cards (floating, draggable) */}
-      {pinnedCards.map((pc) => {
-        const entity =
-          entities.find((e) => e.id === pc.entityId) ??
-          visibleEntities.find((e) => e.id === pc.entityId)
-        if (!entity) return null
-        const editable = mySeatId ? canEdit(entity.permissions, mySeatId, role) : false
-        return (
-          <FloatingCard
-            key={pc.entityId}
-            mode="floating"
-            position={pc.position}
-            draggable
-            dismissOn="manual"
-            onClose={() => {
-              closePinnedCard(pc.entityId)
-            }}
-            onDragEnd={(pos) => {
-              updatePinnedCardPosition(pc.entityId, pos)
-            }}
-            width={320}
-          >
-            <div className="relative">
-              <button
-                onClick={() => {
-                  closePinnedCard(pc.entityId)
-                }}
-                className="absolute top-1.5 right-1.5 z-10 p-1 text-text-muted/40 hover:text-danger bg-transparent border-none cursor-pointer transition-colors duration-fast"
-                title={t('portrait.close_card')}
-              >
-                <X size={12} strokeWidth={1.5} />
-              </button>
-              <Card
-                entity={entity}
-                onUpdate={(patch) => {
-                  onUpdateEntity(entity.id, patch)
-                }}
-                readonly={!editable}
-              />
-            </div>
-          </FloatingCard>
-        )
-      })}
+      {hasCard &&
+        pinnedCards.map((pc) => {
+          const entity =
+            entities.find((e) => e.id === pc.entityId) ??
+            visibleEntities.find((e) => e.id === pc.entityId)
+          if (!entity) return null
+          const editable = mySeatId ? canEdit(entity.permissions, mySeatId, role) : false
+          return (
+            <FloatingCard
+              key={pc.entityId}
+              mode="floating"
+              position={pc.position}
+              draggable
+              dismissOn="manual"
+              onClose={() => {
+                closePinnedCard(pc.entityId)
+              }}
+              onDragEnd={(pos) => {
+                updatePinnedCardPosition(pc.entityId, pos)
+              }}
+              width={320}
+            >
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    closePinnedCard(pc.entityId)
+                  }}
+                  className="absolute top-1.5 right-1.5 z-10 p-1 text-text-muted/40 hover:text-danger bg-transparent border-none cursor-pointer transition-colors duration-fast"
+                  title={t('portrait.close_card')}
+                >
+                  <X size={12} strokeWidth={1.5} />
+                </button>
+                <EntityCardSlot
+                  entity={entity}
+                  onUpdate={(patch) => {
+                    onUpdateEntity(entity.id, patch)
+                  }}
+                  readonly={!editable}
+                />
+              </div>
+            </FloatingCard>
+          )
+        })}
     </div>
   )
 }
