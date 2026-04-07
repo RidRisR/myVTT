@@ -14,7 +14,7 @@
 | 实时通信   | socket.io-client                        | 4.8         |
 | 服务端框架 | Express                                 | 5.2         |
 | 实时广播   | Socket.io                               | 4.8         |
-| 数据库     | better-sqlite3                          | 12.6        |
+| 数据库     | better-sqlite3                          | ^12.8.0     |
 | 文件上传   | multer                                  | 2.1         |
 | 测试       | vitest + @testing-library/react + jsdom | 4.0         |
 
@@ -49,6 +49,7 @@ src/
 │   ├── identityStore.ts   # 座位/身份
 │   ├── sessionStore.ts    # 选中状态 + pending interactions
 │   ├── uiStore.ts         # 客户端 UI 状态
+│   ├── layoutStore.ts     # 面板布局（narrative/tactical 双模式）
 │   └── selectors.ts       # 派生数据选择器
 ├── combat/                # 战术模式（详见 tactical-system.md）
 │   ├── KonvaMap.tsx        # react-konva 主画布
@@ -137,7 +138,7 @@ data/
 
 ## Socket.io 事件全景
 
-### 数据广播事件（42 个）
+### 数据广播事件（46 个）
 
 服务端在 REST API 修改数据后，通过 `io.to(roomId).emit()` 广播。
 
@@ -156,9 +157,10 @@ data/
 | `tracker:`        | created, updated, deleted                            |
 | `asset:`          | created, updated, deleted, reordered                 |
 | `room:state:`     | updated                                              |
+| `layout:`         | updated                                              |
 | `log:`            | new                                                  |
 
-### 感知事件（6 个）
+### 感知事件（8 个）
 
 服务端中继，不持久化。客户端 → 服务端 → 同房间其他客户端。
 
@@ -170,6 +172,8 @@ data/
 | `awareness:tokenDrag`    | Token 拖拽位置同步 |
 | `awareness:tokenDragEnd` | Token 拖拽结束     |
 | `awareness:remove`       | 客户端断开连接     |
+| `awareness:ch:broadcast` | 通用频道广播       |
+| `awareness:ch:clear`     | 通用频道清除       |
 
 ## 安全限制（当前状态）
 

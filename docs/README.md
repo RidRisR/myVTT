@@ -10,21 +10,23 @@
 | [data-model.md](architecture/data-model.md)                 | SQLite schema、Entity/Scene/Token 数据模型、JSON 字段策略  |
 | [state-management.md](architecture/state-management.md)     | zustand stores、Socket.io 事件、乐观更新、Selector 规则    |
 | [tactical-system.md](architecture/tactical-system.md)       | KonvaMap 层级、Token 拖拽、Archive save/load、战术模式进出 |
-| [rule-plugin-system.md](architecture/rule-plugin-system.md) | RulePlugin 7 层接口、注册机制、SDK 边界                    |
+| [rule-plugin-system.md](architecture/rule-plugin-system.md) | VTTPlugin 插件系统（注册、SDK、生命周期）                  |
 
 ## 设计决策记录 (`design/`)
 
 每篇文档记录一个功能区域的设计决策，头部标注当前状态。
 **已实现的设计文档不留在此目录 —— 完成即归档至 `archive/design-history/`。**
 
-| 文档                                                                | 状态              | 说明                                               |
-| ------------------------------------------------------------------- | ----------------- | -------------------------------------------------- |
-| [01-产品愿景与设计理念.md](design/01-产品愿景与设计理念.md)         | ✅ 活跃参考       | 核心设计哲学、两种模式、对标产品                   |
-| [13-资产与角色系统统一设计.md](design/13-资产与角色系统统一设计.md) | 🚧 Phase 1-2 完成 | 资产与角色统一设计                                 |
-| [15-v2-Workflow系统现状.md](design/15-v2-Workflow系统现状.md)       | ✅ 活跃参考       | Workflow 引擎当前实现状态（权威参考）              |
-| [16-事件日志与骰子系统架构.md](design/16-事件日志与骰子系统架构.md) | 🚧 实施中         | 事件日志设计，Dispatcher/渲染器待接入（见 doc 17） |
-| [17-插件系统演进路线.md](design/17-插件系统演进路线.md)             | ✅ 活跃参考       | 插件系统三轨道演进计划                             |
-| [18-系统架构现状与演进分析.md](design/18-系统架构现状与演进分析.md) | ✅ 活跃参考       | 全系统成熟度评估与路线图                           |
+| 文档                                                                            | 状态              | 说明                                                |
+| ------------------------------------------------------------------------------- | ----------------- | --------------------------------------------------- |
+| [01-产品愿景与设计理念.md](design/01-产品愿景与设计理念.md)                     | ✅ 活跃参考       | 核心设计哲学、两种模式、对标产品                    |
+| [13-资产与角色系统统一设计.md](design/13-资产与角色系统统一设计.md)             | 🚧 Phase 1-2 完成 | 资产与角色统一设计                                  |
+| [15-v2-Workflow系统现状.md](design/15-v2-Workflow系统现状.md)                   | ✅ 活跃参考       | Workflow 引擎当前实现状态（权威参考）               |
+| [16-事件日志与骰子系统架构.md](design/16-事件日志与骰子系统架构.md)             | ✅ 已完成         | 事件日志与骰子系统架构设计（已实施）                |
+| [17-插件系统演进路线.md](design/17-插件系统演进路线.md)                         | ✅ 活跃参考       | 插件系统三轨道演进计划                              |
+| [18-系统架构现状与演进分析.md](design/18-系统架构现状与演进分析.md)             | ✅ 活跃参考       | 全系统成熟度评估与路线图                            |
+| [19-DaggerHeart插件演进-头脑风暴.md](design/19-DaggerHeart插件演进-头脑风暴.md) | ✅ 活跃参考       | DaggerHeart 插件演进头脑风暴记录                    |
+| [20-演进方向修正.md](design/20-演进方向修正.md)                                 | ✅ 活跃参考       | 2026-04 审计后演进方向修正（战略调整 + 优先级重排） |
 
 ## 规则系统 (`rule-system/`)
 
@@ -36,12 +38,15 @@
 
 ## 计划 (`plans/`)
 
-当前活跃的迁移计划与执行记录。
+已完成的计划文档已归档至 `plans/_archived/`。
 
-| 文档                                                             | 说明                                   |
-| ---------------------------------------------------------------- | -------------------------------------- |
-| [migration-master-plan.md](plans/migration-master-plan.md)       | 插件系统 6 阶段迁移总计划（全部完成）  |
-| [phase4-entity-components.md](plans/phase4-entity-components.md) | Phase 4 Entity.components 详细执行计划 |
+| 归档文档                                                                   | 说明                                   |
+| -------------------------------------------------------------------------- | -------------------------------------- |
+| [migration-master-plan.md](plans/_archived/migration-master-plan.md)       | 插件系统 6 阶段迁移总计划（全部完成）  |
+| [phase4-entity-components.md](plans/_archived/phase4-entity-components.md) | Phase 4 Entity.components 详细执行计划 |
+| [sprint1-exploration.md](plans/_archived/sprint1-exploration.md)           | Sprint 1 探索记录                      |
+| [sprint2-exploration.md](plans/_archived/sprint2-exploration.md)           | Sprint 2 探索记录                      |
+| [sprint2-deviations.md](plans/_archived/sprint2-deviations.md)             | Sprint 2 偏差记录                      |
 
 ## 开发规范 (`conventions/`)
 
