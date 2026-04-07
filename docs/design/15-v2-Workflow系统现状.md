@@ -138,6 +138,7 @@ interface WorkflowContext<TVars = Record<string, unknown>> {
   updateTeamTracker(label: string, patch: { current?: number }): void
 
   // ── Events（EventBus 解耦副作用）──────────────────────────
+  // > ⚠️ 2026-04 更新：EventBus 已在 PR #179 中完全删除。WorkflowContext 不再包含 events 属性。
   events: {
     emit<T>(handle: EventHandle<T>, payload: T): void
   }
@@ -752,6 +753,8 @@ interface TriggerDefinition {
 
 ### 8.7 EventBus 集成
 
+> ⚠️ 2026-04 更新：EventBus 已完全移除，跨客户端效果现由 RendererRegistry + game_log 驱动。
+
 **设计文档未涉及，实际已实施。**
 
 解耦的事件通信机制，替代 WorkflowContext 中的具体副作用方法：
@@ -803,22 +806,22 @@ Workflow step 通过 `ctx.events.emit(toastEvent, { text: '...', variant: 'succe
 
 ### 10.1 已完成
 
-| 改造项                     | 状态    | 说明                                         |
-| -------------------------- | ------- | -------------------------------------------- |
-| WorkflowEngine 核心        | ✅ 完成 | step 排序、洋葱包装、三阶段执行              |
-| InternalState 注入         | ✅ 完成 | depth + abort 统一                           |
-| WorkflowHandle phantom     | ✅ 完成 | 双泛型 `<TData, TOutput>`                    |
-| Structured Output          | ✅ 完成 | output extractor + RollOutput                |
-| Step readonly + phase      | ✅ 完成 | Proxy 冻结 + post 阶段                       |
-| Non-critical 保护          | ✅ 完成 | readonly 约束替代 snapshot/restore           |
-| IPluginSDK/IWorkflowRunner | ✅ 完成 | 注册/执行分离                                |
-| Owner tracking             | ✅ 完成 | step + wrapper 级别                          |
-| attachStep + dependsOn     | ✅ 完成 | 级联删除 + 失败传播                          |
-| replaceStep + restore      | ✅ 完成 | 冲突检测 + deactivate 恢复                   |
-| WorkflowContext 重构       | ✅ 完成 | vars, read, emitEntry, updateComponent, etc  |
-| Trigger 系统               | ✅ 完成 | TriggerRegistry + LogStreamDispatcher        |
-| EventBus 集成              | ✅ 完成 | defineEvent + useEvent + systemEvents        |
-| Base workflows             | ✅ 完成 | roll (structured), quick-roll, set-selection |
+| 改造项                     | 状态      | 说明                                                                                       |
+| -------------------------- | --------- | ------------------------------------------------------------------------------------------ |
+| WorkflowEngine 核心        | ✅ 完成   | step 排序、洋葱包装、三阶段执行                                                            |
+| InternalState 注入         | ✅ 完成   | depth + abort 统一                                                                         |
+| WorkflowHandle phantom     | ✅ 完成   | 双泛型 `<TData, TOutput>`                                                                  |
+| Structured Output          | ✅ 完成   | output extractor + RollOutput                                                              |
+| Step readonly + phase      | ✅ 完成   | Proxy 冻结 + post 阶段                                                                     |
+| Non-critical 保护          | ✅ 完成   | readonly 约束替代 snapshot/restore                                                         |
+| IPluginSDK/IWorkflowRunner | ✅ 完成   | 注册/执行分离                                                                              |
+| Owner tracking             | ✅ 完成   | step + wrapper 级别                                                                        |
+| attachStep + dependsOn     | ✅ 完成   | 级联删除 + 失败传播                                                                        |
+| replaceStep + restore      | ✅ 完成   | 冲突检测 + deactivate 恢复                                                                 |
+| WorkflowContext 重构       | ✅ 完成   | vars, read, emitEntry, updateComponent, etc                                                |
+| Trigger 系统               | ✅ 完成   | TriggerRegistry + LogStreamDispatcher                                                      |
+| EventBus 集成              | ❌ 已移除 | defineEvent + useEvent + systemEvents（PR #179 删除，由 RendererRegistry + game_log 替代） |
+| Base workflows             | ✅ 完成   | roll (structured), quick-roll, set-selection                                               |
 
 ### 10.2 已声明未连接
 

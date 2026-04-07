@@ -8,7 +8,7 @@ REST API (init) ──► zustand stores ──► React components
 Socket.io events ───────┘ (real-time updates)
 ```
 
-四个 zustand store 各司其职，通过 `init()` 加载初始数据，通过 Socket.io 事件保持实时同步。
+五个 zustand store 各司其职，通过 `init()` 加载初始数据，通过 Socket.io 事件保持实时同步。
 
 ## Store 职责划分
 
@@ -18,6 +18,7 @@ Socket.io events ───────┘ (real-time updates)
 | `useIdentityStore` | `identityStore.ts` | 座位/身份：seats, mySeatId, onlineSeatIds                                                | ~200 行  |
 | `useSessionStore`  | `sessionStore.ts`  | 客户端 session 状态：selection + pending interactions（plugin system Phase 6）           | ~60 行   |
 | `useUiStore`       | `uiStore.ts`       | 客户端 UI 状态（不持久化）：选中 Token、活动工具、主题等                                 | ~320 行  |
+| `layoutStore`      | `layoutStore.ts`   | 面板布局：narrative/tactical 双模式 LayoutConfig，同步到服务端                           | ~100 行  |
 
 ### worldStore 概要
 
@@ -84,6 +85,23 @@ Socket.io events ───────┘ (real-time updates)
 
 **状态**：`openCardId`, `pinnedCards`, `selectedTokenIds: string[]`, `primarySelectedTokenId`, `bgContextMenu`, `editingHandout`, `activeTool`, `gmViewAsPlayer`, `theme`, `portraitBarVisible`, `teamPanelVisible`, `lastMeasureTool`, `toolPersist`, `gridConfigOpen`, `gmSidebarTab`, `gmSidebarCollapsed`, `gmDockTab`, `activePluginPanels`
 
+### layoutStore 概要
+
+管理 narrative/tactical 双模式面板布局，通过 `layout:updated` Socket 事件与服务端同步。使用 `zustand/vanilla` 的 `createStore` 创建（非 React hook 版本），提供 singleton `getLayoutStore()` 访问。
+
+**状态**：
+
+- `narrative: LayoutConfig` — narrative 模式面板布局配置
+- `tactical: LayoutConfig` — tactical 模式面板布局配置
+- `isTactical: boolean` — 当前是否处于战术模式
+- `layoutMode: 'play' | 'edit'` — 布局编辑模式
+- `activeLayout: LayoutConfig` — 派生值，根据 isTactical 指向 narrative 或 tactical
+- `isEditing: boolean` — 派生值，layoutMode === 'edit'
+
+**Actions**：`loadLayout(config)`, `updateEntry(instanceKey, partial)`, `addEntry(instanceKey, entry)`, `removeEntry(instanceKey)`, `setLayoutMode(mode)`, `setIsTactical(tactical)`
+
+**特殊机制**：编辑模式下屏蔽远端 `layout:updated` 事件，本地修改为权威。
+
 ## 初始化流程
 
 ```
@@ -93,7 +111,7 @@ App.tsx mount
   │   ├─ REST: GET /api/rooms/:roomId/bundle   → 批量加载所有数据
   │   │   (room, scenes, entities, sceneEntityMap, tactical,
   │   │    showcase, trackers, assets, blueprints, tags, logEntries)
-  │   └─ registerSocketEvents(socket)            → 35 个事件监听器
+  │   └─ registerSocketEvents(socket)            → 36 个事件监听器
   │
   └─ identityStore.init(roomId, socket)
       ├─ REST: GET .../seats                    → seats
@@ -103,7 +121,7 @@ App.tsx mount
 
 ## Socket.io 事件处理
 
-worldStore 监听 35 个 Socket.io 事件，每个事件对应一个 `set()` 调用更新 store。
+worldStore 监听 36 个 Socket.io 事件，每个事件对应一个 `set()` 调用更新 store。
 
 ```typescript
 // 典型的事件处理模式
@@ -135,6 +153,7 @@ socket.on('entity:deleted', ({ id }: { id: string }) => {
 | `tag:created/updated/deleted`              | `tags[]`                                             |
 | `archive:created/updated/deleted`          | `archives[]`                                         |
 | `log:new`                                  | `logEntries[]` + `logEntriesById{}` + `logWatermark` |
+| `layout:updated`                           | `layoutStore.narrative` + `layoutStore.tactical`     |
 
 ## 乐观更新
 
