@@ -166,4 +166,3 @@ describe('getDataTemplate', () => {
     expect(getDataTemplate('generic')).toBeUndefined()
   })
 })
-

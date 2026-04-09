@@ -78,7 +78,7 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
       },
       {
         id: 'dh:resolve',
-        run: (ctx) => {
+        run: () => {
           executionOrder.push('dh:resolve')
         },
       },
