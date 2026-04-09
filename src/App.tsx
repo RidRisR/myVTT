@@ -33,7 +33,7 @@ import * as Popover from '@radix-ui/react-popover'
 import { PopoverContent } from './ui/primitives/PopoverContent'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import type { ShowcaseItem } from './shared/showcaseTypes'
-import type { Entity, Atmosphere, SceneEntityEntry } from './shared/entityTypes'
+import type { Entity, Atmosphere } from './shared/entityTypes'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { TeamDashboard } from './team/TeamDashboard'
@@ -56,8 +56,6 @@ import { useLayoutSync } from './ui-system/useLayoutSync'
 const SandboxRoot = import.meta.env.DEV ? lazy(() => import('./sandbox/index')) : () => null
 const PocApp = import.meta.env.DEV ? lazy(() => import('../poc/PocApp')) : () => null
 const DebugLogPage = import.meta.env.DEV ? lazy(() => import('./debug/DebugLogPage')) : () => null
-
-const EMPTY_ENTRIES: SceneEntityEntry[] = []
 
 function RoomSession({ roomId }: { roomId: string }) {
   const { t } = useTranslation('common')
@@ -189,7 +187,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const updateScene = useWorldStore((s) => s.updateScene)
   const deleteSceneRaw = useWorldStore((s) => s.deleteScene)
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
-  const removeEntityFromScene = useWorldStore((s) => s.removeEntityFromScene)
   const enterTactical = useWorldStore((s) => s.enterTactical)
   const exitTactical = useWorldStore((s) => s.exitTactical)
   const setTacticalMapUrl = useWorldStore((s) => s.setTacticalMapUrl)
@@ -407,14 +404,6 @@ function RoomSession({ roomId }: { roomId: string }) {
     [entities, mySeatId, isGMForSpeakers],
   )
 
-  const sceneEntityEntries =
-    useWorldStore((s) => (room.activeSceneId ? s.sceneEntityMap[room.activeSceneId] : undefined)) ??
-    EMPTY_ENTRIES
-  const sceneEntityIds = useMemo(
-    () => sceneEntityEntries.map((e) => e.entityId),
-    [sceneEntityEntries],
-  )
-
   // Convert Record types to arrays for components that still expect arrays
   const entitiesArray = useMemo(() => Object.values(entities), [entities])
 
@@ -481,10 +470,6 @@ function RoomSession({ roomId }: { roomId: string }) {
     )
   }
 
-  const handleRemoveFromScene = (entityId: string) => {
-    if (room.activeSceneId) void removeEntityFromScene(room.activeSceneId, entityId)
-  }
-
   const handleDeleteScene = (sceneId: string) => {
     void deleteSceneRaw(sceneId)
     // Orphan GC is now handled server-side
@@ -503,12 +488,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const handleUpdateEntity = (id: string, updates: Partial<Entity>) => {
     void updateEntity(id, updates)
     // Server handles persistent→all-scenes linking
-  }
-
-  const handleSetActiveCharacter = (entityId: string) => {
-    if (mySeatId) {
-      void updateSeat(mySeatId, { activeCharacterId: entityId })
-    }
   }
 
   const handleShowcaseHandout = (asset: HandoutAsset) => {
@@ -535,12 +514,7 @@ function RoomSession({ roomId }: { roomId: string }) {
 
   const handleAddNpc = () => {
     setBgContextMenu(null)
-    void useWorldStore
-      .getState()
-      .createEphemeralNpcInScene()
-      .then((entity) => {
-        // TODO: re-implement card opening via plugin system
-      })
+    void useWorldStore.getState().createEphemeralNpcInScene()
   }
 
   const handleDropEntityOnMap = (entityId: string, mapX: number, mapY: number) => {
