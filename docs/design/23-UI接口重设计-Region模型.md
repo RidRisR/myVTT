@@ -39,17 +39,18 @@
 
 ### 2.2 透明区域 + pointer-events 穿透
 
-框架分配的是一个透明矩形包围盒，默认 `pointer-events: none`。插件在其中渲染任意形状的内容，通过 `pointer-events: auto` 标记可交互元素。非内容区域的点击/拖拽自动穿透到下层。
+框架分配的是一个透明矩形包围盒，**默认 `pointer-events: auto`**（阻塞点击）。虽然视觉上是透明的，但空白区域的点击不会穿透到下方其他面板——这防止了用户误触被遮挡的 UI。
 
 ```
-┌─────────────────────┐  ← 矩形包围盒 (pointer-events: none)
+┌─────────────────────┐  ← 矩形包围盒 (pointer-events: auto, 视觉透明)
 │                     │
-│     ╭───────╮       │  ← 实际可见内容 (pointer-events: auto)
+│     ╭───────╮       │  ← 实际可见内容
 │     │ 圆形  │       │
 │     │ 面板  │       │
 │     ╰───────╯       │
 │                     │
-│   点击穿透到下层     │
+│   空白区域：点击被   │
+│   吞掉，不穿透      │
 └─────────────────────┘
 ```
 
@@ -57,14 +58,24 @@
 
 ```css
 .region-container {
-  pointer-events: none;
-}
-.region-container > * {
-  pointer-events: auto;
+  pointer-events: auto; /* 默认阻塞——安全 */
+  background: transparent;
 }
 ```
 
-插件如果需要更精细的穿透控制，可以在内部元素上设置 `pointer-events: none`。
+**异形 UI 的穿透**：如果插件需要支持不规则形状（如圆形面板），由插件自行在空白区域标记 `pointer-events: none`。这是一个 opt-in 的高级能力，而非默认行为。
+
+```css
+/* 插件自主声明穿透区域（opt-in） */
+.my-circular-panel-wrapper {
+  pointer-events: none; /* 包围盒穿透 */
+}
+.my-circular-panel-wrapper .content {
+  pointer-events: auto; /* 内容可交互 */
+}
+```
+
+**设计理由**：默认阻塞比默认穿透更安全。如果面板重叠，用户点击上层面板的空白区不会意外触发下层隐藏面板的按钮。大多数面板是矩形的，包围盒与可见内容基本一致，无需穿透。只有异形 UI 的少数场景才需要插件显式 opt-in 穿透。
 
 ### 2.3 复合 UI 通过"布局插件"实现
 
@@ -148,7 +159,7 @@ type AnchorPoint = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | '
 
 对于每个 Region，框架：
 
-1. 创建一个 `<div>` 包围盒，设置 `pointer-events: none`、`position: absolute`
+1. 创建一个 `<div>` 包围盒，设置 `pointer-events: auto`、`background: transparent`、`position: absolute`（默认阻塞点击，防止穿透误触）
 2. 根据 Anchor + Offset 计算位置（见第五节）
 3. 将 `width` 和 `height` 设为当前尺寸（用户可能已调整过）
 4. 在包围盒内渲染插件的 `component`
@@ -563,7 +574,8 @@ function RegionRenderer({ registry, layout, makeSDK, viewport, onDragEnd }: Regi
               width: entry.width,
               height: entry.height,
               zIndex: layerBaseZ(def.layer) + entry.zOrder,
-              pointerEvents: 'none',
+              pointerEvents: 'auto',
+              background: 'transparent',
             }}
           >
             <Comp sdk={makeSDK(def.id, entry.instanceProps ?? {})} />
@@ -615,7 +627,8 @@ function OnDemandHost({ registry, openInstances, makeSDK, viewport }) {
               width: entry.width,
               height: entry.height,
               zIndex: layerBaseZ(def.layer) + entry.zOrder,
-              pointerEvents: 'none',
+              pointerEvents: 'auto',
+              background: 'transparent',
             }}
           >
             <Comp sdk={makeSDK(instanceKey, instanceProps)} />
