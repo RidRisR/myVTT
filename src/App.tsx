@@ -243,15 +243,21 @@ function RoomSession({ roomId }: { roomId: string }) {
   // Viewport tracking for anchor-based layout
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight })
   useEffect(() => {
-    const handler = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
+    const handler = () => {
+      setViewport({ width: window.innerWidth, height: window.innerHeight })
+    }
     window.addEventListener('resize', handler)
-    return () => window.removeEventListener('resize', handler)
+    return () => {
+      window.removeEventListener('resize', handler)
+    }
   }, [])
 
   // Portal manager for Radix/floating UI containers
   const [portalManager] = useState(() => new PortalManager())
   useEffect(() => {
-    return () => portalManager.dispose()
+    return () => {
+      portalManager.dispose()
+    }
   }, [portalManager])
 
   // Sync layoutStore.isTactical with worldStore tactical state

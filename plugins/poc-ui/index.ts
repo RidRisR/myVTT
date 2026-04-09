@@ -6,11 +6,12 @@ import { VignetteLayer } from './VignetteLayer'
 export const pocUIPlugin: VTTPlugin = {
   id: 'poc-ui',
   onActivate(sdk) {
-    sdk.ui.registerComponent({
+    sdk.ui.registerRegion({
       id: 'poc-ui.hello',
       component: HelloPanel as React.ComponentType<{ sdk: unknown }>,
-      type: 'panel',
+      lifecycle: 'persistent',
       defaultSize: { width: 240, height: 140 },
+      layer: 'standard',
     })
     sdk.ui.registerLayer({
       id: 'poc-ui.vignette',

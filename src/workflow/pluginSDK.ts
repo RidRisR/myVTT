@@ -66,6 +66,7 @@ export class PluginSDK implements IPluginSDK {
           registerRegion: (def) => {
             uiRegistry.registerRegion(def)
           },
+          // eslint-disable-next-line @typescript-eslint/no-deprecated -- intentional backward-compat delegation
           registerComponent: (def) => {
             uiRegistry.registerComponent(def)
           },

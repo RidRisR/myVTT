@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated -- Tests exercise deprecated registerComponent backward-compat path */
 // src/ui-system/__tests__/production-wiring.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { getUIRegistry, createProductionSDK, _resetRegistriesForTesting } from '../uiSystemInit'

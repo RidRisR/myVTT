@@ -1,5 +1,6 @@
 // Polyfill if needed — jsdom does not have PointerEvent
 if (typeof PointerEvent === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(globalThis as any).PointerEvent = class PointerEvent extends MouseEvent {
     pointerId: number
     constructor(type: string, init?: PointerEventInit) {

@@ -54,7 +54,9 @@ describe('createRegionSDK', () => {
 
   it('ui.resize is a no-op when onResize not provided', () => {
     const sdk = createRegionSDK(baseArgs())
-    expect(() => { sdk.ui.resize({ width: 300 }); }).not.toThrow()
+    expect(() => {
+      sdk.ui.resize({ width: 300 })
+    }).not.toThrow()
   })
 
   it('ui.getPortalContainer returns provided container', () => {

@@ -1,5 +1,5 @@
 // src/ui-system/__tests__/RegionEditOverlay.test.tsx
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
 import { RegionEditOverlay } from '../RegionEditOverlay'
 import type { RegionDef } from '../registrationTypes'
