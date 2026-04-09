@@ -7,14 +7,12 @@ import {
   FORMULA_TOKENS_POINT,
   ENTITY_CARD_POINT,
   DATA_TEMPLATE_POINT,
-  TEAM_PANEL_POINT,
   getMainResource,
   getPortraitResources,
   getStatuses,
   getFormulaTokens,
   getEntityCard,
   getDataTemplate,
-  getTeamPanel,
 } from '../entityBindings'
 import { makeEntity } from '../../__test-utils__/fixtures'
 
@@ -169,26 +167,3 @@ describe('getDataTemplate', () => {
   })
 })
 
-describe('getTeamPanel', () => {
-  const FakePanel = () => null
-
-  it('returns null when no bindings registered', () => {
-    expect(getTeamPanel('daggerheart')).toBeNull()
-  })
-
-  it('returns component matching ruleSystemId', () => {
-    registerRenderer(TEAM_PANEL_POINT, {
-      ruleSystemId: 'daggerheart',
-      component: FakePanel,
-    })
-    expect(getTeamPanel('daggerheart')).toBe(FakePanel)
-  })
-
-  it('returns null for non-matching ruleSystemId', () => {
-    registerRenderer(TEAM_PANEL_POINT, {
-      ruleSystemId: 'daggerheart',
-      component: FakePanel,
-    })
-    expect(getTeamPanel('generic')).toBeNull()
-  })
-})

@@ -11,7 +11,6 @@ import { sceneRoutes } from '../../routes/scenes'
 import { entityRoutes } from '../../routes/entities'
 import { archiveRoutes } from '../../routes/archives'
 import { tacticalRoutes } from '../../routes/tactical'
-import { trackerRoutes } from '../../routes/trackers'
 import { showcaseRoutes } from '../../routes/showcase'
 import { stateRoutes } from '../../routes/state'
 import { assetRoutes } from '../../routes/assets'
@@ -71,7 +70,6 @@ export async function setupTestRoom(roomName = 'test-room'): Promise<TestContext
   app.use(entityRoutes(dataDir, io))
   app.use(archiveRoutes(dataDir, io))
   app.use(tacticalRoutes(dataDir, io))
-  app.use(trackerRoutes(dataDir, io))
   app.use(showcaseRoutes(dataDir, io))
   app.use(stateRoutes(dataDir, io))
   app.use(assetRoutes(dataDir, io))
@@ -229,7 +227,6 @@ export async function setupTestServer(): Promise<SimpleTestServer> {
   app.use(entityRoutes(dataDir, io))
   app.use(archiveRoutes(dataDir, io))
   app.use(tacticalRoutes(dataDir, io))
-  app.use(trackerRoutes(dataDir, io))
   app.use(showcaseRoutes(dataDir, io))
   app.use(stateRoutes(dataDir, io))
   app.use(assetRoutes(dataDir, io))

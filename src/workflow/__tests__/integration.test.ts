@@ -80,11 +80,6 @@ describe('Workflow E2E: daggerheart-core + daggerheart-cosmetic', () => {
         id: 'dh:resolve',
         run: (ctx) => {
           executionOrder.push('dh:resolve')
-          const j = ctx.vars.judgment as { outcome: string }
-          if (j.outcome === 'success_fear' || j.outcome === 'failure_fear') {
-            // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
-            ctx.updateTeamTracker('Fear', { current: 1 })
-          }
         },
       },
     ])

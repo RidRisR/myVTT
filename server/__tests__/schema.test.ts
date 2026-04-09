@@ -58,7 +58,6 @@ describe('initRoomSchema', () => {
     expect(names).toContain('tactical_state')
     expect(names).toContain('tactical_tokens')
     expect(names).toContain('assets')
-    expect(names).toContain('team_trackers')
     expect(names).toContain('showcase_items')
     expect(names).toContain('blueprints')
     expect(names).toContain('game_log')
