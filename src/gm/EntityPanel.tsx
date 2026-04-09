@@ -5,7 +5,6 @@ import { getName } from '../shared/coreComponents'
 import { defaultNPCPermissions } from '../shared/permissions'
 import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
-import { useUiStore } from '../stores/uiStore'
 import { useToast } from '../ui/useToast'
 import { generateTokenId } from '../shared/idUtils'
 import { EntityRow } from './EntityRow'
@@ -30,7 +29,6 @@ export function EntityPanel() {
   const toggleEntityVisibility = useWorldStore((s) => s.toggleEntityVisibility)
   const seats = useIdentityStore((s) => s.seats)
   const onlineSeatIds = useIdentityStore((s) => s.onlineSeatIds)
-  const openCard = useUiStore((s) => s.openCard)
   const { toast } = useToast()
 
   const [search, setSearch] = useState('')
@@ -111,7 +109,6 @@ export function EntityPanel() {
     }
     void addEntity(newEntity)
     if (activeSceneId) void addEntityToScene(activeSceneId, newEntity.id, false)
-    openCard(newEntity.id)
   }
 
   const handleDelete = (entity: Entity) => {
@@ -161,7 +158,7 @@ export function EntityPanel() {
                 isOnline={getOnlineStatus(entity)}
                 isInScene={sceneEntityIds.includes(entity.id)}
                 onSelect={() => {
-                  openCard(entity.id)
+                  // TODO: re-implement via plugin card system
                 }}
                 onDelete={() => {
                   handleDelete(entity)

@@ -7,7 +7,6 @@ import { defaultNPCPermissions } from '../shared/permissions'
 import { generateTokenId } from '../shared/idUtils'
 import { useWorldStore } from '../stores/worldStore'
 import { useIdentityStore } from '../stores/identityStore'
-import { useUiStore } from '../stores/uiStore'
 import { useToast } from '../ui/useToast'
 import { getDataTemplate } from '../log/entityBindings'
 
@@ -19,7 +18,6 @@ export function CharacterLibraryTab() {
   const deleteEntity = useWorldStore((s) => s.deleteEntity)
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
   const seats = useIdentityStore((s) => s.seats)
-  const openCard = useUiStore((s) => s.openCard)
   const { toast } = useToast()
   const ruleSystemId = useWorldStore((s) => s.room.ruleSystemId)
   const [search, setSearch] = useState('')
@@ -60,7 +58,6 @@ export function CharacterLibraryTab() {
     }
     void addEntity(newEntity)
     if (activeSceneId) void addEntityToScene(activeSceneId, newEntity.id, true)
-    openCard(newEntity.id)
   }
 
   const handleDelete = useCallback(
@@ -150,7 +147,7 @@ export function CharacterLibraryTab() {
                       if (activeSceneId) void addEntityToScene(activeSceneId, entity.id)
                     }}
                     onDoubleClick={() => {
-                      openCard(entity.id)
+                      // TODO: re-implement via plugin card system
                     }}
                     className="flex-1 flex items-center gap-2 px-2 py-1.5 rounded text-left hover:bg-surface/60 cursor-pointer transition-colors duration-fast"
                   >

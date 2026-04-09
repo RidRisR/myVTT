@@ -17,25 +17,6 @@
     "cold": "Cold Arcane",
     "warm": "Warm Alchemy"
   },
-  "portrait": {
-    "my_character": "我的角色",
-    "portraits_label": "肖像",
-    "no_characters": "暂无角色",
-    "set_active": "设为活跃",
-    "inspect": "查看详情",
-    "off_stage": "离场",
-    "save_as_blueprint": "保存为蓝图",
-    "save_as_character": "保存为角色",
-    "remove": "移除",
-    "create_my_character": "创建我的角色",
-    "hide_portraits": "隐藏肖像",
-    "round": "第 {{number}} 轮",
-    "no_session": "无战术会话",
-    "characters_tab": "角色",
-    "initiative_tab": "先攻",
-    "pin_card": "钉住卡片",
-    "close_card": "关闭卡片"
-  },
   "character": {
     "title": "角色",
     "resources": "资源",

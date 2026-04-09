@@ -67,13 +67,15 @@ test.describe('Chat @variable autocomplete (entity bindings)', () => {
       { timeout: 10_000 },
     )
 
-    // Set as active character via context menu
-    const portrait = page.locator(`[data-char-id="${entityId}"]`)
-    await expect(portrait).toBeVisible({ timeout: 5_000 })
-    await portrait.click({ button: 'right' })
-    const setActiveItem = page.getByText(/Set as active|设为活跃/)
-    await expect(setActiveItem).toBeVisible({ timeout: 3_000 })
-    await setActiveItem.click()
+    // Set as active character via store API (PortraitBar removed — no UI path)
+    await page.evaluate(
+      async ({ id }) => {
+        const store = (window as any).__MYVTT_STORES__?.identity()
+        const mySeatId = store?.mySeatId
+        if (mySeatId) await store.updateSeat(mySeatId, { activeCharacterId: id })
+      },
+      { id: entityId },
+    )
 
     // Wait for seat activeCharacterId to propagate via WebSocket
     await page.waitForFunction(
@@ -167,13 +169,15 @@ test.describe('Chat @variable autocomplete (entity bindings)', () => {
       { timeout: 10_000 },
     )
 
-    // Set as active character via context menu
-    const portrait = page.locator(`[data-char-id="${entityId}"]`)
-    await expect(portrait).toBeVisible({ timeout: 5_000 })
-    await portrait.click({ button: 'right' })
-    const setActiveItem = page.getByText(/Set as active|设为活跃/)
-    await expect(setActiveItem).toBeVisible({ timeout: 3_000 })
-    await setActiveItem.click()
+    // Set as active character via store API (PortraitBar removed — no UI path)
+    await page.evaluate(
+      async ({ id }) => {
+        const store = (window as any).__MYVTT_STORES__?.identity()
+        const mySeatId = store?.mySeatId
+        if (mySeatId) await store.updateSeat(mySeatId, { activeCharacterId: id })
+      },
+      { id: entityId },
+    )
 
     // Wait for seat activeCharacterId to propagate via WebSocket
     await page.waitForFunction(

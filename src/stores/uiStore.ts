@@ -26,13 +26,6 @@ export interface ActivePluginPanel {
   entityId?: string
 }
 
-export interface PinnedCard {
-  entityId: string
-  position: { x: number; y: number }
-}
-
-const EMPTY_PINNED: PinnedCard[] = []
-
 function getStoredTheme(): ThemeId {
   try {
     const v = localStorage.getItem('vtt-theme')
@@ -58,10 +51,6 @@ applyTheme(getStoredTheme())
 const EMPTY_SELECTION: string[] = []
 
 interface UiState {
-  // Character card state (multi-card with pin support)
-  openCardId: string | null // Current unpinned anchored card (max 1)
-  pinnedCards: PinnedCard[] // Pinned floating cards (multiple allowed)
-
   selectedTokenIds: string[]
   primarySelectedTokenId: string | null
   bgContextMenu: ContextMenuState | null
@@ -71,7 +60,7 @@ interface UiState {
   theme: ThemeId
 
   // Panel visibility
-  portraitBarVisible: boolean
+  teamPanelVisible: boolean
 
   // Tactical toolbar
   lastMeasureTool: string
@@ -91,14 +80,6 @@ interface UiState {
   openPluginPanel: (panelId: string, entityId?: string) => void
   closePluginPanel: (panelId: string) => void
 
-  // Character card actions
-  openCard: (entityId: string) => void
-  closeCard: () => void
-  pinCard: (entityId: string, position: { x: number; y: number }) => void
-  unpinCard: (entityId: string) => void
-  updatePinnedCardPosition: (entityId: string, position: { x: number; y: number }) => void
-  closePinnedCard: (entityId: string) => void
-
   // Multi-select token methods
   setSelectedTokenIds: (ids: string[]) => void
   setPrimarySelectedTokenId: (id: string | null) => void
@@ -112,7 +93,7 @@ interface UiState {
   setActiveTool: (tool: string) => void
   setGmViewAsPlayer: (val: boolean) => void
   setTheme: (theme: ThemeId) => void
-  setPortraitBarVisible: (visible: boolean) => void
+  setTeamPanelVisible: (visible: boolean) => void
   setGridConfigOpen: (open: boolean) => void
   toggleGridConfig: () => void
   toggleToolPersist: () => void
@@ -131,8 +112,6 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>((set) => ({
-  openCardId: null,
-  pinnedCards: EMPTY_PINNED,
   selectedTokenIds: EMPTY_SELECTION,
   primarySelectedTokenId: null,
   bgContextMenu: null,
@@ -140,7 +119,7 @@ export const useUiStore = create<UiState>((set) => ({
   activeTool: BuiltinToolId.Select,
   gmViewAsPlayer: false,
   theme: getStoredTheme(),
-  portraitBarVisible: true,
+  teamPanelVisible: false,
   lastMeasureTool: BuiltinToolId.Measure,
   toolPersist: false,
   gridConfigOpen: false,
@@ -166,41 +145,6 @@ export const useUiStore = create<UiState>((set) => ({
     }))
   },
 
-  openCard: (entityId) => {
-    set((s) => {
-      // Already pinned — ignore
-      if (s.pinnedCards.some((p) => p.entityId === entityId)) return s
-      return { openCardId: entityId }
-    })
-  },
-  closeCard: () => {
-    set({ openCardId: null })
-  },
-  pinCard: (entityId, position) => {
-    set((s) => ({
-      openCardId: null,
-      pinnedCards: [
-        ...s.pinnedCards.filter((p) => p.entityId !== entityId),
-        { entityId, position },
-      ],
-    }))
-  },
-  unpinCard: (entityId) => {
-    set((s) => ({
-      openCardId: entityId,
-      pinnedCards: s.pinnedCards.filter((p) => p.entityId !== entityId),
-    }))
-  },
-  updatePinnedCardPosition: (entityId, position) => {
-    set((s) => ({
-      pinnedCards: s.pinnedCards.map((p) => (p.entityId === entityId ? { ...p, position } : p)),
-    }))
-  },
-  closePinnedCard: (entityId) => {
-    set((s) => ({
-      pinnedCards: s.pinnedCards.filter((p) => p.entityId !== entityId),
-    }))
-  },
   setSelectedTokenIds: (ids) => {
     set({ selectedTokenIds: ids.length === 0 ? EMPTY_SELECTION : ids })
   },
@@ -260,8 +204,8 @@ export const useUiStore = create<UiState>((set) => ({
     applyTheme(theme)
     set({ theme })
   },
-  setPortraitBarVisible: (visible) => {
-    set({ portraitBarVisible: visible })
+  setTeamPanelVisible: (visible) => {
+    set({ teamPanelVisible: visible })
   },
   setGridConfigOpen: (open) => {
     set({ gridConfigOpen: open })

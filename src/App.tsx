@@ -28,13 +28,12 @@ import { GmSidebar } from './gm/GmSidebar'
 
 import { SceneButton } from './gm/SceneButton'
 import { HamburgerMenu } from './layout/HamburgerMenu'
-import { PortraitBar } from './layout/PortraitBar'
 import { MyCharacterCard } from './layout/MyCharacterCard'
 import * as Popover from '@radix-ui/react-popover'
 import { PopoverContent } from './ui/primitives/PopoverContent'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
 import type { ShowcaseItem } from './shared/showcaseTypes'
-import type { Entity, Atmosphere, SceneEntityEntry } from './shared/entityTypes'
+import type { Entity, Atmosphere } from './shared/entityTypes'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { ToastProvider } from './ui/ToastProvider'
@@ -56,8 +55,6 @@ import { useLayoutSync } from './ui-system/useLayoutSync'
 const SandboxRoot = import.meta.env.DEV ? lazy(() => import('./sandbox/index')) : () => null
 const PocApp = import.meta.env.DEV ? lazy(() => import('../poc/PocApp')) : () => null
 const DebugLogPage = import.meta.env.DEV ? lazy(() => import('./debug/DebugLogPage')) : () => null
-
-const EMPTY_ENTRIES: SceneEntityEntry[] = []
 
 function RoomSession({ roomId }: { roomId: string }) {
   const { t } = useTranslation('common')
@@ -189,7 +186,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const updateScene = useWorldStore((s) => s.updateScene)
   const deleteSceneRaw = useWorldStore((s) => s.deleteScene)
   const addEntityToScene = useWorldStore((s) => s.addEntityToScene)
-  const removeEntityFromScene = useWorldStore((s) => s.removeEntityFromScene)
   const enterTactical = useWorldStore((s) => s.enterTactical)
   const exitTactical = useWorldStore((s) => s.exitTactical)
   const setTacticalMapUrl = useWorldStore((s) => s.setTacticalMapUrl)
@@ -219,9 +215,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const updateSeat = useIdentityStore((s) => s.updateSeat)
 
   // UI store
-  const openCardId = useUiStore((s) => s.openCardId)
-  const closeCard = useUiStore((s) => s.closeCard)
-  const closePinnedCard = useUiStore((s) => s.closePinnedCard)
   const selectedTokenIds = useUiStore((s) => s.selectedTokenIds)
   const primarySelectedTokenId = useUiStore((s) => s.primarySelectedTokenId)
   const bgContextMenu = useUiStore((s) => s.bgContextMenu)
@@ -410,14 +403,6 @@ function RoomSession({ roomId }: { roomId: string }) {
     [entities, mySeatId, isGMForSpeakers],
   )
 
-  const sceneEntityEntries =
-    useWorldStore((s) => (room.activeSceneId ? s.sceneEntityMap[room.activeSceneId] : undefined)) ??
-    EMPTY_ENTRIES
-  const sceneEntityIds = useMemo(
-    () => sceneEntityEntries.map((e) => e.entityId),
-    [sceneEntityEntries],
-  )
-
   // Convert Record types to arrays for components that still expect arrays
   const entitiesArray = useMemo(() => Object.values(entities), [entities])
 
@@ -484,12 +469,6 @@ function RoomSession({ roomId }: { roomId: string }) {
     )
   }
 
-  const handleRemoveFromScene = (entityId: string) => {
-    if (room.activeSceneId) void removeEntityFromScene(room.activeSceneId, entityId)
-    if (openCardId === entityId) closeCard()
-    closePinnedCard(entityId)
-  }
-
   const handleDeleteScene = (sceneId: string) => {
     void deleteSceneRaw(sceneId)
     // Orphan GC is now handled server-side
@@ -508,12 +487,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const handleUpdateEntity = (id: string, updates: Partial<Entity>) => {
     void updateEntity(id, updates)
     // Server handles persistent→all-scenes linking
-  }
-
-  const handleSetActiveCharacter = (entityId: string) => {
-    if (mySeatId) {
-      void updateSeat(mySeatId, { activeCharacterId: entityId })
-    }
   }
 
   const handleShowcaseHandout = (asset: HandoutAsset) => {
@@ -540,12 +513,7 @@ function RoomSession({ roomId }: { roomId: string }) {
 
   const handleAddNpc = () => {
     setBgContextMenu(null)
-    void useWorldStore
-      .getState()
-      .createEphemeralNpcInScene()
-      .then((entity) => {
-        if (entity) useUiStore.getState().openCard(entity.id)
-      })
+    void useWorldStore.getState().createEphemeralNpcInScene()
   }
 
   const handleDropEntityOnMap = (entityId: string, mapX: number, mapY: number) => {
@@ -599,23 +567,7 @@ function RoomSession({ roomId }: { roomId: string }) {
           onLeaveSeat={leaveSeat}
         />
 
-        {/* Top-center: Portrait bar */}
-        <PortraitBar
-          entities={entitiesArray}
-          sceneEntityIds={sceneEntityIds}
-          sceneEntityEntries={sceneEntityEntries}
-          activeSceneId={room.activeSceneId}
-          mySeatId={mySeatId}
-          role={mySeat.role}
-          isGM={isGM}
-          onlineSeatIds={onlineSeatIds}
-          activeCharacterId={mySeat.activeCharacterId ?? null}
-          onSetActiveCharacter={handleSetActiveCharacter}
-          onRemoveFromScene={handleRemoveFromScene}
-          onUpdateEntity={handleUpdateEntity}
-          isTactical={isTactical}
-          tacticalInfo={tacticalInfo}
-        />
+        {/* Top-center: Portrait bar — removed, will be re-implemented as plugin region */}
 
         {/* Right: Tactical toolbar (only in tactical mode) */}
         {isTactical && tacticalInfo && (
