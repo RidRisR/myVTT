@@ -665,6 +665,26 @@ function OnDemandHost({ registry, openInstances, makeSDK, viewport }) {
 
 Play mode 下不显示 resize 手柄。
 
+### 9.3 备选方案：react-rnd 集成
+
+`react-rnd`（react-draggable + re-resizable）可覆盖拖拽、resize、基础 bounds 约束，减少自建交互代码。
+
+**对设计的影响**：
+
+- 类型层（RegionDef、LayoutEntry、IRegionSDK、LayoutEngine）：无改动
+- RegionRenderer：`<div style={...}>` 改为 `<Rnd position={...} size={...} bounds="window">`
+- 第九节（拖拽/resize 手柄）：大幅简化，交由 react-rnd 提供
+- 仍需自建：`resolvePosition()`、`inferAnchor()`、z-order 管理、lifecycle 管理、SDK 接口
+
+**潜在问题**：
+
+1. **CSS transform**：react-rnd 默认用 `transform: translate()` 定位，会创建 containing block，导致内部 Radix Portal（`position: fixed`）失效。需确认可否配置为 `left/top` 定位
+2. **bounds 只管拖拽**：`bounds="window"` 阻止用户拖出视口，但不处理窗口缩小和 `sdk.ui.resize()` 放大导致的溢出，仍需自建 clamp
+3. **controlled/uncontrolled 切换**：store-driven position 与拖拽中的流畅体验之间可能产生闪烁
+4. **定制天花板**：磁性吸附、网格对齐、碰撞检测等高级交互可能需要绕过库实现
+
+**决策**：待所有设计细节确定后评估是否采用。如 transform 问题无法规避，则自建拖拽（基于 `@use-gesture/react` 或原生 pointer events）。
+
 ---
 
 ## 十、迁移计划
@@ -741,11 +761,140 @@ interface LayoutEngine {
 - 如果 `openPanel()` 传了 position 参数，用它覆盖
 - 否则默认 `{ anchor: 'center' }`（屏幕中央）
 
-### 12.4 Layout 数据迁移
+### 12.4 插件组合生命周期（Slot 宿主卸载）
+
+当母插件（提供 `RendererPoint` slot 的布局插件）被释放时，子插件通过 `registerRenderer` 注册的数据仍留存在全局 `RendererRegistry` 中。当前场景下（插件 activate 一次、永不卸载）这不会造成问题——母插件重新挂载时 `getAllRenderers` 可无缝恢复。
+
+**潜在风险**（动态插件加载/卸载场景）：
+
+- 子插件卸载后，母插件仍持有失效的组件引用 → 渲染崩溃
+- 子插件重新激活时重复注册 → warn + skip（非 multi-surface）或重复累积（multi-surface）
+
+**建议方案**：`registerRenderer` 返回 dispose 函数，由 `DisposableTracker` 在插件卸载时自动调用，从全局 registry 中移除对应注册。当前阶段无需实现，在引入动态插件加载时一并解决。
+
+### 12.5 z-order 策略：按生命周期区分
+
+- **persistent region**：zOrder 为静态值，由 layout config 决定，仅在 edit mode 手动调整。play mode 中不因点击而变化。
+- **on-demand region**：zOrder 为动态 bring-to-front，每次 `openPanel()` 或 `onPointerDown` 时取当前 layer 内 max+1。临时窗口天然"最新在最上"。
+
+这消除了 edit mode 用户意图与 play mode 运行时行为的冲突。
+
+### 12.6 Layout 存储：全局模板 + per-user 覆盖（待设计）
+
+当前实现：Layout 作为 scene bundle 的一部分存在服务端（`worldStore` → `loadAll()` → `layoutStore.loadLayout()`），通过 `layout:updated` Socket 事件全局同步。所有用户共享同一份 layout。
+
+**未来方向**：全局模板（GM 配置，服务端存储）+ per-user 覆盖（浏览器 localStorage）。客户端优先读本地覆盖，无则从服务端拉取模板。GM 修改模板时的同步策略待定（是否通知用户"布局已更新，是否采用"）。
+
+**当前阶段不需要改动**——保持全局 layout 即可。per-user 覆盖在用户数量增加、屏幕尺寸差异成为实际问题时再实现。
+
+### 12.7 Layout 数据迁移
 
 现有 `{x, y}` 格式的 LayoutConfig 需要一次性迁移到 `{anchor, offsetX, offsetY}`。迁移时需要知道当时的视口尺寸才能正确推断锚点。
 
 **建议方案**：迁移在客户端首次加载时执行（此时有真实视口尺寸），迁移完成后标记版本号，不再重复执行。
+
+### 12.8 已移除插件的 Layout 残留条目
+
+当插件被卸载或不再注册某个 Region 时，`LayoutConfig` 中仍保留该 Region 的 `LayoutEntry`。`RegionRenderer` 不会渲染无主条目，但残留数据会持续累积。此外若新插件复用旧 ID，会意外继承旧布局。
+
+**可选方案**：
+
+- 懒清理：渲染时检测无主条目并删除
+- 注册对账：插件系统启动完成后，对比 registry 和 LayoutConfig，移除无主条目
+
+当前阶段不阻塞，待插件动态加载/卸载机制实现时一并解决。
+
+### 12.9 Portal 管理：Region-scoped Portal Container
+
+插件内部使用 Radix 等组件库时，DropdownMenu/Popover/Tooltip 等组件会通过 React Portal 将 DOM 节点"传送"到容器外部。如不加管理，这些节点脱离框架控制（z-index 失控、Region 卸载后残留）。
+
+**方案**：框架为每个 Region 维护专属 portal 容器，SDK 暴露 `getPortalContainer()` 方法。
+
+**DOM 结构**：
+
+```
+<div id="app">
+  <div class="region-layer">          ← Region 面板在这里
+    region: fear-tracker  (z: 1001)
+    region: spell-list    (z: 1002)
+  </div>
+  <div class="portal-layer">          ← Portal 内容在这里
+    portal: fear-tracker  (z: 1999)    ← layer 天花板
+    portal: spell-list    (z: 1999)
+  </div>
+</div>
+```
+
+**z-index 分层策略**：portal 容器的 z-index 设为所在 layer 的天花板（而非面板自身的 z-index），保证同 layer 内浮动 UI 不被其他面板遮挡，同时跨 layer 层级关系正确：
+
+```
+z-index 分布：
+  2999  ── overlay portal 内容
+  2000  ── overlay region 面板
+  1999  ── standard portal 内容（所有 standard 面板的下拉菜单）
+  1000  ── standard region 面板
+   999  ── background portal 内容
+     0  ── background region 面板
+```
+
+**SDK API**：
+
+```ts
+interface IRegionSDK {
+  ui: {
+    // ...
+    getPortalContainer(): HTMLElement
+  }
+}
+```
+
+**框架自动行为**：Region 创建时创建对应 portal 容器；Region 卸载时移除 portal 容器（内部浮动 UI 自动清理）；Region z-order/layer 变化时同步更新 portal 容器 z-index。
+
+**防逃逸措施（约定优于强制）**：
+
+- SDK 导出 `<RegionPortal>` 封装组件，自动获取正确容器
+- 插件开发文档要求使用 SDK portal
+- ESLint 规则检测 `createPortal(xxx, document.body)` 并警告
+- 可选：开发模式 MutationObserver 监控 `document.body` 直接子节点新增
+
+**限制**：浏览器共享 JS 执行环境下无法物理阻止插件直接操作 `document.body`。这是所有非 iframe 插件系统的本质约束，通过让正确路径比错误路径更方便来缓解。
+
+### 12.10 Viewport Clamping：渲染时视口钳制
+
+窗口缩小或插件调用 `sdk.ui.resize()` 放大后，面板可能溢出视口。`top-left` 锚点 + 大偏移量最危险——窗口缩小时锚点不动但面板跑出右边界。
+
+**方案**：渲染时 clamp，不修改 LayoutEntry 持久化数据。窗口恢复后面板回到原位。
+
+```ts
+function clampToViewport(pos, size, viewport) {
+  return {
+    x: Math.max(0, Math.min(pos.x, viewport.w - size.w)),
+    y: Math.max(0, Math.min(pos.y, viewport.h - size.h)),
+  }
+}
+```
+
+面板尺寸超过视口时 clamp width/height 到视口尺寸（不影响存储的 defaultSize）。Edit mode 可提供"重置面板位置"操作作为极端情况的逃生口。
+
+如采用 react-rnd（见 9.3 节），其 `bounds="window"` 可阻止拖出视口，但窗口缩小和 `sdk.ui.resize()` 引起的溢出仍需自建 clamp 逻辑。
+
+### 12.11 插件激活错误隔离
+
+当前 `PanelRenderer` 已通过 `PanelErrorBoundary` 包裹每个插件组件（`PanelRenderer.tsx:77`）。`RegionRenderer` 延续此实践——每个 Region 外层包 Error Boundary，单个插件 crash 不影响其他面板。
+
+### 12.12 HMR 重复注册
+
+当前 `UIRegistry.registerComponent` 对重复 ID 直接 `throw Error`（`registry.ts:14`）。开发时 Vite HMR 重新执行 `onActivate` 会触发此错误。`registerRegion` 应改为 warn + 覆盖（替换旧定义），保障开发体验。生产环境同样 warn 以排查 ID 冲突。
+
+### 12.13 instanceProps 序列化
+
+当前 `LayoutEntry.instanceProps` 支持函数形式（`InstancePropsOrFactory`），用于根据 session 状态动态生成 props。函数无法 JSON 序列化，导致布局持久化时丢失。生产代码中未使用函数形式（仅 POC 中使用）。
+
+**建议**：Region 模型的 `LayoutEntry.instanceProps` 只支持 `Record<string, unknown>`（纯可序列化数据）。需要动态 props 的场景由插件组件内部通过 `sdk.data` 订阅状态实现。
+
+### 12.14 无障碍（Accessibility）
+
+框架在 Region 容器 div 上添加 `role="region"` + `aria-label`，让屏幕阅读器能识别面板边界。其他无障碍能力（焦点管理、键盘导航）由插件自行处理，优先级低，后续按需补充。
 
 ---
 
