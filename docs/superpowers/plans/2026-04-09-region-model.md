@@ -99,6 +99,14 @@ export interface RegionLayoutEntry {
 
 /** Layout config: maps instance keys to layout entries */
 export type RegionLayoutConfig = Record<string, RegionLayoutEntry>
+
+/** On-demand instance descriptor (ephemeral, stored in layoutStore, not persisted) */
+export interface OnDemandInstance {
+  regionId: string
+  instanceKey: string
+  instanceProps: Record<string, unknown>
+  zOrder: number
+}
 ```
 
 - [ ] **Step 2: Add `RegionDef` to `registrationTypes.ts`**
@@ -1396,7 +1404,7 @@ layoutActions: {
   openPanel(
     componentId: string,
     instanceProps?: Record<string, unknown>,
-    position?: unknown, // Accept both legacy {x,y} and new {anchor} formats
+    position?: { anchor: AnchorPoint; offsetX?: number; offsetY?: number },
   ): string
   closePanel(instanceKey: string): void
 } | null
@@ -1898,7 +1906,7 @@ git commit -m "feat(ui-system): implement RegionRenderer with safety layers and 
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { OnDemandHost } from '../OnDemandHost'
-import type { OnDemandInstance } from '../OnDemandHost'
+import type { OnDemandInstance } from '../regionTypes'
 import { UIRegistry } from '../registry'
 import type { RegionLayoutConfig, IRegionSDK, Viewport } from '../types'
 
@@ -2069,13 +2077,9 @@ import { RegionErrorBoundary } from './PanelErrorBoundary'
 import { resolvePosition, clampToViewport, layerBaseZ } from './layoutEngine'
 import type { UIRegistry } from './registry'
 import type { RegionLayoutConfig, IRegionSDK, Viewport } from './types'
+import type { OnDemandInstance } from './regionTypes'
 
-export interface OnDemandInstance {
-  regionId: string
-  instanceKey: string
-  instanceProps: Record<string, unknown>
-  zOrder: number
-}
+export type { OnDemandInstance } from './regionTypes'
 
 interface Props {
   registry: UIRegistry
@@ -2640,8 +2644,8 @@ In `src/stores/layoutStore.ts`, update the import and types:
 // src/stores/layoutStore.ts
 import { createStore } from 'zustand/vanilla'
 import type { RegionLayoutConfig, RegionLayoutEntry } from '../ui-system/regionTypes'
-import { migrateLayoutConfig, isLegacyEntry } from '../ui-system/layoutMigration'
-import type { OnDemandInstance } from '../ui-system/OnDemandHost'
+import { migrateLayoutConfig } from '../ui-system/layoutMigration'
+import type { OnDemandInstance } from '../ui-system/regionTypes'
 ```
 
 Update `RoomLayoutConfig`:
@@ -2687,16 +2691,12 @@ export interface LayoutStoreState {
 ```ts
 loadLayout: (config) => {
   const isTactical = get().isTactical
-  // Auto-migrate legacy {x, y} entries if detected
+  // Always run migration — migrateLayoutConfig is idempotent (passes through new-format entries)
   const viewport = typeof window !== 'undefined'
     ? { width: window.innerWidth, height: window.innerHeight }
     : { width: 1920, height: 1080 }
-  const narrative = needsMigration(config.narrative)
-    ? migrateLayoutConfig(config.narrative as Record<string, unknown>, viewport)
-    : config.narrative
-  const tactical = needsMigration(config.tactical)
-    ? migrateLayoutConfig(config.tactical as Record<string, unknown>, viewport)
-    : config.tactical
+  const narrative = migrateLayoutConfig(config.narrative as Record<string, unknown>, viewport)
+  const tactical = migrateLayoutConfig(config.tactical as Record<string, unknown>, viewport)
 
   set({
     narrative,
@@ -2704,15 +2704,6 @@ loadLayout: (config) => {
     activeLayout: isTactical ? tactical : narrative,
   })
 },
-```
-
-Add helper at module level:
-
-```ts
-function needsMigration(config: RegionLayoutConfig): boolean {
-  const firstEntry = Object.values(config)[0]
-  return firstEntry ? isLegacyEntry(firstEntry) : false
-}
 ```
 
 - [ ] **Step 3: Add on-demand methods**
@@ -2866,13 +2857,9 @@ git commit -m "refactor(ui-system): update useLayoutSync imports for RegionLayou
 
 ## Phase 8: App Integration + Plugin Migration
 
-### Task 15: PluginSDK registerRegion delegation (already done in Task 5)
+### Task 15: App.tsx integration — swap PanelRenderer to RegionRenderer
 
-> This was already completed in Task 5. Skip if already done.
-
----
-
-### Task 16: App.tsx integration — swap PanelRenderer to RegionRenderer
+> **⚠️ 需要单独计划：** 当前 App.tsx 有 ~800 行，`layoutActions` 目前为 `null`，集成涉及大量上下文依赖（dataReader, workflowRunner, awarenessManager, store subscriptions 等）。执行到此 Task 时，必须先根据 Phase 1-7 的实际实现结果，编写一份独立的 App.tsx 集成子计划，再执行。下面的伪代码仅作参考方向，不可直接复制。
 
 **Files:**
 
@@ -3050,7 +3037,7 @@ git commit -m "feat(ui-system): wire RegionRenderer + OnDemandHost into App.tsx,
 
 ---
 
-### Task 17: Migrate plugins to registerRegion
+### Task 16: Migrate plugins to registerRegion
 
 **Files:**
 
@@ -3131,7 +3118,7 @@ git commit -m "refactor(plugins): migrate core-ui and daggerheart-core to regist
 
 ---
 
-### Task 18: Update sandbox PatternUISystem
+### Task 17: Update sandbox PatternUISystem
 
 **Files:**
 
@@ -3222,7 +3209,7 @@ git commit -m "refactor(sandbox): update PatternUISystem for Region Model"
 
 ---
 
-### Task 19: Update existing test fixtures
+### Task 18: Update existing test fixtures
 
 **Files:**
 
@@ -3292,6 +3279,152 @@ git commit -m "test: update production-wiring fixtures for anchor-based layout"
 
 ---
 
+### Task 19: E2E tests for Region Model
+
+**Files:**
+
+- Create: `e2e/region-model.spec.ts`
+
+> **前置条件：** Task 15 (App.tsx 集成) 完成后才可执行。需要 preview 环境运行。
+
+- [ ] **Step 1: Region 渲染位置正确**
+
+验证 persistent region 在正确的锚点位置渲染：
+
+```ts
+// e2e/region-model.spec.ts
+import { test, expect } from '@playwright/test'
+
+test.describe('Region Model', () => {
+  test.beforeEach(async ({ page }) => {
+    // Navigate to room with default layout
+    await page.goto('/room/test-room')
+    await page.waitForSelector('[data-region]')
+  })
+
+  test('persistent region renders at anchor position', async ({ page }) => {
+    const region = page.locator('[data-region="core-ui.session-info"]')
+    await expect(region).toBeVisible()
+    // Should be in top-right area
+    const box = await region.boundingBox()
+    expect(box).toBeTruthy()
+    const viewport = page.viewportSize()!
+    expect(box!.x + box!.width).toBeGreaterThan(viewport.width * 0.5)
+    expect(box!.y).toBeLessThan(viewport.height * 0.3)
+  })
+
+  test('hidden region (visible:false) is not rendered', async ({ page }) => {
+    // Trigger a region to be hidden via SDK
+    // (depends on plugin providing a hide action)
+    // Verify data-region element does not exist
+  })
+})
+```
+
+- [ ] **Step 2: Edit-mode 拖拽改变位置**
+
+```ts
+test('edit-mode drag changes region position and persists anchor', async ({ page }) => {
+  // Enter edit mode
+  await page.keyboard.press('Control+e')
+  await page.waitForSelector('[data-drag-handle]')
+
+  const handle = page.locator('[data-drag-handle]').first()
+  const before = await handle.boundingBox()
+  expect(before).toBeTruthy()
+
+  // Drag 100px to the right
+  await handle.hover()
+  await page.mouse.down()
+  await page.mouse.move(before!.x + 100, before!.y, { steps: 5 })
+  await page.mouse.up()
+
+  // Position should have changed
+  const after = await handle.boundingBox()
+  expect(after!.x).toBeGreaterThan(before!.x + 50)
+
+  // Exit edit mode, re-enter: position should be preserved
+  await page.keyboard.press('Control+e')
+  await page.keyboard.press('Control+e')
+  const verify = await page.locator('[data-drag-handle]').first().boundingBox()
+  expect(verify!.x).toBeCloseTo(after!.x, -1)
+})
+```
+
+- [ ] **Step 3: 布局迁移保留位置**
+
+```ts
+test('legacy {x,y} layout is migrated on load without visual regression', async ({ page }) => {
+  // Load room with legacy layout format via API fixture
+  // Verify regions render (migration happened silently)
+  const regions = page.locator('[data-region]')
+  await expect(regions.first()).toBeVisible()
+
+  // Verify no console errors related to layout
+  const errors: string[] = []
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') errors.push(msg.text())
+  })
+  await page.waitForTimeout(1000)
+  expect(errors.filter((e) => e.includes('layout') || e.includes('anchor'))).toHaveLength(0)
+})
+```
+
+- [ ] **Step 4: On-demand panel 打开/关闭生命周期**
+
+```ts
+test('on-demand panel opens, renders, and closes', async ({ page }) => {
+  // This test depends on a plugin providing an on-demand panel trigger
+  // Example: click a button that calls sdk.ui.openPanel('some:detail', { id: '...' })
+  // Verify the on-demand panel appears with data-instance attribute
+  // Click close or call closePanel
+  // Verify the panel is removed from DOM
+})
+```
+
+- [ ] **Step 5: Edit-mode resize 改变尺寸**
+
+```ts
+test('edit-mode resize changes region dimensions', async ({ page }) => {
+  await page.keyboard.press('Control+e')
+  await page.waitForSelector('[data-resize-handle]')
+
+  const resizeHandle = page.locator('[data-resize-handle]').first()
+  const region = page.locator('[data-region]').first()
+  const beforeBox = await region.boundingBox()
+
+  // Drag resize handle
+  const handleBox = await resizeHandle.boundingBox()
+  await page.mouse.move(handleBox!.x + 6, handleBox!.y + 6)
+  await page.mouse.down()
+  await page.mouse.move(handleBox!.x + 56, handleBox!.y + 56, { steps: 5 })
+  await page.mouse.up()
+
+  const afterBox = await region.boundingBox()
+  expect(afterBox!.width).toBeGreaterThan(beforeBox!.width + 30)
+  expect(afterBox!.height).toBeGreaterThan(beforeBox!.height + 30)
+})
+```
+
+- [ ] **Step 6: ErrorBoundary 隔离崩溃**
+
+```ts
+test('crashed region shows error without affecting siblings', async ({ page }) => {
+  // Inject a region that throws (via test fixture plugin)
+  // Verify the crashed region shows error message
+  // Verify sibling regions still render and are interactive
+})
+```
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add e2e/region-model.spec.ts
+git commit -m "test(e2e): add Region Model E2E tests for rendering, drag, resize, migration, on-demand"
+```
+
+---
+
 ## Self-Review Checklist
 
 After completing all tasks, verify against the spec:
@@ -3310,7 +3443,7 @@ After completing all tasks, verify against the spec:
 | §8.3 OnDemandHost                                     | Task 10                           | ✅              |
 | §9 Edit-mode drag/resize                              | Tasks 11, 12                      | ✅              |
 | §9.3 Self-built Pointer Events (no react-rnd)         | Tasks 11, 12                      | ✅              |
-| §10 Migration                                         | Tasks 3, 13, 17                   | ✅              |
+| §10 Migration                                         | Tasks 3, 13, 16                   | ✅              |
 | §12.5 z-order by lifecycle                            | Tasks 9, 10, 13                   | ✅              |
 | §12.9 Portal management                               | Task 7                            | ✅              |
 | §12.10 Viewport clamping                              | Tasks 2, 9                        | ✅              |
@@ -3319,8 +3452,9 @@ After completing all tasks, verify against the spec:
 | §12.13 instanceProps serialization                    | Task 1 (type), Task 3 (migration) | ✅              |
 | §12.14 Accessibility                                  | Task 9 (role, aria-label)         | ✅              |
 | §13.1 Safety layers                                   | Task 9                            | ✅              |
-| §13.2 DOM structure constraints                       | Task 9, 16                        | ✅              |
+| §13.2 DOM structure constraints                       | Task 9, 15                        | ✅              |
 | §13.4 SDK factory extension                           | Task 8                            | ✅              |
 | §13.5 PluginSDK delegation                            | Task 5                            | ✅              |
 | §13.6 multiSurfaces                                   | Task 5                            | ✅              |
 | §13.7 Circular import (sdk: unknown)                  | Task 1                            | ✅              |
+| E2E: 渲染/拖拽/迁移/on-demand/resize/ErrorBoundary    | Task 19                           | ✅              |
