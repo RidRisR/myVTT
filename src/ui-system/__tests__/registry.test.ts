@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated -- Tests intentionally exercise deprecated registerComponent backward-compat path */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { UIRegistry } from '../registry'
 import type { ComponentDef, LayerDef, RegionDef } from '../types'

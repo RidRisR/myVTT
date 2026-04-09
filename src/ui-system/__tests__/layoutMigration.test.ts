@@ -2,7 +2,6 @@
 import { describe, it, expect } from 'vitest'
 import { isLegacyEntry, migrateLayoutEntry, migrateLayoutConfig } from '../layoutMigration'
 import { resolvePosition } from '../layoutEngine'
-import type { RegionLayoutEntry } from '../regionTypes'
 
 const VP = { width: 1920, height: 1080 }
 
