@@ -13,18 +13,27 @@ describe('layout sync logic', () => {
   it('layout changes are debounced (no immediate save)', () => {
     const store = createLayoutStore()
     store.getState().loadLayout({
-      narrative: { 'a#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 } },
+      narrative: {
+        'a#1': {
+          anchor: 'top-left' as const,
+          offsetX: 0,
+          offsetY: 0,
+          width: 100,
+          height: 100,
+          zOrder: 0,
+        },
+      },
       tactical: {},
     })
 
     const states: string[] = []
     const unsub = store.subscribe((state) => {
-      states.push(JSON.stringify({ x: state.narrative['a#1']?.x }))
+      states.push(JSON.stringify({ offsetX: state.narrative['a#1']?.offsetX }))
     })
 
-    store.getState().updateEntry('a#1', { x: 10 })
-    store.getState().updateEntry('a#1', { x: 20 })
-    store.getState().updateEntry('a#1', { x: 30 })
+    store.getState().updateEntry('a#1', { offsetX: 10 })
+    store.getState().updateEntry('a#1', { offsetX: 20 })
+    store.getState().updateEntry('a#1', { offsetX: 30 })
 
     // All 3 updates recorded
     expect(states).toHaveLength(3)
@@ -35,14 +44,23 @@ describe('layout sync logic', () => {
   it('edit mode blocks remote layout updates', () => {
     const store = createLayoutStore()
     store.getState().loadLayout({
-      narrative: { 'a#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 } },
+      narrative: {
+        'a#1': {
+          anchor: 'top-left' as const,
+          offsetX: 0,
+          offsetY: 0,
+          width: 100,
+          height: 100,
+          zOrder: 0,
+        },
+      },
       tactical: {},
     })
 
     // Enter edit mode and make local change
     store.getState().setLayoutMode('edit')
-    store.getState().updateEntry('a#1', { x: 50 })
-    expect(store.getState().narrative['a#1']!.x).toBe(50)
+    store.getState().updateEntry('a#1', { offsetX: 50 })
+    expect(store.getState().narrative['a#1']!.offsetX).toBe(50)
 
     // layoutMode is 'edit' — this documents that consumers should
     // check layoutMode before calling loadLayout for remote updates
@@ -52,16 +70,25 @@ describe('layout sync logic', () => {
   it('edit → play transition preserves final layout state', () => {
     const store = createLayoutStore()
     store.getState().loadLayout({
-      narrative: { 'a#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 } },
+      narrative: {
+        'a#1': {
+          anchor: 'top-left' as const,
+          offsetX: 0,
+          offsetY: 0,
+          width: 100,
+          height: 100,
+          zOrder: 0,
+        },
+      },
       tactical: {},
     })
 
     store.getState().setLayoutMode('edit')
-    store.getState().updateEntry('a#1', { x: 99, y: 88 })
+    store.getState().updateEntry('a#1', { offsetX: 99, offsetY: 88 })
     store.getState().setLayoutMode('play')
 
-    expect(store.getState().narrative['a#1']!.x).toBe(99)
-    expect(store.getState().narrative['a#1']!.y).toBe(88)
+    expect(store.getState().narrative['a#1']!.offsetX).toBe(99)
+    expect(store.getState().narrative['a#1']!.offsetY).toBe(88)
     expect(store.getState().layoutMode).toBe('play')
   })
 })

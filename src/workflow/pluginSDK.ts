@@ -63,6 +63,9 @@ export class PluginSDK implements IPluginSDK {
     this.triggerRegistry = triggerRegistry
     this.ui = uiRegistry
       ? {
+          registerRegion: (def) => {
+            uiRegistry.registerRegion(def)
+          },
           registerComponent: (def) => {
             uiRegistry.registerComponent(def)
           },
@@ -83,6 +86,7 @@ export class PluginSDK implements IPluginSDK {
         }
       : {
           // no-op: existing tests do not pass a registry
+          registerRegion: () => {},
           registerComponent: () => {},
           registerLayer: () => {},
           registerRenderer: () => {},

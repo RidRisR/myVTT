@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { UIRegistry } from '../registry'
-import type { ComponentDef, LayerDef } from '../types'
+import type { ComponentDef, LayerDef, RegionDef } from '../types'
 import type { InputHandlerDef } from '../inputHandlerTypes'
 
 const mockComponent = () => null
@@ -35,11 +35,12 @@ describe('UIRegistry', () => {
     expect(registry.getComponent('unknown')).toBeUndefined()
   })
 
-  it('throws on duplicate component id', () => {
+  it('HMR: duplicate registerComponent warns and overwrites', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     registry.registerComponent(componentDef)
-    expect(() => {
-      registry.registerComponent(componentDef)
-    }).toThrow('test.hello')
+    registry.registerComponent(componentDef)
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('test.hello'))
+    spy.mockRestore()
   })
 
   it('stores and retrieves a registered layer', () => {
@@ -118,5 +119,103 @@ describe('UIRegistry — input handlers', () => {
     expect(() => {
       registry.registerInputHandler('test:modifier', def)
     }).toThrow('test:modifier')
+  })
+})
+
+// ── Region methods ──
+
+function makeDef(overrides: Partial<RegionDef> = {}): RegionDef {
+  return {
+    id: 'test:region',
+    component: (() => null) as unknown as RegionDef['component'],
+    lifecycle: 'persistent',
+    defaultSize: { width: 200, height: 100 },
+    layer: 'standard',
+    ...overrides,
+  }
+}
+
+describe('UIRegistry region methods', () => {
+  let reg: UIRegistry
+
+  beforeEach(() => {
+    reg = new UIRegistry()
+  })
+
+  it('registerRegion + getRegion round-trip', () => {
+    const def = makeDef({ id: 'a:panel' })
+    reg.registerRegion(def)
+    expect(reg.getRegion('a:panel')).toBe(def)
+  })
+
+  it('getRegion returns undefined for unknown id', () => {
+    expect(reg.getRegion('unknown')).toBeUndefined()
+  })
+
+  it('listRegions returns all registered regions', () => {
+    reg.registerRegion(makeDef({ id: 'a:one' }))
+    reg.registerRegion(makeDef({ id: 'a:two' }))
+    expect(reg.listRegions()).toHaveLength(2)
+  })
+
+  it('listRegionsByLifecycle filters correctly', () => {
+    reg.registerRegion(makeDef({ id: 'a:persist', lifecycle: 'persistent' }))
+    reg.registerRegion(makeDef({ id: 'a:demand', lifecycle: 'on-demand' }))
+    expect(reg.listRegionsByLifecycle('persistent')).toHaveLength(1)
+    expect(reg.listRegionsByLifecycle('persistent')[0].id).toBe('a:persist')
+    expect(reg.listRegionsByLifecycle('on-demand')).toHaveLength(1)
+  })
+
+  it('HMR: duplicate registerRegion warns and overwrites', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const def1 = makeDef({ id: 'a:panel' })
+    const def2 = makeDef({ id: 'a:panel', layer: 'overlay' })
+    reg.registerRegion(def1)
+    reg.registerRegion(def2)
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('a:panel'))
+    expect(reg.getRegion('a:panel')?.layer).toBe('overlay')
+    spy.mockRestore()
+  })
+
+  it('registerComponent backward compat: registers as region', () => {
+    reg.registerComponent({
+      id: 'old:panel',
+      component: (() => null) as unknown as React.ComponentType<{ sdk: unknown }>,
+      type: 'panel',
+      defaultSize: { width: 200, height: 100 },
+      defaultPlacement: { anchor: 'top-right', offsetX: 10, offsetY: 20 },
+    })
+    const region = reg.getRegion('old:panel')
+    expect(region).toBeDefined()
+    expect(region!.lifecycle).toBe('persistent')
+    expect(region!.layer).toBe('standard')
+    expect(region!.defaultPlacement).toEqual({ anchor: 'top-right', offsetX: 10, offsetY: 20 })
+  })
+
+  it('registerComponent maps type correctly', () => {
+    const register = (type: 'background' | 'panel' | 'overlay') => {
+      reg.registerComponent({
+        id: `old:${type}`,
+        component: (() => null) as unknown as React.ComponentType<{ sdk: unknown }>,
+        type,
+        defaultSize: { width: 100, height: 100 },
+      })
+    }
+    register('background')
+    register('panel')
+    register('overlay')
+    expect(reg.getRegion('old:background')!.layer).toBe('background')
+    expect(reg.getRegion('old:panel')!.layer).toBe('standard')
+    expect(reg.getRegion('old:overlay')!.layer).toBe('overlay')
+  })
+
+  it('getComponent still works for backward compat', () => {
+    reg.registerComponent({
+      id: 'old:panel',
+      component: (() => null) as unknown as React.ComponentType<{ sdk: unknown }>,
+      type: 'panel',
+      defaultSize: { width: 200, height: 100 },
+    })
+    expect(reg.getComponent('old:panel')).toBeDefined()
   })
 })

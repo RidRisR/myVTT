@@ -1,27 +1,37 @@
 // src/stores/layoutStore.ts
 import { createStore } from 'zustand/vanilla'
-import type { LayoutConfig, LayoutEntry } from '../ui-system/types'
+import type { RegionLayoutConfig, RegionLayoutEntry, OnDemandInstance } from '../ui-system/regionTypes'
+import { migrateLayoutConfig } from '../ui-system/layoutMigration'
 
 export interface RoomLayoutConfig {
-  narrative: LayoutConfig
-  tactical: LayoutConfig
+  narrative: RegionLayoutConfig
+  tactical: RegionLayoutConfig
 }
 
 export interface LayoutStoreState {
-  narrative: LayoutConfig
-  tactical: LayoutConfig
+  narrative: RegionLayoutConfig
+  tactical: RegionLayoutConfig
   isTactical: boolean
   layoutMode: 'play' | 'edit'
   /** Derived: points to narrative or tactical based on isTactical */
-  activeLayout: LayoutConfig
+  activeLayout: RegionLayoutConfig
   isEditing: boolean
 
+  // On-demand instance state (ephemeral, not persisted)
+  onDemandInstances: OnDemandInstance[]
+  onDemandZCounter: number
+
   loadLayout(config: RoomLayoutConfig): void
-  updateEntry(instanceKey: string, partial: Partial<LayoutEntry>): void
-  addEntry(instanceKey: string, entry: LayoutEntry): void
+  updateEntry(instanceKey: string, partial: Partial<RegionLayoutEntry>): void
+  addEntry(instanceKey: string, entry: RegionLayoutEntry): void
   removeEntry(instanceKey: string): void
   setLayoutMode(mode: 'play' | 'edit'): void
   setIsTactical(tactical: boolean): void
+
+  // On-demand methods
+  openOnDemand(regionId: string, instanceKey: string, instanceProps: Record<string, unknown>): void
+  closeOnDemand(instanceKey: string): void
+  bringToFront(instanceKey: string): void
 }
 
 export function createLayoutStore() {
@@ -32,13 +42,23 @@ export function createLayoutStore() {
     layoutMode: 'play' as const,
     activeLayout: {},
     isEditing: false,
+    onDemandInstances: [],
+    onDemandZCounter: 0,
 
     loadLayout: (config) => {
       const isTactical = get().isTactical
+      // Always run migration — migrateLayoutConfig is idempotent (passes through new-format entries)
+      const viewport =
+        typeof window !== 'undefined'
+          ? { width: window.innerWidth, height: window.innerHeight }
+          : { width: 1920, height: 1080 }
+      const narrative = migrateLayoutConfig(config.narrative as Record<string, unknown>, viewport)
+      const tactical = migrateLayoutConfig(config.tactical as Record<string, unknown>, viewport)
+
       set({
-        narrative: config.narrative,
-        tactical: config.tactical,
-        activeLayout: isTactical ? config.tactical : config.narrative,
+        narrative,
+        tactical,
+        activeLayout: isTactical ? tactical : narrative,
       })
     },
 
@@ -88,6 +108,33 @@ export function createLayoutStore() {
       set({
         isTactical: tactical,
         activeLayout: tactical ? tac : narrative,
+      })
+    },
+
+    openOnDemand: (regionId, instanceKey, instanceProps) => {
+      const counter = get().onDemandZCounter + 1
+      set({
+        onDemandInstances: [
+          ...get().onDemandInstances,
+          { regionId, instanceKey, instanceProps, zOrder: counter },
+        ],
+        onDemandZCounter: counter,
+      })
+    },
+
+    closeOnDemand: (instanceKey) => {
+      set({
+        onDemandInstances: get().onDemandInstances.filter((i) => i.instanceKey !== instanceKey),
+      })
+    },
+
+    bringToFront: (instanceKey) => {
+      const counter = get().onDemandZCounter + 1
+      set({
+        onDemandInstances: get().onDemandInstances.map((i) =>
+          i.instanceKey === instanceKey ? { ...i, zOrder: counter } : i,
+        ),
+        onDemandZCounter: counter,
       })
     },
   }))

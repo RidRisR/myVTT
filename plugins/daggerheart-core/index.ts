@@ -87,13 +87,14 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
     })
 
     // Register Fear panel
-    sdk.ui.registerComponent({
+    sdk.ui.registerRegion({
       id: 'daggerheart-core:fear-panel',
       component: FearPanel as React.ComponentType<{ sdk: unknown }>,
-      type: 'panel',
+      lifecycle: 'persistent',
       defaultSize: { width: 160, height: 120 },
       minSize: { width: 120, height: 80 },
       defaultPlacement: { anchor: 'top-right', offsetX: -16, offsetY: 60 },
+      layer: 'standard',
     })
 
     // Define workflow with 5 steps: modifier → roll → judge → emit → resolve

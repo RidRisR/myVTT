@@ -33,3 +33,6 @@ export class PanelErrorBoundary extends Component<Props, State> {
     return this.props.children
   }
 }
+
+/** Alias for Region Model — same component, clearer name */
+export { PanelErrorBoundary as RegionErrorBoundary }
