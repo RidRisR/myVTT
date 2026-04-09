@@ -89,18 +89,27 @@ Socket.io events ───────┘ (real-time updates)
 
 管理 narrative/tactical 双模式面板布局，通过 `layout:updated` Socket 事件与服务端同步。使用 `zustand/vanilla` 的 `createStore` 创建（非 React hook 版本），提供 singleton `getLayoutStore()` 访问。
 
+布局使用 **anchor-based 定位**（`RegionLayoutConfig`）：每个 entry 由 `AnchorPoint + offset` 确定位置，支持响应式窗口适配。Legacy `{x, y}` 格式在 `loadLayout` 时自动迁移。
+
 **状态**：
 
-- `narrative: LayoutConfig` — narrative 模式面板布局配置
-- `tactical: LayoutConfig` — tactical 模式面板布局配置
+- `narrative: RegionLayoutConfig` — narrative 模式区域布局配置
+- `tactical: RegionLayoutConfig` — tactical 模式区域布局配置
 - `isTactical: boolean` — 当前是否处于战术模式
 - `layoutMode: 'play' | 'edit'` — 布局编辑模式
-- `activeLayout: LayoutConfig` — 派生值，根据 isTactical 指向 narrative 或 tactical
+- `activeLayout: RegionLayoutConfig` — 派生值，根据 isTactical 指向 narrative 或 tactical
 - `isEditing: boolean` — 派生值，layoutMode === 'edit'
+- `onDemandInstances: OnDemandInstance[]` — 临时区域实例（不持久化）
+- `onDemandZCounter: number` — on-demand 实例 z-order 计数器
 
-**Actions**：`loadLayout(config)`, `updateEntry(instanceKey, partial)`, `addEntry(instanceKey, entry)`, `removeEntry(instanceKey)`, `setLayoutMode(mode)`, `setIsTactical(tactical)`
+**Persistent Layout Actions**：`loadLayout(config)`, `updateEntry(instanceKey, partial)`, `addEntry(instanceKey, entry)`, `removeEntry(instanceKey)`, `setLayoutMode(mode)`, `setIsTactical(tactical)`
 
-**特殊机制**：编辑模式下屏蔽远端 `layout:updated` 事件，本地修改为权威。
+**On-demand Actions**：`openOnDemand(regionId, instanceKey, instanceProps)`, `closeOnDemand(instanceKey)`, `bringToFront(instanceKey)`
+
+**特殊机制**：
+
+- 编辑模式下屏蔽远端 `layout:updated` 事件，本地修改为权威
+- `loadLayout` 自动调用 `migrateLayoutConfig` 将 legacy `{x, y}` 格式转换为 anchor-based 格式
 
 ## 初始化流程
 

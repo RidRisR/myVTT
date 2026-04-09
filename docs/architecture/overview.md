@@ -49,7 +49,7 @@ src/
 │   ├── identityStore.ts   # 座位/身份
 │   ├── sessionStore.ts    # 选中状态 + pending interactions
 │   ├── uiStore.ts         # 客户端 UI 状态
-│   ├── layoutStore.ts     # 面板布局（narrative/tactical 双模式）
+│   ├── layoutStore.ts     # 区域布局（anchor-based，narrative/tactical 双模式 + on-demand）
 │   └── selectors.ts       # 派生数据选择器
 ├── combat/                # 战术模式（详见 tactical-system.md）
 │   ├── KonvaMap.tsx        # react-konva 主画布
@@ -72,6 +72,12 @@ src/
 │   └── SeatPanel.tsx       # 座位面板
 ├── dock/                  # 底部素材栏
 ├── layout/                # 应用布局
+├── ui-system/             # UI 区域系统（Region Model，anchor-based 定位）
+│   ├── RegionRenderer.tsx # persistent 区域渲染 + safety isolation
+│   ├── OnDemandHost.tsx   # 临时 on-demand 区域渲染
+│   ├── layoutEngine.ts    # 纯布局函数（resolvePosition, inferAnchor 等）
+│   ├── regionTypes.ts     # AnchorPoint, RegionLayoutEntry 等类型
+│   └── registry.ts        # UIRegistry（regions, layers, inputHandlers）
 ├── rules/                 # 规则插件框架（详见 rule-plugin-system.md）
 ├── shared/                # 共享工具 + UI 组件
 │   ├── diceUtils.ts        # 骰子引擎
