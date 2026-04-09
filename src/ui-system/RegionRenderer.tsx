@@ -12,11 +12,13 @@ function findEntry(
   regionId: string,
 ): { instanceKey: string; entry: RegionLayoutEntry } | undefined {
   // Direct match (new format: key === regionId)
-  if (layout[regionId]) return { instanceKey: regionId, entry: layout[regionId] }
+  const direct = layout[regionId]
+  if (direct) return { instanceKey: regionId, entry: direct }
   // Legacy match: key starts with regionId + '#'
   for (const key of Object.keys(layout)) {
     if (key.startsWith(regionId + '#')) {
-      return { instanceKey: key, entry: layout[key] }
+      const legacy = layout[key]
+      if (legacy) return { instanceKey: key, entry: legacy }
     }
   }
   return undefined
