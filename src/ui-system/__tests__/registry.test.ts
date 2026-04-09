@@ -162,7 +162,7 @@ describe('UIRegistry region methods', () => {
     reg.registerRegion(makeDef({ id: 'a:persist', lifecycle: 'persistent' }))
     reg.registerRegion(makeDef({ id: 'a:demand', lifecycle: 'on-demand' }))
     expect(reg.listRegionsByLifecycle('persistent')).toHaveLength(1)
-    expect(reg.listRegionsByLifecycle('persistent')[0].id).toBe('a:persist')
+    expect(reg.listRegionsByLifecycle('persistent')[0]!.id).toBe('a:persist')
     expect(reg.listRegionsByLifecycle('on-demand')).toHaveLength(1)
   })
 

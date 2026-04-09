@@ -153,22 +153,22 @@ export default function PatternUISystem() {
 
   const handleDragEnd = useCallback(
     (instanceKey: string, placement: { anchor: AnchorPoint; offsetX: number; offsetY: number }) => {
-      setLayout((prev) => ({
-        ...prev,
-        [instanceKey]: prev[instanceKey]
-          ? { ...prev[instanceKey], ...placement }
-          : prev[instanceKey],
-      }))
+      setLayout((prev) => {
+        const existing = prev[instanceKey]
+        if (!existing) return prev
+        return { ...prev, [instanceKey]: { ...existing, ...placement } }
+      })
     },
     [],
   )
 
   const handleResize = useCallback(
     (instanceKey: string, size: { width: number; height: number }) => {
-      setLayout((prev) => ({
-        ...prev,
-        [instanceKey]: prev[instanceKey] ? { ...prev[instanceKey], ...size } : prev[instanceKey],
-      }))
+      setLayout((prev) => {
+        const existing = prev[instanceKey]
+        if (!existing) return prev
+        return { ...prev, [instanceKey]: { ...existing, ...size } }
+      })
     },
     [],
   )

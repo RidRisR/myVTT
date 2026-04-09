@@ -302,7 +302,7 @@ function RoomSession({ roomId }: { roomId: string }) {
         workflow: { runWorkflow: () => Promise.resolve({} as never) },
         awarenessManager: null,
         layoutActions: {
-          openPanel: (componentId, props, position) => {
+          openPanel: (componentId, props, _position) => {
             const regDef = uiRegistry.getRegion(componentId)
             if (!regDef) return ''
 

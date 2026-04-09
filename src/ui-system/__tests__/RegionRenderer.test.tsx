@@ -1,4 +1,5 @@
 // src/ui-system/__tests__/RegionRenderer.test.tsx
+import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { RegionRenderer } from '../RegionRenderer'
@@ -34,7 +35,7 @@ function TestPanel() {
   return <div data-testid="panel-content">Hello</div>
 }
 
-function CrashPanel(): JSX.Element {
+function CrashPanel(): React.JSX.Element {
   throw new Error('boom')
 }
 

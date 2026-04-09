@@ -135,7 +135,7 @@ describe('layoutStore', () => {
       } as unknown as RegionLayoutConfig,
       tactical: {},
     })
-    const entry = store.getState().narrative['test#1']
+    const entry = store.getState().narrative['test#1']!
     expect(entry.anchor).toBeDefined()
     expect('x' in entry).toBe(false)
   })
@@ -143,7 +143,7 @@ describe('layoutStore', () => {
   it('openOnDemand adds instance with incrementing zOrder', () => {
     store.getState().openOnDemand('test:detail', 'test:detail#a1', { spellId: 'fireball' })
     expect(store.getState().onDemandInstances).toHaveLength(1)
-    expect(store.getState().onDemandInstances[0].zOrder).toBe(1)
+    expect(store.getState().onDemandInstances[0]!.zOrder).toBe(1)
   })
 
   it('closeOnDemand removes instance', () => {

@@ -4,7 +4,6 @@ import { resolvePosition, clampToViewport, layerBaseZ } from './layoutEngine'
 import { RegionEditOverlay } from './RegionEditOverlay'
 import type { UIRegistry } from './registry'
 import type { RegionLayoutConfig, IRegionSDK, Viewport } from './types'
-import type { RegionLayoutEntry } from './regionTypes'
 import type { AnchorPoint } from './regionTypes'
 
 interface Props {

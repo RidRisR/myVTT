@@ -101,8 +101,8 @@ describe('migrateLayoutConfig', () => {
     }
     const result = migrateLayoutConfig(config, VP)
     expect(Object.keys(result)).toEqual(Object.keys(config))
-    expect(result['core-ui.session-info#1'].anchor).toBeDefined()
-    expect(result['daggerheart-core:fear-panel#1'].anchor).toBeDefined()
+    expect(result['core-ui.session-info#1']!.anchor).toBeDefined()
+    expect(result['daggerheart-core:fear-panel#1']!.anchor).toBeDefined()
   })
 
   it('skips already-migrated entries', () => {
