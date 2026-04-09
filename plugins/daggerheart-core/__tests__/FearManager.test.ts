@@ -24,7 +24,6 @@ function mockCtx(
     requestInput: vi.fn(),
     emitEntry: vi.fn(),
     updateComponent: vi.fn(),
-    updateTeamTracker: vi.fn(),
     createEntity: vi.fn().mockResolvedValue('daggerheart-core:fear'),
     deleteEntity: vi.fn(),
     abort: vi.fn(),

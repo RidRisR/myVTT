@@ -139,56 +139,6 @@ describe('Game Log Handlers', () => {
     expect(entry2.payload).toEqual({ text: 'Original' })
   })
 
-  // ── log:entry with tracker effect ──
-
-  it('log:entry with tracker effect: tracker updated, payload.snapshot in ack', async () => {
-    // Create a tracker first
-    const { data: trackerData } = await ctx.api('POST', `/api/rooms/${ctx.roomId}/team-trackers`, {
-      label: 'HP',
-      current: 10,
-      max: 20,
-      color: '#ff0000',
-    })
-    const trackerId = (trackerData as { id: string }).id
-
-    // Listen for broadcast on second client (drain so it doesn't bleed into next test)
-    const broadcastPromise = waitForSocketEvent<GameLogEntry>(secondClient, 'log:new')
-
-    const submission = {
-      id: 'test-tracker-effect-001',
-      type: 'core:tracker-update',
-      origin: { seat: { id: seatId, name: 'GM', color: '#ff6600' } },
-      chainDepth: 0,
-      triggerable: true,
-      visibility: {},
-      baseSeq: 0,
-      payload: { trackerId, delta: 5 },
-      timestamp: Date.now(),
-    }
-
-    const ack = await emitLogEntry(ctx.socket, submission)
-    expect('error' in ack).toBe(false)
-    const entry = ack as GameLogEntry
-
-    // Payload should include snapshot from the effect handler
-    const snapshot = entry.payload.snapshot as Record<string, unknown>
-    expect(snapshot).toBeTruthy()
-    expect(snapshot.id).toBe(trackerId)
-    expect(snapshot.current).toBe(15)
-    expect(snapshot.max).toBe(20)
-
-    // Verify tracker was actually updated in DB
-    const { data: trackerAfter } = await ctx.api('GET', `/api/rooms/${ctx.roomId}/team-trackers`)
-    const trackers = trackerAfter as { id: string; current: number }[]
-    const updatedTracker = trackers.find((t) => t.id === trackerId)
-    expect(updatedTracker!.current).toBe(15)
-
-    // Consume the broadcast so it doesn't bleed into next test
-    const broadcast = await broadcastPromise
-    expect(broadcast.type).toBe('core:tracker-update')
-    expect(broadcast.payload.snapshot).toBeTruthy()
-  })
-
   // ── log:roll-request ──
 
   it('log:roll-request: ack has rolls array (pure RNG, no game_log entry)', async () => {

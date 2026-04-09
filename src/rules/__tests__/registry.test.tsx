@@ -9,7 +9,6 @@ import {
   getFormulaTokens,
   getEntityCard,
   getDataTemplate,
-  getTeamPanel,
 } from '../../log/entityBindings'
 import { initWorkflowSystem, resetWorkflowEngine } from '../../workflow/useWorkflowSDK'
 import { clearRenderers } from '../../log/rendererRegistry'
@@ -156,13 +155,5 @@ describe('entity bindings — room-level lookups', () => {
 
   it('getDataTemplate returns undefined for unknown system', () => {
     expect(getDataTemplate('nonexistent')).toBeUndefined()
-  })
-
-  it('getTeamPanel returns component for daggerheart', () => {
-    expect(getTeamPanel('daggerheart')).not.toBeNull()
-  })
-
-  it('getTeamPanel returns null for generic (no team panel)', () => {
-    expect(getTeamPanel('generic')).toBeNull()
   })
 })

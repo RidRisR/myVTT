@@ -187,23 +187,6 @@ export function createWorkflowContext(
       deps.emitEntry(submission)
     }) as WorkflowContext['updateComponent'],
 
-    updateTeamTracker: (label: string, patch: { current?: number }) => {
-      const submission: LogEntrySubmission = {
-        id: uuidv7(),
-        type: 'core:tracker-update',
-        origin: resolvedOrigin,
-        parentId: causedBy,
-        groupId,
-        chainDepth,
-        triggerable: false,
-        visibility: {},
-        baseSeq: deps.getLogWatermark(),
-        payload: { label, ...patch },
-        timestamp: Date.now(),
-      }
-      deps.emitEntry(submission)
-    },
-
     // ── Entity management ────────────────────────────────────────────────
     createEntity: async (data) => {
       const id = await deps.createEntity(data)

@@ -33,7 +33,6 @@ export type {
   Scene,
   RoomState,
   TacticalInfo,
-  TeamTracker,
   AssetRecord,
   ArchiveRecord,
 } from '../shared/storeTypes'
@@ -42,7 +41,6 @@ import type {
   Scene,
   RoomState,
   TacticalInfo,
-  TeamTracker,
   AssetRecord,
   ArchiveRecord,
 } from '../shared/storeTypes'
@@ -67,7 +65,6 @@ interface WorldState {
   showcaseItems: ShowcaseItem[]
   showcasePinnedItemId: string | null
   handoutAssets: HandoutAsset[]
-  teamTrackers: TeamTracker[]
   assets: AssetMeta[]
   blueprints: Blueprint[]
   tags: TagMeta[]
@@ -180,11 +177,6 @@ interface WorldState {
   updateHandoutAsset: (id: string, updates: Partial<HandoutAsset>) => void
   deleteHandoutAsset: (id: string) => void
 
-  // Team tracker actions
-  addTeamTracker: (label: string) => Promise<void>
-  updateTeamTracker: (id: string, updates: Partial<TeamTracker>) => Promise<void>
-  deleteTeamTracker: (id: string) => Promise<void>
-
   /** @internal Test-only */
   _reset: () => void
 }
@@ -248,7 +240,6 @@ async function loadAll(roomId: string) {
     scenes: bundle.scenes,
     entities,
     sceneEntityMap: bundle.sceneEntityMap,
-    teamTrackers: bundle.teamTrackers,
     assets: bundle.assets.map(normalizeAsset),
     blueprints: bundle.blueprints,
     tags: bundle.tags,
@@ -383,19 +374,6 @@ function registerSocketEvents(
     set((s) => ({ room: { ...s.room, ...state } }))
   })
 
-  // ── Tracker events ──
-  socket.on('tracker:created', (tracker: TeamTracker) => {
-    set((s) => ({ teamTrackers: [...s.teamTrackers, tracker] }))
-  })
-  socket.on('tracker:updated', (tracker: TeamTracker) => {
-    set((s) => ({
-      teamTrackers: s.teamTrackers.map((t) => (t.id === tracker.id ? tracker : t)),
-    }))
-  })
-  socket.on('tracker:deleted', ({ id }: { id: string }) => {
-    set((s) => ({ teamTrackers: s.teamTrackers.filter((t) => t.id !== id) }))
-  })
-
   // ── Showcase events ──
   socket.on('showcase:created', (item: ShowcaseItem) => {
     set((s) => ({ showcaseItems: [...s.showcaseItems, item] }))
@@ -495,12 +473,6 @@ function registerSocketEvents(
         logWatermark: Math.max(s.logWatermark, entry.seq),
       }
 
-      // Snapshot sync: tracker-update
-      if (isLogType(entry, 'core:tracker-update') && entry.payload.snapshot) {
-        const snap = entry.payload.snapshot
-        updates.teamTrackers = s.teamTrackers.map((t) => (t.id === snap.id ? snap : t))
-      }
-
       // Snapshot sync: component-update
       if (isLogType(entry, 'core:component-update')) {
         const { entityId, key, data } = entry.payload
@@ -533,9 +505,6 @@ const WS_EVENTS = [
   'tactical:token:updated',
   'tactical:token:removed',
   'room:state:updated',
-  'tracker:created',
-  'tracker:updated',
-  'tracker:deleted',
   'showcase:created',
   'showcase:updated',
   'showcase:deleted',
@@ -569,7 +538,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   showcaseItems: [],
   showcasePinnedItemId: null,
   handoutAssets: [],
-  teamTrackers: [],
   assets: [],
   blueprints: [],
   tags: [],
@@ -1049,26 +1017,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     return result as unknown as Blueprint
   },
 
-  // ── Team tracker actions ──
-
-  addTeamTracker: async (label) => {
-    const roomId = get()._roomId
-    if (!roomId) return
-    await api.post(`/api/rooms/${roomId}/team-trackers`, { label })
-  },
-
-  updateTeamTracker: async (id, updates) => {
-    const roomId = get()._roomId
-    if (!roomId) return
-    await api.patch(`/api/rooms/${roomId}/team-trackers/${id}`, updates)
-  },
-
-  deleteTeamTracker: async (id) => {
-    const roomId = get()._roomId
-    if (!roomId) return
-    await api.delete(`/api/rooms/${roomId}/team-trackers/${id}`)
-  },
-
   /** @internal Test-only: reset store to initial state (preserves socket/roomId) */
   _reset: () => {
     set({
@@ -1083,7 +1031,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       showcaseItems: [],
       showcasePinnedItemId: null,
       handoutAssets: [],
-      teamTrackers: [],
       assets: [],
       tags: [],
       logEntries: EMPTY_LOG_ENTRIES,

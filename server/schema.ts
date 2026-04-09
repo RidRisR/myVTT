@@ -176,16 +176,6 @@ export function initRoomSchema(db: Database.Database): void {
       PRIMARY KEY (blueprint_id, tag_id)
     );
 
-    -- Team trackers
-    CREATE TABLE IF NOT EXISTS team_trackers (
-      id TEXT PRIMARY KEY,
-      label TEXT NOT NULL DEFAULT '',
-      current INTEGER DEFAULT 0,
-      max INTEGER DEFAULT 0,
-      color TEXT DEFAULT '#3b82f6',
-      sort_order INTEGER DEFAULT 0
-    );
-
     -- Showcase items
     CREATE TABLE IF NOT EXISTS showcase_items (
       id TEXT PRIMARY KEY,

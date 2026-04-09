@@ -11,7 +11,6 @@ import { sceneRoutes } from '../routes/scenes'
 import { entityRoutes } from '../routes/entities'
 import { archiveRoutes } from '../routes/archives'
 import { tacticalRoutes } from '../routes/tactical'
-import { trackerRoutes } from '../routes/trackers'
 import { showcaseRoutes } from '../routes/showcase'
 import { stateRoutes } from '../routes/state'
 import { assetRoutes } from '../routes/assets'
@@ -56,7 +55,6 @@ beforeAll(async () => {
   app.use(entityRoutes(dataDir, io))
   app.use(archiveRoutes(dataDir, io))
   app.use(tacticalRoutes(dataDir, io))
-  app.use(trackerRoutes(dataDir, io))
   app.use(showcaseRoutes(dataDir, io))
   app.use(stateRoutes(dataDir, io))
   app.use(assetRoutes(dataDir, io))
@@ -292,28 +290,6 @@ describe('Full room lifecycle', () => {
       `/api/rooms/${roomId}/archives/${archiveId}/load`,
     )
     expect(loadStatus).toBe(200)
-  })
-
-  // ── Team Trackers ──
-  let trackerId: string
-  it('creates a tracker', async () => {
-    const { status, data } = await api('POST', `/api/rooms/${roomId}/team-trackers`, {
-      label: 'Inspiration',
-      current: 3,
-      max: 5,
-      color: '#ffd700',
-    })
-    expect(status).toBe(201)
-    expect(data.label).toBe('Inspiration')
-    trackerId = data.id as string
-  })
-
-  it('updates a tracker', async () => {
-    const { data } = await api('PATCH', `/api/rooms/${roomId}/team-trackers/${trackerId}`, {
-      current: 4,
-    })
-    expect(data.current).toBe(4)
-    expect(data.max).toBe(5)
   })
 
   // ── Showcase ──

@@ -48,20 +48,6 @@ describe('schema alignment with design doc 43', () => {
     expect(JSON.parse(row.data)).toEqual({ imageUrl: 'bg.png', caption: 'hello' })
   })
 
-  it('team_trackers.current and max are INTEGER (not floats)', () => {
-    db.prepare(
-      "INSERT INTO team_trackers (id, label, current, max) VALUES ('tt-test', 'HP', 5, 10)",
-    ).run()
-    const row = db.prepare("SELECT current, max FROM team_trackers WHERE id = 'tt-test'").get() as {
-      current: number
-      max: number
-    }
-    expect(row.current).toBe(5)
-    expect(row.max).toBe(10)
-    expect(Number.isInteger(row.current)).toBe(true)
-    expect(Number.isInteger(row.max)).toBe(true)
-  })
-
   it('room_state singleton row (id=1) exists after schema init', () => {
     const row = db.prepare('SELECT * FROM room_state WHERE id = 1').get() as Record<string, unknown>
     expect(row).toBeTruthy()

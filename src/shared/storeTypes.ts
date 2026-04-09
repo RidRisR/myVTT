@@ -48,15 +48,6 @@ export interface TacticalInfo {
   tacticalMode: number
 }
 
-export interface TeamTracker {
-  id: string
-  label: string
-  current: number
-  max: number
-  color: string
-  sortOrder: number
-}
-
 export interface AssetRecord {
   id: string
   url: string
