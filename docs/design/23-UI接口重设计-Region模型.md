@@ -263,8 +263,8 @@ interface LayoutEntry {
   /** 可见性 */
   visible?: boolean
 
-  /** on-demand region 的实例 props */
-  instanceProps?: InstancePropsOrFactory
+  /** on-demand region 的实例 props（纯可序列化数据，不支持函数形式） */
+  instanceProps?: Record<string, unknown>
 }
 ```
 
@@ -561,12 +561,17 @@ function RegionRenderer({ registry, layout, makeSDK, viewport, onDragEnd }: Regi
         const entry = layout[def.id]
         if (!entry || entry.visible === false) return null
 
-        const pos = resolvePosition(entry, viewport)
+        const pos = clampToViewport(resolvePosition(entry, viewport), entry, viewport)
         const Comp = def.component
 
         return (
           <div
             key={def.id}
+            className="region-container"
+            data-region={def.id}
+            data-layer={def.layer}
+            role="region"
+            aria-label={def.id}
             style={{
               position: 'absolute',
               left: pos.x,
@@ -576,9 +581,28 @@ function RegionRenderer({ registry, layout, makeSDK, viewport, onDragEnd }: Regi
               zIndex: layerBaseZ(def.layer) + entry.zOrder,
               pointerEvents: 'auto',
               background: 'transparent',
+              contain: 'layout paint',
+              overflow: 'hidden',
             }}
           >
-            <Comp sdk={makeSDK(def.id, entry.instanceProps ?? {})} />
+            {/* Content layer: isolation:isolate 创建 stacking context，
+                防止插件内部 z-index 逃逸覆盖其他 Region 或系统 UI。
+                edit mode 下 pointerEvents:none 保证拖拽手柄始终接收事件。 */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                isolation: 'isolate',
+                pointerEvents: layoutMode === 'edit' ? 'none' : undefined,
+              }}
+            >
+              <RegionErrorBoundary regionId={def.id}>
+                <Comp sdk={makeSDK(def.id, entry.instanceProps ?? {})} />
+              </RegionErrorBoundary>
+            </div>
+            {layoutMode === 'edit' && (
+              <RegionEditOverlay def={def} entry={entry} onDragEnd={onDragEnd} />
+            )}
           </div>
         )
       })}
@@ -603,7 +627,22 @@ function layerBaseZ(layer: RegionDef['layer']): number {
 
 On-demand regions 通过独立的 `OnDemandHost` 管理（类似现有 `InputHandlerHost`）。每个 open instance 携带 regionId、instanceKey、instanceProps 和可选的 position 覆盖。
 
-定位优先级：`openPanel()` 传入的 position > `RegionDef.defaultPlacement` > `{ anchor: 'center' }`。
+**持久化模型**：On-demand 实例本身不持久化（刷新后消失），但其**位置模板**持久化到 LayoutConfig。同一 regionId 的所有实例共享一条 LayoutEntry，用户拖拽任一实例后更新该模板，下次 `openPanel()` 时使用保存的位置。
+
+```ts
+// LayoutConfig 中 on-demand region 的 entry 是位置模板
+{
+  "spell-detail": { anchor: 'center', offsetX: 50, offsetY: 0, width: 400, height: 500, zOrder: 0 }
+}
+
+// 运行时 openInstances（内存，不持久化）
+[
+  { regionId: 'spell-detail', instanceKey: '#a1b2', instanceProps: { spellId: 'fireball' } },
+  { regionId: 'spell-detail', instanceKey: '#c3d4', instanceProps: { spellId: 'shield' } },
+]
+```
+
+定位优先级：`openPanel()` 传入的 position > LayoutConfig 中的位置模板 > `RegionDef.defaultPlacement` > `{ anchor: 'center' }`。
 
 ```tsx
 function OnDemandHost({ registry, openInstances, makeSDK, viewport }) {
@@ -665,25 +704,17 @@ function OnDemandHost({ registry, openInstances, makeSDK, viewport }) {
 
 Play mode 下不显示 resize 手柄。
 
-### 9.3 备选方案：react-rnd 集成
+### 9.3 技术选型：自建拖拽/resize（原生 Pointer Events）
 
-`react-rnd`（react-draggable + re-resizable）可覆盖拖拽、resize、基础 bounds 约束，减少自建交互代码。
+**评估过的方案**：
 
-**对设计的影响**：
+| 方案                | 结论     | 原因                                                                                                                                                                             |
+| ------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| react-rnd           | **否决** | 强制 `transform: translate()` 定位（不可配置），创建 containing block 导致 Radix Portal `position: fixed` 失效；维护频率低（release 间隔 1.5 年，156 open issues）；定制天花板低 |
+| @use-gesture/react  | 可选     | 只提供手势回调，不操作 DOM，可配合 `left/top` 定位。维护活跃（pmndrs 团队）。但增加外部依赖                                                                                      |
+| 原生 Pointer Events | **采用** | `onPointerDown/Move/Up` 自建，~130 行覆盖拖拽+resize。用 `left/top` 定位，避免 transform containing block 问题。零依赖，完全可控                                                 |
 
-- 类型层（RegionDef、LayoutEntry、IRegionSDK、LayoutEngine）：无改动
-- RegionRenderer：`<div style={...}>` 改为 `<Rnd position={...} size={...} bounds="window">`
-- 第九节（拖拽/resize 手柄）：大幅简化，交由 react-rnd 提供
-- 仍需自建：`resolvePosition()`、`inferAnchor()`、z-order 管理、lifecycle 管理、SDK 接口
-
-**潜在问题**：
-
-1. **CSS transform**：react-rnd 默认用 `transform: translate()` 定位，会创建 containing block，导致内部 Radix Portal（`position: fixed`）失效。需确认可否配置为 `left/top` 定位
-2. **bounds 只管拖拽**：`bounds="window"` 阻止用户拖出视口，但不处理窗口缩小和 `sdk.ui.resize()` 放大导致的溢出，仍需自建 clamp
-3. **controlled/uncontrolled 切换**：store-driven position 与拖拽中的流畅体验之间可能产生闪烁
-4. **定制天花板**：磁性吸附、网格对齐、碰撞检测等高级交互可能需要绕过库实现
-
-**决策**：待所有设计细节确定后评估是否采用。如 transform 问题无法规避，则自建拖拽（基于 `@use-gesture/react` 或原生 pointer events）。
+**关键决策**：所有 Region 定位使用 `position: absolute` + `left/top`，不使用 `transform: translate()`。这保证 Region 内部的 Radix 组件 `position: fixed` 正常工作，不创建额外的 containing block。
 
 ---
 
@@ -876,7 +907,7 @@ function clampToViewport(pos, size, viewport) {
 
 面板尺寸超过视口时 clamp width/height 到视口尺寸（不影响存储的 defaultSize）。Edit mode 可提供"重置面板位置"操作作为极端情况的逃生口。
 
-如采用 react-rnd（见 9.3 节），其 `bounds="window"` 可阻止拖出视口，但窗口缩小和 `sdk.ui.resize()` 引起的溢出仍需自建 clamp 逻辑。
+自建拖拽已包含 bounds 约束（见 9.3 节），但窗口缩小和 `sdk.ui.resize()` 引起的溢出仍需 `clampToViewport` 逻辑（已在 RegionRenderer 代码中集成）。
 
 ### 12.11 插件激活错误隔离
 
@@ -895,6 +926,64 @@ function clampToViewport(pos, size, viewport) {
 ### 12.14 无障碍（Accessibility）
 
 框架在 Region 容器 div 上添加 `role="region"` + `aria-label`，让屏幕阅读器能识别面板边界。其他无障碍能力（焦点管理、键盘导航）由插件自行处理，优先级低，后续按需补充。
+
+---
+
+## 十三、架构评审发现（实现前必须解决）
+
+> 基于 4 个独立 sub-agent 对 spec 与当前代码库的系统性对比审查（2026-04-09）。
+
+### 13.1 RegionRenderer 安全层（已修正）
+
+Spec 原始代码省略了当前 `PanelRenderer` 经过对抗性测试验证的安全保障。已在第八节代码中补回：
+
+- `contain: layout paint` + `overflow: hidden` — 防止插件内容溢出和 `position: fixed` 逃逸
+- `isolation: isolate` 内容包裹层 — 防止插件内部 z-index 逃逸覆盖其他 Region
+- `RegionErrorBoundary` — 单个插件 crash 不影响其他面板
+- edit mode `pointerEvents: none` — 防止插件 `stopPropagation` 偷走拖拽事件
+
+### 13.2 DOM 结构约束
+
+- `region-layer` 和 `portal-layer` 父容器必须设 `pointer-events: none`（允许点击穿透到场景/Canvas）
+- Region 容器、region-layer、portal-layer 禁止使用 `transform`、`filter`、`will-change`、`backdrop-filter`（避免创建 containing block）
+
+### 13.3 LayoutEntry 过渡期类型策略
+
+`PanelRenderer`（`{x, y}`）和 `RegionRenderer`（`{anchor, offsetX, offsetY}`）共存期间，需要过渡类型。建议：
+
+- 方案 A：Union type + 版本判别字段（`version: 1 | 2`）
+- 方案 B：迁移脚本先行，一次性转换所有数据后切换类型
+
+具体策略在实现 plan 阶段确定。
+
+### 13.4 SDK 工厂扩展
+
+`createProductionSDK` 需要新增能力以产出 `IRegionSDK`：
+
+- `SDKFactoryArgs` 扩展 `resize` 回调（per-instance scoped，需 `instanceKey` 闭包 + `minSize` 钳制）
+- `SDKFactoryArgs` 扩展 `getPortalContainer` 回调（返回框架管理的 per-region portal div）
+- `openPanel` 的 `position` 参数从 `{x, y}` 改为 `{anchor, offsetX, offsetY}`
+
+### 13.5 PluginSDK delegation
+
+`pluginSDK.ts` 的 `ui` 对象需要新增 `registerRegion` 委托（real 和 no-op 两个分支都要加）。Region ID 命名空间校验（`assertNamespaced`）是否启用待定。
+
+### 13.6 RendererRegistry：`ui-slot` 必须加入 `multiSurfaces`
+
+当前 `multiSurfaces` 只包含 `entity` 和 `combat`。Spec 的 sidebar tab pattern 需要多个插件注册到同一 slot（`ui-slot::core-sidebar:tabs`），但不在 `multiSurfaces` 集合中的 surface 会对第二次注册 warn + skip。**必须在实现时添加 `ui-slot` 到 `multiSurfaces`。**
+
+### 13.7 循环导入风险
+
+`RegionDef.component` 类型引用 `IRegionSDK` 会重新引入循环依赖（当前 `ComponentDef` 用 `sdk: unknown` 规避）。实现时沿用 `sdk: unknown` 或重构导入图。
+
+### 13.8 其他需在实现时处理的项
+
+- `applyDrag()` 硬编码 `x/y` 算术（`LayoutEditor.tsx`），需改为 `offsetX/offsetY`
+- 服务端 `useLayoutSync` PUT 的数据格式也需要适配新 LayoutEntry
+- play-mode `sdk.interaction.layout.startDrag()` 能力需保留或替代
+- 现有 Radix 包装组件（`PopoverContent` 等）需接受 `container` prop 或通过 React Context 自动注入 portal 容器
+- Sandbox `PatternUISystem.tsx` 和 `poc-ui` 不在迁移表中，需一并更新
+- 全部 19 个 PanelRenderer 测试 + 5 个 LayoutEditor 测试的 fixture 需更新为新 LayoutEntry 格式
 
 ---
 
@@ -923,7 +1012,7 @@ interface LayoutEntry {
   height: number
   zOrder: number
   visible?: boolean
-  instanceProps?: InstancePropsOrFactory
+  instanceProps?: Record<string, unknown>
 }
 
 type LayoutConfig = Record<string, LayoutEntry>
@@ -932,9 +1021,14 @@ type LayoutConfig = Record<string, LayoutEntry>
 
 interface IRegionSDK extends IComponentSDK {
   ui: {
-    openPanel(regionId: string, instanceProps?: Record<string, unknown>): string
+    openPanel(
+      regionId: string,
+      instanceProps?: Record<string, unknown>,
+      position?: { anchor: AnchorPoint; offsetX?: number; offsetY?: number },
+    ): string
     closePanel(instanceKey: string): void
     resize(size: { width?: number; height?: number }): void
+    getPortalContainer(): HTMLElement
   }
 }
 
