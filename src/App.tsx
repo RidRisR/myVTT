@@ -37,7 +37,6 @@ import type { ShowcaseItem } from './shared/showcaseTypes'
 import type { Entity, Atmosphere, SceneEntityEntry } from './shared/entityTypes'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
-import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './ui/ToastProvider'
 import { initWorkflowSystem, startWorkflowTriggers } from './workflow/useWorkflowSDK'
 import { useStore } from 'zustand'
@@ -618,10 +617,7 @@ function RoomSession({ roomId }: { roomId: string }) {
           tacticalInfo={tacticalInfo}
         />
 
-        {/* Top-right: Team dashboard */}
-        <TeamDashboard roomId={roomId} isGM={isGM} />
-
-        {/* Right: Tactical toolbar (left of TeamDashboard, only in tactical mode) */}
+        {/* Right: Tactical toolbar (only in tactical mode) */}
         {isTactical && tacticalInfo && (
           <TacticalToolbar mapRef={konvaMapRef} role={mySeat.role} tacticalInfo={tacticalInfo} />
         )}

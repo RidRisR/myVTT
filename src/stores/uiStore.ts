@@ -72,7 +72,6 @@ interface UiState {
 
   // Panel visibility
   portraitBarVisible: boolean
-  teamPanelVisible: boolean
 
   // Tactical toolbar
   lastMeasureTool: string
@@ -114,7 +113,6 @@ interface UiState {
   setGmViewAsPlayer: (val: boolean) => void
   setTheme: (theme: ThemeId) => void
   setPortraitBarVisible: (visible: boolean) => void
-  setTeamPanelVisible: (visible: boolean) => void
   setGridConfigOpen: (open: boolean) => void
   toggleGridConfig: () => void
   toggleToolPersist: () => void
@@ -143,7 +141,6 @@ export const useUiStore = create<UiState>((set) => ({
   gmViewAsPlayer: false,
   theme: getStoredTheme(),
   portraitBarVisible: true,
-  teamPanelVisible: false,
   lastMeasureTool: BuiltinToolId.Measure,
   toolPersist: false,
   gridConfigOpen: false,
@@ -265,9 +262,6 @@ export const useUiStore = create<UiState>((set) => ({
   },
   setPortraitBarVisible: (visible) => {
     set({ portraitBarVisible: visible })
-  },
-  setTeamPanelVisible: (visible) => {
-    set({ teamPanelVisible: visible })
   },
   setGridConfigOpen: (open) => {
     set({ gridConfigOpen: open })

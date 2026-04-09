@@ -53,11 +53,6 @@ export interface LogPayloadMap {
     rollType?: string
     actionName?: string
   }
-  'core:tracker-update': {
-    label: string
-    current?: number
-    snapshot?: import('./storeTypes').TeamTracker
-  }
   'core:component-update': {
     entityId: string
     key: string

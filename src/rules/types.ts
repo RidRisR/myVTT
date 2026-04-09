@@ -1,6 +1,5 @@
 import type React from 'react'
 import type { Entity } from '../shared/entityTypes'
-import type { TeamTracker } from '../stores/worldStore'
 import type { ChatRollMessage } from '../shared/chatTypes'
 
 // ── Adapter view types ─────────────────────────────────────────────────────
@@ -57,13 +56,6 @@ export interface PluginPanelProps {
   onClose: () => void
   onUpdateEntity: (id: string, patch: Partial<Entity>) => void
   onCreateEntity: (data: Partial<Entity>) => void
-}
-
-export interface TeamPanelProps {
-  trackers: TeamTracker[]
-  onUpdate: (id: string, patch: Partial<TeamTracker>) => void
-  onCreate: (data: Partial<TeamTracker>) => void
-  onDelete: (id: string) => void
 }
 
 export interface DieConfig {

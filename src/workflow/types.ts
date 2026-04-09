@@ -173,9 +173,6 @@ export interface WorkflowContext<TVars = Record<string, unknown>> {
     updater: (current: ComponentTypeMap[K] | undefined) => ComponentTypeMap[K],
   ): void
   updateComponent<T>(entityId: string, key: string, updater: (current: T | undefined) => T): void
-  /** @deprecated — will be removed when teamTracker is redesigned */
-  updateTeamTracker(label: string, patch: { current?: number }): void
-
   // ── Entity management ────────────────────────────────────────────────
   /** Create a new entity via server (await ack) */
   createEntity(data: {

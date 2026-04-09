@@ -59,9 +59,6 @@ export const daggerheartI18n: PluginI18n = {
       'roll.action.presence': '风采检定',
       'roll.action.knowledge': '知识检定',
 
-      // DHTeamPanel
-      'team.fear': 'Fear',
-      'team.hope': 'Hope',
     },
     en: {
       // DaggerHeartCard
@@ -119,9 +116,6 @@ export const daggerheartI18n: PluginI18n = {
       'roll.action.presence': 'Presence Check',
       'roll.action.knowledge': 'Knowledge Check',
 
-      // DHTeamPanel
-      'team.fear': 'Fear',
-      'team.hope': 'Hope',
     },
   },
 }

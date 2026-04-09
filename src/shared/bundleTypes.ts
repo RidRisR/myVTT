@@ -2,7 +2,7 @@
 // Both server (bundle.ts) and client (worldStore.ts) import from here.
 // Any field addition on either side will cause a tsc -b error on the modifying side.
 
-import type { Scene, TacticalInfo, TeamTracker } from './storeTypes'
+import type { Scene, TacticalInfo } from './storeTypes'
 import type { Entity, SceneEntityEntry, Blueprint } from './entityTypes'
 import type { ShowcaseItem } from './showcaseTypes'
 import type { TagMeta } from './assetTypes'
@@ -23,7 +23,6 @@ export interface BundleResponse {
   seats: unknown[]
   assets: Record<string, unknown>[]
   blueprints: Blueprint[]
-  teamTrackers: TeamTracker[]
   showcase: ShowcaseItem[]
   tactical: (TacticalInfo & { tokens: unknown[] }) | null
   tags: TagMeta[]

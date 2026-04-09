@@ -7,7 +7,6 @@ const TYPE_COLORS: Record<string, string> = {
   'core:text': '#60a5fa',
   'core:roll-result': '#f59e0b',
   'core:component-update': '#a78bfa',
-  'core:tracker-update': '#34d399',
 }
 
 function EntryRow({ entry, isNew }: { entry: GameLogEntry; isNew: boolean }) {
