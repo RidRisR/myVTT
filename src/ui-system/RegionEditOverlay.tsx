@@ -31,12 +31,14 @@ export function RegionEditOverlay({
 
   const handleDragPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      const parent = (e.currentTarget as HTMLElement).parentElement
+      const el = e.currentTarget as HTMLElement
+      const parent = el.parentElement
       if (!parent) return
 
       posRef.current = { x: parent.offsetLeft, y: parent.offsetTop }
 
       createPointerDragHandler(
+        el,
         (delta) => {
           posRef.current = {
             x: posRef.current.x + delta.dx,
@@ -66,7 +68,8 @@ export function RegionEditOverlay({
 
   const handleResizePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      const parent = (e.currentTarget as HTMLElement).parentElement
+      const el = e.currentTarget as HTMLElement
+      const parent = el.parentElement
       if (!parent) return
       e.stopPropagation()
 
@@ -75,6 +78,7 @@ export function RegionEditOverlay({
       const minH = def.minSize?.height ?? 50
 
       createPointerResizeHandler(
+        el,
         (delta) => {
           sizeRef.current = {
             width: Math.max(minW, sizeRef.current.width + delta.dw),

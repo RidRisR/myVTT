@@ -4,7 +4,23 @@ import { resolvePosition, clampToViewport, layerBaseZ } from './layoutEngine'
 import { RegionEditOverlay } from './RegionEditOverlay'
 import type { UIRegistry } from './registry'
 import type { RegionLayoutConfig, IRegionSDK, Viewport } from './types'
-import type { AnchorPoint } from './regionTypes'
+import type { AnchorPoint, RegionLayoutEntry } from './regionTypes'
+
+/** Find the layout entry for a region, handling legacy instance-key suffixes (e.g. 'id#1') */
+function findEntry(
+  layout: RegionLayoutConfig,
+  regionId: string,
+): { instanceKey: string; entry: RegionLayoutEntry } | undefined {
+  // Direct match (new format: key === regionId)
+  if (layout[regionId]) return { instanceKey: regionId, entry: layout[regionId] }
+  // Legacy match: key starts with regionId + '#'
+  for (const key of Object.keys(layout)) {
+    if (key.startsWith(regionId + '#')) {
+      return { instanceKey: key, entry: layout[key] }
+    }
+  }
+  return undefined
+}
 
 interface Props {
   registry: UIRegistry
@@ -33,9 +49,10 @@ export function RegionRenderer({
   return (
     <>
       {regions.map((def) => {
-        const entry = layout[def.id]
-        if (!entry || entry.visible === false) return null
+        const match = findEntry(layout, def.id)
+        if (!match || match.entry.visible === false) return null
 
+        const { instanceKey, entry } = match
         const rawPos = resolvePosition(entry, viewport)
         const pos = clampToViewport(rawPos, { width: entry.width, height: entry.height }, viewport)
         const Comp = def.component
@@ -72,7 +89,7 @@ export function RegionRenderer({
               }}
             >
               <RegionErrorBoundary panelId={def.id}>
-                <Comp sdk={makeSDK(def.id, entry.instanceProps ?? {})} />
+                <Comp sdk={makeSDK(instanceKey, entry.instanceProps ?? {})} />
               </RegionErrorBoundary>
             </div>
             {layoutMode === 'edit' && (

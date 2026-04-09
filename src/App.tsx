@@ -265,6 +265,30 @@ function RoomSession({ roomId }: { roomId: string }) {
     layoutStore.getState().setIsTactical(isTactical)
   }, [isTactical, layoutStore])
 
+  // Auto-populate layout entries for persistent regions with defaultPlacement.
+  // Runs after every loadLayout (including socket layout:update). Stabilizes in 2 cycles:
+  // cycle 1 adds missing entries → activeLayout changes → cycle 2 finds all entries exist → done.
+  useEffect(() => {
+    if (Object.keys(activeLayout).length === 0) return
+
+    for (const def of uiRegistry.listRegionsByLifecycle('persistent')) {
+      if (!def.defaultPlacement) continue
+      const exists = Object.keys(activeLayout).some(
+        (k) => k === def.id || k.startsWith(def.id + '#'),
+      )
+      if (!exists) {
+        layoutStore.getState().addEntry(def.id, {
+          anchor: def.defaultPlacement.anchor,
+          offsetX: def.defaultPlacement.offsetX ?? 0,
+          offsetY: def.defaultPlacement.offsetY ?? 0,
+          width: def.defaultSize.width,
+          height: def.defaultSize.height,
+          zOrder: 0,
+        })
+      }
+    }
+  }, [activeLayout, uiRegistry, layoutStore])
+
   // Debounced layout persistence
   useLayoutSync(layoutStore, roomId, !!socket)
 

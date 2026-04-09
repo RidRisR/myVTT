@@ -23,10 +23,9 @@ describe('createPointerDragHandler', () => {
 
   it('calls onMove with delta on pointermove', () => {
     const onMove = vi.fn()
-    const handler = createPointerDragHandler(onMove)
+    const handler = createPointerDragHandler(target, onMove)
 
     const down = new PointerEvent('pointerdown', { clientX: 100, clientY: 200, pointerId: 1 })
-    Object.defineProperty(down, 'currentTarget', { value: target })
     target.setPointerCapture = vi.fn()
     handler(down)
 
@@ -38,10 +37,9 @@ describe('createPointerDragHandler', () => {
 
   it('accumulates deltas across multiple moves', () => {
     const onMove = vi.fn()
-    const handler = createPointerDragHandler(onMove)
+    const handler = createPointerDragHandler(target, onMove)
 
     const down = new PointerEvent('pointerdown', { clientX: 100, clientY: 100, pointerId: 1 })
-    Object.defineProperty(down, 'currentTarget', { value: target })
     target.setPointerCapture = vi.fn()
     handler(down)
 
@@ -56,10 +54,9 @@ describe('createPointerDragHandler', () => {
   it('calls onEnd on pointerup and stops tracking', () => {
     const onMove = vi.fn()
     const onEnd = vi.fn()
-    const handler = createPointerDragHandler(onMove, onEnd)
+    const handler = createPointerDragHandler(target, onMove, onEnd)
 
     const down = new PointerEvent('pointerdown', { clientX: 100, clientY: 100, pointerId: 1 })
-    Object.defineProperty(down, 'currentTarget', { value: target })
     target.setPointerCapture = vi.fn()
     handler(down)
 
@@ -72,11 +69,10 @@ describe('createPointerDragHandler', () => {
   })
 
   it('sets pointer capture on the target', () => {
-    const handler = createPointerDragHandler(vi.fn())
+    const handler = createPointerDragHandler(target, vi.fn())
     target.setPointerCapture = vi.fn()
 
     const down = new PointerEvent('pointerdown', { clientX: 0, clientY: 0, pointerId: 42 })
-    Object.defineProperty(down, 'currentTarget', { value: target })
     handler(down)
 
     expect(target.setPointerCapture).toHaveBeenCalledWith(42)
@@ -93,10 +89,9 @@ describe('createPointerResizeHandler', () => {
 
   it('calls onResize with size delta', () => {
     const onResize = vi.fn()
-    const handler = createPointerResizeHandler(onResize)
+    const handler = createPointerResizeHandler(target, onResize)
 
     const down = new PointerEvent('pointerdown', { clientX: 100, clientY: 100, pointerId: 1 })
-    Object.defineProperty(down, 'currentTarget', { value: target })
     target.setPointerCapture = vi.fn()
     handler(down)
 
@@ -107,10 +102,9 @@ describe('createPointerResizeHandler', () => {
   it('calls onEnd on pointerup', () => {
     const onResize = vi.fn()
     const onEnd = vi.fn()
-    const handler = createPointerResizeHandler(onResize, onEnd)
+    const handler = createPointerResizeHandler(target, onResize, onEnd)
 
     const down = new PointerEvent('pointerdown', { clientX: 0, clientY: 0, pointerId: 1 })
-    Object.defineProperty(down, 'currentTarget', { value: target })
     target.setPointerCapture = vi.fn()
     handler(down)
 
