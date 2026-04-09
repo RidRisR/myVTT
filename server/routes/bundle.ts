@@ -54,13 +54,6 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
       return base
     })
 
-    const teamTrackers = toCamelAll(
-      roomDb.prepare('SELECT * FROM team_trackers ORDER BY sort_order').all() as Record<
-        string,
-        unknown
-      >[],
-    )
-
     const showcase = (
       roomDb.prepare('SELECT * FROM showcase_items ORDER BY sort_order').all() as Record<
         string,
@@ -122,7 +115,6 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
       seats,
       assets,
       blueprints,
-      teamTrackers,
       showcase,
       tactical,
       tags: allTags,
@@ -145,7 +137,6 @@ function getBundle(dataDir: string, roomDb: Database.Database, roomId: string): 
     seats: data.seats,
     assets: data.assets,
     blueprints: data.blueprints,
-    teamTrackers: data.teamTrackers,
     showcase: data.showcase,
     tactical: data.tactical,
     tags: data.tags,

@@ -33,7 +33,6 @@ Socket.io events ───────┘ (real-time updates)
 - `tacticalInfo: TacticalInfo | null` — 当前战术状态
 - `showcaseItems: ShowcaseItem[]` — 展示材料
 - `showcasePinnedItemId: string | null` — 置顶展示
-- `teamTrackers: TeamTracker[]` — 团队追踪器
 - `archives: ArchiveRecord[]` — 战术存档（扁平数组）
 - `assets: AssetMeta[]` — 素材列表
 - `blueprints: Blueprint[]` — 蓝图列表
@@ -83,7 +82,7 @@ Socket.io events ───────┘ (real-time updates)
 
 纯客户端状态，不与服务端同步。
 
-**状态**：`openCardId`, `pinnedCards`, `selectedTokenIds: string[]`, `primarySelectedTokenId`, `bgContextMenu`, `editingHandout`, `activeTool`, `gmViewAsPlayer`, `theme`, `portraitBarVisible`, `teamPanelVisible`, `lastMeasureTool`, `toolPersist`, `gridConfigOpen`, `gmSidebarTab`, `gmSidebarCollapsed`, `gmDockTab`, `activePluginPanels`
+**状态**：`openCardId`, `pinnedCards`, `selectedTokenIds: string[]`, `primarySelectedTokenId`, `bgContextMenu`, `editingHandout`, `activeTool`, `gmViewAsPlayer`, `theme`, `portraitBarVisible`, `lastMeasureTool`, `toolPersist`, `gridConfigOpen`, `gmSidebarTab`, `gmSidebarCollapsed`, `gmDockTab`, `activePluginPanels`
 
 ### layoutStore 概要
 
@@ -155,7 +154,6 @@ socket.on('entity:deleted', ({ id }: { id: string }) => {
 | `tactical:updated`                         | `tacticalInfo`                                       |
 | `tactical:token:added/updated/removed`     | `tacticalInfo.tokens[]`                              |
 | `room:state:updated`                       | `room`                                               |
-| `tracker:created/updated/deleted`          | `teamTrackers[]`                                     |
 | `showcase:created/updated/deleted/cleared` | `showcaseItems[]`                                    |
 | `asset:created/updated/deleted/reordered`  | `assets[]`                                           |
 | `blueprint:created/updated/deleted`        | `blueprints[]`                                       |

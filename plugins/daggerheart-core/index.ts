@@ -9,7 +9,6 @@ import {
   FORMULA_TOKENS_POINT,
   ENTITY_CARD_POINT,
   DATA_TEMPLATE_POINT,
-  TEAM_PANEL_POINT,
 } from '@myvtt/sdk'
 import { DiceJudge } from './DiceJudge'
 import { FearManager } from './FearManager'
@@ -27,7 +26,6 @@ import {
 } from '../daggerheart/adapters'
 import { createDefaultDHEntityData } from '../daggerheart/templates'
 import { DaggerHeartCard } from '../daggerheart/DaggerHeartCard'
-import { DHTeamPanel } from '../daggerheart/ui/DHTeamPanel'
 
 interface ActionCheckData {
   [key: string]: unknown
@@ -80,10 +78,6 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
     sdk.ui.registerRenderer(DATA_TEMPLATE_POINT, {
       ruleSystemId: 'daggerheart',
       createDefaultEntityData: createDefaultDHEntityData,
-    })
-    sdk.ui.registerRenderer(TEAM_PANEL_POINT, {
-      ruleSystemId: 'daggerheart',
-      component: DHTeamPanel,
     })
 
     // Register Fear panel

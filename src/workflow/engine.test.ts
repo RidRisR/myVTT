@@ -16,7 +16,6 @@ function makeCtx(data: Record<string, unknown> = {}): WorkflowContext {
     requestInput: vi.fn(),
     emitEntry: vi.fn(),
     updateComponent: vi.fn(),
-    updateTeamTracker: vi.fn(),
     createEntity: vi.fn().mockResolvedValue('test:entity-1'),
     deleteEntity: vi.fn().mockResolvedValue(undefined),
     abort: vi.fn(),

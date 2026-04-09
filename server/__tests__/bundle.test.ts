@@ -30,7 +30,6 @@ describe('GET /api/rooms/:id/bundle', () => {
     expect(body).toHaveProperty('sceneEntityMap')
     expect(body).toHaveProperty('seats')
     expect(body).toHaveProperty('assets')
-    expect(body).toHaveProperty('teamTrackers')
     expect(body).toHaveProperty('showcase')
     expect(body).toHaveProperty('tactical')
     expect(body).toHaveProperty('blueprints')

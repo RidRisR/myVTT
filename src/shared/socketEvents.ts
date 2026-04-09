@@ -9,7 +9,6 @@ import type {
   Scene,
   RoomState,
   TacticalInfo,
-  TeamTracker,
   AssetRecord,
   ArchiveRecord,
   RoomMeta,
@@ -63,11 +62,6 @@ export interface ServerToClientEvents {
 
   // ── Room state ──
   'room:state:updated': (state: Partial<RoomState>) => void
-
-  // ── Trackers ──
-  'tracker:created': (tracker: TeamTracker) => void
-  'tracker:updated': (tracker: TeamTracker) => void
-  'tracker:deleted': (data: { id: string }) => void
 
   // ── Showcase ──
   'showcase:created': (item: ShowcaseItem) => void

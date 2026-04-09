@@ -54,8 +54,6 @@ describe('createWorkflowContext', () => {
     expect(typeof ctx.serverRoll).toBe('function')
     expect(typeof ctx.emitEntry).toBe('function')
     expect(typeof ctx.updateComponent).toBe('function')
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
-    expect(typeof ctx.updateTeamTracker).toBe('function')
     expect(typeof ctx.abort).toBe('function')
     expect(typeof ctx.runWorkflow).toBe('function')
   })
@@ -96,19 +94,6 @@ describe('createWorkflowContext', () => {
       expect.objectContaining({
         type: 'core:component-update',
         payload: { entityId: 'e1', key: 'hp', data: { current: 7, max: 20 } },
-      }),
-    )
-  })
-
-  it('updateTeamTracker emits core:tracker-update log entry', () => {
-    const deps = makeDeps()
-    const ctx = createWorkflowContext(deps, undefined, makeInternal())
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
-    ctx.updateTeamTracker('HP', { current: 5 })
-    expect(deps.emitEntry).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'core:tracker-update',
-        payload: { label: 'HP', current: 5 },
       }),
     )
   })
@@ -231,15 +216,6 @@ describe('createWorkflowContext', () => {
     })
 
     expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-comp' }))
-  })
-
-  it('updateTeamTracker auto-injects groupId from context options', () => {
-    const deps = makeDeps()
-    const ctx = createWorkflowContext(deps, undefined, makeInternal(), { groupId: 'g-tracker' })
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- testing deprecated API
-    ctx.updateTeamTracker('HP', { current: 3 })
-
-    expect(deps.emitEntry).toHaveBeenCalledWith(expect.objectContaining({ groupId: 'g-tracker' }))
   })
 
   it('default groupId is generated when not provided (uuid string)', () => {

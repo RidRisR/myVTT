@@ -291,24 +291,6 @@ describe('Scene error paths', () => {
   })
 })
 
-describe('Tracker error paths', () => {
-  let roomId: string
-
-  beforeAll(async () => {
-    roomId = await createRoom('Tracker Error Room')
-  })
-
-  it('PATCH /team-trackers/:id with non-existent id returns 404', async () => {
-    const { status, data } = await ctx.api(
-      'PATCH',
-      `/api/rooms/${roomId}/team-trackers/nonexistent-tracker`,
-      { current: 5 },
-    )
-    expect(status).toBe(404)
-    expect((data as { error: string }).error).toBe('Tracker not found')
-  })
-})
-
 describe('Tactical token error paths', () => {
   let roomId: string
 

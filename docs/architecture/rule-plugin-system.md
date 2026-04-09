@@ -153,7 +153,6 @@ Pre-defined `RendererPoint` tokens in `src/log/entityBindings.ts` bridge plugins
 | `FORMULA_TOKENS_POINT`     | `FormulaTokensBinding`     | `@token` resolution in dice formulas   |
 | `ENTITY_CARD_POINT`        | `EntityCardBinding`        | Rule-specific entity card component    |
 | `DATA_TEMPLATE_POINT`      | `DataTemplateBinding`      | Default entity data factory            |
-| `TEAM_PANEL_POINT`         | `TeamPanelBinding`         | Rule-specific team dashboard component |
 
 Each binding's `resolve()` function checks entity components and returns data only for entities it recognizes, so multiple plugins coexist safely without `ruleSystemId` filtering.
 

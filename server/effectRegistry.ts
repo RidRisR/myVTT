@@ -20,29 +20,6 @@ export function createEffectRegistry(): EffectRegistry {
 
   // ── Core effect handlers ──
 
-  handlers.set('core:tracker-update', (db, entry) => {
-    const payload = entry.payload
-    // Support two payload formats:
-    //   1. { trackerId, delta } — direct ID + relative increment (preferred)
-    //   2. { label, current } — label lookup + absolute set (deprecated ctx.updateTeamTracker)
-    if ('trackerId' in payload && 'delta' in payload) {
-      const { trackerId, delta } = payload as { trackerId: string; delta: number }
-      db.prepare('UPDATE team_trackers SET current = current + ? WHERE id = ?').run(
-        delta,
-        trackerId,
-      )
-      const snapshot = db.prepare('SELECT * FROM team_trackers WHERE id = ?').get(trackerId)
-      if (snapshot) entry.payload.snapshot = snapshot
-    } else if ('label' in payload) {
-      const { label, current } = payload as { label: string; current?: number }
-      if (current != null) {
-        db.prepare('UPDATE team_trackers SET current = ? WHERE label = ?').run(current, label)
-      }
-      const snapshot = db.prepare('SELECT * FROM team_trackers WHERE label = ?').get(label)
-      if (snapshot) entry.payload.snapshot = snapshot
-    }
-  })
-
   handlers.set('core:component-update', (db, entry) => {
     const { entityId, key, data } = entry.payload as {
       entityId: string

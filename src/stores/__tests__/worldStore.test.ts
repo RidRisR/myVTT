@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { EventEmitter } from 'events'
 import { useWorldStore } from '../worldStore'
-import type { Scene, TacticalInfo, TeamTracker, AssetRecord, ArchiveRecord } from '../worldStore'
+import type { Scene, TacticalInfo, AssetRecord, ArchiveRecord } from '../worldStore'
 
 // Mock assetUpload so uploadAsset doesn't call getCurrentRoomId() (which needs window.location.hash)
 vi.mock('../../shared/assetUpload', () => ({
@@ -149,16 +149,6 @@ const makeTacticalInfo = (overrides: Partial<TacticalInfo> = {}): TacticalInfo =
   ...overrides,
 })
 
-const makeTracker = (overrides: Partial<TeamTracker> = {}): TeamTracker => ({
-  id: 'tracker-1',
-  label: 'HP',
-  current: 10,
-  max: 20,
-  color: '#ff0000',
-  sortOrder: 0,
-  ...overrides,
-})
-
 const makeAsset = (overrides: Partial<AssetRecord> = {}): AssetRecord => ({
   id: 'asset-1',
   url: '/uploads/img.png',
@@ -217,7 +207,6 @@ beforeEach(() => {
     showcaseItems: [],
     showcasePinnedItemId: null,
     handoutAssets: [],
-    teamTrackers: [],
     assets: [],
     _socket: null,
     _roomId: null,
@@ -239,7 +228,6 @@ function setupInitMockResponses(overrides: Record<string, unknown> = {}) {
       sceneEntityMap: { [scene.id]: [{ entityId: 'entity-1', visible: true }] },
       seats: [],
       assets: [makeAsset()],
-      teamTrackers: [makeTracker()],
       showcase: [makeShowcaseItem()],
       tactical: null,
       logEntries: [],
@@ -263,7 +251,6 @@ describe('init()', () => {
     expect(state.scenes).toHaveLength(1)
     expect(state.scenes[0]?.name).toBe('Test Scene')
     expect(state.entities['entity-1']).toBeDefined()
-    expect(state.teamTrackers).toHaveLength(1)
     expect(state.assets).toHaveLength(1)
     expect(state.showcaseItems).toHaveLength(1)
   })
@@ -299,7 +286,6 @@ describe('init()', () => {
     expect(registeredEvents).toContain('entity:created')
     expect(registeredEvents).toContain('tactical:updated')
     expect(registeredEvents).toContain('room:state:updated')
-    expect(registeredEvents).toContain('tracker:created')
     expect(registeredEvents).toContain('asset:created')
     expect(registeredEvents).toContain('showcase:created')
     expect(registeredEvents).toContain('archive:created')
@@ -319,7 +305,6 @@ describe('init()', () => {
     expect(removedEvents).toContain('entity:created')
     expect(removedEvents).toContain('tactical:updated')
     expect(removedEvents).toContain('room:state:updated')
-    expect(removedEvents).toContain('tracker:created')
     expect(removedEvents).toContain('asset:created')
     expect(removedEvents).toContain('showcase:cleared')
     expect(removedEvents).toContain('archive:created')
@@ -619,21 +604,6 @@ describe('socket event handlers', () => {
     expect(room.ruleSystemId).toBe('generic')
   })
 
-  // -- Tracker events --
-
-  it('tracker:created adds to teamTrackers', () => {
-    const tracker = makeTracker({ id: 'tracker-2', label: 'Mana' })
-    socket._trigger('tracker:created', tracker)
-
-    expect(useWorldStore.getState().teamTrackers).toHaveLength(2)
-  })
-
-  it('tracker:deleted removes from teamTrackers', () => {
-    socket._trigger('tracker:deleted', { id: 'tracker-1' })
-
-    expect(useWorldStore.getState().teamTrackers).toHaveLength(0)
-  })
-
   // -- Asset events --
 
   it('asset:created adds to assets', () => {
@@ -713,18 +683,6 @@ describe('socket event handlers', () => {
     socket._trigger('tactical:token:removed', { id: 'token-1' })
 
     expect(useWorldStore.getState().tacticalInfo).toBeNull()
-  })
-
-  // -- Tracker edge cases --
-
-  it('tracker:updated updates matching tracker fields', () => {
-    const updated = makeTracker({ id: 'tracker-1', label: 'HP', current: 15, max: 20 })
-    socket._trigger('tracker:updated', updated)
-
-    const tracker = useWorldStore.getState().teamTrackers[0]
-    expect(tracker).toBeDefined()
-    expect(tracker?.current).toBe(15)
-    expect(tracker?.label).toBe('HP')
   })
 
   // -- Showcase events --
@@ -1072,7 +1030,6 @@ describe('loadAll() via bundle endpoint', () => {
           },
         },
       ],
-      teamTrackers: [],
       showcase: [],
       tactical: null,
       logEntries: [],
