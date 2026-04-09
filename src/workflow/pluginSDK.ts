@@ -63,7 +63,11 @@ export class PluginSDK implements IPluginSDK {
     this.triggerRegistry = triggerRegistry
     this.ui = uiRegistry
       ? {
+          registerRegion: (def) => {
+            uiRegistry.registerRegion(def)
+          },
           registerComponent: (def) => {
+            // eslint-disable-next-line @typescript-eslint/no-deprecated -- intentional backward-compat delegation
             uiRegistry.registerComponent(def)
           },
           registerLayer: (def) => {
@@ -83,6 +87,7 @@ export class PluginSDK implements IPluginSDK {
         }
       : {
           // no-op: existing tests do not pass a registry
+          registerRegion: () => {},
           registerComponent: () => {},
           registerLayer: () => {},
           registerRenderer: () => {},

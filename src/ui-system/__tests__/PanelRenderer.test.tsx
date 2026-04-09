@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated -- Tests exercise deprecated PanelRenderer + registerComponent backward-compat path */
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { PanelRenderer } from '../PanelRenderer'

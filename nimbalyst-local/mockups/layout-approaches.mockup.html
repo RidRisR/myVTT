@@ -1,0 +1,798 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg: #13131f;
+        --bg-card: rgba(25, 25, 42, 0.95);
+        --bg-scene: #0d0d1a;
+        --border: rgba(120, 100, 180, 0.2);
+        --border-accent: rgba(160, 130, 220, 0.4);
+        --text: #e0dce8;
+        --text-muted: #7a7490;
+        --accent: #a87cdb;
+        --green: #5abb78;
+        --red: #e05a5a;
+        --gold: #d4a843;
+        --blue: #6aa0d4;
+      }
+
+      body {
+        font-family:
+          'Segoe UI',
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        padding: 32px;
+      }
+
+      h1 {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 500;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        text-align: center;
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 36px;
+        opacity: 0.7;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      .approach {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+
+      .approach-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .approach-letter {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      .letter-a {
+        background: rgba(106, 160, 212, 0.15);
+        color: var(--blue);
+      }
+      .letter-b {
+        background: rgba(168, 124, 219, 0.15);
+        color: var(--accent);
+      }
+      .letter-c {
+        background: rgba(212, 168, 67, 0.15);
+        color: var(--gold);
+      }
+      .letter-d {
+        background: rgba(90, 187, 120, 0.15);
+        color: var(--green);
+      }
+
+      .approach-title {
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .approach-desc {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      /* Demo viewport */
+      .demo {
+        position: relative;
+        height: 220px;
+        background:
+          radial-gradient(ellipse at 40% 50%, rgba(50, 35, 20, 0.4) 0%, transparent 60%),
+          linear-gradient(180deg, #0a0a16 0%, #151520 100%);
+        overflow: hidden;
+        margin: 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .demo-grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: 30px 30px;
+      }
+
+      /* Panel common */
+      .panel {
+        position: absolute;
+        background: rgba(20, 20, 38, 0.92);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        backdrop-filter: blur(8px);
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      }
+
+      .panel-title {
+        font-size: 9px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        padding: 5px 8px;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .panel-content {
+        padding: 6px 8px;
+        font-size: 10px;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+
+      /* === A: Anchor + Offset === */
+      .anchor-line {
+        position: absolute;
+        border: 1px dashed rgba(106, 160, 212, 0.25);
+      }
+
+      .anchor-dot {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--blue);
+        opacity: 0.6;
+      }
+
+      .anchor-label {
+        position: absolute;
+        font-size: 8px;
+        color: var(--blue);
+        opacity: 0.7;
+        white-space: nowrap;
+      }
+
+      /* === B: Zone/Grid === */
+      .zone {
+        position: absolute;
+        border: 1px dashed;
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 4px;
+      }
+
+      .zone-left {
+        left: 4px;
+        top: 4px;
+        bottom: 4px;
+        width: 120px;
+        border-color: rgba(168, 124, 219, 0.3);
+      }
+      .zone-right {
+        right: 4px;
+        top: 4px;
+        bottom: 4px;
+        width: 140px;
+        border-color: rgba(168, 124, 219, 0.3);
+      }
+      .zone-center {
+        left: 128px;
+        right: 148px;
+        top: 4px;
+        bottom: 4px;
+        border-color: rgba(168, 124, 219, 0.12);
+      }
+
+      .zone-label {
+        font-size: 7px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--accent);
+        opacity: 0.5;
+        text-align: center;
+        padding: 2px;
+      }
+
+      .zone .panel {
+        position: relative;
+        width: 100%;
+        flex-shrink: 0;
+      }
+
+      /* === C: Percentage === */
+      .pct-guide {
+        position: absolute;
+        font-size: 7px;
+        color: var(--gold);
+        opacity: 0.5;
+      }
+
+      .pct-line {
+        position: absolute;
+        border: 1px dashed rgba(212, 168, 67, 0.15);
+      }
+
+      /* === D: Constraint === */
+      .constraint-arrow {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        font-size: 7px;
+        color: var(--green);
+        opacity: 0.6;
+      }
+
+      .constraint-line {
+        position: absolute;
+        border-top: 1px dashed rgba(90, 187, 120, 0.3);
+      }
+
+      .constraint-label {
+        position: absolute;
+        font-size: 7px;
+        color: var(--green);
+        opacity: 0.6;
+        background: rgba(13, 13, 26, 0.8);
+        padding: 1px 4px;
+        border-radius: 2px;
+        white-space: nowrap;
+      }
+
+      /* Traits table */
+      .traits {
+        padding: 14px 16px;
+        border-top: 1px solid var(--border);
+      }
+
+      .trait-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px 0;
+        font-size: 11px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      }
+
+      .trait-row:last-child {
+        border-bottom: none;
+      }
+
+      .trait-label {
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+
+      .trait-value {
+        text-align: right;
+      }
+
+      .good {
+        color: var(--green);
+      }
+      .mid {
+        color: var(--gold);
+      }
+      .bad {
+        color: var(--red);
+      }
+      .neutral {
+        color: var(--text-muted);
+      }
+
+      /* Code snippet */
+      .code {
+        margin: 0 12px 12px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 6px;
+        padding: 10px 12px;
+        font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        font-size: 10px;
+        line-height: 1.6;
+        color: var(--text-muted);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        overflow-x: auto;
+      }
+
+      .code .kw {
+        color: var(--accent);
+      }
+      .code .str {
+        color: var(--green);
+      }
+      .code .num {
+        color: var(--gold);
+      }
+      .code .comment {
+        color: rgba(255, 255, 255, 0.2);
+        font-style: italic;
+      }
+
+      /* === Bottom: Comparison summary === */
+      .summary {
+        margin-top: 36px;
+        max-width: 1100px;
+        margin-left: auto;
+        margin-right: auto;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+
+      .summary-title {
+        font-size: 14px;
+        font-weight: 600;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: 140px repeat(4, 1fr);
+        font-size: 11px;
+      }
+
+      .summary-grid .header {
+        padding: 10px 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 9px;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      .summary-grid .cell {
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        border-right: 1px solid rgba(255, 255, 255, 0.02);
+        line-height: 1.5;
+      }
+
+      .summary-grid .cell:last-child {
+        border-right: none;
+      }
+
+      .summary-grid .row-label {
+        padding: 8px 12px;
+        font-weight: 500;
+        color: var(--text-muted);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        border-right: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.01);
+      }
+
+      .pill {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 600;
+      }
+
+      .pill-good {
+        background: rgba(90, 187, 120, 0.12);
+        color: var(--green);
+      }
+      .pill-mid {
+        background: rgba(212, 168, 67, 0.12);
+        color: var(--gold);
+      }
+      .pill-bad {
+        background: rgba(224, 90, 90, 0.12);
+        color: var(--red);
+      }
+
+      /* Recommendation */
+      .recommendation {
+        margin-top: 28px;
+        max-width: 1100px;
+        margin-left: auto;
+        margin-right: auto;
+        background: rgba(168, 124, 219, 0.06);
+        border: 1px solid var(--border-accent);
+        border-radius: 14px;
+        padding: 20px 24px;
+      }
+
+      .rec-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 10px;
+      }
+
+      .rec-body {
+        font-size: 12px;
+        line-height: 1.7;
+        color: var(--text);
+      }
+
+      .rec-body strong {
+        color: var(--accent);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Layout Positioning Models — Comparison</h1>
+    <div class="subtitle">替代像素绝对定位的四种方案</div>
+
+    <div class="grid">
+      <!-- A: Anchor + Offset -->
+      <div class="approach">
+        <div class="approach-header">
+          <div class="approach-letter letter-a">A</div>
+          <div>
+            <div class="approach-title">Anchor + Offset</div>
+            <div class="approach-desc">相对锚点定位，自适应不同屏幕</div>
+          </div>
+        </div>
+
+        <div class="demo">
+          <div class="demo-grid"></div>
+          <!-- Anchor point top-right -->
+          <div class="anchor-dot" style="top: 0; right: 0"></div>
+          <div class="anchor-line" style="top: 0; right: 140px; width: 1px; height: 36px"></div>
+          <div class="anchor-line" style="top: 36px; right: 0; width: 140px; height: 1px"></div>
+          <div class="anchor-label" style="top: 12px; right: 145px">offset-y: 36</div>
+          <div class="anchor-label" style="top: 40px; right: 48px">offset-x: -140</div>
+
+          <div class="panel" style="top: 36px; right: 140px; width: 150px">
+            <div class="panel-title">Fear Tracker</div>
+            <div class="panel-content">Fear: 3/5<br />HP: 18/25</div>
+          </div>
+
+          <!-- Anchor point bottom-left -->
+          <div class="anchor-dot" style="bottom: 0; left: 0"></div>
+          <div class="panel" style="bottom: 30px; left: 16px; width: 130px">
+            <div class="panel-title">Combat Log</div>
+            <div class="panel-content">Kael attacks...<br />Hit 16</div>
+          </div>
+          <div class="anchor-label" style="bottom: 8px; left: 8px">anchor: bottom-left</div>
+        </div>
+
+        <div class="code">
+          { <span class="kw">anchor</span>: <span class="str">'top-right'</span>,<br />
+          &nbsp;&nbsp;<span class="kw">offset</span>: { x: <span class="num">-140</span>, y:
+          <span class="num">36</span> } }
+        </div>
+
+        <div class="traits">
+          <div class="trait-row">
+            <span class="trait-label">用户自由度</span>
+            <span class="trait-value good">高 — 自由拖拽</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">同形态适配</span>
+            <span class="trait-value good">好 — 1080p↔4K</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">跨形态适配</span>
+            <span class="trait-value bad">差 — 桌面↔手机</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">实现复杂度</span>
+            <span class="trait-value good">低</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">面板互不遮挡</span>
+            <span class="trait-value bad">不保证</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- B: Zone/Grid -->
+      <div class="approach">
+        <div class="approach-header">
+          <div class="approach-letter letter-b">B</div>
+          <div>
+            <div class="approach-title">Zone / Grid</div>
+            <div class="approach-desc">屏幕分区，面板在区域内流式排列</div>
+          </div>
+        </div>
+
+        <div class="demo">
+          <div class="demo-grid"></div>
+
+          <div class="zone zone-left">
+            <div class="zone-label">Left</div>
+            <div class="panel">
+              <div class="panel-title">Combat Log</div>
+              <div class="panel-content">Kael attacks...</div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">Initiative</div>
+              <div class="panel-content">1. Kael 2. Wraith</div>
+            </div>
+          </div>
+
+          <div class="zone zone-center">
+            <div class="zone-label">Center — Scene</div>
+          </div>
+
+          <div class="zone zone-right">
+            <div class="zone-label">Right</div>
+            <div class="panel">
+              <div class="panel-title">Fear Tracker</div>
+              <div class="panel-content">Fear: 3/5<br />HP: 18/25<br />Armor: 14</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code">
+          { <span class="kw">zone</span>: <span class="str">'right'</span>,<br />
+          &nbsp;&nbsp;<span class="kw">order</span>: <span class="num">1</span> }<br />
+          <span class="comment">// 区域内自动排列，不重叠</span>
+        </div>
+
+        <div class="traits">
+          <div class="trait-row">
+            <span class="trait-label">用户自由度</span>
+            <span class="trait-value mid">中 — 限于区域内</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">同形态适配</span>
+            <span class="trait-value good">好</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">跨形态适配</span>
+            <span class="trait-value good">好 — 区域可重映射</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">实现复杂度</span>
+            <span class="trait-value mid">中</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">面板互不遮挡</span>
+            <span class="trait-value good">保证</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- C: Percentage -->
+      <div class="approach">
+        <div class="approach-header">
+          <div class="approach-letter letter-c">C</div>
+          <div>
+            <div class="approach-title">Percentage</div>
+            <div class="approach-desc">位置用百分比表达，等比缩放</div>
+          </div>
+        </div>
+
+        <div class="demo">
+          <div class="demo-grid"></div>
+
+          <!-- Percentage guides -->
+          <div class="pct-line" style="left: 25%; top: 0; bottom: 0; width: 0"></div>
+          <div class="pct-line" style="left: 50%; top: 0; bottom: 0; width: 0"></div>
+          <div class="pct-line" style="left: 75%; top: 0; bottom: 0; width: 0"></div>
+          <div class="pct-line" style="top: 33%; left: 0; right: 0; height: 0"></div>
+          <div class="pct-line" style="top: 66%; left: 0; right: 0; height: 0"></div>
+
+          <div class="pct-guide" style="top: 2px; left: 25%">25%</div>
+          <div class="pct-guide" style="top: 2px; left: 50%">50%</div>
+          <div class="pct-guide" style="top: 2px; left: 75%">75%</div>
+
+          <div class="panel" style="left: 65%; top: 10%; width: 28%">
+            <div class="panel-title">Fear Tracker</div>
+            <div class="panel-content">Fear: 3/5<br />HP: 18/25</div>
+          </div>
+
+          <div class="panel" style="left: 5%; top: 55%; width: 25%">
+            <div class="panel-title">Combat Log</div>
+            <div class="panel-content">Kael attacks...</div>
+          </div>
+        </div>
+
+        <div class="code">
+          { <span class="kw">x</span>: <span class="str">'65%'</span>, <span class="kw">y</span>:
+          <span class="str">'10%'</span>,<br />
+          &nbsp;&nbsp;<span class="kw">width</span>: <span class="str">'28%'</span> }
+        </div>
+
+        <div class="traits">
+          <div class="trait-row">
+            <span class="trait-label">用户自由度</span>
+            <span class="trait-value good">高 — 自由拖拽</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">同形态适配</span>
+            <span class="trait-value mid">尚可 — 比例不变</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">跨形态适配</span>
+            <span class="trait-value bad">差 — 小屏面板太小</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">实现复杂度</span>
+            <span class="trait-value good">极低</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">面板互不遮挡</span>
+            <span class="trait-value bad">不保证</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- D: Constraint -->
+      <div class="approach">
+        <div class="approach-header">
+          <div class="approach-letter letter-d">D</div>
+          <div>
+            <div class="approach-title">Constraint System</div>
+            <div class="approach-desc">面板之间定义关系，引擎求解位置</div>
+          </div>
+        </div>
+
+        <div class="demo">
+          <div class="demo-grid"></div>
+
+          <div class="panel" style="right: 12px; top: 20px; width: 140px" id="p1">
+            <div class="panel-title">Fear Tracker</div>
+            <div class="panel-content">Fear: 3/5<br />HP: 18/25</div>
+          </div>
+
+          <div class="panel" style="right: 12px; top: 108px; width: 140px" id="p2">
+            <div class="panel-title">Spell List</div>
+            <div class="panel-content">3 prepared</div>
+          </div>
+
+          <!-- Constraint arrows -->
+          <div
+            class="constraint-line"
+            style="
+              right: 82px;
+              top: 96px;
+              width: 1px;
+              height: 12px;
+              border-top: none;
+              border-left: 1px dashed rgba(90, 187, 120, 0.3);
+            "
+          ></div>
+          <div class="constraint-label" style="right: 90px; top: 98px">gap: 8px</div>
+
+          <div class="constraint-line" style="right: 0; top: 20px; width: 12px"></div>
+          <div class="constraint-label" style="right: 0; top: 8px">edge: 12px</div>
+
+          <div class="panel" style="left: 12px; bottom: 20px; width: 130px">
+            <div class="panel-title">Combat Log</div>
+            <div class="panel-content">Kael attacks...</div>
+          </div>
+        </div>
+
+        <div class="code">
+          { <span class="kw">below</span>: <span class="str">'fear-tracker'</span>,<br />
+          &nbsp;&nbsp;<span class="kw">alignRight</span>:
+          <span class="str">'fear-tracker'</span>,<br />
+          &nbsp;&nbsp;<span class="kw">gap</span>: <span class="num">8</span> }
+        </div>
+
+        <div class="traits">
+          <div class="trait-row">
+            <span class="trait-label">用户自由度</span>
+            <span class="trait-value mid">中 — 受约束限制</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">同形态适配</span>
+            <span class="trait-value good">好</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">跨形态适配</span>
+            <span class="trait-value mid">中 — 需重定义约束</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">实现复杂度</span>
+            <span class="trait-value bad">高 — 求解器</span>
+          </div>
+          <div class="trait-row">
+            <span class="trait-label">面板互不遮挡</span>
+            <span class="trait-value good">可保证</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary comparison table -->
+    <div class="summary">
+      <div class="summary-title">&#9878; 综合对比</div>
+      <div class="summary-grid">
+        <div class="header"></div>
+        <div class="header" style="color: var(--blue)">A. Anchor</div>
+        <div class="header" style="color: var(--accent)">B. Zone</div>
+        <div class="header" style="color: var(--gold)">C. Percent</div>
+        <div class="header" style="color: var(--green)">D. Constraint</div>
+
+        <div class="row-label">桌面体验</div>
+        <div class="cell"><span class="pill pill-good">自由拖拽</span></div>
+        <div class="cell"><span class="pill pill-mid">区域内排列</span></div>
+        <div class="cell"><span class="pill pill-good">自由拖拽</span></div>
+        <div class="cell"><span class="pill pill-mid">有序排列</span></div>
+
+        <div class="row-label">移动端适配</div>
+        <div class="cell"><span class="pill pill-bad">需另一套</span></div>
+        <div class="cell"><span class="pill pill-good">区域重映射</span></div>
+        <div class="cell"><span class="pill pill-bad">面板太小</span></div>
+        <div class="cell"><span class="pill pill-mid">需重定义</span></div>
+
+        <div class="row-label">面板防遮挡</div>
+        <div class="cell"><span class="pill pill-bad">不保证</span></div>
+        <div class="cell"><span class="pill pill-good">自动避让</span></div>
+        <div class="cell"><span class="pill pill-bad">不保证</span></div>
+        <div class="cell"><span class="pill pill-good">可保证</span></div>
+
+        <div class="row-label">实现难度</div>
+        <div class="cell"><span class="pill pill-good">1 周</span></div>
+        <div class="cell"><span class="pill pill-mid">2-3 周</span></div>
+        <div class="cell"><span class="pill pill-good">3 天</span></div>
+        <div class="cell"><span class="pill pill-bad">4-6 周</span></div>
+
+        <div class="row-label">与"布局插件"兼容</div>
+        <div class="cell"><span class="pill pill-good">完全兼容</span></div>
+        <div class="cell"><span class="pill pill-mid">区域即插件</span></div>
+        <div class="cell"><span class="pill pill-good">完全兼容</span></div>
+        <div class="cell"><span class="pill pill-mid">约束需协调</span></div>
+
+        <div class="row-label">VTT 沉浸感</div>
+        <div class="cell"><span class="pill pill-good">场景完整</span></div>
+        <div class="cell"><span class="pill pill-mid">边缘被占</span></div>
+        <div class="cell"><span class="pill pill-good">场景完整</span></div>
+        <div class="cell"><span class="pill pill-good">场景完整</span></div>
+      </div>
+    </div>
+
+    <!-- Recommendation -->
+    <div class="recommendation">
+      <div class="rec-title">&#10148; 建议方向：A + B 混合</div>
+      <div class="rec-body">
+        <strong>桌面</strong>：Anchor + Offset 为基础（自由拖拽，保持沉浸感），可选 Zone
+        排列模式。<br />
+        <strong>移动</strong>：独立的 Zone 布局（面板自动映射为底部抽屉、全屏 sheet 等）。<br />
+        <strong>关键</strong>：两套布局共享同一份面板注册，只是 Layout Engine 不同。<br />
+        这也符合之前的"布局引擎本身也是插件"的架构——桌面布局引擎和移动布局引擎是两个可替换的布局插件。
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated -- Tests exercise deprecated registerComponent backward-compat path */
 // src/ui-system/__tests__/production-wiring.test.ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { getUIRegistry, createProductionSDK, _resetRegistriesForTesting } from '../uiSystemInit'
@@ -19,13 +20,20 @@ describe('production wiring integration', () => {
     const store = createLayoutStore()
     store.getState().loadLayout({
       narrative: {
-        'poc-ui.hello#1': { x: 10, y: 20, width: 240, height: 140, zOrder: 0 },
+        'poc-ui.hello#1': {
+          anchor: 'top-left' as const,
+          offsetX: 10,
+          offsetY: 20,
+          width: 240,
+          height: 140,
+          zOrder: 0,
+        },
       },
       tactical: {},
     })
     const active = store.getState().activeLayout
     expect(active).toHaveProperty('poc-ui.hello#1')
-    expect(active['poc-ui.hello#1']!.x).toBe(10)
+    expect(active['poc-ui.hello#1']!.offsetX).toBe(10)
   })
 
   it('createProductionSDK provides full IComponentSDK with all required fields', () => {
@@ -118,7 +126,16 @@ describe('production wiring integration', () => {
   it('layout edit cycle: load → edit → update → exit preserves changes', () => {
     const store = createLayoutStore()
     store.getState().loadLayout({
-      narrative: { 'a#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 } },
+      narrative: {
+        'a#1': {
+          anchor: 'top-left' as const,
+          offsetX: 0,
+          offsetY: 0,
+          width: 100,
+          height: 100,
+          zOrder: 0,
+        },
+      },
       tactical: {},
     })
 
@@ -127,23 +144,41 @@ describe('production wiring integration', () => {
     expect(store.getState().layoutMode).toBe('edit')
 
     // Drag panel
-    store.getState().updateEntry('a#1', { x: 50, y: 50 })
-    expect(store.getState().narrative['a#1']!.x).toBe(50)
+    store.getState().updateEntry('a#1', { offsetX: 50, offsetY: 50 })
+    expect(store.getState().narrative['a#1']!.offsetX).toBe(50)
 
     // Exit edit mode
     store.getState().setLayoutMode('play')
     expect(store.getState().layoutMode).toBe('play')
 
     // Changes preserved
-    expect(store.getState().narrative['a#1']!.x).toBe(50)
-    expect(store.getState().narrative['a#1']!.y).toBe(50)
+    expect(store.getState().narrative['a#1']!.offsetX).toBe(50)
+    expect(store.getState().narrative['a#1']!.offsetY).toBe(50)
   })
 
   it('layout mode switch: narrative ↔ tactical', () => {
     const store = createLayoutStore()
     store.getState().loadLayout({
-      narrative: { 'chat#1': { x: 0, y: 0, width: 300, height: 400, zOrder: 0 } },
-      tactical: { 'map#1': { x: 10, y: 10, width: 500, height: 500, zOrder: 1 } },
+      narrative: {
+        'chat#1': {
+          anchor: 'top-left' as const,
+          offsetX: 0,
+          offsetY: 0,
+          width: 300,
+          height: 400,
+          zOrder: 0,
+        },
+      },
+      tactical: {
+        'map#1': {
+          anchor: 'top-left' as const,
+          offsetX: 10,
+          offsetY: 10,
+          width: 500,
+          height: 500,
+          zOrder: 1,
+        },
+      },
     })
 
     // Default: narrative
@@ -163,18 +198,27 @@ describe('production wiring integration', () => {
   it('remote layout:updated is blocked in edit mode', () => {
     const store = createLayoutStore()
     store.getState().loadLayout({
-      narrative: { 'a#1': { x: 0, y: 0, width: 100, height: 100, zOrder: 0 } },
+      narrative: {
+        'a#1': {
+          anchor: 'top-left' as const,
+          offsetX: 0,
+          offsetY: 0,
+          width: 100,
+          height: 100,
+          zOrder: 0,
+        },
+      },
       tactical: {},
     })
 
     // Enter edit mode, make local change
     store.getState().setLayoutMode('edit')
-    store.getState().updateEntry('a#1', { x: 77 })
+    store.getState().updateEntry('a#1', { offsetX: 77 })
 
     // Verify edit mode blocks remote — this tests the guard in worldStore
     // (socket listener checks layoutMode === 'edit' before calling loadLayout)
     expect(store.getState().layoutMode).toBe('edit')
-    expect(store.getState().narrative['a#1']!.x).toBe(77)
+    expect(store.getState().narrative['a#1']!.offsetX).toBe(77)
   })
 
   it('addEntry + removeEntry CRUD cycle', () => {
@@ -182,7 +226,14 @@ describe('production wiring integration', () => {
     store.getState().loadLayout({ narrative: {}, tactical: {} })
 
     // Add
-    store.getState().addEntry('new#1', { x: 10, y: 20, width: 200, height: 150, zOrder: 0 })
+    store.getState().addEntry('new#1', {
+      anchor: 'top-left' as const,
+      offsetX: 10,
+      offsetY: 20,
+      width: 200,
+      height: 150,
+      zOrder: 0,
+    })
     expect(store.getState().narrative).toHaveProperty('new#1')
 
     // Remove
@@ -232,8 +283,9 @@ describe('production wiring integration', () => {
           const def = registry.getComponent(componentId)
           const key = `${componentId}#${Date.now()}`
           store.getState().addEntry(key, {
-            x: position?.x ?? 100,
-            y: position?.y ?? 100,
+            anchor: position?.anchor ?? ('top-left' as const),
+            offsetX: position?.offsetX ?? 100,
+            offsetY: position?.offsetY ?? 100,
             width: def?.defaultSize.width ?? 200,
             height: def?.defaultSize.height ?? 150,
             zOrder: 0,
@@ -246,12 +298,12 @@ describe('production wiring integration', () => {
       logSubscribe: null,
     })
 
-    sdk.ui.openPanel('test.positioned', {}, { x: 300, y: 400 })
+    sdk.ui.openPanel('test.positioned', {}, { anchor: 'top-left', offsetX: 300, offsetY: 400 })
 
     const layout = store.getState().activeLayout
     const keys = Object.keys(layout)
     expect(keys).toHaveLength(1)
-    expect(layout[keys[0]!]!.x).toBe(300)
-    expect(layout[keys[0]!]!.y).toBe(400)
+    expect(layout[keys[0]!]!.offsetX).toBe(300)
+    expect(layout[keys[0]!]!.offsetY).toBe(400)
   })
 })

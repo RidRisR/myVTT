@@ -2,6 +2,7 @@
 // No imports from workflow/ — this file is imported by workflow/types.ts
 import type React from 'react'
 import type { InputHandlerDef } from './inputHandlerTypes'
+import type { AnchorPoint, RegionLayer } from './regionTypes'
 
 export type ZLayer = 'below-canvas' | 'above-canvas' | 'above-ui'
 
@@ -35,8 +36,20 @@ export interface LayerDef {
   pointerEvents?: boolean // default false
 }
 
+export interface RegionDef {
+  id: string
+  // sdk typed as unknown: avoids circular dep (same pattern as ComponentDef)
+  component: React.ComponentType<{ sdk: unknown }>
+  lifecycle: 'persistent' | 'on-demand'
+  defaultSize: { width: number; height: number }
+  minSize?: { width: number; height: number }
+  defaultPlacement?: { anchor: AnchorPoint; offsetX?: number; offsetY?: number }
+  layer: RegionLayer
+}
+
 export interface IUIRegistrationSDK {
-  registerComponent(def: ComponentDef): void
+  /** Register a Region (new API, replaces registerComponent) */
+  registerRegion(def: RegionDef): void
   registerLayer(def: LayerDef): void
   registerRenderer(
     surface: string,
@@ -50,4 +63,6 @@ export interface IUIRegistrationSDK {
     value: T,
   ): void
   registerInputHandler(inputType: string, def: InputHandlerDef): void
+  /** @deprecated Use registerRegion instead */
+  registerComponent(def: ComponentDef): void
 }

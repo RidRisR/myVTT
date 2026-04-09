@@ -4,6 +4,7 @@ import type { IWorkflowRunner, IDataReader } from '../workflow/types'
 import type { Entity } from '../shared/entityTypes'
 import type { ComponentTypeMap } from '../shared/componentTypes'
 import type { GameLogEntry } from '../shared/logTypes'
+import type { AnchorPoint } from './regionTypes'
 
 export interface DnDPayload {
   /** Identifies the type of dragged item; drop zones use this for filtering */
@@ -18,8 +19,16 @@ export type {
   DefaultPlacement,
   ComponentDef,
   LayerDef,
+  RegionDef,
   IUIRegistrationSDK,
 } from './registrationTypes'
+export type {
+  AnchorPoint,
+  RegionLayer,
+  Viewport,
+  RegionLayoutEntry,
+  RegionLayoutConfig,
+} from './regionTypes'
 export type {
   InputResult,
   InputHandlerProps,
@@ -151,7 +160,7 @@ export interface IComponentSDK {
     openPanel(
       componentId: string,
       instanceProps?: Record<string, unknown>,
-      position?: { x: number; y: number },
+      position?: { anchor: AnchorPoint; offsetX?: number; offsetY?: number },
     ): string
     closePanel(instanceKey: string): void
   }
@@ -163,4 +172,20 @@ export interface ComponentProps {
 
 export interface LayerProps {
   layoutMode: 'play' | 'edit'
+}
+
+/** Extended SDK for Region components — adds resize and portal support */
+export interface IRegionSDK extends Omit<IComponentSDK, 'ui'> {
+  ui: {
+    openPanel(
+      regionId: string,
+      instanceProps?: Record<string, unknown>,
+      position?: { anchor: AnchorPoint; offsetX?: number; offsetY?: number },
+    ): string
+    closePanel(instanceKey: string): void
+    /** Dynamically resize this region. Clamped to minSize. */
+    resize(size: { width?: number; height?: number }): void
+    /** Get the portal container for this region (for Radix/floating UI) */
+    getPortalContainer(): HTMLElement
+  }
 }

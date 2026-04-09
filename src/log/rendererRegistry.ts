@@ -26,7 +26,7 @@ export function createRendererPoint<T>(surface: string, type: string): RendererP
 const registry = new Map<string, any[]>()
 
 /** Surfaces that support multiple registrations under the same key. */
-const multiSurfaces = new Set(['entity', 'combat'])
+const multiSurfaces = new Set(['entity', 'combat', 'ui-slot'])
 
 function key(surface: string, type: string): string {
   return `${surface}::${type}`

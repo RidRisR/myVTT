@@ -2,7 +2,7 @@
 import { UIRegistry } from './registry'
 import { createDragInitiator } from './LayoutEditor'
 import { makeDnDSDK } from './dnd'
-import type { IComponentSDK } from './types'
+import type { IComponentSDK, IRegionSDK, AnchorPoint } from './types'
 import type { IDataReader, IWorkflowRunner } from '../workflow/types'
 import type { AwarenessManager } from './awarenessChannel'
 import type { Entity } from '../shared/entityTypes'
@@ -33,7 +33,7 @@ export interface SDKFactoryArgs {
     openPanel(
       componentId: string,
       instanceProps?: Record<string, unknown>,
-      position?: { x: number; y: number },
+      position?: { anchor: AnchorPoint; offsetX?: number; offsetY?: number },
     ): string
     closePanel(instanceKey: string): void
   } | null
@@ -116,6 +116,41 @@ export function createProductionSDK(args: SDKFactoryArgs): IComponentSDK {
     ui: args.layoutActions ?? {
       openPanel: () => '',
       closePanel: () => {},
+    },
+  }
+}
+
+export interface RegionSDKFactoryArgs extends SDKFactoryArgs {
+  onResize?: (size: { width?: number; height?: number }) => void
+  getPortalContainer?: () => HTMLElement
+  minSize?: { width: number; height: number }
+}
+
+export function createRegionSDK(args: RegionSDKFactoryArgs): IRegionSDK {
+  const base = createProductionSDK(args)
+  return {
+    ...base,
+    ui: {
+      openPanel: (regionId, instanceProps, position) => {
+        if (!args.layoutActions) return ''
+        return args.layoutActions.openPanel(regionId, instanceProps, position)
+      },
+      closePanel: (instanceKey) => {
+        if (!args.layoutActions) return
+        args.layoutActions.closePanel(instanceKey)
+      },
+      resize: (size) => {
+        if (!args.onResize) return
+        const clamped: { width?: number; height?: number } = {
+          width: size.width != null ? Math.max(size.width, args.minSize?.width ?? 0) : undefined,
+          height:
+            size.height != null ? Math.max(size.height, args.minSize?.height ?? 0) : undefined,
+        }
+        args.onResize(clamped)
+      },
+      getPortalContainer: () => {
+        return args.getPortalContainer ? args.getPortalContainer() : document.body
+      },
     },
   }
 }

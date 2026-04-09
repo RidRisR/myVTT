@@ -19,7 +19,7 @@ Each room selects a rule system at creation time (`room_state.rule_system_id`), 
 │  ├─ sdk.addStep/attachStep()   extend existing workflows     │
 │  ├─ sdk.registerCommand()      chat commands (.dd, .r)       │
 │  ├─ sdk.registerTrigger()      log-driven triggers           │
-│  ├─ sdk.ui.registerComponent() panels/overlays               │
+│  ├─ sdk.ui.registerRegion()    regions (panels/overlays)      │
 │  ├─ sdk.ui.registerLayer()     full-screen layers            │
 │  ├─ sdk.ui.registerRenderer()  log cards, entity bindings    │
 │  └─ sdk.ui.registerInputHandler() workflow input UI          │
@@ -35,7 +35,7 @@ Each room selects a rule system at creation time (`room_state.rule_system_id`), 
 │     ├─ roll                 └─ formulaTokens()               │
 │     ├─ quick-roll                                            │
 │     ├─ core:set-selection   UIRegistry                       │
-│     └─ core:send-text       ├─ components (panels)           │
+│     └─ core:send-text       ├─ regions (anchor-positioned)   │
 │                             ├─ layers                        │
 │  RendererRegistry            └─ inputHandlers                │
 │  ├─ chat surface renderers                                   │
@@ -111,12 +111,13 @@ The SDK is passed to `onActivate`. It provides workflow manipulation, command/tr
 
 ### UI Registration (`sdk.ui`)
 
-| Method                                       | Purpose                                                                                              |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `registerComponent(def)`                     | Register a panel/overlay component (`ComponentDef`).                                                 |
-| `registerLayer(def)`                         | Register a full-screen layer (`LayerDef`) at a z-order (`below-canvas`, `above-canvas`, `above-ui`). |
-| `registerRenderer(surface, type, component)` | Register a log entry renderer (string API) or a typed binding (RendererPoint API).                   |
-| `registerInputHandler(inputType, def)`       | Register an input handler component for `ctx.requestInput(inputType)`.                               |
+| Method                                       | Purpose                                                                                                                                             |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `registerRegion(def)`                        | Register a region (`RegionDef`) with anchor-based positioning, lifecycle (`persistent`/`on-demand`), and layer (`background`/`standard`/`overlay`). |
+| `registerComponent(def)` _(deprecated)_      | Legacy wrapper — calls `registerRegion` internally. Use `registerRegion` for new code.                                                              |
+| `registerLayer(def)`                         | Register a full-screen layer (`LayerDef`) at a z-order (`below-canvas`, `above-canvas`, `above-ui`).                                                |
+| `registerRenderer(surface, type, component)` | Register a log entry renderer (string API) or a typed binding (RendererPoint API).                                                                  |
+| `registerInputHandler(inputType, def)`       | Register an input handler component for `ctx.requestInput(inputType)`.                                                                              |
 
 ---
 
@@ -173,9 +174,9 @@ Each step's `run` function receives a `WorkflowContext` providing:
 
 ---
 
-## IComponentSDK — Panel Runtime API
+## IRegionSDK — Region Runtime API
 
-Panels registered via `registerComponent` receive an `IComponentSDK` (`src/ui-system/types.ts`):
+Regions registered via `registerRegion` receive an `IRegionSDK` (`src/ui-system/types.ts`), which extends `IComponentSDK`:
 
 | Namespace     | Methods                                                                                                         |
 | ------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -186,7 +187,7 @@ Panels registered via `registerComponent` receive an `IComponentSDK` (`src/ui-sy
 | `interaction` | Drag-and-drop (`dnd.makeDraggable()`, `dnd.makeDropZone()`), panel drag (`layout.startDrag()`) — play mode only |
 | `awareness`   | Ephemeral real-time state (`subscribe`, `broadcast`, `clear`, `usePeers`)                                       |
 | `log`         | Log stream (`subscribe(pattern, handler)`, `useEntries(pattern, options)`)                                      |
-| `ui`          | Panel management (`openPanel()`, `closePanel()`)                                                                |
+| `ui`          | Region management (`openPanel()`, `closePanel()`, `resize()`, `getPortalContainer()`)                           |
 
 ---
 
@@ -247,25 +248,33 @@ Additionally, `plugins/poc-ui/` contains a proof-of-concept plugin (`poc-ui`) wi
 
 ## File Map
 
-| Path                                    | Purpose                                                                           |
-| --------------------------------------- | --------------------------------------------------------------------------------- |
-| `src/rules/types.ts`                    | `VTTPlugin` interface and all plugin-facing type definitions                      |
-| `src/rules/registry.ts`                 | Static plugin registration (`registerWorkflowPlugins`)                            |
-| `src/rules/sdk.ts`                      | `@myvtt/sdk` barrel — the only legal import path for plugins                      |
-| `src/workflow/types.ts`                 | `IPluginSDK`, `WorkflowContext`, `WorkflowHandle`, `IDataReader`                  |
-| `src/workflow/engine.ts`                | `WorkflowEngine` — step registration, ordering, execution                         |
-| `src/workflow/pluginSDK.ts`             | `PluginSDK` class (registration-time) and `WorkflowRunner` class (execution-time) |
-| `src/workflow/baseWorkflows.ts`         | Base workflows: `roll`, `quick-roll`, `core:set-selection`, `core:send-text`      |
-| `src/workflow/useWorkflowSDK.ts`        | `initWorkflowSystem()`, `startWorkflowTriggers()`, `useWorkflowRunner()`          |
-| `src/workflow/triggerRegistry.ts`       | `TriggerRegistry` — log-entry-to-workflow matching                                |
-| `src/workflow/logStreamDispatcher.ts`   | `LogStreamDispatcher` — subscribes to log stream, dispatches triggers             |
-| `src/log/rendererRegistry.ts`           | `RendererRegistry` — typed multi-surface renderer registration                    |
-| `src/log/entityBindings.ts`             | Entity binding `RendererPoint` tokens and utility functions                       |
-| `src/ui-system/registry.ts`             | `UIRegistry` — component, layer, and input handler storage                        |
-| `src/ui-system/registrationTypes.ts`    | `IUIRegistrationSDK`, `ComponentDef`, `LayerDef`                                  |
-| `src/ui-system/types.ts`                | `IComponentSDK`, `IDnDSDK`, `IReactiveDataSDK`                                    |
-| `src/ui-system/inputHandlerTypes.ts`    | `InputHandlerDef`, `InputHandlerProps`, `InputResult`                             |
-| `plugins/generic/vttPlugin.ts`          | Generic rule system plugin                                                        |
-| `plugins/daggerheart-core/index.ts`     | Daggerheart core plugin                                                           |
-| `plugins/daggerheart-cosmetic/index.ts` | Daggerheart cosmetic plugin                                                       |
-| `plugins/core-ui/index.ts`              | Core UI plugin                                                                    |
+| Path                                    | Purpose                                                                             |
+| --------------------------------------- | ----------------------------------------------------------------------------------- |
+| `src/rules/types.ts`                    | `VTTPlugin` interface and all plugin-facing type definitions                        |
+| `src/rules/registry.ts`                 | Static plugin registration (`registerWorkflowPlugins`)                              |
+| `src/rules/sdk.ts`                      | `@myvtt/sdk` barrel — the only legal import path for plugins                        |
+| `src/workflow/types.ts`                 | `IPluginSDK`, `WorkflowContext`, `WorkflowHandle`, `IDataReader`                    |
+| `src/workflow/engine.ts`                | `WorkflowEngine` — step registration, ordering, execution                           |
+| `src/workflow/pluginSDK.ts`             | `PluginSDK` class (registration-time) and `WorkflowRunner` class (execution-time)   |
+| `src/workflow/baseWorkflows.ts`         | Base workflows: `roll`, `quick-roll`, `core:set-selection`, `core:send-text`        |
+| `src/workflow/useWorkflowSDK.ts`        | `initWorkflowSystem()`, `startWorkflowTriggers()`, `useWorkflowRunner()`            |
+| `src/workflow/triggerRegistry.ts`       | `TriggerRegistry` — log-entry-to-workflow matching                                  |
+| `src/workflow/logStreamDispatcher.ts`   | `LogStreamDispatcher` — subscribes to log stream, dispatches triggers               |
+| `src/log/rendererRegistry.ts`           | `RendererRegistry` — typed multi-surface renderer registration                      |
+| `src/log/entityBindings.ts`             | Entity binding `RendererPoint` tokens and utility functions                         |
+| `src/ui-system/registry.ts`             | `UIRegistry` — region, layer, and input handler storage                             |
+| `src/ui-system/registrationTypes.ts`    | `IUIRegistrationSDK`, `RegionDef`, `ComponentDef` (deprecated), `LayerDef`          |
+| `src/ui-system/types.ts`                | `IRegionSDK`, `IComponentSDK`, `IDnDSDK`, `IReactiveDataSDK`                        |
+| `src/ui-system/regionTypes.ts`          | `AnchorPoint`, `RegionLayer`, `Viewport`, `RegionLayoutEntry`, `RegionLayoutConfig` |
+| `src/ui-system/layoutEngine.ts`         | Pure layout functions: `resolvePosition`, `inferAnchor`, `clampToViewport`          |
+| `src/ui-system/layoutMigration.ts`      | Legacy `{x,y}` → anchor-based layout migration                                      |
+| `src/ui-system/portalManager.ts`        | Per-region portal containers with z-index layer ceilings                            |
+| `src/ui-system/RegionRenderer.tsx`      | Persistent region rendering with safety isolation                                   |
+| `src/ui-system/OnDemandHost.tsx`        | Ephemeral on-demand region instance rendering                                       |
+| `src/ui-system/RegionEditOverlay.tsx`   | Edit-mode drag + resize overlay (Pointer Events API)                                |
+| `src/ui-system/usePointerDrag.ts`       | Drag/resize handler utilities using `setPointerCapture`                             |
+| `src/ui-system/inputHandlerTypes.ts`    | `InputHandlerDef`, `InputHandlerProps`, `InputResult`                               |
+| `plugins/generic/vttPlugin.ts`          | Generic rule system plugin                                                          |
+| `plugins/daggerheart-core/index.ts`     | Daggerheart core plugin                                                             |
+| `plugins/daggerheart-cosmetic/index.ts` | Daggerheart cosmetic plugin                                                         |
+| `plugins/core-ui/index.ts`              | Core UI plugin                                                                      |
