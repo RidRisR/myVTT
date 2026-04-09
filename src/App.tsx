@@ -28,7 +28,6 @@ import { GmSidebar } from './gm/GmSidebar'
 
 import { SceneButton } from './gm/SceneButton'
 import { HamburgerMenu } from './layout/HamburgerMenu'
-import { PortraitBar } from './layout/PortraitBar'
 import { MyCharacterCard } from './layout/MyCharacterCard'
 import * as Popover from '@radix-ui/react-popover'
 import { PopoverContent } from './ui/primitives/PopoverContent'
@@ -220,9 +219,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const updateSeat = useIdentityStore((s) => s.updateSeat)
 
   // UI store
-  const openCardId = useUiStore((s) => s.openCardId)
-  const closeCard = useUiStore((s) => s.closeCard)
-  const closePinnedCard = useUiStore((s) => s.closePinnedCard)
   const selectedTokenIds = useUiStore((s) => s.selectedTokenIds)
   const primarySelectedTokenId = useUiStore((s) => s.primarySelectedTokenId)
   const bgContextMenu = useUiStore((s) => s.bgContextMenu)
@@ -487,8 +483,6 @@ function RoomSession({ roomId }: { roomId: string }) {
 
   const handleRemoveFromScene = (entityId: string) => {
     if (room.activeSceneId) void removeEntityFromScene(room.activeSceneId, entityId)
-    if (openCardId === entityId) closeCard()
-    closePinnedCard(entityId)
   }
 
   const handleDeleteScene = (sceneId: string) => {
@@ -545,7 +539,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       .getState()
       .createEphemeralNpcInScene()
       .then((entity) => {
-        if (entity) useUiStore.getState().openCard(entity.id)
+        // TODO: re-implement card opening via plugin system
       })
   }
 
@@ -600,23 +594,7 @@ function RoomSession({ roomId }: { roomId: string }) {
           onLeaveSeat={leaveSeat}
         />
 
-        {/* Top-center: Portrait bar */}
-        <PortraitBar
-          entities={entitiesArray}
-          sceneEntityIds={sceneEntityIds}
-          sceneEntityEntries={sceneEntityEntries}
-          activeSceneId={room.activeSceneId}
-          mySeatId={mySeatId}
-          role={mySeat.role}
-          isGM={isGM}
-          onlineSeatIds={onlineSeatIds}
-          activeCharacterId={mySeat.activeCharacterId ?? null}
-          onSetActiveCharacter={handleSetActiveCharacter}
-          onRemoveFromScene={handleRemoveFromScene}
-          onUpdateEntity={handleUpdateEntity}
-          isTactical={isTactical}
-          tacticalInfo={tacticalInfo}
-        />
+        {/* Top-center: Portrait bar — removed, will be re-implemented as plugin region */}
 
         {/* Top-right: Team dashboard */}
         <TeamDashboard roomId={roomId} isGM={isGM} />
