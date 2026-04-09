@@ -171,7 +171,7 @@ describe('clampToViewport', () => {
 })
 
 describe('layerBaseZ', () => {
-  it('background = 0', () => expect(layerBaseZ('background')).toBe(0))
-  it('standard = 1000', () => expect(layerBaseZ('standard')).toBe(1000))
-  it('overlay = 2000', () => expect(layerBaseZ('overlay')).toBe(2000))
+  it('background = 0', () => { expect(layerBaseZ('background')).toBe(0); })
+  it('standard = 1000', () => { expect(layerBaseZ('standard')).toBe(1000); })
+  it('overlay = 2000', () => { expect(layerBaseZ('overlay')).toBe(2000); })
 })

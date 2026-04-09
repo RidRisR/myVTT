@@ -41,11 +41,14 @@ import { TeamDashboard } from './team/TeamDashboard'
 import { ToastProvider } from './ui/ToastProvider'
 import { initWorkflowSystem, startWorkflowTriggers } from './workflow/useWorkflowSDK'
 import { useStore } from 'zustand'
-import { PanelRenderer } from './ui-system/PanelRenderer'
+import { RegionRenderer } from './ui-system/RegionRenderer'
+import { OnDemandHost } from './ui-system/OnDemandHost'
 import { LayerRenderer } from './ui-system/LayerRenderer'
 import { InputHandlerHost } from './ui-system/InputHandlerHost'
 import { getLayoutStore } from './stores/layoutStore'
-import { getUIRegistry, createProductionSDK } from './ui-system/uiSystemInit'
+import { getUIRegistry, createRegionSDK } from './ui-system/uiSystemInit'
+import { PortalManager } from './ui-system/portalManager'
+import type { AnchorPoint, IRegionSDK } from './ui-system/types'
 import { useLayoutSync } from './ui-system/useLayoutSync'
 
 // DEV-only: Sandbox pattern library. Vite replaces import.meta.env.DEV with
@@ -235,6 +238,21 @@ function RoomSession({ roomId }: { roomId: string }) {
   const uiRegistry = useMemo(() => getUIRegistry(), [])
   const activeLayout = useStore(layoutStore, (s) => s.activeLayout)
   const layoutMode = useStore(layoutStore, (s) => s.layoutMode)
+  const onDemandInstances = useStore(layoutStore, (s) => s.onDemandInstances)
+
+  // Viewport tracking for anchor-based layout
+  const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight })
+  useEffect(() => {
+    const handler = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+
+  // Portal manager for Radix/floating UI containers
+  const [portalManager] = useState(() => new PortalManager())
+  useEffect(() => {
+    return () => portalManager.dispose()
+  }, [portalManager])
 
   // Sync layoutStore.isTactical with worldStore tactical state
   useEffect(() => {
@@ -244,23 +262,33 @@ function RoomSession({ roomId }: { roomId: string }) {
   // Debounced layout persistence
   useLayoutSync(layoutStore, roomId, !!socket)
 
-  // Layout drag handler for edit mode
-  const handleLayoutDrag = useCallback(
-    (instanceKey: string, delta: { dx: number; dy: number }) => {
-      const entry = layoutStore.getState().activeLayout[instanceKey]
-      if (!entry) return
-      layoutStore.getState().updateEntry(instanceKey, {
-        x: entry.x + delta.dx,
-        y: entry.y + delta.dy,
-      })
+  // Anchor-based drag/resize handlers for edit mode
+  const handleDragEnd = useCallback(
+    (instanceKey: string, placement: { anchor: AnchorPoint; offsetX: number; offsetY: number }) => {
+      layoutStore.getState().updateEntry(instanceKey, placement)
     },
     [layoutStore],
   )
 
-  // Production makeSDK factory for PanelRenderer
-  const makeSDK = useCallback(
-    (instanceKey: string, instanceProps: Record<string, unknown>) =>
-      createProductionSDK({
+  const handleResize = useCallback(
+    (instanceKey: string, size: { width: number; height: number }) => {
+      layoutStore.getState().updateEntry(instanceKey, size)
+    },
+    [layoutStore],
+  )
+
+  // Region SDK factory for RegionRenderer + OnDemandHost
+  const makeRegionSDK = useCallback(
+    (instanceKey: string, instanceProps: Record<string, unknown>): IRegionSDK => {
+      const regionId = instanceKey.replace(/#[^#]*$/, '')
+      const def = uiRegistry.getRegion(regionId)
+
+      // Ensure portal container exists
+      if (!portalManager.getPortal(instanceKey)) {
+        portalManager.createPortal(instanceKey, def?.layer ?? 'standard')
+      }
+
+      return createRegionSDK({
         instanceKey,
         instanceProps,
         role: isGM ? 'GM' : 'Player',
@@ -273,14 +301,44 @@ function RoomSession({ roomId }: { roomId: string }) {
         },
         workflow: { runWorkflow: () => Promise.resolve({} as never) },
         awarenessManager: null,
-        layoutActions: null,
+        layoutActions: {
+          openPanel: (componentId, props, position) => {
+            const regDef = uiRegistry.getRegion(componentId)
+            if (!regDef) return ''
+
+            if (regDef.lifecycle === 'persistent') {
+              layoutStore.getState().updateEntry(componentId, { visible: true })
+              return componentId
+            }
+
+            // On-demand: create ephemeral instance
+            const key = `${componentId}#${Date.now().toString(36)}`
+            layoutStore.getState().openOnDemand(componentId, key, props ?? {})
+            return key
+          },
+          closePanel: (key) => {
+            if (key.includes('#')) {
+              layoutStore.getState().closeOnDemand(key)
+              portalManager.removePortal(key)
+            } else {
+              layoutStore.getState().updateEntry(key, { visible: false })
+            }
+          },
+        },
         logSubscribe: null,
-        onDrag: handleLayoutDrag,
+        onResize: (size) => {
+          layoutStore.getState().updateEntry(instanceKey, size)
+        },
+        getPortalContainer: () => {
+          return portalManager.getPortal(instanceKey) ?? document.body
+        },
+        minSize: def?.minSize,
         getEntities: () => useWorldStore.getState().entities,
         getLogEntries: () => useWorldStore.getState().logEntries,
         storeSubscribe: useWorldStore.subscribe,
-      }),
-    [isGM, layoutMode, entities, handleLayoutDrag],
+      })
+    },
+    [isGM, layoutMode, entities, layoutStore, uiRegistry, portalManager],
   )
   const setSelectedTokenIds = useUiStore((s) => s.setSelectedTokenIds)
   const setBgContextMenu = useUiStore((s) => s.setBgContextMenu)
@@ -688,12 +746,21 @@ function RoomSession({ roomId }: { roomId: string }) {
       {/* UI System: plugin panels rendered via layout */}
       <div className="pointer-events-none fixed inset-0 z-[900]">
         <LayerRenderer registry={uiRegistry} layoutMode={layoutMode} />
-        <PanelRenderer
+        <RegionRenderer
           registry={uiRegistry}
           layout={activeLayout}
-          makeSDK={makeSDK}
+          makeSDK={makeRegionSDK}
+          viewport={viewport}
           layoutMode={layoutMode}
-          onDrag={layoutMode === 'edit' ? handleLayoutDrag : undefined}
+          onDragEnd={layoutMode === 'edit' ? handleDragEnd : undefined}
+          onResize={layoutMode === 'edit' ? handleResize : undefined}
+        />
+        <OnDemandHost
+          registry={uiRegistry}
+          instances={onDemandInstances}
+          layout={activeLayout}
+          makeSDK={makeRegionSDK}
+          viewport={viewport}
         />
       </div>
 

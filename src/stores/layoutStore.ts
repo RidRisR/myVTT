@@ -1,6 +1,10 @@
 // src/stores/layoutStore.ts
 import { createStore } from 'zustand/vanilla'
-import type { RegionLayoutConfig, RegionLayoutEntry, OnDemandInstance } from '../ui-system/regionTypes'
+import type {
+  RegionLayoutConfig,
+  RegionLayoutEntry,
+  OnDemandInstance,
+} from '../ui-system/regionTypes'
 import { migrateLayoutConfig } from '../ui-system/layoutMigration'
 
 export interface RoomLayoutConfig {

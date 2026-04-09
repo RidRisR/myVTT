@@ -175,10 +175,7 @@ export default function PatternUISystem() {
 
   // makeSDK receives layoutMode so sdk.context.layoutMode stays current
   const makeSDK = useCallback(
-    (
-      instanceKey: string,
-      instanceProps: Record<string, unknown>,
-    ): IRegionSDK => ({
+    (instanceKey: string, instanceProps: Record<string, unknown>): IRegionSDK => ({
       read: {
         entity: (id) => MOCK_ENTITIES.find((e) => e.id === id),
         component: () => undefined,
