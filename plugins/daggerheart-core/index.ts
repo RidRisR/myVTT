@@ -38,6 +38,15 @@ interface ActionCheckData {
   judgment?: import('@myvtt/sdk').JudgmentResult
 }
 
+interface FearSetData {
+  [key: string]: unknown
+  value: number
+}
+
+interface FearClearData {
+  [key: string]: unknown
+}
+
 export class DaggerHeartCorePlugin implements VTTPlugin {
   id = 'daggerheart-core'
 
@@ -45,6 +54,8 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
   private fear = new FearManager()
   private hope = new HopeResolver()
   private actionCheckHandle!: WorkflowHandle<ActionCheckData>
+  private fearSetHandle!: WorkflowHandle<FearSetData>
+  private fearClearHandle!: WorkflowHandle<FearClearData>
 
   onActivate(sdk: IPluginSDK): void {
     // Load daggerheart i18n resources into i18next
@@ -169,6 +180,29 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
 
     // Register command
     sdk.registerCommand('.dd', this.actionCheckHandle)
+
+    // Define fear mutation workflows
+    this.fearSetHandle = sdk.defineWorkflow<FearSetData>('daggerheart-core:fear-set', [
+      {
+        id: 'set',
+        run: (ctx) => {
+          this.fear.setFear(ctx, ctx.vars.value)
+        },
+      },
+    ])
+
+    this.fearClearHandle = sdk.defineWorkflow<FearClearData>('daggerheart-core:fear-clear', [
+      {
+        id: 'clear',
+        run: (ctx) => {
+          this.fear.setFear(ctx, 0)
+        },
+      },
+    ])
+
+    // Register chat commands for fear adjustment
+    sdk.registerCommand('.f+', this.fearSetHandle)
+    sdk.registerCommand('.f-', this.fearSetHandle)
   }
 
   async onReady(ctx: WorkflowContext): Promise<void> {
@@ -177,3 +211,6 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
 }
 
 export const daggerheartCorePlugin = new DaggerHeartCorePlugin()
+
+export const FEAR_SET_WORKFLOW = 'daggerheart-core:fear-set'
+export const FEAR_CLEAR_WORKFLOW = 'daggerheart-core:fear-clear'
