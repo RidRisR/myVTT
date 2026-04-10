@@ -55,7 +55,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
   private hope = new HopeResolver()
   private actionCheckHandle!: WorkflowHandle<ActionCheckData>
   private fearSetHandle!: WorkflowHandle<FearSetData>
-  private fearClearHandle!: WorkflowHandle<FearClearData>
+  // fear-clear workflow is registered via defineWorkflow side effect; handle not needed
 
   onActivate(sdk: IPluginSDK): void {
     // Load daggerheart i18n resources into i18next
@@ -191,7 +191,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       },
     ])
 
-    this.fearClearHandle = sdk.defineWorkflow<FearClearData>('daggerheart-core:fear-clear', [
+    sdk.defineWorkflow<FearClearData>('daggerheart-core:fear-clear', [
       {
         id: 'clear',
         run: (ctx) => {
