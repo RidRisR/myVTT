@@ -96,9 +96,9 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       id: 'daggerheart-core:fear-panel',
       component: FearPanel as React.ComponentType<{ sdk: unknown }>,
       lifecycle: 'persistent',
-      defaultSize: { width: 160, height: 120 },
-      minSize: { width: 120, height: 80 },
-      defaultPlacement: { anchor: 'top-right', offsetX: -16, offsetY: 60 },
+      defaultSize: { width: 520, height: 50 },
+      minSize: { width: 400, height: 42 },
+      defaultPlacement: { anchor: 'top-left', offsetX: 200, offsetY: 12 },
       layer: 'standard',
     })
 
