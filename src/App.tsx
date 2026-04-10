@@ -198,7 +198,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const setTacticalMapUrl = useWorldStore((s) => s.setTacticalMapUrl)
   const duplicateScene = useWorldStore((s) => s.duplicateScene)
   const addEntity = useWorldStore((s) => s.addEntity)
-  const updateEntity = useWorldStore((s) => s.updateEntity)
   const placeEntityOnMap = useWorldStore((s) => s.placeEntityOnMap)
   const addToken = useWorldStore((s) => s.addToken)
   const updateToken = useWorldStore((s) => s.updateToken)
