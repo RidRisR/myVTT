@@ -86,14 +86,19 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
 
   const charName = entity ? getName(entity) : ''
   const initial = charName ? charName.charAt(0).toUpperCase() : '?'
+  const hasCharacter = !!entity && !!activeCharacterId
 
-  // ── Collapsed handle ──
-  if (!expanded) {
-    return (
+  return (
+    <div
+      ref={rootRef}
+      className="h-full relative"
+      data-testid={expanded ? 'charcard' : 'charcard-handle'}
+    >
+      {/* ── Collapsed handle ── */}
       <div
-        ref={rootRef}
-        className="h-full flex items-center justify-center"
-        data-testid="charcard-handle"
+        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${
+          expanded ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
       >
         <button
           onClick={() => {
@@ -105,62 +110,59 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
           {initial}
         </button>
       </div>
-    )
-  }
 
-  // ── Expanded card ──
-  if (!entity || !activeCharacterId) {
-    return (
+      {/* ── Expanded card ── */}
       <div
-        ref={rootRef}
-        className="h-full bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex items-center justify-center text-text-muted text-xs p-3"
-        data-testid="charcard-empty"
+        className={`absolute inset-0 transition-all duration-200 origin-top-left ${
+          expanded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.2] pointer-events-none'
+        }`}
       >
-        {t('charcard.noCharacter')}
-      </div>
-    )
-  }
-
-  return (
-    <div
-      ref={rootRef}
-      className="h-full flex flex-col gap-2 p-3 bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] text-text-primary"
-      data-testid="charcard"
-    >
-      {/* Header */}
-      <div className="flex items-center gap-2 pb-2 border-b border-border-glass">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-700 to-blue-600 border-2 border-amber-400/25 flex items-center justify-center text-sm font-bold shrink-0 text-white">
-          {initial}
-        </div>
-        <div className="flex flex-col min-w-0">
-          <div className="text-sm font-semibold truncate">{charName}</div>
-          {meta?.className && (
-            <div className="text-[9px] text-text-muted/60">
-              {meta.className} · Tier {meta.tier}
+        {!hasCharacter ? (
+          <div
+            className="h-full bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex items-center justify-center text-text-muted text-xs p-3"
+            data-testid="charcard-empty"
+          >
+            {t('charcard.noCharacter')}
+          </div>
+        ) : (
+          <div className="h-full flex flex-col gap-2 p-3 bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] text-text-primary">
+            {/* Header */}
+            <div className="flex items-center gap-2 pb-2 border-b border-border-glass">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-700 to-blue-600 border-2 border-amber-400/25 flex items-center justify-center text-sm font-bold shrink-0 text-white">
+                {initial}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <div className="text-sm font-semibold truncate">{charName}</div>
+                {meta?.className && (
+                  <div className="text-[9px] text-text-muted/60">
+                    {meta.className} · Tier {meta.tier}
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Attributes 3×2 grid */}
-      <div className="text-[7px] text-text-muted/50 uppercase tracking-widest">
-        {t('charcard.section.attributes')}
-      </div>
-      <div className="grid grid-cols-3 gap-1">
-        {ATTRS.map(({ key, en }) => (
-          <AttributeCell
-            key={key}
-            labelCn={t(`attr.${key}`)}
-            labelEn={en}
-            value={attrs?.[key as keyof DHAttributes] ?? 0}
-            onRoll={() => {
-              handleRoll(key)
-            }}
-            onEdit={(v) => {
-              handleEdit(key, v)
-            }}
-          />
-        ))}
+            {/* Attributes 3×2 grid */}
+            <div className="text-[7px] text-text-muted/50 uppercase tracking-widest">
+              {t('charcard.section.attributes')}
+            </div>
+            <div className="grid grid-cols-3 gap-1">
+              {ATTRS.map(({ key, en }) => (
+                <AttributeCell
+                  key={key}
+                  labelCn={t(`attr.${key}`)}
+                  labelEn={en}
+                  value={attrs?.[key as keyof DHAttributes] ?? 0}
+                  onRoll={() => {
+                    handleRoll(key)
+                  }}
+                  onEdit={(v) => {
+                    handleEdit(key, v)
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

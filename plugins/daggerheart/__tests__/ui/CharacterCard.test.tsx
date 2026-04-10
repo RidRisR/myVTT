@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import userEvent from '@testing-library/user-event'
 import type { IRegionSDK } from '../../../../src/ui-system/types'
@@ -116,10 +116,10 @@ function setupIdentityStore(activeCharacterId: string | null = 'char1') {
   })
 }
 
-/** Click the collapsed handle to expand the card */
+/** Click the collapsed handle button to expand the card */
 async function expandCard(user: ReturnType<typeof userEvent.setup>) {
-  const handle = screen.getByTestId('charcard-handle')
-  await user.click(handle.querySelector('button')!)
+  const root = screen.getByTestId('charcard-handle')
+  await user.click(within(root).getByRole('button'))
 }
 
 describe('CharacterCard', () => {
@@ -131,8 +131,9 @@ describe('CharacterCard', () => {
   describe('collapsed state', () => {
     it('starts collapsed with character initial as handle', () => {
       render(<CharacterCard sdk={makeMockSdk()} />)
-      expect(screen.getByTestId('charcard-handle')).toBeInTheDocument()
-      expect(screen.getByText('A')).toBeInTheDocument() // "Aria" initial
+      const root = screen.getByTestId('charcard-handle')
+      expect(root).toBeInTheDocument()
+      expect(within(root).getByRole('button')).toHaveTextContent('A') // "Aria" initial
       expect(screen.queryByTestId('charcard')).not.toBeInTheDocument()
     })
 
@@ -227,7 +228,8 @@ describe('CharacterCard', () => {
     const user = userEvent.setup()
     render(<CharacterCard sdk={makeMockSdk()} />)
     // Handle shows "?" when no character
-    expect(screen.getByText('?')).toBeInTheDocument()
+    const root = screen.getByTestId('charcard-handle')
+    expect(within(root).getByRole('button')).toHaveTextContent('?')
     await expandCard(user)
     expect(screen.getByTestId('charcard-empty')).toBeInTheDocument()
     expect(screen.getByText('No character selected')).toBeInTheDocument()
