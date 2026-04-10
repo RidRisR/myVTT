@@ -280,6 +280,7 @@ function RoomSession({ roomId }: { roomId: string }) {
           width: def.defaultSize.width,
           height: def.defaultSize.height,
           zOrder: 0,
+          resizeOrigin: def.resizeOrigin,
         })
       }
     }

@@ -3,6 +3,18 @@
 /** Anchor point relative to viewport */
 export type AnchorPoint = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
 
+/** 9-point grid origin for programmatic resize. Controls which point stays fixed. */
+export type ResizeOrigin =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'center-left'
+  | 'center'
+  | 'center-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right'
+
 /** Region z-order layer grouping */
 export type RegionLayer = 'background' | 'standard' | 'overlay'
 
@@ -21,6 +33,8 @@ export interface RegionLayoutEntry {
   height: number
   zOrder: number
   visible?: boolean
+  /** Which point stays fixed during programmatic resize. Defaults to anchor behavior (no compensation). */
+  resizeOrigin?: ResizeOrigin
   /** Pure serializable data only — no function form (see spec §12.13) */
   instanceProps?: Record<string, unknown>
 }

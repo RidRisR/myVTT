@@ -121,6 +121,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       defaultSize: { width: 44, height: 44 },
       minSize: { width: 44, height: 44 },
       defaultPlacement: { anchor: 'top-left', offsetX: 8, offsetY: 70 },
+      resizeOrigin: 'center-left',
       layer: 'standard',
     })
 

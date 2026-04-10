@@ -160,4 +160,73 @@ describe('layoutStore', () => {
     const a2 = store.getState().onDemandInstances.find((i) => i.instanceKey === '#a2')
     expect(a1!.zOrder).toBeGreaterThan(a2!.zOrder)
   })
+
+  describe('resizeOrigin compensation', () => {
+    it('adjusts offsetY when resizing with center-left origin', () => {
+      store.getState().addEntry('card', {
+        anchor: 'top-left',
+        offsetX: 8,
+        offsetY: 70,
+        width: 44,
+        height: 44,
+        zOrder: 0,
+        resizeOrigin: 'center-left',
+      })
+      store.getState().updateEntry('card', { width: 220, height: 340 })
+      const entry = store.getState().narrative['card']!
+      expect(entry.width).toBe(220)
+      expect(entry.height).toBe(340)
+      expect(entry.offsetX).toBe(8) // unchanged (left edge fixed)
+      expect(entry.offsetY).toBe(70 - 148) // (0-0.5)*(340-44) = -148
+    })
+
+    it('no compensation without resizeOrigin', () => {
+      store.getState().addEntry('plain', {
+        anchor: 'top-left',
+        offsetX: 8,
+        offsetY: 70,
+        width: 44,
+        height: 44,
+        zOrder: 0,
+      })
+      store.getState().updateEntry('plain', { width: 220, height: 340 })
+      const entry = store.getState().narrative['plain']!
+      expect(entry.offsetX).toBe(8)
+      expect(entry.offsetY).toBe(70)
+    })
+
+    it('round-trips: expand then collapse restores original offsets', () => {
+      store.getState().addEntry('rt', {
+        anchor: 'top-left',
+        offsetX: 10,
+        offsetY: 50,
+        width: 44,
+        height: 44,
+        zOrder: 0,
+        resizeOrigin: 'center-left',
+      })
+      store.getState().updateEntry('rt', { width: 220, height: 340 })
+      store.getState().updateEntry('rt', { width: 44, height: 44 })
+      const entry = store.getState().narrative['rt']!
+      expect(entry.offsetX).toBe(10)
+      expect(entry.offsetY).toBe(50)
+    })
+
+    it('compensates both axes with center origin', () => {
+      store.getState().addEntry('center', {
+        anchor: 'top-left',
+        offsetX: 100,
+        offsetY: 100,
+        width: 100,
+        height: 100,
+        zOrder: 0,
+        resizeOrigin: 'center',
+      })
+      store.getState().updateEntry('center', { width: 200, height: 300 })
+      const entry = store.getState().narrative['center']!
+      // dOffsetX = (0-0.5)*100 = -50, dOffsetY = (0-0.5)*200 = -100
+      expect(entry.offsetX).toBe(50)
+      expect(entry.offsetY).toBe(0)
+    })
+  })
 })
