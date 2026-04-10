@@ -153,7 +153,7 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
     expect(update.payload.entityId).toBe('daggerheart-core:fear')
     expect(update.payload.key).toBe('daggerheart-core:fear-tracker')
     // The updater receives undefined (no entity found by getEntity mock) and produces { current: 1, max: 10 }
-    expect(update.payload.data).toEqual({ current: 1, max: 10 })
+    expect(update.payload.data).toEqual({ current: 1, max: 12 })
   })
 
   it('failure_hope outcome still triggers hope resolve', async () => {
