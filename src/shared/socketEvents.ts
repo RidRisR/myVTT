@@ -178,6 +178,7 @@ export interface ClientToServerEvents {
       components?: Record<string, unknown>
       lifecycle?: import('./entityTypes').EntityLifecycle
       tags?: string[]
+      permissions?: import('./entityTypes').EntityPermissions
     },
     ack: (response: import('./entityTypes').Entity | { error: string }) => void,
   ) => void

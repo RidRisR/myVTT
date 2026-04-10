@@ -238,6 +238,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
 
   async onReady(ctx: WorkflowContext): Promise<void> {
     await this.fear.ensureEntity(ctx)
+    await this.charCard.ensureCharacter(ctx)
   }
 }
 
