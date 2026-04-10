@@ -96,7 +96,7 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
     >
       {/* ── Collapsed handle (fixed 44×44, stays in place during transition) ── */}
       <div
-        className={`absolute top-0 left-0 flex items-center justify-center transition-opacity duration-200 ${
+        className={`absolute top-0 left-0 flex items-center justify-center transition-opacity duration-150 ${
           expanded ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
         style={{ width: COLLAPSED_SIZE.width, height: COLLAPSED_SIZE.height }}
@@ -114,7 +114,7 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
 
       {/* ── Expanded card (fixed size, revealed by container overflow:hidden) ── */}
       <div
-        className={`absolute top-0 left-0 transition-opacity duration-200 ${
+        className={`absolute top-0 left-0 transition-opacity duration-100 ${
           expanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         style={{ width: EXPANDED_SIZE.width, height: EXPANDED_SIZE.height }}
