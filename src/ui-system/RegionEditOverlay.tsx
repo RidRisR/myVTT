@@ -36,6 +36,7 @@ export function RegionEditOverlay({
       if (!parent) return
 
       posRef.current = { x: parent.offsetLeft, y: parent.offsetTop }
+      parent.style.transition = 'none' // Disable transition during drag
 
       createPointerDragHandler(
         el,
@@ -48,6 +49,7 @@ export function RegionEditOverlay({
           parent.style.top = `${posRef.current.y}px`
         },
         () => {
+          parent.style.transition = '' // Restore React-managed transition
           if (onDragEnd && viewport) {
             const placement = inferPlacement(
               {
@@ -76,6 +78,7 @@ export function RegionEditOverlay({
       sizeRef.current = { width: entry.width, height: entry.height }
       const minW = def.minSize?.width ?? 50
       const minH = def.minSize?.height ?? 50
+      parent.style.transition = 'none' // Disable transition during resize
 
       createPointerResizeHandler(
         el,
@@ -88,6 +91,7 @@ export function RegionEditOverlay({
           parent.style.height = `${sizeRef.current.height}px`
         },
         () => {
+          parent.style.transition = '' // Restore React-managed transition
           if (onResize) {
             onResize(def.id, sizeRef.current)
           }
