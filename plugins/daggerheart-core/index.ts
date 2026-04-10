@@ -113,13 +113,14 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
     })
 
     // Register Character Card region (player-only, hidden for GM via component logic)
+    // Starts collapsed (handle-only), expands to full card on click
     sdk.ui.registerRegion({
       id: 'daggerheart-core:character-card',
       component: CharacterCard as React.ComponentType<{ sdk: unknown }>,
       lifecycle: 'persistent',
-      defaultSize: { width: 220, height: 340 },
-      minSize: { width: 180, height: 260 },
-      defaultPlacement: { anchor: 'top-left', offsetX: 0, offsetY: 70 },
+      defaultSize: { width: 44, height: 44 },
+      minSize: { width: 44, height: 44 },
+      defaultPlacement: { anchor: 'top-left', offsetX: 8, offsetY: 70 },
       layer: 'standard',
     })
 

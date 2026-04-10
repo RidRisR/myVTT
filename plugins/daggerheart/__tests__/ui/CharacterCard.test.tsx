@@ -6,6 +6,7 @@ import type { IRegionSDK } from '../../../../src/ui-system/types'
 import type { Entity } from '../../../../src/shared/entityTypes'
 
 const mockRunWorkflow = vi.fn().mockResolvedValue({ status: 'completed' })
+const mockResize = vi.fn()
 
 // Mock useIdentityStore
 vi.mock('../../../../src/stores/identityStore', () => ({
@@ -65,7 +66,7 @@ function makeMeta() {
 function makeMockSdk(overrides: Partial<{ role: 'GM' | 'Player' }> = {}) {
   return {
     data: {
-      useEntity: vi.fn().mockReturnValue(TEST_ENTITY),
+      useEntity: vi.fn().mockImplementation((id: string) => (id ? TEST_ENTITY : undefined)),
       useComponent: vi.fn().mockImplementation((_id: string, key: string) => {
         if (key === 'daggerheart:attributes') return makeAttrs()
         if (key === 'daggerheart:meta') return makeMeta()
@@ -90,7 +91,7 @@ function makeMockSdk(overrides: Partial<{ role: 'GM' | 'Player' }> = {}) {
     ui: {
       openPanel: vi.fn(),
       closePanel: vi.fn(),
-      resize: vi.fn(),
+      resize: mockResize,
       getPortalContainer: () => document.body,
     },
   } as unknown as IRegionSDK
@@ -115,80 +116,119 @@ function setupIdentityStore(activeCharacterId: string | null = 'char1') {
   })
 }
 
+/** Click the collapsed handle to expand the card */
+async function expandCard(user: ReturnType<typeof userEvent.setup>) {
+  const handle = screen.getByTestId('charcard-handle')
+  await user.click(handle.querySelector('button')!)
+}
+
 describe('CharacterCard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     setupIdentityStore('char1')
   })
 
-  it('renders 6 attribute cells with correct values', () => {
-    render(<CharacterCard sdk={makeMockSdk()} />)
-    const values = screen.getAllByTestId('attr-value')
-    expect(values).toHaveLength(6)
-    // Check that values include the expected formatted numbers
-    const texts = values.map((v) => v.textContent)
-    expect(texts).toContain('+2') // agility
-    expect(texts).toContain('-1') // strength
-    expect(texts).toContain('+0') // finesse (value is 0, displayed as +0)
+  describe('collapsed state', () => {
+    it('starts collapsed with character initial as handle', () => {
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      expect(screen.getByTestId('charcard-handle')).toBeInTheDocument()
+      expect(screen.getByText('A')).toBeInTheDocument() // "Aria" initial
+      expect(screen.queryByTestId('charcard')).not.toBeInTheDocument()
+    })
+
+    it('resizes to collapsed size on mount', () => {
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      expect(mockResize).toHaveBeenCalledWith({ width: 44, height: 44 })
+    })
   })
 
-  it('shows character name and class info', () => {
-    render(<CharacterCard sdk={makeMockSdk()} />)
-    expect(screen.getByText('Aria')).toBeInTheDocument()
-    expect(screen.getByText(/Bard/)).toBeInTheDocument()
-  })
+  describe('expanded state', () => {
+    it('expands on handle click and resizes region', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      expect(screen.getByTestId('charcard')).toBeInTheDocument()
+      expect(mockResize).toHaveBeenCalledWith({ width: 220, height: 340 })
+    })
 
-  it('clicking roll zone triggers action-check workflow', async () => {
-    const user = userEvent.setup()
-    render(<CharacterCard sdk={makeMockSdk()} />)
-    const rollZones = screen.getAllByTestId('attr-roll-zone')
-    // First attribute in ATTRS order is agility (value: 2)
-    await user.click(rollZones[0]!)
-    expect(mockRunWorkflow).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'daggerheart-core:action-check' }),
-      expect.objectContaining({
-        formula: '2d12+@agility',
-        actorId: 'char1',
-      }),
-    )
-  })
+    it('renders 6 attribute cells with correct values', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      const values = screen.getAllByTestId('attr-value')
+      expect(values).toHaveLength(6)
+      const texts = values.map((v) => v.textContent)
+      expect(texts).toContain('+2')
+      expect(texts).toContain('-1')
+      expect(texts).toContain('+0')
+    })
 
-  it('clicking edit zone opens input', async () => {
-    const user = userEvent.setup()
-    render(<CharacterCard sdk={makeMockSdk()} />)
-    const editZones = screen.getAllByTestId('attr-edit-zone')
-    await user.click(editZones[0]!) // first attribute
-    expect(screen.getByTestId('attr-input')).toBeInTheDocument()
-  })
+    it('shows character name and class info', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      expect(screen.getByText('Aria')).toBeInTheDocument()
+      expect(screen.getByText(/Bard/)).toBeInTheDocument()
+    })
 
-  it('submitting edit triggers update-attr workflow', async () => {
-    const user = userEvent.setup()
-    render(<CharacterCard sdk={makeMockSdk()} />)
-    const editZones = screen.getAllByTestId('attr-edit-zone')
-    await user.click(editZones[0]!) // open edit for agility
-    const input = screen.getByTestId('attr-input')
-    await user.clear(input)
-    await user.type(input, '5')
-    await user.tab() // blur to commit
-    expect(mockRunWorkflow).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'daggerheart-core:charcard-update-attr' }),
-      expect.objectContaining({
-        entityId: 'char1',
-        attribute: 'agility',
-        value: 5,
-      }),
-    )
+    it('clicking roll zone triggers action-check workflow', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      const rollZones = screen.getAllByTestId('attr-roll-zone')
+      await user.click(rollZones[0]!)
+      expect(mockRunWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'daggerheart-core:action-check' }),
+        expect.objectContaining({
+          formula: '2d12+@agility',
+          actorId: 'char1',
+        }),
+      )
+    })
+
+    it('clicking edit zone opens input', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      const editZones = screen.getAllByTestId('attr-edit-zone')
+      await user.click(editZones[0]!)
+      expect(screen.getByTestId('attr-input')).toBeInTheDocument()
+    })
+
+    it('submitting edit triggers update-attr workflow', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      const editZones = screen.getAllByTestId('attr-edit-zone')
+      await user.click(editZones[0]!)
+      const input = screen.getByTestId('attr-input')
+      await user.clear(input)
+      await user.type(input, '5')
+      await user.tab()
+      expect(mockRunWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'daggerheart-core:charcard-update-attr' }),
+        expect.objectContaining({
+          entityId: 'char1',
+          attribute: 'agility',
+          value: 5,
+        }),
+      )
+    })
   })
 
   it('GM role renders hidden div', () => {
     render(<CharacterCard sdk={makeMockSdk({ role: 'GM' })} />)
     expect(screen.getByTestId('charcard-gm-hidden')).toBeInTheDocument()
-    expect(screen.queryAllByTestId('attr-value')).toHaveLength(0)
+    expect(screen.queryByTestId('charcard-handle')).not.toBeInTheDocument()
   })
 
-  it('no active character shows empty state', () => {
+  it('no active character shows empty state after expanding', async () => {
     setupIdentityStore(null)
+    const user = userEvent.setup()
     render(<CharacterCard sdk={makeMockSdk()} />)
+    // Handle shows "?" when no character
+    expect(screen.getByText('?')).toBeInTheDocument()
+    await expandCard(user)
     expect(screen.getByTestId('charcard-empty')).toBeInTheDocument()
     expect(screen.getByText('No character selected')).toBeInTheDocument()
   })
