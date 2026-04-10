@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import '@testing-library/jest-dom/vitest'
 import userEvent from '@testing-library/user-event'
-import type { IRegionSDK } from '../../../../src/ui-system/types'
 import { FearPanel } from '../../ui/FearPanel'
 
 // Mock @myvtt/sdk
@@ -11,7 +9,7 @@ const mockRunWorkflow = vi.fn().mockResolvedValue({ status: 'completed' })
 vi.mock('@myvtt/sdk', () => ({
   useComponent: vi.fn().mockReturnValue({ current: 4, max: 12 }),
   usePluginTranslation: vi.fn().mockReturnValue({
-    t: (key: string, opts?: Record<string, number>) => {
+    t: (key: string, opts?: Record<string, unknown>) => {
       if (key === 'fear.label') return 'FEAR'
       if (key === 'fear.count') return `${opts?.current} / ${opts?.max}`
       return key
@@ -26,7 +24,7 @@ function makeMockSdk() {
   return {
     data: { useComponent: sdkModule.useComponent },
     workflow: { runWorkflow: mockRunWorkflow },
-  } as unknown as IRegionSDK
+  } as unknown
 }
 
 describe('FearPanel', () => {
