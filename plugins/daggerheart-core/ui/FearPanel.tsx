@@ -1,5 +1,5 @@
 // plugins/daggerheart-core/ui/FearPanel.tsx
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { usePluginTranslation } from '@myvtt/sdk'
 import type { IRegionSDK } from '../../../src/ui-system/types'
 import type { WorkflowHandle } from '@myvtt/sdk'
@@ -13,14 +13,14 @@ interface FearTracker {
 
 export function FearPanel({ sdk }: { sdk: IRegionSDK }) {
   const tracker = sdk.data.useComponent<FearTracker>(FEAR_ENTITY_ID, FEAR_COMPONENT_KEY)
-  const { t } = usePluginTranslation('daggerheart')
+  const { t } = usePluginTranslation()
   const current = tracker?.current ?? 0
   const max = tracker?.max ?? FEAR_MAX
 
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
 
-  const fearSetHandle = { name: FEAR_SET_WORKFLOW } as WorkflowHandle
-  const fearClearHandle = { name: FEAR_CLEAR_WORKFLOW } as WorkflowHandle
+  const fearSetHandle = useMemo(() => ({ name: FEAR_SET_WORKFLOW }) as WorkflowHandle, [])
+  const fearClearHandle = useMemo(() => ({ name: FEAR_CLEAR_WORKFLOW }) as WorkflowHandle, [])
 
   const handlePipClick = useCallback(
     (index: number) => {
@@ -91,9 +91,15 @@ export function FearPanel({ sdk }: { sdk: IRegionSDK }) {
               key={i}
               data-testid="fear-pip"
               data-filled={filled}
-              onClick={() => handlePipClick(i)}
-              onMouseEnter={() => setHoverIndex(i)}
-              onMouseLeave={() => setHoverIndex(null)}
+              onClick={() => {
+                handlePipClick(i)
+              }}
+              onMouseEnter={() => {
+                setHoverIndex(i)
+              }}
+              onMouseLeave={() => {
+                setHoverIndex(null)
+              }}
               className="relative size-[22px] shrink-0 cursor-pointer rounded-full transition-all duration-normal"
               style={
                 filled && !previewClear
@@ -103,7 +109,7 @@ export function FearPanel({ sdk }: { sdk: IRegionSDK }) {
                       border: '1.5px solid rgba(255, 120, 70, 0.5)',
                       boxShadow:
                         '0 0 10px rgba(220,38,38,0.6), 0 0 24px rgba(220,38,38,0.25), 0 0 40px rgba(180,30,30,0.1), inset 0 -3px 5px rgba(0,0,0,0.35), inset 0 1px 3px rgba(255,220,180,0.35)',
-                      animation: `ember-pulse 3s ease-in-out infinite ${i * 0.2}s`,
+                      animation: `ember-pulse 3s ease-in-out infinite ${String(i * 0.2)}s`,
                     }
                   : previewFill
                     ? {
@@ -116,8 +122,7 @@ export function FearPanel({ sdk }: { sdk: IRegionSDK }) {
                           background:
                             'radial-gradient(circle at 38% 32%, #ffad7a 0%, #ff6b4a 15%, #dc2626 40%, #991b1b 70%, #6b1010 100%)',
                           border: '1.5px solid rgba(255, 120, 70, 0.5)',
-                          boxShadow:
-                            '0 0 10px rgba(220,38,38,0.6), 0 0 24px rgba(220,38,38,0.25)',
+                          boxShadow: '0 0 10px rgba(220,38,38,0.6), 0 0 24px rgba(220,38,38,0.25)',
                           opacity: 0.35,
                         }
                       : {
