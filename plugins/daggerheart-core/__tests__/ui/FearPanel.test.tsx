@@ -9,7 +9,7 @@ const mockRunWorkflow = vi.fn().mockResolvedValue({ status: 'completed' })
 vi.mock('@myvtt/sdk', () => ({
   useComponent: vi.fn().mockReturnValue({ current: 4, max: 12 }),
   usePluginTranslation: vi.fn().mockReturnValue({
-    t: (key: string, opts?: Record<string, unknown>) => {
+    t: (key: string, opts?: Record<string, number>) => {
       if (key === 'fear.label') return 'FEAR'
       if (key === 'fear.count') return `${opts?.current} / ${opts?.max}`
       return key

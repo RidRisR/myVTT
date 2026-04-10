@@ -117,7 +117,7 @@ export default defineConfig([
   // no-unnecessary-condition: after a type assertion (e.g. `as AssetMeta`), optional chains
   // are flagged as unnecessary. In tests this pattern is fine and clearer than a guard clause.
   {
-    files: ['**/__tests__/**/*.ts', '**/__test-utils__/**/*.ts'],
+    files: ['**/__tests__/**/*.{ts,tsx}', '**/__test-utils__/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
