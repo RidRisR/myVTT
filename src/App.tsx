@@ -37,7 +37,11 @@ import type { Entity, Atmosphere } from './shared/entityTypes'
 import { HandoutEditModal } from './dock/HandoutEditModal'
 import { generateTokenId } from './shared/idUtils'
 import { ToastProvider } from './ui/ToastProvider'
-import { initWorkflowSystem, startWorkflowTriggers } from './workflow/useWorkflowSDK'
+import {
+  initWorkflowSystem,
+  startWorkflowTriggers,
+  getWorkflowRunner,
+} from './workflow/useWorkflowSDK'
 import { useStore } from 'zustand'
 import { RegionRenderer } from './ui-system/RegionRenderer'
 import { OnDemandHost } from './ui-system/OnDemandHost'
@@ -321,7 +325,13 @@ function RoomSession({ roomId }: { roomId: string }) {
           query: () => Object.values(entities),
           formulaTokens: () => ({}),
         },
-        workflow: { runWorkflow: () => Promise.resolve({} as never) },
+        workflow: {
+          runWorkflow: (handle, data, chainCtx) => {
+            const runner = getWorkflowRunner()
+            if (!runner) return Promise.resolve({} as never)
+            return runner.runWorkflow(handle, data, chainCtx)
+          },
+        },
         awarenessManager: null,
         layoutActions: {
           openPanel: (componentId, props, _position) => {
