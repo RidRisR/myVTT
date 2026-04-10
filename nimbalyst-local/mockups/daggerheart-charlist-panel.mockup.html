@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Georgia', -apple-system, system-ui, sans-serif;
+      background: linear-gradient(135deg, #4a90d9 0%, #6fb3e0 40%, #87ceeb 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      gap: 40px;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 30px;
+    }
+
+    /* ===== The panel (as it would appear in VTT) ===== */
+    .panel {
+      width: 220px;
+      background: rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px 0 0 14px;
+      border-right: none;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .panel-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 6px;
+    }
+
+    /* ===== Row item ===== */
+    .row-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      padding: 7px 6px;
+      border-radius: 10px;
+      transition: background 0.2s;
+      cursor: pointer;
+      position: relative;
+    }
+    .row-item:hover { background: rgba(255,255,255,0.06); }
+
+    /* Mini avatar with HP/Stress arcs */
+    .mini-avatar-wrap {
+      position: relative;
+      width: 36px; height: 36px;
+      flex-shrink: 0;
+    }
+    .mini-avatar {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      z-index: 2;
+    }
+    .mini-arcs {
+      position: absolute; inset: 0;
+      width: 36px; height: 36px;
+    }
+
+    /* Row content */
+    .row-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .row-top {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .row-name {
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .row-class-hint {
+      font-size: 8px;
+      color: rgba(255,255,255,0.3);
+    }
+
+    /* Inline stats */
+    .row-stats {
+      display: flex;
+      gap: 5px;
+      margin-top: 2px;
+    }
+    .mini-stat {
+      display: flex; align-items: center; gap: 1px;
+      font-size: 8px;
+      color: rgba(255,255,255,0.45);
+      font-variant-numeric: tabular-nums;
+    }
+    .mini-stat .icon { font-size: 7px; }
+    .mini-stat.hp .icon { color: #e74c3c; }
+    .mini-stat.stress .icon { color: #9b59b6; }
+    .mini-stat.armor .icon { color: rgba(130, 195, 240, 0.8); }
+    .mini-stat.hope .icon { color: #f1c40f; }
+
+    /* Status effects row */
+    .row-statuses {
+      display: flex;
+      gap: 3px;
+      margin-top: 3px;
+      flex-wrap: wrap;
+    }
+    .status-tag {
+      font-size: 7px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      line-height: 1.4;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+    }
+    .status-tag.buff {
+      background: rgba(46, 204, 113, 0.15);
+      color: rgba(46, 204, 113, 0.8);
+      border: 0.5px solid rgba(46, 204, 113, 0.2);
+    }
+    .status-tag.debuff {
+      background: rgba(231, 76, 60, 0.12);
+      color: rgba(231, 76, 60, 0.7);
+      border: 0.5px solid rgba(231, 76, 60, 0.15);
+    }
+    .status-tag.neutral {
+      background: rgba(241, 196, 15, 0.1);
+      color: rgba(241, 196, 15, 0.7);
+      border: 0.5px solid rgba(241, 196, 15, 0.15);
+    }
+
+    /* Enemy */
+    .enemy .mini-avatar {
+      border-color: rgba(231, 76, 60, 0.35);
+    }
+    .enemy-badge {
+      font-size: 7px;
+      color: rgba(231, 76, 60, 0.5);
+      background: rgba(231, 76, 60, 0.08);
+      padding: 0 4px;
+      border-radius: 3px;
+      margin-left: auto;
+      line-height: 1.5;
+      align-self: flex-start;
+    }
+
+    /* Section divider */
+    .section-divider {
+      display: flex; align-items: center; gap: 8px;
+      margin: 6px 0 2px;
+      padding: 0 4px;
+    }
+    .section-divider::before, .section-divider::after {
+      content: '';
+      flex: 1; height: 0.5px;
+      background: rgba(255,255,255,0.08);
+    }
+    .section-divider span {
+      font-size: 7px;
+      color: rgba(255,255,255,0.2);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    /* ===== Hover card ===== */
+    .hover-card {
+      position: absolute;
+      left: -206px;
+      top: -4px;
+      width: 198px;
+      background: rgba(12, 12, 28, 0.94);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 215, 100, 0.12);
+      border-radius: 14px;
+      padding: 14px;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 20px rgba(255, 215, 100, 0.03);
+    }
+    .row-item.show-hover .hover-card { display: block; }
+
+    .hc-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .hc-avatar {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 215, 100, 0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .hc-name { font-size: 13px; font-weight: 600; }
+    .hc-class { font-size: 9px; color: rgba(255,255,255,0.4); }
+
+    /* Stat grid */
+    .hc-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+    .hc-stat {
+      background: rgba(255,255,255,0.03);
+      border-radius: 7px;
+      padding: 5px 7px;
+    }
+    .hc-stat-label {
+      font-size: 7px;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    .hc-stat-value {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 1px;
+      font-variant-numeric: tabular-nums;
+    }
+    .hc-stat.hp .hc-stat-value { color: #e74c3c; }
+    .hc-stat.stress .hc-stat-value { color: #9b59b6; }
+    .hc-stat.armor .hc-stat-value { color: rgba(130, 195, 240, 0.9); }
+    .hc-stat.hope .hc-stat-value { color: #f1c40f; }
+
+    .hc-bar {
+      height: 3px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 2px;
+      margin-top: 3px;
+      overflow: hidden;
+    }
+    .hc-bar-fill { height: 100%; border-radius: 2px; }
+
+    /* Pips for armor/hope in hover card */
+    .hc-pips {
+      display: flex;
+      gap: 2px;
+      margin-top: 4px;
+    }
+    .hc-pip {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+    }
+    .hc-pip.filled.armor { background: rgba(130,195,240,0.7); box-shadow: 0 0 3px rgba(130,195,240,0.3); }
+    .hc-pip.empty.armor { background: rgba(130,195,240,0.1); }
+    .hc-pip.filled.hope { background: #f1c40f; box-shadow: 0 0 3px rgba(241,196,15,0.4); }
+    .hc-pip.empty.hope { background: rgba(241,196,15,0.08); }
+
+    /* Attributes */
+    .hc-attrs {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+    }
+    .hc-attr { text-align: center; padding: 3px 0; }
+    .hc-attr-label { font-size: 7px; color: rgba(255,255,255,0.25); text-transform: uppercase; }
+    .hc-attr-value { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.65); }
+
+    /* Statuses in hover card */
+    .hc-statuses {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+    }
+    .hc-status-tag {
+      font-size: 8px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-weight: 500;
+    }
+    .hc-status-tag.buff {
+      background: rgba(46, 204, 113, 0.12);
+      color: rgba(46, 204, 113, 0.8);
+      border: 0.5px solid rgba(46, 204, 113, 0.2);
+    }
+    .hc-status-tag.debuff {
+      background: rgba(231, 76, 60, 0.1);
+      color: rgba(231, 76, 60, 0.7);
+      border: 0.5px solid rgba(231, 76, 60, 0.12);
+    }
+    .hc-status-tag.neutral {
+      background: rgba(241, 196, 15, 0.08);
+      color: rgba(241, 196, 15, 0.7);
+      border: 0.5px solid rgba(241, 196, 15, 0.12);
+    }
+
+    /* ===== Annotation callouts ===== */
+    .annotations {
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding-top: 10px;
+    }
+    .annotation {
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+      padding: 14px 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .annotation h3 {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .annotation p {
+      font-size: 10px;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.7;
+      font-style: italic;
+    }
+    .annotation .highlight {
+      color: rgba(255,255,255,0.75);
+      font-style: normal;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- The actual panel -->
+  <div style="display:flex; align-items:flex-start; position: relative;">
+
+    <!-- Hover card appears here (left of panel) -->
+
+    <div class="panel">
+      <div class="panel-title">在场角色</div>
+
+      <!-- Player: Kael (hovered - showing tooltip) -->
+      <div class="row-item show-hover">
+        <div class="mini-avatar-wrap">
+          <svg class="mini-arcs" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(231,76,60,0.08)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="47.1 94.2" transform="rotate(0 18 18)" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="35.3 94.2" transform="rotate(0 18 18)" style="filter:drop-shadow(0 0 2px rgba(231,76,60,0.5));" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(155,89,182,0.08)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="47.1 94.2" transform="rotate(180 18 18)" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#9b59b6" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="15.7 94.2" transform="rotate(180 18 18)" style="filter:drop-shadow(0 0 2px rgba(155,89,182,0.4));" />
+          </svg>
+          <div class="mini-avatar" style="background: linear-gradient(135deg, #c0392b, #e74c3c);">⚔️</div>
+        </div>
+        <div class="row-body">
+          <div class="row-top">
+            <span class="row-name">Kael</span>
+            <span class="row-class-hint">Guardian</span>
+          </div>
+          <div class="row-stats">
+            <span class="mini-stat hp"><span class="icon">♥</span>15</span>
+            <span class="mini-stat stress"><span class="icon">✦</span>2</span>
+            <span class="mini-stat armor"><span class="icon">🛡</span>3</span>
+            <span class="mini-stat hope"><span class="icon">◆</span>3</span>
+          </div>
+          <div class="row-statuses">
+            <span class="status-tag buff">护盾</span>
+            <span class="status-tag debuff">流血</span>
+          </div>
+        </div>
+
+        <!-- Hover detail card -->
+        <div class="hover-card">
+          <div class="hc-header">
+            <div class="hc-avatar" style="background: linear-gradient(135deg, #c0392b, #e74c3c);">⚔️</div>
+            <div>
+              <div class="hc-name">Kael Ironheart</div>
+              <div class="hc-class">Guardian · Lv 3</div>
+            </div>
+          </div>
+          <div class="hc-stats">
+            <div class="hc-stat hp">
+              <div class="hc-stat-label">生命 HP</div>
+              <div class="hc-stat-value">15 / 20</div>
+              <div class="hc-bar"><div class="hc-bar-fill" style="width:75%; background:linear-gradient(90deg,#c0392b,#e74c3c);"></div></div>
+            </div>
+            <div class="hc-stat stress">
+              <div class="hc-stat-label">压力 Stress</div>
+              <div class="hc-stat-value">2 / 6</div>
+              <div class="hc-bar"><div class="hc-bar-fill" style="width:33%; background:linear-gradient(90deg,#7d3c98,#9b59b6);"></div></div>
+            </div>
+            <div class="hc-stat armor">
+              <div class="hc-stat-label">护甲 Armor</div>
+              <div class="hc-stat-value">3 / 5</div>
+              <div class="hc-pips">
+                <div class="hc-pip filled armor"></div>
+                <div class="hc-pip filled armor"></div>
+                <div class="hc-pip filled armor"></div>
+                <div class="hc-pip empty armor"></div>
+                <div class="hc-pip empty armor"></div>
+              </div>
+            </div>
+            <div class="hc-stat hope">
+              <div class="hc-stat-label">希望 Hope</div>
+              <div class="hc-stat-value">3 / 6</div>
+              <div class="hc-pips">
+                <div class="hc-pip filled hope"></div>
+                <div class="hc-pip filled hope"></div>
+                <div class="hc-pip filled hope"></div>
+                <div class="hc-pip empty hope"></div>
+                <div class="hc-pip empty hope"></div>
+                <div class="hc-pip empty hope"></div>
+              </div>
+            </div>
+          </div>
+          <div class="hc-attrs">
+            <div class="hc-attr"><div class="hc-attr-label">AGI</div><div class="hc-attr-value">+2</div></div>
+            <div class="hc-attr"><div class="hc-attr-label">STR</div><div class="hc-attr-value">+3</div></div>
+            <div class="hc-attr"><div class="hc-attr-label">FIN</div><div class="hc-attr-value">+1</div></div>
+            <div class="hc-attr"><div class="hc-attr-label">INS</div><div class="hc-attr-value">+0</div></div>
+            <div class="hc-attr"><div class="hc-attr-label">PRE</div><div class="hc-attr-value">+1</div></div>
+            <div class="hc-attr"><div class="hc-attr-label">KNO</div><div class="hc-attr-value">-1</div></div>
+          </div>
+          <div class="hc-statuses">
+            <span class="hc-status-tag buff">🛡 护盾 (2回合)</span>
+            <span class="hc-status-tag debuff">🩸 流血 (持续)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Player: Lyra (no status) -->
+      <div class="row-item">
+        <div class="mini-avatar-wrap">
+          <svg class="mini-arcs" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(231,76,60,0.08)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="47.1 94.2" transform="rotate(0 18 18)" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="47.1 94.2" transform="rotate(0 18 18)" style="filter:drop-shadow(0 0 2px rgba(231,76,60,0.5));" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(155,89,182,0.08)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="47.1 94.2" transform="rotate(180 18 18)" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#9b59b6" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="7.9 94.2" transform="rotate(180 18 18)" style="filter:drop-shadow(0 0 2px rgba(155,89,182,0.4));" />
+          </svg>
+          <div class="mini-avatar" style="background: linear-gradient(135deg, #2980b9, #3498db);">🔮</div>
+        </div>
+        <div class="row-body">
+          <div class="row-top">
+            <span class="row-name">Lyra</span>
+            <span class="row-class-hint">Sorcerer</span>
+          </div>
+          <div class="row-stats">
+            <span class="mini-stat hp"><span class="icon">♥</span>18</span>
+            <span class="mini-stat stress"><span class="icon">✦</span>1</span>
+            <span class="mini-stat armor"><span class="icon">🛡</span>2</span>
+            <span class="mini-stat hope"><span class="icon">◆</span>5</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Player: Finn (with status) -->
+      <div class="row-item">
+        <div class="mini-avatar-wrap">
+          <svg class="mini-arcs" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(231,76,60,0.08)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="47.1 94.2" transform="rotate(0 18 18)" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="31.4 94.2" transform="rotate(0 18 18)" style="filter:drop-shadow(0 0 2px rgba(231,76,60,0.5));" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(155,89,182,0.08)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="47.1 94.2" transform="rotate(180 18 18)" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#9b59b6" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="23.6 94.2" transform="rotate(180 18 18)" style="filter:drop-shadow(0 0 2px rgba(155,89,182,0.4));" />
+          </svg>
+          <div class="mini-avatar" style="background: linear-gradient(135deg, #27ae60, #2ecc71);">🗡️</div>
+        </div>
+        <div class="row-body">
+          <div class="row-top">
+            <span class="row-name">Finn</span>
+            <span class="row-class-hint">Rogue</span>
+          </div>
+          <div class="row-stats">
+            <span class="mini-stat hp"><span class="icon">♥</span>9</span>
+            <span class="mini-stat stress"><span class="icon">✦</span>3</span>
+            <span class="mini-stat armor"><span class="icon">🛡</span>1</span>
+            <span class="mini-stat hope"><span class="icon">◆</span>2</span>
+          </div>
+          <div class="row-statuses">
+            <span class="status-tag neutral">隐匿</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="section-divider"><span>敌方</span></div>
+
+      <!-- Enemy: Shadow Wolf (with status) -->
+      <div class="row-item enemy">
+        <div class="mini-avatar-wrap">
+          <svg class="mini-arcs" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(231,76,60,0.08)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="47.1 94.2" transform="rotate(0 18 18)" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="23.6 94.2" transform="rotate(0 18 18)" style="filter:drop-shadow(0 0 2px rgba(231,76,60,0.5));" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(155,89,182,0.08)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="47.1 94.2" transform="rotate(180 18 18)" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#9b59b6" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="31.4 94.2" transform="rotate(180 18 18)" style="filter:drop-shadow(0 0 2px rgba(155,89,182,0.4));" />
+          </svg>
+          <div class="mini-avatar" style="background: linear-gradient(135deg, #444, #222);">💀</div>
+        </div>
+        <div class="row-body">
+          <div class="row-top">
+            <span class="row-name">暗影狼</span>
+            <span class="enemy-badge">敌</span>
+          </div>
+          <div class="row-stats">
+            <span class="mini-stat hp"><span class="icon">♥</span>8</span>
+            <span class="mini-stat stress"><span class="icon">✦</span>4</span>
+          </div>
+          <div class="row-statuses">
+            <span class="status-tag debuff">易伤</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enemy: Goblin (no status) -->
+      <div class="row-item enemy">
+        <div class="mini-avatar-wrap">
+          <svg class="mini-arcs" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(231,76,60,0.08)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="47.1 94.2" transform="rotate(0 18 18)" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="47.1 94.2" transform="rotate(0 18 18)" style="filter:drop-shadow(0 0 2px rgba(231,76,60,0.5));" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(155,89,182,0.08)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="47.1 94.2" transform="rotate(180 18 18)" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#9b59b6" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="0 94.2" transform="rotate(180 18 18)" />
+          </svg>
+          <div class="mini-avatar" style="background: linear-gradient(135deg, #555, #333);">👹</div>
+        </div>
+        <div class="row-body">
+          <div class="row-top">
+            <span class="row-name">哥布林弓手</span>
+            <span class="enemy-badge">敌</span>
+          </div>
+          <div class="row-stats">
+            <span class="mini-stat hp"><span class="icon">♥</span>12</span>
+            <span class="mini-stat stress"><span class="icon">✦</span>0</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Annotations -->
+  <div class="annotations">
+    <div class="annotation">
+      <h3>列表行设计</h3>
+      <p>
+        ● 迷你头像自带 <span class="highlight">HP(红左弧) / Stress(紫右弧)</span>，一眼看出状态<br>
+        ● 右侧紧凑排列：名字 + 职业 + 四项数值 + 状态标签<br>
+        ● 状态标签颜色区分：<span class="highlight" style="color:rgba(46,204,113,0.9);">绿=增益</span>、<span class="highlight" style="color:rgba(231,76,60,0.8);">红=减益</span>、<span class="highlight" style="color:rgba(241,196,15,0.8);">黄=中性</span><br>
+        ● 没有状态时该行自动省去，不浪费空间
+      </p>
+    </div>
+    <div class="annotation">
+      <h3>悬浮详情卡</h3>
+      <p>
+        ● 向左弹出，不遮挡列表其他条目<br>
+        ● 完整名称 + 职业等级<br>
+        ● HP/Stress 带进度条，Armor/Hope 带离散点<br>
+        ● 六维属性（AGI/STR/FIN/INS/PRE/KNO）<br>
+        ● 状态列表带图标和持续时间
+      </p>
+    </div>
+    <div class="annotation">
+      <h3>玩家 vs 敌人</h3>
+      <p>
+        ● 玩家显示全部 4 项数值 + 悬浮有属性<br>
+        ● 敌人只显示 HP + Stress，悬浮也只有这两项<br>
+        ● "敌" 标签 + 暗色头像边框区分阵营<br>
+        ● 分隔线分组
+      </p>
+    </div>
+  </div>
+
+</body>
+</html>
