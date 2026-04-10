@@ -103,17 +103,6 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       layer: 'standard',
     })
 
-    // Register Battle Overview panel — right-side persistent panel showing all units
-    sdk.ui.registerRegion({
-      id: 'daggerheart-core:battle-overview',
-      component: BattleOverviewPanel as React.ComponentType<{ sdk: unknown }>,
-      lifecycle: 'persistent',
-      defaultSize: { width: 480, height: 300 },
-      minSize: { width: 400, height: 140 },
-      defaultPlacement: { anchor: 'top-right', offsetX: 0, offsetY: 12 },
-      layer: 'standard',
-    })
-
     // Define workflow with 5 steps: modifier → roll → judge → emit → resolve
     this.actionCheckHandle = sdk.defineWorkflow<ActionCheckData>('daggerheart-core:action-check', [
       {
