@@ -114,7 +114,8 @@ export class CharCardManager {
       const p = (prev ?? { items: [] }) as DHExperiences
       const items = [...p.items]
       if (index < 0 || index >= items.length) return p
-      const current = items[index]!
+      const current = items[index]
+      if (!current) return p
       items[index] = {
         name: field === 'name' ? (value as string) : current.name,
         modifier: field === 'modifier' ? (value as number) : current.modifier,

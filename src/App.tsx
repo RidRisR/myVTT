@@ -498,11 +498,6 @@ function RoomSession({ roomId }: { roomId: string }) {
     // Server handles adding persistent entities to all scenes
   }
 
-  const handleUpdateEntity = (id: string, updates: Partial<Entity>) => {
-    void updateEntity(id, updates)
-    // Server handles persistent→all-scenes linking
-  }
-
   const handleShowcaseHandout = (asset: HandoutAsset) => {
     const item: ShowcaseItem = {
       id: generateTokenId(),
