@@ -40,23 +40,20 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
   const attrs = sdk.data.useComponent<DHAttributes>(activeCharacterId ?? '', DH_KEYS.attributes)
   const meta = sdk.data.useComponent<DHMeta>(activeCharacterId ?? '', DH_KEYS.meta)
 
-  // Resize region on expand/collapse
-  useEffect(() => {
-    if (isGM) return
-    sdk.ui.resize(expanded ? EXPANDED_SIZE : COLLAPSED_SIZE)
-  }, [expanded, sdk.ui, isGM])
-
   // Outside-click to collapse
   useEffect(() => {
     if (!expanded) return
     const handler = (e: PointerEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         setExpanded(false)
+        sdk.ui.resize(COLLAPSED_SIZE)
       }
     }
     document.addEventListener('pointerdown', handler, true)
-    return () => { document.removeEventListener('pointerdown', handler, true); }
-  }, [expanded])
+    return () => {
+      document.removeEventListener('pointerdown', handler, true)
+    }
+  }, [expanded, sdk.ui])
 
   const handleRoll = useCallback(
     (attrKey: string) => {
@@ -99,7 +96,10 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
         data-testid="charcard-handle"
       >
         <button
-          onClick={() => { setExpanded(true); }}
+          onClick={() => {
+            setExpanded(true)
+            sdk.ui.resize(EXPANDED_SIZE)
+          }}
           className="size-10 rounded-full bg-glass backdrop-blur-[16px] border border-border-glass shadow-[0_4px_16px_rgba(0,0,0,0.4)] flex items-center justify-center text-sm font-bold text-text-primary hover:bg-surface hover:border-accent/30 transition-colors duration-fast active:scale-95"
         >
           {initial}

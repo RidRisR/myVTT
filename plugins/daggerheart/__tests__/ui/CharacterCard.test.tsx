@@ -136,9 +136,9 @@ describe('CharacterCard', () => {
       expect(screen.queryByTestId('charcard')).not.toBeInTheDocument()
     })
 
-    it('resizes to collapsed size on mount', () => {
+    it('does not resize on mount (default region size matches collapsed)', () => {
       render(<CharacterCard sdk={makeMockSdk()} />)
-      expect(mockResize).toHaveBeenCalledWith({ width: 44, height: 44 })
+      expect(mockResize).not.toHaveBeenCalled()
     })
   })
 
