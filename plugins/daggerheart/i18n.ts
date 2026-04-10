@@ -62,6 +62,12 @@ export const daggerheartI18n: PluginI18n = {
       // Fear Panel
       'fear.label': '恐惧',
       'fear.count': '{{current}} / {{max}}',
+
+      // Character Card (region)
+      'charcard.title': '角色卡',
+      'charcard.noCharacter': '未选择角色',
+      'charcard.rollTooltip': '点击掷骰 2d12{{mod}}',
+      'charcard.section.attributes': '属性',
     },
     en: {
       // DaggerHeartCard
@@ -122,6 +128,12 @@ export const daggerheartI18n: PluginI18n = {
       // Fear Panel
       'fear.label': 'Fear',
       'fear.count': '{{current}} / {{max}}',
+
+      // Character Card (region)
+      'charcard.title': 'Character Card',
+      'charcard.noCharacter': 'No character selected',
+      'charcard.rollTooltip': 'Click to roll 2d12{{mod}}',
+      'charcard.section.attributes': 'Attributes',
     },
   },
 }

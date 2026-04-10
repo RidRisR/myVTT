@@ -13,11 +13,12 @@ import {
 import { DiceJudge } from './DiceJudge'
 import { FearManager } from './FearManager'
 import { HopeResolver } from './HopeResolver'
+import { CharCardManager } from './CharCardManager'
 import { ModifierPanel } from './ui/ModifierPanel'
 import type { ModifierResult } from './ui/ModifierPanel'
 import { DHActionCheckCard } from './ui/DHActionCheckCard'
 import { FearPanel } from './ui/FearPanel'
-import { BattleOverviewPanel } from './ui/BattleOverviewPanel'
+import { CharacterCard } from '../daggerheart/ui/CharacterCard'
 import { daggerheartI18n } from '../daggerheart/i18n'
 import {
   dhGetMainResource,
@@ -48,12 +49,20 @@ interface FearClearData {
   [key: string]: unknown
 }
 
+interface CharCardUpdateAttrData {
+  [key: string]: unknown
+  entityId: string
+  attribute: string
+  value: number
+}
+
 export class DaggerHeartCorePlugin implements VTTPlugin {
   id = 'daggerheart-core'
 
   private dice = new DiceJudge()
   private fear = new FearManager()
   private hope = new HopeResolver()
+  private charCard = new CharCardManager()
   private actionCheckHandle!: WorkflowHandle<ActionCheckData>
   private fearSetHandle!: WorkflowHandle<FearSetData>
   // fear-clear workflow is registered via defineWorkflow side effect; handle not needed
@@ -100,6 +109,17 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       defaultSize: { width: 520, height: 50 },
       minSize: { width: 400, height: 42 },
       defaultPlacement: { anchor: 'top-left', offsetX: 200, offsetY: 12 },
+      layer: 'standard',
+    })
+
+    // Register Character Card region (player-only, hidden for GM via component logic)
+    sdk.ui.registerRegion({
+      id: 'daggerheart-core:character-card',
+      component: CharacterCard as React.ComponentType<{ sdk: unknown }>,
+      lifecycle: 'persistent',
+      defaultSize: { width: 220, height: 340 },
+      minSize: { width: 180, height: 260 },
+      defaultPlacement: { anchor: 'top-left', offsetX: 0, offsetY: 70 },
       layer: 'standard',
     })
 
@@ -204,6 +224,16 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
     // Register chat commands for fear adjustment
     sdk.registerCommand('.f+', this.fearSetHandle)
     sdk.registerCommand('.f-', this.fearSetHandle)
+
+    // Character card: update attribute workflow
+    sdk.defineWorkflow<CharCardUpdateAttrData>('daggerheart-core:charcard-update-attr', [
+      {
+        id: 'update',
+        run: (ctx) => {
+          this.charCard.updateAttribute(ctx, ctx.vars.entityId, ctx.vars.attribute, ctx.vars.value)
+        },
+      },
+    ])
   }
 
   async onReady(ctx: WorkflowContext): Promise<void> {
