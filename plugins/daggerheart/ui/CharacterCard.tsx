@@ -66,7 +66,10 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
 
   if (!entity || !activeCharacterId) {
     return (
-      <div className="h-full flex items-center justify-center text-white/30 text-xs" data-testid="charcard-empty">
+      <div
+        className="h-full flex items-center justify-center text-white/30 text-xs"
+        data-testid="charcard-empty"
+      >
         {t('charcard.noCharacter')}
       </div>
     )
@@ -85,7 +88,7 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
           <div className="text-sm font-semibold truncate">{charName}</div>
           {meta?.className && (
             <div className="text-[9px] text-white/38">
-              {meta.className} · Tier {meta.tier ?? 1}
+              {meta.className} · Tier {meta.tier}
             </div>
           )}
         </div>
@@ -102,8 +105,8 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
             labelCn={t(`attr.${key}`)}
             labelEn={en}
             value={attrs?.[key as keyof DHAttributes] ?? 0}
-            onRoll={() => handleRoll(key)}
-            onEdit={(v) => handleEdit(key, v)}
+            onRoll={() => { handleRoll(key); }}
+            onEdit={(v) => { handleEdit(key, v); }}
           />
         ))}
       </div>

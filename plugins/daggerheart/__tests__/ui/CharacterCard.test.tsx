@@ -42,7 +42,14 @@ const TEST_ENTITY: Entity = {
   tags: [],
   components: {
     'core:identity': { name: 'Aria', imageUrl: '', color: '#ff0000' },
-    'daggerheart:attributes': { agility: 2, strength: -1, finesse: 0, instinct: 3, presence: 1, knowledge: -2 },
+    'daggerheart:attributes': {
+      agility: 2,
+      strength: -1,
+      finesse: 0,
+      instinct: 3,
+      presence: 1,
+      knowledge: -2,
+    },
     'daggerheart:meta': { tier: 2, proficiency: 2, className: 'Bard', ancestry: 'Elf' },
   },
 }
@@ -90,6 +97,7 @@ function makeMockSdk(overrides: Partial<{ role: 'GM' | 'Player' }> = {}) {
 }
 
 function setupIdentityStore(activeCharacterId: string | null = 'char1') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- zustand selector signature
   vi.mocked(identityModule.useIdentityStore).mockImplementation((selector: any) => {
     const state = {
       seats: [
