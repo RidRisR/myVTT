@@ -13,8 +13,7 @@ export function initGlobalSchema(db: Database.Database): void {
   `)
 }
 
-const DEFAULT_LAYOUT =
-  '{"narrative":{"core-ui.session-info#1":{"x":20,"y":60,"width":200,"height":260,"zOrder":0}},"tactical":{}}'
+const DEFAULT_LAYOUT = '{"narrative":{},"tactical":{}}'
 
 export function initRoomSchema(db: Database.Database): void {
   db.exec(`

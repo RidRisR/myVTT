@@ -156,4 +156,5 @@ describe('entity bindings — room-level lookups', () => {
   it('getDataTemplate returns undefined for unknown system', () => {
     expect(getDataTemplate('nonexistent')).toBeUndefined()
   })
+
 })

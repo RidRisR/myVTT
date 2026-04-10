@@ -147,6 +147,8 @@ export interface PluginI18n {
 
 export interface VTTPlugin {
   id: string
+  /** When set, the plugin is only activated if the room's ruleSystemId matches. Undefined = always active. */
+  ruleSystemId?: string
   dependencies?: string[]
   onActivate(sdk: import('../workflow/types').IPluginSDK): void
   onReady?(ctx: import('../workflow/types').WorkflowContext): void | Promise<void>

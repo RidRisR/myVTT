@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import userEvent from '@testing-library/user-event'
 import type { IRegionSDK } from '../../../../src/ui-system/types'
@@ -20,6 +20,16 @@ vi.mock('@myvtt/sdk', () => ({
       const map: Record<string, string> = {
         'charcard.noCharacter': 'No character selected',
         'charcard.section.attributes': 'Attributes',
+        'charcard.section.resources': 'Resources',
+        'charcard.section.thresholds': 'Thresholds',
+        'charcard.section.experiences': 'Experiences',
+        'charcard.res.hp': 'HP',
+        'charcard.res.stress': 'Stress',
+        'charcard.res.armor': 'Armor',
+        'charcard.res.hope': 'Hope',
+        'charcard.threshold.evasion': '闪避',
+        'charcard.threshold.major': '重伤',
+        'charcard.threshold.severe': '严重',
         'attr.agility': '敏捷',
         'attr.strength': '力量',
         'attr.instinct': '本能',
@@ -52,6 +62,16 @@ const TEST_ENTITY: Entity = {
       knowledge: -2,
     },
     'daggerheart:meta': { tier: 2, proficiency: 2, className: 'Bard', ancestry: 'Elf' },
+    'daggerheart:health': { current: 15, max: 20 },
+    'daggerheart:stress': { current: 2, max: 6 },
+    'daggerheart:extras': { hope: 3, hopeMax: 6, armor: 2, armorMax: 4 },
+    'daggerheart:thresholds': { evasion: 12, major: 10, severe: 22 },
+    'daggerheart:experiences': {
+      items: [
+        { name: '森林生存专家', modifier: 2 },
+        { name: '铁匠学徒', modifier: 1 },
+      ],
+    },
   },
 }
 
@@ -63,6 +83,31 @@ function makeMeta() {
   return { tier: 2, proficiency: 2, className: 'Bard', ancestry: 'Elf' }
 }
 
+function makeHealth() {
+  return { current: 15, max: 20 }
+}
+
+function makeStress() {
+  return { current: 2, max: 6 }
+}
+
+function makeExtras() {
+  return { hope: 3, hopeMax: 6, armor: 2, armorMax: 4 }
+}
+
+function makeThresholds() {
+  return { evasion: 12, major: 10, severe: 22 }
+}
+
+function makeExperiences() {
+  return {
+    items: [
+      { name: '森林生存专家', modifier: 2 },
+      { name: '铁匠学徒', modifier: 1 },
+    ],
+  }
+}
+
 function makeMockSdk(overrides: Partial<{ role: 'GM' | 'Player' }> = {}) {
   return {
     data: {
@@ -70,6 +115,11 @@ function makeMockSdk(overrides: Partial<{ role: 'GM' | 'Player' }> = {}) {
       useComponent: vi.fn().mockImplementation((_id: string, key: string) => {
         if (key === 'daggerheart:attributes') return makeAttrs()
         if (key === 'daggerheart:meta') return makeMeta()
+        if (key === 'daggerheart:health') return makeHealth()
+        if (key === 'daggerheart:stress') return makeStress()
+        if (key === 'daggerheart:extras') return makeExtras()
+        if (key === 'daggerheart:thresholds') return makeThresholds()
+        if (key === 'daggerheart:experiences') return makeExperiences()
         return undefined
       }),
       useQuery: vi.fn().mockReturnValue([]),
@@ -116,10 +166,9 @@ function setupIdentityStore(activeCharacterId: string | null = 'char1') {
   })
 }
 
-/** Click the collapsed handle button to expand the card */
+/** Click the tab handle to expand the card */
 async function expandCard(user: ReturnType<typeof userEvent.setup>) {
-  const root = screen.getByTestId('charcard-handle')
-  await user.click(within(root).getByRole('button'))
+  await user.click(screen.getByTestId('charcard-tab'))
 }
 
 describe('CharacterCard', () => {
@@ -129,11 +178,11 @@ describe('CharacterCard', () => {
   })
 
   describe('collapsed state', () => {
-    it('starts collapsed with character initial as handle', () => {
+    it('starts collapsed with character initial in tab handle', () => {
       render(<CharacterCard sdk={makeMockSdk()} />)
       const root = screen.getByTestId('charcard-handle')
       expect(root).toBeInTheDocument()
-      expect(within(root).getByRole('button')).toHaveTextContent('A') // "Aria" initial
+      expect(root).toHaveTextContent('A') // "Aria" initial
       expect(screen.queryByTestId('charcard')).not.toBeInTheDocument()
     })
 
@@ -149,7 +198,7 @@ describe('CharacterCard', () => {
       render(<CharacterCard sdk={makeMockSdk()} />)
       await expandCard(user)
       expect(screen.getByTestId('charcard')).toBeInTheDocument()
-      expect(mockResize).toHaveBeenCalledWith({ width: 220, height: 340 })
+      expect(mockResize).toHaveBeenCalledWith({ width: 420, height: 520 })
     })
 
     it('renders 6 attribute cells with correct values', async () => {
@@ -215,6 +264,81 @@ describe('CharacterCard', () => {
         }),
       )
     })
+
+    it('renders resource bars for HP and stress', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      const bars = screen.getAllByTestId('res-bar')
+      expect(bars).toHaveLength(2)
+      const texts = screen.getAllByTestId('res-text')
+      expect(texts[0]).toHaveTextContent('15/20')
+      expect(texts[1]).toHaveTextContent('2/6')
+    })
+
+    it('renders pip rows for armor and hope', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      const pipRows = screen.getAllByTestId('pip-row')
+      expect(pipRows).toHaveLength(2)
+      const pips = screen.getAllByTestId('pip')
+      // armor: 4 pips (armorMax=4), hope: 6 pips (hopeMax=6)
+      expect(pips).toHaveLength(10)
+    })
+
+    it('renders threshold values', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      const thresholdValues = screen.getAllByTestId('threshold-value')
+      expect(thresholdValues).toHaveLength(3)
+      expect(thresholdValues[0]).toHaveTextContent('12')
+      expect(thresholdValues[1]).toHaveTextContent('10')
+      expect(thresholdValues[2]).toHaveTextContent('22')
+    })
+
+    it('renders experience items', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      const expItems = screen.getAllByTestId('exp-item')
+      expect(expItems).toHaveLength(2)
+      expect(screen.getByText('森林生存专家')).toBeInTheDocument()
+      expect(screen.getByText('铁匠学徒')).toBeInTheDocument()
+    })
+
+    it('clicking experience name triggers action-check', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      const rollZones = screen.getAllByTestId('exp-roll-zone')
+      await user.click(rollZones[0]!)
+      expect(mockRunWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'daggerheart-core:action-check' }),
+        expect.objectContaining({
+          formula: '2d12+2',
+          actorId: 'char1',
+        }),
+      )
+    })
+
+    it('clicking resource +/- buttons triggers update workflow', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      const incButtons = screen.getAllByTestId('res-inc')
+      await user.click(incButtons[0]!) // HP increment
+      expect(mockRunWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'daggerheart-core:charcard-update-res' }),
+        expect.objectContaining({
+          entityId: 'char1',
+          resource: 'health',
+          field: 'current',
+          value: 16,
+        }),
+      )
+    })
   })
 
   it('GM role renders hidden div', () => {
@@ -228,8 +352,7 @@ describe('CharacterCard', () => {
     const user = userEvent.setup()
     render(<CharacterCard sdk={makeMockSdk()} />)
     // Handle shows "?" when no character
-    const root = screen.getByTestId('charcard-handle')
-    expect(within(root).getByRole('button')).toHaveTextContent('?')
+    expect(screen.getByTestId('charcard-handle')).toHaveTextContent('?')
     await expandCard(user)
     expect(screen.getByTestId('charcard-empty')).toBeInTheDocument()
     expect(screen.getByText('No character selected')).toBeInTheDocument()

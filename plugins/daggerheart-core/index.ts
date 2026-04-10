@@ -56,8 +56,52 @@ interface CharCardUpdateAttrData {
   value: number
 }
 
+interface CharCardUpdateResData {
+  [key: string]: unknown
+  entityId: string
+  resource: string
+  field: 'current' | 'max'
+  value: number
+}
+
+interface CharCardUpdateExtrasData {
+  [key: string]: unknown
+  entityId: string
+  field: string
+  value: number
+}
+
+interface CharCardUpdateThresholdData {
+  [key: string]: unknown
+  entityId: string
+  threshold: string
+  value: number
+}
+
+interface CharCardUpdateExpData {
+  [key: string]: unknown
+  entityId: string
+  index: number
+  field: 'name' | 'modifier'
+  value: string | number
+}
+
+interface CharCardAddExpData {
+  [key: string]: unknown
+  entityId: string
+  name: string
+  modifier: number
+}
+
+interface CharCardRemoveExpData {
+  [key: string]: unknown
+  entityId: string
+  index: number
+}
+
 export class DaggerHeartCorePlugin implements VTTPlugin {
   id = 'daggerheart-core'
+  ruleSystemId = 'daggerheart'
 
   private dice = new DiceJudge()
   private fear = new FearManager()
@@ -112,16 +156,15 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       layer: 'standard',
     })
 
-    // Register Character Card region (player-only, hidden for GM via component logic)
-    // Starts collapsed (handle-only), expands to full card on click
+    // Register Character Card region — drawer-style panel on the left edge.
+    // Starts collapsed (tab handle only), expands rightward to show card content.
     sdk.ui.registerRegion({
       id: 'daggerheart-core:character-card',
       component: CharacterCard as React.ComponentType<{ sdk: unknown }>,
       lifecycle: 'persistent',
-      defaultSize: { width: 44, height: 44 },
-      minSize: { width: 44, height: 44 },
-      defaultPlacement: { anchor: 'top-left', offsetX: 8, offsetY: 70 },
-      resizeOrigin: 'center-left',
+      defaultSize: { width: 36, height: 60 },
+      minSize: { width: 36, height: 60 },
+      defaultPlacement: { anchor: 'top-left', offsetX: 0, offsetY: 200 },
       layer: 'standard',
     })
 
@@ -227,12 +270,83 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
     sdk.registerCommand('.f+', this.fearSetHandle)
     sdk.registerCommand('.f-', this.fearSetHandle)
 
-    // Character card: update attribute workflow
+    // Character card workflows
     sdk.defineWorkflow<CharCardUpdateAttrData>('daggerheart-core:charcard-update-attr', [
       {
         id: 'update',
         run: (ctx) => {
           this.charCard.updateAttribute(ctx, ctx.vars.entityId, ctx.vars.attribute, ctx.vars.value)
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<CharCardUpdateResData>('daggerheart-core:charcard-update-res', [
+      {
+        id: 'update',
+        run: (ctx) => {
+          this.charCard.updateResource(
+            ctx,
+            ctx.vars.entityId,
+            ctx.vars.resource,
+            ctx.vars.field,
+            ctx.vars.value,
+          )
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<CharCardUpdateExtrasData>('daggerheart-core:charcard-update-extras', [
+      {
+        id: 'update',
+        run: (ctx) => {
+          this.charCard.updateExtras(ctx, ctx.vars.entityId, ctx.vars.field, ctx.vars.value)
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<CharCardUpdateThresholdData>('daggerheart-core:charcard-update-threshold', [
+      {
+        id: 'update',
+        run: (ctx) => {
+          this.charCard.updateThreshold(
+            ctx,
+            ctx.vars.entityId,
+            ctx.vars.threshold,
+            ctx.vars.value,
+          )
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<CharCardUpdateExpData>('daggerheart-core:charcard-update-exp', [
+      {
+        id: 'update',
+        run: (ctx) => {
+          this.charCard.updateExperience(
+            ctx,
+            ctx.vars.entityId,
+            ctx.vars.index,
+            ctx.vars.field,
+            ctx.vars.value,
+          )
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<CharCardAddExpData>('daggerheart-core:charcard-add-exp', [
+      {
+        id: 'add',
+        run: (ctx) => {
+          this.charCard.addExperience(ctx, ctx.vars.entityId, ctx.vars.name, ctx.vars.modifier)
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<CharCardRemoveExpData>('daggerheart-core:charcard-remove-exp', [
+      {
+        id: 'remove',
+        run: (ctx) => {
+          this.charCard.removeExperience(ctx, ctx.vars.entityId, ctx.vars.index)
         },
       },
     ])

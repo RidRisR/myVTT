@@ -3,6 +3,7 @@ import { cosmeticDiceAnimationStep } from './diceAnimation'
 
 export const daggerheartCosmeticPlugin: VTTPlugin = {
   id: 'daggerheart-cosmetic',
+  ruleSystemId: 'daggerheart',
   dependencies: ['daggerheart-core'],
   onActivate(sdk) {
     const dhActionCheck = sdk.getWorkflow('daggerheart-core:action-check')

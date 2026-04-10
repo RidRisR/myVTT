@@ -229,6 +229,122 @@ describe('initWorkflowSystem', () => {
     expect(capturedVars).toEqual({ content: 'hello' })
   })
 
+  describe('ruleSystemId filtering', () => {
+    it('skips plugins with non-matching ruleSystemId', () => {
+      const callOrder: string[] = []
+
+      const dhPlugin: VTTPlugin = {
+        id: 'dh',
+        ruleSystemId: 'daggerheart',
+        onActivate() {
+          callOrder.push('activate-dh')
+        },
+      }
+
+      const genericPlugin: VTTPlugin = {
+        id: 'gen',
+        ruleSystemId: 'generic',
+        onActivate() {
+          callOrder.push('activate-gen')
+        },
+      }
+
+      const corePlugin: VTTPlugin = {
+        id: 'core',
+        onActivate() {
+          callOrder.push('activate-core')
+        },
+      }
+
+      registerWorkflowPlugins([dhPlugin, genericPlugin, corePlugin])
+      handle = initWorkflowSystem('generic')
+
+      // Only generic + rule-agnostic core should activate; daggerheart should be skipped
+      expect(callOrder).toEqual(['activate-gen', 'activate-core'])
+    })
+
+    it('activates matching ruleSystemId plugins', () => {
+      const callOrder: string[] = []
+
+      const dhPlugin: VTTPlugin = {
+        id: 'dh',
+        ruleSystemId: 'daggerheart',
+        onActivate() {
+          callOrder.push('activate-dh')
+        },
+      }
+
+      const corePlugin: VTTPlugin = {
+        id: 'core',
+        onActivate() {
+          callOrder.push('activate-core')
+        },
+      }
+
+      registerWorkflowPlugins([dhPlugin, corePlugin])
+      handle = initWorkflowSystem('daggerheart')
+
+      expect(callOrder).toEqual(['activate-dh', 'activate-core'])
+    })
+
+    it('activates all plugins when no ruleSystemId is passed', () => {
+      const callOrder: string[] = []
+
+      const dhPlugin: VTTPlugin = {
+        id: 'dh',
+        ruleSystemId: 'daggerheart',
+        onActivate() {
+          callOrder.push('activate-dh')
+        },
+      }
+
+      const genericPlugin: VTTPlugin = {
+        id: 'gen',
+        ruleSystemId: 'generic',
+        onActivate() {
+          callOrder.push('activate-gen')
+        },
+      }
+
+      registerWorkflowPlugins([dhPlugin, genericPlugin])
+      handle = initWorkflowSystem()
+
+      expect(callOrder).toEqual(['activate-dh', 'activate-gen'])
+    })
+
+    it('skips onReady for non-matching plugins', async () => {
+      const callOrder: string[] = []
+
+      const dhPlugin: VTTPlugin = {
+        id: 'dh',
+        ruleSystemId: 'daggerheart',
+        onActivate() {
+          callOrder.push('activate-dh')
+        },
+        onReady() {
+          callOrder.push('ready-dh')
+        },
+      }
+
+      const corePlugin: VTTPlugin = {
+        id: 'core',
+        onActivate() {
+          callOrder.push('activate-core')
+        },
+        onReady() {
+          callOrder.push('ready-core')
+        },
+      }
+
+      registerWorkflowPlugins([dhPlugin, corePlugin])
+      handle = initWorkflowSystem('generic')
+      cleanupTriggers = await startWorkflowTriggers(0)
+
+      // dh should be completely skipped (no activate, no ready)
+      expect(callOrder).toEqual(['activate-core', 'ready-core'])
+    })
+  })
+
   it('does not trigger on historical entries below historyWatermark', async () => {
     let triggered = false
 

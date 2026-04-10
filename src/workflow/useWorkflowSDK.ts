@@ -22,10 +22,19 @@ export { getCommand, registerCommand } from './commandRegistry'
 let _engine: WorkflowEngine | null = null
 let _pluginsActivated = false
 let _registeredPlugins: VTTPlugin[] = []
+let _activeRuleSystemId: string | null = null
 let _triggerRegistry: TriggerRegistry | null = null
 let _runner: WorkflowRunner | null = null
 let _dispatcher: LogStreamDispatcher | null = null
 let _workflowSystemInitialized = false
+
+/** Return the subset of registered plugins that should be active for the current ruleSystemId. */
+function getActivePlugins(): VTTPlugin[] {
+  if (_activeRuleSystemId == null) return _registeredPlugins
+  return _registeredPlugins.filter(
+    (p) => p.ruleSystemId == null || p.ruleSystemId === _activeRuleSystemId,
+  )
+}
 
 /**
  * Register workflow plugins for activation. Must be called before useWorkflowRunner.
@@ -53,6 +62,7 @@ export function resetWorkflowEngine(): void {
   _engine = null
   _pluginsActivated = false
   _registeredPlugins = []
+  _activeRuleSystemId = null
   _triggerRegistry = null
   _runner = null
   _dispatcher = null
@@ -140,12 +150,12 @@ function buildDeps(): PluginSDKDeps {
 
 /**
  * Activate registered plugins on the engine. Idempotent — only activates once per engine lifetime.
- * Uses plugins registered via registerWorkflowPlugins().
+ * Filters by _activeRuleSystemId — plugins with a non-matching ruleSystemId are skipped.
  */
 function ensurePluginsActivated(engine: WorkflowEngine): void {
   if (_pluginsActivated) return
 
-  for (const plugin of _registeredPlugins) {
+  for (const plugin of getActivePlugins()) {
     const sdk = new PluginSDK(engine, plugin.id)
     plugin.onActivate(sdk)
   }
@@ -166,10 +176,15 @@ export interface WorkflowSystemHandle {
  * Phase 1: Construct the workflow system — engine, plugins (onActivate), runner, dispatcher.
  * Purely synchronous. Does NOT start listening for events or call onReady.
  *
+ * @param ruleSystemId — the room's active rule system. Plugins with a non-matching
+ *   `ruleSystemId` are skipped. Pass undefined to activate all plugins (legacy behavior).
+ *
  * Call `startWorkflowTriggers()` after stores are initialized to complete startup.
  */
-export function initWorkflowSystem(): WorkflowSystemHandle {
+export function initWorkflowSystem(ruleSystemId?: string): WorkflowSystemHandle {
   if (_workflowSystemInitialized) return { cleanup: () => {} }
+
+  _activeRuleSystemId = ruleSystemId ?? null
 
   // Register base log entry renderers before plugin activation
   registerBaseRenderers()
@@ -178,8 +193,9 @@ export function initWorkflowSystem(): WorkflowSystemHandle {
   _triggerRegistry = new TriggerRegistry()
 
   // Activate plugins with trigger registry (declarations only — no runtime effects)
+  // Only plugins matching the room's ruleSystemId (or rule-agnostic plugins) are activated.
   if (!_pluginsActivated) {
-    for (const plugin of _registeredPlugins) {
+    for (const plugin of getActivePlugins()) {
       const sdk = new PluginSDK(engine, plugin.id, getUIRegistry(), _triggerRegistry)
       plugin.onActivate(sdk)
     }
@@ -234,7 +250,7 @@ export async function startWorkflowTriggers(historyWatermark: number): Promise<(
   const engine = getWorkflowEngine()
   const readyPromises: Promise<void>[] = []
 
-  for (const plugin of _registeredPlugins) {
+  for (const plugin of getActivePlugins()) {
     if (plugin.onReady) {
       try {
         const readyInternal = { depth: 0, abortCtrl: { aborted: false } }

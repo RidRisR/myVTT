@@ -28,7 +28,7 @@ const makeDHEntity = (overrides?: Record<string, unknown>) => {
       className: 'Ranger',
       ancestry: 'Elf',
     } satisfies DHMeta,
-    [DH_KEYS.extras]: { hope: 3, armor: 2 } satisfies DHExtras,
+    [DH_KEYS.extras]: { hope: 3, hopeMax: 6, armor: 2, armorMax: 4 } satisfies DHExtras,
   }
   return makeEntity({
     components: {

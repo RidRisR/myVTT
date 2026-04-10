@@ -25,7 +25,21 @@ export interface DHMeta {
 }
 export interface DHExtras {
   hope: number
+  hopeMax: number
   armor: number
+  armorMax: number
+}
+export interface DHThresholds {
+  evasion: number
+  major: number
+  severe: number
+}
+export interface DHExperience {
+  name: string
+  modifier: number
+}
+export interface DHExperiences {
+  items: DHExperience[]
 }
 
 // Component keys for Daggerheart plugin
@@ -35,6 +49,8 @@ export const DH_KEYS = {
   attributes: 'daggerheart:attributes',
   meta: 'daggerheart:meta',
   extras: 'daggerheart:extras',
+  thresholds: 'daggerheart:thresholds',
+  experiences: 'daggerheart:experiences',
 } as const
 
 // Module augmentation — extends core ComponentTypeMap with Daggerheart keys
@@ -45,6 +61,8 @@ declare module '../../src/shared/componentTypes' {
     'daggerheart:attributes': DHAttributes
     'daggerheart:meta': DHMeta
     'daggerheart:extras': DHExtras
+    'daggerheart:thresholds': DHThresholds
+    'daggerheart:experiences': DHExperiences
   }
 }
 
