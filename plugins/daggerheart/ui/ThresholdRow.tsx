@@ -1,16 +1,15 @@
 // plugins/daggerheart/ui/ThresholdRow.tsx
-// Three-cell row showing evasion, major, severe thresholds with click-to-edit.
+// Compact three-cell row showing evasion, major, severe thresholds with click-to-edit.
 import { useState, useCallback, useRef } from 'react'
 
 interface ThresholdCellProps {
   label: string
-  labelEn: string
   value: number
   highlight?: boolean
   onEdit: (value: number) => void
 }
 
-function ThresholdCell({ label, labelEn, value, highlight, onEdit }: ThresholdCellProps) {
+function ThresholdCell({ label, value, highlight, onEdit }: ThresholdCellProps) {
   const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -25,20 +24,18 @@ function ThresholdCell({ label, labelEn, value, highlight, onEdit }: ThresholdCe
 
   return (
     <div
-      className={`flex-1 text-center bg-white/[0.04] border rounded-lg py-1 px-1 ${
+      className={`flex-1 text-center bg-white/[0.04] border rounded-md py-0.5 px-1 ${
         highlight ? 'border-info/20' : 'border-white/[0.04]'
       }`}
       data-testid="threshold-cell"
     >
-      <div className="text-[7px] text-text-muted/40 tracking-wide leading-tight">
-        {label} <span className="uppercase text-[5px]">{labelEn}</span>
-      </div>
+      <div className="text-[7px] text-text-muted/40 tracking-wide leading-tight">{label}</div>
       {editing ? (
         <input
           ref={inputRef}
           autoFocus
           defaultValue={value}
-          onBlur={(e) => handleCommit(e.target.value)}
+          onBlur={(e) => { handleCommit(e.target.value); }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
             if (e.key === 'Escape') setEditing(false)
@@ -48,7 +45,7 @@ function ThresholdCell({ label, labelEn, value, highlight, onEdit }: ThresholdCe
         />
       ) : (
         <div
-          className={`text-[15px] font-bold tabular-nums cursor-text ${
+          className={`text-[14px] font-bold tabular-nums cursor-text leading-tight ${
             highlight ? 'text-info/90' : 'text-text-muted/70'
           } hover:text-text-primary/90 transition-colors`}
           onClick={() => {
@@ -74,26 +71,15 @@ interface ThresholdRowProps {
 
 export function ThresholdRow({ evasion, major, severe, labels, onEdit }: ThresholdRowProps) {
   return (
-    <div className="flex gap-1" data-testid="threshold-row">
+    <div className="flex gap-[3px]" data-testid="threshold-row">
       <ThresholdCell
         label={labels.evasion}
-        labelEn="Evasion"
         value={evasion}
         highlight
-        onEdit={(v) => onEdit('evasion', v)}
+        onEdit={(v) => { onEdit('evasion', v); }}
       />
-      <ThresholdCell
-        label={labels.major}
-        labelEn="Major"
-        value={major}
-        onEdit={(v) => onEdit('major', v)}
-      />
-      <ThresholdCell
-        label={labels.severe}
-        labelEn="Severe"
-        value={severe}
-        onEdit={(v) => onEdit('severe', v)}
-      />
+      <ThresholdCell label={labels.major} value={major} onEdit={(v) => { onEdit('major', v); }} />
+      <ThresholdCell label={labels.severe} value={severe} onEdit={(v) => { onEdit('severe', v); }} />
     </div>
   )
 }

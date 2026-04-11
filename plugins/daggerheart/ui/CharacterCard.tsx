@@ -1,13 +1,21 @@
 // plugins/daggerheart/ui/CharacterCard.tsx
-// Drawer-style character card: left tab strip + two-column panel content revealed rightward.
+// Drawer-style character card: left tab strip + single-column panel content revealed rightward.
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Pin, PinOff, Heart, Zap, Shield, Diamond } from 'lucide-react'
 import type { IRegionSDK } from '../../../src/ui-system/types'
 import type { WorkflowHandle } from '@myvtt/sdk'
 import { usePluginTranslation } from '@myvtt/sdk'
 import { useIdentityStore } from '../../../src/stores/identityStore'
 import { getName, getImageUrl, getColor } from '../../../src/shared/coreComponents'
-import type { DHAttributes, DHMeta, DHHealth, DHStress, DHExtras, DHThresholds, DHExperiences } from '../types'
+import type {
+  DHAttributes,
+  DHMeta,
+  DHHealth,
+  DHStress,
+  DHExtras,
+  DHThresholds,
+  DHExperiences,
+} from '../types'
 import { DH_KEYS } from '../types'
 import { AttributeCell } from './AttributeCell'
 import { ResourceBar } from './ResourceBar'
@@ -15,30 +23,29 @@ import { PipRow } from './PipRow'
 import { ThresholdRow } from './ThresholdRow'
 import { ExperienceList } from './ExperienceList'
 
-const ATTRS = [
-  { key: 'agility', en: 'Agility' },
-  { key: 'strength', en: 'Strength' },
-  { key: 'instinct', en: 'Instinct' },
-  { key: 'knowledge', en: 'Knowledge' },
-  { key: 'presence', en: 'Presence' },
-  { key: 'finesse', en: 'Finesse' },
-] as const
+const ATTR_KEYS = ['agility', 'strength', 'instinct', 'knowledge', 'presence', 'finesse'] as const
 
 const ACTION_CHECK_HANDLE = { name: 'daggerheart-core:action-check' } as WorkflowHandle
 const UPDATE_ATTR_HANDLE = { name: 'daggerheart-core:charcard-update-attr' } as WorkflowHandle
 const UPDATE_RES_HANDLE = { name: 'daggerheart-core:charcard-update-res' } as WorkflowHandle
 const UPDATE_EXTRAS_HANDLE = { name: 'daggerheart-core:charcard-update-extras' } as WorkflowHandle
-const UPDATE_THRESHOLD_HANDLE = { name: 'daggerheart-core:charcard-update-threshold' } as WorkflowHandle
+const UPDATE_THRESHOLD_HANDLE = {
+  name: 'daggerheart-core:charcard-update-threshold',
+} as WorkflowHandle
 const UPDATE_EXP_HANDLE = { name: 'daggerheart-core:charcard-update-exp' } as WorkflowHandle
+const ADD_EXP_HANDLE = { name: 'daggerheart-core:charcard-add-exp' } as WorkflowHandle
+const REMOVE_EXP_HANDLE = { name: 'daggerheart-core:charcard-remove-exp' } as WorkflowHandle
 
 const COLLAPSED_SIZE = { width: 36, height: 60 }
-const EXPANDED_SIZE = { width: 420, height: 520 }
+const EXPANDED_SIZE = { width: 300, height: 480 }
 
 export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
   const { t } = usePluginTranslation()
   const isGM = sdk.context.role === 'GM'
   const [expanded, setExpanded] = useState(false)
+  const [pinned, setPinned] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Get active character ID from identity store
   const activeCharacterId = useIdentityStore((s) => {
@@ -52,23 +59,42 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
   const health = sdk.data.useComponent<DHHealth>(activeCharacterId ?? '', DH_KEYS.health)
   const stress = sdk.data.useComponent<DHStress>(activeCharacterId ?? '', DH_KEYS.stress)
   const extras = sdk.data.useComponent<DHExtras>(activeCharacterId ?? '', DH_KEYS.extras)
-  const thresholds = sdk.data.useComponent<DHThresholds>(activeCharacterId ?? '', DH_KEYS.thresholds)
-  const experiences = sdk.data.useComponent<DHExperiences>(activeCharacterId ?? '', DH_KEYS.experiences)
+  const thresholds = sdk.data.useComponent<DHThresholds>(
+    activeCharacterId ?? '',
+    DH_KEYS.thresholds,
+  )
+  const experiences = sdk.data.useComponent<DHExperiences>(
+    activeCharacterId ?? '',
+    DH_KEYS.experiences,
+  )
 
-  // Outside-click to collapse
-  useEffect(() => {
-    if (!expanded) return
-    const handler = (e: PointerEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
-        setExpanded(false)
-        sdk.ui.resize(COLLAPSED_SIZE)
-      }
+  // Hover expand / collapse with debounce to avoid flicker
+  const expand = useCallback(() => {
+    if (collapseTimer.current) {
+      clearTimeout(collapseTimer.current)
+      collapseTimer.current = null
     }
-    document.addEventListener('pointerdown', handler, true)
-    return () => {
-      document.removeEventListener('pointerdown', handler, true)
+    if (!expanded) {
+      setExpanded(true)
+      sdk.ui.resize(EXPANDED_SIZE)
     }
   }, [expanded, sdk.ui])
+
+  const collapse = useCallback(() => {
+    if (pinned) return
+    collapseTimer.current = setTimeout(() => {
+      setExpanded(false)
+      sdk.ui.resize(COLLAPSED_SIZE)
+      collapseTimer.current = null
+    }, 300)
+  }, [pinned, sdk.ui])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (collapseTimer.current) clearTimeout(collapseTimer.current)
+    }
+  }, [])
 
   // ── Handlers ──
 
@@ -133,18 +159,6 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
     [activeCharacterId, sdk.workflow],
   )
 
-  const handleExpRoll = useCallback(
-    (_name: string, modifier: number) => {
-      if (!activeCharacterId) return
-      void sdk.workflow.runWorkflow(ACTION_CHECK_HANDLE, {
-        formula: `2d12+${modifier}`,
-        actorId: activeCharacterId,
-        rollType: 'daggerheart:dd',
-      })
-    },
-    [activeCharacterId, sdk.workflow],
-  )
-
   const handleExpEditValue = useCallback(
     (index: number, value: number) => {
       if (!activeCharacterId) return
@@ -153,6 +167,39 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
         index,
         field: 'modifier',
         value,
+      })
+    },
+    [activeCharacterId, sdk.workflow],
+  )
+
+  const handleExpEditName = useCallback(
+    (index: number, name: string) => {
+      if (!activeCharacterId) return
+      void sdk.workflow.runWorkflow(UPDATE_EXP_HANDLE, {
+        entityId: activeCharacterId,
+        index,
+        field: 'name',
+        value: name,
+      })
+    },
+    [activeCharacterId, sdk.workflow],
+  )
+
+  const handleExpAdd = useCallback(() => {
+    if (!activeCharacterId) return
+    void sdk.workflow.runWorkflow(ADD_EXP_HANDLE, {
+      entityId: activeCharacterId,
+      name: '',
+      modifier: 0,
+    })
+  }, [activeCharacterId, sdk.workflow])
+
+  const handleExpRemove = useCallback(
+    (index: number) => {
+      if (!activeCharacterId) return
+      void sdk.workflow.runWorkflow(REMOVE_EXP_HANDLE, {
+        entityId: activeCharacterId,
+        index,
       })
     },
     [activeCharacterId, sdk.workflow],
@@ -169,25 +216,16 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
   const initial = charName ? charName.charAt(0).toUpperCase() : '?'
   const hasCharacter = !!entity && !!activeCharacterId
 
-  const toggle = () => {
-    if (expanded) {
-      setExpanded(false)
-      sdk.ui.resize(COLLAPSED_SIZE)
-    } else {
-      setExpanded(true)
-      sdk.ui.resize(EXPANDED_SIZE)
-    }
-  }
-
   return (
     <div
       ref={rootRef}
       className="h-full bg-glass backdrop-blur-[16px] rounded-r-[14px] border border-border-glass border-l-0 shadow-[4px_0_32px_rgba(0,0,0,0.3)] flex"
       data-testid={expanded ? 'charcard' : 'charcard-handle'}
+      onMouseEnter={expand}
+      onMouseLeave={collapse}
     >
       {/* ── Tab handle (always visible at leftmost position) ── */}
       <div
-        onClick={toggle}
         data-testid="charcard-tab"
         className="w-9 shrink-0 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-colors duration-fast hover:bg-surface/30"
       >
@@ -224,126 +262,127 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
             {t('charcard.noCharacter')}
           </div>
         ) : (
-          <div className="flex flex-col gap-2 p-3 text-text-primary">
-            {/* Header */}
-            <div className="flex items-center gap-2 pb-2 border-b border-border-glass">
+          <div className="flex flex-col gap-1.5 p-2 text-text-primary">
+            {/* Header — compact */}
+            <div className="flex items-center gap-2 pb-1.5 border-b border-border-glass">
               {imageUrl ? (
                 <img
                   src={imageUrl}
                   alt=""
-                  className="w-8 h-8 rounded-full object-cover shrink-0"
+                  className="w-7 h-7 rounded-full object-cover shrink-0"
                   style={{ border: `2px solid ${color}` }}
                 />
               ) : (
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 text-white"
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 text-white"
                   style={{ background: color }}
                 >
                   {initial}
                 </div>
               )}
-              <div className="flex flex-col min-w-0">
-                <div className="text-sm font-semibold truncate">{charName}</div>
+              <div className="flex flex-col min-w-0 flex-1">
+                <div className="text-[13px] font-semibold truncate leading-tight">{charName}</div>
                 {meta?.className && (
-                  <div className="text-[9px] text-text-muted/60">
+                  <div className="text-[9px] text-text-muted/60 leading-tight">
                     {meta.className} · Tier {meta.tier}
                   </div>
                 )}
               </div>
+              <button
+                onClick={() => { setPinned((p) => !p); }}
+                className={`shrink-0 w-5 h-5 flex items-center justify-center rounded transition-colors ${
+                  pinned
+                    ? 'bg-accent/20 text-accent'
+                    : 'text-text-muted/40 hover:text-text-muted/70 hover:bg-white/[0.06]'
+                }`}
+                data-testid="charcard-pin"
+              >
+                {pinned ? <Pin size={11} /> : <PinOff size={11} />}
+              </button>
             </div>
 
-            {/* ── Two-column body ── */}
-            <div className="grid grid-cols-2 gap-2 items-start">
-              {/* LEFT COLUMN */}
-              <div className="flex flex-col gap-2">
-                {/* Attributes 3×2 grid */}
-                <div className="bg-white/[0.04] border border-white/[0.04] rounded-[10px] p-2">
-                  <div className="text-[7px] text-text-muted/40 uppercase tracking-widest mb-1.5">
-                    {t('charcard.section.attributes')}
-                  </div>
-                  <div className="grid grid-cols-3 gap-1">
-                    {ATTRS.map(({ key, en }) => (
-                      <AttributeCell
-                        key={key}
-                        labelCn={t(`attr.${key}`)}
-                        labelEn={en}
-                        value={attrs?.[key as keyof DHAttributes] ?? 0}
-                        onRoll={() => handleRoll(key)}
-                        onEdit={(v) => handleEditAttr(key, v)}
-                      />
-                    ))}
-                  </div>
-                </div>
+            {/* ── Single-column body ── */}
 
-                {/* Resources */}
-                <div className="bg-white/[0.04] border border-white/[0.04] rounded-[10px] p-2">
-                  <div className="text-[7px] text-text-muted/40 uppercase tracking-widest mb-1.5">
-                    {t('charcard.section.resources')}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <ResourceBar
-                      icon="♥"
-                      color="#e74c3c"
-                      gradientFrom="#c0392b"
-                      gradientTo="#e74c3c"
-                      current={health?.current ?? 0}
-                      max={health?.max ?? 0}
-                      onUpdate={(field, value) => handleUpdateRes('health', field, value)}
-                    />
-                    <ResourceBar
-                      icon="✦"
-                      color="#9b59b6"
-                      gradientFrom="#7d3c98"
-                      gradientTo="#9b59b6"
-                      current={stress?.current ?? 0}
-                      max={stress?.max ?? 0}
-                      onUpdate={(field, value) => handleUpdateRes('stress', field, value)}
-                    />
-                    <PipRow
-                      icon="🛡"
-                      color="rgba(130,195,240,0.7)"
-                      current={extras?.armor ?? 0}
-                      max={extras?.armorMax ?? 0}
-                      onUpdate={(v) => handleUpdateExtras('armor', v)}
-                    />
-                    <PipRow
-                      icon="◆"
-                      color="#f1c40f"
-                      current={extras?.hope ?? 0}
-                      max={extras?.hopeMax ?? 6}
-                      onUpdate={(v) => handleUpdateExtras('hope', v)}
-                    />
-                  </div>
-                </div>
-
-                {/* Thresholds */}
-                <ThresholdRow
-                  evasion={thresholds?.evasion ?? 10}
-                  major={thresholds?.major ?? 7}
-                  severe={thresholds?.severe ?? 15}
-                  labels={{
-                    evasion: t('charcard.threshold.evasion'),
-                    major: t('charcard.threshold.major'),
-                    severe: t('charcard.threshold.severe'),
-                  }}
-                  onEdit={handleUpdateThreshold}
+            {/* Attributes 3x2 grid — no wrapper box, tight */}
+            <div className="grid grid-cols-3 gap-[3px]">
+              {ATTR_KEYS.map((key) => (
+                <AttributeCell
+                  key={key}
+                  label={t(`attr.${key}`)}
+                  value={attrs?.[key as keyof DHAttributes] ?? 0}
+                  onRoll={() => { handleRoll(key); }}
+                  onEdit={(v) => { handleEditAttr(key, v); }}
                 />
-              </div>
+              ))}
+            </div>
 
-              {/* RIGHT COLUMN */}
-              <div className="flex flex-col gap-2">
-                {/* Experiences */}
-                <div className="bg-white/[0.04] border border-white/[0.04] rounded-[10px] p-2 flex-1">
-                  <div className="text-[7px] text-text-muted/40 uppercase tracking-widest mb-1.5">
-                    {t('charcard.section.experiences')}
-                  </div>
-                  <ExperienceList
-                    items={experiences?.items ?? []}
-                    onRoll={handleExpRoll}
-                    onEditValue={handleExpEditValue}
-                  />
-                </div>
+            {/* Resources — full width, no wrapper box */}
+            <div className="flex flex-col gap-0.5">
+              <ResourceBar
+                label={t('charcard.res.hp')}
+                icon={<Heart size={10} />}
+                color="#e74c3c"
+                gradientFrom="#c0392b"
+                gradientTo="#e74c3c"
+                current={health?.current ?? 0}
+                max={health?.max ?? 0}
+                onUpdate={(field, value) => { handleUpdateRes('health', field, value); }}
+              />
+              <ResourceBar
+                label={t('charcard.res.stress')}
+                icon={<Zap size={10} />}
+                color="#9b59b6"
+                gradientFrom="#7d3c98"
+                gradientTo="#9b59b6"
+                current={stress?.current ?? 0}
+                max={stress?.max ?? 0}
+                onUpdate={(field, value) => { handleUpdateRes('stress', field, value); }}
+              />
+              <PipRow
+                label={t('charcard.res.armor')}
+                icon={<Shield size={10} />}
+                color="rgba(130,195,240,0.7)"
+                current={extras?.armor ?? 0}
+                max={extras?.armorMax ?? 0}
+                onUpdate={(field, v) =>
+                  { handleUpdateExtras(field === 'max' ? 'armorMax' : 'armor', v); }
+                }
+              />
+              <PipRow
+                label={t('charcard.res.hope')}
+                icon={<Diamond size={10} />}
+                color="#f1c40f"
+                current={extras?.hope ?? 0}
+                max={extras?.hopeMax ?? 6}
+                onUpdate={(field, v) => { handleUpdateExtras(field === 'max' ? 'hopeMax' : 'hope', v); }}
+              />
+            </div>
+
+            {/* Thresholds */}
+            <ThresholdRow
+              evasion={thresholds?.evasion ?? 10}
+              major={thresholds?.major ?? 7}
+              severe={thresholds?.severe ?? 15}
+              labels={{
+                evasion: t('charcard.threshold.evasion'),
+                major: t('charcard.threshold.major'),
+                severe: t('charcard.threshold.severe'),
+              }}
+              onEdit={handleUpdateThreshold}
+            />
+
+            {/* Experiences — always visible */}
+            <div>
+              <div className="text-[7px] text-text-muted/30 uppercase tracking-widest mb-1">
+                {t('charcard.section.experiences')}
               </div>
+              <ExperienceList
+                items={experiences?.items ?? []}
+                onEditName={handleExpEditName}
+                onEditValue={handleExpEditValue}
+                onAdd={handleExpAdd}
+                onRemove={handleExpRemove}
+              />
             </div>
           </div>
         )}

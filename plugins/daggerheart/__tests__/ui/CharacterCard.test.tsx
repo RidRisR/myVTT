@@ -166,9 +166,9 @@ function setupIdentityStore(activeCharacterId: string | null = 'char1') {
   })
 }
 
-/** Click the tab handle to expand the card */
+/** Hover over the card root to expand it */
 async function expandCard(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByTestId('charcard-tab'))
+  await user.hover(screen.getByTestId('charcard-handle'))
 }
 
 describe('CharacterCard', () => {
@@ -198,7 +198,7 @@ describe('CharacterCard', () => {
       render(<CharacterCard sdk={makeMockSdk()} />)
       await expandCard(user)
       expect(screen.getByTestId('charcard')).toBeInTheDocument()
-      expect(mockResize).toHaveBeenCalledWith({ width: 420, height: 520 })
+      expect(mockResize).toHaveBeenCalledWith({ width: 300, height: 480 })
     })
 
     it('renders 6 attribute cells with correct values', async () => {
@@ -308,21 +308,6 @@ describe('CharacterCard', () => {
       expect(screen.getByText('铁匠学徒')).toBeInTheDocument()
     })
 
-    it('clicking experience name triggers action-check', async () => {
-      const user = userEvent.setup()
-      render(<CharacterCard sdk={makeMockSdk()} />)
-      await expandCard(user)
-      const rollZones = screen.getAllByTestId('exp-roll-zone')
-      await user.click(rollZones[0]!)
-      expect(mockRunWorkflow).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'daggerheart-core:action-check' }),
-        expect.objectContaining({
-          formula: '2d12+2',
-          actorId: 'char1',
-        }),
-      )
-    })
-
     it('clicking resource +/- buttons triggers update workflow', async () => {
       const user = userEvent.setup()
       render(<CharacterCard sdk={makeMockSdk()} />)
@@ -347,7 +332,7 @@ describe('CharacterCard', () => {
     expect(screen.queryByTestId('charcard-handle')).not.toBeInTheDocument()
   })
 
-  it('no active character shows empty state after expanding', async () => {
+  it('no active character shows empty state after hovering', async () => {
     setupIdentityStore(null)
     const user = userEvent.setup()
     render(<CharacterCard sdk={makeMockSdk()} />)

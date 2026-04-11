@@ -1,15 +1,15 @@
 // plugins/daggerheart/ui/AttributeCell.tsx
+// Compact attribute cell: label (roll zone) + value (edit zone).
 import { useState, useCallback, useRef } from 'react'
 
 interface AttributeCellProps {
-  labelCn: string
-  labelEn: string
+  label: string
   value: number
   onRoll: () => void
   onEdit: (value: number) => void
 }
 
-export function AttributeCell({ labelCn, labelEn, value, onRoll, onEdit }: AttributeCellProps) {
+export function AttributeCell({ label, value, onRoll, onEdit }: AttributeCellProps) {
   const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -36,16 +36,15 @@ export function AttributeCell({ labelCn, labelEn, value, onRoll, onEdit }: Attri
     <div className="text-center bg-black/20 border border-border-glass/50 rounded-lg overflow-hidden">
       {/* Roll zone: click label area triggers dice roll */}
       <div
-        className="px-1 pt-1.5 pb-0.5 cursor-pointer transition-colors duration-fast hover:bg-accent/10"
+        className="px-2 py-1.5 cursor-pointer transition-colors duration-fast hover:bg-accent/10 active:bg-accent/20"
         onClick={onRoll}
         data-testid="attr-roll-zone"
       >
-        <div className="text-[8px] text-text-muted/60 tracking-wide">{labelCn}</div>
-        <div className="text-[6px] text-text-muted/30 uppercase tracking-widest">{labelEn}</div>
+        <div className="text-[9px] text-text-muted/60 tracking-wide leading-tight">{label}</div>
       </div>
       {/* Edit zone: click number area triggers inline edit */}
       <div
-        className="px-1 pt-0.5 pb-1.5 cursor-text transition-colors duration-fast border-t border-transparent hover:bg-white/[0.06] hover:border-border-glass/30"
+        className="px-2 py-1 cursor-text transition-colors duration-fast border-t border-transparent hover:bg-white/[0.06] hover:border-border-glass/30"
         onClick={editing ? undefined : handleEditStart}
         data-testid="attr-edit-zone"
       >
@@ -54,12 +53,14 @@ export function AttributeCell({ labelCn, labelEn, value, onRoll, onEdit }: Attri
             ref={inputRef}
             autoFocus
             defaultValue={value}
-            onBlur={(e) => { handleEditCommit(e.target.value); }}
+            onBlur={(e) => {
+              handleEditCommit(e.target.value)
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
               if (e.key === 'Escape') setEditing(false)
             }}
-            className="w-9 bg-black/30 border border-accent/30 rounded text-center text-base font-bold text-text-primary outline-none"
+            className="w-10 bg-black/30 border border-accent/30 rounded text-center text-base font-bold text-text-primary outline-none"
             data-testid="attr-input"
           />
         ) : (
