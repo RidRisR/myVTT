@@ -222,7 +222,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       {
         id: 'modifier',
         run: async (ctx) => {
-          const actorId = ctx.vars.actorId as string
+          const actorId = ctx.vars.actorId
 
           // 构建默认 RollConfig
           const defaultConfig: RollConfig = {
@@ -231,16 +231,16 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
             modifiers: [],
             constantModifier: 0,
             sideEffects: [],
-            dc: ctx.vars.dc as number | undefined,
+            dc: ctx.vars.dc,
           }
 
           if (ctx.vars.skipModifier) {
             // Shift+click：使用预选属性直接跳过
-            const preAttr = ctx.vars.preselectedAttribute as string | undefined
+            const preAttr = ctx.vars.preselectedAttribute
             if (preAttr) {
               const attrs = ctx.read.component<DHAttributes>(actorId, DH_KEYS.attributes)
               if (attrs) {
-                const val = attrs[preAttr as keyof DHAttributes] ?? 0
+                const val = attrs[preAttr as keyof DHAttributes]
                 defaultConfig.modifiers.push({
                   source: `attribute:${preAttr}`,
                   label: preAttr,
@@ -252,16 +252,13 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
             return
           }
 
-          const result = await ctx.requestInput<RollConfig>(
-            'daggerheart-core:roll-modifier',
-            {
-              context: {
-                actorId,
-                preselectedAttribute: ctx.vars.preselectedAttribute,
-                defaultConfig,
-              },
+          const result = await ctx.requestInput<RollConfig>('daggerheart-core:roll-modifier', {
+            context: {
+              actorId,
+              preselectedAttribute: ctx.vars.preselectedAttribute,
+              defaultConfig,
             },
-          )
+          })
 
           if (!result.ok) {
             ctx.abort('Roll cancelled')
@@ -277,7 +274,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       {
         id: 'roll',
         run: async (ctx) => {
-          const config = ctx.vars.rollConfig as RollConfig | undefined
+          const config = ctx.vars.rollConfig
           if (!config) {
             ctx.abort('No roll config')
             return
@@ -294,8 +291,8 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       {
         id: 'judge',
         run: (ctx) => {
-          const rollResult = ctx.vars.rollResult as RollExecutionResult | undefined
-          const dc = ctx.vars.dc as number | undefined
+          const rollResult = ctx.vars.rollResult
+          const dc = ctx.vars.dc
 
           if (!rollResult?.dualityRolls || dc === undefined) {
             ctx.vars.judgment = null
@@ -310,9 +307,9 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       {
         id: 'emit',
         run: (ctx) => {
-          const config = ctx.vars.rollConfig as RollConfig | undefined
-          const rollResult = ctx.vars.rollResult as RollExecutionResult | undefined
-          const judgment = ctx.vars.judgment as JudgmentResult | null | undefined
+          const config = ctx.vars.rollConfig
+          const rollResult = ctx.vars.rollResult
+          const judgment = ctx.vars.judgment
 
           if (!config || !rollResult) return
 
@@ -324,7 +321,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
               rollConfig: config,
               rollResult,
               total: rollResult.total,
-              dc: ctx.vars.dc as number | undefined,
+              dc: ctx.vars.dc,
               judgment: judgment ?? null,
               display: judgment ? this.dice.getDisplay(judgment) : null,
               dieConfigs: rollResult.dualityRolls
@@ -341,9 +338,9 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       {
         id: 'resolve',
         run: (ctx) => {
-          const config = ctx.vars.rollConfig as RollConfig | undefined
-          const judgment = ctx.vars.judgment as JudgmentResult | null | undefined
-          const actorId = ctx.vars.actorId as string
+          const config = ctx.vars.rollConfig
+          const judgment = ctx.vars.judgment
+          const actorId = ctx.vars.actorId
 
           // 1. 判定后果：hope 增加 / fear 增加
           if (judgment && judgment.type === 'daggerheart') {
@@ -430,12 +427,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       {
         id: 'update',
         run: (ctx) => {
-          this.charCard.updateThreshold(
-            ctx,
-            ctx.vars.entityId,
-            ctx.vars.threshold,
-            ctx.vars.value,
-          )
+          this.charCard.updateThreshold(ctx, ctx.vars.entityId, ctx.vars.threshold, ctx.vars.value)
         },
       },
     ])
