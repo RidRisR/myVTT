@@ -1,6 +1,11 @@
 // plugins/daggerheart-core/rollConfigUtils.test.ts
 import { describe, it, expect } from 'vitest'
-import { rollConfigToFormula, rollConfigToFormulaTokens } from './rollConfigUtils'
+import {
+  rollConfigToFormula,
+  rollConfigToFormulaTokens,
+  buildDiceSpecs,
+  assembleRollResult,
+} from './rollConfigUtils'
 import type { RollConfig } from './rollTypes'
 
 const BASE_CONFIG: RollConfig = {
@@ -116,5 +121,97 @@ describe('rollConfigToFormulaTokens', () => {
       { type: 'op', text: '+' },
       { type: 'constant', text: '2' },
     ])
+  })
+})
+
+describe('buildDiceSpecs', () => {
+  it('converts RollConfig to DiceSpec array for serverRoll', () => {
+    const config: RollConfig = {
+      dualityDice: { hopeFace: 12, fearFace: 12 },
+      diceGroups: [
+        { sides: 6, count: 2, operator: '+' },
+        { sides: 4, count: 1, operator: '-' },
+      ],
+      modifiers: [],
+      constantModifier: 0,
+      sideEffects: [],
+    }
+    const specs = buildDiceSpecs(config)
+    // 二元骰拆为两个独立 DiceSpec（因为面数可能不同）
+    expect(specs).toEqual([
+      { sides: 12, count: 1 }, // hope die
+      { sides: 12, count: 1 }, // fear die
+      { sides: 6, count: 2 }, // extra group 1
+      { sides: 4, count: 1 }, // extra group 2
+    ])
+  })
+
+  it('handles swapped faces', () => {
+    const config: RollConfig = {
+      dualityDice: { hopeFace: 20, fearFace: 12 },
+      diceGroups: [],
+      modifiers: [],
+      constantModifier: 0,
+      sideEffects: [],
+    }
+    expect(buildDiceSpecs(config)).toEqual([
+      { sides: 20, count: 1 },
+      { sides: 12, count: 1 },
+    ])
+  })
+
+  it('handles no duality dice', () => {
+    const config: RollConfig = {
+      dualityDice: null,
+      diceGroups: [{ sides: 20, count: 1, operator: '+' }],
+      modifiers: [],
+      constantModifier: 0,
+      sideEffects: [],
+    }
+    expect(buildDiceSpecs(config)).toEqual([{ sides: 20, count: 1 }])
+  })
+})
+
+describe('assembleRollResult', () => {
+  it('assembles server rolls into RollExecutionResult', () => {
+    const config: RollConfig = {
+      dualityDice: { hopeFace: 12, fearFace: 12 },
+      diceGroups: [
+        { sides: 6, count: 2, operator: '+', keep: { mode: 'high', count: 1 } },
+      ],
+      modifiers: [{ source: 'attr:agility', label: '敏捷', value: 3 }],
+      constantModifier: 1,
+      sideEffects: [],
+    }
+    // serverRoll returns number[][] — one sub-array per DiceSpec
+    const serverRolls: number[][] = [
+      [8], // hope die
+      [5], // fear die
+      [4, 6], // 2d6
+    ]
+    const result = assembleRollResult(config, serverRolls)
+
+    expect(result.dualityRolls).toEqual([8, 5])
+    expect(result.groupResults).toHaveLength(1)
+    expect(result.groupResults[0].allRolls).toEqual([4, 6])
+    expect(result.groupResults[0].keptIndices).toEqual([1]) // keep high → index 1 (value 6)
+    expect(result.groupResults[0].subtotal).toBe(6) // kept 6, operator '+'
+    expect(result.modifierTotal).toBe(4) // 3 + 1
+    // total = 8 + 5 + 6 + 4 = 23
+    expect(result.total).toBe(23)
+  })
+
+  it('handles subtraction dice groups', () => {
+    const config: RollConfig = {
+      dualityDice: { hopeFace: 12, fearFace: 12 },
+      diceGroups: [{ sides: 4, count: 1, operator: '-' }],
+      modifiers: [],
+      constantModifier: 0,
+      sideEffects: [],
+    }
+    const serverRolls: number[][] = [[10], [3], [2]]
+    const result = assembleRollResult(config, serverRolls)
+    // total = 10 + 3 - 2 = 11
+    expect(result.total).toBe(11)
   })
 })

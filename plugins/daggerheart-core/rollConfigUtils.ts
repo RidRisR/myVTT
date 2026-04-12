@@ -1,5 +1,6 @@
 // plugins/daggerheart-core/rollConfigUtils.ts
-import type { RollConfig, DiceGroup, DualityDiceConfig } from './rollTypes'
+import type { DiceSpec } from '../../src/shared/diceUtils'
+import type { RollConfig, DiceGroup, DualityDiceConfig, RollExecutionResult, DiceGroupResult } from './rollTypes'
 
 /** 公式栏用的带注释 token */
 export interface FormulaToken {
@@ -78,9 +79,97 @@ export function rollConfigToFormulaTokens(config: RollConfig): FormulaToken[] {
   }
 
   // Remove leading '+' op
-  if (tokens.length > 0 && tokens[0].type === 'op' && tokens[0].text === '+') {
+  const first = tokens[0]
+  if (first && first.type === 'op' && first.text === '+') {
     tokens.shift()
   }
 
   return tokens
+}
+
+/** 将 RollConfig 转为 serverRoll 需要的 DiceSpec[] */
+export function buildDiceSpecs(config: RollConfig): DiceSpec[] {
+  const specs: DiceSpec[] = []
+
+  if (config.dualityDice) {
+    specs.push({ sides: config.dualityDice.hopeFace, count: 1 })
+    specs.push({ sides: config.dualityDice.fearFace, count: 1 })
+  }
+
+  for (const g of config.diceGroups) {
+    specs.push({ sides: g.sides, count: g.count })
+  }
+
+  return specs
+}
+
+/** 将 serverRoll 返回的原始结果 + RollConfig 组装为 RollExecutionResult */
+export function assembleRollResult(
+  config: RollConfig,
+  serverRolls: number[][],
+): RollExecutionResult {
+  const expectedCount = (config.dualityDice ? 2 : 0) + config.diceGroups.length
+  if (serverRolls.length !== expectedCount) {
+    throw new Error(
+      `assembleRollResult: expected ${expectedCount} roll arrays, got ${serverRolls.length}`,
+    )
+  }
+
+  let idx = 0
+
+  // 二元骰
+  let dualityRolls: [number, number] | null = null
+  let dualitySum = 0
+  if (config.dualityDice) {
+    const hopeDie = serverRolls[idx++]![0]!
+    const fearDie = serverRolls[idx++]![0]!
+    dualityRolls = [hopeDie, fearDie]
+    dualitySum = hopeDie + fearDie
+  }
+
+  // 额外骰子组
+  const groupResults: DiceGroupResult[] = []
+  for (const g of config.diceGroups) {
+    const allRolls = serverRolls[idx++]!
+    const { keptIndices, subtotal } = applyKeepAndSum(allRolls, g)
+    groupResults.push({ group: g, allRolls, keptIndices, subtotal })
+  }
+
+  // 修正值总和
+  const modifierTotal =
+    config.modifiers.reduce((sum, m) => sum + m.value, 0) + config.constantModifier
+
+  // 最终总计
+  const diceTotal = groupResults.reduce((sum, r) => sum + r.subtotal, 0)
+  const total = dualitySum + diceTotal + modifierTotal
+
+  return { dualityRolls, groupResults, modifierTotal, total }
+}
+
+function applyKeepAndSum(
+  allRolls: number[],
+  group: DiceGroup,
+): { keptIndices: number[]; subtotal: number } {
+  let keptIndices: number[]
+
+  if (group.keep) {
+    // 排序获取索引
+    const indexed = allRolls.map((v, i) => ({ v, i }))
+    if (group.keep.mode === 'high') {
+      indexed.sort((a, b) => b.v - a.v)
+    } else {
+      indexed.sort((a, b) => a.v - b.v)
+    }
+    keptIndices = indexed
+      .slice(0, group.keep.count)
+      .map((x) => x.i)
+      .sort((a, b) => a - b)
+  } else {
+    keptIndices = allRolls.map((_, i) => i)
+  }
+
+  const keptSum = keptIndices.reduce((sum, i) => sum + allRolls[i]!, 0)
+  const subtotal = group.operator === '-' ? -keptSum : keptSum
+
+  return { keptIndices, subtotal }
 }
