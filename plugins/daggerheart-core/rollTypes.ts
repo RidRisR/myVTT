@@ -54,6 +54,8 @@ export interface RollConfig {
   sideEffects: SideEffectEntry[]
   /** DC（可选，由 GM 设定或省略） */
   dc?: number
+  /** 是否自动结算 hope/fear 等规则后果 */
+  applyOutcomeEffects: boolean
 }
 
 /** 掷骰结果中单组骰子的结果 */
@@ -99,4 +101,5 @@ export interface ActionCheckVars {
   /** 判定结果 */
   judgment?: import('../../src/rules/types').JudgmentResult | null
   dc?: number
+  applyOutcomeEffects?: boolean
 }

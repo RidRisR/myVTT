@@ -17,6 +17,10 @@ function cloneTemplateModifierRef(modifier: DHRollTemplateModifierRef): DHRollTe
   return { ...modifier }
 }
 
+function normalizeApplyOutcomeEffects(value: boolean | undefined): boolean {
+  return value ?? true
+}
+
 export function cloneTemplateConfig(config: DHRollTemplateConfig): DHRollTemplateConfig {
   return {
     dualityDice: config.dualityDice ? { ...config.dualityDice } : null,
@@ -28,6 +32,7 @@ export function cloneTemplateConfig(config: DHRollTemplateConfig): DHRollTemplat
     constantModifier: config.constantModifier,
     sideEffects: config.sideEffects.map((effect) => ({ ...effect })),
     dc: config.dc,
+    applyOutcomeEffects: normalizeApplyOutcomeEffects(config.applyOutcomeEffects),
   }
 }
 
@@ -38,6 +43,7 @@ export function createDefaultRollTemplateConfig(): DHRollTemplateConfig {
     modifiers: [],
     constantModifier: 0,
     sideEffects: [],
+    applyOutcomeEffects: true,
   }
 }
 
@@ -81,6 +87,7 @@ export function extractTemplateConfigFromRollConfig(config: RollConfig): DHRollT
     constantModifier: config.constantModifier,
     sideEffects: config.sideEffects.map((effect) => ({ ...effect })),
     dc: config.dc,
+    applyOutcomeEffects: config.applyOutcomeEffects,
   }
 }
 
@@ -119,6 +126,7 @@ export function materializeRollConfigFromTemplate(
   attributes: DHAttributes,
   experiences: DHExperiences,
 ): RollConfig {
+  const normalizedExperiences = normalizeExperiences(experiences)
   return {
     dualityDice: config.dualityDice ? { ...config.dualityDice } : null,
     diceGroups: config.diceGroups.map((group) => ({
@@ -126,12 +134,13 @@ export function materializeRollConfigFromTemplate(
       keep: group.keep ? { ...group.keep } : undefined,
     })),
     modifiers: config.modifiers
-      .map((modifier) => resolveModifierRef(modifier, attributes, experiences))
+      .map((modifier) => resolveModifierRef(modifier, attributes, normalizedExperiences))
       .filter((modifier): modifier is ModifierSource => modifier !== null)
       .map(cloneRollModifier),
     constantModifier: config.constantModifier,
     sideEffects: config.sideEffects.map((effect) => ({ ...effect })),
     dc: config.dc,
+    applyOutcomeEffects: normalizeApplyOutcomeEffects(config.applyOutcomeEffects),
   }
 }
 
@@ -140,11 +149,12 @@ export function mergeTemplateConfigAfterEditorRoundTrip(
   editedRollConfig: RollConfig,
   experiences: DHExperiences,
 ): DHRollTemplateConfig {
+  const normalizedExperiences = normalizeExperiences(experiences)
   const nextConfig = extractTemplateConfigFromRollConfig(editedRollConfig)
   const missingExperienceRefs = originalConfig.modifiers.filter(
     (modifier) =>
       modifier.type === 'experience' &&
-      !experiences.items.some((experience) => experience.key === modifier.experienceKey) &&
+      !normalizedExperiences.items.some((experience) => experience.key === modifier.experienceKey) &&
       !nextConfig.modifiers.some(
         (nextModifier) =>
           nextModifier.type === 'experience' &&
@@ -186,7 +196,7 @@ export function ensureExperienceKeys(experiences: DHExperience[]): DHExperience[
   const taken = new Set<string>()
 
   for (const experience of experiences) {
-    const trimmed = experience.key.trim()
+    const trimmed = experience.key?.trim?.() ?? ''
     const key =
       trimmed && !taken.has(trimmed) ? trimmed : createExperienceKey(experience.name, taken)
     taken.add(key)
@@ -197,6 +207,14 @@ export function ensureExperienceKeys(experiences: DHExperience[]): DHExperience[
   }
 
   return next
+}
+
+export function normalizeExperiences(experiences: DHExperiences | null | undefined): DHExperiences {
+  if (!experiences) return { items: [] }
+  return {
+    ...experiences,
+    items: ensureExperienceKeys(experiences.items),
+  }
 }
 
 export function createRollTemplateId(): string {

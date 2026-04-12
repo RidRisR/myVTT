@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { WorkflowHandle } from '@myvtt/sdk'
 import type { IRegionSDK } from '../../../src/ui-system/types'
 import { useIdentityStore } from '../../../src/stores/identityStore'
@@ -12,6 +12,7 @@ import {
   type DHStress,
 } from '../../daggerheart/types'
 import type { RollConfig } from '../rollTypes'
+import { normalizeExperiences } from '../rollTemplateUtils'
 import { CollapsedBar } from './bottom/CollapsedBar'
 import { AttributeTab } from './bottom/AttributeTab'
 import { CustomTab } from './bottom/CustomTab'
@@ -66,9 +67,14 @@ export function PlayerBottomPanel({ sdk }: { sdk: IRegionSDK }) {
     activeCharacterId ?? '',
     DH_KEYS.attributes,
   )
-  const experiences =
-    sdk.data.useComponent<DHExperiences>(activeCharacterId ?? '', DH_KEYS.experiences) ??
-    EMPTY_EXPERIENCES
+  const rawExperiences = sdk.data.useComponent<DHExperiences>(
+    activeCharacterId ?? '',
+    DH_KEYS.experiences,
+  )
+  const experiences = useMemo(
+    () => normalizeExperiences(rawExperiences ?? EMPTY_EXPERIENCES),
+    [rawExperiences],
+  )
   const rollTemplates =
     sdk.data.useComponent<DHRollTemplates>(activeCharacterId ?? '', DH_KEYS.rollTemplates) ??
     EMPTY_TEMPLATES

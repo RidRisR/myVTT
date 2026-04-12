@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { mergeTemplateConfigAfterEditorRoundTrip } from './rollTemplateUtils'
+import {
+  materializeRollConfigFromTemplate,
+  mergeTemplateConfigAfterEditorRoundTrip,
+  normalizeExperiences,
+} from './rollTemplateUtils'
 import type { DHRollTemplateConfig } from '../daggerheart/types'
 import type { RollConfig } from './rollTypes'
 
@@ -20,6 +24,7 @@ describe('mergeTemplateConfigAfterEditorRoundTrip', () => {
       constantModifier: 0,
       sideEffects: [],
       dc: 12,
+      applyOutcomeEffects: true,
     }
 
     const editedRollConfig: RollConfig = {
@@ -29,6 +34,7 @@ describe('mergeTemplateConfigAfterEditorRoundTrip', () => {
       constantModifier: 1,
       sideEffects: [],
       dc: 12,
+      applyOutcomeEffects: true,
     }
 
     const merged = mergeTemplateConfigAfterEditorRoundTrip(originalConfig, editedRollConfig, {
@@ -46,5 +52,38 @@ describe('mergeTemplateConfigAfterEditorRoundTrip', () => {
     ])
     expect(merged.constantModifier).toBe(1)
     expect(merged.diceGroups).toEqual([{ sides: 8, count: 1, operator: '+', label: 'd8' }])
+  })
+
+  it('normalizes legacy experience keys before materializing template modifiers', () => {
+    const config: DHRollTemplateConfig = {
+      dualityDice: { hopeFace: 12, fearFace: 12 },
+      diceGroups: [],
+      modifiers: [{ type: 'experience', experienceKey: 'stealth' }],
+      constantModifier: 0,
+      sideEffects: [],
+      dc: 12,
+      applyOutcomeEffects: true,
+    }
+
+    const experiences = normalizeExperiences({
+      items: [{ key: '', name: 'Stealth', modifier: 2 }],
+    })
+
+    const rollConfig = materializeRollConfigFromTemplate(
+      config,
+      {
+        agility: 0,
+        strength: 0,
+        finesse: 0,
+        instinct: 0,
+        presence: 0,
+        knowledge: 0,
+      },
+      experiences,
+    )
+
+    expect(rollConfig.modifiers).toEqual([
+      { source: 'experience:stealth', label: 'Stealth', value: 2 },
+    ])
   })
 })

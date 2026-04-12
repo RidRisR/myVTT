@@ -23,6 +23,8 @@ export type DaggerheartOutcome =
   | 'success_fear'
   | 'failure_hope'
   | 'failure_fear'
+  | 'hope_unknown'
+  | 'fear_unknown'
 
 export type JudgmentResult =
   | { type: 'daggerheart'; hopeDie: number; fearDie: number; outcome: DaggerheartOutcome }

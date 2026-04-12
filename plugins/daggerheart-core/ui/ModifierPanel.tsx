@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { useComponent } from '../../../src/data/hooks'
 import type { InputHandlerProps } from '../../../src/ui-system/inputHandlerTypes'
@@ -9,8 +9,10 @@ import {
   type DHAttributes,
   type DHExperiences,
 } from '../../daggerheart/types'
-import { rollConfigToFormulaTokens } from '../rollConfigUtils'
+import { rollConfigToFormula, rollConfigToFormulaTokens } from '../rollConfigUtils'
 import type { DiceGroup, RollConfig, SideEffectEntry } from '../rollTypes'
+import { parseFormulaToRollConfig } from '../rollFormulaSync'
+import { normalizeExperiences } from '../rollTemplateUtils'
 import { FormulaBar } from './modifier/FormulaBar'
 import { AttributeGrid } from './modifier/AttributeGrid'
 import { ExperienceChips } from './modifier/ExperienceChips'
@@ -94,13 +96,16 @@ function hydrateDiceState(config?: RollConfig): {
   for (const group of config?.diceGroups ?? []) {
     if (group.label === '优势' && group.operator === '+' && group.sides === 6) {
       advantage = group.count
-      if (group.keep) keepSettings.set('advantage', { ...group.keep })
+      keepSettings.set('advantage', group.keep ? { ...group.keep } : { mode: 'high', count: 1 })
       continue
     }
 
     if (group.label === '劣势' && group.operator === '-' && group.sides === 6) {
       disadvantage = group.count
-      if (group.keep) keepSettings.set('disadvantage', { ...group.keep })
+      keepSettings.set(
+        'disadvantage',
+        group.keep ? { ...group.keep } : { mode: 'high', count: 1 },
+      )
       continue
     }
 
@@ -134,7 +139,7 @@ function buildDerivedDiceGroups(
         count: advantage,
         operator: '+',
         label: '优势',
-        keep: keepSettings.get('advantage'),
+        keep: keepSettings.get('advantage') ?? { mode: 'high', count: 1 },
       },
     })
   }
@@ -147,7 +152,7 @@ function buildDerivedDiceGroups(
         count: disadvantage,
         operator: '-',
         label: '劣势',
-        keep: keepSettings.get('disadvantage'),
+        keep: keepSettings.get('disadvantage') ?? { mode: 'high', count: 1 },
       },
     })
   }
@@ -178,7 +183,11 @@ export function ModifierPanel({
 }: InputHandlerProps<ModifierPanelContext, RollConfig>) {
   const actorId = context.actorId ?? ''
   const attributes = useComponent<DHAttributes>(actorId, DH_KEYS.attributes) ?? EMPTY_ATTRIBUTES
-  const experiences = useComponent<DHExperiences>(actorId, DH_KEYS.experiences) ?? EMPTY_EXPERIENCES
+  const rawExperiences = useComponent<DHExperiences>(actorId, DH_KEYS.experiences)
+  const experiences = useMemo(
+    () => normalizeExperiences(rawExperiences ?? EMPTY_EXPERIENCES),
+    [rawExperiences],
+  )
   const defaultDiceState = useMemo(
     () => hydrateDiceState(context.defaultConfig),
     [context.defaultConfig],
@@ -196,7 +205,12 @@ export function ModifierPanel({
   const [dualityEnabled, setDualityEnabled] = useState(context.defaultConfig?.dualityDice !== null)
   const [hopeFace, setHopeFace] = useState(context.defaultConfig?.dualityDice?.hopeFace ?? 12)
   const [fearFace, setFearFace] = useState(context.defaultConfig?.dualityDice?.fearFace ?? 12)
-  const [dc, setDc] = useState(context.defaultConfig?.dc ?? 12)
+  const [dcInput, setDcInput] = useState(
+    context.defaultConfig?.dc !== undefined ? String(context.defaultConfig.dc) : '',
+  )
+  const [applyOutcomeEffects, setApplyOutcomeEffects] = useState(
+    context.defaultConfig?.applyOutcomeEffects ?? true,
+  )
   const [extraDice, setExtraDice] = useState<ExtraDiceState>(
     () => new Map(defaultDiceState.extraDice),
   )
@@ -206,13 +220,20 @@ export function ModifierPanel({
   const [sideEffects, setSideEffects] = useState<SideEffectEntry[]>(
     createDefaultSideEffects(context.defaultConfig),
   )
+  const [formulaDirty, setFormulaDirty] = useState(false)
 
   const derivedDiceGroups = useMemo(
     () => buildDerivedDiceGroups(advantage, disadvantage, extraDice, keepSettings),
     [advantage, disadvantage, extraDice, keepSettings],
   )
 
-  const rollConfig = useMemo<RollConfig>(() => {
+  const dc = useMemo(() => {
+    const trimmed = dcInput.trim()
+    if (!trimmed) return undefined
+    return Math.max(1, Math.min(30, Number(trimmed) || 12))
+  }, [dcInput])
+
+  const structuredRollConfig = useMemo<RollConfig>(() => {
     const modifiers: RollConfig['modifiers'] = []
 
     if (selectedAttr && ATTRIBUTE_KEYS.includes(selectedAttr as AttributeKey)) {
@@ -242,8 +263,10 @@ export function ModifierPanel({
       constantModifier: constant,
       sideEffects,
       dc,
+      applyOutcomeEffects,
     }
   }, [
+    applyOutcomeEffects,
     attributes,
     constant,
     dc,
@@ -256,6 +279,29 @@ export function ModifierPanel({
     selectedExp,
     sideEffects,
   ])
+
+  const [formulaInput, setFormulaInput] = useState(() => rollConfigToFormula(structuredRollConfig))
+
+  useEffect(() => {
+    if (!formulaDirty) {
+      setFormulaInput(rollConfigToFormula(structuredRollConfig))
+    }
+  }, [formulaDirty, structuredRollConfig])
+
+  const formulaConfig = useMemo(() => parseFormulaToRollConfig(formulaInput), [formulaInput])
+  const formulaError =
+    formulaInput.trim().length > 0 && !formulaConfig ? '公式无法解析，支持标准骰、常量与 kh/kl/dh/dl。' : null
+
+  const rollConfig = useMemo<RollConfig>(() => {
+    if (!formulaDirty) return structuredRollConfig
+    if (!formulaConfig) return structuredRollConfig
+    return {
+      ...structuredRollConfig,
+      dualityDice: formulaConfig.dualityDice,
+      diceGroups: formulaConfig.diceGroups,
+      constantModifier: formulaConfig.constantModifier,
+    }
+  }, [formulaConfig, formulaDirty, structuredRollConfig])
 
   const formulaTokens = useMemo(() => rollConfigToFormulaTokens(rollConfig), [rollConfig])
   const dualityLabel = getDualityLabel(hopeFace, fearFace)
@@ -301,15 +347,31 @@ export function ModifierPanel({
         <div className="flex items-center gap-2">
           <label className="text-[11px] uppercase tracking-wide text-text-muted">DC</label>
           <input
-            type="number"
-            min={1}
-            max={30}
-            value={dc}
+            data-testid="modifier-dc-input"
+            type="text"
+            inputMode="numeric"
+            value={dcInput}
             onChange={(e) => {
-              setDc(Math.max(1, Math.min(30, Number(e.target.value) || 12)))
+              const next = e.target.value.replace(/[^\d]/g, '')
+              setDcInput(next)
             }}
             className="w-14 h-7 rounded border border-border-glass bg-black/20 text-text-primary text-[12px] font-mono text-center outline-none focus:border-accent/40"
+            placeholder="--"
           />
+          <button
+            type="button"
+            data-testid="modifier-reaction-toggle"
+            onClick={() => {
+              setApplyOutcomeEffects((prev) => !prev)
+            }}
+            className={`h-7 px-2 rounded border text-[10px] cursor-pointer transition-colors ${
+              applyOutcomeEffects
+                ? 'border-border-glass text-text-muted bg-transparent'
+                : 'border-info/35 bg-info/10 text-info'
+            }`}
+          >
+            反应掷骰
+          </button>
           <button
             onClick={cancel}
             className="w-6 h-6 rounded-md border border-border-glass bg-transparent text-text-muted flex items-center justify-center cursor-pointer hover:bg-white/[0.08] hover:text-text-primary transition-colors"
@@ -324,7 +386,15 @@ export function ModifierPanel({
         <div className="text-[10px] uppercase tracking-[0.15em] text-text-muted/70 mb-1.5">
           公式
         </div>
-        <FormulaBar tokens={formulaTokens} />
+        <FormulaBar
+          value={formulaInput}
+          tokens={formulaTokens}
+          error={formulaError}
+          onChange={(value) => {
+            setFormulaDirty(true)
+            setFormulaInput(value)
+          }}
+        />
       </div>
 
       <div className="px-4 py-2.5 border-b border-border-glass">
@@ -335,13 +405,16 @@ export function ModifierPanel({
           dualityEnabled={dualityEnabled}
           dualityLabel={dualityLabel}
           onDualityToggle={() => {
+            setFormulaDirty(false)
             setDualityEnabled((prev) => !prev)
           }}
           extraDice={extraDice}
           onDiceClick={(sides) => {
+            setFormulaDirty(false)
             updateDieCount(sides, '+')
           }}
           onDiceRightClick={(sides) => {
+            setFormulaDirty(false)
             updateDieCount(sides, '-')
           }}
         />
@@ -355,20 +428,35 @@ export function ModifierPanel({
           <AttributeGrid
             attributes={attributes}
             selected={selectedAttr}
-            onSelect={setSelectedAttr}
+            onSelect={(value) => {
+              setFormulaDirty(false)
+              setSelectedAttr(value)
+            }}
           />
           <ExperienceChips
             experiences={experiences}
             selected={selectedExp}
-            onSelect={setSelectedExp}
+            onSelect={(value) => {
+              setFormulaDirty(false)
+              setSelectedExp(value)
+            }}
           />
           <StepperRow
             advantage={advantage}
             disadvantage={disadvantage}
             constant={constant}
-            onAdvantageChange={setAdvantage}
-            onDisadvantageChange={setDisadvantage}
-            onConstantChange={setConstant}
+            onAdvantageChange={(value) => {
+              setFormulaDirty(false)
+              setAdvantage(value)
+            }}
+            onDisadvantageChange={(value) => {
+              setFormulaDirty(false)
+              setDisadvantage(value)
+            }}
+            onConstantChange={(value) => {
+              setFormulaDirty(false)
+              setConstant(value)
+            }}
           />
         </div>
       </div>
@@ -376,10 +464,19 @@ export function ModifierPanel({
       <AdvancedOptions
         hopeFace={hopeFace}
         fearFace={fearFace}
-        onHopeFaceChange={setHopeFace}
-        onFearFaceChange={setFearFace}
+        onHopeFaceChange={(value) => {
+          setFormulaDirty(false)
+          setHopeFace(value)
+        }}
+        onFearFaceChange={(value) => {
+          setFormulaDirty(false)
+          setFearFace(value)
+        }}
         diceGroups={derivedDiceGroups.map((entry) => entry.group)}
-        onKeepChange={updateKeep}
+        onKeepChange={(index, keep) => {
+          setFormulaDirty(false)
+          updateKeep(index, keep)
+        }}
         dualityLabel={dualityEnabled ? dualityLabel : undefined}
       />
 
@@ -394,8 +491,11 @@ export function ModifierPanel({
         </button>
         <button
           onClick={() => {
-            resolve(rollConfig)
+            if (!formulaError) {
+              resolve(rollConfig)
+            }
           }}
+          disabled={!!formulaError}
           className="flex-[2] h-9 rounded-lg bg-accent/90 text-[13px] font-bold text-deep cursor-pointer hover:bg-accent shadow-[0_0_20px_rgba(212,160,85,0.2)] hover:shadow-[0_0_28px_rgba(212,160,85,0.35)] transition-all"
         >
           Roll

@@ -49,6 +49,8 @@ export const daggerheartI18n: PluginI18n = {
       'judgment.successFear': '带着恐惧成功',
       'judgment.failureHope': '失败，但保有希望',
       'judgment.failureFear': '带着恐惧失败',
+      'judgment.hopeUnknown': '希望结果，成败未定',
+      'judgment.fearUnknown': '恐惧结果，成败未定',
 
       // Dice — roll actions
       'roll.check': '{{attr}}检定',
@@ -126,6 +128,8 @@ export const daggerheartI18n: PluginI18n = {
       'judgment.successFear': 'Success with Fear',
       'judgment.failureHope': 'Failure with Hope',
       'judgment.failureFear': 'Failure with Fear',
+      'judgment.hopeUnknown': 'Hope Result, Success Unknown',
+      'judgment.fearUnknown': 'Fear Result, Success Unknown',
 
       // Dice — roll actions
       'roll.check': '{{attr}} Check',

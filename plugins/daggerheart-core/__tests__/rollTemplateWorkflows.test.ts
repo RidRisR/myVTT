@@ -62,6 +62,7 @@ describe('roll template workflows', () => {
         modifiers: [{ type: 'attribute', attributeKey: 'agility' }],
         constantModifier: 1,
         sideEffects: [],
+        applyOutcomeEffects: false,
       },
     })
 
@@ -81,6 +82,9 @@ describe('roll template workflows', () => {
     expect(update.payload.data.items[0]?.id).toMatch(/^tmpl_/)
     expect(update.payload.data.items[0]?.name).toBe('Sneak Attack')
     expect(update.payload.data.items[0]?.icon).toBe('🗡️')
+    expect(update.payload.data.items[0]).toMatchObject({
+      config: { applyOutcomeEffects: false },
+    })
   })
 
   it('resolves template refs through action-check', async () => {
@@ -119,6 +123,7 @@ describe('roll template workflows', () => {
                 constantModifier: 1,
                 sideEffects: [],
                 dc: 12,
+                applyOutcomeEffects: true,
               },
             },
           ],
@@ -197,6 +202,7 @@ describe('roll template workflows', () => {
                 constantModifier: 0,
                 sideEffects: [],
                 dc: 11,
+                applyOutcomeEffects: true,
               },
             },
           ],
@@ -227,6 +233,62 @@ describe('roll template workflows', () => {
       type: 'daggerheart',
       outcome: 'success_hope',
     })
+  })
+
+  it('defaults applyOutcomeEffects to true for old template configs missing the field', async () => {
+    const entity: Entity = {
+      id: 'char-1',
+      permissions: { default: 'owner', seats: {} },
+      lifecycle: 'persistent',
+      tags: [],
+      components: {
+        'daggerheart:attributes': {
+          agility: 0,
+          strength: 0,
+          finesse: 0,
+          instinct: 0,
+          presence: 0,
+          knowledge: 0,
+        },
+        'daggerheart:experiences': { items: [] },
+        'daggerheart:roll-templates': {
+          items: [
+            {
+              id: 'tmpl-old',
+              name: 'Legacy Template',
+              createdAt: 1,
+              updatedAt: 1,
+              config: {
+                dualityDice: { hopeFace: 12, fearFace: 12 },
+                diceGroups: [],
+                modifiers: [],
+                constantModifier: 0,
+                sideEffects: [],
+              },
+            },
+          ],
+        },
+      },
+    }
+
+    const { runner, deps, sdk } = makeSetup({
+      getEntity: vi.fn().mockImplementation((id: string) => (id === entity.id ? entity : undefined)),
+      serverRoll: vi.fn().mockResolvedValue([[8], [4]]),
+    })
+
+    const handle = sdk.getWorkflow('daggerheart-core:action-check')
+    const result = await runner.runWorkflow(handle, {
+      actorId: entity.id,
+      rollTemplateId: 'tmpl-old',
+      skipModifier: true,
+    })
+
+    expect(result.status).toBe('completed')
+    const emitCalls = (deps.emitEntry as ReturnType<typeof vi.fn>).mock.calls
+    const componentUpdates = emitCalls.filter(
+      (call) => (call[0] as { type: string }).type === 'core:component-update',
+    )
+    expect(componentUpdates).toHaveLength(1)
   })
 
   it('registers template workflows', () => {

@@ -51,6 +51,7 @@ import {
 import {
   materializeRollConfigFromTemplate,
   mergeTemplateConfigAfterEditorRoundTrip,
+  normalizeExperiences,
 } from './rollTemplateUtils'
 import { DH_ATTRIBUTE_LABELS, DH_KEYS } from '../daggerheart/types'
 import type {
@@ -66,6 +67,7 @@ interface ActionCheckData {
   actorId: string
   formula?: string
   dc?: number
+  applyOutcomeEffects?: boolean
   skipModifier?: boolean
   preselectedAttribute?: string
   rollTemplateId?: string
@@ -298,9 +300,10 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
                   const attributes =
                     ctx.read.component<DHAttributes>(actorId, DH_KEYS.attributes) ??
                     EMPTY_ATTRIBUTES
-                  const experiences =
+                  const experiences = normalizeExperiences(
                     ctx.read.component<DHExperiences>(actorId, DH_KEYS.experiences) ??
-                    EMPTY_EXPERIENCES
+                      EMPTY_EXPERIENCES,
+                  )
                   return materializeRollConfigFromTemplate(template.config, attributes, experiences)
                 })()
               : null
@@ -316,6 +319,8 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
             ? {
                 ...cloneRollConfig(sourceConfig),
                 dc: ctx.vars.dc ?? sourceConfig.dc,
+                applyOutcomeEffects:
+                  ctx.vars.applyOutcomeEffects ?? sourceConfig.applyOutcomeEffects ?? true,
               }
             : {
                 dualityDice: { hopeFace: 12, fearFace: 12 },
@@ -324,6 +329,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
                 constantModifier: 0,
                 sideEffects: [],
                 dc: ctx.vars.dc,
+                applyOutcomeEffects: ctx.vars.applyOutcomeEffects ?? true,
               }
 
           if (ctx.vars.skipModifier) {
@@ -400,7 +406,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
           const rollResult = ctx.vars.rollResult
           const dc = ctx.vars.dc
 
-          if (!rollResult?.dualityRolls || dc === undefined) {
+          if (!rollResult?.dualityRolls) {
             ctx.vars.judgment = null
             return
           }
@@ -448,12 +454,22 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
           const judgment = ctx.vars.judgment
           const actorId = ctx.vars.actorId
 
+          if (!config?.applyOutcomeEffects) return
+
           // 1. 判定后果：hope 增加 / fear 增加
           if (judgment && judgment.type === 'daggerheart') {
             const outcome = judgment.outcome
-            if (outcome === 'success_hope' || outcome === 'failure_hope') {
+            if (
+              outcome === 'success_hope' ||
+              outcome === 'failure_hope' ||
+              outcome === 'hope_unknown'
+            ) {
               this.hope.addHope(ctx, actorId)
-            } else if (outcome === 'success_fear' || outcome === 'failure_fear') {
+            } else if (
+              outcome === 'success_fear' ||
+              outcome === 'failure_fear' ||
+              outcome === 'fear_unknown'
+            ) {
               this.fear.addFear(ctx)
             }
           }
@@ -638,9 +654,10 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
           const attributes =
             ctx.read.component<DHAttributes>(ctx.vars.entityId, DH_KEYS.attributes) ??
             EMPTY_ATTRIBUTES
-          const experiences =
+          const experiences = normalizeExperiences(
             ctx.read.component<DHExperiences>(ctx.vars.entityId, DH_KEYS.experiences) ??
-            EMPTY_EXPERIENCES
+              EMPTY_EXPERIENCES,
+          )
 
           const result = await ctx.requestInput<RollConfig>('daggerheart-core:roll-modifier', {
             context: {

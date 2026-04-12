@@ -87,6 +87,7 @@ export interface DHRollTemplateConfig {
   constantModifier: number
   sideEffects: SideEffectEntry[]
   dc?: number
+  applyOutcomeEffects: boolean
 }
 
 export interface DHRollTemplate {
