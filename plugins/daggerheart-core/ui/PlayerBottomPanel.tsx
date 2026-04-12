@@ -30,8 +30,10 @@ const EDIT_TEMPLATE_CONFIG_HANDLE = {
   name: 'daggerheart-core:roll-template-edit-config',
 } as WorkflowHandle
 
-const COLLAPSED_SIZE = { width: 480, height: 28 }
-const EXPANDED_SIZE = { width: 480, height: 188 }
+const COLLAPSED_SIZE = { width: 480, height: 48 }
+const EXPANDED_SIZE = { width: 480, height: 220 }
+const HOVER_EXPAND_DELAY = 200
+const HOVER_COLLAPSE_DELAY = 300
 
 const EMPTY_ATTRIBUTES: DHAttributes = {
   agility: 0,
@@ -50,6 +52,7 @@ export function PlayerBottomPanel({ sdk }: { sdk: IRegionSDK }) {
   const [expanded, setExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState<BottomTab>('attributes')
   const resizeRegionRef = useRef<(size: { width?: number; height?: number }) => void>(() => {})
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const activeCharacterId = useIdentityStore((s) => {
     const seat = s.seats.find((entry) => entry.id === s.mySeatId)
@@ -79,6 +82,26 @@ export function PlayerBottomPanel({ sdk }: { sdk: IRegionSDK }) {
   useEffect(() => {
     resizeRegionRef.current(expanded ? EXPANDED_SIZE : COLLAPSED_SIZE)
   }, [expanded])
+
+  const handleMouseEnter = useCallback(() => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
+    hoverTimerRef.current = setTimeout(() => {
+      setExpanded(true)
+    }, HOVER_EXPAND_DELAY)
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
+    hoverTimerRef.current = setTimeout(() => {
+      setExpanded(false)
+    }, HOVER_COLLAPSE_DELAY)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
+    }
+  }, [])
 
   const handleAttributeRoll = useCallback(
     (attrKey: keyof DHAttributes, shiftKey: boolean) => {
@@ -229,93 +252,70 @@ export function PlayerBottomPanel({ sdk }: { sdk: IRegionSDK }) {
   const hope = { current: extras?.hope ?? 0, max: extras?.hopeMax ?? 0 }
   const armor = { current: extras?.armor ?? 0, max: extras?.armorMax ?? 0 }
 
-  if (!expanded) {
-    return (
-      <CollapsedBar
-        hp={hp}
-        stress={stressValue}
-        hope={hope}
-        armor={armor}
-        onExpand={() => {
-          setExpanded(true)
-        }}
-        onRollClick={() => {
-          setActiveTab('dice')
-          setExpanded(true)
-        }}
-        onAdjustResource={handleAdjustResource}
-      />
-    )
-  }
-
   return (
-    <div
-      className="h-full bg-[linear-gradient(180deg,#1e1a14f5_0%,#151210fa_100%)] backdrop-blur-[20px] rounded-t-xl border border-border-glass border-b-0 overflow-hidden"
-      data-testid="player-bottom-panel-expanded"
-    >
-      <button
-        onClick={() => {
-          setExpanded(false)
-        }}
-        className="w-full flex items-center justify-center py-1 text-[8px] text-white/25 cursor-pointer hover:text-white/70 transition-colors"
-        data-testid="player-bottom-panel-collapse"
-      >
-        ▼
-      </button>
+    <div className="h-full" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+      {!expanded ? (
+        <CollapsedBar hp={hp} stress={stressValue} hope={hope} armor={armor} />
+      ) : (
+        <div
+          className="h-full bg-[linear-gradient(180deg,#1e1a14f5_0%,#151210fa_100%)] backdrop-blur-[20px] rounded-xl border border-border-glass overflow-hidden"
+          data-testid="player-bottom-panel-expanded"
+        >
+          <div className="flex px-4 border-b border-white/[0.08]">
+            {[
+              ['attributes', '属性'],
+              ['custom', '自定义'],
+              ['dice', '骰子'],
+            ].map(([key, label]) => {
+              const selected = activeTab === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => {
+                    setActiveTab(key as BottomTab)
+                  }}
+                  className={`px-3.5 py-1.5 text-[11px] font-medium border-b-2 cursor-pointer transition-colors ${
+                    selected
+                      ? 'text-accent border-b-accent'
+                      : 'text-white/40 border-b-transparent hover:text-white/70'
+                  }`}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
 
-      <div className="flex px-4 border-b border-white/[0.08]">
-        {[
-          ['attributes', '属性'],
-          ['custom', '自定义'],
-          ['dice', '骰子'],
-        ].map(([key, label]) => {
-          const selected = activeTab === key
-          return (
-            <button
-              key={key}
-              onClick={() => {
-                setActiveTab(key as BottomTab)
-              }}
-              className={`px-3.5 py-1.5 text-[11px] font-medium border-b-2 cursor-pointer transition-colors ${
-                selected
-                  ? 'text-accent border-b-accent'
-                  : 'text-white/40 border-b-transparent hover:text-white/70'
-              }`}
-            >
-              {label}
-            </button>
-          )
-        })}
-      </div>
+          <div className="px-4 pt-2.5 pb-2">
+            {activeTab === 'attributes' && (
+              <AttributeTab attributes={safeAttributes} onRoll={handleAttributeRoll} />
+            )}
+            {activeTab === 'custom' && (
+              <CustomTab
+                attributes={safeAttributes}
+                experiences={experiences}
+                templates={rollTemplates}
+                onAdd={handleTemplateAdd}
+                onEditConfig={handleTemplateEditConfig}
+                onRemove={handleTemplateRemove}
+                onSaveMeta={handleTemplateSaveMeta}
+                onUse={handleTemplateUse}
+              />
+            )}
+            {activeTab === 'dice' && <DiceTab onRoll={handleDiceRoll} />}
+          </div>
 
-      <div className="px-4 pt-2.5 pb-2">
-        {activeTab === 'attributes' && (
-          <AttributeTab attributes={safeAttributes} onRoll={handleAttributeRoll} />
-        )}
-        {activeTab === 'custom' && (
-          <CustomTab
-            attributes={safeAttributes}
-            experiences={experiences}
-            templates={rollTemplates}
-            onAdd={handleTemplateAdd}
-            onEditConfig={handleTemplateEditConfig}
-            onRemove={handleTemplateRemove}
-            onSaveMeta={handleTemplateSaveMeta}
-            onUse={handleTemplateUse}
+          <div className="h-px mx-4 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)]" />
+
+          <ResourceSection
+            hp={hp}
+            stress={stressValue}
+            hope={hope}
+            armor={armor}
+            onAdjustResource={handleAdjustResource}
           />
-        )}
-        {activeTab === 'dice' && <DiceTab onRoll={handleDiceRoll} />}
-      </div>
-
-      <div className="h-px mx-4 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)]" />
-
-      <ResourceSection
-        hp={hp}
-        stress={stressValue}
-        hope={hope}
-        armor={armor}
-        onAdjustResource={handleAdjustResource}
-      />
+        </div>
+      )}
     </div>
   )
 }

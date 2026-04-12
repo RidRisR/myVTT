@@ -26,10 +26,9 @@ function getDelta(effects: SideEffectEntry[], resource: SideEffectEntry['resourc
   return effects.find((effect) => effect.resource === resource)?.delta ?? 0
 }
 
-function getEffectTone(resource: SideEffectEntry['resource'], delta: number): 'pos' | 'neg' | 'neutral' {
+function getEffectTone(delta: number): 'pos' | 'neg' | 'neutral' {
   if (delta === 0) return 'neutral'
-  const isNegativeEffect = resource === 'stress' ? delta > 0 : delta < 0
-  return isNegativeEffect ? 'neg' : 'pos'
+  return delta < 0 ? 'neg' : 'pos'
 }
 
 function getSummary(effects: SideEffectEntry[]): string {
@@ -52,7 +51,7 @@ export function SideEffects({ effects, onChange }: SideEffectsProps) {
         {RESOURCE_ORDER.map((resource) => {
           const { label, Icon } = RESOURCE_META[resource]
           const delta = getDelta(effects, resource)
-          const tone = getEffectTone(resource, delta)
+          const tone = getEffectTone(delta)
           const toneClasses =
             tone === 'neg'
               ? 'border-danger/20 bg-danger/[0.05]'
@@ -60,11 +59,7 @@ export function SideEffects({ effects, onChange }: SideEffectsProps) {
                 ? 'border-success/20 bg-success/[0.05]'
                 : 'border-border-glass bg-transparent'
           const textClasses =
-            tone === 'neg'
-              ? 'text-danger'
-              : tone === 'pos'
-                ? 'text-success'
-                : 'text-text-muted/50'
+            tone === 'neg' ? 'text-danger' : tone === 'pos' ? 'text-success' : 'text-text-muted/50'
 
           return (
             <div
@@ -77,16 +72,18 @@ export function SideEffects({ effects, onChange }: SideEffectsProps) {
               <span className={`text-[10px] opacity-80 ${textClasses}`}>{label}</span>
               <div className="flex items-center gap-0.5 ml-auto">
                 <button
-                  onClick={() => onChange(resource, Math.max(-9, delta - 1))}
+                  onClick={() => { onChange(resource, Math.max(-9, delta - 1)); }}
                   className="w-6 h-6 rounded border border-border-glass bg-transparent text-text-muted text-[11px] flex items-center justify-center cursor-pointer hover:bg-white/[0.08] hover:text-text-primary transition-colors"
                 >
                   -
                 </button>
-                <span className={`min-w-[22px] text-center text-[13px] font-bold tabular-nums ${textClasses}`}>
+                <span
+                  className={`min-w-[22px] text-center text-[13px] font-bold tabular-nums ${textClasses}`}
+                >
                   {delta > 0 ? `+${delta}` : delta}
                 </span>
                 <button
-                  onClick={() => onChange(resource, Math.min(9, delta + 1))}
+                  onClick={() => { onChange(resource, Math.min(9, delta + 1)); }}
                   className="w-6 h-6 rounded border border-border-glass bg-transparent text-text-muted text-[11px] flex items-center justify-center cursor-pointer hover:bg-white/[0.08] hover:text-text-primary transition-colors"
                 >
                   +

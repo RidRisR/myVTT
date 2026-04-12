@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import userEvent from '@testing-library/user-event'
 import type { IRegionSDK } from '../../../../src/ui-system/types'
 
 const mockRunWorkflow = vi.fn().mockResolvedValue({ status: 'completed' })
@@ -40,7 +39,7 @@ function makeMockSdk(overrides: Partial<{ role: 'GM' | 'Player' }> = {}) {
               {
                 id: 'tmpl-stealth',
                 name: '潜行检定',
-                icon: '🕶️',
+                icon: 'stealth',
                 createdAt: 1,
                 updatedAt: 1,
                 config: {
@@ -114,31 +113,51 @@ function setupIdentityStore(activeCharacterId: string | null = 'char1') {
   })
 }
 
+/** Hover into the panel to trigger expand after debounce */
+async function hoverExpand(container: HTMLElement) {
+  fireEvent.mouseEnter(container)
+  await act(() => vi.advanceTimersByTimeAsync(250))
+}
+
 describe('PlayerBottomPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers()
     setupIdentityStore('char1')
   })
 
-  it('renders collapsed bar for players by default', () => {
-    render(<PlayerBottomPanel sdk={makeMockSdk()} />)
-    expect(screen.getByTestId('player-bottom-panel-collapsed')).toBeInTheDocument()
-    expect(mockResize).toHaveBeenLastCalledWith({ width: 480, height: 28 })
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
-  it('expands into tabbed panel when expand button is clicked', async () => {
-    const user = userEvent.setup()
+  it('renders collapsed bar as pure display for players by default', () => {
     render(<PlayerBottomPanel sdk={makeMockSdk()} />)
-    await user.click(screen.getByTestId('player-bottom-panel-expand'))
+    expect(screen.getByTestId('player-bottom-panel-collapsed')).toBeInTheDocument()
+    expect(mockResize).toHaveBeenLastCalledWith({ width: 480, height: 48 })
+    // Collapsed bar shows resource values only (no buttons)
+    expect(screen.getByText('15')).toBeInTheDocument()
+    expect(screen.getByText('/20')).toBeInTheDocument()
+  })
+
+  it('expands on mouse enter and collapses on mouse leave', async () => {
+    const { container } = render(<PlayerBottomPanel sdk={makeMockSdk()} />)
+    const root = container.firstElementChild as HTMLElement
+
+    await hoverExpand(root)
     expect(screen.getByTestId('player-bottom-panel-expanded')).toBeInTheDocument()
-    expect(mockResize).toHaveBeenLastCalledWith({ width: 480, height: 188 })
+    expect(mockResize).toHaveBeenLastCalledWith({ width: 480, height: 220 })
+
+    fireEvent.mouseLeave(root)
+    await act(() => vi.advanceTimersByTimeAsync(350))
+    expect(screen.getByTestId('player-bottom-panel-collapsed')).toBeInTheDocument()
+    expect(mockResize).toHaveBeenLastCalledWith({ width: 480, height: 48 })
   })
 
   it('attribute tab cards trigger unified action-check workflow', async () => {
-    const user = userEvent.setup()
-    render(<PlayerBottomPanel sdk={makeMockSdk()} />)
-    await user.click(screen.getByTestId('player-bottom-panel-expand'))
-    await user.click(screen.getByText('敏捷'))
+    const { container } = render(<PlayerBottomPanel sdk={makeMockSdk()} />)
+    await hoverExpand(container.firstElementChild as HTMLElement)
+
+    fireEvent.click(screen.getByText('敏捷'))
     expect(mockRunWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'daggerheart-core:action-check' }),
       expect.objectContaining({
@@ -149,35 +168,17 @@ describe('PlayerBottomPanel', () => {
     )
   })
 
-  it('collapsed dice button opens dice tab and clicking d20 seeds the roll config', async () => {
-    const user = userEvent.setup()
-    render(<PlayerBottomPanel sdk={makeMockSdk()} />)
-    await user.click(screen.getByTestId('player-bottom-panel-roll'))
-    await user.click(screen.getByText('d20'))
-    expect(mockRunWorkflow).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'daggerheart-core:action-check' }),
-      expect.objectContaining({
-        actorId: 'char1',
-        skipModifier: false,
-        initialRollConfig: expect.objectContaining({
-          dualityDice: null,
-          diceGroups: [{ sides: 20, count: 1, operator: '+', label: 'd20' }],
-        }),
-      }),
-    )
-  })
-
   it('gm role stays hidden', () => {
     render(<PlayerBottomPanel sdk={makeMockSdk({ role: 'GM' })} />)
     expect(screen.getByTestId('player-bottom-panel-hidden')).toBeInTheDocument()
   })
 
   it('custom tab can trigger stored templates directly', async () => {
-    const user = userEvent.setup()
-    render(<PlayerBottomPanel sdk={makeMockSdk()} />)
-    await user.click(screen.getByTestId('player-bottom-panel-expand'))
-    await user.click(screen.getByText('自定义'))
-    await user.click(screen.getByText('潜行检定'))
+    const { container } = render(<PlayerBottomPanel sdk={makeMockSdk()} />)
+    await hoverExpand(container.firstElementChild as HTMLElement)
+
+    fireEvent.click(screen.getByText('自定义'))
+    fireEvent.click(screen.getByText('潜行检定'))
     expect(mockRunWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'daggerheart-core:action-check' }),
       expect.objectContaining({
