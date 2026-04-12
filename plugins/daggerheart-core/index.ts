@@ -49,12 +49,17 @@ import {
   rollConfigToFormulaTokens,
 } from './rollConfigUtils'
 import {
-  extractTemplateConfigFromRollConfig,
   materializeRollConfigFromTemplate,
   mergeTemplateConfigAfterEditorRoundTrip,
 } from './rollTemplateUtils'
 import { DH_ATTRIBUTE_LABELS, DH_KEYS } from '../daggerheart/types'
-import type { DHAttributes, DHHealth, DHStress, DHExtras, DHExperiences } from '../daggerheart/types'
+import type {
+  DHAttributes,
+  DHHealth,
+  DHStress,
+  DHExtras,
+  DHExperiences,
+} from '../daggerheart/types'
 
 interface ActionCheckData {
   [key: string]: unknown
@@ -291,7 +296,8 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
                   )
                   if (!template) return null
                   const attributes =
-                    ctx.read.component<DHAttributes>(actorId, DH_KEYS.attributes) ?? EMPTY_ATTRIBUTES
+                    ctx.read.component<DHAttributes>(actorId, DH_KEYS.attributes) ??
+                    EMPTY_ATTRIBUTES
                   const experiences =
                     ctx.read.component<DHExperiences>(actorId, DH_KEYS.experiences) ??
                     EMPTY_EXPERIENCES
@@ -334,7 +340,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
                 if (typeof val === 'number') {
                   const nextModifier = {
                     source: `attribute:${preAttr}`,
-                    label: DH_ATTRIBUTE_LABELS[attrKey] ?? preAttr,
+                    label: DH_ATTRIBUTE_LABELS[attrKey],
                     value: val,
                   }
                   const existingIndex = defaultConfig.modifiers.findIndex(
@@ -619,14 +625,19 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       {
         id: 'edit-config',
         run: async (ctx) => {
-          const template = this.rollTemplates.getTemplate(ctx, ctx.vars.entityId, ctx.vars.templateId)
+          const template = this.rollTemplates.getTemplate(
+            ctx,
+            ctx.vars.entityId,
+            ctx.vars.templateId,
+          )
           if (!template) {
             ctx.abort(`Roll template not found: ${ctx.vars.templateId}`)
             return
           }
 
           const attributes =
-            ctx.read.component<DHAttributes>(ctx.vars.entityId, DH_KEYS.attributes) ?? EMPTY_ATTRIBUTES
+            ctx.read.component<DHAttributes>(ctx.vars.entityId, DH_KEYS.attributes) ??
+            EMPTY_ATTRIBUTES
           const experiences =
             ctx.read.component<DHExperiences>(ctx.vars.entityId, DH_KEYS.experiences) ??
             EMPTY_EXPERIENCES

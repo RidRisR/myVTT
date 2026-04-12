@@ -86,7 +86,7 @@ function makeMockSdk(overrides: Partial<{ role: 'GM' | 'Player' }> = {}) {
 }
 
 function setupIdentityStore(activeCharacterId: string | null = 'char1') {
-  vi.mocked(identityModule.useIdentityStore).mockImplementation((selector: any) => {
+  vi.mocked(identityModule.useIdentityStore).mockImplementation((selector) => {
     const state = {
       seats: [
         {

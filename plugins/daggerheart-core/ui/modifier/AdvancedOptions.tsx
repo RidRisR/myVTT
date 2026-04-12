@@ -11,13 +11,20 @@ interface CollapsibleSectionProps {
   defaultOpen?: boolean
 }
 
-function CollapsibleSection({ label, summary, children, defaultOpen = false }: CollapsibleSectionProps) {
+function CollapsibleSection({
+  label,
+  summary,
+  children,
+  defaultOpen = false,
+}: CollapsibleSectionProps) {
   const [open, setOpen] = useState(defaultOpen)
 
   return (
     <div>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          setOpen(!open)
+        }}
         className="w-full flex items-center gap-1.5 px-4 py-2.5 cursor-pointer hover:bg-white/[0.02] transition-colors"
       >
         <span
@@ -32,9 +39,7 @@ function CollapsibleSection({ label, summary, children, defaultOpen = false }: C
           <span className="text-[9px] text-text-muted/30 ml-auto">{summary}</span>
         )}
       </button>
-      {open && (
-        <div className="px-4 pb-3 border-b border-border-glass">{children}</div>
-      )}
+      {open && <div className="px-4 pb-3 border-b border-border-glass">{children}</div>}
     </div>
   )
 }
@@ -115,7 +120,9 @@ export function AdvancedOptions({
                 diceLabelColor={group.operator === '-' ? 'text-danger' : undefined}
                 keep={group.keep}
                 totalCount={group.count}
-                onKeepChange={(keep) => onKeepChange(i, keep)}
+                onKeepChange={(keep) => {
+                  onKeepChange(i, keep)
+                }}
               />
             ))}
           </div>
@@ -142,11 +149,11 @@ function FaceSelector({ dotColor, label, value, onChange, isChanged }: FaceSelec
       <span className="text-[10px] text-text-muted">{label}</span>
       <select
         value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => {
+          onChange(Number(e.target.value))
+        }}
         className={`ml-auto w-12 h-6 rounded border bg-transparent text-[11px] font-semibold text-center outline-none cursor-pointer ${
-          isChanged
-            ? 'border-accent/30 text-accent-bold'
-            : 'border-border-glass text-text-muted'
+          isChanged ? 'border-accent/30 text-accent-bold' : 'border-border-glass text-text-muted'
         }`}
       >
         {FACE_OPTIONS.map((f) => (
@@ -188,12 +195,14 @@ function KeepRow({
       <span className={`text-[11px] font-semibold ${diceLabelColor ?? 'text-text-primary'}`}>
         {diceLabel}
       </span>
-      <span className={`text-[9px] ${typeColor ?? 'text-text-muted'} opacity-60`}>
-        {typeLabel}
-      </span>
+      <span className={`text-[9px] ${typeColor ?? 'text-text-muted'} opacity-60`}>{typeLabel}</span>
       <div className="flex items-center gap-0.5 ml-auto">
         <button
-          onClick={() => !disabled && onKeepChange(mode === 'high' ? undefined : { mode: 'high', count: keepCount })}
+          onClick={() => {
+            if (!disabled) {
+              onKeepChange(mode === 'high' ? undefined : { mode: 'high', count: keepCount })
+            }
+          }}
           className={`px-1.5 h-5 rounded text-[9px] font-medium cursor-pointer transition-colors ${
             mode === 'high'
               ? 'bg-info/20 text-info border border-info/30'
@@ -203,7 +212,11 @@ function KeepRow({
           取高
         </button>
         <button
-          onClick={() => !disabled && onKeepChange(mode === 'low' ? undefined : { mode: 'low', count: keepCount })}
+          onClick={() => {
+            if (!disabled) {
+              onKeepChange(mode === 'low' ? undefined : { mode: 'low', count: keepCount })
+            }
+          }}
           className={`px-1.5 h-5 rounded text-[9px] font-medium cursor-pointer transition-colors ${
             mode === 'low'
               ? 'bg-danger/20 text-danger border border-danger/30'
@@ -213,7 +226,11 @@ function KeepRow({
           取低
         </button>
         <button
-          onClick={() => !disabled && onKeepChange(undefined)}
+          onClick={() => {
+            if (!disabled) {
+              onKeepChange(undefined)
+            }
+          }}
           className={`px-1.5 h-5 rounded text-[9px] font-medium cursor-pointer transition-colors ${
             !mode
               ? 'text-text-muted'

@@ -13,9 +13,7 @@ import type { ModifierSource, RollConfig } from './rollTypes'
 const ATTRIBUTE_SOURCE_PREFIX = 'attribute:'
 const EXPERIENCE_SOURCE_PREFIX = 'experience:'
 
-function cloneTemplateModifierRef(
-  modifier: DHRollTemplateModifierRef,
-): DHRollTemplateModifierRef {
+function cloneTemplateModifierRef(modifier: DHRollTemplateModifierRef): DHRollTemplateModifierRef {
   return { ...modifier }
 }
 
@@ -94,8 +92,8 @@ function resolveModifierRef(
   if (modifier.type === 'attribute') {
     return {
       source: `${ATTRIBUTE_SOURCE_PREFIX}${modifier.attributeKey}`,
-      label: DH_ATTRIBUTE_LABELS[modifier.attributeKey] ?? modifier.labelSnapshot ?? modifier.attributeKey,
-      value: attributes[modifier.attributeKey] ?? 0,
+      label: DH_ATTRIBUTE_LABELS[modifier.attributeKey],
+      value: attributes[modifier.attributeKey],
     }
   }
 
@@ -188,10 +186,9 @@ export function ensureExperienceKeys(experiences: DHExperience[]): DHExperience[
   const taken = new Set<string>()
 
   for (const experience of experiences) {
-    const trimmed = experience.key?.trim() ?? ''
-    const key = trimmed && !taken.has(trimmed)
-      ? trimmed
-      : createExperienceKey(experience.name, taken)
+    const trimmed = experience.key.trim()
+    const key =
+      trimmed && !taken.has(trimmed) ? trimmed : createExperienceKey(experience.name, taken)
     taken.add(key)
     next.push({
       ...experience,

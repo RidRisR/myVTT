@@ -19,10 +19,9 @@ export function AttributeTab({ attributes, onRoll }: AttributeTabProps) {
     <div>
       <div className="grid grid-cols-6 gap-1.5">
         {ATTRIBUTE_KEYS.map((key) => {
-          const value = attributes[key] ?? 0
+          const value = attributes[key]
           const formula = `2d12${value >= 0 ? `+${value}` : value}`
-          const valueTone =
-            value > 0 ? 'text-success' : value < 0 ? 'text-danger' : 'text-white/30'
+          const valueTone = value > 0 ? 'text-success' : value < 0 ? 'text-danger' : 'text-white/30'
 
           return (
             <button
@@ -32,7 +31,9 @@ export function AttributeTab({ attributes, onRoll }: AttributeTabProps) {
               }}
               className="flex flex-col items-center justify-center gap-0.5 px-1 py-2 min-h-[54px] rounded-md border border-white/[0.08] bg-white/[0.04] cursor-pointer transition-all hover:bg-white/[0.10] hover:border-accent/30 hover:shadow-[0_0_8px_rgba(251,191,36,0.08)]"
             >
-              <span className="text-[9px] text-white/45 leading-none">{DH_ATTRIBUTE_LABELS[key]}</span>
+              <span className="text-[9px] text-white/45 leading-none">
+                {DH_ATTRIBUTE_LABELS[key]}
+              </span>
               <span className={`text-[15px] font-bold leading-none tabular-nums ${valueTone}`}>
                 {value >= 0 ? `+${value}` : value}
               </span>

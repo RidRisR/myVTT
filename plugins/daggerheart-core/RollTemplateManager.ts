@@ -1,11 +1,18 @@
 import type { WorkflowContext } from '@myvtt/sdk'
 import { DH_KEYS } from '../daggerheart/types'
-import type {
-  DHRollTemplate,
-  DHRollTemplateConfig,
-  DHRollTemplates,
-} from '../daggerheart/types'
-import { cloneTemplateConfig, createDefaultRollTemplateConfig, createRollTemplateId } from './rollTemplateUtils'
+import type { DHRollTemplate, DHRollTemplateConfig, DHRollTemplates } from '../daggerheart/types'
+import {
+  cloneTemplateConfig,
+  createDefaultRollTemplateConfig,
+  createRollTemplateId,
+} from './rollTemplateUtils'
+
+function readRollTemplates(prev: unknown): DHRollTemplates {
+  if (prev && typeof prev === 'object' && 'items' in prev && Array.isArray(prev.items)) {
+    return prev as DHRollTemplates
+  }
+  return { items: [] }
+}
 
 export interface RollTemplateAddData {
   [key: string]: unknown
@@ -45,15 +52,22 @@ export class RollTemplateManager {
     return this.listTemplates(ctx, entityId).find((template) => template.id === templateId) ?? null
   }
 
-  addTemplate(ctx: WorkflowContext, entityId: string, input: Omit<RollTemplateAddData, 'entityId'> = {}): void {
+  addTemplate(
+    ctx: WorkflowContext,
+    entityId: string,
+    input: Omit<RollTemplateAddData, 'entityId'> = {},
+  ): void {
     ctx.updateComponent(entityId, DH_KEYS.rollTemplates, (prev: unknown) => {
-      const p = (prev ?? { items: [] }) as DHRollTemplates
+      const p = readRollTemplates(prev)
       const now = Date.now()
+      const name = typeof input.name === 'string' ? input.name.trim() : ''
+      const icon = typeof input.icon === 'string' ? input.icon.trim() : ''
+      const config = input.config ?? createDefaultRollTemplateConfig()
       const next: DHRollTemplate = {
         id: createRollTemplateId(),
-        name: input.name?.trim() || '新模板',
-        icon: input.icon?.trim() || '✨',
-        config: cloneTemplateConfig(input.config ?? createDefaultRollTemplateConfig()),
+        name: name || '新模板',
+        icon: icon || '✨',
+        config: cloneTemplateConfig(config),
         createdAt: now,
         updatedAt: now,
       }
@@ -71,7 +85,7 @@ export class RollTemplateManager {
     patch: Partial<Pick<DHRollTemplate, 'name' | 'icon' | 'config'>>,
   ): void {
     ctx.updateComponent(entityId, DH_KEYS.rollTemplates, (prev: unknown) => {
-      const p = (prev ?? { items: [] }) as DHRollTemplates
+      const p = readRollTemplates(prev)
       return {
         ...p,
         items: p.items.map((template) => {
@@ -80,7 +94,9 @@ export class RollTemplateManager {
             ...template,
             name: patch.name !== undefined ? patch.name : template.name,
             icon: patch.icon !== undefined ? patch.icon : template.icon,
-            config: patch.config ? cloneTemplateConfig(patch.config) : cloneTemplateConfig(template.config),
+            config: patch.config
+              ? cloneTemplateConfig(patch.config)
+              : cloneTemplateConfig(template.config),
             updatedAt: Date.now(),
           }
         }),
@@ -90,7 +106,7 @@ export class RollTemplateManager {
 
   removeTemplate(ctx: WorkflowContext, entityId: string, templateId: string): void {
     ctx.updateComponent(entityId, DH_KEYS.rollTemplates, (prev: unknown) => {
-      const p = (prev ?? { items: [] }) as DHRollTemplates
+      const p = readRollTemplates(prev)
       return {
         ...p,
         items: p.items.filter((template) => template.id !== templateId),
@@ -105,7 +121,7 @@ export class RollTemplateManager {
     toIndex: number,
   ): void {
     ctx.updateComponent(entityId, DH_KEYS.rollTemplates, (prev: unknown) => {
-      const p = (prev ?? { items: [] }) as DHRollTemplates
+      const p = readRollTemplates(prev)
       if (
         fromIndex < 0 ||
         fromIndex >= p.items.length ||

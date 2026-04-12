@@ -49,7 +49,7 @@ export function PlayerBottomPanel({ sdk }: { sdk: IRegionSDK }) {
   const isGM = sdk.context.role === 'GM'
   const [expanded, setExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState<BottomTab>('attributes')
-  const resizeRegionRef = useRef(sdk.ui.resize)
+  const resizeRegionRef = useRef<(size: { width?: number; height?: number }) => void>(() => {})
 
   const activeCharacterId = useIdentityStore((s) => {
     const seat = s.seats.find((entry) => entry.id === s.mySeatId)
@@ -59,7 +59,10 @@ export function PlayerBottomPanel({ sdk }: { sdk: IRegionSDK }) {
   const health = sdk.data.useComponent<DHHealth>(activeCharacterId ?? '', DH_KEYS.health)
   const stress = sdk.data.useComponent<DHStress>(activeCharacterId ?? '', DH_KEYS.stress)
   const extras = sdk.data.useComponent<DHExtras>(activeCharacterId ?? '', DH_KEYS.extras)
-  const attributes = sdk.data.useComponent<DHAttributes>(activeCharacterId ?? '', DH_KEYS.attributes)
+  const attributes = sdk.data.useComponent<DHAttributes>(
+    activeCharacterId ?? '',
+    DH_KEYS.attributes,
+  )
   const experiences =
     sdk.data.useComponent<DHExperiences>(activeCharacterId ?? '', DH_KEYS.experiences) ??
     EMPTY_EXPERIENCES
@@ -68,7 +71,9 @@ export function PlayerBottomPanel({ sdk }: { sdk: IRegionSDK }) {
     EMPTY_TEMPLATES
 
   useEffect(() => {
-    resizeRegionRef.current = sdk.ui.resize
+    resizeRegionRef.current = (size) => {
+      sdk.ui.resize(size)
+    }
   }, [sdk.ui])
 
   useEffect(() => {

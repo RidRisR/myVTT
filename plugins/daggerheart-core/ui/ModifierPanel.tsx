@@ -56,14 +56,18 @@ const EMPTY_EXPERIENCES: DHExperiences = { items: [] }
 const SIDE_EFFECT_ORDER: SideEffectEntry['resource'][] = ['hope', 'hp', 'stress', 'armor']
 
 function findDefaultAttribute(config?: RollConfig): string | null {
-  const source = config?.modifiers.find((modifier) => modifier.source.startsWith('attribute:'))?.source
+  const source = config?.modifiers.find((modifier) =>
+    modifier.source.startsWith('attribute:'),
+  )?.source
   if (!source) return null
   const attr = source.slice('attribute:'.length)
   return ATTRIBUTE_KEYS.includes(attr as AttributeKey) ? attr : null
 }
 
 function findDefaultExperienceKey(config?: RollConfig): string | null {
-  const source = config?.modifiers.find((modifier) => modifier.source.startsWith('experience:'))?.source
+  const source = config?.modifiers.find((modifier) =>
+    modifier.source.startsWith('experience:'),
+  )?.source
   if (!source) return null
   const experienceKey = source.slice('experience:'.length)
   return experienceKey || null
@@ -175,7 +179,10 @@ export function ModifierPanel({
   const actorId = context.actorId ?? ''
   const attributes = useComponent<DHAttributes>(actorId, DH_KEYS.attributes) ?? EMPTY_ATTRIBUTES
   const experiences = useComponent<DHExperiences>(actorId, DH_KEYS.experiences) ?? EMPTY_EXPERIENCES
-  const defaultDiceState = useMemo(() => hydrateDiceState(context.defaultConfig), [context.defaultConfig])
+  const defaultDiceState = useMemo(
+    () => hydrateDiceState(context.defaultConfig),
+    [context.defaultConfig],
+  )
 
   const [selectedAttr, setSelectedAttr] = useState<string | null>(
     context.preselectedAttribute ?? findDefaultAttribute(context.defaultConfig),
@@ -190,8 +197,12 @@ export function ModifierPanel({
   const [hopeFace, setHopeFace] = useState(context.defaultConfig?.dualityDice?.hopeFace ?? 12)
   const [fearFace, setFearFace] = useState(context.defaultConfig?.dualityDice?.fearFace ?? 12)
   const [dc, setDc] = useState(context.defaultConfig?.dc ?? 12)
-  const [extraDice, setExtraDice] = useState<ExtraDiceState>(() => new Map(defaultDiceState.extraDice))
-  const [keepSettings, setKeepSettings] = useState<KeepState>(() => new Map(defaultDiceState.keepSettings))
+  const [extraDice, setExtraDice] = useState<ExtraDiceState>(
+    () => new Map(defaultDiceState.extraDice),
+  )
+  const [keepSettings, setKeepSettings] = useState<KeepState>(
+    () => new Map(defaultDiceState.keepSettings),
+  )
   const [sideEffects, setSideEffects] = useState<SideEffectEntry[]>(
     createDefaultSideEffects(context.defaultConfig),
   )
@@ -209,7 +220,7 @@ export function ModifierPanel({
       modifiers.push({
         source: `attribute:${attrKey}`,
         label: DH_ATTRIBUTE_LABELS[attrKey],
-        value: attributes[attrKey] ?? 0,
+        value: attributes[attrKey],
       })
     }
 
@@ -333,7 +344,9 @@ export function ModifierPanel({
       </div>
 
       <div className="px-4 py-2.5 border-b border-border-glass">
-        <div className="text-[9px] uppercase tracking-[0.2em] text-text-muted/50 mb-1.5">修正值</div>
+        <div className="text-[9px] uppercase tracking-[0.2em] text-text-muted/50 mb-1.5">
+          修正值
+        </div>
         <div className="flex flex-col gap-1.5">
           <AttributeGrid
             attributes={attributes}
