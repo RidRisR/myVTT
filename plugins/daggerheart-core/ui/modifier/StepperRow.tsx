@@ -12,12 +12,23 @@ interface StepperProps {
   inputMode?: boolean
 }
 
-function Stepper({ label, subLabel, value, min = 0, max = 10, onChange, variant = 'default', inputMode }: StepperProps) {
+function Stepper({
+  label,
+  subLabel,
+  value,
+  min = 0,
+  max = 10,
+  onChange,
+  variant = 'default',
+  inputMode,
+}: StepperProps) {
   const isActive = value !== 0
-  const variantClasses = {
-    default: '',
-    advantage: isActive ? 'border-info/25 bg-info/[0.06]' : '',
-    disadvantage: isActive ? 'border-danger/25 bg-danger/[0.06]' : '',
+  const containerClasses = {
+    default: isActive ? 'border-accent/20 bg-accent/[0.04]' : 'border-white/[0.06] bg-white/[0.02]',
+    advantage: isActive ? 'border-info/20 bg-info/[0.04]' : 'border-white/[0.06] bg-white/[0.02]',
+    disadvantage: isActive
+      ? 'border-danger/20 bg-danger/[0.04]'
+      : 'border-white/[0.06] bg-white/[0.02]',
   }
   const labelColor = {
     default: 'text-text-muted',
@@ -32,16 +43,16 @@ function Stepper({ label, subLabel, value, min = 0, max = 10, onChange, variant 
 
   return (
     <div
-      className={`flex-1 flex items-center gap-1 h-9 px-2.5 rounded-md border border-border-glass bg-transparent ${variantClasses[variant]}`}
+      className={`flex-1 flex items-center gap-1 h-9 px-2.5 rounded-lg border ${containerClasses[variant]}`}
     >
-      <span className={`text-[10px] whitespace-nowrap ${labelColor[variant]}`}>{label}</span>
+      <span className={`text-[11px] whitespace-nowrap ${labelColor[variant]}`}>{label}</span>
       {subLabel && (
-        <span className={`text-[9px] ${labelColor[variant]} opacity-40`}>{subLabel}</span>
+        <span className={`text-[10px] ${labelColor[variant]} opacity-60`}>{subLabel}</span>
       )}
-      <div className="flex items-center gap-0.5 ml-auto">
+      <div className="flex items-center ml-auto rounded-full bg-black/20 overflow-hidden">
         <button
-          onClick={() => onChange(Math.max(min, value - 1))}
-          className="w-6 h-6 rounded border border-border-glass bg-transparent text-text-muted text-[11px] flex items-center justify-center cursor-pointer hover:bg-white/10 hover:text-text-primary transition-colors"
+          onClick={() => { onChange(Math.max(min, value - 1)); }}
+          className="w-7 h-7 text-text-muted text-[11px] flex items-center justify-center cursor-pointer hover:bg-white/[0.08] hover:text-text-primary transition-colors"
         >
           -
         </button>
@@ -52,16 +63,18 @@ function Stepper({ label, subLabel, value, min = 0, max = 10, onChange, variant 
               const n = parseInt(e.target.value.replace(/[^-\d]/g, ''), 10)
               if (!isNaN(n)) onChange(Math.max(min, Math.min(max, n)))
             }}
-            className="w-11 h-6 rounded border border-accent/25 bg-black/20 text-accent-bold text-[13px] font-semibold font-mono text-center outline-none focus:border-accent/50"
+            className="w-10 h-7 bg-transparent text-accent-bold text-[13px] font-semibold font-mono text-center outline-none"
           />
         ) : (
-          <span className={`text-sm font-bold tabular-nums min-w-[18px] text-center ${valColor[variant]}`}>
+          <span
+            className={`text-sm font-bold tabular-nums min-w-[18px] text-center ${valColor[variant]}`}
+          >
             {value}
           </span>
         )}
         <button
-          onClick={() => onChange(Math.min(max, value + 1))}
-          className="w-6 h-6 rounded border border-border-glass bg-transparent text-text-muted text-[11px] flex items-center justify-center cursor-pointer hover:bg-white/10 hover:text-text-primary transition-colors"
+          onClick={() => { onChange(Math.min(max, value + 1)); }}
+          className="w-7 h-7 text-text-muted text-[11px] flex items-center justify-center cursor-pointer hover:bg-white/[0.08] hover:text-text-primary transition-colors"
         >
           +
         </button>
@@ -83,19 +96,26 @@ export function StepperRow(props: StepperRowProps) {
   return (
     <div className="flex gap-1">
       <Stepper
-        label="优势" subLabel="d6"
-        value={props.advantage} onChange={props.onAdvantageChange}
+        label="优势"
+        subLabel="d6"
+        value={props.advantage}
+        onChange={props.onAdvantageChange}
         variant="advantage"
       />
       <Stepper
-        label="劣势" subLabel="d6"
-        value={props.disadvantage} onChange={props.onDisadvantageChange}
+        label="劣势"
+        subLabel="d6"
+        value={props.disadvantage}
+        onChange={props.onDisadvantageChange}
         variant="disadvantage"
       />
       <Stepper
         label="修正"
-        value={props.constant} onChange={props.onConstantChange}
-        min={-20} max={20} inputMode
+        value={props.constant}
+        onChange={props.onConstantChange}
+        min={-20}
+        max={20}
+        inputMode
       />
     </div>
   )

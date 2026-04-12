@@ -14,12 +14,12 @@ const tokenColors: Record<FormulaToken['type'], string> = {
 
 export function FormulaBar({ tokens }: FormulaBarProps) {
   return (
-    <div className="flex items-center gap-0.5 px-2.5 py-1.5 rounded-md bg-black/30 border border-border-glass min-h-[34px] flex-wrap font-mono text-sm cursor-text">
+    <div className="flex items-center gap-1 px-3 py-2 rounded-lg bg-black/40 min-h-[40px] flex-wrap font-mono text-base cursor-text">
       {tokens.map((tok, i) => (
         <span key={i} className="inline-flex items-center gap-0.5 whitespace-nowrap">
           <span className={`font-bold ${tokenColors[tok.type]}`}>{tok.text}</span>
           {tok.source && (
-            <span className="text-[9px] text-text-muted/40 font-sans font-normal">
+            <span className="text-[10px] text-text-muted/60 font-sans font-normal">
               {tok.source}
             </span>
           )}

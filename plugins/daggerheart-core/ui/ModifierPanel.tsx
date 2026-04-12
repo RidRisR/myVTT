@@ -292,14 +292,14 @@ export function ModifierPanel({
   }
 
   return (
-    <div className="w-[420px] max-w-[calc(100vw-2rem)] bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+    <div className="w-[520px] max-w-[calc(100vw-2rem)] max-h-[calc(100vh-4rem)] bg-glass backdrop-blur-[16px] border border-border-glass rounded-xl overflow-y-auto shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border-glass">
         <div>
           <span className="text-[13px] font-semibold text-accent">掷骰设定</span>
-          <span className="ml-2 text-[10px] text-text-muted">{actionLabel}</span>
+          <span className="ml-2 text-[11px] text-text-muted">{actionLabel}</span>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-[10px] uppercase tracking-wide text-text-muted/60">DC</label>
+          <label className="text-[11px] uppercase tracking-wide text-text-muted">DC</label>
           <input
             type="number"
             min={1}
@@ -321,12 +321,16 @@ export function ModifierPanel({
       </div>
 
       <div className="px-4 py-2.5 border-b border-border-glass">
-        <div className="text-[9px] uppercase tracking-[0.2em] text-text-muted/50 mb-1.5">公式</div>
+        <div className="text-[10px] uppercase tracking-[0.15em] text-text-muted/70 mb-1.5">
+          公式
+        </div>
         <FormulaBar tokens={formulaTokens} />
       </div>
 
       <div className="px-4 py-2.5 border-b border-border-glass">
-        <div className="text-[9px] uppercase tracking-[0.2em] text-text-muted/50 mb-1.5">骰子</div>
+        <div className="text-[10px] uppercase tracking-[0.15em] text-text-muted/70 mb-1.5">
+          骰子
+        </div>
         <DiceRow
           dualityEnabled={dualityEnabled}
           dualityLabel={dualityLabel}
@@ -344,7 +348,7 @@ export function ModifierPanel({
       </div>
 
       <div className="px-4 py-2.5 border-b border-border-glass">
-        <div className="text-[9px] uppercase tracking-[0.2em] text-text-muted/50 mb-1.5">
+        <div className="text-[10px] uppercase tracking-[0.15em] text-text-muted/70 mb-1.5">
           修正值
         </div>
         <div className="flex flex-col gap-1.5">
@@ -384,7 +388,7 @@ export function ModifierPanel({
       <div className="flex gap-2 px-4 py-3">
         <button
           onClick={cancel}
-          className="flex-1 h-9 rounded-md border border-border-glass bg-transparent text-[11px] text-text-muted cursor-pointer hover:bg-white/[0.06] hover:text-text-primary transition-colors"
+          className="flex-1 h-9 rounded-lg bg-transparent text-[11px] text-text-muted cursor-pointer hover:text-text-primary transition-colors"
         >
           Cancel
         </button>
@@ -392,13 +396,13 @@ export function ModifierPanel({
           onClick={() => {
             resolve(rollConfig)
           }}
-          className="flex-[2] h-9 rounded-md border border-accent/40 bg-[linear-gradient(135deg,rgba(212,160,85,0.18),rgba(212,160,85,0.08))] text-[13px] font-bold text-accent-bold cursor-pointer hover:bg-[linear-gradient(135deg,rgba(212,160,85,0.3),rgba(212,160,85,0.15))] hover:shadow-[0_0_16px_rgba(212,160,85,0.15)] transition-all"
+          className="flex-[2] h-9 rounded-lg bg-accent/90 text-[13px] font-bold text-deep cursor-pointer hover:bg-accent shadow-[0_0_20px_rgba(212,160,85,0.2)] hover:shadow-[0_0_28px_rgba(212,160,85,0.35)] transition-all"
         >
           Roll
         </button>
       </div>
 
-      <div className="px-4 pb-2.5 text-[9px] text-center text-text-muted/30">
+      <div className="px-4 pb-2.5 text-[10px] text-center text-text-muted/50">
         左键添加正向骰组，右键添加减值骰组；Shift+点击角色卡属性可直接跳过此面板。
       </div>
     </div>

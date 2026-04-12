@@ -25,14 +25,14 @@ export function AttributeGrid({ attributes, selected, onSelect }: AttributeGridP
         return (
           <button
             key={key}
-            onClick={() => onSelect(isSel ? null : key)}
+            onClick={() => { onSelect(isSel ? null : key); }}
             className={`flex-1 flex flex-col items-center justify-center h-11 rounded-md border transition-colors cursor-pointer ${
               isSel
                 ? 'bg-success/[0.08] border-success/30 text-success'
                 : 'bg-transparent border-border-glass text-text-muted hover:bg-white/[0.04]'
             }`}
           >
-            <span className="text-[9px] leading-none opacity-60">{label}</span>
+            <span className="text-[10px] leading-none opacity-80">{label}</span>
             <span className="text-[15px] font-bold tabular-nums leading-tight">
               {val >= 0 ? `+${val}` : `${val}`}
             </span>

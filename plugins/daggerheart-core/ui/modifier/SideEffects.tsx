@@ -64,27 +64,31 @@ export function SideEffects({ effects, onChange }: SideEffectsProps) {
           return (
             <div
               key={resource}
-              className={`flex items-center gap-1.5 h-9 px-2.5 rounded-md border ${toneClasses}`}
+              className={`flex items-center gap-1.5 h-9 px-2.5 rounded-lg border ${toneClasses}`}
             >
               <span className={`flex items-center justify-center w-3.5 h-3.5 ${textClasses}`}>
                 <Icon size={12} strokeWidth={1.5} />
               </span>
               <span className={`text-[10px] opacity-80 ${textClasses}`}>{label}</span>
-              <div className="flex items-center gap-0.5 ml-auto">
+              <div className="flex items-center ml-auto rounded-full bg-black/20 overflow-hidden">
                 <button
-                  onClick={() => { onChange(resource, Math.max(-9, delta - 1)); }}
-                  className="w-6 h-6 rounded border border-border-glass bg-transparent text-text-muted text-[11px] flex items-center justify-center cursor-pointer hover:bg-white/[0.08] hover:text-text-primary transition-colors"
+                  onClick={() => {
+                    onChange(resource, Math.max(-9, delta - 1))
+                  }}
+                  className="w-7 h-7 text-text-muted text-[11px] flex items-center justify-center cursor-pointer hover:bg-white/[0.08] hover:text-text-primary transition-colors"
                 >
                   -
                 </button>
                 <span
-                  className={`min-w-[22px] text-center text-[13px] font-bold tabular-nums ${textClasses}`}
+                  className={`min-w-[20px] text-center text-[13px] font-bold tabular-nums ${textClasses}`}
                 >
                   {delta > 0 ? `+${delta}` : delta}
                 </span>
                 <button
-                  onClick={() => { onChange(resource, Math.min(9, delta + 1)); }}
-                  className="w-6 h-6 rounded border border-border-glass bg-transparent text-text-muted text-[11px] flex items-center justify-center cursor-pointer hover:bg-white/[0.08] hover:text-text-primary transition-colors"
+                  onClick={() => {
+                    onChange(resource, Math.min(9, delta + 1))
+                  }}
+                  className="w-7 h-7 text-text-muted text-[11px] flex items-center justify-center cursor-pointer hover:bg-white/[0.08] hover:text-text-primary transition-colors"
                 >
                   +
                 </button>

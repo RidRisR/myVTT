@@ -28,15 +28,15 @@ function CollapsibleSection({
         className="w-full flex items-center gap-1.5 px-4 py-2.5 cursor-pointer hover:bg-white/[0.02] transition-colors"
       >
         <span
-          className={`text-[9px] text-text-muted/40 transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`text-[10px] text-text-muted/60 transition-transform ${open ? 'rotate-90' : ''}`}
         >
           ▶
         </span>
-        <span className="text-[10px] text-text-muted font-medium tracking-wide uppercase">
+        <span className="text-[11px] text-text-muted font-medium tracking-wide uppercase">
           {label}
         </span>
         {summary && !open && (
-          <span className="text-[9px] text-text-muted/30 ml-auto">{summary}</span>
+          <span className="text-[10px] text-text-muted/50 ml-auto">{summary}</span>
         )}
       </button>
       {open && <div className="px-4 pb-3 border-b border-border-glass">{children}</div>}
@@ -74,7 +74,7 @@ export function AdvancedOptions({
   return (
     <CollapsibleSection label="高级选项" summary={summary || '骰面 · 取高/取低'}>
       {/* Face swap */}
-      <div className="text-[9px] text-text-muted/60 uppercase tracking-wider mb-1.5">骰面替换</div>
+      <div className="text-[10px] text-text-muted/70 uppercase tracking-wider mb-1.5">骰面替换</div>
       <div className="flex gap-1 mb-3">
         <FaceSelector
           dotColor="bg-accent-bold"
@@ -95,7 +95,7 @@ export function AdvancedOptions({
       {/* Keep high/low per dice group */}
       {(dualityLabel || diceGroups.length > 0) && (
         <>
-          <div className="text-[9px] text-text-muted/60 uppercase tracking-wider mb-1.5">
+          <div className="text-[10px] text-text-muted/70 uppercase tracking-wider mb-1.5">
             骰子修饰
           </div>
           <div className="flex flex-col gap-1">
@@ -195,7 +195,9 @@ function KeepRow({
       <span className={`text-[11px] font-semibold ${diceLabelColor ?? 'text-text-primary'}`}>
         {diceLabel}
       </span>
-      <span className={`text-[9px] ${typeColor ?? 'text-text-muted'} opacity-60`}>{typeLabel}</span>
+      <span className={`text-[10px] ${typeColor ?? 'text-text-muted'} opacity-70`}>
+        {typeLabel}
+      </span>
       <div className="flex items-center gap-0.5 ml-auto">
         <button
           onClick={() => {
@@ -203,7 +205,7 @@ function KeepRow({
               onKeepChange(mode === 'high' ? undefined : { mode: 'high', count: keepCount })
             }
           }}
-          className={`px-1.5 h-5 rounded text-[9px] font-medium cursor-pointer transition-colors ${
+          className={`px-1.5 h-5 rounded text-[10px] font-medium cursor-pointer transition-colors ${
             mode === 'high'
               ? 'bg-info/20 text-info border border-info/30'
               : 'text-text-muted/60 hover:text-text-muted border border-transparent'
@@ -217,7 +219,7 @@ function KeepRow({
               onKeepChange(mode === 'low' ? undefined : { mode: 'low', count: keepCount })
             }
           }}
-          className={`px-1.5 h-5 rounded text-[9px] font-medium cursor-pointer transition-colors ${
+          className={`px-1.5 h-5 rounded text-[10px] font-medium cursor-pointer transition-colors ${
             mode === 'low'
               ? 'bg-danger/20 text-danger border border-danger/30'
               : 'text-text-muted/60 hover:text-text-muted border border-transparent'
@@ -231,7 +233,7 @@ function KeepRow({
               onKeepChange(undefined)
             }
           }}
-          className={`px-1.5 h-5 rounded text-[9px] font-medium cursor-pointer transition-colors ${
+          className={`px-1.5 h-5 rounded text-[10px] font-medium cursor-pointer transition-colors ${
             !mode
               ? 'text-text-muted'
               : 'text-text-muted/40 hover:text-text-muted border border-transparent'
@@ -240,7 +242,7 @@ function KeepRow({
           无
         </button>
         {mode && !disabled && totalCount > 1 && (
-          <span className="flex items-center gap-0.5 text-[9px] text-text-muted ml-1">
+          <span className="flex items-center gap-0.5 text-[10px] text-text-muted ml-1">
             取
             <input
               type="number"
