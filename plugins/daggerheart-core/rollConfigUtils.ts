@@ -1,6 +1,12 @@
 // plugins/daggerheart-core/rollConfigUtils.ts
 import type { DiceSpec } from '../../src/shared/diceUtils'
-import type { RollConfig, DiceGroup, DualityDiceConfig, RollExecutionResult, DiceGroupResult } from './rollTypes'
+import type {
+  RollConfig,
+  DiceGroup,
+  DualityDiceConfig,
+  RollExecutionResult,
+  DiceGroupResult,
+} from './rollTypes'
 
 /** 公式栏用的带注释 token */
 export interface FormulaToken {
@@ -121,8 +127,10 @@ export function assembleRollResult(
   let dualityRolls: [number, number] | null = null
   let dualitySum = 0
   if (config.dualityDice) {
-    const hopeDie = serverRolls[idx++]![0]!
-    const fearDie = serverRolls[idx++]![0]!
+    const hopeRolls = serverRolls[idx++]
+    const fearRolls = serverRolls[idx++]
+    const hopeDie = hopeRolls?.[0] ?? 0
+    const fearDie = fearRolls?.[0] ?? 0
     dualityRolls = [hopeDie, fearDie]
     dualitySum = hopeDie + fearDie
   }
@@ -130,7 +138,7 @@ export function assembleRollResult(
   // 额外骰子组
   const groupResults: DiceGroupResult[] = []
   for (const g of config.diceGroups) {
-    const allRolls = serverRolls[idx++]!
+    const allRolls = serverRolls[idx++] ?? []
     const { keptIndices, subtotal } = applyKeepAndSum(allRolls, g)
     groupResults.push({ group: g, allRolls, keptIndices, subtotal })
   }
@@ -168,7 +176,7 @@ function applyKeepAndSum(
     keptIndices = allRolls.map((_, i) => i)
   }
 
-  const keptSum = keptIndices.reduce((sum, i) => sum + allRolls[i]!, 0)
+  const keptSum = keptIndices.reduce((sum, i) => sum + (allRolls[i] ?? 0), 0)
   const subtotal = group.operator === '-' ? -keptSum : keptSum
 
   return { keptIndices, subtotal }

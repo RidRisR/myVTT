@@ -176,9 +176,7 @@ describe('assembleRollResult', () => {
   it('assembles server rolls into RollExecutionResult', () => {
     const config: RollConfig = {
       dualityDice: { hopeFace: 12, fearFace: 12 },
-      diceGroups: [
-        { sides: 6, count: 2, operator: '+', keep: { mode: 'high', count: 1 } },
-      ],
+      diceGroups: [{ sides: 6, count: 2, operator: '+', keep: { mode: 'high', count: 1 } }],
       modifiers: [{ source: 'attr:agility', label: '敏捷', value: 3 }],
       constantModifier: 1,
       sideEffects: [],
@@ -193,9 +191,10 @@ describe('assembleRollResult', () => {
 
     expect(result.dualityRolls).toEqual([8, 5])
     expect(result.groupResults).toHaveLength(1)
-    expect(result.groupResults[0].allRolls).toEqual([4, 6])
-    expect(result.groupResults[0].keptIndices).toEqual([1]) // keep high → index 1 (value 6)
-    expect(result.groupResults[0].subtotal).toBe(6) // kept 6, operator '+'
+    const gr0 = result.groupResults[0]
+    expect(gr0?.allRolls).toEqual([4, 6])
+    expect(gr0?.keptIndices).toEqual([1]) // keep high → index 1 (value 6)
+    expect(gr0?.subtotal).toBe(6) // kept 6, operator '+'
     expect(result.modifierTotal).toBe(4) // 3 + 1
     // total = 8 + 5 + 6 + 4 = 23
     expect(result.total).toBe(23)
