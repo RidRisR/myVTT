@@ -320,7 +320,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
                 ...cloneRollConfig(sourceConfig),
                 dc: ctx.vars.dc ?? sourceConfig.dc,
                 applyOutcomeEffects:
-                  ctx.vars.applyOutcomeEffects ?? sourceConfig.applyOutcomeEffects ?? true,
+                  ctx.vars.applyOutcomeEffects ?? sourceConfig.applyOutcomeEffects,
               }
             : {
                 dualityDice: { hopeFace: 12, fearFace: 12 },
@@ -475,11 +475,9 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
           }
 
           // 2. 副作用：资源变动
-          if (config) {
-            for (const fx of config.sideEffects) {
-              if (fx.delta === 0) continue
-              applySideEffect(ctx, actorId, fx)
-            }
+          for (const fx of config.sideEffects) {
+            if (fx.delta === 0) continue
+            applySideEffect(ctx, actorId, fx)
           }
         },
       },

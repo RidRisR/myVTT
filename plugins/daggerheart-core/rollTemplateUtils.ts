@@ -154,7 +154,9 @@ export function mergeTemplateConfigAfterEditorRoundTrip(
   const missingExperienceRefs = originalConfig.modifiers.filter(
     (modifier) =>
       modifier.type === 'experience' &&
-      !normalizedExperiences.items.some((experience) => experience.key === modifier.experienceKey) &&
+      !normalizedExperiences.items.some(
+        (experience) => experience.key === modifier.experienceKey,
+      ) &&
       !nextConfig.modifiers.some(
         (nextModifier) =>
           nextModifier.type === 'experience' &&
@@ -196,7 +198,7 @@ export function ensureExperienceKeys(experiences: DHExperience[]): DHExperience[
   const taken = new Set<string>()
 
   for (const experience of experiences) {
-    const trimmed = experience.key?.trim?.() ?? ''
+    const trimmed = (experience as Partial<DHExperience>).key?.trim() ?? ''
     const key =
       trimmed && !taken.has(trimmed) ? trimmed : createExperienceKey(experience.name, taken)
     taken.add(key)
