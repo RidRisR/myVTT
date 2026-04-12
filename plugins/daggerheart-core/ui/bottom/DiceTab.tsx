@@ -21,6 +21,7 @@ export function DiceTab({ onRoll }: DiceTabProps) {
                   modifiers: [],
                   constantModifier: 0,
                   sideEffects: [],
+                  applyOutcomeEffects: true,
                 },
                 e.shiftKey,
               )

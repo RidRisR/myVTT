@@ -17,6 +17,7 @@ const BASE_CONFIG: RollConfig = {
   ],
   constantModifier: 2,
   sideEffects: [],
+  applyOutcomeEffects: true,
 }
 
 describe('rollConfigToFormula', () => {
@@ -62,6 +63,7 @@ describe('rollConfigToFormula', () => {
       modifiers: [],
       constantModifier: 0,
       sideEffects: [],
+      applyOutcomeEffects: true,
     }
     expect(rollConfigToFormula(config)).toBe('1d20')
   })
@@ -91,6 +93,7 @@ describe('rollConfigToFormula', () => {
       modifiers: [],
       constantModifier: 0,
       sideEffects: [],
+      applyOutcomeEffects: true,
     }
     expect(rollConfigToFormula(config)).toBe('')
   })
@@ -135,6 +138,7 @@ describe('buildDiceSpecs', () => {
       modifiers: [],
       constantModifier: 0,
       sideEffects: [],
+      applyOutcomeEffects: true,
     }
     const specs = buildDiceSpecs(config)
     // 二元骰拆为两个独立 DiceSpec（因为面数可能不同）
@@ -153,6 +157,7 @@ describe('buildDiceSpecs', () => {
       modifiers: [],
       constantModifier: 0,
       sideEffects: [],
+      applyOutcomeEffects: true,
     }
     expect(buildDiceSpecs(config)).toEqual([
       { sides: 20, count: 1 },
@@ -167,6 +172,7 @@ describe('buildDiceSpecs', () => {
       modifiers: [],
       constantModifier: 0,
       sideEffects: [],
+      applyOutcomeEffects: true,
     }
     expect(buildDiceSpecs(config)).toEqual([{ sides: 20, count: 1 }])
   })
@@ -180,6 +186,7 @@ describe('assembleRollResult', () => {
       modifiers: [{ source: 'attr:agility', label: '敏捷', value: 3 }],
       constantModifier: 1,
       sideEffects: [],
+      applyOutcomeEffects: true,
     }
     // serverRoll returns number[][] — one sub-array per DiceSpec
     const serverRolls: number[][] = [
@@ -207,6 +214,7 @@ describe('assembleRollResult', () => {
       modifiers: [],
       constantModifier: 0,
       sideEffects: [],
+      applyOutcomeEffects: true,
     }
     const serverRolls: number[][] = [[10], [3], [2]]
     const result = assembleRollResult(config, serverRolls)
