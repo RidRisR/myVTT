@@ -98,7 +98,18 @@ function setupIdentityStore(activeCharacterId: string | null = 'char1') {
         },
       ],
       mySeatId: 'seat1',
-    }
+      onlineSeatIds: new Set<string>(),
+      _socket: null,
+      _roomId: null,
+      getMySeat: () => null,
+      init: vi.fn(),
+      claimSeat: vi.fn(),
+      createSeat: vi.fn(),
+      leaveSeat: vi.fn(),
+      deleteSeat: vi.fn(),
+      updateSeat: vi.fn(),
+      _reset: vi.fn(),
+    } as Parameters<typeof selector>[0]
     return selector(state)
   })
 }

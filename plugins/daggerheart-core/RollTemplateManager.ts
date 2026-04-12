@@ -62,7 +62,7 @@ export class RollTemplateManager {
       const now = Date.now()
       const name = typeof input.name === 'string' ? input.name.trim() : ''
       const icon = typeof input.icon === 'string' ? input.icon.trim() : ''
-      const config = input.config ?? createDefaultRollTemplateConfig()
+      const config: DHRollTemplateConfig = input.config ?? createDefaultRollTemplateConfig()
       const next: DHRollTemplate = {
         id: createRollTemplateId(),
         name: name || '新模板',
