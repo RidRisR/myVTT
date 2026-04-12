@@ -2,6 +2,7 @@
 import type { WorkflowContext } from '@myvtt/sdk'
 import { DH_KEYS } from '../daggerheart/types'
 import type {
+  DHExperience,
   DHAttributes,
   DHHealth,
   DHStress,
@@ -12,10 +13,19 @@ import type {
 import { useIdentityStore } from '../../src/stores/identityStore'
 import { createDefaultDHEntityData } from '../daggerheart/templates'
 import { defaultPCPermissions } from '../../src/shared/permissions'
+import { createExperienceKey, ensureExperienceKeys } from './rollTemplateUtils'
 
 const VALID_ATTRS = ['agility', 'strength', 'finesse', 'instinct', 'presence', 'knowledge'] as const
 const VALID_RES_KEYS = ['health', 'stress'] as const
 const VALID_THRESHOLD_KEYS = ['evasion', 'major', 'severe'] as const
+
+function ensureExperienceKey(experience: Partial<DHExperience>): DHExperience {
+  return {
+    key: experience.key?.trim() || createExperienceKey(experience.name ?? '', []),
+    name: experience.name ?? '',
+    modifier: experience.modifier ?? 0,
+  }
+}
 
 export class CharCardManager {
   async ensureCharacter(ctx: WorkflowContext): Promise<void> {
@@ -112,11 +122,12 @@ export class CharCardManager {
   ): void {
     ctx.updateComponent(entityId, DH_KEYS.experiences, (prev: unknown) => {
       const p = (prev ?? { items: [] }) as DHExperiences
-      const items = [...p.items]
+      const items = ensureExperienceKeys(p.items)
       if (index < 0 || index >= items.length) return p
       const current = items[index]
       if (!current) return p
       items[index] = {
+        ...ensureExperienceKey(current),
         name: field === 'name' ? (value as string) : current.name,
         modifier: field === 'modifier' ? (value as number) : current.modifier,
       }
@@ -127,14 +138,25 @@ export class CharCardManager {
   addExperience(ctx: WorkflowContext, entityId: string, name: string, modifier: number): void {
     ctx.updateComponent(entityId, DH_KEYS.experiences, (prev: unknown) => {
       const p = (prev ?? { items: [] }) as DHExperiences
-      return { ...p, items: [...p.items, { name, modifier }] }
+      const items = ensureExperienceKeys(p.items)
+      return {
+        ...p,
+        items: [
+          ...items,
+          {
+            key: createExperienceKey(name, items.map((item) => item.key)),
+            name,
+            modifier,
+          },
+        ],
+      }
     })
   }
 
   removeExperience(ctx: WorkflowContext, entityId: string, index: number): void {
     ctx.updateComponent(entityId, DH_KEYS.experiences, (prev: unknown) => {
       const p = (prev ?? { items: [] }) as DHExperiences
-      const items = p.items.filter((_, i) => i !== index)
+      const items = ensureExperienceKeys(p.items).filter((_, i) => i !== index)
       return { ...p, items }
     })
   }

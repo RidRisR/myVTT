@@ -63,6 +63,28 @@ describe('layoutStore', () => {
     expect(store.getState().narrative['a#1']!.width).toBe(100)
   })
 
+  it('updateEntry is a no-op when the merged entry does not change', () => {
+    store.getState().loadLayout({
+      narrative: {
+        'a#1': {
+          anchor: 'top-left' as const,
+          offsetX: 0,
+          offsetY: 0,
+          width: 100,
+          height: 100,
+          zOrder: 0,
+        },
+      },
+      tactical: {},
+    })
+    const beforeLayout = store.getState().narrative
+    const beforeEntry = beforeLayout['a#1']
+    store.getState().updateEntry('a#1', { width: 100, height: 100 })
+    const afterLayout = store.getState().narrative
+    expect(afterLayout).toBe(beforeLayout)
+    expect(afterLayout['a#1']).toBe(beforeEntry)
+  })
+
   it('addEntry adds a new panel to the active layout', () => {
     store.getState().addEntry('new#1', {
       anchor: 'top-left' as const,

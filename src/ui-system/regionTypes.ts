@@ -1,7 +1,16 @@
 // src/ui-system/regionTypes.ts
 
 /** Anchor point relative to viewport */
-export type AnchorPoint = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+export type AnchorPoint =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'center-left'
+  | 'center'
+  | 'center-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right'
 
 /** 9-point grid origin for programmatic resize. Controls which point stays fixed. */
 export type ResizeOrigin =

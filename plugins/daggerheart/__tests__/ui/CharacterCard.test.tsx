@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import userEvent from '@testing-library/user-event'
 import type { IRegionSDK } from '../../../../src/ui-system/types'
@@ -68,8 +68,8 @@ const TEST_ENTITY: Entity = {
     'daggerheart:thresholds': { evasion: 12, major: 10, severe: 22 },
     'daggerheart:experiences': {
       items: [
-        { name: '森林生存专家', modifier: 2 },
-        { name: '铁匠学徒', modifier: 1 },
+        { key: 'forest-survival', name: '森林生存专家', modifier: 2 },
+        { key: 'smith-apprentice', name: '铁匠学徒', modifier: 1 },
       ],
     },
   },
@@ -102,8 +102,8 @@ function makeThresholds() {
 function makeExperiences() {
   return {
     items: [
-      { name: '森林生存专家', modifier: 2 },
-      { name: '铁匠学徒', modifier: 1 },
+      { key: 'forest-survival', name: '森林生存专家', modifier: 2 },
+      { key: 'smith-apprentice', name: '铁匠学徒', modifier: 1 },
     ],
   }
 }
@@ -230,8 +230,25 @@ describe('CharacterCard', () => {
       expect(mockRunWorkflow).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'daggerheart-core:action-check' }),
         expect.objectContaining({
-          formula: '2d12+@agility',
           actorId: 'char1',
+          preselectedAttribute: 'agility',
+          skipModifier: false,
+        }),
+      )
+    })
+
+    it('shift-clicking roll zone bypasses modifier panel', async () => {
+      const user = userEvent.setup()
+      render(<CharacterCard sdk={makeMockSdk()} />)
+      await expandCard(user)
+      const rollZones = screen.getAllByTestId('attr-roll-zone')
+      fireEvent.click(rollZones[0]!, { shiftKey: true })
+      expect(mockRunWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'daggerheart-core:action-check' }),
+        expect.objectContaining({
+          actorId: 'char1',
+          preselectedAttribute: 'agility',
+          skipModifier: true,
         }),
       )
     })

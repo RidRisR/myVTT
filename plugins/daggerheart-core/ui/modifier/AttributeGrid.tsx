@@ -20,7 +20,7 @@ export function AttributeGrid({ attributes, selected, onSelect }: AttributeGridP
   return (
     <div className="flex gap-1">
       {ATTR_KEYS.map(({ key, label }) => {
-        const val = attributes[key] ?? 0
+        const val = attributes[key]
         const isSel = selected === key
         return (
           <button

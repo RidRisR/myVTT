@@ -99,12 +99,12 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
   // ── Handlers ──
 
   const handleRoll = useCallback(
-    (attrKey: string) => {
+    (attrKey: string, shiftKey = false) => {
       if (!activeCharacterId) return
       void sdk.workflow.runWorkflow(ACTION_CHECK_HANDLE, {
-        formula: `2d12+@${attrKey}`,
         actorId: activeCharacterId,
-        rollType: 'daggerheart:dd',
+        preselectedAttribute: attrKey,
+        skipModifier: shiftKey,
       })
     },
     [activeCharacterId, sdk.workflow],
@@ -310,7 +310,9 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
                   key={key}
                   label={t(`attr.${key}`)}
                   value={attrs?.[key as keyof DHAttributes] ?? 0}
-                  onRoll={() => { handleRoll(key); }}
+                  onRoll={(shiftKey) => {
+                    handleRoll(key, shiftKey)
+                  }}
                   onEdit={(v) => { handleEditAttr(key, v); }}
                 />
               ))}

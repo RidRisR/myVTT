@@ -132,7 +132,7 @@ export function ExperienceList({
     <div className="flex flex-col gap-[3px]" data-testid="exp-list">
       {items.map((exp, i) => (
         <ExperienceItem
-          key={i}
+          key={exp.key}
           exp={exp}
           index={i}
           onEditName={onEditName}

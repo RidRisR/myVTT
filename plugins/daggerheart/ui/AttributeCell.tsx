@@ -5,7 +5,7 @@ import { useState, useCallback, useRef } from 'react'
 interface AttributeCellProps {
   label: string
   value: number
-  onRoll: () => void
+  onRoll: (shiftKey: boolean) => void
   onEdit: (value: number) => void
 }
 
@@ -37,7 +37,9 @@ export function AttributeCell({ label, value, onRoll, onEdit }: AttributeCellPro
       {/* Roll zone: click label area triggers dice roll */}
       <div
         className="px-2 py-1.5 cursor-pointer transition-colors duration-fast hover:bg-accent/10 active:bg-accent/20"
-        onClick={onRoll}
+        onClick={(e) => {
+          onRoll(e.shiftKey)
+        }}
         data-testid="attr-roll-zone"
       >
         <div className="text-[9px] text-text-muted/60 tracking-wide leading-tight">{label}</div>

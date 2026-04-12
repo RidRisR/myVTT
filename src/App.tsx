@@ -267,7 +267,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   // Runs after every loadLayout (including socket layout:update). Stabilizes in 2 cycles:
   // cycle 1 adds missing entries → activeLayout changes → cycle 2 finds all entries exist → done.
   useEffect(() => {
-    if (Object.keys(activeLayout).length === 0) return
+    if (isLoading) return
 
     for (const def of uiRegistry.listRegionsByLifecycle('persistent')) {
       if (!def.defaultPlacement) continue
@@ -286,7 +286,7 @@ function RoomSession({ roomId }: { roomId: string }) {
         })
       }
     }
-  }, [activeLayout, uiRegistry, layoutStore])
+  }, [activeLayout, uiRegistry, layoutStore, isLoading])
 
   // Debounced layout persistence
   useLayoutSync(layoutStore, roomId, !!socket)

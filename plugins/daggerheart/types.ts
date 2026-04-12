@@ -1,5 +1,10 @@
 // plugins/daggerheart/types.ts
 // Component types for Daggerheart plugin — each maps to an entity component key
+import type {
+  DiceGroup,
+  DualityDiceConfig,
+  SideEffectEntry,
+} from '../daggerheart-core/rollTypes'
 
 export interface DHHealth {
   current: number
@@ -16,6 +21,17 @@ export interface DHAttributes {
   instinct: number
   presence: number
   knowledge: number
+}
+
+export type DHAttributeKey = keyof DHAttributes
+
+export const DH_ATTRIBUTE_LABELS: Record<DHAttributeKey, string> = {
+  agility: '敏捷',
+  strength: '力量',
+  finesse: '灵巧',
+  instinct: '直觉',
+  presence: '风度',
+  knowledge: '学识',
 }
 export interface DHMeta {
   tier: 1 | 2 | 3 | 4
@@ -34,12 +50,56 @@ export interface DHThresholds {
   major: number
   severe: number
 }
+
 export interface DHExperience {
+  key: string
   name: string
   modifier: number
 }
+
 export interface DHExperiences {
   items: DHExperience[]
+}
+
+export type DHRollTemplateModifierRef =
+  | {
+      type: 'attribute'
+      attributeKey: DHAttributeKey
+      labelSnapshot?: string
+    }
+  | {
+      type: 'experience'
+      experienceKey: string
+      labelSnapshot?: string
+      modifierSnapshot?: number
+    }
+  | {
+      type: 'static'
+      source: string
+      label: string
+      value: number
+    }
+
+export interface DHRollTemplateConfig {
+  dualityDice: DualityDiceConfig | null
+  diceGroups: DiceGroup[]
+  modifiers: DHRollTemplateModifierRef[]
+  constantModifier: number
+  sideEffects: SideEffectEntry[]
+  dc?: number
+}
+
+export interface DHRollTemplate {
+  id: string
+  name: string
+  icon?: string
+  config: DHRollTemplateConfig
+  createdAt: number
+  updatedAt: number
+}
+
+export interface DHRollTemplates {
+  items: DHRollTemplate[]
 }
 
 // Component keys for Daggerheart plugin
@@ -51,6 +111,7 @@ export const DH_KEYS = {
   extras: 'daggerheart:extras',
   thresholds: 'daggerheart:thresholds',
   experiences: 'daggerheart:experiences',
+  rollTemplates: 'daggerheart:roll-templates',
 } as const
 
 // Module augmentation — extends core ComponentTypeMap with Daggerheart keys
@@ -63,6 +124,7 @@ declare module '../../src/shared/componentTypes' {
     'daggerheart:extras': DHExtras
     'daggerheart:thresholds': DHThresholds
     'daggerheart:experiences': DHExperiences
+    'daggerheart:roll-templates': DHRollTemplates
   }
 }
 

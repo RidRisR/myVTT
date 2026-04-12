@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daggerheart Player Bottom Panel — v2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1410;
+    color: #e8dcc8;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    gap: 60px;
+  }
+
+  h1 { font-size: 20px; color: #fbbf24; text-align: center; letter-spacing: 1px; }
+  h2 { font-size: 14px; color: #a78bfa; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 2px; }
+  .subtitle { font-size: 12px; color: #e8dcc8aa; text-align: center; margin-top: -4px; }
+  .scene-label { font-size: 11px; color: #e8dcc866; text-align: center; margin-bottom: 16px; letter-spacing: 1px; }
+
+  /* Simulated VTT background */
+  .vtt-frame {
+    width: 800px;
+    height: 400px;
+    background:
+      radial-gradient(ellipse at 30% 40%, #2a1f15 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 60%, #1a1520 0%, transparent 60%),
+      linear-gradient(135deg, #1a1410, #12100d);
+    border: 1px solid #ffffff10;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .vtt-frame::before {
+    content: '🗺️ 战术地图区域';
+    font-size: 14px;
+    color: #ffffff15;
+    letter-spacing: 4px;
+  }
+
+  /* ===== COLLAPSED STATE ===== */
+  .panel-collapsed {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #151210ee;
+    backdrop-filter: blur(16px);
+    border: 1px solid #ffffff08;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    padding: 3px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 28px;
+  }
+  .panel-collapsed:hover {
+    background: #1a1612ee;
+    border-color: #ffffff14;
+  }
+
+  /* Dice button in collapsed */
+  .collapsed-dice-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 1px solid #a78bfa25;
+    background: #a78bfa0a;
+    color: #a78bfa;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .collapsed-dice-btn:hover {
+    background: #a78bfa20;
+    border-color: #a78bfa50;
+    box-shadow: 0 0 8px #a78bfa15;
+  }
+
+  /* Divider between dice btn and resources */
+  .collapsed-divider {
+    width: 1px;
+    height: 14px;
+    background: #ffffff0c;
+  }
+
+  /* Resource items in collapsed */
+  .res-group {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+  }
+  .res-item {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 11px;
+    white-space: nowrap;
+    padding: 0 3px;
+  }
+  .res-label {
+    font-size: 9px;
+    font-weight: 600;
+    margin-right: 1px;
+  }
+  .res-value {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+  }
+  .res-max {
+    font-size: 10px;
+    color: #ffffff25;
+    font-weight: 400;
+  }
+  .res-hp .res-label { color: #ef444480; }
+  .res-hp .res-value { color: #ef4444; }
+  .res-stress .res-label { color: #a78bfa80; }
+  .res-stress .res-value { color: #a78bfa; }
+  .res-hope .res-label { color: #fbbf2480; }
+  .res-hope .res-value { color: #fbbf24; }
+  .res-armor .res-label { color: #60a5fa80; }
+  .res-armor .res-value { color: #60a5fa; }
+
+  /* +/- buttons hidden in collapsed, shown on hover */
+  .res-btn {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid #ffffff0c;
+    background: #ffffff06;
+    color: #ffffff40;
+    font-size: 9px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .panel-collapsed:hover .res-btn { display: flex; }
+  .res-btn:hover { background: #ffffff14; color: #ffffffaa; }
+
+  .res-divider {
+    width: 1px;
+    height: 14px;
+    background: #ffffff0a;
+  }
+
+  /* Expand chevron */
+  .expand-btn {
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff20;
+    font-size: 6px;
+    flex-shrink: 0;
+  }
+
+  /* ===== EXPANDED STATE ===== */
+  .panel-expanded {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, #1e1a14f5 0%, #151210fa 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid #ffffff0a;
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    padding: 0;
+    width: 480px;
+    overflow: hidden;
+  }
+
+  /* Collapse handle */
+  .collapse-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px;
+    cursor: pointer;
+    color: #ffffff20;
+  }
+  .collapse-handle:hover { color: #ffffff60; }
+  .collapse-chevron { font-size: 8px; }
+
+  /* ===== TABS ===== */
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 16px;
+    border-bottom: 1px solid #ffffff08;
+  }
+  .tab {
+    padding: 6px 14px;
+    font-size: 11px;
+    color: #ffffff40;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .tab:hover { color: #ffffff70; }
+  .tab.active {
+    color: #fbbf24;
+    border-bottom-color: #fbbf24;
+  }
+
+  /* ===== TAB CONTENT ===== */
+  .tab-content {
+    padding: 10px 16px 12px;
+  }
+
+  /* Unified card grid — all tabs use same base */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 5px;
+  }
+  .roll-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 7px 4px;
+    border-radius: 6px;
+    border: 1px solid #ffffff08;
+    background: #ffffff04;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    min-height: 52px;
+  }
+  .roll-card:hover {
+    background: #ffffff10;
+    border-color: #fbbf2430;
+    box-shadow: 0 0 8px #fbbf2408;
+  }
+  .roll-card .card-top {
+    font-size: 9px;
+    color: #ffffff45;
+    letter-spacing: 0.5px;
+    line-height: 1;
+  }
+  .roll-card .card-main {
+    font-size: 15px;
+    font-weight: 700;
+    color: #e8dcc8;
+    line-height: 1;
+  }
+  .roll-card .card-sub {
+    font-size: 7px;
+    color: #ffffff30;
+    font-family: monospace;
+    line-height: 1;
+  }
+
+  /* Color variants */
+  .card-main.positive { color: #4ade80; }
+  .card-main.negative { color: #f87171; }
+  .card-main.zero { color: #ffffff30; }
+  .card-main.accent { color: #a78bfa; }
+
+  /* Roll card with icon (for templates) */
+  .roll-card.has-icon {
+    flex-direction: row;
+    gap: 6px;
+    padding: 7px 8px;
+  }
+  .roll-card.has-icon .card-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .roll-card.has-icon .card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+  .roll-card.has-icon .card-info .card-top {
+    font-size: 10px;
+    color: #ffffff65;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Count badge */
+  .roll-card .card-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    background: #fbbf24;
+    color: #1a1410;
+    font-size: 9px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+  }
+
+  /* Add card (dashed) */
+  .roll-card.add-card {
+    border-style: dashed;
+    border-color: #ffffff12;
+    background: transparent;
+    color: #ffffff25;
+    font-size: 11px;
+  }
+  .roll-card.add-card:hover {
+    border-color: #ffffff30;
+    color: #ffffff50;
+    background: #ffffff06;
+    box-shadow: none;
+  }
+
+  /* 3-column layout for templates */
+  .card-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+  /* Helper text */
+  .tab-hint {
+    text-align: center;
+    font-size: 9px;
+    color: #ffffff20;
+    margin-top: 6px;
+  }
+
+  /* Free roll input */
+  .free-roll-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #ffffff06;
+  }
+  .free-roll-input {
+    flex: 1;
+    height: 26px;
+    border-radius: 5px;
+    border: 1px solid #ffffff10;
+    background: #ffffff06;
+    color: #e8dcc8;
+    font-size: 11px;
+    padding: 0 8px;
+    font-family: monospace;
+    outline: none;
+  }
+  .free-roll-input::placeholder { color: #ffffff20; }
+  .free-roll-input:focus { border-color: #fbbf2440; }
+  .free-roll-go {
+    height: 26px;
+    padding: 0 12px;
+    border-radius: 5px;
+    border: 1px solid #fbbf2430;
+    background: #fbbf2410;
+    color: #fbbf24;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .free-roll-go:hover { background: #fbbf2425; }
+
+  /* Section separator */
+  .panel-separator {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #ffffff0c, transparent);
+    margin: 0 16px;
+  }
+
+  /* Resource section in expanded */
+  .resource-section {
+    padding: 8px 16px 12px;
+  }
+  .resource-row {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+  }
+  .resource-card {
+    flex: 1;
+    border-radius: 6px;
+    border: 1px solid #ffffff08;
+    background: #ffffff04;
+    padding: 5px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .resource-card:hover { background: #ffffff0a; border-color: #ffffff12; }
+  .rc-label {
+    font-size: 7px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #ffffff30;
+  }
+  .rc-value-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .rc-value {
+    font-size: 18px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .rc-max {
+    font-size: 10px;
+    color: #ffffff25;
+  }
+  .rc-bar {
+    width: 100%;
+    height: 2px;
+    border-radius: 1px;
+    background: #ffffff08;
+    overflow: hidden;
+  }
+  .rc-bar-fill {
+    height: 100%;
+    border-radius: 1px;
+  }
+  .rc-btn {
+    width: 16px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid #ffffff0c;
+    background: #ffffff06;
+    color: #ffffff35;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .rc-btn:hover { background: #ffffff12; color: #ffffffaa; }
+
+  .rc-hp .rc-value { color: #ef4444; }
+  .rc-hp .rc-bar-fill { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .rc-stress .rc-value { color: #a78bfa; }
+  .rc-stress .rc-bar-fill { background: linear-gradient(90deg, #a78bfa, #c4b5fd); }
+  .rc-hope .rc-value { color: #fbbf24; }
+  .rc-hope .rc-bar-fill { background: linear-gradient(90deg, #fbbf24, #fcd34d); }
+  .rc-armor .rc-value { color: #60a5fa; }
+  .rc-armor .rc-bar-fill { background: linear-gradient(90deg, #60a5fa, #93c5fd); }
+
+</style>
+</head>
+<body>
+
+<h1>玩家底部面板 — v2</h1>
+<p class="subtitle">🎲 骰子按钮 + 资源横条 | 展开后 Tab 切换快捷掷骰模板</p>
+
+<!-- ===== Scene 1: Collapsed ===== -->
+<div>
+  <h2>折叠态 — 骰子入口 + 紧凑资源</h2>
+  <p class="scene-label">28px 高，🎲 按钮打开投骰面板，资源数值始终可见，hover 显示 +/-</p>
+  <div class="vtt-frame">
+    <div class="panel-collapsed">
+      <div class="collapsed-dice-btn" title="打开投骰面板">🎲</div>
+      <div class="collapsed-divider"></div>
+      <div class="res-group">
+        <div class="res-item res-hp">
+          <div class="res-btn">−</div>
+          <span class="res-label">HP</span>
+          <span class="res-value">12</span><span class="res-max">/20</span>
+          <div class="res-btn">+</div>
+        </div>
+        <div class="res-divider"></div>
+        <div class="res-item res-stress">
+          <div class="res-btn">−</div>
+          <span class="res-label">S</span>
+          <span class="res-value">3</span><span class="res-max">/6</span>
+          <div class="res-btn">+</div>
+        </div>
+        <div class="res-divider"></div>
+        <div class="res-item res-hope">
+          <div class="res-btn">−</div>
+          <span class="res-label">H</span>
+          <span class="res-value">4</span><span class="res-max">/6</span>
+          <div class="res-btn">+</div>
+        </div>
+        <div class="res-divider"></div>
+        <div class="res-item res-armor">
+          <div class="res-btn">−</div>
+          <span class="res-label">A</span>
+          <span class="res-value">2</span><span class="res-max">/3</span>
+          <div class="res-btn">+</div>
+        </div>
+      </div>
+      <div class="expand-btn">▲</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Scene 2: Expanded — Attributes Tab ===== -->
+<div>
+  <h2>展开态 — 属性 Tab（快捷行动检定）</h2>
+  <p class="scene-label">点击属性按钮 → 自动投 2d12+属性值，底部仍可操作资源</p>
+  <div class="vtt-frame" style="height: 440px;">
+    <div class="panel-expanded">
+      <div class="collapse-handle"><span class="collapse-chevron">▼</span></div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab active">属性</div>
+        <div class="tab">自定义</div>
+        <div class="tab">骰子</div>
+      </div>
+
+      <!-- Attributes Tab Content -->
+      <div class="tab-content">
+        <div class="card-grid">
+          <div class="roll-card">
+            <span class="card-top">敏捷</span>
+            <span class="card-main positive">+3</span>
+            <span class="card-sub">2d12+3</span>
+          </div>
+          <div class="roll-card">
+            <span class="card-top">力量</span>
+            <span class="card-main positive">+1</span>
+            <span class="card-sub">2d12+1</span>
+          </div>
+          <div class="roll-card">
+            <span class="card-top">灵巧</span>
+            <span class="card-main positive">+2</span>
+            <span class="card-sub">2d12+2</span>
+          </div>
+          <div class="roll-card">
+            <span class="card-top">直觉</span>
+            <span class="card-main zero">0</span>
+            <span class="card-sub">2d12+0</span>
+          </div>
+          <div class="roll-card">
+            <span class="card-top">风度</span>
+            <span class="card-main negative">−1</span>
+            <span class="card-sub">2d12−1</span>
+          </div>
+          <div class="roll-card">
+            <span class="card-top">学识</span>
+            <span class="card-main positive">+2</span>
+            <span class="card-sub">2d12+2</span>
+          </div>
+        </div>
+        <div class="tab-hint">点击属性即投行动检定 (2d12+属性值)</div>
+      </div>
+
+      <div class="panel-separator"></div>
+
+      <!-- Resource Section -->
+      <div class="resource-section">
+        <div class="resource-row">
+          <div class="resource-card rc-hp">
+            <div class="rc-label">HP</div>
+            <div class="rc-value-row">
+              <div class="rc-btn">−</div>
+              <div class="rc-value">12</div>
+              <div class="rc-max">/20</div>
+              <div class="rc-btn">+</div>
+            </div>
+            <div class="rc-bar"><div class="rc-bar-fill" style="width: 60%"></div></div>
+          </div>
+          <div class="resource-card rc-stress">
+            <div class="rc-label">Stress</div>
+            <div class="rc-value-row">
+              <div class="rc-btn">−</div>
+              <div class="rc-value">3</div>
+              <div class="rc-max">/6</div>
+              <div class="rc-btn">+</div>
+            </div>
+            <div class="rc-bar"><div class="rc-bar-fill" style="width: 50%"></div></div>
+          </div>
+          <div class="resource-card rc-hope">
+            <div class="rc-label">Hope</div>
+            <div class="rc-value-row">
+              <div class="rc-btn">−</div>
+              <div class="rc-value">4</div>
+              <div class="rc-max">/6</div>
+              <div class="rc-btn">+</div>
+            </div>
+            <div class="rc-bar"><div class="rc-bar-fill" style="width: 67%"></div></div>
+          </div>
+          <div class="resource-card rc-armor">
+            <div class="rc-label">Armor</div>
+            <div class="rc-value-row">
+              <div class="rc-btn">−</div>
+              <div class="rc-value">2</div>
+              <div class="rc-max">/3</div>
+              <div class="rc-btn">+</div>
+            </div>
+            <div class="rc-bar"><div class="rc-bar-fill" style="width: 67%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Scene 3: Expanded — Custom Tab ===== -->
+<div>
+  <h2>展开态 — 自定义 Tab（掷骰模板）</h2>
+  <p class="scene-label">玩家保存的常用掷骰公式，一键执行。底部有自由公式输入。</p>
+  <div class="vtt-frame" style="height: 480px;">
+    <div class="panel-expanded">
+      <div class="collapse-handle"><span class="collapse-chevron">▼</span></div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab">属性</div>
+        <div class="tab active">自定义</div>
+        <div class="tab">骰子</div>
+      </div>
+
+      <!-- Custom Templates Tab Content -->
+      <div class="tab-content">
+        <div class="card-grid cols-3">
+          <div class="roll-card has-icon">
+            <span class="card-icon">⚔️</span>
+            <div class="card-info">
+              <span class="card-top">近战伤害</span>
+              <span class="card-sub">2d6+3</span>
+            </div>
+          </div>
+          <div class="roll-card has-icon">
+            <span class="card-icon">🏹</span>
+            <div class="card-info">
+              <span class="card-top">远程伤害</span>
+              <span class="card-sub">1d8+2</span>
+            </div>
+          </div>
+          <div class="roll-card has-icon">
+            <span class="card-icon">✨</span>
+            <div class="card-info">
+              <span class="card-top">法术伤害</span>
+              <span class="card-sub">3d6</span>
+            </div>
+          </div>
+          <div class="roll-card has-icon">
+            <span class="card-icon">💚</span>
+            <div class="card-info">
+              <span class="card-top">治疗</span>
+              <span class="card-sub">1d8+2</span>
+            </div>
+          </div>
+          <div class="roll-card has-icon">
+            <span class="card-icon">🛡️</span>
+            <div class="card-info">
+              <span class="card-top">护甲投骰</span>
+              <span class="card-sub">1d4</span>
+            </div>
+          </div>
+          <div class="roll-card add-card">+ 添加</div>
+        </div>
+
+        <!-- Free formula input -->
+        <div class="free-roll-row">
+          <input class="free-roll-input" placeholder="自由公式，如 2d6+3" value="">
+          <div class="free-roll-go">投骰</div>
+        </div>
+      </div>
+
+      <div class="panel-separator"></div>
+
+      <!-- Resource Section (same as above) -->
+      <div class="resource-section">
+        <div class="resource-row">
+          <div class="resource-card rc-hp">
+            <div class="rc-label">HP</div>
+            <div class="rc-value-row">
+              <div class="rc-btn">−</div>
+              <div class="rc-value">12</div>
+              <div class="rc-max">/20</div>
+              <div class="rc-btn">+</div>
+            </div>
+            <div class="rc-bar"><div class="rc-bar-fill" style="width: 60%"></div></div>
+          </div>
+          <div class="resource-card rc-stress">
+            <div class="rc-label">Stress</div>
+            <div class="rc-value-row">
+              <div class="rc-btn">−</div>
+              <div class="rc-value">3</div>
+              <div class="rc-max">/6</div>
+              <div class="rc-btn">+</div>
+            </div>
+            <div class="rc-bar"><div class="rc-bar-fill" style="width: 50%"></div></div>
+          </div>
+          <div class="resource-card rc-hope">
+            <div class="rc-label">Hope</div>
+            <div class="rc-value-row">
+              <div class="rc-btn">−</div>
+              <div class="rc-value">4</div>
+              <div class="rc-max">/6</div>
+              <div class="rc-btn">+</div>
+            </div>
+            <div class="rc-bar"><div class="rc-bar-fill" style="width: 67%"></div></div>
+          </div>
+          <div class="resource-card rc-armor">
+            <div class="rc-label">Armor</div>
+            <div class="rc-value-row">
+              <div class="rc-btn">−</div>
+              <div class="rc-value">2</div>
+              <div class="rc-max">/3</div>
+              <div class="rc-btn">+</div>
+            </div>
+            <div class="rc-bar"><div class="rc-bar-fill" style="width: 67%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Scene 4: Expanded — Dice Tab ===== -->
+<div>
+  <h2>展开态 — 骰子 Tab（通用掷骰）</h2>
+  <p class="scene-label">原始骰子按钮，单击投一颗，右键设数量（角标显示）</p>
+  <div class="vtt-frame" style="height: 440px;">
+    <div class="panel-expanded">
+      <div class="collapse-handle"><span class="collapse-chevron">▼</span></div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab">属性</div>
+        <div class="tab">自定义</div>
+        <div class="tab active">骰子</div>
+      </div>
+
+      <!-- Dice Tab Content -->
+      <div class="tab-content">
+        <div class="card-grid">
+          <div class="roll-card">
+            <span class="card-main">d4</span>
+            <span class="card-sub">1-4</span>
+          </div>
+          <div class="roll-card">
+            <span class="card-main">d6</span>
+            <span class="card-sub">1-6</span>
+          </div>
+          <div class="roll-card">
+            <span class="card-main">d8</span>
+            <span class="card-sub">1-8</span>
+          </div>
+          <div class="roll-card">
+            <span class="card-main">d10</span>
+            <span class="card-sub">1-10</span>
+          </div>
+          <div class="roll-card">
+            <span class="card-main accent">d12</span>
+            <span class="card-sub">1-12</span>
+          </div>
+          <div class="roll-card">
+            <span class="card-main">d20</span>
+            <span class="card-sub">1-20</span>
+            <span class="card-count">3</span>
+          </div>
+        </div>
+        <div class="tab-hint">单击投一颗 · 右键设数量 · 结果发送到聊天</div>
+
+        <!-- Free formula input -->
+        <div class="free-roll-row">
+          <input class="free-roll-input" placeholder="自由公式，如 4d6+2" value="">
+          <div class="free-roll-go">投骰</div>
+        </div>
+      </div>
+
+      <div class="panel-separator"></div>
+
+      <!-- Resource Section -->
+      <div class="resource-section">
+        <div class="resource-row">
+          <div class="resource-card rc-hp">
+            <div class="rc-label">HP</div>
+            <div class="rc-value-row">
+              <div class="rc-btn">−</div>
+              <div class="rc-value">12</div>
+              <div class="rc-max">/20</div>
+              <div class="rc-btn">+</div>
+            </div>
+            <div class="rc-bar"><div class="rc-bar-fill" style="width: 60%"></div></div>
+          </div>
+          <div class="resource-card rc-stress">
+            <div class="rc-label">Stress</div>
+            <div class="rc-value-row">
+              <div class="rc-btn">−</div>
+              <div class="rc-value">3</div>
+              <div class="rc-max">/6</div>
+              <div class="rc-btn">+</div>
+            </div>
+            <div class="rc-bar"><div class="rc-bar-fill" style="width: 50%"></div></div>
+          </div>
+          <div class="resource-card rc-hope">
+            <div class="rc-label">Hope</div>
+            <div class="rc-value-row">
+              <div class="rc-btn">−</div>
+              <div class="rc-value">4</div>
+              <div class="rc-max">/6</div>
+              <div class="rc-btn">+</div>
+            </div>
+            <div class="rc-bar"><div class="rc-bar-fill" style="width: 67%"></div></div>
+          </div>
+          <div class="resource-card rc-armor">
+            <div class="rc-label">Armor</div>
+            <div class="rc-value-row">
+              <div class="rc-btn">−</div>
+              <div class="rc-value">2</div>
+              <div class="rc-max">/3</div>
+              <div class="rc-btn">+</div>
+            </div>
+            <div class="rc-bar"><div class="rc-bar-fill" style="width: 67%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Interaction Notes ===== -->
+<div style="max-width: 600px; margin-top: 20px;">
+  <h2>交互说明</h2>
+  <div style="font-size: 12px; color: #e8dcc8aa; line-height: 1.8;">
+    <div style="margin-bottom: 8px;"><span style="color: #fbbf24;">折叠态 (28px)</span> — 左侧 🎲 按钮点击展开投骰面板。右侧资源数值始终可见，hover 显示 +/- 按钮。</div>
+    <div style="margin-bottom: 8px;"><span style="color: #fbbf24;">属性 Tab</span> — 6 个属性快捷按钮，显示属性名、当前值、公式（2d12+N）。点击即投 Daggerheart 行动检定。</div>
+    <div style="margin-bottom: 8px;"><span style="color: #fbbf24;">自定义 Tab</span> — 玩家保存的掷骰模板（名称 + 公式 + 图标），点击一键投骰。支持添加/编辑/删除模板。底部有自由公式输入框。</div>
+    <div style="margin-bottom: 8px;"><span style="color: #fbbf24;">骰子 Tab</span> — 通用骰子按钮（d4/d6/d8/d10/d12/d20）。单击投一颗，右键设数量（角标显示倍数）。底部同样有自由公式输入框。</div>
+    <div style="margin-bottom: 8px;"><span style="color: #fbbf24;">资源操控台</span> — 展开态底部始终显示，HP/Stress/Hope/Armor 带进度条和 +/- 操作。</div>
+    <div><span style="color: #fbbf24;">面板行为</span> — 独立 Region，anchor: bottom-center，仅玩家可见。模板数据持久化到角色 entity。</div>
+  </div>
+</div>
+
+</body>
+</html>

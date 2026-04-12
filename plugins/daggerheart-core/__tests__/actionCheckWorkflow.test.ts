@@ -251,4 +251,86 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
     // judgment is null when dc is undefined
     expect(payload.judgment).toBeNull()
   })
+
+  it('uses preselected attribute as modifier when skipModifier is true', async () => {
+    const actor = {
+      id: 'actor-1',
+      permissions: { default: 'owner' as const, seats: {} },
+      lifecycle: 'persistent' as const,
+      tags: [],
+      components: {
+        'daggerheart:attributes': {
+          agility: 3,
+          strength: 0,
+          finesse: 0,
+          instinct: 0,
+          presence: 0,
+          knowledge: 0,
+        },
+      },
+    }
+    const { runner, deps, sdk } = makeSetup({
+      getEntity: vi.fn().mockImplementation((id: string) => (id === 'actor-1' ? actor : undefined)),
+      serverRoll: vi.fn().mockResolvedValue([[8], [5]]),
+    })
+    const handle = sdk.getWorkflow('daggerheart-core:action-check')
+
+    const result = await runner.runWorkflow(handle, {
+      actorId: 'actor-1',
+      preselectedAttribute: 'agility',
+      skipModifier: true,
+      dc: 12,
+    })
+
+    expect(result.status).toBe('completed')
+    const emitCalls = (deps.emitEntry as ReturnType<typeof vi.fn>).mock.calls
+    const actionCheckEntry = emitCalls.find(
+      (c) => (c[0] as { type: string }).type === 'daggerheart-core:action-check',
+    )
+    expect(actionCheckEntry).toBeDefined()
+    const payload = (actionCheckEntry![0] as { payload: Record<string, unknown> }).payload
+    expect(payload.formula).toBe('2d12+3')
+    expect(payload.total).toBe(16)
+    expect(payload.formulaTokens).toEqual([
+      { type: 'dice', text: '2d12', source: 'duality' },
+      { type: 'op', text: '+' },
+      { type: 'modifier', text: '3', source: '敏捷' },
+    ])
+  })
+
+  it('uses initialRollConfig when provided and skipModifier is true', async () => {
+    const { runner, deps, sdk } = makeSetup({
+      serverRoll: vi.fn().mockResolvedValue([[17]]),
+    })
+    const handle = sdk.getWorkflow('daggerheart-core:action-check')
+
+    const result = await runner.runWorkflow(handle, {
+      actorId: 'actor-1',
+      skipModifier: true,
+      initialRollConfig: {
+        dualityDice: null,
+        diceGroups: [{ sides: 20, count: 1, operator: '+', label: 'd20' }],
+        modifiers: [],
+        constantModifier: 0,
+        sideEffects: [],
+      },
+    })
+
+    expect(result.status).toBe('completed')
+    expect(deps.serverRoll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dice: [{ sides: 20, count: 1 }],
+      }),
+    )
+
+    const emitCalls = (deps.emitEntry as ReturnType<typeof vi.fn>).mock.calls
+    const actionCheckEntry = emitCalls.find(
+      (c) => (c[0] as { type: string }).type === 'daggerheart-core:action-check',
+    )
+    expect(actionCheckEntry).toBeDefined()
+    const payload = (actionCheckEntry![0] as { payload: Record<string, unknown> }).payload
+    expect(payload.formula).toBe('1d20')
+    expect(payload.total).toBe(17)
+    expect(payload.dieConfigs).toEqual([])
+  })
 })

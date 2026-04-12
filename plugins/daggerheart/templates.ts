@@ -6,6 +6,7 @@ import type {
   DHExtras,
   DHThresholds,
   DHExperiences,
+  DHRollTemplates,
 } from './types'
 import { DH_KEYS } from './types'
 
@@ -30,5 +31,6 @@ export function createDefaultDHEntityData(): Record<string, unknown> {
     [DH_KEYS.extras]: { hope: 0, hopeMax: 6, armor: 0, armorMax: 0 } satisfies DHExtras,
     [DH_KEYS.thresholds]: { evasion: 10, major: 7, severe: 15 } satisfies DHThresholds,
     [DH_KEYS.experiences]: { items: [] } satisfies DHExperiences,
+    [DH_KEYS.rollTemplates]: { items: [] } satisfies DHRollTemplates,
   }
 }

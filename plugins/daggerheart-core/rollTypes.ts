@@ -88,6 +88,10 @@ export interface ActionCheckVars {
   preselectedAttribute?: string
   /** 是否跳过 modifier 面板（Shift+click） */
   skipModifier?: boolean
+  /** 预置模板 ID（从 CustomTab 等入口传入） */
+  rollTemplateId?: string
+  /** 预置的初始掷骰配置（用于 DiceTab / CustomTab 等入口） */
+  initialRollConfig?: RollConfig
   /** modifier 面板返回的配置 */
   rollConfig?: RollConfig
   /** 掷骰执行结果 */

@@ -49,6 +49,22 @@ describe('anchorBase', () => {
   it('center: centered', () => {
     expect(anchorBase('center', size, VP)).toEqual({ x: 860, y: 490 })
   })
+
+  it('top-center: centered horizontally, flush top', () => {
+    expect(anchorBase('top-center', size, VP)).toEqual({ x: 860, y: 0 })
+  })
+
+  it('bottom-center: centered horizontally, flush bottom', () => {
+    expect(anchorBase('bottom-center', size, VP)).toEqual({ x: 860, y: 980 })
+  })
+
+  it('center-left: flush left, centered vertically', () => {
+    expect(anchorBase('center-left', size, VP)).toEqual({ x: 0, y: 490 })
+  })
+
+  it('center-right: flush right, centered vertically', () => {
+    expect(anchorBase('center-right', size, VP)).toEqual({ x: 1720, y: 490 })
+  })
 })
 
 describe('resolvePosition', () => {
@@ -111,8 +127,24 @@ describe('inferAnchor', () => {
     expect(inferAnchor({ x: 1500, y: 800 }, VP)).toBe('bottom-right')
   })
 
-  it('exact center goes to bottom-right (>= threshold)', () => {
-    expect(inferAnchor({ x: 960, y: 540 }, VP)).toBe('bottom-right')
+  it('exact center goes to bottom-center (center-x zone)', () => {
+    expect(inferAnchor({ x: 960, y: 540 }, VP)).toBe('bottom-center')
+  })
+
+  it('top-center: center-x zone, top half', () => {
+    expect(inferAnchor({ x: 960, y: 200 }, VP)).toBe('top-center')
+  })
+
+  it('bottom-center: center-x zone, bottom half', () => {
+    expect(inferAnchor({ x: 960, y: 800 }, VP)).toBe('bottom-center')
+  })
+
+  it('center-x boundary left (at 1/3): goes to center zone', () => {
+    expect(inferAnchor({ x: 640, y: 200 }, VP)).toBe('top-center')
+  })
+
+  it('center-x boundary right (at 2/3): goes to right zone', () => {
+    expect(inferAnchor({ x: 1280, y: 200 }, VP)).toBe('top-right')
   })
 })
 
@@ -188,6 +220,18 @@ describe('anchorFactor', () => {
   })
   it('center → (0.5, 0.5)', () => {
     expect(anchorFactor('center')).toEqual({ x: 0.5, y: 0.5 })
+  })
+  it('top-center → (0.5, 0)', () => {
+    expect(anchorFactor('top-center')).toEqual({ x: 0.5, y: 0 })
+  })
+  it('bottom-center → (0.5, 1)', () => {
+    expect(anchorFactor('bottom-center')).toEqual({ x: 0.5, y: 1 })
+  })
+  it('center-left → (0, 0.5)', () => {
+    expect(anchorFactor('center-left')).toEqual({ x: 0, y: 0.5 })
+  })
+  it('center-right → (1, 0.5)', () => {
+    expect(anchorFactor('center-right')).toEqual({ x: 1, y: 0.5 })
   })
 })
 

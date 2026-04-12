@@ -8,6 +8,23 @@ import type {
 import { migrateLayoutConfig } from '../ui-system/layoutMigration'
 import { computeResizeCompensation } from '../ui-system/layoutEngine'
 
+function isSameEntry(
+  left: RegionLayoutEntry,
+  right: RegionLayoutEntry,
+): boolean {
+  return (
+    left.anchor === right.anchor &&
+    left.offsetX === right.offsetX &&
+    left.offsetY === right.offsetY &&
+    left.width === right.width &&
+    left.height === right.height &&
+    left.zOrder === right.zOrder &&
+    left.visible === right.visible &&
+    left.resizeOrigin === right.resizeOrigin &&
+    left.instanceProps === right.instanceProps
+  )
+}
+
 export interface RoomLayoutConfig {
   narrative: RegionLayoutConfig
   tactical: RegionLayoutConfig
@@ -93,6 +110,8 @@ export function createLayoutStore() {
           }
         }
       }
+
+      if (isSameEntry(entry, merged)) return
 
       const updated = { ...current, [instanceKey]: merged }
       set({
