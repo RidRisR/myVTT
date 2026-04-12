@@ -1,7 +1,13 @@
 // plugins/daggerheart-core/index.ts
 import type React from 'react'
 import i18next from 'i18next'
-import type { VTTPlugin, IPluginSDK, WorkflowContext, WorkflowHandle } from '@myvtt/sdk'
+import type {
+  VTTPlugin,
+  IPluginSDK,
+  WorkflowContext,
+  WorkflowHandle,
+  JudgmentResult,
+} from '@myvtt/sdk'
 import {
   MAIN_RESOURCE_POINT,
   PORTRAIT_RESOURCES_POINT,
@@ -15,7 +21,6 @@ import { FearManager } from './FearManager'
 import { HopeResolver } from './HopeResolver'
 import { CharCardManager } from './CharCardManager'
 import { ModifierPanel } from './ui/ModifierPanel'
-import type { ModifierResult } from './ui/ModifierPanel'
 import { DHActionCheckCard } from './ui/DHActionCheckCard'
 import { FearPanel } from './ui/FearPanel'
 import { CharacterCard } from '../daggerheart/ui/CharacterCard'
@@ -28,16 +33,27 @@ import {
 } from '../daggerheart/adapters'
 import { createDefaultDHEntityData } from '../daggerheart/templates'
 import { DaggerHeartCard } from '../daggerheart/DaggerHeartCard'
+import type { RollConfig, RollExecutionResult, SideEffectEntry } from './rollTypes'
+import {
+  buildDiceSpecs,
+  assembleRollResult,
+  rollConfigToFormula,
+  rollConfigToFormulaTokens,
+} from './rollConfigUtils'
+import { DH_KEYS } from '../daggerheart/types'
+import type { DHAttributes, DHHealth, DHStress, DHExtras } from '../daggerheart/types'
 
 interface ActionCheckData {
   [key: string]: unknown
-  formula: string
   actorId: string
+  formula?: string
   dc?: number
   skipModifier?: boolean
-  rolls?: number[][]
+  preselectedAttribute?: string
+  rollConfig?: RollConfig
+  rollResult?: RollExecutionResult
   total?: number
-  judgment?: import('@myvtt/sdk').JudgmentResult
+  judgment?: JudgmentResult | null
 }
 
 interface FearSetData {
@@ -99,6 +115,39 @@ interface CharCardRemoveExpData {
   index: number
 }
 
+function applySideEffect(ctx: WorkflowContext, actorId: string, fx: SideEffectEntry): void {
+  switch (fx.resource) {
+    case 'hope': {
+      ctx.updateComponent(actorId, DH_KEYS.extras, (prev: unknown) => {
+        const p = (prev ?? { hope: 0, hopeMax: 6, armor: 0, armorMax: 6 }) as DHExtras
+        return { ...p, hope: Math.max(0, Math.min(p.hopeMax, p.hope + fx.delta)) }
+      })
+      break
+    }
+    case 'hp': {
+      ctx.updateComponent(actorId, DH_KEYS.health, (prev: unknown) => {
+        const p = (prev ?? { current: 0, max: 0 }) as DHHealth
+        return { ...p, current: Math.max(0, Math.min(p.max, p.current + fx.delta)) }
+      })
+      break
+    }
+    case 'stress': {
+      ctx.updateComponent(actorId, DH_KEYS.stress, (prev: unknown) => {
+        const p = (prev ?? { current: 0, max: 0 }) as DHStress
+        return { ...p, current: Math.max(0, Math.min(p.max, p.current + fx.delta)) }
+      })
+      break
+    }
+    case 'armor': {
+      ctx.updateComponent(actorId, DH_KEYS.extras, (prev: unknown) => {
+        const p = (prev ?? { hope: 0, hopeMax: 6, armor: 0, armorMax: 6 }) as DHExtras
+        return { ...p, armor: Math.max(0, Math.min(p.armorMax, p.armor + fx.delta)) }
+      })
+      break
+    }
+  }
+}
+
 export class DaggerHeartCorePlugin implements VTTPlugin {
   id = 'daggerheart-core'
   ruleSystemId = 'daggerheart'
@@ -120,7 +169,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
     }
 
     // Register input handler for modifier panel
-    sdk.ui.registerInputHandler('daggerheart-core:modifier', {
+    sdk.ui.registerInputHandler('daggerheart-core:roll-modifier', {
       component: ModifierPanel as Parameters<typeof sdk.ui.registerInputHandler>[1]['component'],
     })
 
@@ -173,57 +222,117 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       {
         id: 'modifier',
         run: async (ctx) => {
-          if (ctx.vars.skipModifier || ctx.vars.dc != null) return
-          const result = await ctx.requestInput<ModifierResult>('daggerheart-core:modifier', {
-            context: { actorId: ctx.vars.actorId },
-          })
-          if (!result.ok) {
-            ctx.abort('Modifier input cancelled')
+          const actorId = ctx.vars.actorId as string
+
+          // 构建默认 RollConfig
+          const defaultConfig: RollConfig = {
+            dualityDice: { hopeFace: 12, fearFace: 12 },
+            diceGroups: [],
+            modifiers: [],
+            constantModifier: 0,
+            sideEffects: [],
+            dc: ctx.vars.dc as number | undefined,
+          }
+
+          if (ctx.vars.skipModifier) {
+            // Shift+click：使用预选属性直接跳过
+            const preAttr = ctx.vars.preselectedAttribute as string | undefined
+            if (preAttr) {
+              const attrs = ctx.read.component<DHAttributes>(actorId, DH_KEYS.attributes)
+              if (attrs) {
+                const val = attrs[preAttr as keyof DHAttributes] ?? 0
+                defaultConfig.modifiers.push({
+                  source: `attribute:${preAttr}`,
+                  label: preAttr,
+                  value: val,
+                })
+              }
+            }
+            ctx.vars.rollConfig = defaultConfig
             return
           }
-          ctx.vars.dc = result.value.dc
+
+          const result = await ctx.requestInput<RollConfig>(
+            'daggerheart-core:roll-modifier',
+            {
+              context: {
+                actorId,
+                preselectedAttribute: ctx.vars.preselectedAttribute,
+                defaultConfig,
+              },
+            },
+          )
+
+          if (!result.ok) {
+            ctx.abort('Roll cancelled')
+            return
+          }
+
+          ctx.vars.rollConfig = result.value
+          if (result.value.dc !== undefined) {
+            ctx.vars.dc = result.value.dc
+          }
         },
       },
       {
         id: 'roll',
         run: async (ctx) => {
-          // Action check always rolls 2d12 — formula is fixed regardless of user input
-          ctx.vars.formula = '2d12'
-          const rolls = await ctx.serverRoll([{ sides: 12, count: 2 }])
-          ctx.vars.rolls = rolls
-          const total = rolls.flat().reduce((a, b) => a + b, 0)
-          ctx.vars.total = total
+          const config = ctx.vars.rollConfig as RollConfig | undefined
+          if (!config) {
+            ctx.abort('No roll config')
+            return
+          }
+
+          const specs = buildDiceSpecs(config)
+          const serverRolls = await ctx.serverRoll(specs)
+          const rollResult = assembleRollResult(config, serverRolls)
+
+          ctx.vars.rollResult = rollResult
+          ctx.vars.total = rollResult.total
         },
       },
       {
         id: 'judge',
         run: (ctx) => {
-          const { rolls, total, dc } = ctx.vars
-          if (!rolls || total == null) return
-          const actualDc = dc ?? 12
-          const judgment = this.dice.evaluate(rolls, total, actualDc)
-          if (judgment) ctx.vars.judgment = judgment
+          const rollResult = ctx.vars.rollResult as RollExecutionResult | undefined
+          const dc = ctx.vars.dc as number | undefined
+
+          if (!rollResult?.dualityRolls || dc === undefined) {
+            ctx.vars.judgment = null
+            return
+          }
+
+          // DiceJudge needs [hopeDie, fearDie] and total
+          const rolls = [rollResult.dualityRolls]
+          ctx.vars.judgment = this.dice.evaluate(rolls, rollResult.total, dc)
         },
       },
       {
         id: 'emit',
         run: (ctx) => {
-          const { rolls, total, dc, formula, judgment } = ctx.vars
-          if (!rolls || total == null) return
-          const display = judgment ? this.dice.getDisplay(judgment) : undefined
+          const config = ctx.vars.rollConfig as RollConfig | undefined
+          const rollResult = ctx.vars.rollResult as RollExecutionResult | undefined
+          const judgment = ctx.vars.judgment as JudgmentResult | null | undefined
+
+          if (!config || !rollResult) return
+
           ctx.emitEntry({
             type: 'daggerheart-core:action-check',
             payload: {
-              formula,
-              rolls,
-              total,
-              dc: dc ?? 12,
+              formula: rollConfigToFormula(config),
+              formulaTokens: rollConfigToFormulaTokens(config),
+              rollConfig: config,
+              rollResult,
+              total: rollResult.total,
+              dc: ctx.vars.dc as number | undefined,
               judgment: judgment ?? null,
-              display: display ?? null,
-              dieConfigs: [
-                { color: '#fbbf24', label: 'die.hope' },
-                { color: '#dc2626', label: 'die.fear' },
-              ],
+              display: judgment ? this.dice.getDisplay(judgment) : null,
+              dieConfigs: rollResult.dualityRolls
+                ? [
+                    { color: '#fbbf24', label: 'die.hope' },
+                    { color: '#dc2626', label: 'die.fear' },
+                  ]
+                : [],
             },
             triggerable: true,
           })
@@ -232,13 +341,26 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       {
         id: 'resolve',
         run: (ctx) => {
-          const judgment = ctx.vars.judgment as { type: string; outcome: string } | undefined
-          if (!judgment || judgment.type !== 'daggerheart') return
-          const outcome = judgment.outcome
-          if (outcome === 'success_hope' || outcome === 'failure_hope') {
-            this.hope.addHope(ctx, ctx.vars.actorId)
-          } else if (outcome === 'success_fear' || outcome === 'failure_fear') {
-            this.fear.addFear(ctx)
+          const config = ctx.vars.rollConfig as RollConfig | undefined
+          const judgment = ctx.vars.judgment as JudgmentResult | null | undefined
+          const actorId = ctx.vars.actorId as string
+
+          // 1. 判定后果：hope 增加 / fear 增加
+          if (judgment && judgment.type === 'daggerheart') {
+            const outcome = judgment.outcome
+            if (outcome === 'success_hope' || outcome === 'failure_hope') {
+              this.hope.addHope(ctx, actorId)
+            } else if (outcome === 'success_fear' || outcome === 'failure_fear') {
+              this.fear.addFear(ctx)
+            }
+          }
+
+          // 2. 副作用：资源变动
+          if (config) {
+            for (const fx of config.sideEffects) {
+              if (fx.delta === 0) continue
+              applySideEffect(ctx, actorId, fx)
+            }
           }
         },
       },
