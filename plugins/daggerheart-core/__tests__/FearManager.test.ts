@@ -45,7 +45,7 @@ describe('FearManager', () => {
       expect(ctx.read.entity).toHaveBeenCalledWith('daggerheart-core:fear')
       expect(ctx.createEntity).toHaveBeenCalledWith({
         id: 'daggerheart-core:fear',
-        components: { 'daggerheart-core:fear-tracker': { current: 0, max: 10 } },
+        components: { 'daggerheart-core:fear-tracker': { current: 0, max: 12 } },
         lifecycle: 'persistent',
       })
     })
@@ -103,7 +103,7 @@ describe('FearManager', () => {
       ) => { current: number; max: number }
 
       const result = updater(undefined)
-      expect(result).toEqual({ current: 1, max: 10 })
+      expect(result).toEqual({ current: 1, max: 12 })
     })
   })
 })

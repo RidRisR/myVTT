@@ -109,11 +109,13 @@ export interface IInteractionSDK {
 export interface IReactiveDataSDK {
   /** Subscribe to a single entity. Re-renders on change. */
   useEntity(entityId: string): Entity | undefined
-  /** Subscribe to a component on an entity. Re-renders on change. */
+  /** Subscribe to a component on an entity. Re-renders on change. Known keys auto-infer type. */
   useComponent<K extends keyof ComponentTypeMap>(
     entityId: string,
     key: K,
   ): ComponentTypeMap[K] | undefined
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- fallback overload for plugin-defined keys not in ComponentTypeMap
+  useComponent<T = unknown>(entityId: string, key: string): T | undefined
   /** Subscribe to entities matching a query. Re-renders when result set changes. */
   useQuery(spec: { has?: string[] }): Entity[]
 }

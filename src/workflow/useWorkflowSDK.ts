@@ -35,6 +35,11 @@ export function registerWorkflowPlugins(plugins: VTTPlugin[]): void {
   _registeredPlugins = plugins
 }
 
+/** Get the WorkflowRunner singleton created by initWorkflowSystem(). Returns null before init. */
+export function getWorkflowRunner(): WorkflowRunner | null {
+  return _runner
+}
+
 export function getWorkflowEngine(): WorkflowEngine {
   if (!_engine) {
     _engine = new WorkflowEngine()

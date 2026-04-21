@@ -95,4 +95,15 @@ describe('createRegionSDK', () => {
     expect(sdk.context.role).toBe('GM')
     expect(sdk.context.layoutMode).toBe('play')
   })
+
+  it('sdk.workflow.runWorkflow delegates to the provided runner', async () => {
+    const mockResult = { status: 'completed', vars: {} }
+    const runWorkflow = vi.fn().mockResolvedValue(mockResult)
+    const workflow = { runWorkflow } as unknown as IWorkflowRunner
+    const sdk = createRegionSDK(baseArgs({ workflow }))
+    const handle = { name: 'test:workflow' } as never
+    const result = await sdk.workflow.runWorkflow(handle, { value: 1 })
+    expect(runWorkflow).toHaveBeenCalledWith(handle, { value: 1 })
+    expect(result).toBe(mockResult)
+  })
 })
