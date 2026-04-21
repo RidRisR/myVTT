@@ -17,6 +17,7 @@ import { ModifierPanel } from './ui/ModifierPanel'
 import type { ModifierResult } from './ui/ModifierPanel'
 import { DHActionCheckCard } from './ui/DHActionCheckCard'
 import { FearPanel } from './ui/FearPanel'
+import { BattleOverviewPanel } from './ui/BattleOverviewPanel'
 import { daggerheartI18n } from '../daggerheart/i18n'
 import {
   dhGetMainResource,
@@ -99,6 +100,17 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       defaultSize: { width: 520, height: 50 },
       minSize: { width: 400, height: 42 },
       defaultPlacement: { anchor: 'top-left', offsetX: 200, offsetY: 12 },
+      layer: 'standard',
+    })
+
+    // Register Battle Overview panel — right-side persistent panel showing all units
+    sdk.ui.registerRegion({
+      id: 'daggerheart-core:battle-overview',
+      component: BattleOverviewPanel as React.ComponentType<{ sdk: unknown }>,
+      lifecycle: 'persistent',
+      defaultSize: { width: 480, height: 300 },
+      minSize: { width: 400, height: 140 },
+      defaultPlacement: { anchor: 'top-right', offsetX: 0, offsetY: 12 },
       layer: 'standard',
     })
 
