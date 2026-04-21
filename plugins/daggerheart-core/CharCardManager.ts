@@ -88,24 +88,14 @@ export class CharCardManager {
     })
   }
 
-  updateExtras(
-    ctx: WorkflowContext,
-    entityId: string,
-    field: string,
-    value: number,
-  ): void {
+  updateExtras(ctx: WorkflowContext, entityId: string, field: string, value: number): void {
     ctx.updateComponent(entityId, DH_KEYS.extras, (prev: unknown) => {
       const p = (prev ?? { hope: 0, hopeMax: 6, armor: 0, armorMax: 0 }) as DHExtras
       return { ...p, [field]: value }
     })
   }
 
-  updateThreshold(
-    ctx: WorkflowContext,
-    entityId: string,
-    threshold: string,
-    value: number,
-  ): void {
+  updateThreshold(ctx: WorkflowContext, entityId: string, threshold: string, value: number): void {
     if (!VALID_THRESHOLD_KEYS.includes(threshold as (typeof VALID_THRESHOLD_KEYS)[number])) return
     ctx.updateComponent(entityId, DH_KEYS.thresholds, (prev: unknown) => {
       const p = (prev ?? { evasion: 10, major: 7, severe: 15 }) as DHThresholds
@@ -144,7 +134,10 @@ export class CharCardManager {
         items: [
           ...items,
           {
-            key: createExperienceKey(name, items.map((item) => item.key)),
+            key: createExperienceKey(
+              name,
+              items.map((item) => item.key),
+            ),
             name,
             modifier,
           },

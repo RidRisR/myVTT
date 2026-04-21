@@ -17,7 +17,9 @@ export function ExperienceChips({ experiences, selected, onSelect }: ExperienceC
         return (
           <button
             key={exp.key}
-            onClick={() => { onSelect(isSel ? null : exp.key); }}
+            onClick={() => {
+              onSelect(isSel ? null : exp.key)
+            }}
             className={`flex items-center gap-1 h-[30px] px-2.5 rounded-full border text-[11px] transition-colors cursor-pointer ${
               isSel
                 ? 'bg-accent/[0.08] border-accent/30 text-accent-bold'

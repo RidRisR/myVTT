@@ -19,7 +19,8 @@ interface ResourceCardProps {
 }
 
 function ResourceCard({ label, tone, value, onAdjust }: ResourceCardProps) {
-  const pct = value.max > 0 ? Math.max(0, Math.min(100, Math.round((value.current / value.max) * 100))) : 0
+  const pct =
+    value.max > 0 ? Math.max(0, Math.min(100, Math.round((value.current / value.max) * 100))) : 0
   const toneClasses = {
     hp: {
       value: 'text-danger',
@@ -52,7 +53,9 @@ function ResourceCard({ label, tone, value, onAdjust }: ResourceCardProps) {
           −
         </button>
         <div className="flex items-end gap-1">
-          <span className={`text-[18px] font-extrabold leading-none tabular-nums ${toneClasses.value}`}>
+          <span
+            className={`text-[18px] font-extrabold leading-none tabular-nums ${toneClasses.value}`}
+          >
             {value.current}
           </span>
           <span className="text-[10px] text-white/25 tabular-nums">/{value.max}</span>

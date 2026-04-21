@@ -1,421 +1,528 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Georgia', -apple-system, system-ui, sans-serif;
-      background: linear-gradient(135deg, #4a90d9 0%, #6fb3e0 40%, #87ceeb 100%);
-      color: white;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 30px 20px;
-    }
+  <head>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          'Georgia',
+          -apple-system,
+          system-ui,
+          sans-serif;
+        background: linear-gradient(135deg, #4a90d9 0%, #6fb3e0 40%, #87ceeb 100%);
+        color: white;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 30px 20px;
+      }
 
-    /* ===== Panel shell (wider for 2-col) ===== */
-    .panel {
-      width: 420px;
-      background: rgba(0, 0, 0, 0.32);
-      backdrop-filter: blur(18px);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 0 16px 16px 0;
-      padding: 14px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 9px;
-      position: relative;
-      overflow: hidden;
-    }
-    .panel::after {
-      content: '';
-      position: absolute;
-      top: 0; right: 0; bottom: 0; width: 1px;
-      background: linear-gradient(180deg,
-        transparent 0%,
-        rgba(255,215,100,0.15) 30%,
-        rgba(130,195,240,0.12) 60%,
-        transparent 100%);
-    }
+      /* ===== Panel shell (wider for 2-col) ===== */
+      .panel {
+        width: 420px;
+        background: rgba(0, 0, 0, 0.32);
+        backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 0 16px 16px 0;
+        padding: 14px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        position: relative;
+        overflow: hidden;
+      }
+      .panel::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 1px;
+        background: linear-gradient(
+          180deg,
+          transparent 0%,
+          rgba(255, 215, 100, 0.15) 30%,
+          rgba(130, 195, 240, 0.12) 60%,
+          transparent 100%
+        );
+      }
 
-    .panel-header {
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .panel-title {
-      font-size: 11px; font-weight: 600;
-      color: rgba(255,255,255,0.55);
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-    }
-    .panel-hint {
-      font-size: 9px; color: rgba(255,255,255,0.25);
-      cursor: pointer;
-    }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .panel-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.55);
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      .panel-hint {
+        font-size: 9px;
+        color: rgba(255, 255, 255, 0.25);
+        cursor: pointer;
+      }
 
-    /* ===== Character header ===== */
-    .char-header {
-      display: flex; align-items: center; gap: 10px;
-      padding-bottom: 9px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .char-portrait {
-      width: 40px; height: 40px; border-radius: 50%;
-      background: linear-gradient(135deg, #6a3093, #4a6fa5);
-      border: 2px solid rgba(255,215,100,0.25);
-      box-shadow: 0 0 8px rgba(255,215,100,0.08);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; flex-shrink: 0;
-    }
-    .char-info { display: flex; flex-direction: column; gap: 1px; }
-    .char-name { font-size: 14px; font-weight: 600; letter-spacing: 0.3px; }
-    .char-class { font-size: 9px; color: rgba(255,255,255,0.38); }
+      /* ===== Character header ===== */
+      .char-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 9px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .char-portrait {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6a3093, #4a6fa5);
+        border: 2px solid rgba(255, 215, 100, 0.25);
+        box-shadow: 0 0 8px rgba(255, 215, 100, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      .char-info {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .char-name {
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+      }
+      .char-class {
+        font-size: 9px;
+        color: rgba(255, 255, 255, 0.38);
+      }
 
-    /* ===== Two-column body ===== */
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      align-items: start;
-    }
+      /* ===== Two-column body ===== */
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        align-items: start;
+      }
 
-    /* ===== Section ===== */
-    .section {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.04);
-      border-radius: 10px;
-      padding: 9px 10px;
-    }
-    .section-label {
-      font-size: 7px;
-      color: rgba(255,255,255,0.28);
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      margin-bottom: 6px;
-    }
+      /* ===== Section ===== */
+      .section {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 10px;
+        padding: 9px 10px;
+      }
+      .section-label {
+        font-size: 7px;
+        color: rgba(255, 255, 255, 0.28);
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin-bottom: 6px;
+      }
 
-    /* ===== Attributes grid ===== */
-    .attrs-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 4px;
-    }
-    .attr-cell {
-      text-align: center;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.04);
-      border-radius: 8px;
-      padding: 7px 3px 6px;
-      transition: background 0.2s;
-    }
-    .attr-cell:hover {
-      background: rgba(255,255,255,0.08);
-      cursor: pointer;
-    }
-    .attr-cell:hover .attr-roll-hint {
-      opacity: 1;
-    }
-    .attr-roll-hint {
-      position: absolute;
-      top: 3px; right: 4px;
-      font-size: 7px;
-      color: rgba(255,215,100,0.5);
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .attr-label-cn {
-      font-size: 8px; color: rgba(255,255,255,0.45);
-      letter-spacing: 0.5px;
-    }
-    .attr-label-en {
-      font-size: 6px; color: rgba(255,255,255,0.2);
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-    }
-    .attr-value {
-      font-size: 18px; font-weight: 700;
-      font-variant-numeric: tabular-nums;
-      margin-top: 1px; line-height: 1.1;
-    }
-    .attr-value.positive { color: rgba(46,204,113,0.9); }
-    .attr-value.negative { color: rgba(231,76,60,0.85); }
-    .attr-value.zero { color: rgba(255,255,255,0.3); }
+      /* ===== Attributes grid ===== */
+      .attrs-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+      }
+      .attr-cell {
+        text-align: center;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 8px;
+        padding: 7px 3px 6px;
+        transition: background 0.2s;
+      }
+      .attr-cell:hover {
+        background: rgba(255, 255, 255, 0.08);
+        cursor: pointer;
+      }
+      .attr-cell:hover .attr-roll-hint {
+        opacity: 1;
+      }
+      .attr-roll-hint {
+        position: absolute;
+        top: 3px;
+        right: 4px;
+        font-size: 7px;
+        color: rgba(255, 215, 100, 0.5);
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .attr-label-cn {
+        font-size: 8px;
+        color: rgba(255, 255, 255, 0.45);
+        letter-spacing: 0.5px;
+      }
+      .attr-label-en {
+        font-size: 6px;
+        color: rgba(255, 255, 255, 0.2);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+      .attr-value {
+        font-size: 18px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        margin-top: 1px;
+        line-height: 1.1;
+      }
+      .attr-value.positive {
+        color: rgba(46, 204, 113, 0.9);
+      }
+      .attr-value.negative {
+        color: rgba(231, 76, 60, 0.85);
+      }
+      .attr-value.zero {
+        color: rgba(255, 255, 255, 0.3);
+      }
 
-    /* ===== Resources ===== */
-    .res-row {
-      display: flex; align-items: center; gap: 6px;
-      margin-bottom: 6px;
-    }
-    .res-row:last-child { margin-bottom: 0; }
-    .res-icon { font-size: 10px; width: 14px; text-align: center; }
-    .res-bar {
-      flex: 1; height: 7px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 4px; overflow: hidden;
-    }
-    .res-bar-fill { height: 100%; border-radius: 4px; }
-    .res-text {
-      font-size: 9px; width: 30px; text-align: right;
-      color: rgba(255,255,255,0.45);
-      font-variant-numeric: tabular-nums;
-    }
-    .res-pips {
-      flex: 1; display: flex; gap: 3px; align-items: center;
-    }
-    .res-pip {
-      width: 8px; height: 8px; border-radius: 50%;
-    }
-    .res-pip.filled.armor {
-      background: rgba(130,195,240,0.7);
-      box-shadow: 0 0 4px rgba(130,195,240,0.3);
-    }
-    .res-pip.empty.armor {
-      background: rgba(130,195,240,0.06);
-      border: 1px solid rgba(130,195,240,0.12);
-    }
-    .res-pip.filled.hope {
-      background: #f1c40f;
-      box-shadow: 0 0 4px rgba(241,196,15,0.4);
-    }
-    .res-pip.empty.hope {
-      background: rgba(241,196,15,0.06);
-      border: 1px solid rgba(241,196,15,0.12);
-    }
+      /* ===== Resources ===== */
+      .res-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 6px;
+      }
+      .res-row:last-child {
+        margin-bottom: 0;
+      }
+      .res-icon {
+        font-size: 10px;
+        width: 14px;
+        text-align: center;
+      }
+      .res-bar {
+        flex: 1;
+        height: 7px;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .res-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+      }
+      .res-text {
+        font-size: 9px;
+        width: 30px;
+        text-align: right;
+        color: rgba(255, 255, 255, 0.45);
+        font-variant-numeric: tabular-nums;
+      }
+      .res-pips {
+        flex: 1;
+        display: flex;
+        gap: 3px;
+        align-items: center;
+      }
+      .res-pip {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .res-pip.filled.armor {
+        background: rgba(130, 195, 240, 0.7);
+        box-shadow: 0 0 4px rgba(130, 195, 240, 0.3);
+      }
+      .res-pip.empty.armor {
+        background: rgba(130, 195, 240, 0.06);
+        border: 1px solid rgba(130, 195, 240, 0.12);
+      }
+      .res-pip.filled.hope {
+        background: #f1c40f;
+        box-shadow: 0 0 4px rgba(241, 196, 15, 0.4);
+      }
+      .res-pip.empty.hope {
+        background: rgba(241, 196, 15, 0.06);
+        border: 1px solid rgba(241, 196, 15, 0.12);
+      }
 
-    /* ===== Thresholds ===== */
-    .threshold-row {
-      display: flex; gap: 4px;
-    }
-    .threshold-cell {
-      flex: 1; text-align: center;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.04);
-      border-radius: 8px;
-      padding: 5px 4px;
-    }
-    .threshold-label {
-      font-size: 7px; color: rgba(255,255,255,0.28);
-      letter-spacing: 0.3px;
-    }
-    .threshold-value {
-      font-size: 15px; font-weight: 700;
-      color: rgba(255,255,255,0.65);
-      font-variant-numeric: tabular-nums;
-    }
-    .threshold-cell.evasion { border-color: rgba(100,200,255,0.08); }
-    .threshold-cell.evasion .threshold-value { color: rgba(100,200,255,0.85); }
+      /* ===== Thresholds ===== */
+      .threshold-row {
+        display: flex;
+        gap: 4px;
+      }
+      .threshold-cell {
+        flex: 1;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 8px;
+        padding: 5px 4px;
+      }
+      .threshold-label {
+        font-size: 7px;
+        color: rgba(255, 255, 255, 0.28);
+        letter-spacing: 0.3px;
+      }
+      .threshold-value {
+        font-size: 15px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.65);
+        font-variant-numeric: tabular-nums;
+      }
+      .threshold-cell.evasion {
+        border-color: rgba(100, 200, 255, 0.08);
+      }
+      .threshold-cell.evasion .threshold-value {
+        color: rgba(100, 200, 255, 0.85);
+      }
 
-    /* ===== Experiences ===== */
-    .exp-list {
-      display: flex; flex-direction: column; gap: 3px;
-    }
-    .exp-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 5px 9px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.03);
-      border-radius: 7px;
-      transition: background 0.2s;
-    }
-    .exp-item:hover { background: rgba(255,255,255,0.06); }
-    .exp-name { font-size: 10px; color: rgba(255,255,255,0.55); }
-    .exp-value {
-      font-size: 12px; font-weight: 700;
-      color: rgba(241,196,15,0.8);
-      font-variant-numeric: tabular-nums;
-    }
+      /* ===== Experiences ===== */
+      .exp-list {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .exp-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 5px 9px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        border-radius: 7px;
+        transition: background 0.2s;
+      }
+      .exp-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .exp-name {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.55);
+      }
+      .exp-value {
+        font-size: 12px;
+        font-weight: 700;
+        color: rgba(241, 196, 15, 0.8);
+        font-variant-numeric: tabular-nums;
+      }
 
-    /* ===== Status tags ===== */
-    .status-row {
-      display: flex; flex-wrap: wrap; gap: 4px;
-    }
-    .status-tag {
-      font-size: 8px; padding: 2px 7px;
-      border-radius: 6px; font-weight: 500;
-    }
-    .status-tag.buff {
-      background: rgba(46,204,113,0.12);
-      color: rgba(46,204,113,0.8);
-      border: 1px solid rgba(46,204,113,0.15);
-    }
-    .status-tag.debuff {
-      background: rgba(231,76,60,0.12);
-      color: rgba(231,76,60,0.8);
-      border: 1px solid rgba(231,76,60,0.15);
-    }
-    .status-tag.neutral {
-      background: rgba(241,196,15,0.1);
-      color: rgba(241,196,15,0.75);
-      border: 1px solid rgba(241,196,15,0.12);
-    }
+      /* ===== Status tags ===== */
+      .status-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .status-tag {
+        font-size: 8px;
+        padding: 2px 7px;
+        border-radius: 6px;
+        font-weight: 500;
+      }
+      .status-tag.buff {
+        background: rgba(46, 204, 113, 0.12);
+        color: rgba(46, 204, 113, 0.8);
+        border: 1px solid rgba(46, 204, 113, 0.15);
+      }
+      .status-tag.debuff {
+        background: rgba(231, 76, 60, 0.12);
+        color: rgba(231, 76, 60, 0.8);
+        border: 1px solid rgba(231, 76, 60, 0.15);
+      }
+      .status-tag.neutral {
+        background: rgba(241, 196, 15, 0.1);
+        color: rgba(241, 196, 15, 0.75);
+        border: 1px solid rgba(241, 196, 15, 0.12);
+      }
 
-    /* ===== Rune separator ===== */
-    .rune-sep {
-      display: flex; align-items: center; gap: 6px;
-      margin: 1px 0;
-    }
-    .rune-sep::before, .rune-sep::after {
-      content: '';
-      flex: 1; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,215,100,0.12), transparent);
-    }
-    .rune-sep-dot {
-      width: 4px; height: 4px; border-radius: 50%;
-      background: rgba(255,215,100,0.2);
-    }
-  </style>
-</head>
-<body>
-
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">角色卡</span>
-      <span class="panel-hint">◀ 收回</span>
-    </div>
-
-    <!-- Character header (full width) -->
-    <div class="char-header">
-      <div class="char-portrait">⚔</div>
-      <div class="char-info">
-        <div class="char-name">Kael Ironheart</div>
-        <div class="char-class">Guardian · Lv 3</div>
-      </div>
-    </div>
-
-    <!-- === Two-column body === -->
-    <div class="two-col">
-
-      <!-- LEFT: Attributes + Resources + Thresholds -->
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div class="section">
-          <div class="section-label">属性</div>
-          <div class="attrs-grid">
-            <div class="attr-cell">
-              <span class="attr-roll-hint">&#127922;</span>
-              <div class="attr-label-cn">敏捷</div>
-              <div class="attr-label-en">Agility</div>
-              <div class="attr-value positive">+2</div>
-            </div>
-            <div class="attr-cell">
-              <span class="attr-roll-hint">&#127922;</span>
-              <div class="attr-label-cn">力量</div>
-              <div class="attr-label-en">Strength</div>
-              <div class="attr-value positive">+1</div>
-            </div>
-            <div class="attr-cell">
-              <span class="attr-roll-hint">&#127922;</span>
-              <div class="attr-label-cn">本能</div>
-              <div class="attr-label-en">Instinct</div>
-              <div class="attr-value zero">0</div>
-            </div>
-            <div class="attr-cell">
-              <span class="attr-roll-hint">&#127922;</span>
-              <div class="attr-label-cn">知识</div>
-              <div class="attr-label-en">Knowledge</div>
-              <div class="attr-value negative">-1</div>
-            </div>
-            <div class="attr-cell">
-              <span class="attr-roll-hint">&#127922;</span>
-              <div class="attr-label-cn">风度</div>
-              <div class="attr-label-en">Presence</div>
-              <div class="attr-value zero">0</div>
-            </div>
-            <div class="attr-cell">
-              <span class="attr-roll-hint">&#127922;</span>
-              <div class="attr-label-cn">灵巧</div>
-              <div class="attr-label-en">Finesse</div>
-              <div class="attr-value positive">+1</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="section-label">资源</div>
-          <div class="res-row">
-            <span class="res-icon" style="color:#e74c3c;">&#9829;</span>
-            <div class="res-bar"><div class="res-bar-fill" style="width:100%;background:linear-gradient(90deg,#c0392b,#e74c3c);"></div></div>
-            <span class="res-text">6/6</span>
-          </div>
-          <div class="res-row">
-            <span class="res-icon" style="color:#9b59b6;">&#10022;</span>
-            <div class="res-bar"><div class="res-bar-fill" style="width:0%;background:linear-gradient(90deg,#7d3c98,#9b59b6);"></div></div>
-            <span class="res-text">0/6</span>
-          </div>
-          <div class="res-row">
-            <span class="res-icon" style="color:rgba(130,195,240,0.85);font-size:9px;">&#9789;</span>
-            <div class="res-pips">
-              <div class="res-pip filled armor"></div><div class="res-pip filled armor"></div>
-              <div class="res-pip filled armor"></div><div class="res-pip filled armor"></div>
-            </div>
-            <span class="res-text">4/4</span>
-          </div>
-          <div class="res-row">
-            <span class="res-icon" style="color:#f1c40f;">&#9670;</span>
-            <div class="res-pips">
-              <div class="res-pip empty hope"></div><div class="res-pip empty hope"></div><div class="res-pip empty hope"></div>
-              <div class="res-pip empty hope"></div><div class="res-pip empty hope"></div><div class="res-pip empty hope"></div>
-            </div>
-            <span class="res-text">0/6</span>
-          </div>
-        </div>
-
-        <div class="threshold-row">
-          <div class="threshold-cell evasion">
-            <div class="threshold-label">闪避</div>
-            <div class="threshold-value">12</div>
-          </div>
-          <div class="threshold-cell">
-            <div class="threshold-label">重伤</div>
-            <div class="threshold-value">10</div>
-          </div>
-          <div class="threshold-cell">
-            <div class="threshold-label">严重</div>
-            <div class="threshold-value">22</div>
-          </div>
-        </div>
+      /* ===== Rune separator ===== */
+      .rune-sep {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 1px 0;
+      }
+      .rune-sep::before,
+      .rune-sep::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 215, 100, 0.12), transparent);
+      }
+      .rune-sep-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: rgba(255, 215, 100, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">角色卡</span>
+        <span class="panel-hint">◀ 收回</span>
       </div>
 
-      <!-- RIGHT: Experiences + Status -->
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div class="section" style="flex:1;">
-          <div class="section-label">经历</div>
-          <div class="exp-list">
-            <div class="exp-item">
-              <span class="exp-name">森林生存专家</span>
-              <span class="exp-value">+2</span>
-            </div>
-            <div class="exp-item">
-              <span class="exp-name">铁匠学徒</span>
-              <span class="exp-value">+2</span>
-            </div>
-            <div class="exp-item">
-              <span class="exp-name">古代遗迹探索者</span>
-              <span class="exp-value">+1</span>
-            </div>
-            <div class="exp-item">
-              <span class="exp-name">边境巡逻兵</span>
-              <span class="exp-value">+3</span>
-            </div>
-            <div class="exp-item">
-              <span class="exp-name">酒馆说书人</span>
-              <span class="exp-value">+1</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="section-label">状态</div>
-          <div class="status-row">
-            <span class="status-tag buff">护盾术 3r</span>
-            <span class="status-tag debuff">流血 2r</span>
-            <span class="status-tag neutral">隐匿</span>
-          </div>
+      <!-- Character header (full width) -->
+      <div class="char-header">
+        <div class="char-portrait">⚔</div>
+        <div class="char-info">
+          <div class="char-name">Kael Ironheart</div>
+          <div class="char-class">Guardian · Lv 3</div>
         </div>
       </div>
 
+      <!-- === Two-column body === -->
+      <div class="two-col">
+        <!-- LEFT: Attributes + Resources + Thresholds -->
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div class="section">
+            <div class="section-label">属性</div>
+            <div class="attrs-grid">
+              <div class="attr-cell">
+                <span class="attr-roll-hint">&#127922;</span>
+                <div class="attr-label-cn">敏捷</div>
+                <div class="attr-label-en">Agility</div>
+                <div class="attr-value positive">+2</div>
+              </div>
+              <div class="attr-cell">
+                <span class="attr-roll-hint">&#127922;</span>
+                <div class="attr-label-cn">力量</div>
+                <div class="attr-label-en">Strength</div>
+                <div class="attr-value positive">+1</div>
+              </div>
+              <div class="attr-cell">
+                <span class="attr-roll-hint">&#127922;</span>
+                <div class="attr-label-cn">本能</div>
+                <div class="attr-label-en">Instinct</div>
+                <div class="attr-value zero">0</div>
+              </div>
+              <div class="attr-cell">
+                <span class="attr-roll-hint">&#127922;</span>
+                <div class="attr-label-cn">知识</div>
+                <div class="attr-label-en">Knowledge</div>
+                <div class="attr-value negative">-1</div>
+              </div>
+              <div class="attr-cell">
+                <span class="attr-roll-hint">&#127922;</span>
+                <div class="attr-label-cn">风度</div>
+                <div class="attr-label-en">Presence</div>
+                <div class="attr-value zero">0</div>
+              </div>
+              <div class="attr-cell">
+                <span class="attr-roll-hint">&#127922;</span>
+                <div class="attr-label-cn">灵巧</div>
+                <div class="attr-label-en">Finesse</div>
+                <div class="attr-value positive">+1</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-label">资源</div>
+            <div class="res-row">
+              <span class="res-icon" style="color: #e74c3c">&#9829;</span>
+              <div class="res-bar">
+                <div
+                  class="res-bar-fill"
+                  style="width: 100%; background: linear-gradient(90deg, #c0392b, #e74c3c)"
+                ></div>
+              </div>
+              <span class="res-text">6/6</span>
+            </div>
+            <div class="res-row">
+              <span class="res-icon" style="color: #9b59b6">&#10022;</span>
+              <div class="res-bar">
+                <div
+                  class="res-bar-fill"
+                  style="width: 0%; background: linear-gradient(90deg, #7d3c98, #9b59b6)"
+                ></div>
+              </div>
+              <span class="res-text">0/6</span>
+            </div>
+            <div class="res-row">
+              <span class="res-icon" style="color: rgba(130, 195, 240, 0.85); font-size: 9px"
+                >&#9789;</span
+              >
+              <div class="res-pips">
+                <div class="res-pip filled armor"></div>
+                <div class="res-pip filled armor"></div>
+                <div class="res-pip filled armor"></div>
+                <div class="res-pip filled armor"></div>
+              </div>
+              <span class="res-text">4/4</span>
+            </div>
+            <div class="res-row">
+              <span class="res-icon" style="color: #f1c40f">&#9670;</span>
+              <div class="res-pips">
+                <div class="res-pip empty hope"></div>
+                <div class="res-pip empty hope"></div>
+                <div class="res-pip empty hope"></div>
+                <div class="res-pip empty hope"></div>
+                <div class="res-pip empty hope"></div>
+                <div class="res-pip empty hope"></div>
+              </div>
+              <span class="res-text">0/6</span>
+            </div>
+          </div>
+
+          <div class="threshold-row">
+            <div class="threshold-cell evasion">
+              <div class="threshold-label">闪避</div>
+              <div class="threshold-value">12</div>
+            </div>
+            <div class="threshold-cell">
+              <div class="threshold-label">重伤</div>
+              <div class="threshold-value">10</div>
+            </div>
+            <div class="threshold-cell">
+              <div class="threshold-label">严重</div>
+              <div class="threshold-value">22</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Experiences + Status -->
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div class="section" style="flex: 1">
+            <div class="section-label">经历</div>
+            <div class="exp-list">
+              <div class="exp-item">
+                <span class="exp-name">森林生存专家</span>
+                <span class="exp-value">+2</span>
+              </div>
+              <div class="exp-item">
+                <span class="exp-name">铁匠学徒</span>
+                <span class="exp-value">+2</span>
+              </div>
+              <div class="exp-item">
+                <span class="exp-name">古代遗迹探索者</span>
+                <span class="exp-value">+1</span>
+              </div>
+              <div class="exp-item">
+                <span class="exp-name">边境巡逻兵</span>
+                <span class="exp-value">+3</span>
+              </div>
+              <div class="exp-item">
+                <span class="exp-name">酒馆说书人</span>
+                <span class="exp-value">+1</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-label">状态</div>
+            <div class="status-row">
+              <span class="status-tag buff">护盾术 3r</span>
+              <span class="status-tag debuff">流血 2r</span>
+              <span class="status-tag neutral">隐匿</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-
-  </div>
-
-</body>
+  </body>
 </html>

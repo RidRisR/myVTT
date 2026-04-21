@@ -16,38 +16,39 @@
 
 ### Modified Files
 
-| Path | Responsibility |
-|------|----------------|
-| `src/rules/types.ts` | 扩展 Daggerheart judgment outcome 联合类型 |
-| `plugins/daggerheart-core/rollTypes.ts` | 扩展 `RollConfig` / `ActionCheckVars` 以支持 `applyOutcomeEffects` 与公式草稿 |
-| `plugins/daggerheart/types.ts` | 扩展模板配置类型，保留 `dc?` 并新增 `applyOutcomeEffects` |
-| `plugins/daggerheart-core/rollTemplateUtils.ts` | 默认模板配置、clone / materialize 逻辑带上新字段 |
-| `plugins/daggerheart-core/RollTemplateManager.ts` | 修正默认模板配置与现有 TS 报错，兼容新字段 |
-| `plugins/daggerheart-core/DiceJudge.ts` | 支持 `hope_unknown` / `fear_unknown` 与无 DC 判定 |
-| `plugins/daggerheart-core/index.ts` | 更新 `.dd` / `.ddr` 默认值、workflow judge/resolve 逻辑、input context |
-| `plugins/daggerheart-core/ui/ModifierPanel.tsx` | 支持可空 DC、反应掷骰开关、手写公式模式 |
-| `plugins/daggerheart-core/ui/modifier/FormulaBar.tsx` | 从只读 token 展示升级为可编辑输入控件/混合视图 |
-| `plugins/daggerheart-core/ui/DHActionCheckCard.tsx` | 渲染 `hope_unknown` / `fear_unknown` 文案与无 DC 展示 |
-| `plugins/daggerheart-core/ui/bottom/DiceTab.tsx` | 通过统一入口触发修改后的配置，必要时开放“调整”入口 |
-| `plugins/daggerheart-core/ui/bottom/CustomTab.tsx` | 继续复用 `ModifierPanel`，不再要求独立自由公式输入框 |
-| `plugins/daggerheart-core/__tests__/actionCheckWorkflow.test.ts` | 覆盖无 DC / 反应掷骰 / `.ddr` 默认行为 |
-| `plugins/daggerheart-core/__tests__/DiceJudge.test.ts` | 覆盖新 outcome |
-| `plugins/daggerheart-core/__tests__/rollTemplateWorkflows.test.ts` | 覆盖模板保存/恢复新字段 |
-| `plugins/daggerheart-core/__tests__/ui/PlayerBottomPanel.test.tsx` | 覆盖新的统一入口触发 |
-| `plugins/daggerheart-core/rollConfigUtils.test.ts` | 如需要，补公式文本与 `RollConfig` 同步相关测试 |
+| Path                                                               | Responsibility                                                                |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `src/rules/types.ts`                                               | 扩展 Daggerheart judgment outcome 联合类型                                    |
+| `plugins/daggerheart-core/rollTypes.ts`                            | 扩展 `RollConfig` / `ActionCheckVars` 以支持 `applyOutcomeEffects` 与公式草稿 |
+| `plugins/daggerheart/types.ts`                                     | 扩展模板配置类型，保留 `dc?` 并新增 `applyOutcomeEffects`                     |
+| `plugins/daggerheart-core/rollTemplateUtils.ts`                    | 默认模板配置、clone / materialize 逻辑带上新字段                              |
+| `plugins/daggerheart-core/RollTemplateManager.ts`                  | 修正默认模板配置与现有 TS 报错，兼容新字段                                    |
+| `plugins/daggerheart-core/DiceJudge.ts`                            | 支持 `hope_unknown` / `fear_unknown` 与无 DC 判定                             |
+| `plugins/daggerheart-core/index.ts`                                | 更新 `.dd` / `.ddr` 默认值、workflow judge/resolve 逻辑、input context        |
+| `plugins/daggerheart-core/ui/ModifierPanel.tsx`                    | 支持可空 DC、反应掷骰开关、手写公式模式                                       |
+| `plugins/daggerheart-core/ui/modifier/FormulaBar.tsx`              | 从只读 token 展示升级为可编辑输入控件/混合视图                                |
+| `plugins/daggerheart-core/ui/DHActionCheckCard.tsx`                | 渲染 `hope_unknown` / `fear_unknown` 文案与无 DC 展示                         |
+| `plugins/daggerheart-core/ui/bottom/DiceTab.tsx`                   | 通过统一入口触发修改后的配置，必要时开放“调整”入口                            |
+| `plugins/daggerheart-core/ui/bottom/CustomTab.tsx`                 | 继续复用 `ModifierPanel`，不再要求独立自由公式输入框                          |
+| `plugins/daggerheart-core/__tests__/actionCheckWorkflow.test.ts`   | 覆盖无 DC / 反应掷骰 / `.ddr` 默认行为                                        |
+| `plugins/daggerheart-core/__tests__/DiceJudge.test.ts`             | 覆盖新 outcome                                                                |
+| `plugins/daggerheart-core/__tests__/rollTemplateWorkflows.test.ts` | 覆盖模板保存/恢复新字段                                                       |
+| `plugins/daggerheart-core/__tests__/ui/PlayerBottomPanel.test.tsx` | 覆盖新的统一入口触发                                                          |
+| `plugins/daggerheart-core/rollConfigUtils.test.ts`                 | 如需要，补公式文本与 `RollConfig` 同步相关测试                                |
 
 ### New Files
 
-| Path | Responsibility |
-|------|----------------|
-| `plugins/daggerheart-core/rollFormulaSync.ts` | 公式字符串到 `RollConfig` 的受限同步逻辑（仅覆盖支持的语法子集） |
-| `plugins/daggerheart-core/rollFormulaSync.test.ts` | 文本公式同步测试 |
+| Path                                               | Responsibility                                                   |
+| -------------------------------------------------- | ---------------------------------------------------------------- |
+| `plugins/daggerheart-core/rollFormulaSync.ts`      | 公式字符串到 `RollConfig` 的受限同步逻辑（仅覆盖支持的语法子集） |
+| `plugins/daggerheart-core/rollFormulaSync.test.ts` | 文本公式同步测试                                                 |
 
 ---
 
 ## Task 1: 扩展类型与判定语义
 
 **Files:**
+
 - Modify: `src/rules/types.ts`
 - Modify: `plugins/daggerheart-core/rollTypes.ts`
 - Modify: `plugins/daggerheart/types.ts`
@@ -87,6 +88,7 @@ it('returns critical_success without dc when duality dice are equal', () => {
 Run: `npx vitest run plugins/daggerheart-core/__tests__/DiceJudge.test.ts`
 
 Expected:
+
 - 现有 `evaluate` 签名要求 `dc`
 - 或 outcome 联合类型不包含 `hope_unknown` / `fear_unknown`
 
@@ -125,6 +127,7 @@ Expected: PASS
 ## Task 2: 更新 workflow，支持无 DC 与反应掷骰
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/index.ts`
 - Modify: `plugins/daggerheart-core/rollTypes.ts`
 - Test: `plugins/daggerheart-core/__tests__/actionCheckWorkflow.test.ts`
@@ -154,6 +157,7 @@ it('registers .ddr with applyOutcomeEffects=false defaults', async () => {
 Run: `npx vitest run plugins/daggerheart-core/__tests__/actionCheckWorkflow.test.ts`
 
 Expected:
+
 - outcome 仍为 `null` 或老结果
 - `applyOutcomeEffects` 未参与 `resolve`
 
@@ -193,6 +197,7 @@ Expected: PASS
 ## Task 3: 修正模板配置与现有 TS 报错
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/rollTemplateUtils.ts`
 - Modify: `plugins/daggerheart-core/RollTemplateManager.ts`
 - Modify: `plugins/daggerheart/types.ts`
@@ -216,6 +221,7 @@ it('preserves applyOutcomeEffects=false when editing template config', async () 
 Run: `npx vitest run plugins/daggerheart-core/__tests__/rollTemplateWorkflows.test.ts`
 
 Expected:
+
 - 新字段缺失
 - 或默认值不符合预期
 
@@ -249,6 +255,7 @@ Expected: PASS
 ## Task 4: 为 `ModifierPanel` 增加可空 DC、反应掷骰和手写公式
 
 **Files:**
+
 - Create: `plugins/daggerheart-core/rollFormulaSync.ts`
 - Test: `plugins/daggerheart-core/rollFormulaSync.test.ts`
 - Modify: `plugins/daggerheart-core/ui/ModifierPanel.tsx`
@@ -313,6 +320,7 @@ export function parseFormulaToRollConfig(formula: string): Partial<RollConfig> |
 - [ ] **Step 5: 跑相关定向测试确认通过**
 
 Run:
+
 - `npx vitest run plugins/daggerheart-core/rollFormulaSync.test.ts`
 - `npx vitest run plugins/daggerheart-core/__tests__/ui/PlayerBottomPanel.test.tsx`
 
@@ -323,6 +331,7 @@ Expected: PASS
 ## Task 5: 更新聊天展示与完成验证
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/ui/DHActionCheckCard.tsx`
 - Modify: `plugins/daggerheart-core/__tests__/actionCheckWorkflow.test.ts`
 - Modify: `plugins/daggerheart-core/__tests__/DiceJudge.test.ts`
@@ -337,6 +346,7 @@ Expected: PASS
 - [ ] **Step 2: 运行定向测试确认先失败**
 
 Run:
+
 - `npx vitest run plugins/daggerheart-core/__tests__/DiceJudge.test.ts`
 - `npx vitest run plugins/daggerheart-core/__tests__/actionCheckWorkflow.test.ts`
 
@@ -352,10 +362,12 @@ Run:
 - [ ] **Step 4: 运行全套相关验证**
 
 Run:
+
 - `npx vitest run plugins/daggerheart-core/__tests__/DiceJudge.test.ts plugins/daggerheart-core/__tests__/actionCheckWorkflow.test.ts plugins/daggerheart-core/__tests__/rollTemplateWorkflows.test.ts plugins/daggerheart-core/__tests__/ui/PlayerBottomPanel.test.tsx plugins/daggerheart-core/rollConfigUtils.test.ts plugins/daggerheart-core/rollFormulaSync.test.ts`
 - `npx tsc --noEmit`
 
 Expected:
+
 - 所有定向测试通过
 - TypeScript 无错误
 

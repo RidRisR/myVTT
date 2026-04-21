@@ -19,20 +19,20 @@
 
 ### Modified files
 
-| File | Change |
-| --- | --- |
+| File                                | Change                                                                 |
+| ----------------------------------- | ---------------------------------------------------------------------- |
 | `plugins/daggerheart-core/index.ts` | Define `charcard:update-attr` workflow, register character card region |
-| `plugins/daggerheart/i18n.ts` | Add character card i18n keys (section labels, roll tooltip) |
+| `plugins/daggerheart/i18n.ts`       | Add character card i18n keys (section labels, roll tooltip)            |
 
 ### New files
 
-| File | Responsibility |
-| --- | --- |
-| `plugins/daggerheart-core/CharCardManager.ts` | Manager class: `updateAttribute(ctx, entityId, attr, value)` — validates and writes attribute component |
-| `plugins/daggerheart/ui/CharacterCard.tsx` | Region component: reads active entity, renders dual-zone attribute grid, hidden for GM |
-| `plugins/daggerheart/ui/AttributeCell.tsx` | Sub-component: label zone (roll) + number zone (inline edit) |
-| `plugins/daggerheart-core/__tests__/charCardWorkflows.test.ts` | Workflow unit tests for `charcard:update-attr` |
-| `plugins/daggerheart/__tests__/ui/CharacterCard.test.tsx` | Component tests: renders attributes, roll clicks, edit clicks, GM hidden |
+| File                                                           | Responsibility                                                                                          |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `plugins/daggerheart-core/CharCardManager.ts`                  | Manager class: `updateAttribute(ctx, entityId, attr, value)` — validates and writes attribute component |
+| `plugins/daggerheart/ui/CharacterCard.tsx`                     | Region component: reads active entity, renders dual-zone attribute grid, hidden for GM                  |
+| `plugins/daggerheart/ui/AttributeCell.tsx`                     | Sub-component: label zone (roll) + number zone (inline edit)                                            |
+| `plugins/daggerheart-core/__tests__/charCardWorkflows.test.ts` | Workflow unit tests for `charcard:update-attr`                                                          |
+| `plugins/daggerheart/__tests__/ui/CharacterCard.test.tsx`      | Component tests: renders attributes, roll clicks, edit clicks, GM hidden                                |
 
 ---
 
@@ -41,6 +41,7 @@
 ### Task 1: CharCardManager + update-attr workflow
 
 **Files:**
+
 - Create: `plugins/daggerheart-core/CharCardManager.ts`
 - Modify: `plugins/daggerheart-core/index.ts`
 - Create: `plugins/daggerheart-core/__tests__/charCardWorkflows.test.ts`
@@ -59,7 +60,14 @@ export class CharCardManager {
   updateAttribute(ctx: WorkflowContext, entityId: string, attribute: string, value: number): void {
     if (!VALID_ATTRS.includes(attribute as (typeof VALID_ATTRS)[number])) return
     ctx.updateComponent(entityId, DH_KEYS.attributes, (prev: unknown) => {
-      const p = (prev ?? { agility: 0, strength: 0, finesse: 0, instinct: 0, presence: 0, knowledge: 0 }) as DHAttributes
+      const p = (prev ?? {
+        agility: 0,
+        strength: 0,
+        finesse: 0,
+        instinct: 0,
+        presence: 0,
+        knowledge: 0,
+      }) as DHAttributes
       return { ...p, [attribute]: value }
     })
   }
@@ -99,7 +107,14 @@ describe('charcard:update-attr workflow', () => {
     const { ctx, getComponent } = createTestContext(engine, {
       entityId: 'char1',
       initialComponents: {
-        'daggerheart:attributes': { agility: 0, strength: 0, finesse: 0, instinct: 0, presence: 0, knowledge: 0 },
+        'daggerheart:attributes': {
+          agility: 0,
+          strength: 0,
+          finesse: 0,
+          instinct: 0,
+          presence: 0,
+          knowledge: 0,
+        },
       },
     })
     await engine.runWorkflow('charcard:update-attr', ctx, ctx.internal)
@@ -154,6 +169,7 @@ git commit -m "feat(daggerheart): add CharCardManager and charcard:update-attr w
 ### Task 2: i18n keys for character card
 
 **Files:**
+
 - Modify: `plugins/daggerheart/i18n.ts`
 
 - [ ] **Step 1: Add character card i18n keys**
@@ -183,6 +199,7 @@ git commit -m "feat(daggerheart): add character card region i18n keys"
 ### Task 3: AttributeCell sub-component
 
 **Files:**
+
 - Create: `plugins/daggerheart/ui/AttributeCell.tsx`
 
 - [ ] **Step 1: Implement AttributeCell with dual zones**
@@ -278,9 +295,11 @@ git commit -m "feat(daggerheart): add AttributeCell with dual-zone interaction"
 ### Task 4: CharacterCard region component
 
 **Files:**
+
 - Create: `plugins/daggerheart/ui/CharacterCard.tsx`
 
 This is the main region component. It:
+
 - Reads the active character from `useIdentityStore` (seat → `activeCharacterId`)
 - Uses `sdk.data.useEntity()` and `sdk.data.useComponent()` for reactive data
 - Renders 6 AttributeCells in a 3×2 grid
@@ -416,6 +435,7 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
 ```
 
 **Important notes for implementer:**
+
 - `useIdentityStore` is imported directly from `src/stores/identityStore` — this is acceptable for region components reading session state. The `@myvtt/sdk` doesn't export it.
 - `sdk.data.useComponent()` uses the string overload (fallback for plugin-defined keys not in ComponentTypeMap).
 - The `WorkflowHandle` is created as `{ name: '...' } as WorkflowHandle` — same pattern as FearPanel.
@@ -434,6 +454,7 @@ git commit -m "feat(daggerheart): add CharacterCard region component with dual-z
 ### Task 5: Register region + delete FullCharacterSheet
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/index.ts` — register region
 - Delete: `plugins/daggerheart/ui/FullCharacterSheet.tsx`
 
@@ -482,16 +503,19 @@ git commit -m "feat(daggerheart): register CharacterCard region, remove FullChar
 ### Task 6: Component tests
 
 **Files:**
+
 - Create: `plugins/daggerheart/__tests__/ui/CharacterCard.test.tsx`
 
 - [ ] **Step 1: Write CharacterCard component tests**
 
 Follow the same mocking pattern as `plugins/daggerheart-core/__tests__/ui/FearPanel.test.tsx`:
+
 - Mock `@myvtt/sdk` for `usePluginTranslation`
 - Mock `useIdentityStore` to return a seat with `activeCharacterId`
 - Create a mock SDK with `data.useEntity()`, `data.useComponent()`, `workflow.runWorkflow()`, `context.role`
 
 Test cases:
+
 1. **Renders 6 attribute cells with correct values** — given attrs `{ agility: 2, strength: 1, ... }`, verify 6 `[data-testid=attr-value]` elements
 2. **Clicking roll zone triggers action-check** — click `[data-testid=attr-roll-zone]` on agility cell, verify `runWorkflow` called with action-check handle and `formula: '2d12+@agility'`
 3. **Clicking edit zone opens input** — click `[data-testid=attr-edit-zone]`, verify `[data-testid=attr-input]` appears
@@ -532,6 +556,7 @@ Expected: Clean (no errors)
 - [ ] **Step 3: Verify in preview**
 
 If preview is running (http://localhost:5151), refresh and verify:
+
 - As Player: character card appears on the left with 6 attributes
 - Clicking an attribute label triggers a roll (check chat for dice result)
 - Clicking an attribute number opens inline edit

@@ -102,10 +102,7 @@ function hydrateDiceState(config?: RollConfig): {
 
     if (group.label === '劣势' && group.operator === '-' && group.sides === 6) {
       disadvantage = group.count
-      keepSettings.set(
-        'disadvantage',
-        group.keep ? { ...group.keep } : { mode: 'high', count: 1 },
-      )
+      keepSettings.set('disadvantage', group.keep ? { ...group.keep } : { mode: 'high', count: 1 })
       continue
     }
 
@@ -290,7 +287,9 @@ export function ModifierPanel({
 
   const formulaConfig = useMemo(() => parseFormulaToRollConfig(formulaInput), [formulaInput])
   const formulaError =
-    formulaInput.trim().length > 0 && !formulaConfig ? '公式无法解析，支持标准骰、常量与 kh/kl/dh/dl。' : null
+    formulaInput.trim().length > 0 && !formulaConfig
+      ? '公式无法解析，支持标准骰、常量与 kh/kl/dh/dl。'
+      : null
 
   const rollConfig = useMemo<RollConfig>(() => {
     if (!formulaDirty) return structuredRollConfig

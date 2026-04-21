@@ -9,10 +9,12 @@
 **Tech Stack:** React + TypeScript + zustand + Tailwind CSS + existing workflow engine + diceUtils
 
 **Reference Mockups:**
+
 - `nimbalyst-local/mockups/daggerheart-player-bottom-panel.mockup.html`
 - `nimbalyst-local/mockups/daggerheart-modifier-panel.mockup.html` (v3)
 
 **Reference Spec:**
+
 - `docs/superpowers/specs/2026-04-12-player-bottom-panel-design.md`
 
 ---
@@ -59,26 +61,26 @@
 
 ## 任务状态总览
 
-| Task | 状态 | 说明 |
-|------|------|------|
-| Task 1 | 已完成 | `rollTypes.ts` 已存在 |
-| Task 2 | 已完成 | 公式转换工具与测试已通过 |
-| Task 3 | 已完成 | 执行函数与测试已通过 |
-| Task 4 | 已完成 | workflow 5 步重构已落地 |
-| Task 5 | 已完成 | `DiceJudge` / `DHActionCheckCard` 已适配 |
-| Task 6 | 已完成 | `FormulaBar.tsx` 已接入主面板 |
-| Task 7 | 已完成 | `AttributeGrid` / `ExperienceChips` 已接入主面板 |
-| Task 8 | 已完成 | `StepperRow` / `DiceRow` 已接入主面板 |
-| Task 9 | 已完成 | `AdvancedOptions` / `SideEffects` 已完成 |
-| Task 10 | 已完成 | `ModifierPanel` 已替换旧版临时实现 |
-| Task 11 | 已完成 | `bottom-center` 与 layout 测试已补齐 |
-| Task 12 | 已完成 | 底部面板折叠态 / 资源区已创建 |
-| Task 13 | 已完成 | `Attribute` / `Dice` / `Custom` 三个 Tab 均已可用 |
-| Task 14 | 已完成 | 主组件与 Region 注册已完成 |
-| Task 15 | 已完成 | CharacterCard 已切换到新触发协议 |
-| Task 16 | 进行中 | 类型检查与关键路径测试已通过，全量验证尚未执行 |
+| Task    | 状态   | 说明                                                                |
+| ------- | ------ | ------------------------------------------------------------------- |
+| Task 1  | 已完成 | `rollTypes.ts` 已存在                                               |
+| Task 2  | 已完成 | 公式转换工具与测试已通过                                            |
+| Task 3  | 已完成 | 执行函数与测试已通过                                                |
+| Task 4  | 已完成 | workflow 5 步重构已落地                                             |
+| Task 5  | 已完成 | `DiceJudge` / `DHActionCheckCard` 已适配                            |
+| Task 6  | 已完成 | `FormulaBar.tsx` 已接入主面板                                       |
+| Task 7  | 已完成 | `AttributeGrid` / `ExperienceChips` 已接入主面板                    |
+| Task 8  | 已完成 | `StepperRow` / `DiceRow` 已接入主面板                               |
+| Task 9  | 已完成 | `AdvancedOptions` / `SideEffects` 已完成                            |
+| Task 10 | 已完成 | `ModifierPanel` 已替换旧版临时实现                                  |
+| Task 11 | 已完成 | `bottom-center` 与 layout 测试已补齐                                |
+| Task 12 | 已完成 | 底部面板折叠态 / 资源区已创建                                       |
+| Task 13 | 已完成 | `Attribute` / `Dice` / `Custom` 三个 Tab 均已可用                   |
+| Task 14 | 已完成 | 主组件与 Region 注册已完成                                          |
+| Task 15 | 已完成 | CharacterCard 已切换到新触发协议                                    |
+| Task 16 | 进行中 | 类型检查与关键路径测试已通过，全量验证尚未执行                      |
 | Task 17 | 已完成 | `daggerheart:roll-templates` 组件、CRUD workflow、配置编辑 workflow |
-| Task 18 | 已完成 | Experience 稳定 key 与模板动态引用解析 |
+| Task 18 | 已完成 | Experience 稳定 key 与模板动态引用解析                              |
 
 ## 重新规划后的执行顺序
 
@@ -87,6 +89,7 @@
 状态：已完成
 
 已完成内容：
+
 - 新版 `ModifierPanel`
 - 角色卡入口协议切换
 - `Shift+click` 直掷
@@ -101,6 +104,7 @@
 目标：把 `CustomTab` 从占位版升级为实体级模板系统。
 
 已完成内容：
+
 - Experience 改为稳定 `key`
 - 新增 `daggerheart:roll-templates` entity component
 - 增加模板 add / update / remove / reorder / edit-config workflow
@@ -108,6 +112,7 @@
 - `CustomTab.tsx` 已接入列表 / 新建 / 编辑 / 删除 / 使用
 
 完成标准：
+
 - 模板持久化在 entity 上，不依赖 `localStorage`
 - 点击模板可进入统一 workflow
 - 模板中的动态修正引用当前实体的 attribute / experience，而不是固化旧数值
@@ -153,6 +158,7 @@ interface DHExperience {
 ```
 
 约束：
+
 - `key` 仅要求在单个 entity 内唯一
 - 不要求全局唯一；不同 entity 可以拥有相同的 `experience.key`
 - 模板运行时通过 `(entityId, experienceKey)` 解析经验来源
@@ -164,6 +170,7 @@ interface DHExperience {
 - 模板应保存结构化配置，并为动态修正保存引用信息
 
 建议方向：
+
 - `dualityDice` / `diceGroups` / `constantModifier` / `sideEffects` 可直接持久化
 - 属性修正保存 `attributeKey`
 - 经验修正保存 `experienceKey`
@@ -180,36 +187,38 @@ interface DHExperience {
 ## File Structure
 
 ### New Files
-| Path | Responsibility |
-|------|---------------|
-| `plugins/daggerheart-core/rollTypes.ts` | RollConfig, DiceGroup, ModifierSource, SideEffect 类型定义 |
-| `plugins/daggerheart-core/rollConfigUtils.ts` | RollConfig ↔ 公式字符串互转的纯函数 |
-| `plugins/daggerheart-core/rollConfigUtils.test.ts` | rollConfigUtils 单测 |
-| `plugins/daggerheart-core/ui/ModifierPanel.tsx` | 重写现有临时 modifier 面板 UI（InputHandler 组件） |
-| `plugins/daggerheart-core/ui/modifier/FormulaBar.tsx` | 公式栏子组件（已创建，待接入主面板） |
-| `plugins/daggerheart-core/ui/modifier/AttributeGrid.tsx` | 6属性选择网格（已创建，待接入主面板） |
-| `plugins/daggerheart-core/ui/modifier/ExperienceChips.tsx` | 经验药丸选择行（已创建，待接入主面板） |
-| `plugins/daggerheart-core/ui/modifier/StepperRow.tsx` | 优势/劣势/常量修正步进器行（已创建，待接入主面板） |
-| `plugins/daggerheart-core/ui/modifier/DiceRow.tsx` | 骰子选择行（二元骰 + 标准骰）（已创建，待接入主面板） |
-| `plugins/daggerheart-core/ui/modifier/AdvancedOptions.tsx` | 高级选项折叠面板（骰面替换 + 取高取低）（已创建） |
-| `plugins/daggerheart-core/ui/modifier/SideEffects.tsx` | 副作用折叠面板（资源变动配置） |
-| `plugins/daggerheart-core/ui/PlayerBottomPanel.tsx` | 底部面板 Region 组件（折叠/展开 + 3 tab） |
-| `plugins/daggerheart-core/ui/bottom/CollapsedBar.tsx` | 底部面板折叠态（资源速览 + 掷骰入口） |
-| `plugins/daggerheart-core/ui/bottom/AttributeTab.tsx` | 属性快速掷骰 tab |
-| `plugins/daggerheart-core/ui/bottom/CustomTab.tsx` | 自定义模板 tab |
-| `plugins/daggerheart-core/ui/bottom/DiceTab.tsx` | 原始骰子 tab |
-| `plugins/daggerheart-core/ui/bottom/ResourceSection.tsx` | 资源面板（HP/Stress/Hope/Armor） |
+
+| Path                                                       | Responsibility                                             |
+| ---------------------------------------------------------- | ---------------------------------------------------------- |
+| `plugins/daggerheart-core/rollTypes.ts`                    | RollConfig, DiceGroup, ModifierSource, SideEffect 类型定义 |
+| `plugins/daggerheart-core/rollConfigUtils.ts`              | RollConfig ↔ 公式字符串互转的纯函数                        |
+| `plugins/daggerheart-core/rollConfigUtils.test.ts`         | rollConfigUtils 单测                                       |
+| `plugins/daggerheart-core/ui/ModifierPanel.tsx`            | 重写现有临时 modifier 面板 UI（InputHandler 组件）         |
+| `plugins/daggerheart-core/ui/modifier/FormulaBar.tsx`      | 公式栏子组件（已创建，待接入主面板）                       |
+| `plugins/daggerheart-core/ui/modifier/AttributeGrid.tsx`   | 6属性选择网格（已创建，待接入主面板）                      |
+| `plugins/daggerheart-core/ui/modifier/ExperienceChips.tsx` | 经验药丸选择行（已创建，待接入主面板）                     |
+| `plugins/daggerheart-core/ui/modifier/StepperRow.tsx`      | 优势/劣势/常量修正步进器行（已创建，待接入主面板）         |
+| `plugins/daggerheart-core/ui/modifier/DiceRow.tsx`         | 骰子选择行（二元骰 + 标准骰）（已创建，待接入主面板）      |
+| `plugins/daggerheart-core/ui/modifier/AdvancedOptions.tsx` | 高级选项折叠面板（骰面替换 + 取高取低）（已创建）          |
+| `plugins/daggerheart-core/ui/modifier/SideEffects.tsx`     | 副作用折叠面板（资源变动配置）                             |
+| `plugins/daggerheart-core/ui/PlayerBottomPanel.tsx`        | 底部面板 Region 组件（折叠/展开 + 3 tab）                  |
+| `plugins/daggerheart-core/ui/bottom/CollapsedBar.tsx`      | 底部面板折叠态（资源速览 + 掷骰入口）                      |
+| `plugins/daggerheart-core/ui/bottom/AttributeTab.tsx`      | 属性快速掷骰 tab                                           |
+| `plugins/daggerheart-core/ui/bottom/CustomTab.tsx`         | 自定义模板 tab                                             |
+| `plugins/daggerheart-core/ui/bottom/DiceTab.tsx`           | 原始骰子 tab                                               |
+| `plugins/daggerheart-core/ui/bottom/ResourceSection.tsx`   | 资源面板（HP/Stress/Hope/Armor）                           |
 
 ### Modified Files
-| Path | Changes |
-|------|---------|
-| `plugins/daggerheart-core/index.ts` | 重构 action-check workflow 5 步、注册底部面板 Region、更新 inputHandler |
-| `plugins/daggerheart-core/DiceJudge.ts` | 适配新 roll 数据结构（从 rolls 提取 hope/fear die） |
-| `plugins/daggerheart-core/ui/DHActionCheckCard.tsx` | 适配新 payload 结构（显示完整公式 + 多组骰子） |
-| `plugins/daggerheart/ui/CharacterCard.tsx` | 更新 handleRoll 传入属性预选信息 |
-| `plugins/daggerheart/ui/AttributeCell.tsx` | 支持 Shift+click 跳过 modifier 面板 |
-| `src/ui-system/regionTypes.ts` | 添加 `'bottom-center'` 到 AnchorPoint 联合类型 |
-| `src/ui-system/layoutEngine.ts` | 添加 `'bottom-center'` anchor 计算逻辑 |
+
+| Path                                                | Changes                                                                 |
+| --------------------------------------------------- | ----------------------------------------------------------------------- |
+| `plugins/daggerheart-core/index.ts`                 | 重构 action-check workflow 5 步、注册底部面板 Region、更新 inputHandler |
+| `plugins/daggerheart-core/DiceJudge.ts`             | 适配新 roll 数据结构（从 rolls 提取 hope/fear die）                     |
+| `plugins/daggerheart-core/ui/DHActionCheckCard.tsx` | 适配新 payload 结构（显示完整公式 + 多组骰子）                          |
+| `plugins/daggerheart/ui/CharacterCard.tsx`          | 更新 handleRoll 传入属性预选信息                                        |
+| `plugins/daggerheart/ui/AttributeCell.tsx`          | 支持 Shift+click 跳过 modifier 面板                                     |
+| `src/ui-system/regionTypes.ts`                      | 添加 `'bottom-center'` 到 AnchorPoint 联合类型                          |
+| `src/ui-system/layoutEngine.ts`                     | 添加 `'bottom-center'` anchor 计算逻辑                                  |
 
 ---
 
@@ -218,6 +227,7 @@ interface DHExperience {
 ### Task 1: RollConfig 类型定义
 
 **Files:**
+
 - Create: `plugins/daggerheart-core/rollTypes.ts`
 
 - [ ] **Step 1: 创建 RollConfig 及相关类型**
@@ -336,6 +346,7 @@ git commit -m "feat(daggerheart): define RollConfig types for unified roll syste
 ### Task 2: RollConfig 工具函数 — 公式生成
 
 **Files:**
+
 - Create: `plugins/daggerheart-core/rollConfigUtils.ts`
 - Create: `plugins/daggerheart-core/rollConfigUtils.test.ts`
 
@@ -387,9 +398,7 @@ describe('rollConfigToFormula', () => {
   it('handles keep modifiers', () => {
     const config: RollConfig = {
       ...BASE_CONFIG,
-      diceGroups: [
-        { sides: 6, count: 3, operator: '+', keep: { mode: 'high', count: 2 } },
-      ],
+      diceGroups: [{ sides: 6, count: 3, operator: '+', keep: { mode: 'high', count: 2 } }],
       modifiers: [],
       constantModifier: 0,
     }
@@ -507,8 +516,7 @@ export function rollConfigToFormula(config: RollConfig): string {
     parts.push(g.operator === '-' ? `-${term}` : `+${term}`)
   }
 
-  const modTotal = config.modifiers.reduce((sum, m) => sum + m.value, 0)
-    + config.constantModifier
+  const modTotal = config.modifiers.reduce((sum, m) => sum + m.value, 0) + config.constantModifier
 
   if (modTotal > 0) parts.push(`+${modTotal}`)
   else if (modTotal < 0) parts.push(`${modTotal}`)
@@ -580,6 +588,7 @@ git commit -m "feat(daggerheart): add rollConfig formula conversion utilities wi
 ### Task 3: RollConfig 执行函数 — 将 RollConfig 转为 serverRoll 调用参数
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/rollConfigUtils.ts`
 - Modify: `plugins/daggerheart-core/rollConfigUtils.test.ts`
 
@@ -605,10 +614,10 @@ describe('buildDiceSpecs', () => {
     const specs = buildDiceSpecs(config)
     // 二元骰拆为两个独立 DiceSpec（因为面数可能不同）
     expect(specs).toEqual([
-      { sides: 12, count: 1 },  // hope die
-      { sides: 12, count: 1 },  // fear die
-      { sides: 6, count: 2 },   // extra group 1
-      { sides: 4, count: 1 },   // extra group 2
+      { sides: 12, count: 1 }, // hope die
+      { sides: 12, count: 1 }, // fear die
+      { sides: 6, count: 2 }, // extra group 1
+      { sides: 4, count: 1 }, // extra group 2
     ])
   })
 
@@ -634,9 +643,7 @@ describe('buildDiceSpecs', () => {
       constantModifier: 0,
       sideEffects: [],
     }
-    expect(buildDiceSpecs(config)).toEqual([
-      { sides: 20, count: 1 },
-    ])
+    expect(buildDiceSpecs(config)).toEqual([{ sides: 20, count: 1 }])
   })
 })
 
@@ -644,19 +651,15 @@ describe('assembleRollResult', () => {
   it('assembles server rolls into RollExecutionResult', () => {
     const config: RollConfig = {
       dualityDice: { hopeFace: 12, fearFace: 12 },
-      diceGroups: [
-        { sides: 6, count: 2, operator: '+', keep: { mode: 'high', count: 1 } },
-      ],
-      modifiers: [
-        { source: 'attr:agility', label: '敏捷', value: 3 },
-      ],
+      diceGroups: [{ sides: 6, count: 2, operator: '+', keep: { mode: 'high', count: 1 } }],
+      modifiers: [{ source: 'attr:agility', label: '敏捷', value: 3 }],
       constantModifier: 1,
       sideEffects: [],
     }
     // serverRoll returns number[][] — one sub-array per DiceSpec
     const serverRolls: number[][] = [
-      [8],   // hope die
-      [5],   // fear die
+      [8], // hope die
+      [5], // fear die
       [4, 6], // 2d6
     ]
     const result = assembleRollResult(config, serverRolls)
@@ -674,9 +677,7 @@ describe('assembleRollResult', () => {
   it('handles subtraction dice groups', () => {
     const config: RollConfig = {
       dualityDice: { hopeFace: 12, fearFace: 12 },
-      diceGroups: [
-        { sides: 4, count: 1, operator: '-' },
-      ],
+      diceGroups: [{ sides: 4, count: 1, operator: '-' }],
       modifiers: [],
       constantModifier: 0,
       sideEffects: [],
@@ -751,8 +752,7 @@ export function assembleRollResult(
 
   // 修正值总和
   const modifierTotal =
-    config.modifiers.reduce((sum, m) => sum + m.value, 0) +
-    config.constantModifier
+    config.modifiers.reduce((sum, m) => sum + m.value, 0) + config.constantModifier
 
   // 最终总计
   const diceTotal = groupResults.reduce((sum, r) => sum + r.subtotal, 0)
@@ -775,7 +775,10 @@ function applyKeepAndSum(
     } else {
       indexed.sort((a, b) => a.v - b.v)
     }
-    keptIndices = indexed.slice(0, group.keep.count).map((x) => x.i).sort((a, b) => a - b)
+    keptIndices = indexed
+      .slice(0, group.keep.count)
+      .map((x) => x.i)
+      .sort((a, b) => a - b)
   } else {
     keptIndices = allRolls.map((_, i) => i)
   }
@@ -806,6 +809,7 @@ git commit -m "feat(daggerheart): add buildDiceSpecs and assembleRollResult for 
 ### Task 4: 重构 action-check workflow 的 modifier + roll 步骤
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/index.ts:172-245`
 
 - [ ] **Step 1: 更新 modifier step 返回 RollConfig**
@@ -985,11 +989,7 @@ git commit -m "feat(daggerheart): add buildDiceSpecs and assembleRollResult for 
 
 ```typescript
 // 在 index.ts 顶部或单独文件
-function applySideEffect(
-  ctx: WorkflowContext,
-  actorId: string,
-  fx: SideEffectEntry,
-) {
+function applySideEffect(ctx: WorkflowContext, actorId: string, fx: SideEffectEntry) {
   switch (fx.resource) {
     case 'hope': {
       ctx.updateComponent<DHExtras>(actorId, DH_KEYS.extras, (prev) => {
@@ -1026,9 +1026,15 @@ function applySideEffect(
 - [ ] **Step 7: 添加必要的 import 语句**
 
 在 `index.ts` 顶部添加：
+
 ```typescript
 import type { RollConfig, RollExecutionResult, ActionCheckVars, SideEffectEntry } from './rollTypes'
-import { buildDiceSpecs, assembleRollResult, rollConfigToFormula, rollConfigToFormulaTokens } from './rollConfigUtils'
+import {
+  buildDiceSpecs,
+  assembleRollResult,
+  rollConfigToFormula,
+  rollConfigToFormulaTokens,
+} from './rollConfigUtils'
 ```
 
 - [ ] **Step 8: 运行 tsc 确认类型正确**
@@ -1048,6 +1054,7 @@ git commit -m "refactor(daggerheart): upgrade action-check workflow to use RollC
 ### Task 5: 更新 DiceJudge 和 DHActionCheckCard 适配新数据结构
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/DiceJudge.ts`
 - Modify: `plugins/daggerheart-core/ui/DHActionCheckCard.tsx`
 
@@ -1063,25 +1070,17 @@ Expected: 现有测试通过
 ```typescript
 // DHActionCheckCard.tsx — 更新 payload 解构
 // 从 entry.payload 中读取新字段
-const {
-  formula,
-  formulaTokens,
-  rollResult,
-  total,
-  dc,
-  judgment,
-  display,
-  dieConfigs,
-} = entry.payload as {
-  formula: string
-  formulaTokens?: FormulaToken[]
-  rollResult?: RollExecutionResult
-  total: number
-  dc?: number
-  judgment: JudgmentResult | null
-  display: JudgmentDisplay | null
-  dieConfigs: Array<{ color: string; label: string }>
-}
+const { formula, formulaTokens, rollResult, total, dc, judgment, display, dieConfigs } =
+  entry.payload as {
+    formula: string
+    formulaTokens?: FormulaToken[]
+    rollResult?: RollExecutionResult
+    total: number
+    dc?: number
+    judgment: JudgmentResult | null
+    display: JudgmentDisplay | null
+    dieConfigs: Array<{ color: string; label: string }>
+  }
 ```
 
 注意：保持向后兼容 — 旧的 payload 没有 `rollResult`/`formulaTokens`，用 `?.` 安全访问。dice 动画渲染暂时不变（后续 Phase 4 可增强）。
@@ -1100,6 +1099,7 @@ git commit -m "fix(daggerheart): adapt DiceJudge and action check card to new pa
 ### Task 6: Modifier Panel 子组件 — FormulaBar
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/ui/modifier/FormulaBar.tsx`（已创建，按主面板接入需要继续调整）
 
 - [ ] **Step 1: 实现 FormulaBar 组件**
@@ -1152,6 +1152,7 @@ git commit -m "feat(daggerheart): add FormulaBar component for modifier panel"
 ### Task 7: Modifier Panel 子组件 — AttributeGrid + ExperienceChips
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/ui/modifier/AttributeGrid.tsx`（已创建）
 - Modify: `plugins/daggerheart-core/ui/modifier/ExperienceChips.tsx`（已创建）
 
@@ -1264,6 +1265,7 @@ git commit -m "feat(daggerheart): add AttributeGrid and ExperienceChips for modi
 ### Task 8: Modifier Panel 子组件 — StepperRow + DiceRow
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/ui/modifier/StepperRow.tsx`（已创建）
 - Modify: `plugins/daggerheart-core/ui/modifier/DiceRow.tsx`（已创建）
 
@@ -1461,16 +1463,19 @@ git commit -m "feat(daggerheart): add StepperRow and DiceRow components for modi
 ### Task 9: Modifier Panel 子组件 — AdvancedOptions + SideEffects
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/ui/modifier/AdvancedOptions.tsx`（已创建）
 - Create: `plugins/daggerheart-core/ui/modifier/SideEffects.tsx`
 
 - [ ] **Step 1: 实现 AdvancedOptions（骰面替换 + 取高取低）**
 
 参考 mockup v3 的高级选项区域。折叠面板，展开后显示：
+
 1. 骰面替换（希望骰/恐惧骰的面数下拉）
 2. 每组骰子的取高/取低按钮 + 保留数量
 
 具体代码略长（约 120 行），实现要点：
+
 - props: `hopeFace`, `fearFace`, `diceGroups`, `onFaceChange`, `onKeepChange`
 - CollapsibleSection 组件复用于 AdvancedOptions 和 SideEffects
 - 骰面下拉：`[4, 6, 8, 10, 12, 20]`
@@ -1479,12 +1484,14 @@ git commit -m "feat(daggerheart): add StepperRow and DiceRow components for modi
 - [ ] **Step 2: 实现 SideEffects（副作用资源变动）**
 
 参考 mockup v3 的副作用区域。折叠面板，2×2 网格。
+
 - 4 项资源：希望(Diamond)、生命(Heart)、压力(Zap)、护甲(Shield)
 - 有符号值，颜色编码：负=红，正=绿
 - **压力反转**：压力增长=红（恶化），压力减少=绿（恢复）
 - SVG 图标 inline（不用 emoji，匹配 Lucide strokeWidth 1.5）
 
 实现要点：
+
 ```typescript
 // 压力的颜色反转逻辑
 function getEffectColor(resource: string, delta: number): string {
@@ -1507,6 +1514,7 @@ git commit -m "feat(daggerheart): add AdvancedOptions and SideEffects components
 ### Task 10: 重写 ModifierPanel 主组件
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/ui/ModifierPanel.tsx` (complete rewrite)
 
 - [ ] **Step 1: 实现 ModifierPanel 主组件**
@@ -1514,6 +1522,7 @@ git commit -m "feat(daggerheart): add AdvancedOptions and SideEffects components
 ModifierPanel 是 InputHandler 组件，通过 `requestInput` 挂载。它管理 `RollConfig` 状态，将子组件组合在一起。
 
 核心状态：
+
 ```typescript
 // 从 context 读取角色数据
 const attributes = sdk.data.useComponent<DHAttributes>(actorId, DH_KEYS.attributes)
@@ -1528,8 +1537,12 @@ const [constant, setConstant] = useState(0)
 const [dualityEnabled, setDualityEnabled] = useState(true)
 const [hopeFace, setHopeFace] = useState(12)
 const [fearFace, setFearFace] = useState(12)
-const [extraDice, setExtraDice] = useState<Map<number, { count: number; operator: '+' | '-' }>>(new Map())
-const [keepSettings, setKeepSettings] = useState<Map<string, { mode: 'high' | 'low'; count: number }>>( new Map())
+const [extraDice, setExtraDice] = useState<Map<number, { count: number; operator: '+' | '-' }>>(
+  new Map(),
+)
+const [keepSettings, setKeepSettings] = useState<
+  Map<string, { mode: 'high' | 'low'; count: number }>
+>(new Map())
 const [sideEffects, setSideEffects] = useState<SideEffectEntry[]>([
   { resource: 'hope', delta: 0 },
   { resource: 'hp', delta: 0 },
@@ -1539,13 +1552,18 @@ const [sideEffects, setSideEffects] = useState<SideEffectEntry[]>([
 ```
 
 构建 RollConfig 的 `useMemo`：
+
 ```typescript
 const rollConfig = useMemo((): RollConfig => {
   const modifiers: ModifierSource[] = []
 
   if (selectedAttr && attributes) {
     const val = attributes[selectedAttr as keyof DHAttributes] ?? 0
-    modifiers.push({ source: `attribute:${selectedAttr}`, label: ATTR_LABELS[selectedAttr], value: val })
+    modifiers.push({
+      source: `attribute:${selectedAttr}`,
+      label: ATTR_LABELS[selectedAttr],
+      value: val,
+    })
   }
 
   if (selectedExp !== null && experiences?.items[selectedExp]) {
@@ -1578,16 +1596,32 @@ const rollConfig = useMemo((): RollConfig => {
     constantModifier: constant,
     sideEffects: sideEffects.filter((fx) => fx.delta !== 0),
   }
-}, [selectedAttr, selectedExp, advantage, disadvantage, constant, dualityEnabled, hopeFace, fearFace, extraDice, keepSettings, sideEffects, attributes, experiences])
+}, [
+  selectedAttr,
+  selectedExp,
+  advantage,
+  disadvantage,
+  constant,
+  dualityEnabled,
+  hopeFace,
+  fearFace,
+  extraDice,
+  keepSettings,
+  sideEffects,
+  attributes,
+  experiences,
+])
 ```
 
 提交/取消：
+
 ```typescript
 const handleRoll = () => resolve(rollConfig)
 const handleCancel = () => cancel()
 ```
 
 键盘快捷键：
+
 ```typescript
 useEffect(() => {
   const handler = (e: KeyboardEvent) => {
@@ -1604,6 +1638,7 @@ useEffect(() => {
 - [ ] **Step 2: 更新 inputHandler 注册**
 
 在 `index.ts` 中将 `'daggerheart-core:modifier'` 改为 `'daggerheart-core:roll-modifier'`：
+
 ```typescript
 sdk.ui.registerInputHandler('daggerheart-core:roll-modifier', {
   component: ModifierPanel,
@@ -1628,6 +1663,7 @@ git commit -m "feat(daggerheart): rewrite ModifierPanel as full roll configurati
 ### Task 11: 添加 bottom-center AnchorPoint
 
 **Files:**
+
 - Modify: `src/ui-system/regionTypes.ts`
 - Modify: `src/ui-system/layoutEngine.ts`
 
@@ -1636,9 +1672,15 @@ git commit -m "feat(daggerheart): rewrite ModifierPanel as full roll configurati
 ```typescript
 // src/ui-system/regionTypes.ts
 export type AnchorPoint =
-  | 'top-left' | 'top-center' | 'top-right'
-  | 'center-left' | 'center' | 'center-right'
-  | 'bottom-left' | 'bottom-center' | 'bottom-right'
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'center-left'
+  | 'center'
+  | 'center-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right'
 ```
 
 - [ ] **Step 2: 在 layoutEngine 中添加 anchor 计算**
@@ -1646,12 +1688,14 @@ export type AnchorPoint =
 在以下三个函数中添加 `'top-center'` 和 `'bottom-center'` case：
 
 **`anchorFactor()`:**
+
 ```typescript
 case 'top-center': return { x: 0.5, y: 0 }
 case 'bottom-center': return { x: 0.5, y: 1 }
 ```
 
 **`anchorBase()`:**
+
 ```typescript
 case 'top-center': return { x: (vw - pw) / 2, y: 0 }
 case 'bottom-center': return { x: (vw - pw) / 2, y: vh - ph }
@@ -1675,12 +1719,14 @@ git commit -m "feat(layout): extend AnchorPoint with top-center and bottom-cente
 ### Task 12: PlayerBottomPanel 子组件 — CollapsedBar + ResourceSection
 
 **Files:**
+
 - Create: `plugins/daggerheart-core/ui/bottom/CollapsedBar.tsx`
 - Create: `plugins/daggerheart-core/ui/bottom/ResourceSection.tsx`
 
 - [ ] **Step 1: 实现 CollapsedBar（28px 折叠态）**
 
 参考底部面板 mockup Scene 1：
+
 - 掷骰按钮（骰子图标）
 - 资源速览：HP current/max、S current/max、H value、A value
 - 展开按钮（chevron）
@@ -1714,6 +1760,7 @@ git commit -m "feat(daggerheart): add CollapsedBar and ResourceSection for botto
 ### Task 13: PlayerBottomPanel 子组件 — AttributeTab + DiceTab + CustomTab
 
 **Files:**
+
 - Create: `plugins/daggerheart-core/ui/bottom/AttributeTab.tsx`
 - Create: `plugins/daggerheart-core/ui/bottom/DiceTab.tsx`
 - Create: `plugins/daggerheart-core/ui/bottom/CustomTab.tsx`
@@ -1742,6 +1789,7 @@ git commit -m "feat(daggerheart): add tab content components for bottom panel"
 ### Task 14: PlayerBottomPanel 主组件 + Region 注册
 
 **Files:**
+
 - Create: `plugins/daggerheart-core/ui/PlayerBottomPanel.tsx`
 - Modify: `plugins/daggerheart-core/index.ts` (region registration)
 
@@ -1821,6 +1869,7 @@ git commit -m "feat(daggerheart): add PlayerBottomPanel region with collapsed/ex
 ### Task 15: 更新 CharacterCard 使用统一工作流
 
 **Files:**
+
 - Modify: `plugins/daggerheart/ui/CharacterCard.tsx`
 - Modify: `plugins/daggerheart/ui/AttributeCell.tsx`
 
@@ -1849,6 +1898,7 @@ onClick={(e) => {
 ```
 
 然后 CharacterCard 的 handleRoll 签名更新：
+
 ```typescript
 const handleRoll = useCallback(
   (attrKey: string, shiftKey?: boolean) => {
@@ -1875,6 +1925,7 @@ git commit -m "feat(daggerheart): character card uses unified roll workflow with
 ### Task 16: E2E 验证 + 最终类型检查
 
 **Files:**
+
 - No new files
 
 - [ ] **Step 1: 运行全量类型检查**

@@ -52,7 +52,9 @@ function ExperienceItem({ exp, index, onEditName, onEditValue, onRemove }: Exper
           autoFocus
           defaultValue={exp.name}
           placeholder="Experience name"
-          onBlur={(e) => { handleNameCommit(e.target.value); }}
+          onBlur={(e) => {
+            handleNameCommit(e.target.value)
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
             if (e.key === 'Escape') {
@@ -81,7 +83,9 @@ function ExperienceItem({ exp, index, onEditName, onEditValue, onRemove }: Exper
           ref={valueRef}
           autoFocus
           defaultValue={exp.modifier}
-          onBlur={(e) => { handleValueCommit(e.target.value); }}
+          onBlur={(e) => {
+            handleValueCommit(e.target.value)
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
             if (e.key === 'Escape') setEditingValue(false)
@@ -104,7 +108,9 @@ function ExperienceItem({ exp, index, onEditName, onEditValue, onRemove }: Exper
       {/* Remove button */}
       <button
         className="opacity-0 group-hover/row:opacity-60 hover:!opacity-100 transition-opacity p-0.5 rounded hover:bg-red-500/20"
-        onClick={() => { onRemove(index); }}
+        onClick={() => {
+          onRemove(index)
+        }}
         data-testid="exp-remove"
       >
         <X size={8} className="text-text-muted" />

@@ -25,7 +25,9 @@ export function AttributeGrid({ attributes, selected, onSelect }: AttributeGridP
         return (
           <button
             key={key}
-            onClick={() => { onSelect(isSel ? null : key); }}
+            onClick={() => {
+              onSelect(isSel ? null : key)
+            }}
             className={`flex-1 flex flex-col items-center justify-center h-11 rounded-md border transition-colors cursor-pointer ${
               isSel
                 ? 'bg-success/[0.08] border-success/30 text-success'

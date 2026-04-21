@@ -84,7 +84,9 @@ export function ResourceBar({
           ref={inputRef}
           autoFocus
           defaultValue={`${current}/${max}`}
-          onBlur={(e) => { handleEditCommit(e.target.value); }}
+          onBlur={(e) => {
+            handleEditCommit(e.target.value)
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
             if (e.key === 'Escape') setEditing(false)
@@ -109,7 +111,9 @@ export function ResourceBar({
       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           className="w-3.5 h-3.5 rounded bg-white/10 border border-white/[0.12] text-text-muted/80 text-[9px] flex items-center justify-center cursor-pointer hover:bg-white/[0.18] hover:text-text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          onClick={() => { handleIncrement(-1); }}
+          onClick={() => {
+            handleIncrement(-1)
+          }}
           disabled={max === 0 || current <= 0}
           data-testid="res-dec"
         >
@@ -117,7 +121,9 @@ export function ResourceBar({
         </button>
         <button
           className="w-3.5 h-3.5 rounded bg-white/10 border border-white/[0.12] text-text-muted/80 text-[9px] flex items-center justify-center cursor-pointer hover:bg-white/[0.18] hover:text-text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          onClick={() => { handleIncrement(1); }}
+          onClick={() => {
+            handleIncrement(1)
+          }}
           disabled={max === 0 || current >= max}
           data-testid="res-inc"
         >

@@ -35,7 +35,9 @@ function ThresholdCell({ label, value, highlight, onEdit }: ThresholdCellProps) 
           ref={inputRef}
           autoFocus
           defaultValue={value}
-          onBlur={(e) => { handleCommit(e.target.value); }}
+          onBlur={(e) => {
+            handleCommit(e.target.value)
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
             if (e.key === 'Escape') setEditing(false)
@@ -76,10 +78,24 @@ export function ThresholdRow({ evasion, major, severe, labels, onEdit }: Thresho
         label={labels.evasion}
         value={evasion}
         highlight
-        onEdit={(v) => { onEdit('evasion', v); }}
+        onEdit={(v) => {
+          onEdit('evasion', v)
+        }}
       />
-      <ThresholdCell label={labels.major} value={major} onEdit={(v) => { onEdit('major', v); }} />
-      <ThresholdCell label={labels.severe} value={severe} onEdit={(v) => { onEdit('severe', v); }} />
+      <ThresholdCell
+        label={labels.major}
+        value={major}
+        onEdit={(v) => {
+          onEdit('major', v)
+        }}
+      />
+      <ThresholdCell
+        label={labels.severe}
+        value={severe}
+        onEdit={(v) => {
+          onEdit('severe', v)
+        }}
+      />
     </div>
   )
 }

@@ -15,17 +15,17 @@ estimated_tasks: 6
 
 每个 anchor/origin 对应一个 factor `(fx, fy)` ∈ [0,1]²：
 
-| 点 | fx | fy |
-|---|---|---|
-| top-left | 0 | 0 |
-| top-center | 0.5 | 0 |
-| top-right | 1 | 0 |
-| center-left | 0 | 0.5 |
-| center | 0.5 | 0.5 |
-| center-right | 1 | 0.5 |
-| bottom-left | 0 | 1 |
-| bottom-center | 0.5 | 1 |
-| bottom-right | 1 | 1 |
+| 点            | fx  | fy  |
+| ------------- | --- | --- |
+| top-left      | 0   | 0   |
+| top-center    | 0.5 | 0   |
+| top-right     | 1   | 0   |
+| center-left   | 0   | 0.5 |
+| center        | 0.5 | 0.5 |
+| center-right  | 1   | 0.5 |
+| bottom-left   | 0   | 1   |
+| bottom-center | 0.5 | 1   |
+| bottom-right  | 1   | 1   |
 
 resize 时的偏移补偿：
 
@@ -37,6 +37,7 @@ dOffsetY = (anchorFactor.y - resizeOriginFactor.y) × dh
 ```
 
 验证：
+
 - anchor=top-left (0,0), origin=top-left (0,0) → 补偿=0 ← 当前行为 ✓
 - anchor=top-left (0,0), origin=center-left (0,0.5) → dOffsetY = -0.5×dh ← top 上移，高度上下均分 ✓
 - anchor=top-right (1,0), origin=top-right (1,0) → 补偿=0 ← 右边界固定 ✓
@@ -48,6 +49,7 @@ dOffsetY = (anchorFactor.y - resizeOriginFactor.y) × dh
 ## 任务
 
 ### Task 1: 类型定义
+
 **文件**: `regionTypes.ts`, `registrationTypes.ts`
 
 - 新增 `ResizeOrigin` 9 宫格类型
@@ -55,6 +57,7 @@ dOffsetY = (anchorFactor.y - resizeOriginFactor.y) × dh
 - `RegionDef` 加 `resizeOrigin?: ResizeOrigin`
 
 ### Task 2: 布局引擎工具函数
+
 **文件**: `layoutEngine.ts`
 
 - `resizeOriginFactor(origin: ResizeOrigin): { x: number; y: number }`
@@ -63,6 +66,7 @@ dOffsetY = (anchorFactor.y - resizeOriginFactor.y) × dh
 - 对应单测 (`layoutEngine.test.ts`)
 
 ### Task 3: layoutStore 补偿逻辑
+
 **文件**: `layoutStore.ts`
 
 在 `updateEntry()` 中，当 partial 含 width/height 变化且 entry 有 resizeOrigin 时，
@@ -71,18 +75,21 @@ dOffsetY = (anchorFactor.y - resizeOriginFactor.y) × dh
 对应单测 (`layoutStore.test.ts`)。
 
 ### Task 4: Layout 入口播种
+
 **文件**: `App.tsx` (auto-populate useEffect)
 
 `addEntry()` 时从 `RegionDef.resizeOrigin` 复制到 entry。
 旧 entry 无 resizeOrigin → `undefined` → 不补偿 → 向后兼容。
 
 ### Task 5: CharacterCard 使用
+
 **文件**: `plugins/daggerheart-core/index.ts`, `CharacterCard.tsx`
 
 Region 注册加 `resizeOrigin: 'center-left'`。
 验证展开/收起动画为纯水平抽屉。
 
 ### Task 6: 最终验证
+
 - `tsc -b` 通过
 - 所有相关测试通过
 - 手动确认 CharacterCard 展开方向正确

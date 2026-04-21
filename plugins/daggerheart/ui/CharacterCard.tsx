@@ -289,7 +289,9 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
                 )}
               </div>
               <button
-                onClick={() => { setPinned((p) => !p); }}
+                onClick={() => {
+                  setPinned((p) => !p)
+                }}
                 className={`shrink-0 w-5 h-5 flex items-center justify-center rounded transition-colors ${
                   pinned
                     ? 'bg-accent/20 text-accent'
@@ -313,7 +315,9 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
                   onRoll={(shiftKey) => {
                     handleRoll(key, shiftKey)
                   }}
-                  onEdit={(v) => { handleEditAttr(key, v); }}
+                  onEdit={(v) => {
+                    handleEditAttr(key, v)
+                  }}
                 />
               ))}
             </div>
@@ -328,7 +332,9 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
                 gradientTo="#e74c3c"
                 current={health?.current ?? 0}
                 max={health?.max ?? 0}
-                onUpdate={(field, value) => { handleUpdateRes('health', field, value); }}
+                onUpdate={(field, value) => {
+                  handleUpdateRes('health', field, value)
+                }}
               />
               <ResourceBar
                 label={t('charcard.res.stress')}
@@ -338,7 +344,9 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
                 gradientTo="#9b59b6"
                 current={stress?.current ?? 0}
                 max={stress?.max ?? 0}
-                onUpdate={(field, value) => { handleUpdateRes('stress', field, value); }}
+                onUpdate={(field, value) => {
+                  handleUpdateRes('stress', field, value)
+                }}
               />
               <PipRow
                 label={t('charcard.res.armor')}
@@ -346,9 +354,9 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
                 color="rgba(130,195,240,0.7)"
                 current={extras?.armor ?? 0}
                 max={extras?.armorMax ?? 0}
-                onUpdate={(field, v) =>
-                  { handleUpdateExtras(field === 'max' ? 'armorMax' : 'armor', v); }
-                }
+                onUpdate={(field, v) => {
+                  handleUpdateExtras(field === 'max' ? 'armorMax' : 'armor', v)
+                }}
               />
               <PipRow
                 label={t('charcard.res.hope')}
@@ -356,7 +364,9 @@ export function CharacterCard({ sdk }: { sdk: IRegionSDK }) {
                 color="#f1c40f"
                 current={extras?.hope ?? 0}
                 max={extras?.hopeMax ?? 6}
-                onUpdate={(field, v) => { handleUpdateExtras(field === 'max' ? 'hopeMax' : 'hope', v); }}
+                onUpdate={(field, v) => {
+                  handleUpdateExtras(field === 'max' ? 'hopeMax' : 'hope', v)
+                }}
               />
             </div>
 

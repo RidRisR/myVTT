@@ -1,753 +1,1442 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Georgia', -apple-system, system-ui, sans-serif;
-      background: #1a1a2e;
-      color: white;
-      overflow: hidden;
-      height: 100vh;
-      width: 100vw;
-    }
+  <head>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          'Georgia',
+          -apple-system,
+          system-ui,
+          sans-serif;
+        background: #1a1a2e;
+        color: white;
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+      }
 
-    .vtt-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(135deg, #4a90d9 0%, #6fb3e0 40%, #87ceeb 100%);
-      overflow: hidden;
-    }
+      .vtt-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #4a90d9 0%, #6fb3e0 40%, #87ceeb 100%);
+        overflow: hidden;
+      }
 
-    /* ===== Animations ===== */
-    @keyframes glow-pulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
-    @keyframes rotate-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    @keyframes twinkle { 0%,100% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.1); } }
+      /* ===== Animations ===== */
+      @keyframes glow-pulse {
+        0%,
+        100% {
+          opacity: 0.7;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      @keyframes rotate-slow {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes twinkle {
+        0%,
+        100% {
+          opacity: 0.5;
+          transform: scale(0.9);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.1);
+        }
+      }
 
-    /* ===== MENU BUTTON ===== */
-    .menu-btn {
-      position: absolute;
-      top: 10px; left: 10px;
-      width: 30px; height: 30px;
-      border: 1.5px solid rgba(255,255,255,0.4);
-      border-radius: 6px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
-      background: rgba(0,0,0,0.2);
-      backdrop-filter: blur(12px);
-      z-index: 10;
-      color: white;
-      cursor: pointer;
-    }
+      /* ===== MENU BUTTON ===== */
+      .menu-btn {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 30px;
+        height: 30px;
+        border: 1.5px solid rgba(255, 255, 255, 0.4);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        background: rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(12px);
+        z-index: 10;
+        color: white;
+        cursor: pointer;
+      }
 
-    /* ===== FEAR TRACKER (floating pill) ===== */
-    .fear-tracker {
-      position: absolute;
-      top: 8px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(12px);
-      padding: 5px 14px;
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.06);
-      z-index: 10;
-    }
-    .fear-label {
-      font-size: 8px;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      color: rgba(255,255,255,0.4);
-      margin-right: 4px;
-    }
-    .fear-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-    }
-    .fear-dot.filled {
-      background: #e74c3c;
-      border: 1px solid rgba(255,255,255,0.15);
-      box-shadow: 0 0 5px rgba(231, 76, 60, 0.4);
-    }
-    .fear-dot.empty {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    .fear-count {
-      font-size: 8px;
-      color: rgba(255,255,255,0.3);
-      margin-left: 4px;
-      font-variant-numeric: tabular-nums;
-    }
+      /* ===== FEAR TRACKER (floating pill) ===== */
+      .fear-tracker {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(12px);
+        padding: 5px 14px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        z-index: 10;
+      }
+      .fear-label {
+        font-size: 8px;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: rgba(255, 255, 255, 0.4);
+        margin-right: 4px;
+      }
+      .fear-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .fear-dot.filled {
+        background: #e74c3c;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 0 5px rgba(231, 76, 60, 0.4);
+      }
+      .fear-dot.empty {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .fear-count {
+        font-size: 8px;
+        color: rgba(255, 255, 255, 0.3);
+        margin-left: 4px;
+        font-variant-numeric: tabular-nums;
+      }
 
-    /* ===== LEFT: Character Card Panel (single-column) ===== */
-    .char-card-panel {
-      position: absolute;
-      top: 50%; left: 0;
-      transform: translateY(-50%);
-      width: 220px;
-      max-height: calc(100vh - 100px);
-      background: rgba(0, 0, 0, 0.32);
-      backdrop-filter: blur(18px);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-left: none;
-      border-radius: 0 16px 16px 0;
-      padding: 10px 10px;
-      z-index: 5;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      overflow-y: auto;
-      overflow-x: hidden;
-    }
-    .char-card-panel::-webkit-scrollbar { width: 3px; }
-    .char-card-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-    .char-card-panel::after {
-      content: '';
-      position: absolute;
-      top: 0; right: 0; bottom: 0; width: 1px;
-      background: linear-gradient(180deg, transparent 0%, rgba(255,215,100,0.15) 30%, rgba(130,195,240,0.12) 60%, transparent 100%);
-      pointer-events: none;
-    }
+      /* ===== LEFT: Character Card Panel (single-column) ===== */
+      .char-card-panel {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translateY(-50%);
+        width: 220px;
+        max-height: calc(100vh - 100px);
+        background: rgba(0, 0, 0, 0.32);
+        backdrop-filter: blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-left: none;
+        border-radius: 0 16px 16px 0;
+        padding: 10px 10px;
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+      .char-card-panel::-webkit-scrollbar {
+        width: 3px;
+      }
+      .char-card-panel::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+      }
+      .char-card-panel::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 1px;
+        background: linear-gradient(
+          180deg,
+          transparent 0%,
+          rgba(255, 215, 100, 0.15) 30%,
+          rgba(130, 195, 240, 0.12) 60%,
+          transparent 100%
+        );
+        pointer-events: none;
+      }
 
-    .panel-title-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .panel-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.55);
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-    }
-    .panel-hint {
-      font-size: 9px;
-      color: rgba(255,255,255,0.25);
-      cursor: pointer;
-    }
+      .panel-title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .panel-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.55);
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      .panel-hint {
+        font-size: 9px;
+        color: rgba(255, 255, 255, 0.25);
+        cursor: pointer;
+      }
 
-    /* Character header */
-    .char-header {
-      display: flex; align-items: center; gap: 8px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .char-portrait {
-      width: 32px; height: 32px; border-radius: 50%;
-      background: linear-gradient(135deg, #6a3093, #4a6fa5);
-      border: 2px solid rgba(255,215,100,0.25);
-      box-shadow: 0 0 8px rgba(255,215,100,0.08);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0;
-    }
-    .char-name { font-size: 11px; font-weight: 600; }
-    .char-class { font-size: 8px; color: rgba(255,255,255,0.38); }
+      /* Character header */
+      .char-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .char-portrait {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6a3093, #4a6fa5);
+        border: 2px solid rgba(255, 215, 100, 0.25);
+        box-shadow: 0 0 8px rgba(255, 215, 100, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      .char-name {
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .char-class {
+        font-size: 8px;
+        color: rgba(255, 255, 255, 0.38);
+      }
 
-    .section {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.04);
-      border-radius: 8px;
-      padding: 6px 7px;
-    }
-    .section-label {
-      font-size: 6px;
-      color: rgba(255,255,255,0.28);
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      margin-bottom: 4px;
-    }
+      .section {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 8px;
+        padding: 6px 7px;
+      }
+      .section-label {
+        font-size: 6px;
+        color: rgba(255, 255, 255, 0.28);
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        margin-bottom: 4px;
+      }
 
-    /* Attributes grid */
-    .attrs-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2px;
-    }
-    .attr-cell {
-      text-align: center;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.04);
-      border-radius: 6px;
-      padding: 3px 1px 3px;
-      cursor: pointer;
-      transition: background 0.2s;
-      position: relative;
-    }
-    .attr-cell:hover { background: rgba(255,255,255,0.08); }
-    .attr-label-cn { font-size: 6px; color: rgba(255,255,255,0.45); }
-    .attr-label-en { font-size: 5px; color: rgba(255,255,255,0.18); text-transform: uppercase; letter-spacing: 0.5px; }
-    .attr-value { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
-    .attr-value.positive { color: rgba(46,204,113,0.9); }
-    .attr-value.negative { color: rgba(231,76,60,0.85); }
-    .attr-value.zero { color: rgba(255,255,255,0.3); }
+      /* Attributes grid */
+      .attrs-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2px;
+      }
+      .attr-cell {
+        text-align: center;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 6px;
+        padding: 3px 1px 3px;
+        cursor: pointer;
+        transition: background 0.2s;
+        position: relative;
+      }
+      .attr-cell:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .attr-label-cn {
+        font-size: 6px;
+        color: rgba(255, 255, 255, 0.45);
+      }
+      .attr-label-en {
+        font-size: 5px;
+        color: rgba(255, 255, 255, 0.18);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .attr-value {
+        font-size: 14px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.1;
+      }
+      .attr-value.positive {
+        color: rgba(46, 204, 113, 0.9);
+      }
+      .attr-value.negative {
+        color: rgba(231, 76, 60, 0.85);
+      }
+      .attr-value.zero {
+        color: rgba(255, 255, 255, 0.3);
+      }
 
-    /* Resources */
-    .res-row {
-      display: flex; align-items: center; gap: 4px;
-      margin-bottom: 4px;
-    }
-    .res-row:last-child { margin-bottom: 0; }
-    .res-icon { font-size: 8px; width: 10px; text-align: center; }
-    .res-bar {
-      flex: 1; height: 5px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 3px; overflow: hidden;
-    }
-    .res-bar-fill { height: 100%; border-radius: 3px; }
-    .res-text {
-      font-size: 7px; width: 22px; text-align: right;
-      color: rgba(255,255,255,0.4);
-      font-variant-numeric: tabular-nums;
-    }
-    .res-pips { flex: 1; display: flex; gap: 2px; align-items: center; }
-    .res-pip { width: 6px; height: 6px; border-radius: 50%; }
-    .res-pip.filled.armor { background: rgba(130,195,240,0.7); box-shadow: 0 0 3px rgba(130,195,240,0.3); }
-    .res-pip.empty.armor { background: rgba(130,195,240,0.06); border: 1px solid rgba(130,195,240,0.12); }
-    .res-pip.filled.hope { background: #f1c40f; box-shadow: 0 0 3px rgba(241,196,15,0.4); }
-    .res-pip.empty.hope { background: rgba(241,196,15,0.06); border: 1px solid rgba(241,196,15,0.12); }
+      /* Resources */
+      .res-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 4px;
+      }
+      .res-row:last-child {
+        margin-bottom: 0;
+      }
+      .res-icon {
+        font-size: 8px;
+        width: 10px;
+        text-align: center;
+      }
+      .res-bar {
+        flex: 1;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .res-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+      }
+      .res-text {
+        font-size: 7px;
+        width: 22px;
+        text-align: right;
+        color: rgba(255, 255, 255, 0.4);
+        font-variant-numeric: tabular-nums;
+      }
+      .res-pips {
+        flex: 1;
+        display: flex;
+        gap: 2px;
+        align-items: center;
+      }
+      .res-pip {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+      .res-pip.filled.armor {
+        background: rgba(130, 195, 240, 0.7);
+        box-shadow: 0 0 3px rgba(130, 195, 240, 0.3);
+      }
+      .res-pip.empty.armor {
+        background: rgba(130, 195, 240, 0.06);
+        border: 1px solid rgba(130, 195, 240, 0.12);
+      }
+      .res-pip.filled.hope {
+        background: #f1c40f;
+        box-shadow: 0 0 3px rgba(241, 196, 15, 0.4);
+      }
+      .res-pip.empty.hope {
+        background: rgba(241, 196, 15, 0.06);
+        border: 1px solid rgba(241, 196, 15, 0.12);
+      }
 
-    /* Thresholds */
-    .threshold-row { display: flex; gap: 2px; }
-    .threshold-cell {
-      flex: 1; text-align: center;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.04);
-      border-radius: 6px;
-      padding: 3px 2px;
-    }
-    .threshold-label { font-size: 5px; color: rgba(255,255,255,0.25); }
-    .threshold-value { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6); font-variant-numeric: tabular-nums; }
-    .threshold-cell.evasion { border-color: rgba(100,200,255,0.08); }
-    .threshold-cell.evasion .threshold-value { color: rgba(100,200,255,0.85); }
+      /* Thresholds */
+      .threshold-row {
+        display: flex;
+        gap: 2px;
+      }
+      .threshold-cell {
+        flex: 1;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 6px;
+        padding: 3px 2px;
+      }
+      .threshold-label {
+        font-size: 5px;
+        color: rgba(255, 255, 255, 0.25);
+      }
+      .threshold-value {
+        font-size: 11px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.6);
+        font-variant-numeric: tabular-nums;
+      }
+      .threshold-cell.evasion {
+        border-color: rgba(100, 200, 255, 0.08);
+      }
+      .threshold-cell.evasion .threshold-value {
+        color: rgba(100, 200, 255, 0.85);
+      }
 
-    /* Experiences */
-    .exp-list { display: flex; flex-direction: column; gap: 2px; }
-    .exp-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 3px 6px;
-      background: rgba(255,255,255,0.03);
-      border-radius: 5px;
-    }
-    .exp-name { font-size: 8px; color: rgba(255,255,255,0.5); }
-    .exp-value { font-size: 9px; font-weight: 700; color: rgba(241,196,15,0.8); font-variant-numeric: tabular-nums; }
+      /* Experiences */
+      .exp-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .exp-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 3px 6px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 5px;
+      }
+      .exp-name {
+        font-size: 8px;
+        color: rgba(255, 255, 255, 0.5);
+      }
+      .exp-value {
+        font-size: 9px;
+        font-weight: 700;
+        color: rgba(241, 196, 15, 0.8);
+        font-variant-numeric: tabular-nums;
+      }
 
-    /* Status tags (card) */
-    .card-status-row { display: flex; flex-wrap: wrap; gap: 3px; }
-    .card-status-tag {
-      font-size: 7px; padding: 2px 6px; border-radius: 5px; font-weight: 500;
-    }
-    .card-status-tag.buff { background: rgba(46,204,113,0.12); color: rgba(46,204,113,0.8); border: 1px solid rgba(46,204,113,0.15); }
-    .card-status-tag.debuff { background: rgba(231,76,60,0.12); color: rgba(231,76,60,0.8); border: 1px solid rgba(231,76,60,0.15); }
-    .card-status-tag.neutral { background: rgba(241,196,15,0.1); color: rgba(241,196,15,0.75); border: 1px solid rgba(241,196,15,0.12); }
+      /* Status tags (card) */
+      .card-status-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+      }
+      .card-status-tag {
+        font-size: 7px;
+        padding: 2px 6px;
+        border-radius: 5px;
+        font-weight: 500;
+      }
+      .card-status-tag.buff {
+        background: rgba(46, 204, 113, 0.12);
+        color: rgba(46, 204, 113, 0.8);
+        border: 1px solid rgba(46, 204, 113, 0.15);
+      }
+      .card-status-tag.debuff {
+        background: rgba(231, 76, 60, 0.12);
+        color: rgba(231, 76, 60, 0.8);
+        border: 1px solid rgba(231, 76, 60, 0.15);
+      }
+      .card-status-tag.neutral {
+        background: rgba(241, 196, 15, 0.1);
+        color: rgba(241, 196, 15, 0.75);
+        border: 1px solid rgba(241, 196, 15, 0.12);
+      }
 
-    /* ===== RIGHT COLUMN ===== */
-    .right-column {
-      position: absolute;
-      top: 8px; right: 0;
-      bottom: 10px;
-      width: 220px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 5;
-    }
+      /* ===== RIGHT COLUMN ===== */
+      .right-column {
+        position: absolute;
+        top: 8px;
+        right: 0;
+        bottom: 10px;
+        width: 220px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 5;
+      }
 
-    /* Characters List */
-    .char-list-panel {
-      background: rgba(0, 0, 0, 0.28);
-      backdrop-filter: blur(16px);
-      border-left: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px 0 0 14px;
-      padding: 12px;
-      flex: 1;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
+      /* Characters List */
+      .char-list-panel {
+        background: rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(16px);
+        border-left: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px 0 0 14px;
+        padding: 12px;
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
 
-    .row-item {
-      display: flex; align-items: flex-start; gap: 8px;
-      padding: 5px 4px; border-radius: 8px;
-      cursor: pointer; transition: background 0.2s;
-    }
-    .row-item:hover { background: rgba(255,255,255,0.05); }
-    .row-item + .row-item { margin-top: 1px; }
+      .row-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 5px 4px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .row-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .row-item + .row-item {
+        margin-top: 1px;
+      }
 
-    .mini-avatar-wrap { position: relative; width: 34px; height: 34px; flex-shrink: 0; }
-    .mini-avatar {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 22px; height: 22px; border-radius: 50%;
-      border: 1.5px solid rgba(255,255,255,0.25);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 10px; z-index: 2;
-    }
-    .mini-arcs { position: absolute; inset: 0; width: 34px; height: 34px; }
+      .mini-avatar-wrap {
+        position: relative;
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+      }
+      .mini-avatar {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(255, 255, 255, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        z-index: 2;
+      }
+      .mini-arcs {
+        position: absolute;
+        inset: 0;
+        width: 34px;
+        height: 34px;
+      }
 
-    .row-body { flex: 1; min-width: 0; }
-    .row-top { display: flex; align-items: baseline; gap: 3px; }
-    .row-name { font-size: 10px; font-weight: 600; }
-    .row-class-hint { font-size: 7px; color: rgba(255,255,255,0.25); }
+      .row-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .row-top {
+        display: flex;
+        align-items: baseline;
+        gap: 3px;
+      }
+      .row-name {
+        font-size: 10px;
+        font-weight: 600;
+      }
+      .row-class-hint {
+        font-size: 7px;
+        color: rgba(255, 255, 255, 0.25);
+      }
 
-    .row-stats { display: flex; gap: 4px; margin-top: 2px; }
-    .mini-stat { display: flex; align-items: center; gap: 1px; font-size: 7px; color: rgba(255,255,255,0.4); font-variant-numeric: tabular-nums; }
-    .mini-stat .icon { font-size: 6px; }
-    .mini-stat.hp .icon { color: #e74c3c; }
-    .mini-stat.stress .icon { color: #9b59b6; }
-    .mini-stat.armor .icon { color: rgba(130,195,240,0.7); }
-    .mini-stat.hope .icon { color: #f1c40f; }
+      .row-stats {
+        display: flex;
+        gap: 4px;
+        margin-top: 2px;
+      }
+      .mini-stat {
+        display: flex;
+        align-items: center;
+        gap: 1px;
+        font-size: 7px;
+        color: rgba(255, 255, 255, 0.4);
+        font-variant-numeric: tabular-nums;
+      }
+      .mini-stat .icon {
+        font-size: 6px;
+      }
+      .mini-stat.hp .icon {
+        color: #e74c3c;
+      }
+      .mini-stat.stress .icon {
+        color: #9b59b6;
+      }
+      .mini-stat.armor .icon {
+        color: rgba(130, 195, 240, 0.7);
+      }
+      .mini-stat.hope .icon {
+        color: #f1c40f;
+      }
 
-    .row-statuses { display: flex; gap: 2px; margin-top: 2px; flex-wrap: wrap; }
-    .status-tag { font-size: 6px; padding: 1px 4px; border-radius: 3px; font-weight: 500; }
-    .status-tag.buff { background: rgba(46,204,113,0.12); color: rgba(46,204,113,0.75); border: 0.5px solid rgba(46,204,113,0.15); }
-    .status-tag.debuff { background: rgba(231,76,60,0.1); color: rgba(231,76,60,0.65); border: 0.5px solid rgba(231,76,60,0.12); }
-    .status-tag.neutral { background: rgba(241,196,15,0.08); color: rgba(241,196,15,0.65); border: 0.5px solid rgba(241,196,15,0.1); }
+      .row-statuses {
+        display: flex;
+        gap: 2px;
+        margin-top: 2px;
+        flex-wrap: wrap;
+      }
+      .status-tag {
+        font-size: 6px;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-weight: 500;
+      }
+      .status-tag.buff {
+        background: rgba(46, 204, 113, 0.12);
+        color: rgba(46, 204, 113, 0.75);
+        border: 0.5px solid rgba(46, 204, 113, 0.15);
+      }
+      .status-tag.debuff {
+        background: rgba(231, 76, 60, 0.1);
+        color: rgba(231, 76, 60, 0.65);
+        border: 0.5px solid rgba(231, 76, 60, 0.12);
+      }
+      .status-tag.neutral {
+        background: rgba(241, 196, 15, 0.08);
+        color: rgba(241, 196, 15, 0.65);
+        border: 0.5px solid rgba(241, 196, 15, 0.1);
+      }
 
-    .enemy .mini-avatar { border-color: rgba(231,76,60,0.3); }
-    .enemy-badge { font-size: 6px; color: rgba(231,76,60,0.5); background: rgba(231,76,60,0.08); padding: 0 3px; border-radius: 2px; margin-left: auto; line-height: 1.5; }
+      .enemy .mini-avatar {
+        border-color: rgba(231, 76, 60, 0.3);
+      }
+      .enemy-badge {
+        font-size: 6px;
+        color: rgba(231, 76, 60, 0.5);
+        background: rgba(231, 76, 60, 0.08);
+        padding: 0 3px;
+        border-radius: 2px;
+        margin-left: auto;
+        line-height: 1.5;
+      }
 
-    .section-divider { display: flex; align-items: center; gap: 6px; margin: 4px 0 2px; padding: 0 4px; }
-    .section-divider::before, .section-divider::after { content: ''; flex: 1; height: 0.5px; background: rgba(255,255,255,0.06); }
-    .section-divider span { font-size: 6px; color: rgba(255,255,255,0.18); text-transform: uppercase; letter-spacing: 1.2px; }
+      .section-divider {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 0 2px;
+        padding: 0 4px;
+      }
+      .section-divider::before,
+      .section-divider::after {
+        content: '';
+        flex: 1;
+        height: 0.5px;
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .section-divider span {
+        font-size: 6px;
+        color: rgba(255, 255, 255, 0.18);
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+      }
 
-    /* Chat Panel */
-    .chat-panel {
-      background: rgba(0, 0, 0, 0.32);
-      backdrop-filter: blur(16px);
-      border-radius: 14px 0 0 14px;
-      border: 1px solid rgba(255,255,255,0.06);
-      border-right: none;
-      padding: 10px 12px;
-      display: flex;
-      flex-direction: column;
-      height: 170px;
-      flex-shrink: 0;
-    }
-    .chat-messages { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 3px; }
-    .chat-msg { font-size: 10px; color: rgba(255,255,255,0.5); line-height: 1.4; }
-    .chat-msg .sender { color: rgba(255,255,255,0.75); font-weight: 500; }
-    .chat-input {
-      margin-top: 6px; height: 26px;
-      background: rgba(255,255,255,0.06); border-radius: 7px;
-      border: 1px solid rgba(255,255,255,0.06);
-      padding: 0 10px; font-size: 9px;
-      color: rgba(255,255,255,0.25);
-      display: flex; align-items: center;
-    }
+      /* Chat Panel */
+      .chat-panel {
+        background: rgba(0, 0, 0, 0.32);
+        backdrop-filter: blur(16px);
+        border-radius: 14px 0 0 14px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-right: none;
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        height: 170px;
+        flex-shrink: 0;
+      }
+      .chat-messages {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .chat-msg {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.5);
+        line-height: 1.4;
+      }
+      .chat-msg .sender {
+        color: rgba(255, 255, 255, 0.75);
+        font-weight: 500;
+      }
+      .chat-input {
+        margin-top: 6px;
+        height: 26px;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        padding: 0 10px;
+        font-size: 9px;
+        color: rgba(255, 255, 255, 0.25);
+        display: flex;
+        align-items: center;
+      }
 
-    /* ===== BOTTOM CENTER: Avatar ===== */
-    .my-avatar-area {
-      position: absolute;
-      bottom: 8px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      z-index: 8;
-    }
-    .avatar-wrapper {
-      position: relative;
-      width: 130px; height: 130px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .rune-ring {
-      position: absolute;
-      width: 126px; height: 126px;
-      border-radius: 50%;
-      border: 1px solid rgba(255, 215, 100, 0.08);
-      animation: rotate-slow 80s linear infinite;
-    }
-    .rune-ring::before {
-      content: '\16D9\16DC\16DD\16DE\16DF\16E0\16E1\16E2\16E3\16E4\16E5\16E6\16D9\16DC\16DD\16DE\16DF\16E0\16E1\16E2';
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 5px; color: rgba(255, 215, 100, 0.08); letter-spacing: 3px;
-    }
-    .hope-ring { position: absolute; width: 130px; height: 130px; z-index: 8; }
-    .hope-gem { position: absolute; width: 8px; height: 8px; border-radius: 50%; }
-    .hope-gem.filled {
-      background: radial-gradient(circle at 35% 35%, #fff, #f1c40f 45%, #c8960c);
-      box-shadow: 0 0 5px rgba(241, 196, 15, 0.6), 0 0 10px rgba(241, 196, 15, 0.2);
-      animation: twinkle 3s ease-in-out infinite;
-    }
-    .hope-gem:nth-child(2).filled { animation-delay: 0.5s; }
-    .hope-gem:nth-child(3).filled { animation-delay: 1s; }
-    .hope-gem.empty { background: rgba(241, 196, 15, 0.06); border: 1px solid rgba(241, 196, 15, 0.1); }
-    .hope-gem:nth-child(1) { left: 14px; top: 28px; }
-    .hope-gem:nth-child(2) { left: 28px; top: 10px; }
-    .hope-gem:nth-child(3) { left: 50px; top: 2px; }
-    .hope-gem:nth-child(4) { right: 50px; top: 2px; }
-    .hope-gem:nth-child(5) { right: 28px; top: 10px; }
-    .hope-gem:nth-child(6) { right: 14px; top: 28px; }
+      /* ===== BOTTOM CENTER: Avatar ===== */
+      .my-avatar-area {
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 8;
+      }
+      .avatar-wrapper {
+        position: relative;
+        width: 130px;
+        height: 130px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .rune-ring {
+        position: absolute;
+        width: 126px;
+        height: 126px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 215, 100, 0.08);
+        animation: rotate-slow 80s linear infinite;
+      }
+      .rune-ring::before {
+        content: '\16D9\16DC\16DD\16DE\16DF\16E0\16E1\16E2\16E3\16E4\16E5\16E6\16D9\16DC\16DD\16DE\16DF\16E0\16E1\16E2';
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 5px;
+        color: rgba(255, 215, 100, 0.08);
+        letter-spacing: 3px;
+      }
+      .hope-ring {
+        position: absolute;
+        width: 130px;
+        height: 130px;
+        z-index: 8;
+      }
+      .hope-gem {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .hope-gem.filled {
+        background: radial-gradient(circle at 35% 35%, #fff, #f1c40f 45%, #c8960c);
+        box-shadow:
+          0 0 5px rgba(241, 196, 15, 0.6),
+          0 0 10px rgba(241, 196, 15, 0.2);
+        animation: twinkle 3s ease-in-out infinite;
+      }
+      .hope-gem:nth-child(2).filled {
+        animation-delay: 0.5s;
+      }
+      .hope-gem:nth-child(3).filled {
+        animation-delay: 1s;
+      }
+      .hope-gem.empty {
+        background: rgba(241, 196, 15, 0.06);
+        border: 1px solid rgba(241, 196, 15, 0.1);
+      }
+      .hope-gem:nth-child(1) {
+        left: 14px;
+        top: 28px;
+      }
+      .hope-gem:nth-child(2) {
+        left: 28px;
+        top: 10px;
+      }
+      .hope-gem:nth-child(3) {
+        left: 50px;
+        top: 2px;
+      }
+      .hope-gem:nth-child(4) {
+        right: 50px;
+        top: 2px;
+      }
+      .hope-gem:nth-child(5) {
+        right: 28px;
+        top: 10px;
+      }
+      .hope-gem:nth-child(6) {
+        right: 14px;
+        top: 28px;
+      }
 
-    .arcs-svg { position: absolute; width: 110px; height: 110px; }
-    .armor-svg { position: absolute; width: 82px; height: 82px; z-index: 6; }
-    svg .hp-fill { stroke: #e74c3c; filter: drop-shadow(0 0 4px rgba(231,76,60,0.5)) drop-shadow(0 0 8px rgba(231,76,60,0.2)); animation: glow-pulse 3s ease-in-out infinite; }
-    svg .stress-fill { stroke: #9b59b6; filter: drop-shadow(0 0 4px rgba(155,89,182,0.4)) drop-shadow(0 0 8px rgba(155,89,182,0.15)); animation: glow-pulse 3s ease-in-out infinite 1.5s; }
+      .arcs-svg {
+        position: absolute;
+        width: 110px;
+        height: 110px;
+      }
+      .armor-svg {
+        position: absolute;
+        width: 82px;
+        height: 82px;
+        z-index: 6;
+      }
+      svg .hp-fill {
+        stroke: #e74c3c;
+        filter: drop-shadow(0 0 4px rgba(231, 76, 60, 0.5))
+          drop-shadow(0 0 8px rgba(231, 76, 60, 0.2));
+        animation: glow-pulse 3s ease-in-out infinite;
+      }
+      svg .stress-fill {
+        stroke: #9b59b6;
+        filter: drop-shadow(0 0 4px rgba(155, 89, 182, 0.4))
+          drop-shadow(0 0 8px rgba(155, 89, 182, 0.15));
+        animation: glow-pulse 3s ease-in-out infinite 1.5s;
+      }
 
-    .avatar-core {
-      width: 52px; height: 52px; border-radius: 50%;
-      background: linear-gradient(135deg, #8e44ad, #3498db);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px; position: relative; z-index: 10;
-      border: 2px solid rgba(255, 215, 100, 0.35);
-      box-shadow: 0 0 16px rgba(255, 215, 100, 0.1), inset 0 0 10px rgba(0,0,0,0.2);
-    }
-    .avatar-nickname {
-      font-size: 11px; font-weight: 500;
-      color: rgba(255,255,255,0.85);
-      text-shadow: 0 1px 4px rgba(0,0,0,0.3);
-      margin-top: 2px;
-    }
+      .avatar-core {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #8e44ad, #3498db);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        position: relative;
+        z-index: 10;
+        border: 2px solid rgba(255, 215, 100, 0.35);
+        box-shadow:
+          0 0 16px rgba(255, 215, 100, 0.1),
+          inset 0 0 10px rgba(0, 0, 0, 0.2);
+      }
+      .avatar-nickname {
+        font-size: 11px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.85);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+        margin-top: 2px;
+      }
 
-    .center-label {
-      position: absolute;
-      top: 45%; left: 50%;
-      transform: translate(-50%, -50%);
-      color: rgba(255,255,255,0.15);
-      font-size: 14px; letter-spacing: 2px;
-      pointer-events: none;
-    }
-  </style>
-</head>
-<body>
+      .center-label {
+        position: absolute;
+        top: 45%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: rgba(255, 255, 255, 0.15);
+        font-size: 14px;
+        letter-spacing: 2px;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Shared SVG defs -->
+    <svg width="0" height="0" style="position: absolute">
+      <defs>
+        <linearGradient id="armorGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(180,220,255,0.7)" />
+          <stop offset="40%" stop-color="rgba(110,180,230,0.5)" />
+          <stop offset="100%" stop-color="rgba(70,140,200,0.6)" />
+        </linearGradient>
+      </defs>
+    </svg>
 
-  <!-- Shared SVG defs -->
-  <svg width="0" height="0" style="position:absolute;">
-    <defs>
-      <linearGradient id="armorGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="rgba(180,220,255,0.7)" />
-        <stop offset="40%" stop-color="rgba(110,180,230,0.5)" />
-        <stop offset="100%" stop-color="rgba(70,140,200,0.6)" />
-      </linearGradient>
-    </defs>
-  </svg>
+    <div class="vtt-container">
+      <!-- MENU -->
+      <div class="menu-btn">☰</div>
 
-  <div class="vtt-container">
+      <!-- FEAR TRACKER -->
+      <div class="fear-tracker">
+        <span class="fear-label">Fear</span>
+        <div class="fear-dot filled"></div>
+        <div class="fear-dot filled"></div>
+        <div class="fear-dot filled"></div>
+        <div class="fear-dot filled"></div>
+        <div class="fear-dot empty"></div>
+        <div class="fear-dot empty"></div>
+        <div class="fear-dot empty"></div>
+        <div class="fear-dot empty"></div>
+        <div class="fear-dot empty"></div>
+        <div class="fear-dot empty"></div>
+        <div class="fear-dot empty"></div>
+        <div class="fear-dot empty"></div>
+        <span class="fear-count">4/12</span>
+      </div>
 
-    <!-- MENU -->
-    <div class="menu-btn">☰</div>
+      <!-- LEFT: Character Card (two-column) -->
+      <div class="char-card-panel">
+        <div class="panel-title-row">
+          <span class="panel-title">角色卡</span>
+          <span class="panel-hint">◀ 收回</span>
+        </div>
 
-    <!-- FEAR TRACKER -->
-    <div class="fear-tracker">
-      <span class="fear-label">Fear</span>
-      <div class="fear-dot filled"></div>
-      <div class="fear-dot filled"></div>
-      <div class="fear-dot filled"></div>
-      <div class="fear-dot filled"></div>
-      <div class="fear-dot empty"></div>
-      <div class="fear-dot empty"></div>
-      <div class="fear-dot empty"></div>
-      <div class="fear-dot empty"></div>
-      <div class="fear-dot empty"></div>
-      <div class="fear-dot empty"></div>
-      <div class="fear-dot empty"></div>
-      <div class="fear-dot empty"></div>
-      <span class="fear-count">4/12</span>
+        <div class="char-header">
+          <div class="char-portrait">⚔</div>
+          <div>
+            <div class="char-name">Kael Ironheart</div>
+            <div class="char-class">Guardian · Lv 3</div>
+          </div>
+        </div>
+
+        <!-- Attributes 3x2 -->
+        <div class="section">
+          <div class="section-label">属性</div>
+          <div class="attrs-grid">
+            <div class="attr-cell">
+              <div class="attr-label-cn">敏捷</div>
+              <div class="attr-label-en">Agility</div>
+              <div class="attr-value positive">+2</div>
+            </div>
+            <div class="attr-cell">
+              <div class="attr-label-cn">力量</div>
+              <div class="attr-label-en">Strength</div>
+              <div class="attr-value positive">+1</div>
+            </div>
+            <div class="attr-cell">
+              <div class="attr-label-cn">本能</div>
+              <div class="attr-label-en">Instinct</div>
+              <div class="attr-value zero">0</div>
+            </div>
+            <div class="attr-cell">
+              <div class="attr-label-cn">知识</div>
+              <div class="attr-label-en">Knowledge</div>
+              <div class="attr-value negative">-1</div>
+            </div>
+            <div class="attr-cell">
+              <div class="attr-label-cn">风度</div>
+              <div class="attr-label-en">Presence</div>
+              <div class="attr-value zero">0</div>
+            </div>
+            <div class="attr-cell">
+              <div class="attr-label-cn">灵巧</div>
+              <div class="attr-label-en">Finesse</div>
+              <div class="attr-value positive">+1</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resources -->
+        <div class="section">
+          <div class="section-label">资源</div>
+          <div class="res-row">
+            <span class="res-icon" style="color: #e74c3c">&#9829;</span>
+            <div class="res-bar">
+              <div
+                class="res-bar-fill"
+                style="width: 75%; background: linear-gradient(90deg, #c0392b, #e74c3c)"
+              ></div>
+            </div>
+            <span class="res-text">5/6</span>
+          </div>
+          <div class="res-row">
+            <span class="res-icon" style="color: #9b59b6">&#10022;</span>
+            <div class="res-bar">
+              <div
+                class="res-bar-fill"
+                style="width: 33%; background: linear-gradient(90deg, #7d3c98, #9b59b6)"
+              ></div>
+            </div>
+            <span class="res-text">2/6</span>
+          </div>
+          <div class="res-row">
+            <span class="res-icon" style="color: rgba(130, 195, 240, 0.85); font-size: 8px"
+              >&#9789;</span
+            >
+            <div class="res-pips">
+              <div class="res-pip filled armor"></div>
+              <div class="res-pip filled armor"></div>
+              <div class="res-pip filled armor"></div>
+              <div class="res-pip empty armor"></div>
+            </div>
+            <span class="res-text">3/4</span>
+          </div>
+          <div class="res-row">
+            <span class="res-icon" style="color: #f1c40f">&#9670;</span>
+            <div class="res-pips">
+              <div class="res-pip filled hope"></div>
+              <div class="res-pip filled hope"></div>
+              <div class="res-pip filled hope"></div>
+              <div class="res-pip empty hope"></div>
+              <div class="res-pip empty hope"></div>
+              <div class="res-pip empty hope"></div>
+            </div>
+            <span class="res-text">3/6</span>
+          </div>
+        </div>
+
+        <!-- Thresholds -->
+        <div class="threshold-row">
+          <div class="threshold-cell evasion">
+            <div class="threshold-label">闪避</div>
+            <div class="threshold-value">12</div>
+          </div>
+          <div class="threshold-cell">
+            <div class="threshold-label">重伤</div>
+            <div class="threshold-value">10</div>
+          </div>
+          <div class="threshold-cell">
+            <div class="threshold-label">严重</div>
+            <div class="threshold-value">22</div>
+          </div>
+        </div>
+
+        <!-- Experiences -->
+        <div class="section">
+          <div class="section-label">经历</div>
+          <div class="exp-list">
+            <div class="exp-item">
+              <span class="exp-name">森林生存专家</span><span class="exp-value">+2</span>
+            </div>
+            <div class="exp-item">
+              <span class="exp-name">铁匠学徒</span><span class="exp-value">+2</span>
+            </div>
+            <div class="exp-item">
+              <span class="exp-name">古代遗迹探索者</span><span class="exp-value">+1</span>
+            </div>
+            <div class="exp-item">
+              <span class="exp-name">边境巡逻兵</span><span class="exp-value">+3</span>
+            </div>
+            <div class="exp-item">
+              <span class="exp-name">酒馆说书人</span><span class="exp-value">+1</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div class="section">
+          <div class="section-label">状态</div>
+          <div class="card-status-row">
+            <span class="card-status-tag buff">护盾术 3r</span>
+            <span class="card-status-tag debuff">流血 2r</span>
+            <span class="card-status-tag neutral">隐匿</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="right-column">
+        <!-- Characters List -->
+        <div class="char-list-panel">
+          <div class="panel-title" style="margin-bottom: 6px">在场角色</div>
+
+          <div class="row-item">
+            <div class="mini-avatar-wrap">
+              <svg class="mini-arcs" viewBox="0 0 34 34">
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="rgba(231,76,60,0.07)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="44 88"
+                  transform="rotate(0 17 17)"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="#e74c3c"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="33 88"
+                  transform="rotate(0 17 17)"
+                  style="filter: drop-shadow(0 0 2px rgba(231, 76, 60, 0.5))"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="rgba(155,89,182,0.07)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="44 88"
+                  transform="rotate(180 17 17)"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="#9b59b6"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="14.7 88"
+                  transform="rotate(180 17 17)"
+                  style="filter: drop-shadow(0 0 2px rgba(155, 89, 182, 0.3))"
+                />
+              </svg>
+              <div
+                class="mini-avatar"
+                style="background: linear-gradient(135deg, #c0392b, #e74c3c)"
+              >
+                ⚔
+              </div>
+            </div>
+            <div class="row-body">
+              <div class="row-top">
+                <span class="row-name">Kael</span><span class="row-class-hint">Guardian</span>
+              </div>
+              <div class="row-stats">
+                <span class="mini-stat hp"><span class="icon">&#9829;</span>5</span>
+                <span class="mini-stat stress"><span class="icon">&#10022;</span>2</span>
+                <span class="mini-stat armor"><span class="icon">&#9789;</span>3</span>
+                <span class="mini-stat hope"><span class="icon">&#9670;</span>3</span>
+              </div>
+              <div class="row-statuses">
+                <span class="status-tag buff">护盾</span>
+                <span class="status-tag debuff">流血</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="row-item">
+            <div class="mini-avatar-wrap">
+              <svg class="mini-arcs" viewBox="0 0 34 34">
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="rgba(231,76,60,0.07)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="44 88"
+                  transform="rotate(0 17 17)"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="#e74c3c"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="44 88"
+                  transform="rotate(0 17 17)"
+                  style="filter: drop-shadow(0 0 2px rgba(231, 76, 60, 0.5))"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="rgba(155,89,182,0.07)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="44 88"
+                  transform="rotate(180 17 17)"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="#9b59b6"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="7.3 88"
+                  transform="rotate(180 17 17)"
+                  style="filter: drop-shadow(0 0 2px rgba(155, 89, 182, 0.3))"
+                />
+              </svg>
+              <div
+                class="mini-avatar"
+                style="background: linear-gradient(135deg, #2980b9, #3498db)"
+              >
+                &#128302;
+              </div>
+            </div>
+            <div class="row-body">
+              <div class="row-top">
+                <span class="row-name">Lyra</span><span class="row-class-hint">Sorcerer</span>
+              </div>
+              <div class="row-stats">
+                <span class="mini-stat hp"><span class="icon">&#9829;</span>18</span>
+                <span class="mini-stat stress"><span class="icon">&#10022;</span>1</span>
+                <span class="mini-stat armor"><span class="icon">&#9789;</span>2</span>
+                <span class="mini-stat hope"><span class="icon">&#9670;</span>5</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="row-item">
+            <div class="mini-avatar-wrap">
+              <svg class="mini-arcs" viewBox="0 0 34 34">
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="rgba(231,76,60,0.07)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="44 88"
+                  transform="rotate(0 17 17)"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="#e74c3c"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="29 88"
+                  transform="rotate(0 17 17)"
+                  style="filter: drop-shadow(0 0 2px rgba(231, 76, 60, 0.5))"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="rgba(155,89,182,0.07)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="44 88"
+                  transform="rotate(180 17 17)"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="#9b59b6"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="22 88"
+                  transform="rotate(180 17 17)"
+                  style="filter: drop-shadow(0 0 2px rgba(155, 89, 182, 0.3))"
+                />
+              </svg>
+              <div
+                class="mini-avatar"
+                style="background: linear-gradient(135deg, #27ae60, #2ecc71)"
+              >
+                &#128481;
+              </div>
+            </div>
+            <div class="row-body">
+              <div class="row-top">
+                <span class="row-name">Finn</span><span class="row-class-hint">Rogue</span>
+              </div>
+              <div class="row-stats">
+                <span class="mini-stat hp"><span class="icon">&#9829;</span>9</span>
+                <span class="mini-stat stress"><span class="icon">&#10022;</span>3</span>
+                <span class="mini-stat armor"><span class="icon">&#9789;</span>1</span>
+                <span class="mini-stat hope"><span class="icon">&#9670;</span>2</span>
+              </div>
+              <div class="row-statuses">
+                <span class="status-tag neutral">隐匿</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-divider"><span>敌方</span></div>
+
+          <div class="row-item enemy">
+            <div class="mini-avatar-wrap">
+              <svg class="mini-arcs" viewBox="0 0 34 34">
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="rgba(231,76,60,0.07)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="44 88"
+                  transform="rotate(0 17 17)"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="#e74c3c"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="22 88"
+                  transform="rotate(0 17 17)"
+                  style="filter: drop-shadow(0 0 2px rgba(231, 76, 60, 0.5))"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="rgba(155,89,182,0.07)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="44 88"
+                  transform="rotate(180 17 17)"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="#9b59b6"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="29 88"
+                  transform="rotate(180 17 17)"
+                  style="filter: drop-shadow(0 0 2px rgba(155, 89, 182, 0.3))"
+                />
+              </svg>
+              <div class="mini-avatar" style="background: linear-gradient(135deg, #444, #222)">
+                &#128128;
+              </div>
+            </div>
+            <div class="row-body">
+              <div class="row-top">
+                <span class="row-name">暗影狼</span><span class="enemy-badge">敌</span>
+              </div>
+              <div class="row-stats">
+                <span class="mini-stat hp"><span class="icon">&#9829;</span>8</span>
+                <span class="mini-stat stress"><span class="icon">&#10022;</span>4</span>
+              </div>
+              <div class="row-statuses">
+                <span class="status-tag debuff">易伤</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="row-item enemy">
+            <div class="mini-avatar-wrap">
+              <svg class="mini-arcs" viewBox="0 0 34 34">
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="rgba(231,76,60,0.07)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="44 88"
+                  transform="rotate(0 17 17)"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="#e74c3c"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="44 88"
+                  transform="rotate(0 17 17)"
+                  style="filter: drop-shadow(0 0 2px rgba(231, 76, 60, 0.5))"
+                />
+                <circle
+                  cx="17"
+                  cy="17"
+                  r="14"
+                  fill="none"
+                  stroke="rgba(155,89,182,0.07)"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="44 88"
+                  transform="rotate(180 17 17)"
+                />
+              </svg>
+              <div class="mini-avatar" style="background: linear-gradient(135deg, #555, #333)">
+                &#128121;
+              </div>
+            </div>
+            <div class="row-body">
+              <div class="row-top">
+                <span class="row-name">哥布林弓手</span><span class="enemy-badge">敌</span>
+              </div>
+              <div class="row-stats">
+                <span class="mini-stat hp"><span class="icon">&#9829;</span>12</span>
+                <span class="mini-stat stress"><span class="icon">&#10022;</span>0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat -->
+        <div class="chat-panel">
+          <div class="panel-title" style="margin-bottom: 4px">聊天</div>
+          <div class="chat-messages">
+            <div class="chat-msg"><span class="sender">Kael:</span> 我要发起攻击！</div>
+            <div class="chat-msg"><span class="sender">Lyra:</span> 我施放护盾</div>
+            <div class="chat-msg"><span class="sender">GM:</span> Kael，请掷骰判定</div>
+            <div class="chat-msg">
+              <span class="sender" style="color: #f1c40f">系统:</span> &#127922; 2d12 → 8+5=13
+              (Hope!)
+            </div>
+            <div class="chat-msg"><span class="sender">Finn:</span> 我从暗处突袭</div>
+          </div>
+          <div class="chat-input">输入消息...</div>
+        </div>
+      </div>
+
+      <!-- BOTTOM CENTER: Avatar with rune ring -->
+      <div class="my-avatar-area">
+        <div class="avatar-wrapper">
+          <div class="rune-ring"></div>
+
+          <!-- Hope gems -->
+          <div class="hope-ring">
+            <div class="hope-gem filled"></div>
+            <div class="hope-gem filled"></div>
+            <div class="hope-gem filled"></div>
+            <div class="hope-gem empty"></div>
+            <div class="hope-gem empty"></div>
+            <div class="hope-gem empty"></div>
+          </div>
+
+          <!-- HP / Stress arcs -->
+          <svg class="arcs-svg" viewBox="0 0 110 110">
+            <circle
+              cx="55"
+              cy="55"
+              r="46"
+              fill="none"
+              stroke="rgba(231,76,60,0.07)"
+              stroke-width="4"
+              stroke-linecap="round"
+              stroke-dasharray="144.5 289"
+              transform="rotate(0 55 55)"
+            />
+            <circle
+              cx="55"
+              cy="55"
+              r="46"
+              fill="none"
+              class="hp-fill"
+              stroke-width="4"
+              stroke-linecap="round"
+              stroke-dasharray="108.4 289"
+              transform="rotate(0 55 55)"
+            />
+            <circle
+              cx="55"
+              cy="55"
+              r="46"
+              fill="none"
+              stroke="rgba(155,89,182,0.07)"
+              stroke-width="4"
+              stroke-linecap="round"
+              stroke-dasharray="144.5 289"
+              transform="rotate(180 55 55)"
+            />
+            <circle
+              cx="55"
+              cy="55"
+              r="46"
+              fill="none"
+              class="stress-fill"
+              stroke-width="4"
+              stroke-linecap="round"
+              stroke-dasharray="48.2 289"
+              transform="rotate(180 55 55)"
+            />
+          </svg>
+
+          <!-- Armor ring (4 slots, 3 active) -->
+          <svg class="armor-svg" viewBox="0 0 82 82">
+            <circle
+              cx="41"
+              cy="41"
+              r="32"
+              fill="none"
+              stroke="url(#armorGrad)"
+              stroke-width="6"
+              stroke-linecap="butt"
+              stroke-dasharray="47.1 3.2"
+              stroke-dashoffset="0"
+              transform="rotate(-97 41 41)"
+              style="filter: drop-shadow(0 0 3px rgba(130, 195, 240, 0.25))"
+            />
+            <circle
+              cx="41"
+              cy="41"
+              r="32"
+              fill="none"
+              stroke="rgba(0,0,0,0.6)"
+              stroke-width="6"
+              stroke-linecap="butt"
+              stroke-dasharray="47.1 153.4"
+              stroke-dashoffset="-153.4"
+              transform="rotate(-97 41 41)"
+            />
+          </svg>
+
+          <div class="avatar-core">&#129497;</div>
+        </div>
+        <div class="avatar-nickname">Kael</div>
+      </div>
+
+      <div class="center-label">场景 / 战术地图</div>
     </div>
-
-    <!-- LEFT: Character Card (two-column) -->
-    <div class="char-card-panel">
-      <div class="panel-title-row">
-        <span class="panel-title">角色卡</span>
-        <span class="panel-hint">◀ 收回</span>
-      </div>
-
-      <div class="char-header">
-        <div class="char-portrait">⚔</div>
-        <div>
-          <div class="char-name">Kael Ironheart</div>
-          <div class="char-class">Guardian · Lv 3</div>
-        </div>
-      </div>
-
-      <!-- Attributes 3x2 -->
-      <div class="section">
-        <div class="section-label">属性</div>
-        <div class="attrs-grid">
-          <div class="attr-cell">
-            <div class="attr-label-cn">敏捷</div>
-            <div class="attr-label-en">Agility</div>
-            <div class="attr-value positive">+2</div>
-          </div>
-          <div class="attr-cell">
-            <div class="attr-label-cn">力量</div>
-            <div class="attr-label-en">Strength</div>
-            <div class="attr-value positive">+1</div>
-          </div>
-          <div class="attr-cell">
-            <div class="attr-label-cn">本能</div>
-            <div class="attr-label-en">Instinct</div>
-            <div class="attr-value zero">0</div>
-          </div>
-          <div class="attr-cell">
-            <div class="attr-label-cn">知识</div>
-            <div class="attr-label-en">Knowledge</div>
-            <div class="attr-value negative">-1</div>
-          </div>
-          <div class="attr-cell">
-            <div class="attr-label-cn">风度</div>
-            <div class="attr-label-en">Presence</div>
-            <div class="attr-value zero">0</div>
-          </div>
-          <div class="attr-cell">
-            <div class="attr-label-cn">灵巧</div>
-            <div class="attr-label-en">Finesse</div>
-            <div class="attr-value positive">+1</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Resources -->
-      <div class="section">
-        <div class="section-label">资源</div>
-        <div class="res-row">
-          <span class="res-icon" style="color:#e74c3c;">&#9829;</span>
-          <div class="res-bar"><div class="res-bar-fill" style="width:75%;background:linear-gradient(90deg,#c0392b,#e74c3c);"></div></div>
-          <span class="res-text">5/6</span>
-        </div>
-        <div class="res-row">
-          <span class="res-icon" style="color:#9b59b6;">&#10022;</span>
-          <div class="res-bar"><div class="res-bar-fill" style="width:33%;background:linear-gradient(90deg,#7d3c98,#9b59b6);"></div></div>
-          <span class="res-text">2/6</span>
-        </div>
-        <div class="res-row">
-          <span class="res-icon" style="color:rgba(130,195,240,0.85);font-size:8px;">&#9789;</span>
-          <div class="res-pips">
-            <div class="res-pip filled armor"></div><div class="res-pip filled armor"></div>
-            <div class="res-pip filled armor"></div><div class="res-pip empty armor"></div>
-          </div>
-          <span class="res-text">3/4</span>
-        </div>
-        <div class="res-row">
-          <span class="res-icon" style="color:#f1c40f;">&#9670;</span>
-          <div class="res-pips">
-            <div class="res-pip filled hope"></div><div class="res-pip filled hope"></div>
-            <div class="res-pip filled hope"></div><div class="res-pip empty hope"></div>
-            <div class="res-pip empty hope"></div><div class="res-pip empty hope"></div>
-          </div>
-          <span class="res-text">3/6</span>
-        </div>
-      </div>
-
-      <!-- Thresholds -->
-      <div class="threshold-row">
-        <div class="threshold-cell evasion">
-          <div class="threshold-label">闪避</div>
-          <div class="threshold-value">12</div>
-        </div>
-        <div class="threshold-cell">
-          <div class="threshold-label">重伤</div>
-          <div class="threshold-value">10</div>
-        </div>
-        <div class="threshold-cell">
-          <div class="threshold-label">严重</div>
-          <div class="threshold-value">22</div>
-        </div>
-      </div>
-
-      <!-- Experiences -->
-      <div class="section">
-        <div class="section-label">经历</div>
-        <div class="exp-list">
-          <div class="exp-item"><span class="exp-name">森林生存专家</span><span class="exp-value">+2</span></div>
-          <div class="exp-item"><span class="exp-name">铁匠学徒</span><span class="exp-value">+2</span></div>
-          <div class="exp-item"><span class="exp-name">古代遗迹探索者</span><span class="exp-value">+1</span></div>
-          <div class="exp-item"><span class="exp-name">边境巡逻兵</span><span class="exp-value">+3</span></div>
-          <div class="exp-item"><span class="exp-name">酒馆说书人</span><span class="exp-value">+1</span></div>
-        </div>
-      </div>
-
-      <!-- Status -->
-      <div class="section">
-        <div class="section-label">状态</div>
-        <div class="card-status-row">
-          <span class="card-status-tag buff">护盾术 3r</span>
-          <span class="card-status-tag debuff">流血 2r</span>
-          <span class="card-status-tag neutral">隐匿</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT COLUMN -->
-    <div class="right-column">
-
-      <!-- Characters List -->
-      <div class="char-list-panel">
-        <div class="panel-title" style="margin-bottom:6px;">在场角色</div>
-
-        <div class="row-item">
-          <div class="mini-avatar-wrap">
-            <svg class="mini-arcs" viewBox="0 0 34 34">
-              <circle cx="17" cy="17" r="14" fill="none" stroke="rgba(231,76,60,0.07)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="44 88" transform="rotate(0 17 17)" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="33 88" transform="rotate(0 17 17)" style="filter:drop-shadow(0 0 2px rgba(231,76,60,0.5));" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="rgba(155,89,182,0.07)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="44 88" transform="rotate(180 17 17)" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="#9b59b6" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="14.7 88" transform="rotate(180 17 17)" style="filter:drop-shadow(0 0 2px rgba(155,89,182,0.3));" />
-            </svg>
-            <div class="mini-avatar" style="background:linear-gradient(135deg,#c0392b,#e74c3c);">⚔</div>
-          </div>
-          <div class="row-body">
-            <div class="row-top"><span class="row-name">Kael</span><span class="row-class-hint">Guardian</span></div>
-            <div class="row-stats">
-              <span class="mini-stat hp"><span class="icon">&#9829;</span>5</span>
-              <span class="mini-stat stress"><span class="icon">&#10022;</span>2</span>
-              <span class="mini-stat armor"><span class="icon">&#9789;</span>3</span>
-              <span class="mini-stat hope"><span class="icon">&#9670;</span>3</span>
-            </div>
-            <div class="row-statuses">
-              <span class="status-tag buff">护盾</span>
-              <span class="status-tag debuff">流血</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="row-item">
-          <div class="mini-avatar-wrap">
-            <svg class="mini-arcs" viewBox="0 0 34 34">
-              <circle cx="17" cy="17" r="14" fill="none" stroke="rgba(231,76,60,0.07)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="44 88" transform="rotate(0 17 17)" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="44 88" transform="rotate(0 17 17)" style="filter:drop-shadow(0 0 2px rgba(231,76,60,0.5));" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="rgba(155,89,182,0.07)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="44 88" transform="rotate(180 17 17)" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="#9b59b6" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="7.3 88" transform="rotate(180 17 17)" style="filter:drop-shadow(0 0 2px rgba(155,89,182,0.3));" />
-            </svg>
-            <div class="mini-avatar" style="background:linear-gradient(135deg,#2980b9,#3498db);">&#128302;</div>
-          </div>
-          <div class="row-body">
-            <div class="row-top"><span class="row-name">Lyra</span><span class="row-class-hint">Sorcerer</span></div>
-            <div class="row-stats">
-              <span class="mini-stat hp"><span class="icon">&#9829;</span>18</span>
-              <span class="mini-stat stress"><span class="icon">&#10022;</span>1</span>
-              <span class="mini-stat armor"><span class="icon">&#9789;</span>2</span>
-              <span class="mini-stat hope"><span class="icon">&#9670;</span>5</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="row-item">
-          <div class="mini-avatar-wrap">
-            <svg class="mini-arcs" viewBox="0 0 34 34">
-              <circle cx="17" cy="17" r="14" fill="none" stroke="rgba(231,76,60,0.07)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="44 88" transform="rotate(0 17 17)" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="29 88" transform="rotate(0 17 17)" style="filter:drop-shadow(0 0 2px rgba(231,76,60,0.5));" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="rgba(155,89,182,0.07)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="44 88" transform="rotate(180 17 17)" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="#9b59b6" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="22 88" transform="rotate(180 17 17)" style="filter:drop-shadow(0 0 2px rgba(155,89,182,0.3));" />
-            </svg>
-            <div class="mini-avatar" style="background:linear-gradient(135deg,#27ae60,#2ecc71);">&#128481;</div>
-          </div>
-          <div class="row-body">
-            <div class="row-top"><span class="row-name">Finn</span><span class="row-class-hint">Rogue</span></div>
-            <div class="row-stats">
-              <span class="mini-stat hp"><span class="icon">&#9829;</span>9</span>
-              <span class="mini-stat stress"><span class="icon">&#10022;</span>3</span>
-              <span class="mini-stat armor"><span class="icon">&#9789;</span>1</span>
-              <span class="mini-stat hope"><span class="icon">&#9670;</span>2</span>
-            </div>
-            <div class="row-statuses">
-              <span class="status-tag neutral">隐匿</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="section-divider"><span>敌方</span></div>
-
-        <div class="row-item enemy">
-          <div class="mini-avatar-wrap">
-            <svg class="mini-arcs" viewBox="0 0 34 34">
-              <circle cx="17" cy="17" r="14" fill="none" stroke="rgba(231,76,60,0.07)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="44 88" transform="rotate(0 17 17)" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="22 88" transform="rotate(0 17 17)" style="filter:drop-shadow(0 0 2px rgba(231,76,60,0.5));" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="rgba(155,89,182,0.07)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="44 88" transform="rotate(180 17 17)" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="#9b59b6" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="29 88" transform="rotate(180 17 17)" style="filter:drop-shadow(0 0 2px rgba(155,89,182,0.3));" />
-            </svg>
-            <div class="mini-avatar" style="background:linear-gradient(135deg,#444,#222);">&#128128;</div>
-          </div>
-          <div class="row-body">
-            <div class="row-top"><span class="row-name">暗影狼</span><span class="enemy-badge">敌</span></div>
-            <div class="row-stats">
-              <span class="mini-stat hp"><span class="icon">&#9829;</span>8</span>
-              <span class="mini-stat stress"><span class="icon">&#10022;</span>4</span>
-            </div>
-            <div class="row-statuses">
-              <span class="status-tag debuff">易伤</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="row-item enemy">
-          <div class="mini-avatar-wrap">
-            <svg class="mini-arcs" viewBox="0 0 34 34">
-              <circle cx="17" cy="17" r="14" fill="none" stroke="rgba(231,76,60,0.07)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="44 88" transform="rotate(0 17 17)" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="44 88" transform="rotate(0 17 17)" style="filter:drop-shadow(0 0 2px rgba(231,76,60,0.5));" />
-              <circle cx="17" cy="17" r="14" fill="none" stroke="rgba(155,89,182,0.07)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="44 88" transform="rotate(180 17 17)" />
-            </svg>
-            <div class="mini-avatar" style="background:linear-gradient(135deg,#555,#333);">&#128121;</div>
-          </div>
-          <div class="row-body">
-            <div class="row-top"><span class="row-name">哥布林弓手</span><span class="enemy-badge">敌</span></div>
-            <div class="row-stats">
-              <span class="mini-stat hp"><span class="icon">&#9829;</span>12</span>
-              <span class="mini-stat stress"><span class="icon">&#10022;</span>0</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Chat -->
-      <div class="chat-panel">
-        <div class="panel-title" style="margin-bottom:4px;">聊天</div>
-        <div class="chat-messages">
-          <div class="chat-msg"><span class="sender">Kael:</span> 我要发起攻击！</div>
-          <div class="chat-msg"><span class="sender">Lyra:</span> 我施放护盾</div>
-          <div class="chat-msg"><span class="sender">GM:</span> Kael，请掷骰判定</div>
-          <div class="chat-msg"><span class="sender" style="color:#f1c40f;">系统:</span> &#127922; 2d12 → 8+5=13 (Hope!)</div>
-          <div class="chat-msg"><span class="sender">Finn:</span> 我从暗处突袭</div>
-        </div>
-        <div class="chat-input">输入消息...</div>
-      </div>
-
-    </div>
-
-    <!-- BOTTOM CENTER: Avatar with rune ring -->
-    <div class="my-avatar-area">
-      <div class="avatar-wrapper">
-        <div class="rune-ring"></div>
-
-        <!-- Hope gems -->
-        <div class="hope-ring">
-          <div class="hope-gem filled"></div>
-          <div class="hope-gem filled"></div>
-          <div class="hope-gem filled"></div>
-          <div class="hope-gem empty"></div>
-          <div class="hope-gem empty"></div>
-          <div class="hope-gem empty"></div>
-        </div>
-
-        <!-- HP / Stress arcs -->
-        <svg class="arcs-svg" viewBox="0 0 110 110">
-          <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(231,76,60,0.07)" stroke-width="4" stroke-linecap="round" stroke-dasharray="144.5 289" transform="rotate(0 55 55)" />
-          <circle cx="55" cy="55" r="46" fill="none" class="hp-fill" stroke-width="4" stroke-linecap="round" stroke-dasharray="108.4 289" transform="rotate(0 55 55)" />
-          <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(155,89,182,0.07)" stroke-width="4" stroke-linecap="round" stroke-dasharray="144.5 289" transform="rotate(180 55 55)" />
-          <circle cx="55" cy="55" r="46" fill="none" class="stress-fill" stroke-width="4" stroke-linecap="round" stroke-dasharray="48.2 289" transform="rotate(180 55 55)" />
-        </svg>
-
-        <!-- Armor ring (4 slots, 3 active) -->
-        <svg class="armor-svg" viewBox="0 0 82 82">
-          <circle cx="41" cy="41" r="32" fill="none" stroke="url(#armorGrad)" stroke-width="6" stroke-linecap="butt" stroke-dasharray="47.1 3.2" stroke-dashoffset="0" transform="rotate(-97 41 41)" style="filter:drop-shadow(0 0 3px rgba(130,195,240,0.25));" />
-          <circle cx="41" cy="41" r="32" fill="none" stroke="rgba(0,0,0,0.6)" stroke-width="6" stroke-linecap="butt" stroke-dasharray="47.1 153.4" stroke-dashoffset="-153.4" transform="rotate(-97 41 41)" />
-        </svg>
-
-        <div class="avatar-core">&#129497;</div>
-      </div>
-      <div class="avatar-nickname">Kael</div>
-    </div>
-
-    <div class="center-label">场景 / 战术地图</div>
-
-  </div>
-</body>
+  </body>
 </html>

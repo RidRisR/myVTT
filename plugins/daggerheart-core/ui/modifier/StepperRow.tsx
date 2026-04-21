@@ -51,7 +51,9 @@ function Stepper({
       )}
       <div className="flex items-center ml-auto rounded-full bg-black/20 overflow-hidden">
         <button
-          onClick={() => { onChange(Math.max(min, value - 1)); }}
+          onClick={() => {
+            onChange(Math.max(min, value - 1))
+          }}
           className="w-7 h-7 text-text-muted text-[11px] flex items-center justify-center cursor-pointer hover:bg-white/[0.08] hover:text-text-primary transition-colors"
         >
           -
@@ -73,7 +75,9 @@ function Stepper({
           </span>
         )}
         <button
-          onClick={() => { onChange(Math.min(max, value + 1)); }}
+          onClick={() => {
+            onChange(Math.min(max, value + 1))
+          }}
           className="w-7 h-7 text-text-muted text-[11px] flex items-center justify-center cursor-pointer hover:bg-white/[0.08] hover:text-text-primary transition-colors"
         >
           +

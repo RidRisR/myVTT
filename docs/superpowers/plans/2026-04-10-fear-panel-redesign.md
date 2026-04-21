@@ -17,19 +17,19 @@
 
 ### Modified files
 
-| File | Change |
-| --- | --- |
-| `plugins/daggerheart-core/FearManager.ts` | Add `setFear(ctx, value)` — single method replaces separate add/remove/clear |
-| `plugins/daggerheart-core/index.ts` | Define `fear-set` and `fear-clear` workflows, register `.f+` / `.f-` commands |
-| `plugins/daggerheart-core/ui/FearPanel.tsx` | Complete rewrite — interactive pill with gemstone pips, ±buttons, click-to-set |
-| `plugins/daggerheart/i18n.ts` | Add fear panel i18n keys |
-| `plugins/daggerheart-core/__tests__/actionCheckWorkflow.test.ts` | Update fear default max from 10 → 12 in assertions |
+| File                                                             | Change                                                                         |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `plugins/daggerheart-core/FearManager.ts`                        | Add `setFear(ctx, value)` — single method replaces separate add/remove/clear   |
+| `plugins/daggerheart-core/index.ts`                              | Define `fear-set` and `fear-clear` workflows, register `.f+` / `.f-` commands  |
+| `plugins/daggerheart-core/ui/FearPanel.tsx`                      | Complete rewrite — interactive pill with gemstone pips, ±buttons, click-to-set |
+| `plugins/daggerheart/i18n.ts`                                    | Add fear panel i18n keys                                                       |
+| `plugins/daggerheart-core/__tests__/actionCheckWorkflow.test.ts` | Update fear default max from 10 → 12 in assertions                             |
 
 ### New files
 
-| File | Responsibility |
-| --- | --- |
-| `plugins/daggerheart-core/__tests__/fearWorkflows.test.ts` | Tests for fear-set / fear-clear workflows |
+| File                                                       | Responsibility                                             |
+| ---------------------------------------------------------- | ---------------------------------------------------------- |
+| `plugins/daggerheart-core/__tests__/fearWorkflows.test.ts` | Tests for fear-set / fear-clear workflows                  |
 | `plugins/daggerheart-core/__tests__/ui/FearPanel.test.tsx` | FearPanel component tests (rendering + click interactions) |
 
 ---
@@ -37,6 +37,7 @@
 ## Task 1: Extend FearManager with `setFear`
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/FearManager.ts`
 - Modify: `plugins/daggerheart-core/__tests__/actionCheckWorkflow.test.ts`
 
@@ -90,12 +91,15 @@ export class FearManager {
 In `plugins/daggerheart-core/__tests__/actionCheckWorkflow.test.ts`, line 156:
 
 Change:
+
 ```ts
-    expect(update.payload.data).toEqual({ current: 1, max: 10 })
+expect(update.payload.data).toEqual({ current: 1, max: 10 })
 ```
+
 To:
+
 ```ts
-    expect(update.payload.data).toEqual({ current: 1, max: 12 })
+expect(update.payload.data).toEqual({ current: 1, max: 12 })
 ```
 
 - [ ] **Step 3: Run existing tests to verify no regressions**
@@ -114,6 +118,7 @@ feat(daggerheart): add FearManager.setFear with clamped absolute value, change m
 ## Task 2: Define fear-set and fear-clear workflows + commands
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/index.ts`
 - Create: `plugins/daggerheart-core/__tests__/fearWorkflows.test.ts`
 
@@ -260,11 +265,13 @@ Expected: FAIL — workflow `daggerheart-core:fear-set` not found.
 Add to `plugins/daggerheart-core/index.ts`:
 
 At top, add import and interface:
+
 ```ts
 import type { WorkflowHandle } from '@myvtt/sdk'
 ```
 
 Add interfaces (after `ActionCheckData`):
+
 ```ts
 interface FearSetData {
   [key: string]: unknown
@@ -277,38 +284,41 @@ interface FearClearData {
 ```
 
 Add private fields to `DaggerHeartCorePlugin`:
+
 ```ts
   private fearSetHandle!: WorkflowHandle<FearSetData>
   private fearClearHandle!: WorkflowHandle<FearClearData>
 ```
 
 Add to `onActivate`, after the FearPanel region registration:
+
 ```ts
-    // Define fear mutation workflows
-    this.fearSetHandle = sdk.defineWorkflow<FearSetData>('daggerheart-core:fear-set', [
-      {
-        id: 'set',
-        run: (ctx) => {
-          this.fear.setFear(ctx, ctx.vars.value)
-        },
-      },
-    ])
+// Define fear mutation workflows
+this.fearSetHandle = sdk.defineWorkflow<FearSetData>('daggerheart-core:fear-set', [
+  {
+    id: 'set',
+    run: (ctx) => {
+      this.fear.setFear(ctx, ctx.vars.value)
+    },
+  },
+])
 
-    this.fearClearHandle = sdk.defineWorkflow<FearClearData>('daggerheart-core:fear-clear', [
-      {
-        id: 'clear',
-        run: (ctx) => {
-          this.fear.setFear(ctx, 0)
-        },
-      },
-    ])
+this.fearClearHandle = sdk.defineWorkflow<FearClearData>('daggerheart-core:fear-clear', [
+  {
+    id: 'clear',
+    run: (ctx) => {
+      this.fear.setFear(ctx, 0)
+    },
+  },
+])
 
-    // Register chat commands for fear adjustment
-    sdk.registerCommand('.f+', this.fearSetHandle)
-    sdk.registerCommand('.f-', this.fearSetHandle)
+// Register chat commands for fear adjustment
+sdk.registerCommand('.f+', this.fearSetHandle)
+sdk.registerCommand('.f-', this.fearSetHandle)
 ```
 
 Also export the workflow name constants for FearPanel to reference:
+
 ```ts
 export const FEAR_SET_WORKFLOW = 'daggerheart-core:fear-set'
 export const FEAR_CLEAR_WORKFLOW = 'daggerheart-core:fear-clear'
@@ -335,11 +345,13 @@ feat(daggerheart): add fear-set and fear-clear workflows with .f+/.f- commands
 ## Task 3: Add fear panel i18n keys
 
 **Files:**
+
 - Modify: `plugins/daggerheart/i18n.ts`
 
 - [ ] **Step 1: Add i18n keys for FearPanel**
 
 Add to the `'zh-CN'` section of `daggerheartI18n.resources`:
+
 ```ts
       // Fear Panel
       'fear.label': '恐惧',
@@ -347,6 +359,7 @@ Add to the `'zh-CN'` section of `daggerheartI18n.resources`:
 ```
 
 Add to the `en` section:
+
 ```ts
       // Fear Panel
       'fear.label': 'Fear',
@@ -364,6 +377,7 @@ feat(daggerheart): add fear panel i18n keys
 ## Task 4: Rewrite FearPanel component
 
 **Files:**
+
 - Rewrite: `plugins/daggerheart-core/ui/FearPanel.tsx`
 - Create: `plugins/daggerheart-core/__tests__/ui/FearPanel.test.tsx`
 
@@ -614,8 +628,7 @@ export function FearPanel({ sdk }: { sdk: IRegionSDK }) {
                           background:
                             'radial-gradient(circle at 38% 32%, #ffad7a 0%, #ff6b4a 15%, #dc2626 40%, #991b1b 70%, #6b1010 100%)',
                           border: '1.5px solid rgba(255, 120, 70, 0.5)',
-                          boxShadow:
-                            '0 0 10px rgba(220,38,38,0.6), 0 0 24px rgba(220,38,38,0.25)',
+                          boxShadow: '0 0 10px rgba(220,38,38,0.6), 0 0 24px rgba(220,38,38,0.25)',
                           opacity: 0.35,
                         }
                       : {
@@ -666,12 +679,13 @@ Add to `src/styles/global.css` (inside `@layer base` or at top level):
 
 ```css
 @keyframes ember-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       0 0 10px rgba(220, 38, 38, 0.6),
       0 0 24px rgba(220, 38, 38, 0.25),
       0 0 40px rgba(180, 30, 30, 0.1),
-      inset 0 -3px 5px rgba(0,0,0,0.35),
+      inset 0 -3px 5px rgba(0, 0, 0, 0.35),
       inset 0 1px 3px rgba(255, 220, 180, 0.35);
   }
   50% {
@@ -679,7 +693,7 @@ Add to `src/styles/global.css` (inside `@layer base` or at top level):
       0 0 14px rgba(220, 38, 38, 0.75),
       0 0 32px rgba(220, 38, 38, 0.35),
       0 0 50px rgba(180, 30, 30, 0.15),
-      inset 0 -3px 5px rgba(0,0,0,0.35),
+      inset 0 -3px 5px rgba(0, 0, 0, 0.35),
       inset 0 1px 3px rgba(255, 220, 180, 0.4);
   }
 }
@@ -701,34 +715,37 @@ feat(daggerheart): rewrite FearPanel with interactive gemstone pips and combined
 ## Task 5: Update region registration
 
 **Files:**
+
 - Modify: `plugins/daggerheart-core/index.ts`
 
 - [ ] **Step 1: Update FearPanel region registration size and placement**
 
 The panel is now a horizontal pill. Change the registration from:
+
 ```ts
-    sdk.ui.registerRegion({
-      id: 'daggerheart-core:fear-panel',
-      component: FearPanel as React.ComponentType<{ sdk: unknown }>,
-      lifecycle: 'persistent',
-      defaultSize: { width: 160, height: 120 },
-      minSize: { width: 120, height: 80 },
-      defaultPlacement: { anchor: 'top-right', offsetX: -16, offsetY: 60 },
-      layer: 'standard',
-    })
+sdk.ui.registerRegion({
+  id: 'daggerheart-core:fear-panel',
+  component: FearPanel as React.ComponentType<{ sdk: unknown }>,
+  lifecycle: 'persistent',
+  defaultSize: { width: 160, height: 120 },
+  minSize: { width: 120, height: 80 },
+  defaultPlacement: { anchor: 'top-right', offsetX: -16, offsetY: 60 },
+  layer: 'standard',
+})
 ```
 
 To:
+
 ```ts
-    sdk.ui.registerRegion({
-      id: 'daggerheart-core:fear-panel',
-      component: FearPanel as React.ComponentType<{ sdk: unknown }>,
-      lifecycle: 'persistent',
-      defaultSize: { width: 520, height: 50 },
-      minSize: { width: 400, height: 42 },
-      defaultPlacement: { anchor: 'top-left', offsetX: 200, offsetY: 12 },
-      layer: 'standard',
-    })
+sdk.ui.registerRegion({
+  id: 'daggerheart-core:fear-panel',
+  component: FearPanel as React.ComponentType<{ sdk: unknown }>,
+  lifecycle: 'persistent',
+  defaultSize: { width: 520, height: 50 },
+  minSize: { width: 400, height: 42 },
+  defaultPlacement: { anchor: 'top-left', offsetX: 200, offsetY: 12 },
+  layer: 'standard',
+})
 ```
 
 - [ ] **Step 2: Run all tests**
@@ -764,6 +781,7 @@ Expected: Clean.
 - [ ] **Step 3: Visual verification in preview**
 
 Start preview and verify:
+
 1. FearPanel appears as horizontal pill at top of screen
 2. 12 gemstone pips render (4 filled red, 8 empty sockets)
 3. Clicking empty pips fills to that position

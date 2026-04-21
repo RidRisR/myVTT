@@ -48,7 +48,9 @@ describe('roll template workflows', () => {
     }
 
     const { runner, deps, sdk } = makeSetup({
-      getEntity: vi.fn().mockImplementation((id: string) => (id === entity.id ? entity : undefined)),
+      getEntity: vi
+        .fn()
+        .mockImplementation((id: string) => (id === entity.id ? entity : undefined)),
     })
 
     const handle = sdk.getWorkflow('daggerheart-core:roll-template-add')
@@ -74,7 +76,11 @@ describe('roll template workflows', () => {
     expect(componentUpdates).toHaveLength(1)
 
     const update = componentUpdates[0]![0] as {
-      payload: { entityId: string; key: string; data: { items: Array<{ id: string; name: string; icon?: string }> } }
+      payload: {
+        entityId: string
+        key: string
+        data: { items: Array<{ id: string; name: string; icon?: string }> }
+      }
     }
     expect(update.payload.entityId).toBe(entity.id)
     expect(update.payload.key).toBe('daggerheart:roll-templates')
@@ -132,7 +138,9 @@ describe('roll template workflows', () => {
     }
 
     const { runner, deps, sdk } = makeSetup({
-      getEntity: vi.fn().mockImplementation((id: string) => (id === entity.id ? entity : undefined)),
+      getEntity: vi
+        .fn()
+        .mockImplementation((id: string) => (id === entity.id ? entity : undefined)),
     })
 
     const handle = sdk.getWorkflow('daggerheart-core:action-check')
@@ -211,7 +219,9 @@ describe('roll template workflows', () => {
     }
 
     const { runner, deps, sdk } = makeSetup({
-      getEntity: vi.fn().mockImplementation((id: string) => (id === entity.id ? entity : undefined)),
+      getEntity: vi
+        .fn()
+        .mockImplementation((id: string) => (id === entity.id ? entity : undefined)),
       serverRoll: vi.fn().mockResolvedValue([[8], [4]]),
     })
 
@@ -272,7 +282,9 @@ describe('roll template workflows', () => {
     }
 
     const { runner, deps, sdk } = makeSetup({
-      getEntity: vi.fn().mockImplementation((id: string) => (id === entity.id ? entity : undefined)),
+      getEntity: vi
+        .fn()
+        .mockImplementation((id: string) => (id === entity.id ? entity : undefined)),
       serverRoll: vi.fn().mockResolvedValue([[8], [4]]),
     })
 

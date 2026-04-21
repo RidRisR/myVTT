@@ -8,10 +8,7 @@ import type {
 import { migrateLayoutConfig } from '../ui-system/layoutMigration'
 import { computeResizeCompensation } from '../ui-system/layoutEngine'
 
-function isSameEntry(
-  left: RegionLayoutEntry,
-  right: RegionLayoutEntry,
-): boolean {
+function isSameEntry(left: RegionLayoutEntry, right: RegionLayoutEntry): boolean {
   return (
     left.anchor === right.anchor &&
     left.offsetX === right.offsetX &&

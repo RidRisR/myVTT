@@ -33,12 +33,7 @@ function parseLeadingDuality(terms: DiceTerm[]): {
 } {
   const [first, second, ...rest] = terms
 
-  if (
-    first?.type === 'dice' &&
-    first.sign === 1 &&
-    first.count === 2 &&
-    !first.keepDrop
-  ) {
+  if (first?.type === 'dice' && first.sign === 1 && first.count === 2 && !first.keepDrop) {
     return {
       dualityDice: { hopeFace: first.sides, fearFace: first.sides },
       remainingTerms: terms.slice(1),

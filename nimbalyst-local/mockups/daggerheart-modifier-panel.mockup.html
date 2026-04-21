@@ -1,808 +1,1263 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Daggerheart Modifier Panel v3</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #1a1410;
-    color: #f0e6d8;
-    font-family: 'Inter', -apple-system, system-ui, sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 40px 20px;
-    gap: 50px;
-  }
-  h1 { font-size: 18px; color: #d4a055; text-align: center; }
-  h2 { font-size: 13px; color: #d4a055; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 2px; }
-  .subtitle { font-size: 11px; color: #a09080; text-align: center; margin-top: -2px; }
-  .scene-label { font-size: 10px; color: #a09080; text-align: center; margin-bottom: 12px; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daggerheart Modifier Panel v3</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #1a1410;
+        color: #f0e6d8;
+        font-family:
+          'Inter',
+          -apple-system,
+          system-ui,
+          sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 20px;
+        gap: 50px;
+      }
+      h1 {
+        font-size: 18px;
+        color: #d4a055;
+        text-align: center;
+      }
+      h2 {
+        font-size: 13px;
+        color: #d4a055;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+      .subtitle {
+        font-size: 11px;
+        color: #a09080;
+        text-align: center;
+        margin-top: -2px;
+      }
+      .scene-label {
+        font-size: 10px;
+        color: #a09080;
+        text-align: center;
+        margin-bottom: 12px;
+      }
 
-  /* ===== WARM ALCHEMY TOKENS ===== */
-  :root {
-    --glass: rgba(20, 15, 12, 0.92);
-    --deep: #140f0c;
-    --surface: rgba(35, 28, 22, 0.92);
-    --text: #f0e6d8;
-    --text-muted: #a09080;
-    --border: rgba(180, 160, 130, 0.15);
-    --border-active: rgba(180, 160, 130, 0.30);
-    --accent: #d4a055;
-    --accent-bold: #e8b86a;
-    --success: #408040;
-    --danger: #C04040;
-    --info: #5090C0;
-    --hope: #e8b86a;
-    --fear: #9070c0;
-  }
+      /* ===== WARM ALCHEMY TOKENS ===== */
+      :root {
+        --glass: rgba(20, 15, 12, 0.92);
+        --deep: #140f0c;
+        --surface: rgba(35, 28, 22, 0.92);
+        --text: #f0e6d8;
+        --text-muted: #a09080;
+        --border: rgba(180, 160, 130, 0.15);
+        --border-active: rgba(180, 160, 130, 0.3);
+        --accent: #d4a055;
+        --accent-bold: #e8b86a;
+        --success: #408040;
+        --danger: #c04040;
+        --info: #5090c0;
+        --hope: #e8b86a;
+        --fear: #9070c0;
+      }
 
-  /* ===== PANEL SHELL — glass morphism ===== */
-  .mp {
-    width: 420px;
-    background: var(--glass);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 1px rgba(255,255,255,0.06);
-  }
-  .mp-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px 8px;
-    border-bottom: 1px solid var(--border);
-  }
-  .mp-title { font-size: 13px; font-weight: 600; color: var(--accent); }
-  .mp-action-name { font-size: 10px; color: var(--text-muted); margin-left: 8px; font-weight: 400; }
-  .mp-close {
-    width: 24px; height: 24px; border-radius: 6px;
-    border: 1px solid var(--border); background: transparent;
-    color: var(--text-muted); font-size: 11px;
-    display: flex; align-items: center; justify-content: center; cursor: pointer;
-  }
-  .mp-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+      /* ===== PANEL SHELL — glass morphism ===== */
+      .mp {
+        width: 420px;
+        background: var(--glass);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.5),
+          0 0 1px rgba(255, 255, 255, 0.06);
+      }
+      .mp-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      .mp-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent);
+      }
+      .mp-action-name {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-left: 8px;
+        font-weight: 400;
+      }
+      .mp-close {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .mp-close:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
 
-  /* Section wrapper */
-  .mp-sec {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-  }
-  .mp-sec:last-of-type { border-bottom: none; }
-  .sec-lbl {
-    font-size: 9px; text-transform: uppercase; letter-spacing: 2px;
-    color: var(--text-muted); opacity: 0.5; margin-bottom: 6px;
-  }
+      /* Section wrapper */
+      .mp-sec {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .mp-sec:last-of-type {
+        border-bottom: none;
+      }
+      .sec-lbl {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--text-muted);
+        opacity: 0.5;
+        margin-bottom: 6px;
+      }
 
-  /* ① FORMULA BAR — token-based */
-  .formula-bar {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    background: rgba(0,0,0,0.3);
-    border: 1px solid var(--border);
-    min-height: 34px;
-    flex-wrap: wrap;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
-    cursor: text;
-  }
-  .ft { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
-  .ft-op { color: var(--text-muted); font-weight: 400; padding: 0 1px; }
-  .ft-dice { color: var(--fear); font-weight: 700; }
-  .ft-mod { color: var(--success); font-weight: 600; }
-  .ft-exp { color: var(--accent-bold); font-weight: 600; }
-  .ft-adv { color: var(--info); font-weight: 600; }
-  .ft-const { color: var(--accent-bold); font-weight: 700; }
-  .ft-src {
-    font-size: 9px; color: var(--text-muted); font-family: Inter, sans-serif;
-    font-weight: 400; vertical-align: middle;
-  }
-  .ft-kh { font-size: 10px; color: var(--accent); opacity: 0.7; }
+      /* ① FORMULA BAR — token-based */
+      .formula-bar {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border);
+        min-height: 34px;
+        flex-wrap: wrap;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        cursor: text;
+      }
+      .ft {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        white-space: nowrap;
+      }
+      .ft-op {
+        color: var(--text-muted);
+        font-weight: 400;
+        padding: 0 1px;
+      }
+      .ft-dice {
+        color: var(--fear);
+        font-weight: 700;
+      }
+      .ft-mod {
+        color: var(--success);
+        font-weight: 600;
+      }
+      .ft-exp {
+        color: var(--accent-bold);
+        font-weight: 600;
+      }
+      .ft-adv {
+        color: var(--info);
+        font-weight: 600;
+      }
+      .ft-const {
+        color: var(--accent-bold);
+        font-weight: 700;
+      }
+      .ft-src {
+        font-size: 9px;
+        color: var(--text-muted);
+        font-family: Inter, sans-serif;
+        font-weight: 400;
+        vertical-align: middle;
+      }
+      .ft-kh {
+        font-size: 10px;
+        color: var(--accent);
+        opacity: 0.7;
+      }
 
-  /* ② DICE SECTION */
-  .std-dice-row { display: flex; gap: 4px; }
-  .sd-btn {
-    flex: 1;
-    height: 34px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 11px;
-    font-weight: 600;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    transition: all 0.15s;
-    position: relative;
-  }
-  .sd-btn:hover { background: rgba(212,160,85,0.08); border-color: rgba(212,160,85,0.25); color: var(--accent); }
-  .sd-btn.duality {
-    border-color: rgba(144,112,192,0.35);
-    background: rgba(144,112,192,0.08);
-    color: var(--fear);
-    gap: 5px;
-  }
-  .sd-btn.duality .dt-dots { display: flex; gap: 3px; align-items: center; }
-  .sd-btn.duality .dt-dot { width: 6px; height: 6px; border-radius: 50%; }
-  .sd-btn.duality .dt-dot.hope { background: var(--hope); }
-  .sd-btn.duality .dt-dot.fear { background: var(--fear); }
-  .sd-btn .sd-count {
-    position: absolute; top: -5px; right: -5px;
-    min-width: 16px; height: 16px; border-radius: 8px;
-    background: var(--accent); color: var(--deep);
-    font-size: 9px; font-weight: 800;
-    display: flex; align-items: center; justify-content: center; padding: 0 4px;
-  }
-  .sd-op {
-    position: absolute; top: -5px; left: -5px;
-    width: 16px; height: 16px; border-radius: 8px;
-    background: var(--danger); color: #fff;
-    font-size: 10px; font-weight: 800;
-    display: flex; align-items: center; justify-content: center;
-  }
+      /* ② DICE SECTION */
+      .std-dice-row {
+        display: flex;
+        gap: 4px;
+      }
+      .sd-btn {
+        flex: 1;
+        height: 34px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 11px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        position: relative;
+      }
+      .sd-btn:hover {
+        background: rgba(212, 160, 85, 0.08);
+        border-color: rgba(212, 160, 85, 0.25);
+        color: var(--accent);
+      }
+      .sd-btn.duality {
+        border-color: rgba(144, 112, 192, 0.35);
+        background: rgba(144, 112, 192, 0.08);
+        color: var(--fear);
+        gap: 5px;
+      }
+      .sd-btn.duality .dt-dots {
+        display: flex;
+        gap: 3px;
+        align-items: center;
+      }
+      .sd-btn.duality .dt-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+      .sd-btn.duality .dt-dot.hope {
+        background: var(--hope);
+      }
+      .sd-btn.duality .dt-dot.fear {
+        background: var(--fear);
+      }
+      .sd-btn .sd-count {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        min-width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: var(--accent);
+        color: var(--deep);
+        font-size: 9px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+      }
+      .sd-op {
+        position: absolute;
+        top: -5px;
+        left: -5px;
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        background: var(--danger);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-  /* ③ MODIFIERS — unified layout */
-  .mod-grid { display: flex; flex-direction: column; gap: 6px; }
+      /* ③ MODIFIERS — unified layout */
+      .mod-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
 
-  /* Attributes — 6-col, generous sizing */
-  .attr-row { display: flex; gap: 4px; }
-  .ab {
-    flex: 1;
-    height: 44px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .ab:hover { background: rgba(255,255,255,0.04); }
-  .ab.sel {
-    background: rgba(64,128,64,0.08);
-    border-color: rgba(64,128,64,0.3);
-    color: var(--success);
-  }
-  .ab-n { font-size: 9px; display: block; line-height: 1; opacity: 0.6; }
-  .ab-v { font-size: 15px; font-weight: 700; display: block; font-variant-numeric: tabular-nums; line-height: 1.3; }
+      /* Attributes — 6-col, generous sizing */
+      .attr-row {
+        display: flex;
+        gap: 4px;
+      }
+      .ab {
+        flex: 1;
+        height: 44px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .ab:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .ab.sel {
+        background: rgba(64, 128, 64, 0.08);
+        border-color: rgba(64, 128, 64, 0.3);
+        color: var(--success);
+      }
+      .ab-n {
+        font-size: 9px;
+        display: block;
+        line-height: 1;
+        opacity: 0.6;
+      }
+      .ab-v {
+        font-size: 15px;
+        font-weight: 700;
+        display: block;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.3;
+      }
 
-  /* Experiences — pill row */
-  .exp-row { display: flex; flex-wrap: wrap; gap: 4px; }
-  .ec {
-    display: flex; align-items: center; gap: 4px;
-    height: 30px;
-    padding: 0 10px;
-    border-radius: 15px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 10px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .ec:hover { background: rgba(255,255,255,0.04); }
-  .ec.sel {
-    background: rgba(212,160,85,0.08);
-    border-color: rgba(212,160,85,0.3);
-    color: var(--accent-bold);
-  }
-  .ec-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    border: 1px solid var(--text-muted); opacity: 0.4;
-  }
-  .ec.sel .ec-dot { background: var(--accent-bold); border-color: var(--accent-bold); opacity: 1; }
-  .ec-v { font-weight: 600; }
+      /* Experiences — pill row */
+      .exp-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .ec {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        height: 30px;
+        padding: 0 10px;
+        border-radius: 15px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 10px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .ec:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .ec.sel {
+        background: rgba(212, 160, 85, 0.08);
+        border-color: rgba(212, 160, 85, 0.3);
+        color: var(--accent-bold);
+      }
+      .ec-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        border: 1px solid var(--text-muted);
+        opacity: 0.4;
+      }
+      .ec.sel .ec-dot {
+        background: var(--accent-bold);
+        border-color: var(--accent-bold);
+        opacity: 1;
+      }
+      .ec-v {
+        font-weight: 600;
+      }
 
-  /* Stepper base — shared by adv/dis and constant */
-  .stepper-row { display: flex; gap: 4px; }
-  .stepper-grp {
-    flex: 1;
-    display: flex; align-items: center; gap: 5px;
-    height: 36px;
-    padding: 0 10px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: transparent;
-  }
-  .stepper-grp.on-a { border-color: rgba(80,144,192,0.25); background: rgba(80,144,192,0.06); }
-  .stepper-grp.on-d { border-color: rgba(192,64,64,0.25); background: rgba(192,64,64,0.06); }
-  .stepper-grp.const-grp { flex: none; }
-  .st-lbl { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
-  .stepper-grp.on-a .st-lbl { color: var(--info); }
-  .stepper-grp.on-d .st-lbl { color: var(--danger); }
-  .st-dice { font-size: 9px; color: var(--text-muted); opacity: 0.4; }
-  .stepper-grp.on-a .st-dice { color: var(--info); opacity: 0.5; }
-  .stepper-grp.on-d .st-dice { color: var(--danger); opacity: 0.5; }
-  .st-step { display: flex; align-items: center; gap: 3px; margin-left: auto; }
-  .st-btn {
-    width: 24px; height: 24px; border-radius: 4px;
-    border: 1px solid var(--border); background: transparent;
-    color: var(--text-muted); font-size: 11px;
-    display: flex; align-items: center; justify-content: center; cursor: pointer;
-    transition: all 0.15s;
-  }
-  .st-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
-  .st-val {
-    font-size: 14px; font-weight: 700; min-width: 18px; text-align: center;
-    font-variant-numeric: tabular-nums; color: var(--text-muted); opacity: 0.5;
-  }
-  .stepper-grp.on-a .st-val { color: var(--info); opacity: 1; }
-  .stepper-grp.on-d .st-val { color: var(--danger); opacity: 1; }
+      /* Stepper base — shared by adv/dis and constant */
+      .stepper-row {
+        display: flex;
+        gap: 4px;
+      }
+      .stepper-grp {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        height: 36px;
+        padding: 0 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: transparent;
+      }
+      .stepper-grp.on-a {
+        border-color: rgba(80, 144, 192, 0.25);
+        background: rgba(80, 144, 192, 0.06);
+      }
+      .stepper-grp.on-d {
+        border-color: rgba(192, 64, 64, 0.25);
+        background: rgba(192, 64, 64, 0.06);
+      }
+      .stepper-grp.const-grp {
+        flex: none;
+      }
+      .st-lbl {
+        font-size: 10px;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+      .stepper-grp.on-a .st-lbl {
+        color: var(--info);
+      }
+      .stepper-grp.on-d .st-lbl {
+        color: var(--danger);
+      }
+      .st-dice {
+        font-size: 9px;
+        color: var(--text-muted);
+        opacity: 0.4;
+      }
+      .stepper-grp.on-a .st-dice {
+        color: var(--info);
+        opacity: 0.5;
+      }
+      .stepper-grp.on-d .st-dice {
+        color: var(--danger);
+        opacity: 0.5;
+      }
+      .st-step {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        margin-left: auto;
+      }
+      .st-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .st-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text);
+      }
+      .st-val {
+        font-size: 14px;
+        font-weight: 700;
+        min-width: 18px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-muted);
+        opacity: 0.5;
+      }
+      .stepper-grp.on-a .st-val {
+        color: var(--info);
+        opacity: 1;
+      }
+      .stepper-grp.on-d .st-val {
+        color: var(--danger);
+        opacity: 1;
+      }
 
-  /* Constant modifier input */
-  .const-input {
-    width: 44px; height: 24px;
-    border-radius: 4px;
-    border: 1px solid rgba(212,160,85,0.25);
-    background: rgba(0,0,0,0.2);
-    color: var(--accent-bold);
-    font-size: 13px; font-weight: 600; font-family: monospace;
-    text-align: center; outline: none;
-  }
-  .const-input:focus { border-color: rgba(212,160,85,0.5); }
+      /* Constant modifier input */
+      .const-input {
+        width: 44px;
+        height: 24px;
+        border-radius: 4px;
+        border: 1px solid rgba(212, 160, 85, 0.25);
+        background: rgba(0, 0, 0, 0.2);
+        color: var(--accent-bold);
+        font-size: 13px;
+        font-weight: 600;
+        font-family: monospace;
+        text-align: center;
+        outline: none;
+      }
+      .const-input:focus {
+        border-color: rgba(212, 160, 85, 0.5);
+      }
 
-  /* ④ ADVANCED (collapsible) */
-  .adv-toggle {
-    display: flex; align-items: center; gap: 6px;
-    cursor: pointer;
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--border);
-    transition: all 0.15s;
-  }
-  .adv-toggle:hover { background: rgba(255,255,255,0.03); }
-  .adv-chevron { font-size: 8px; color: var(--text-muted); opacity: 0.4; transition: transform 0.15s; }
-  .adv-chevron.open { transform: rotate(90deg); }
-  .adv-label { font-size: 10px; color: var(--text-muted); opacity: 0.5; }
-  .adv-summary { font-size: 9px; color: var(--text-muted); opacity: 0.3; margin-left: auto; }
-  .adv-content { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+      /* ④ ADVANCED (collapsible) */
+      .adv-toggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--border);
+        transition: all 0.15s;
+      }
+      .adv-toggle:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .adv-chevron {
+        font-size: 8px;
+        color: var(--text-muted);
+        opacity: 0.4;
+        transition: transform 0.15s;
+      }
+      .adv-chevron.open {
+        transform: rotate(90deg);
+      }
+      .adv-label {
+        font-size: 10px;
+        color: var(--text-muted);
+        opacity: 0.5;
+      }
+      .adv-summary {
+        font-size: 9px;
+        color: var(--text-muted);
+        opacity: 0.3;
+        margin-left: auto;
+      }
+      .adv-content {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+      }
 
-  /* Face swap in advanced */
-  .face-row { display: flex; gap: 4px; margin-bottom: 8px; }
-  .face-item {
-    flex: 1;
-    display: flex; align-items: center; gap: 6px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: transparent;
-    font-size: 10px;
-  }
-  .face-dot { width: 8px; height: 8px; border-radius: 50%; }
-  .face-dot.hope { background: var(--hope); }
-  .face-dot.fear { background: var(--fear); }
-  .face-name { font-size: 10px; color: var(--text-muted); }
-  .face-select {
-    margin-left: auto;
-    padding: 3px 8px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: rgba(0,0,0,0.2);
-    color: var(--text-muted);
-    font-size: 12px; font-weight: 600; font-family: monospace;
-    cursor: pointer;
-    min-width: 40px; text-align: center;
-  }
-  .face-select.changed {
-    color: var(--accent-bold);
-    border-color: rgba(212,160,85,0.4);
-  }
+      /* Face swap in advanced */
+      .face-row {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+      .face-item {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: transparent;
+        font-size: 10px;
+      }
+      .face-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .face-dot.hope {
+        background: var(--hope);
+      }
+      .face-dot.fear {
+        background: var(--fear);
+      }
+      .face-name {
+        font-size: 10px;
+        color: var(--text-muted);
+      }
+      .face-select {
+        margin-left: auto;
+        padding: 3px 8px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.2);
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 600;
+        font-family: monospace;
+        cursor: pointer;
+        min-width: 40px;
+        text-align: center;
+      }
+      .face-select.changed {
+        color: var(--accent-bold);
+        border-color: rgba(212, 160, 85, 0.4);
+      }
 
-  /* Keep high/low per dice group */
-  .khl-row { display: flex; flex-direction: column; gap: 4px; }
-  .khl-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: transparent;
-    font-size: 11px;
-  }
-  .khl-dice { color: var(--fear); font-weight: 600; font-family: monospace; min-width: 40px; }
-  .khl-type { font-size: 9px; color: var(--text-muted); opacity: 0.5; }
-  .khl-btns { display: flex; gap: 2px; margin-left: auto; }
-  .khl-btn {
-    padding: 3px 8px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text-muted); opacity: 0.5;
-    font-size: 9px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .khl-btn:hover { background: rgba(255,255,255,0.06); opacity: 0.8; }
-  .khl-btn.sel-kh {
-    background: rgba(64,128,64,0.1);
-    border-color: rgba(64,128,64,0.3);
-    color: var(--success); opacity: 1;
-  }
-  .khl-btn.sel-kl {
-    background: rgba(192,64,64,0.1);
-    border-color: rgba(192,64,64,0.3);
-    color: var(--danger); opacity: 1;
-  }
-  .khl-cnt {
-    font-size: 10px; color: var(--text-muted); opacity: 0.6;
-    display: flex; align-items: center; gap: 3px;
-  }
-  .khl-cnt input {
-    width: 28px; height: 22px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: rgba(0,0,0,0.2);
-    color: var(--text);
-    font-size: 11px;
-    text-align: center;
-    outline: none; font-family: monospace;
-  }
+      /* Keep high/low per dice group */
+      .khl-row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .khl-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: transparent;
+        font-size: 11px;
+      }
+      .khl-dice {
+        color: var(--fear);
+        font-weight: 600;
+        font-family: monospace;
+        min-width: 40px;
+      }
+      .khl-type {
+        font-size: 9px;
+        color: var(--text-muted);
+        opacity: 0.5;
+      }
+      .khl-btns {
+        display: flex;
+        gap: 2px;
+        margin-left: auto;
+      }
+      .khl-btn {
+        padding: 3px 8px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        opacity: 0.5;
+        font-size: 9px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .khl-btn:hover {
+        background: rgba(255, 255, 255, 0.06);
+        opacity: 0.8;
+      }
+      .khl-btn.sel-kh {
+        background: rgba(64, 128, 64, 0.1);
+        border-color: rgba(64, 128, 64, 0.3);
+        color: var(--success);
+        opacity: 1;
+      }
+      .khl-btn.sel-kl {
+        background: rgba(192, 64, 64, 0.1);
+        border-color: rgba(192, 64, 64, 0.3);
+        color: var(--danger);
+        opacity: 1;
+      }
+      .khl-cnt {
+        font-size: 10px;
+        color: var(--text-muted);
+        opacity: 0.6;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+      }
+      .khl-cnt input {
+        width: 28px;
+        height: 22px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.2);
+        color: var(--text);
+        font-size: 11px;
+        text-align: center;
+        outline: none;
+        font-family: monospace;
+      }
 
-  /* ⑤ SIDE EFFECTS — collapsible, 2×2 grid, signed, color-coded */
-  .fx-toggle {
-    display: flex; align-items: center; gap: 6px;
-    cursor: pointer;
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--border);
-    transition: all 0.15s;
-  }
-  .fx-toggle:hover { background: rgba(255,255,255,0.03); }
-  .fx-content { padding: 10px 16px; border-bottom: 1px solid var(--border); }
-  .fx-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
-  }
-  .fx-item {
-    display: flex; align-items: center; gap: 6px;
-    padding: 6px 10px;
-    height: 36px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: transparent;
-  }
-  .fx-item.neg { border-color: rgba(192,64,64,0.2); background: rgba(192,64,64,0.05); }
-  .fx-item.pos { border-color: rgba(64,128,64,0.2); background: rgba(64,128,64,0.05); }
-  .fx-icon {
-    display: flex; align-items: center; justify-content: center;
-    width: 14px; height: 14px;
-  }
-  .fx-icon svg { width: 12px; height: 12px; stroke-width: 1.5; fill: none; }
-  .fx-name { font-size: 10px; color: var(--text-muted); opacity: 0.6; }
-  .fx-item.neg .fx-name { color: var(--danger); opacity: 0.8; }
-  .fx-item.pos .fx-name { color: var(--success); opacity: 0.8; }
-  .fx-step { display: flex; align-items: center; gap: 3px; margin-left: auto; }
-  .fx-btn {
-    width: 24px; height: 24px; border-radius: 4px;
-    border: 1px solid var(--border); background: transparent;
-    color: var(--text-muted); font-size: 11px;
-    display: flex; align-items: center; justify-content: center; cursor: pointer;
-    transition: all 0.15s;
-  }
-  .fx-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
-  .fx-val {
-    font-size: 13px; font-weight: 700; min-width: 22px; text-align: center;
-    font-variant-numeric: tabular-nums; color: var(--text-muted); opacity: 0.5;
-  }
-  .fx-item.neg .fx-val { color: var(--danger); opacity: 1; }
-  .fx-item.pos .fx-val { color: var(--success); opacity: 1; }
+      /* ⑤ SIDE EFFECTS — collapsible, 2×2 grid, signed, color-coded */
+      .fx-toggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--border);
+        transition: all 0.15s;
+      }
+      .fx-toggle:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .fx-content {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .fx-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+      }
+      .fx-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        height: 36px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: transparent;
+      }
+      .fx-item.neg {
+        border-color: rgba(192, 64, 64, 0.2);
+        background: rgba(192, 64, 64, 0.05);
+      }
+      .fx-item.pos {
+        border-color: rgba(64, 128, 64, 0.2);
+        background: rgba(64, 128, 64, 0.05);
+      }
+      .fx-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+      }
+      .fx-icon svg {
+        width: 12px;
+        height: 12px;
+        stroke-width: 1.5;
+        fill: none;
+      }
+      .fx-name {
+        font-size: 10px;
+        color: var(--text-muted);
+        opacity: 0.6;
+      }
+      .fx-item.neg .fx-name {
+        color: var(--danger);
+        opacity: 0.8;
+      }
+      .fx-item.pos .fx-name {
+        color: var(--success);
+        opacity: 0.8;
+      }
+      .fx-step {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        margin-left: auto;
+      }
+      .fx-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .fx-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+      }
+      .fx-val {
+        font-size: 13px;
+        font-weight: 700;
+        min-width: 22px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-muted);
+        opacity: 0.5;
+      }
+      .fx-item.neg .fx-val {
+        color: var(--danger);
+        opacity: 1;
+      }
+      .fx-item.pos .fx-val {
+        color: var(--success);
+        opacity: 1;
+      }
 
-  /* FOOTER */
-  .mp-footer { display: flex; gap: 8px; padding: 12px 16px; }
-  .btn-cancel {
-    flex: 1; height: 36px; border-radius: 6px;
-    border: 1px solid var(--border); background: transparent;
-    color: var(--text-muted); font-size: 11px; cursor: pointer;
-    transition: all 0.15s;
-  }
-  .btn-cancel:hover { background: rgba(255,255,255,0.06); color: var(--text); }
-  .btn-roll {
-    flex: 2; height: 36px; border-radius: 6px;
-    border: 1px solid rgba(212,160,85,0.4);
-    background: linear-gradient(135deg, rgba(212,160,85,0.18), rgba(212,160,85,0.08));
-    color: var(--accent-bold); font-size: 13px; font-weight: 700;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 5px;
-    transition: all 0.15s;
-  }
-  .btn-roll:hover {
-    background: linear-gradient(135deg, rgba(212,160,85,0.30), rgba(212,160,85,0.15));
-    box-shadow: 0 0 16px rgba(212,160,85,0.15);
-  }
-  .mp-hint {
-    font-size: 9px; color: var(--text-muted); opacity: 0.3; text-align: center;
-    padding: 0 16px 10px;
-  }
-</style>
-</head>
-<body>
+      /* FOOTER */
+      .mp-footer {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px;
+      }
+      .btn-cancel {
+        flex: 1;
+        height: 36px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+      }
+      .btn-roll {
+        flex: 2;
+        height: 36px;
+        border-radius: 6px;
+        border: 1px solid rgba(212, 160, 85, 0.4);
+        background: linear-gradient(135deg, rgba(212, 160, 85, 0.18), rgba(212, 160, 85, 0.08));
+        color: var(--accent-bold);
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        transition: all 0.15s;
+      }
+      .btn-roll:hover {
+        background: linear-gradient(135deg, rgba(212, 160, 85, 0.3), rgba(212, 160, 85, 0.15));
+        box-shadow: 0 0 16px rgba(212, 160, 85, 0.15);
+      }
+      .mp-hint {
+        font-size: 9px;
+        color: var(--text-muted);
+        opacity: 0.3;
+        text-align: center;
+        padding: 0 16px 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Modifier 面板 v3</h1>
+    <p class="subtitle">暖色 Alchemy 主题 · Glass 效果 · 统一尺寸 · 可读性优先</p>
 
-<h1>Modifier 面板 v3</h1>
-<p class="subtitle">暖色 Alchemy 主题 · Glass 效果 · 统一尺寸 · 可读性优先</p>
+    <!-- ===== Scene 1: Full action check ===== -->
+    <div>
+      <h2>场景 1：敏捷行动检定（完整配置）</h2>
+      <p class="scene-label">二元骰 + 属性 + 经验 + 优势 + 额外修正 + 消耗 Hope</p>
 
-<!-- ===== Scene 1: Full action check ===== -->
-<div>
-  <h2>场景 1：敏捷行动检定（完整配置）</h2>
-  <p class="scene-label">二元骰 + 属性 + 经验 + 优势 + 额外修正 + 消耗 Hope</p>
-
-  <div class="mp">
-    <div class="mp-header">
-      <div>
-        <span class="mp-title">掷骰设定</span>
-        <span class="mp-action-name">· 敏捷检定</span>
-      </div>
-      <div class="mp-close">✕</div>
-    </div>
-
-    <!-- ① Formula -->
-    <div class="mp-sec">
-      <div class="sec-lbl">公式</div>
-      <div class="formula-bar">
-        <span class="ft"><span class="ft-dice">2d12</span></span>
-        <span class="ft-op">+</span>
-        <span class="ft"><span class="ft-mod">3</span><span class="ft-src"> 敏捷</span></span>
-        <span class="ft-op">+</span>
-        <span class="ft"><span class="ft-exp">2</span><span class="ft-src"> 潜行</span></span>
-        <span class="ft-op">+</span>
-        <span class="ft"><span class="ft-adv">1d6</span><span class="ft-src"> 优势</span></span>
-        <span class="ft-op">+</span>
-        <span class="ft"><span class="ft-const">2</span></span>
-      </div>
-    </div>
-
-    <!-- ② Dice — single row with duality toggle -->
-    <div class="mp-sec">
-      <div class="sec-lbl">骰子</div>
-      <div class="std-dice-row">
-        <div class="sd-btn duality">
-          <span class="dt-dots"><span class="dt-dot hope"></span><span class="dt-dot fear"></span></span>
-          2d12
+      <div class="mp">
+        <div class="mp-header">
+          <div>
+            <span class="mp-title">掷骰设定</span>
+            <span class="mp-action-name">· 敏捷检定</span>
+          </div>
+          <div class="mp-close">✕</div>
         </div>
-        <div class="sd-btn">d4</div>
-        <div class="sd-btn">d6</div>
-        <div class="sd-btn">d8</div>
-        <div class="sd-btn">d10</div>
-        <div class="sd-btn">d20</div>
-      </div>
-    </div>
 
-    <!-- ③ Modifiers — unified grid -->
-    <div class="mp-sec">
-      <div class="sec-lbl">修正值</div>
-      <div class="mod-grid">
-        <div class="attr-row">
-          <div class="ab sel"><span class="ab-n">敏捷</span><span class="ab-v">+3</span></div>
-          <div class="ab"><span class="ab-n">力量</span><span class="ab-v">+1</span></div>
-          <div class="ab"><span class="ab-n">灵巧</span><span class="ab-v">+2</span></div>
-          <div class="ab"><span class="ab-n">直觉</span><span class="ab-v">0</span></div>
-          <div class="ab"><span class="ab-n">风度</span><span class="ab-v">−1</span></div>
-          <div class="ab"><span class="ab-n">学识</span><span class="ab-v">+2</span></div>
+        <!-- ① Formula -->
+        <div class="mp-sec">
+          <div class="sec-lbl">公式</div>
+          <div class="formula-bar">
+            <span class="ft"><span class="ft-dice">2d12</span></span>
+            <span class="ft-op">+</span>
+            <span class="ft"><span class="ft-mod">3</span><span class="ft-src"> 敏捷</span></span>
+            <span class="ft-op">+</span>
+            <span class="ft"><span class="ft-exp">2</span><span class="ft-src"> 潜行</span></span>
+            <span class="ft-op">+</span>
+            <span class="ft"><span class="ft-adv">1d6</span><span class="ft-src"> 优势</span></span>
+            <span class="ft-op">+</span>
+            <span class="ft"><span class="ft-const">2</span></span>
+          </div>
         </div>
-        <div class="exp-row">
-          <div class="ec sel"><span class="ec-dot"></span><span>潜行</span><span class="ec-v">+2</span></div>
-          <div class="ec"><span class="ec-dot"></span><span>说服</span><span class="ec-v">+1</span></div>
-          <div class="ec"><span class="ec-dot"></span><span>草药学</span><span class="ec-v">+1</span></div>
-          <div class="ec"><span class="ec-dot"></span><span>历史</span><span class="ec-v">+2</span></div>
+
+        <!-- ② Dice — single row with duality toggle -->
+        <div class="mp-sec">
+          <div class="sec-lbl">骰子</div>
+          <div class="std-dice-row">
+            <div class="sd-btn duality">
+              <span class="dt-dots"
+                ><span class="dt-dot hope"></span><span class="dt-dot fear"></span
+              ></span>
+              2d12
+            </div>
+            <div class="sd-btn">d4</div>
+            <div class="sd-btn">d6</div>
+            <div class="sd-btn">d8</div>
+            <div class="sd-btn">d10</div>
+            <div class="sd-btn">d20</div>
+          </div>
         </div>
-        <div class="stepper-row">
-          <div class="stepper-grp on-a">
-            <div class="st-lbl">优势</div>
-            <div class="st-dice">d6</div>
-            <div class="st-step">
-              <div class="st-btn">−</div>
-              <div class="st-val">1</div>
-              <div class="st-btn">+</div>
+
+        <!-- ③ Modifiers — unified grid -->
+        <div class="mp-sec">
+          <div class="sec-lbl">修正值</div>
+          <div class="mod-grid">
+            <div class="attr-row">
+              <div class="ab sel"><span class="ab-n">敏捷</span><span class="ab-v">+3</span></div>
+              <div class="ab"><span class="ab-n">力量</span><span class="ab-v">+1</span></div>
+              <div class="ab"><span class="ab-n">灵巧</span><span class="ab-v">+2</span></div>
+              <div class="ab"><span class="ab-n">直觉</span><span class="ab-v">0</span></div>
+              <div class="ab"><span class="ab-n">风度</span><span class="ab-v">−1</span></div>
+              <div class="ab"><span class="ab-n">学识</span><span class="ab-v">+2</span></div>
+            </div>
+            <div class="exp-row">
+              <div class="ec sel">
+                <span class="ec-dot"></span><span>潜行</span><span class="ec-v">+2</span>
+              </div>
+              <div class="ec">
+                <span class="ec-dot"></span><span>说服</span><span class="ec-v">+1</span>
+              </div>
+              <div class="ec">
+                <span class="ec-dot"></span><span>草药学</span><span class="ec-v">+1</span>
+              </div>
+              <div class="ec">
+                <span class="ec-dot"></span><span>历史</span><span class="ec-v">+2</span>
+              </div>
+            </div>
+            <div class="stepper-row">
+              <div class="stepper-grp on-a">
+                <div class="st-lbl">优势</div>
+                <div class="st-dice">d6</div>
+                <div class="st-step">
+                  <div class="st-btn">−</div>
+                  <div class="st-val">1</div>
+                  <div class="st-btn">+</div>
+                </div>
+              </div>
+              <div class="stepper-grp">
+                <div class="st-lbl">劣势</div>
+                <div class="st-dice">d6</div>
+                <div class="st-step">
+                  <div class="st-btn">−</div>
+                  <div class="st-val">0</div>
+                  <div class="st-btn">+</div>
+                </div>
+              </div>
+              <div class="stepper-grp const-grp">
+                <div class="st-lbl">修正</div>
+                <div class="st-step">
+                  <div class="st-btn">−</div>
+                  <input class="const-input" value="+2" />
+                  <div class="st-btn">+</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="stepper-grp">
-            <div class="st-lbl">劣势</div>
-            <div class="st-dice">d6</div>
-            <div class="st-step">
-              <div class="st-btn">−</div>
-              <div class="st-val">0</div>
-              <div class="st-btn">+</div>
+        </div>
+
+        <!-- ④ Advanced (collapsed in Scene 1) -->
+        <div class="adv-toggle">
+          <span class="adv-chevron">▶</span>
+          <span class="adv-label">高级选项</span>
+          <span class="adv-summary">骰面 · 取高/取低</span>
+        </div>
+
+        <!-- ⑤ Side Effects (collapsible, expanded in Scene 1) -->
+        <div class="fx-toggle">
+          <span class="adv-chevron open">▶</span>
+          <span class="adv-label">副作用</span>
+          <span class="adv-summary">希望 −1</span>
+        </div>
+        <div class="fx-content">
+          <div class="fx-grid">
+            <div class="fx-item neg">
+              <span class="fx-icon"
+                ><svg viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    d="M2.49 14.26l9.02 8.33a.66.66 0 00.96 0l9.02-8.33A5.58 5.58 0 0012 4.34 5.58 5.58 0 002.49 14.26z"
+                  /></svg
+              ></span>
+              <span class="fx-name">希望</span>
+              <div class="fx-step">
+                <div class="fx-btn">−</div>
+                <div class="fx-val">−1</div>
+                <div class="fx-btn">+</div>
+              </div>
             </div>
-          </div>
-          <div class="stepper-grp const-grp">
-            <div class="st-lbl">修正</div>
-            <div class="st-step">
-              <div class="st-btn">−</div>
-              <input class="const-input" value="+2">
-              <div class="st-btn">+</div>
+            <div class="fx-item">
+              <span class="fx-icon"
+                ><svg viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7z"
+                  /></svg
+              ></span>
+              <span class="fx-name">生命</span>
+              <div class="fx-step">
+                <div class="fx-btn">−</div>
+                <div class="fx-val">0</div>
+                <div class="fx-btn">+</div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ④ Advanced (collapsed in Scene 1) -->
-    <div class="adv-toggle">
-      <span class="adv-chevron">▶</span>
-      <span class="adv-label">高级选项</span>
-      <span class="adv-summary">骰面 · 取高/取低</span>
-    </div>
-
-    <!-- ⑤ Side Effects (collapsible, expanded in Scene 1) -->
-    <div class="fx-toggle">
-      <span class="adv-chevron open">▶</span>
-      <span class="adv-label">副作用</span>
-      <span class="adv-summary">希望 −1</span>
-    </div>
-    <div class="fx-content">
-      <div class="fx-grid">
-        <div class="fx-item neg">
-          <span class="fx-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M2.49 14.26l9.02 8.33a.66.66 0 00.96 0l9.02-8.33A5.58 5.58 0 0012 4.34 5.58 5.58 0 002.49 14.26z"/></svg></span>
-          <span class="fx-name">希望</span>
-          <div class="fx-step">
-            <div class="fx-btn">−</div>
-            <div class="fx-val">−1</div>
-            <div class="fx-btn">+</div>
-          </div>
-        </div>
-        <div class="fx-item">
-          <span class="fx-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7z"/></svg></span>
-          <span class="fx-name">生命</span>
-          <div class="fx-step">
-            <div class="fx-btn">−</div>
-            <div class="fx-val">0</div>
-            <div class="fx-btn">+</div>
-          </div>
-        </div>
-        <div class="fx-item">
-          <span class="fx-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
-          <span class="fx-name">压力</span>
-          <div class="fx-step">
-            <div class="fx-btn">−</div>
-            <div class="fx-val">0</div>
-            <div class="fx-btn">+</div>
-          </div>
-        </div>
-        <div class="fx-item">
-          <span class="fx-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-          <span class="fx-name">护甲</span>
-          <div class="fx-step">
-            <div class="fx-btn">−</div>
-            <div class="fx-val">0</div>
-            <div class="fx-btn">+</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="mp-footer">
-      <div class="btn-cancel">取消</div>
-      <div class="btn-roll">🎲 投骰</div>
-    </div>
-    <div class="mp-hint">Shift+点击跳过 · Enter 投骰 · Esc 取消</div>
-  </div>
-</div>
-
-<!-- ===== Scene 2: Advanced — keep high/low + face swap ===== -->
-<div>
-  <h2>场景 2：高级配置（取高 + 骰面替换 + 减号骰）</h2>
-  <p class="scene-label">希望骰换 d20 · 额外 3d6 取高 2 · 减去 1d4</p>
-
-  <div class="mp">
-    <div class="mp-header">
-      <div>
-        <span class="mp-title">掷骰设定</span>
-        <span class="mp-action-name">· 灵巧检定</span>
-      </div>
-      <div class="mp-close">✕</div>
-    </div>
-
-    <!-- Formula — complex -->
-    <div class="mp-sec">
-      <div class="sec-lbl">公式</div>
-      <div class="formula-bar">
-        <span class="ft"><span class="ft-dice" style="color:var(--hope)">1d20</span><span class="ft-src"> 希望</span></span>
-        <span class="ft-op">+</span>
-        <span class="ft"><span class="ft-dice">1d12</span><span class="ft-src"> 恐惧</span></span>
-        <span class="ft-op">+</span>
-        <span class="ft"><span class="ft-mod">2</span><span class="ft-src"> 灵巧</span></span>
-        <span class="ft-op">+</span>
-        <span class="ft"><span class="ft-dice">3d6</span><span class="ft-kh">kh2</span></span>
-        <span class="ft-op">−</span>
-        <span class="ft"><span class="ft-dice" style="color:var(--danger)">1d4</span></span>
-      </div>
-    </div>
-
-    <!-- Dice -->
-    <div class="mp-sec">
-      <div class="sec-lbl">骰子</div>
-      <div class="std-dice-row">
-        <div class="sd-btn duality" style="color:var(--hope);border-color:rgba(232,184,106,0.35)">
-          <span class="dt-dots"><span class="dt-dot hope"></span><span class="dt-dot fear"></span></span>
-          d20+d12
-        </div>
-        <div class="sd-btn">d4
-          <span class="sd-count">1</span>
-          <span class="sd-op">−</span>
-        </div>
-        <div class="sd-btn">d6
-          <span class="sd-count">3</span>
-        </div>
-        <div class="sd-btn">d8</div>
-        <div class="sd-btn">d10</div>
-        <div class="sd-btn">d20</div>
-      </div>
-    </div>
-
-    <!-- Modifiers -->
-    <div class="mp-sec">
-      <div class="sec-lbl">修正值</div>
-      <div class="mod-grid">
-        <div class="attr-row">
-          <div class="ab"><span class="ab-n">敏捷</span><span class="ab-v">+3</span></div>
-          <div class="ab"><span class="ab-n">力量</span><span class="ab-v">+1</span></div>
-          <div class="ab sel"><span class="ab-n">灵巧</span><span class="ab-v">+2</span></div>
-          <div class="ab"><span class="ab-n">直觉</span><span class="ab-v">0</span></div>
-          <div class="ab"><span class="ab-n">风度</span><span class="ab-v">−1</span></div>
-          <div class="ab"><span class="ab-n">学识</span><span class="ab-v">+2</span></div>
-        </div>
-        <div class="exp-row">
-          <div class="ec"><span class="ec-dot"></span><span>潜行</span><span class="ec-v">+2</span></div>
-          <div class="ec"><span class="ec-dot"></span><span>说服</span><span class="ec-v">+1</span></div>
-        </div>
-        <div class="stepper-row">
-          <div class="stepper-grp">
-            <div class="st-lbl">优势</div>
-            <div class="st-dice">d6</div>
-            <div class="st-step">
-              <div class="st-btn">−</div>
-              <div class="st-val">0</div>
-              <div class="st-btn">+</div>
+            <div class="fx-item">
+              <span class="fx-icon"
+                ><svg viewBox="0 0 24 24" stroke="currentColor">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg
+              ></span>
+              <span class="fx-name">压力</span>
+              <div class="fx-step">
+                <div class="fx-btn">−</div>
+                <div class="fx-val">0</div>
+                <div class="fx-btn">+</div>
+              </div>
             </div>
-          </div>
-          <div class="stepper-grp">
-            <div class="st-lbl">劣势</div>
-            <div class="st-dice">d6</div>
-            <div class="st-step">
-              <div class="st-btn">−</div>
-              <div class="st-val">0</div>
-              <div class="st-btn">+</div>
-            </div>
-          </div>
-          <div class="stepper-grp const-grp">
-            <div class="st-lbl">修正</div>
-            <div class="st-step">
-              <div class="st-btn">−</div>
-              <input class="const-input" value="0">
-              <div class="st-btn">+</div>
+            <div class="fx-item">
+              <span class="fx-icon"
+                ><svg viewBox="0 0 24 24" stroke="currentColor">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg
+              ></span>
+              <span class="fx-name">护甲</span>
+              <div class="fx-step">
+                <div class="fx-btn">−</div>
+                <div class="fx-val">0</div>
+                <div class="fx-btn">+</div>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Footer -->
+        <div class="mp-footer">
+          <div class="btn-cancel">取消</div>
+          <div class="btn-roll">🎲 投骰</div>
+        </div>
+        <div class="mp-hint">Shift+点击跳过 · Enter 投骰 · Esc 取消</div>
       </div>
     </div>
 
-    <!-- Advanced (expanded) -->
-    <div class="adv-toggle">
-      <span class="adv-chevron open">▶</span>
-      <span class="adv-label">高级选项</span>
-    </div>
-    <div class="adv-content">
-      <div class="sec-lbl">骰面替换</div>
-      <div class="face-row">
-        <div class="face-item">
-          <div class="face-dot hope"></div>
-          <div class="face-name">希望骰</div>
-          <div class="face-select changed">d20</div>
+    <!-- ===== Scene 2: Advanced — keep high/low + face swap ===== -->
+    <div>
+      <h2>场景 2：高级配置（取高 + 骰面替换 + 减号骰）</h2>
+      <p class="scene-label">希望骰换 d20 · 额外 3d6 取高 2 · 减去 1d4</p>
+
+      <div class="mp">
+        <div class="mp-header">
+          <div>
+            <span class="mp-title">掷骰设定</span>
+            <span class="mp-action-name">· 灵巧检定</span>
+          </div>
+          <div class="mp-close">✕</div>
         </div>
-        <div class="face-item">
-          <div class="face-dot fear"></div>
-          <div class="face-name">恐惧骰</div>
-          <div class="face-select">d12</div>
+
+        <!-- Formula — complex -->
+        <div class="mp-sec">
+          <div class="sec-lbl">公式</div>
+          <div class="formula-bar">
+            <span class="ft"
+              ><span class="ft-dice" style="color: var(--hope)">1d20</span
+              ><span class="ft-src"> 希望</span></span
+            >
+            <span class="ft-op">+</span>
+            <span class="ft"
+              ><span class="ft-dice">1d12</span><span class="ft-src"> 恐惧</span></span
+            >
+            <span class="ft-op">+</span>
+            <span class="ft"><span class="ft-mod">2</span><span class="ft-src"> 灵巧</span></span>
+            <span class="ft-op">+</span>
+            <span class="ft"><span class="ft-dice">3d6</span><span class="ft-kh">kh2</span></span>
+            <span class="ft-op">−</span>
+            <span class="ft"><span class="ft-dice" style="color: var(--danger)">1d4</span></span>
+          </div>
+        </div>
+
+        <!-- Dice -->
+        <div class="mp-sec">
+          <div class="sec-lbl">骰子</div>
+          <div class="std-dice-row">
+            <div
+              class="sd-btn duality"
+              style="color: var(--hope); border-color: rgba(232, 184, 106, 0.35)"
+            >
+              <span class="dt-dots"
+                ><span class="dt-dot hope"></span><span class="dt-dot fear"></span
+              ></span>
+              d20+d12
+            </div>
+            <div class="sd-btn">
+              d4
+              <span class="sd-count">1</span>
+              <span class="sd-op">−</span>
+            </div>
+            <div class="sd-btn">
+              d6
+              <span class="sd-count">3</span>
+            </div>
+            <div class="sd-btn">d8</div>
+            <div class="sd-btn">d10</div>
+            <div class="sd-btn">d20</div>
+          </div>
+        </div>
+
+        <!-- Modifiers -->
+        <div class="mp-sec">
+          <div class="sec-lbl">修正值</div>
+          <div class="mod-grid">
+            <div class="attr-row">
+              <div class="ab"><span class="ab-n">敏捷</span><span class="ab-v">+3</span></div>
+              <div class="ab"><span class="ab-n">力量</span><span class="ab-v">+1</span></div>
+              <div class="ab sel"><span class="ab-n">灵巧</span><span class="ab-v">+2</span></div>
+              <div class="ab"><span class="ab-n">直觉</span><span class="ab-v">0</span></div>
+              <div class="ab"><span class="ab-n">风度</span><span class="ab-v">−1</span></div>
+              <div class="ab"><span class="ab-n">学识</span><span class="ab-v">+2</span></div>
+            </div>
+            <div class="exp-row">
+              <div class="ec">
+                <span class="ec-dot"></span><span>潜行</span><span class="ec-v">+2</span>
+              </div>
+              <div class="ec">
+                <span class="ec-dot"></span><span>说服</span><span class="ec-v">+1</span>
+              </div>
+            </div>
+            <div class="stepper-row">
+              <div class="stepper-grp">
+                <div class="st-lbl">优势</div>
+                <div class="st-dice">d6</div>
+                <div class="st-step">
+                  <div class="st-btn">−</div>
+                  <div class="st-val">0</div>
+                  <div class="st-btn">+</div>
+                </div>
+              </div>
+              <div class="stepper-grp">
+                <div class="st-lbl">劣势</div>
+                <div class="st-dice">d6</div>
+                <div class="st-step">
+                  <div class="st-btn">−</div>
+                  <div class="st-val">0</div>
+                  <div class="st-btn">+</div>
+                </div>
+              </div>
+              <div class="stepper-grp const-grp">
+                <div class="st-lbl">修正</div>
+                <div class="st-step">
+                  <div class="st-btn">−</div>
+                  <input class="const-input" value="0" />
+                  <div class="st-btn">+</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Advanced (expanded) -->
+        <div class="adv-toggle">
+          <span class="adv-chevron open">▶</span>
+          <span class="adv-label">高级选项</span>
+        </div>
+        <div class="adv-content">
+          <div class="sec-lbl">骰面替换</div>
+          <div class="face-row">
+            <div class="face-item">
+              <div class="face-dot hope"></div>
+              <div class="face-name">希望骰</div>
+              <div class="face-select changed">d20</div>
+            </div>
+            <div class="face-item">
+              <div class="face-dot fear"></div>
+              <div class="face-name">恐惧骰</div>
+              <div class="face-select">d12</div>
+            </div>
+          </div>
+          <div class="sec-lbl">骰子修饰</div>
+          <div class="khl-row">
+            <div class="khl-item">
+              <span class="khl-dice">1d20+1d12</span>
+              <span class="khl-type">二元骰</span>
+              <div class="khl-btns">
+                <div class="khl-btn">取高</div>
+                <div class="khl-btn">取低</div>
+                <div class="khl-btn" style="opacity: 0.6">无</div>
+              </div>
+            </div>
+            <div class="khl-item">
+              <span class="khl-dice">3d6</span>
+              <span class="khl-type">标准</span>
+              <div class="khl-btns">
+                <div class="khl-btn sel-kh">取高</div>
+                <div class="khl-btn">取低</div>
+                <div class="khl-btn">无</div>
+              </div>
+              <div class="khl-cnt">取 <input value="2" /> 颗</div>
+            </div>
+            <div class="khl-item">
+              <span class="khl-dice" style="color: var(--danger)">1d4</span>
+              <span class="khl-type" style="color: var(--danger); opacity: 0.6">减去</span>
+              <div class="khl-btns">
+                <div class="khl-btn">取高</div>
+                <div class="khl-btn">取低</div>
+                <div class="khl-btn" style="opacity: 0.6">无</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Side Effects (collapsible, expanded) — stress inverted: +1 = neg (red) -->
+        <div class="fx-toggle">
+          <span class="adv-chevron open">▶</span>
+          <span class="adv-label">副作用</span>
+          <span class="adv-summary">生命 −2 · 压力 +1</span>
+        </div>
+        <div class="fx-content">
+          <div class="fx-grid">
+            <div class="fx-item">
+              <span class="fx-icon"
+                ><svg viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    d="M2.49 14.26l9.02 8.33a.66.66 0 00.96 0l9.02-8.33A5.58 5.58 0 0012 4.34 5.58 5.58 0 002.49 14.26z"
+                  /></svg
+              ></span>
+              <span class="fx-name">希望</span>
+              <div class="fx-step">
+                <div class="fx-btn">−</div>
+                <div class="fx-val">0</div>
+                <div class="fx-btn">+</div>
+              </div>
+            </div>
+            <div class="fx-item neg">
+              <span class="fx-icon"
+                ><svg viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7z"
+                  /></svg
+              ></span>
+              <span class="fx-name">生命</span>
+              <div class="fx-step">
+                <div class="fx-btn">−</div>
+                <div class="fx-val">−2</div>
+                <div class="fx-btn">+</div>
+              </div>
+            </div>
+            <div class="fx-item neg">
+              <span class="fx-icon"
+                ><svg viewBox="0 0 24 24" stroke="currentColor">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg
+              ></span>
+              <span class="fx-name">压力</span>
+              <div class="fx-step">
+                <div class="fx-btn">−</div>
+                <div class="fx-val">+1</div>
+                <div class="fx-btn">+</div>
+              </div>
+            </div>
+            <div class="fx-item">
+              <span class="fx-icon"
+                ><svg viewBox="0 0 24 24" stroke="currentColor">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg
+              ></span>
+              <span class="fx-name">护甲</span>
+              <div class="fx-step">
+                <div class="fx-btn">−</div>
+                <div class="fx-val">0</div>
+                <div class="fx-btn">+</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mp-footer">
+          <div class="btn-cancel">取消</div>
+          <div class="btn-roll">🎲 投骰</div>
+        </div>
+        <div class="mp-hint">Shift+点击跳过 · Enter 投骰 · Esc 取消</div>
+      </div>
+    </div>
+
+    <!-- ===== Notes ===== -->
+    <div style="max-width: 500px; margin-top: 20px">
+      <h2>v3 改进说明</h2>
+      <div style="font-size: 11px; color: var(--text-muted); line-height: 1.8">
+        <div style="margin-bottom: 6px">
+          <span style="color: var(--accent)">暖色主题</span> — 所有颜色对齐 Warm Alchemy
+          设计令牌，琥珀金主色调，暖色边框，glass morphism 背景。
+        </div>
+        <div style="margin-bottom: 6px">
+          <span style="color: var(--success)">可读性</span> — 属性名 9px，属性值 15px，按钮最小
+          22-24px，section label 9px，全部中文标签。
+        </div>
+        <div style="margin-bottom: 6px">
+          <span style="color: var(--info)">精简</span> —
+          移除冗余的分解药丸（公式栏已足够清晰），二元骰合并为单按钮。
+        </div>
+        <div style="margin-bottom: 6px">
+          <span style="color: var(--danger)">副作用</span> —
+          可折叠，四项资源（希望/生命/压力/护甲），Lucide SVG
+          图标，有符号值。压力反转：+1=红（恶化），−1=绿（恢复）。
+        </div>
+        <div style="margin-bottom: 6px">
+          <span style="color: var(--fear)">高级选项</span> — 骰面替换 +
+          取高/取低收入折叠面板，折叠态显示内容摘要。
+        </div>
+        <div>
+          <span style="color: var(--accent-bold)">投骰按钮</span> — 琥珀金渐变 + 悬停光晕，36px
+          高度，明确的主/次操作区分。
         </div>
       </div>
-      <div class="sec-lbl">骰子修饰</div>
-      <div class="khl-row">
-        <div class="khl-item">
-          <span class="khl-dice">1d20+1d12</span>
-          <span class="khl-type">二元骰</span>
-          <div class="khl-btns">
-            <div class="khl-btn">取高</div>
-            <div class="khl-btn">取低</div>
-            <div class="khl-btn" style="opacity:0.6">无</div>
-          </div>
-        </div>
-        <div class="khl-item">
-          <span class="khl-dice">3d6</span>
-          <span class="khl-type">标准</span>
-          <div class="khl-btns">
-            <div class="khl-btn sel-kh">取高</div>
-            <div class="khl-btn">取低</div>
-            <div class="khl-btn">无</div>
-          </div>
-          <div class="khl-cnt">
-            取 <input value="2"> 颗
-          </div>
-        </div>
-        <div class="khl-item">
-          <span class="khl-dice" style="color:var(--danger)">1d4</span>
-          <span class="khl-type" style="color:var(--danger);opacity:0.6">减去</span>
-          <div class="khl-btns">
-            <div class="khl-btn">取高</div>
-            <div class="khl-btn">取低</div>
-            <div class="khl-btn" style="opacity:0.6">无</div>
-          </div>
-        </div>
-      </div>
     </div>
-
-    <!-- Side Effects (collapsible, expanded) — stress inverted: +1 = neg (red) -->
-    <div class="fx-toggle">
-      <span class="adv-chevron open">▶</span>
-      <span class="adv-label">副作用</span>
-      <span class="adv-summary">生命 −2 · 压力 +1</span>
-    </div>
-    <div class="fx-content">
-      <div class="fx-grid">
-        <div class="fx-item">
-          <span class="fx-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M2.49 14.26l9.02 8.33a.66.66 0 00.96 0l9.02-8.33A5.58 5.58 0 0012 4.34 5.58 5.58 0 002.49 14.26z"/></svg></span>
-          <span class="fx-name">希望</span>
-          <div class="fx-step">
-            <div class="fx-btn">−</div>
-            <div class="fx-val">0</div>
-            <div class="fx-btn">+</div>
-          </div>
-        </div>
-        <div class="fx-item neg">
-          <span class="fx-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7 7-7z"/></svg></span>
-          <span class="fx-name">生命</span>
-          <div class="fx-step">
-            <div class="fx-btn">−</div>
-            <div class="fx-val">−2</div>
-            <div class="fx-btn">+</div>
-          </div>
-        </div>
-        <div class="fx-item neg">
-          <span class="fx-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
-          <span class="fx-name">压力</span>
-          <div class="fx-step">
-            <div class="fx-btn">−</div>
-            <div class="fx-val">+1</div>
-            <div class="fx-btn">+</div>
-          </div>
-        </div>
-        <div class="fx-item">
-          <span class="fx-icon"><svg viewBox="0 0 24 24" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
-          <span class="fx-name">护甲</span>
-          <div class="fx-step">
-            <div class="fx-btn">−</div>
-            <div class="fx-val">0</div>
-            <div class="fx-btn">+</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="mp-footer">
-      <div class="btn-cancel">取消</div>
-      <div class="btn-roll">🎲 投骰</div>
-    </div>
-    <div class="mp-hint">Shift+点击跳过 · Enter 投骰 · Esc 取消</div>
-  </div>
-</div>
-
-<!-- ===== Notes ===== -->
-<div style="max-width: 500px; margin-top: 20px;">
-  <h2>v3 改进说明</h2>
-  <div style="font-size: 11px; color: var(--text-muted); line-height: 1.8;">
-    <div style="margin-bottom: 6px;"><span style="color: var(--accent);">暖色主题</span> — 所有颜色对齐 Warm Alchemy 设计令牌，琥珀金主色调，暖色边框，glass morphism 背景。</div>
-    <div style="margin-bottom: 6px;"><span style="color: var(--success);">可读性</span> — 属性名 9px，属性值 15px，按钮最小 22-24px，section label 9px，全部中文标签。</div>
-    <div style="margin-bottom: 6px;"><span style="color: var(--info);">精简</span> — 移除冗余的分解药丸（公式栏已足够清晰），二元骰合并为单按钮。</div>
-    <div style="margin-bottom: 6px;"><span style="color: var(--danger);">副作用</span> — 可折叠，四项资源（希望/生命/压力/护甲），Lucide SVG 图标，有符号值。压力反转：+1=红（恶化），−1=绿（恢复）。</div>
-    <div style="margin-bottom: 6px;"><span style="color: var(--fear);">高级选项</span> — 骰面替换 + 取高/取低收入折叠面板，折叠态显示内容摘要。</div>
-    <div><span style="color: var(--accent-bold);">投骰按钮</span> — 琥珀金渐变 + 悬停光晕，36px 高度，明确的主/次操作区分。</div>
-  </div>
-</div>
-
-</body>
+  </body>
 </html>

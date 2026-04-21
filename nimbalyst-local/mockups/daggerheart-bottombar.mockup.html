@@ -1,365 +1,473 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Georgia', serif;
-      background: linear-gradient(135deg, #4a90d9 0%, #6fb3e0 40%, #87ceeb 100%);
-      color: white;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      padding: 30px 20px 40px;
-      gap: 50px;
-    }
+  <head>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Georgia', serif;
+        background: linear-gradient(135deg, #4a90d9 0%, #6fb3e0 40%, #87ceeb 100%);
+        color: white;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 30px 20px 40px;
+        gap: 50px;
+      }
 
-    .option-label {
-      font-size: 12px; font-weight: 600;
-      background: rgba(0,0,0,0.35);
-      padding: 4px 16px; border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.1);
-      margin-bottom: 10px;
-      text-align: center;
-    }
-    .option-desc {
-      font-size: 8px; color: rgba(255,255,255,0.4);
-      text-align: center; max-width: 400px; margin-top: 8px;
-      font-style: italic; line-height: 1.6;
-    }
-    .option-wrap {
-      display: flex; flex-direction: column; align-items: center;
-    }
+      .option-label {
+        font-size: 12px;
+        font-weight: 600;
+        background: rgba(0, 0, 0, 0.35);
+        padding: 4px 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin-bottom: 10px;
+        text-align: center;
+      }
+      .option-desc {
+        font-size: 8px;
+        color: rgba(255, 255, 255, 0.4);
+        text-align: center;
+        max-width: 400px;
+        margin-top: 8px;
+        font-style: italic;
+        line-height: 1.6;
+      }
+      .option-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
 
-    @keyframes twinkle { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
-    @keyframes glow-pulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+      @keyframes twinkle {
+        0%,
+        100% {
+          opacity: 0.6;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      @keyframes glow-pulse {
+        0%,
+        100% {
+          opacity: 0.7;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
 
-    /* ======== OPTION A: Card-style HUD (reference-inspired) ======== */
-    .hud-a {
-      display: flex;
-      align-items: center;
-      gap: 0;
-      position: relative;
-    }
-    .hud-a-center {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      z-index: 2;
-    }
-    /* Hope stars */
-    .hope-stars {
-      display: flex; gap: 3px; margin-bottom: 4px;
-    }
-    .hope-star {
-      font-size: 12px;
-      line-height: 1;
-    }
-    .hope-star.filled { color: #f1c40f; text-shadow: 0 0 4px rgba(241,196,15,0.5); }
-    .hope-star.empty { color: rgba(255,255,255,0.15); }
+      /* ======== OPTION A: Card-style HUD (reference-inspired) ======== */
+      .hud-a {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        position: relative;
+      }
+      .hud-a-center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 2;
+      }
+      /* Hope stars */
+      .hope-stars {
+        display: flex;
+        gap: 3px;
+        margin-bottom: 4px;
+      }
+      .hope-star {
+        font-size: 12px;
+        line-height: 1;
+      }
+      .hope-star.filled {
+        color: #f1c40f;
+        text-shadow: 0 0 4px rgba(241, 196, 15, 0.5);
+      }
+      .hope-star.empty {
+        color: rgba(255, 255, 255, 0.15);
+      }
 
-    /* Avatar */
-    .avatar-ring-a {
-      width: 90px; height: 90px;
-      position: relative;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .avatar-ring-a .ring-bg {
-      position: absolute; inset: 0;
-      border-radius: 50%;
-      border: 3px solid rgba(200,180,140,0.3);
-      box-shadow: 0 0 12px rgba(200,180,140,0.1), inset 0 0 8px rgba(0,0,0,0.2);
-    }
-    .avatar-ring-a .ring-ornament {
-      position: absolute; inset: -3px;
-      border-radius: 50%;
-      border: 1px solid rgba(255,215,100,0.12);
-    }
-    .avatar-core-a {
-      width: 60px; height: 60px; border-radius: 50%;
-      background: linear-gradient(135deg, #6a4e23, #8b7355);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 26px;
-      border: 2px solid rgba(200,180,140,0.4);
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
-      z-index: 2;
-    }
-    /* HP arc (left) */
-    .arc-svg-a {
-      position: absolute;
-      width: 90px; height: 90px;
-    }
+      /* Avatar */
+      .avatar-ring-a {
+        width: 90px;
+        height: 90px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .avatar-ring-a .ring-bg {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 3px solid rgba(200, 180, 140, 0.3);
+        box-shadow:
+          0 0 12px rgba(200, 180, 140, 0.1),
+          inset 0 0 8px rgba(0, 0, 0, 0.2);
+      }
+      .avatar-ring-a .ring-ornament {
+        position: absolute;
+        inset: -3px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 215, 100, 0.12);
+      }
+      .avatar-core-a {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6a4e23, #8b7355);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        border: 2px solid rgba(200, 180, 140, 0.4);
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        z-index: 2;
+      }
+      /* HP arc (left) */
+      .arc-svg-a {
+        position: absolute;
+        width: 90px;
+        height: 90px;
+      }
 
-    /* Side panels */
-    .hud-a-side {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: 8px 12px;
-      background: rgba(0,0,0,0.25);
-      backdrop-filter: blur(12px);
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.05);
-      min-width: 55px;
-    }
-    .hud-a-side.left { border-radius: 10px 0 0 10px; margin-right: -6px; }
-    .hud-a-side.right { border-radius: 0 10px 10px 0; margin-left: -6px; }
-    .side-icon { font-size: 18px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3)); }
-    .side-val {
-      font-size: 10px; font-weight: 700; font-variant-numeric: tabular-nums;
-      color: rgba(255,255,255,0.7);
-    }
-    .side-label { font-size: 6px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.5px; }
+      /* Side panels */
+      .hud-a-side {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(12px);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        min-width: 55px;
+      }
+      .hud-a-side.left {
+        border-radius: 10px 0 0 10px;
+        margin-right: -6px;
+      }
+      .hud-a-side.right {
+        border-radius: 0 10px 10px 0;
+        margin-left: -6px;
+      }
+      .side-icon {
+        font-size: 18px;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+      }
+      .side-val {
+        font-size: 10px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .side-label {
+        font-size: 6px;
+        color: rgba(255, 255, 255, 0.3);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
 
-    /* Bottom threshold strip */
-    .threshold-strip-a {
-      display: flex; gap: 2px; margin-top: 4px;
-    }
-    .thresh-a {
-      text-align: center; padding: 3px 10px;
-      background: rgba(0,0,0,0.2);
-      border-radius: 5px;
-      border: 1px solid rgba(255,255,255,0.04);
-    }
-    .thresh-a-label { font-size: 6px; color: rgba(255,255,255,0.3); }
-    .thresh-a-value { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.6); font-variant-numeric: tabular-nums; }
-    .thresh-a.evasion .thresh-a-value { color: rgba(100,200,255,0.85); }
+      /* Bottom threshold strip */
+      .threshold-strip-a {
+        display: flex;
+        gap: 2px;
+        margin-top: 4px;
+      }
+      .thresh-a {
+        text-align: center;
+        padding: 3px 10px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 5px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      .thresh-a-label {
+        font-size: 6px;
+        color: rgba(255, 255, 255, 0.3);
+      }
+      .thresh-a-value {
+        font-size: 11px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.6);
+        font-variant-numeric: tabular-nums;
+      }
+      .thresh-a.evasion .thresh-a-value {
+        color: rgba(100, 200, 255, 0.85);
+      }
 
-    .nickname-a {
-      font-size: 10px; color: rgba(255,255,255,0.8);
-      margin-top: 2px;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    }
+      .nickname-a {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.8);
+        margin-top: 2px;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
 
-    /* ======== OPTION B: Horizontal bar with integrated avatar ======== */
-    .hud-b {
-      display: flex;
-      align-items: center;
-      background: rgba(0,0,0,0.28);
-      backdrop-filter: blur(16px);
-      border-radius: 50px;
-      padding: 6px 16px 6px 6px;
-      gap: 12px;
-      border: 1px solid rgba(255,255,255,0.06);
-    }
-    .avatar-b {
-      width: 56px; height: 56px;
-      position: relative;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .avatar-core-b {
-      width: 40px; height: 40px; border-radius: 50%;
-      background: linear-gradient(135deg, #6a4e23, #8b7355);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
-      border: 2px solid rgba(200,180,140,0.4);
-      z-index: 2;
-    }
-    .arc-svg-b {
-      position: absolute;
-      width: 56px; height: 56px;
-    }
+      /* ======== OPTION B: Horizontal bar with integrated avatar ======== */
+      .hud-b {
+        display: flex;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(16px);
+        border-radius: 50px;
+        padding: 6px 16px 6px 6px;
+        gap: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .avatar-b {
+        width: 56px;
+        height: 56px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .avatar-core-b {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6a4e23, #8b7355);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        border: 2px solid rgba(200, 180, 140, 0.4);
+        z-index: 2;
+      }
+      .arc-svg-b {
+        position: absolute;
+        width: 56px;
+        height: 56px;
+      }
 
-    .hud-b-stats {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .hud-b-top {
-      display: flex; align-items: center; gap: 8px;
-    }
-    .hud-b-name { font-size: 11px; font-weight: 600; }
-    .hud-b-hope {
-      display: flex; gap: 2px;
-    }
-    .hud-b-hope .hope-star { font-size: 9px; }
+      .hud-b-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .hud-b-top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .hud-b-name {
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .hud-b-hope {
+        display: flex;
+        gap: 2px;
+      }
+      .hud-b-hope .hope-star {
+        font-size: 9px;
+      }
 
-    .hud-b-resources {
-      display: flex; gap: 10px; align-items: center;
-    }
-    .hud-b-res {
-      display: flex; align-items: center; gap: 3px;
-      font-size: 9px; font-variant-numeric: tabular-nums;
-    }
-    .hud-b-res .icon { font-size: 8px; }
-    .hud-b-res.hp { color: rgba(231,76,60,0.8); }
-    .hud-b-res.stress { color: rgba(155,89,182,0.7); }
-    .hud-b-res.armor { color: rgba(130,195,240,0.7); }
+      .hud-b-resources {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .hud-b-res {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 9px;
+        font-variant-numeric: tabular-nums;
+      }
+      .hud-b-res .icon {
+        font-size: 8px;
+      }
+      .hud-b-res.hp {
+        color: rgba(231, 76, 60, 0.8);
+      }
+      .hud-b-res.stress {
+        color: rgba(155, 89, 182, 0.7);
+      }
+      .hud-b-res.armor {
+        color: rgba(130, 195, 240, 0.7);
+      }
 
-    .hud-b-thresholds {
-      display: flex; gap: 6px;
-      margin-left: auto;
-    }
-    .hud-b-thresh {
-      text-align: center;
-    }
-    .hud-b-thresh-label { font-size: 5px; color: rgba(255,255,255,0.25); text-transform: uppercase; }
-    .hud-b-thresh-val { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.55); }
-    .hud-b-thresh.ev .hud-b-thresh-val { color: rgba(100,200,255,0.8); }
+      .hud-b-thresholds {
+        display: flex;
+        gap: 6px;
+        margin-left: auto;
+      }
+      .hud-b-thresh {
+        text-align: center;
+      }
+      .hud-b-thresh-label {
+        font-size: 5px;
+        color: rgba(255, 255, 255, 0.25);
+        text-transform: uppercase;
+      }
+      .hud-b-thresh-val {
+        font-size: 12px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.55);
+      }
+      .hud-b-thresh.ev .hud-b-thresh-val {
+        color: rgba(100, 200, 255, 0.8);
+      }
 
-    /* ======== OPTION C: Compact medallion (reference-closest) ======== */
-    .hud-c {
-      display: flex;
-      align-items: flex-end;
-      gap: 0;
-    }
-    .hud-c-wing {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 14px;
-      background: rgba(30,25,20,0.45);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(200,180,140,0.08);
-      min-width: 50px;
-    }
-    .hud-c-wing.left {
-      border-radius: 12px 0 0 12px;
-      border-right: none;
-      margin-right: -4px;
-    }
-    .hud-c-wing.right {
-      border-radius: 0 12px 12px 0;
-      border-left: none;
-      margin-left: -4px;
-    }
-    .wing-item {
-      display: flex; flex-direction: column; align-items: center; gap: 1px;
-    }
-    .wing-icon { font-size: 14px; }
-    .wing-val {
-      font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
-    }
-    .wing-val.hp { color: rgba(231,76,60,0.85); }
-    .wing-val.stress { color: rgba(155,89,182,0.75); }
-    .wing-val.armor { color: rgba(130,195,240,0.8); }
-    .wing-val.evasion { color: rgba(100,200,255,0.85); }
-    .wing-label {
-      font-size: 5px; color: rgba(255,255,255,0.25);
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
+      /* ======== OPTION C: Compact medallion (reference-closest) ======== */
+      .hud-c {
+        display: flex;
+        align-items: flex-end;
+        gap: 0;
+      }
+      .hud-c-wing {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 14px;
+        background: rgba(30, 25, 20, 0.45);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(200, 180, 140, 0.08);
+        min-width: 50px;
+      }
+      .hud-c-wing.left {
+        border-radius: 12px 0 0 12px;
+        border-right: none;
+        margin-right: -4px;
+      }
+      .hud-c-wing.right {
+        border-radius: 0 12px 12px 0;
+        border-left: none;
+        margin-left: -4px;
+      }
+      .wing-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1px;
+      }
+      .wing-icon {
+        font-size: 14px;
+      }
+      .wing-val {
+        font-size: 11px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .wing-val.hp {
+        color: rgba(231, 76, 60, 0.85);
+      }
+      .wing-val.stress {
+        color: rgba(155, 89, 182, 0.75);
+      }
+      .wing-val.armor {
+        color: rgba(130, 195, 240, 0.8);
+      }
+      .wing-val.evasion {
+        color: rgba(100, 200, 255, 0.85);
+      }
+      .wing-label {
+        font-size: 5px;
+        color: rgba(255, 255, 255, 0.25);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
 
-    .hud-c-center {
-      display: flex; flex-direction: column; align-items: center;
-      z-index: 3;
-      padding: 0 4px;
-    }
-    .hope-row-c {
-      display: flex; gap: 2px; margin-bottom: 3px;
-    }
-    .hope-row-c .hope-star { font-size: 10px; }
+      .hud-c-center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 3;
+        padding: 0 4px;
+      }
+      .hope-row-c {
+        display: flex;
+        gap: 2px;
+        margin-bottom: 3px;
+      }
+      .hope-row-c .hope-star {
+        font-size: 10px;
+      }
 
-    .avatar-ring-c {
-      width: 80px; height: 80px;
-      position: relative;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .avatar-core-c {
-      width: 52px; height: 52px; border-radius: 50%;
-      background: linear-gradient(135deg, #6a4e23, #8b7355);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-      border: 2.5px solid rgba(200,180,140,0.4);
-      box-shadow: 0 0 10px rgba(200,180,140,0.1), inset 0 0 8px rgba(0,0,0,0.3);
-      z-index: 2;
-    }
-    .arc-svg-c { position: absolute; width: 80px; height: 80px; }
+      .avatar-ring-c {
+        width: 80px;
+        height: 80px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .avatar-core-c {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6a4e23, #8b7355);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        border: 2.5px solid rgba(200, 180, 140, 0.4);
+        box-shadow:
+          0 0 10px rgba(200, 180, 140, 0.1),
+          inset 0 0 8px rgba(0, 0, 0, 0.3);
+        z-index: 2;
+      }
+      .arc-svg-c {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+      }
 
-    .nickname-c {
-      font-size: 9px; font-weight: 500;
-      color: rgba(255,255,255,0.75);
-      margin-top: 2px;
-    }
-    .thresh-row-c {
-      display: flex; gap: 2px; margin-top: 3px;
-    }
-    .thresh-c {
-      text-align: center; padding: 2px 8px;
-      background: rgba(30,25,20,0.4);
-      border-radius: 4px;
-      border: 1px solid rgba(200,180,140,0.06);
-    }
-    .thresh-c-label { font-size: 5px; color: rgba(200,180,140,0.3); }
-    .thresh-c-value { font-size: 10px; font-weight: 700; color: rgba(200,180,140,0.6); font-variant-numeric: tabular-nums; }
-  </style>
-</head>
-<body>
-
-  <!-- ====== OPTION A: 卡牌式 HUD ====== -->
-  <div class="option-wrap">
-    <div class="option-label">A: 装备翼展式</div>
-    <div class="hud-a">
-      <!-- Left wing: weapon + HP -->
-      <div class="hud-a-side left">
-        <div class="side-icon">&#9876;</div>
-        <div class="side-val" style="color:rgba(231,76,60,0.85);">5/6</div>
-        <div class="side-label">生命</div>
-      </div>
-
-      <!-- Center: avatar + hope + arcs -->
-      <div class="hud-a-center">
-        <div class="hope-stars">
-          <span class="hope-star filled">&#9733;</span>
-          <span class="hope-star filled">&#9733;</span>
-          <span class="hope-star filled">&#9733;</span>
-          <span class="hope-star empty">&#9733;</span>
-          <span class="hope-star empty">&#9733;</span>
-          <span class="hope-star empty">&#9733;</span>
+      .nickname-c {
+        font-size: 9px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.75);
+        margin-top: 2px;
+      }
+      .thresh-row-c {
+        display: flex;
+        gap: 2px;
+        margin-top: 3px;
+      }
+      .thresh-c {
+        text-align: center;
+        padding: 2px 8px;
+        background: rgba(30, 25, 20, 0.4);
+        border-radius: 4px;
+        border: 1px solid rgba(200, 180, 140, 0.06);
+      }
+      .thresh-c-label {
+        font-size: 5px;
+        color: rgba(200, 180, 140, 0.3);
+      }
+      .thresh-c-value {
+        font-size: 10px;
+        font-weight: 700;
+        color: rgba(200, 180, 140, 0.6);
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ====== OPTION A: 卡牌式 HUD ====== -->
+    <div class="option-wrap">
+      <div class="option-label">A: 装备翼展式</div>
+      <div class="hud-a">
+        <!-- Left wing: weapon + HP -->
+        <div class="hud-a-side left">
+          <div class="side-icon">&#9876;</div>
+          <div class="side-val" style="color: rgba(231, 76, 60, 0.85)">5/6</div>
+          <div class="side-label">生命</div>
         </div>
-        <div class="avatar-ring-a">
-          <div class="ring-bg"></div>
-          <div class="ring-ornament"></div>
-          <svg class="arc-svg-a" viewBox="0 0 90 90">
-            <!-- HP arc (left, bottom-up) -->
-            <circle cx="45" cy="45" r="40" fill="none" stroke="rgba(231,76,60,0.08)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="126 251" transform="rotate(0 45 45)" />
-            <circle cx="45" cy="45" r="40" fill="none" stroke="#e74c3c" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="105 251" transform="rotate(0 45 45)" style="filter:drop-shadow(0 0 3px rgba(231,76,60,0.4));" />
-            <!-- Stress arc (right, bottom-up) -->
-            <circle cx="45" cy="45" r="40" fill="none" stroke="rgba(155,89,182,0.08)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="126 251" transform="rotate(180 45 45)" />
-            <circle cx="45" cy="45" r="40" fill="none" stroke="#9b59b6" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="42 251" transform="rotate(180 45 45)" style="filter:drop-shadow(0 0 3px rgba(155,89,182,0.3));" />
-          </svg>
-          <div class="avatar-core-a">&#129497;</div>
-        </div>
-        <span class="nickname-a">Kael</span>
-        <div class="threshold-strip-a">
-          <div class="thresh-a evasion"><div class="thresh-a-label">闪避</div><div class="thresh-a-value">12</div></div>
-          <div class="thresh-a"><div class="thresh-a-label">轻度</div><div class="thresh-a-value">7</div></div>
-          <div class="thresh-a"><div class="thresh-a-label">重度</div><div class="thresh-a-value">14</div></div>
-          <div class="thresh-a"><div class="thresh-a-label">严重</div><div class="thresh-a-value">22</div></div>
-        </div>
-      </div>
 
-      <!-- Right wing: shield + Stress -->
-      <div class="hud-a-side right">
-        <div class="side-icon">&#128737;</div>
-        <div class="side-val" style="color:rgba(155,89,182,0.75);">2/6</div>
-        <div class="side-label">压力</div>
-      </div>
-    </div>
-    <div class="option-desc">参考图最接近的还原：装备图标翼展 + 星形希望 + 弧形生命/压力 + 底部阈值条</div>
-  </div>
-
-  <!-- ====== OPTION B: 横条药丸式 ====== -->
-  <div class="option-wrap">
-    <div class="option-label">B: 横条药丸式</div>
-    <div class="hud-b">
-      <div class="avatar-b">
-        <svg class="arc-svg-b" viewBox="0 0 56 56">
-          <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(231,76,60,0.08)" stroke-width="3" stroke-linecap="round" stroke-dasharray="75.4 150.8" transform="rotate(0 28 28)" />
-          <circle cx="28" cy="28" r="24" fill="none" stroke="#e74c3c" stroke-width="3" stroke-linecap="round" stroke-dasharray="62.8 150.8" transform="rotate(0 28 28)" style="filter:drop-shadow(0 0 2px rgba(231,76,60,0.4));" />
-          <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(155,89,182,0.08)" stroke-width="3" stroke-linecap="round" stroke-dasharray="75.4 150.8" transform="rotate(180 28 28)" />
-          <circle cx="28" cy="28" r="24" fill="none" stroke="#9b59b6" stroke-width="3" stroke-linecap="round" stroke-dasharray="25.1 150.8" transform="rotate(180 28 28)" style="filter:drop-shadow(0 0 2px rgba(155,89,182,0.3));" />
-        </svg>
-        <div class="avatar-core-b">&#129497;</div>
-      </div>
-      <div class="hud-b-stats">
-        <div class="hud-b-top">
-          <span class="hud-b-name">Kael</span>
-          <div class="hud-b-hope">
+        <!-- Center: avatar + hope + arcs -->
+        <div class="hud-a-center">
+          <div class="hope-stars">
             <span class="hope-star filled">&#9733;</span>
             <span class="hope-star filled">&#9733;</span>
             <span class="hope-star filled">&#9733;</span>
@@ -367,85 +475,306 @@
             <span class="hope-star empty">&#9733;</span>
             <span class="hope-star empty">&#9733;</span>
           </div>
+          <div class="avatar-ring-a">
+            <div class="ring-bg"></div>
+            <div class="ring-ornament"></div>
+            <svg class="arc-svg-a" viewBox="0 0 90 90">
+              <!-- HP arc (left, bottom-up) -->
+              <circle
+                cx="45"
+                cy="45"
+                r="40"
+                fill="none"
+                stroke="rgba(231,76,60,0.08)"
+                stroke-width="3.5"
+                stroke-linecap="round"
+                stroke-dasharray="126 251"
+                transform="rotate(0 45 45)"
+              />
+              <circle
+                cx="45"
+                cy="45"
+                r="40"
+                fill="none"
+                stroke="#e74c3c"
+                stroke-width="3.5"
+                stroke-linecap="round"
+                stroke-dasharray="105 251"
+                transform="rotate(0 45 45)"
+                style="filter: drop-shadow(0 0 3px rgba(231, 76, 60, 0.4))"
+              />
+              <!-- Stress arc (right, bottom-up) -->
+              <circle
+                cx="45"
+                cy="45"
+                r="40"
+                fill="none"
+                stroke="rgba(155,89,182,0.08)"
+                stroke-width="3.5"
+                stroke-linecap="round"
+                stroke-dasharray="126 251"
+                transform="rotate(180 45 45)"
+              />
+              <circle
+                cx="45"
+                cy="45"
+                r="40"
+                fill="none"
+                stroke="#9b59b6"
+                stroke-width="3.5"
+                stroke-linecap="round"
+                stroke-dasharray="42 251"
+                transform="rotate(180 45 45)"
+                style="filter: drop-shadow(0 0 3px rgba(155, 89, 182, 0.3))"
+              />
+            </svg>
+            <div class="avatar-core-a">&#129497;</div>
+          </div>
+          <span class="nickname-a">Kael</span>
+          <div class="threshold-strip-a">
+            <div class="thresh-a evasion">
+              <div class="thresh-a-label">闪避</div>
+              <div class="thresh-a-value">12</div>
+            </div>
+            <div class="thresh-a">
+              <div class="thresh-a-label">轻度</div>
+              <div class="thresh-a-value">7</div>
+            </div>
+            <div class="thresh-a">
+              <div class="thresh-a-label">重度</div>
+              <div class="thresh-a-value">14</div>
+            </div>
+            <div class="thresh-a">
+              <div class="thresh-a-label">严重</div>
+              <div class="thresh-a-value">22</div>
+            </div>
+          </div>
         </div>
-        <div class="hud-b-resources">
-          <span class="hud-b-res hp"><span class="icon">&#9829;</span> 5/6</span>
-          <span class="hud-b-res stress"><span class="icon">&#10022;</span> 2/6</span>
-          <span class="hud-b-res armor"><span class="icon">&#9789;</span> 3/4</span>
+
+        <!-- Right wing: shield + Stress -->
+        <div class="hud-a-side right">
+          <div class="side-icon">&#128737;</div>
+          <div class="side-val" style="color: rgba(155, 89, 182, 0.75)">2/6</div>
+          <div class="side-label">压力</div>
         </div>
       </div>
-      <div class="hud-b-thresholds">
-        <div class="hud-b-thresh ev"><div class="hud-b-thresh-label">闪避</div><div class="hud-b-thresh-val">12</div></div>
-        <div class="hud-b-thresh"><div class="hud-b-thresh-label">轻度</div><div class="hud-b-thresh-val">7</div></div>
-        <div class="hud-b-thresh"><div class="hud-b-thresh-label">重度</div><div class="hud-b-thresh-val">14</div></div>
-        <div class="hud-b-thresh"><div class="hud-b-thresh-label">严重</div><div class="hud-b-thresh-val">22</div></div>
+      <div class="option-desc">
+        参考图最接近的还原：装备图标翼展 + 星形希望 + 弧形生命/压力 + 底部阈值条
       </div>
     </div>
-    <div class="option-desc">紧凑横条：头像+数值一行展开，最省垂直空间</div>
-  </div>
 
-  <!-- ====== OPTION C: 勋章翼展式 (暖色调) ====== -->
-  <div class="option-wrap">
-    <div class="option-label">C: 勋章翼展式（暖色调）</div>
-    <div class="hud-c">
-      <!-- Left wing -->
-      <div class="hud-c-wing left">
-        <div class="wing-item">
-          <span class="wing-icon">&#9876;</span>
-          <span class="wing-val hp">5/6</span>
-          <span class="wing-label">生命</span>
-        </div>
-        <div class="wing-item">
-          <span class="wing-icon" style="font-size:11px;">&#9789;</span>
-          <span class="wing-val armor">3/4</span>
-          <span class="wing-label">护甲</span>
-        </div>
-      </div>
-
-      <!-- Center -->
-      <div class="hud-c-center">
-        <div class="hope-row-c">
-          <span class="hope-star filled">&#9733;</span>
-          <span class="hope-star filled">&#9733;</span>
-          <span class="hope-star filled">&#9733;</span>
-          <span class="hope-star empty">&#9733;</span>
-          <span class="hope-star empty">&#9733;</span>
-          <span class="hope-star empty">&#9733;</span>
-        </div>
-        <div class="avatar-ring-c">
-          <svg class="arc-svg-c" viewBox="0 0 80 80">
-            <circle cx="40" cy="40" r="35" fill="none" stroke="rgba(231,76,60,0.08)" stroke-width="3" stroke-linecap="round" stroke-dasharray="110 220" transform="rotate(0 40 40)" />
-            <circle cx="40" cy="40" r="35" fill="none" stroke="#e74c3c" stroke-width="3" stroke-linecap="round" stroke-dasharray="91.7 220" transform="rotate(0 40 40)" style="filter:drop-shadow(0 0 3px rgba(231,76,60,0.4));" />
-            <circle cx="40" cy="40" r="35" fill="none" stroke="rgba(155,89,182,0.08)" stroke-width="3" stroke-linecap="round" stroke-dasharray="110 220" transform="rotate(180 40 40)" />
-            <circle cx="40" cy="40" r="35" fill="none" stroke="#9b59b6" stroke-width="3" stroke-linecap="round" stroke-dasharray="36.7 220" transform="rotate(180 40 40)" style="filter:drop-shadow(0 0 3px rgba(155,89,182,0.3));" />
+    <!-- ====== OPTION B: 横条药丸式 ====== -->
+    <div class="option-wrap">
+      <div class="option-label">B: 横条药丸式</div>
+      <div class="hud-b">
+        <div class="avatar-b">
+          <svg class="arc-svg-b" viewBox="0 0 56 56">
+            <circle
+              cx="28"
+              cy="28"
+              r="24"
+              fill="none"
+              stroke="rgba(231,76,60,0.08)"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-dasharray="75.4 150.8"
+              transform="rotate(0 28 28)"
+            />
+            <circle
+              cx="28"
+              cy="28"
+              r="24"
+              fill="none"
+              stroke="#e74c3c"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-dasharray="62.8 150.8"
+              transform="rotate(0 28 28)"
+              style="filter: drop-shadow(0 0 2px rgba(231, 76, 60, 0.4))"
+            />
+            <circle
+              cx="28"
+              cy="28"
+              r="24"
+              fill="none"
+              stroke="rgba(155,89,182,0.08)"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-dasharray="75.4 150.8"
+              transform="rotate(180 28 28)"
+            />
+            <circle
+              cx="28"
+              cy="28"
+              r="24"
+              fill="none"
+              stroke="#9b59b6"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-dasharray="25.1 150.8"
+              transform="rotate(180 28 28)"
+              style="filter: drop-shadow(0 0 2px rgba(155, 89, 182, 0.3))"
+            />
           </svg>
-          <div class="avatar-core-c">&#129497;</div>
+          <div class="avatar-core-b">&#129497;</div>
         </div>
-        <span class="nickname-c">Kael</span>
-        <div class="thresh-row-c">
-          <div class="thresh-c"><div class="thresh-c-label">闪避</div><div class="thresh-c-value" style="color:rgba(100,200,255,0.8);">12</div></div>
-          <div class="thresh-c"><div class="thresh-c-label">轻度</div><div class="thresh-c-value">7</div></div>
-          <div class="thresh-c"><div class="thresh-c-label">重度</div><div class="thresh-c-value">14</div></div>
-          <div class="thresh-c"><div class="thresh-c-label">严重</div><div class="thresh-c-value">22</div></div>
+        <div class="hud-b-stats">
+          <div class="hud-b-top">
+            <span class="hud-b-name">Kael</span>
+            <div class="hud-b-hope">
+              <span class="hope-star filled">&#9733;</span>
+              <span class="hope-star filled">&#9733;</span>
+              <span class="hope-star filled">&#9733;</span>
+              <span class="hope-star empty">&#9733;</span>
+              <span class="hope-star empty">&#9733;</span>
+              <span class="hope-star empty">&#9733;</span>
+            </div>
+          </div>
+          <div class="hud-b-resources">
+            <span class="hud-b-res hp"><span class="icon">&#9829;</span> 5/6</span>
+            <span class="hud-b-res stress"><span class="icon">&#10022;</span> 2/6</span>
+            <span class="hud-b-res armor"><span class="icon">&#9789;</span> 3/4</span>
+          </div>
+        </div>
+        <div class="hud-b-thresholds">
+          <div class="hud-b-thresh ev">
+            <div class="hud-b-thresh-label">闪避</div>
+            <div class="hud-b-thresh-val">12</div>
+          </div>
+          <div class="hud-b-thresh">
+            <div class="hud-b-thresh-label">轻度</div>
+            <div class="hud-b-thresh-val">7</div>
+          </div>
+          <div class="hud-b-thresh">
+            <div class="hud-b-thresh-label">重度</div>
+            <div class="hud-b-thresh-val">14</div>
+          </div>
+          <div class="hud-b-thresh">
+            <div class="hud-b-thresh-label">严重</div>
+            <div class="hud-b-thresh-val">22</div>
+          </div>
         </div>
       </div>
+      <div class="option-desc">紧凑横条：头像+数值一行展开，最省垂直空间</div>
+    </div>
 
-      <!-- Right wing -->
-      <div class="hud-c-wing right">
-        <div class="wing-item">
-          <span class="wing-icon">&#128737;</span>
-          <span class="wing-val stress">2/6</span>
-          <span class="wing-label">压力</span>
+    <!-- ====== OPTION C: 勋章翼展式 (暖色调) ====== -->
+    <div class="option-wrap">
+      <div class="option-label">C: 勋章翼展式（暖色调）</div>
+      <div class="hud-c">
+        <!-- Left wing -->
+        <div class="hud-c-wing left">
+          <div class="wing-item">
+            <span class="wing-icon">&#9876;</span>
+            <span class="wing-val hp">5/6</span>
+            <span class="wing-label">生命</span>
+          </div>
+          <div class="wing-item">
+            <span class="wing-icon" style="font-size: 11px">&#9789;</span>
+            <span class="wing-val armor">3/4</span>
+            <span class="wing-label">护甲</span>
+          </div>
         </div>
-        <div class="wing-item">
-          <span class="wing-icon" style="font-size:11px;">&#9889;</span>
-          <span class="wing-val evasion">12</span>
-          <span class="wing-label">闪避</span>
+
+        <!-- Center -->
+        <div class="hud-c-center">
+          <div class="hope-row-c">
+            <span class="hope-star filled">&#9733;</span>
+            <span class="hope-star filled">&#9733;</span>
+            <span class="hope-star filled">&#9733;</span>
+            <span class="hope-star empty">&#9733;</span>
+            <span class="hope-star empty">&#9733;</span>
+            <span class="hope-star empty">&#9733;</span>
+          </div>
+          <div class="avatar-ring-c">
+            <svg class="arc-svg-c" viewBox="0 0 80 80">
+              <circle
+                cx="40"
+                cy="40"
+                r="35"
+                fill="none"
+                stroke="rgba(231,76,60,0.08)"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-dasharray="110 220"
+                transform="rotate(0 40 40)"
+              />
+              <circle
+                cx="40"
+                cy="40"
+                r="35"
+                fill="none"
+                stroke="#e74c3c"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-dasharray="91.7 220"
+                transform="rotate(0 40 40)"
+                style="filter: drop-shadow(0 0 3px rgba(231, 76, 60, 0.4))"
+              />
+              <circle
+                cx="40"
+                cy="40"
+                r="35"
+                fill="none"
+                stroke="rgba(155,89,182,0.08)"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-dasharray="110 220"
+                transform="rotate(180 40 40)"
+              />
+              <circle
+                cx="40"
+                cy="40"
+                r="35"
+                fill="none"
+                stroke="#9b59b6"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-dasharray="36.7 220"
+                transform="rotate(180 40 40)"
+                style="filter: drop-shadow(0 0 3px rgba(155, 89, 182, 0.3))"
+              />
+            </svg>
+            <div class="avatar-core-c">&#129497;</div>
+          </div>
+          <span class="nickname-c">Kael</span>
+          <div class="thresh-row-c">
+            <div class="thresh-c">
+              <div class="thresh-c-label">闪避</div>
+              <div class="thresh-c-value" style="color: rgba(100, 200, 255, 0.8)">12</div>
+            </div>
+            <div class="thresh-c">
+              <div class="thresh-c-label">轻度</div>
+              <div class="thresh-c-value">7</div>
+            </div>
+            <div class="thresh-c">
+              <div class="thresh-c-label">重度</div>
+              <div class="thresh-c-value">14</div>
+            </div>
+            <div class="thresh-c">
+              <div class="thresh-c-label">严重</div>
+              <div class="thresh-c-value">22</div>
+            </div>
+          </div>
         </div>
+
+        <!-- Right wing -->
+        <div class="hud-c-wing right">
+          <div class="wing-item">
+            <span class="wing-icon">&#128737;</span>
+            <span class="wing-val stress">2/6</span>
+            <span class="wing-label">压力</span>
+          </div>
+          <div class="wing-item">
+            <span class="wing-icon" style="font-size: 11px">&#9889;</span>
+            <span class="wing-val evasion">12</span>
+            <span class="wing-label">闪避</span>
+          </div>
+        </div>
+      </div>
+      <div class="option-desc">
+        暖色调勋章风格，最接近参考图的桌游质感<br />左翼：生命+护甲 / 右翼：压力+闪避
       </div>
     </div>
-    <div class="option-desc">暖色调勋章风格，最接近参考图的桌游质感<br>左翼：生命+护甲 / 右翼：压力+闪避</div>
-  </div>
-
-</body>
+  </body>
 </html>

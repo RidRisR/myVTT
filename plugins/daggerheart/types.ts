@@ -1,10 +1,6 @@
 // plugins/daggerheart/types.ts
 // Component types for Daggerheart plugin — each maps to an entity component key
-import type {
-  DiceGroup,
-  DualityDiceConfig,
-  SideEffectEntry,
-} from '../daggerheart-core/rollTypes'
+import type { DiceGroup, DualityDiceConfig, SideEffectEntry } from '../daggerheart-core/rollTypes'
 
 export interface DHHealth {
   current: number
