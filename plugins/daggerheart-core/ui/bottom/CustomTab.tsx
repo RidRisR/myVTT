@@ -88,26 +88,34 @@ export function CustomTab({
                 <div className="flex items-center gap-1.5">
                   <input
                     value={draftIcon}
-                    onChange={(e) => { setDraftIcon(e.target.value); }}
+                    onChange={(e) => {
+                      setDraftIcon(e.target.value)
+                    }}
                     placeholder="✨"
                     className="w-9 h-7 rounded border border-white/[0.10] bg-black/15 text-center text-[14px] text-white outline-none focus:border-accent/35"
                   />
                   <input
                     value={draftName}
-                    onChange={(e) => { setDraftName(e.target.value); }}
+                    onChange={(e) => {
+                      setDraftName(e.target.value)
+                    }}
                     placeholder="模板名称"
                     className="flex-1 min-w-0 h-7 rounded border border-white/[0.10] bg-black/15 px-2 text-[10px] text-white outline-none focus:border-accent/35"
                   />
                 </div>
                 <div className="mt-1.5 flex items-center gap-1">
                   <button
-                    onClick={() => { onEditConfig(template.id); }}
+                    onClick={() => {
+                      onEditConfig(template.id)
+                    }}
                     className="flex-1 h-6 rounded border border-white/[0.08] bg-white/[0.04] text-[9px] text-white/70 cursor-pointer hover:border-accent/25 hover:text-white"
                   >
                     配置
                   </button>
                   <button
-                    onClick={() => { saveMeta(template); }}
+                    onClick={() => {
+                      saveMeta(template)
+                    }}
                     className="w-7 h-6 rounded border border-accent/35 bg-accent/[0.12] text-accent-bold flex items-center justify-center cursor-pointer"
                     aria-label="保存模板"
                   >
@@ -128,7 +136,9 @@ export function CustomTab({
           return (
             <div
               key={template.id}
-              onClick={() => { onUse(template.id, true); }}
+              onClick={() => {
+                onUse(template.id, true)
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
