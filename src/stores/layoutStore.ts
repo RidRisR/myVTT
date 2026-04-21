@@ -6,6 +6,21 @@ import type {
   OnDemandInstance,
 } from '../ui-system/regionTypes'
 import { migrateLayoutConfig } from '../ui-system/layoutMigration'
+import { computeResizeCompensation } from '../ui-system/layoutEngine'
+
+function isSameEntry(left: RegionLayoutEntry, right: RegionLayoutEntry): boolean {
+  return (
+    left.anchor === right.anchor &&
+    left.offsetX === right.offsetX &&
+    left.offsetY === right.offsetY &&
+    left.width === right.width &&
+    left.height === right.height &&
+    left.zOrder === right.zOrder &&
+    left.visible === right.visible &&
+    left.resizeOrigin === right.resizeOrigin &&
+    left.instanceProps === right.instanceProps
+  )
+}
 
 export interface RoomLayoutConfig {
   narrative: RegionLayoutConfig
@@ -72,7 +87,30 @@ export function createLayoutStore() {
       const current = isTactical ? tactical : narrative
       const entry = current[instanceKey]
       if (!entry) return
-      const updated = { ...current, [instanceKey]: { ...entry, ...partial } }
+
+      // Apply resizeOrigin compensation when size changes
+      let merged = { ...entry, ...partial }
+      if (entry.resizeOrigin && (partial.width !== undefined || partial.height !== undefined)) {
+        const oldSize = { width: entry.width, height: entry.height }
+        const newSize = { width: merged.width, height: merged.height }
+        const { dOffsetX, dOffsetY } = computeResizeCompensation(
+          oldSize,
+          newSize,
+          entry.anchor,
+          entry.resizeOrigin,
+        )
+        if (dOffsetX !== 0 || dOffsetY !== 0) {
+          merged = {
+            ...merged,
+            offsetX: entry.offsetX + dOffsetX,
+            offsetY: entry.offsetY + dOffsetY,
+          }
+        }
+      }
+
+      if (isSameEntry(entry, merged)) return
+
+      const updated = { ...current, [instanceKey]: merged }
       set({
         [modeKey]: updated,
         activeLayout: updated,

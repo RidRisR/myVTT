@@ -78,6 +78,8 @@ export function RegionRenderer({
               background: 'transparent',
               contain: 'layout paint',
               overflow: 'hidden',
+              transition:
+                'left 280ms cubic-bezier(0.4,0,0.2,1), top 80ms ease-out, width 280ms cubic-bezier(0.4,0,0.2,1), height 80ms ease-out',
             }}
           >
             {/* Content layer: isolation:isolate creates stacking context.

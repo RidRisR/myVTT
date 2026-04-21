@@ -5,7 +5,7 @@ import type { JudgmentResult } from '@myvtt/sdk'
 type DaggerheartJudgment = Extract<JudgmentResult, { type: 'daggerheart' }>
 
 /** Narrow helper — evaluate always returns the daggerheart variant */
-function evaluateDH(judge: DiceJudge, rolls: number[][], total: number, dc: number) {
+function evaluateDH(judge: DiceJudge, rolls: number[][], total: number, dc?: number) {
   return judge.evaluate(rolls, total, dc) as DaggerheartJudgment | null
 }
 
@@ -55,6 +55,21 @@ describe('DiceJudge', () => {
       const failResult = evaluateDH(judge, [[5, 3]], 8, 12)
       expect(failResult?.outcome).toBe('failure_hope')
     })
+
+    it('returns hope_unknown without dc when hope die is higher', () => {
+      const result = evaluateDH(judge, [[9, 4]], 13)
+      expect(result?.outcome).toBe('hope_unknown')
+    })
+
+    it('returns fear_unknown without dc when fear die is higher', () => {
+      const result = evaluateDH(judge, [[4, 9]], 13)
+      expect(result?.outcome).toBe('fear_unknown')
+    })
+
+    it('returns critical_success without dc when duality dice are equal', () => {
+      const result = evaluateDH(judge, [[7, 7]], 14)
+      expect(result?.outcome).toBe('critical_success')
+    })
   })
 
   describe('getDisplay', () => {
@@ -70,6 +85,20 @@ describe('DiceJudge', () => {
       const display = judge.getDisplay(result)
       expect(display.severity).toBe('fumble')
       expect(display.color).toBe('#ef4444')
+    })
+
+    it('returns correct display for hope_unknown', () => {
+      const result = judge.evaluate([[9, 4]], 13)!
+      const display = judge.getDisplay(result)
+      expect(display.severity).toBe('success')
+      expect(display.color).toBe('#fbbf24')
+    })
+
+    it('returns correct display for fear_unknown', () => {
+      const result = judge.evaluate([[4, 9]], 13)!
+      const display = judge.getDisplay(result)
+      expect(display.severity).toBe('partial')
+      expect(display.color).toBe('#f97316')
     })
   })
 })

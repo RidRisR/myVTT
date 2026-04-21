@@ -1,4 +1,13 @@
-import type { DHHealth, DHStress, DHAttributes, DHMeta, DHExtras } from './types'
+import type {
+  DHHealth,
+  DHStress,
+  DHAttributes,
+  DHMeta,
+  DHExtras,
+  DHThresholds,
+  DHExperiences,
+  DHRollTemplates,
+} from './types'
 import { DH_KEYS } from './types'
 
 export function createDefaultDHEntityData(): Record<string, unknown> {
@@ -19,6 +28,9 @@ export function createDefaultDHEntityData(): Record<string, unknown> {
       className: '',
       ancestry: '',
     } satisfies DHMeta,
-    [DH_KEYS.extras]: { hope: 0, armor: 0 } satisfies DHExtras,
+    [DH_KEYS.extras]: { hope: 0, hopeMax: 6, armor: 0, armorMax: 0 } satisfies DHExtras,
+    [DH_KEYS.thresholds]: { evasion: 10, major: 7, severe: 15 } satisfies DHThresholds,
+    [DH_KEYS.experiences]: { items: [] } satisfies DHExperiences,
+    [DH_KEYS.rollTemplates]: { items: [] } satisfies DHRollTemplates,
   }
 }

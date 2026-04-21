@@ -28,7 +28,6 @@ import { GmSidebar } from './gm/GmSidebar'
 
 import { SceneButton } from './gm/SceneButton'
 import { HamburgerMenu } from './layout/HamburgerMenu'
-import { MyCharacterCard } from './layout/MyCharacterCard'
 import * as Popover from '@radix-ui/react-popover'
 import { PopoverContent } from './ui/primitives/PopoverContent'
 import { ShowcaseOverlay } from './showcase/ShowcaseOverlay'
@@ -80,15 +79,13 @@ function RoomSession({ roomId }: { roomId: string }) {
     let cleanupIdentity: (() => void) | undefined
     let cleanupTriggers: (() => void) | undefined
     let cleanupSeatWatch: (() => void) | undefined
-
-    // Phase 1: Construct workflow system (sync — no data dependencies)
-    const { cleanup: cleanupWorkflow } = initWorkflowSystem()
+    let cleanupWorkflow: (() => void) | undefined
 
     void (async () => {
       try {
         setInitError(null)
 
-        // Phase 2: Load store data (world + identity in parallel)
+        // Phase 1: Load store data (world + identity in parallel)
         const [worldCleanup, identityCleanup] = await Promise.all([
           initWorld(roomId, socket),
           initIdentity(roomId, socket),
@@ -100,6 +97,12 @@ function RoomSession({ roomId }: { roomId: string }) {
         }
         cleanupWorld = worldCleanup
         cleanupIdentity = identityCleanup
+
+        // Phase 2: Construct workflow system (sync).
+        // Must be after initWorld so room.ruleSystemId is available for plugin filtering.
+        const ruleSystemId = useWorldStore.getState().room.ruleSystemId
+        const handle = initWorkflowSystem(ruleSystemId)
+        cleanupWorkflow = handle.cleanup
 
         // Capture watermark before any log:new events can push it higher.
         // JS is single-threaded — no socket events fire between await resume and this read.
@@ -150,7 +153,7 @@ function RoomSession({ roomId }: { roomId: string }) {
       cancelledRef.current = true
       cleanupSeatWatch?.()
       cleanupTriggers?.()
-      cleanupWorkflow()
+      cleanupWorkflow?.()
       cleanupWorld?.()
       cleanupIdentity?.()
       setIsLoading(true)
@@ -195,7 +198,6 @@ function RoomSession({ roomId }: { roomId: string }) {
   const setTacticalMapUrl = useWorldStore((s) => s.setTacticalMapUrl)
   const duplicateScene = useWorldStore((s) => s.duplicateScene)
   const addEntity = useWorldStore((s) => s.addEntity)
-  const updateEntity = useWorldStore((s) => s.updateEntity)
   const placeEntityOnMap = useWorldStore((s) => s.placeEntityOnMap)
   const addToken = useWorldStore((s) => s.addToken)
   const updateToken = useWorldStore((s) => s.updateToken)
@@ -265,7 +267,7 @@ function RoomSession({ roomId }: { roomId: string }) {
   // Runs after every loadLayout (including socket layout:update). Stabilizes in 2 cycles:
   // cycle 1 adds missing entries → activeLayout changes → cycle 2 finds all entries exist → done.
   useEffect(() => {
-    if (Object.keys(activeLayout).length === 0) return
+    if (isLoading) return
 
     for (const def of uiRegistry.listRegionsByLifecycle('persistent')) {
       if (!def.defaultPlacement) continue
@@ -280,10 +282,11 @@ function RoomSession({ roomId }: { roomId: string }) {
           width: def.defaultSize.width,
           height: def.defaultSize.height,
           zOrder: 0,
+          resizeOrigin: def.resizeOrigin,
         })
       }
     }
-  }, [activeLayout, uiRegistry, layoutStore])
+  }, [activeLayout, uiRegistry, layoutStore, isLoading])
 
   // Debounced layout persistence
   useLayoutSync(layoutStore, roomId, !!socket)
@@ -494,11 +497,6 @@ function RoomSession({ roomId }: { roomId: string }) {
     // Server handles adding persistent entities to all scenes
   }
 
-  const handleUpdateEntity = (id: string, updates: Partial<Entity>) => {
-    void updateEntity(id, updates)
-    // Server handles persistent→all-scenes linking
-  }
-
   const handleShowcaseHandout = (asset: HandoutAsset) => {
     const item: ShowcaseItem = {
       id: generateTokenId(),
@@ -584,14 +582,8 @@ function RoomSession({ roomId }: { roomId: string }) {
           <TacticalToolbar mapRef={konvaMapRef} role={mySeat.role} tacticalInfo={tacticalInfo} />
         )}
 
-        {/* Left: GM sidebar or player character card */}
-        {isGM ? (
-          <GmSidebar />
-        ) : (
-          activeEntity && (
-            <MyCharacterCard entity={activeEntity} onUpdateEntity={handleUpdateEntity} />
-          )
-        )}
+        {/* Left: GM sidebar */}
+        {isGM && <GmSidebar />}
 
         {/* Center: Showcase spotlight overlay */}
         <ShowcaseOverlay roomId={roomId} isGM={isGM} />

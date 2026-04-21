@@ -2,6 +2,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   anchorBase,
+  anchorFactor,
+  resizeOriginFactor,
+  computeResizeCompensation,
   resolvePosition,
   inferAnchor,
   inferPlacement,
@@ -45,6 +48,22 @@ describe('anchorBase', () => {
 
   it('center: centered', () => {
     expect(anchorBase('center', size, VP)).toEqual({ x: 860, y: 490 })
+  })
+
+  it('top-center: centered horizontally, flush top', () => {
+    expect(anchorBase('top-center', size, VP)).toEqual({ x: 860, y: 0 })
+  })
+
+  it('bottom-center: centered horizontally, flush bottom', () => {
+    expect(anchorBase('bottom-center', size, VP)).toEqual({ x: 860, y: 980 })
+  })
+
+  it('center-left: flush left, centered vertically', () => {
+    expect(anchorBase('center-left', size, VP)).toEqual({ x: 0, y: 490 })
+  })
+
+  it('center-right: flush right, centered vertically', () => {
+    expect(anchorBase('center-right', size, VP)).toEqual({ x: 1720, y: 490 })
   })
 })
 
@@ -108,8 +127,24 @@ describe('inferAnchor', () => {
     expect(inferAnchor({ x: 1500, y: 800 }, VP)).toBe('bottom-right')
   })
 
-  it('exact center goes to bottom-right (>= threshold)', () => {
-    expect(inferAnchor({ x: 960, y: 540 }, VP)).toBe('bottom-right')
+  it('exact center goes to bottom-center (center-x zone)', () => {
+    expect(inferAnchor({ x: 960, y: 540 }, VP)).toBe('bottom-center')
+  })
+
+  it('top-center: center-x zone, top half', () => {
+    expect(inferAnchor({ x: 960, y: 200 }, VP)).toBe('top-center')
+  })
+
+  it('bottom-center: center-x zone, bottom half', () => {
+    expect(inferAnchor({ x: 960, y: 800 }, VP)).toBe('bottom-center')
+  })
+
+  it('center-x boundary left (at 1/3): goes to center zone', () => {
+    expect(inferAnchor({ x: 640, y: 200 }, VP)).toBe('top-center')
+  })
+
+  it('center-x boundary right (at 2/3): goes to right zone', () => {
+    expect(inferAnchor({ x: 1280, y: 200 }, VP)).toBe('top-right')
   })
 })
 
@@ -167,6 +202,98 @@ describe('clampToViewport', () => {
       x: 1720,
       y: 980,
     })
+  })
+})
+
+describe('anchorFactor', () => {
+  it('top-left → (0, 0)', () => {
+    expect(anchorFactor('top-left')).toEqual({ x: 0, y: 0 })
+  })
+  it('top-right → (1, 0)', () => {
+    expect(anchorFactor('top-right')).toEqual({ x: 1, y: 0 })
+  })
+  it('bottom-left → (0, 1)', () => {
+    expect(anchorFactor('bottom-left')).toEqual({ x: 0, y: 1 })
+  })
+  it('bottom-right → (1, 1)', () => {
+    expect(anchorFactor('bottom-right')).toEqual({ x: 1, y: 1 })
+  })
+  it('center → (0.5, 0.5)', () => {
+    expect(anchorFactor('center')).toEqual({ x: 0.5, y: 0.5 })
+  })
+  it('top-center → (0.5, 0)', () => {
+    expect(anchorFactor('top-center')).toEqual({ x: 0.5, y: 0 })
+  })
+  it('bottom-center → (0.5, 1)', () => {
+    expect(anchorFactor('bottom-center')).toEqual({ x: 0.5, y: 1 })
+  })
+  it('center-left → (0, 0.5)', () => {
+    expect(anchorFactor('center-left')).toEqual({ x: 0, y: 0.5 })
+  })
+  it('center-right → (1, 0.5)', () => {
+    expect(anchorFactor('center-right')).toEqual({ x: 1, y: 0.5 })
+  })
+})
+
+describe('resizeOriginFactor', () => {
+  it('covers all 9 points', () => {
+    expect(resizeOriginFactor('top-left')).toEqual({ x: 0, y: 0 })
+    expect(resizeOriginFactor('top-center')).toEqual({ x: 0.5, y: 0 })
+    expect(resizeOriginFactor('top-right')).toEqual({ x: 1, y: 0 })
+    expect(resizeOriginFactor('center-left')).toEqual({ x: 0, y: 0.5 })
+    expect(resizeOriginFactor('center')).toEqual({ x: 0.5, y: 0.5 })
+    expect(resizeOriginFactor('center-right')).toEqual({ x: 1, y: 0.5 })
+    expect(resizeOriginFactor('bottom-left')).toEqual({ x: 0, y: 1 })
+    expect(resizeOriginFactor('bottom-center')).toEqual({ x: 0.5, y: 1 })
+    expect(resizeOriginFactor('bottom-right')).toEqual({ x: 1, y: 1 })
+  })
+})
+
+describe('computeResizeCompensation', () => {
+  const small = { width: 44, height: 44 }
+  const big = { width: 220, height: 340 }
+
+  it('no compensation when resizeOrigin matches anchor (top-left)', () => {
+    const result = computeResizeCompensation(small, big, 'top-left', 'top-left')
+    expect(result).toEqual({ dOffsetX: 0, dOffsetY: 0 })
+  })
+
+  it('center-left origin with top-left anchor: Y shifts up by half dh', () => {
+    const result = computeResizeCompensation(small, big, 'top-left', 'center-left')
+    // dh = 296, anchorFactor.y=0, originFactor.y=0.5 → dOffsetY = (0-0.5)*296 = -148
+    expect(result).toEqual({ dOffsetX: 0, dOffsetY: -148 })
+  })
+
+  it('center origin with top-left anchor: both axes shift', () => {
+    const result = computeResizeCompensation(small, big, 'top-left', 'center')
+    // dw=176, dh=296
+    // dOffsetX = (0-0.5)*176 = -88, dOffsetY = (0-0.5)*296 = -148
+    expect(result).toEqual({ dOffsetX: -88, dOffsetY: -148 })
+  })
+
+  it('top-right origin with top-right anchor: no compensation', () => {
+    const result = computeResizeCompensation(small, big, 'top-right', 'top-right')
+    expect(result).toEqual({ dOffsetX: 0, dOffsetY: 0 })
+  })
+
+  it('center origin with top-right anchor', () => {
+    const result = computeResizeCompensation(small, big, 'top-right', 'center')
+    // dw=176, dh=296
+    // dOffsetX = (1-0.5)*176 = 88, dOffsetY = (0-0.5)*296 = -148
+    expect(result).toEqual({ dOffsetX: 88, dOffsetY: -148 })
+  })
+
+  it('shrinking reverses the compensation', () => {
+    const result = computeResizeCompensation(big, small, 'top-left', 'center-left')
+    // dh = -296 → dOffsetY = (0-0.5)*(-296) = 148
+    expect(result).toEqual({ dOffsetX: 0, dOffsetY: 148 })
+  })
+
+  it('round-trip: expand then collapse returns to original offset', () => {
+    const expand = computeResizeCompensation(small, big, 'top-left', 'center-left')
+    const collapse = computeResizeCompensation(big, small, 'top-left', 'center-left')
+    expect(expand.dOffsetX + collapse.dOffsetX).toBe(0)
+    expect(expand.dOffsetY + collapse.dOffsetY).toBe(0)
   })
 })
 

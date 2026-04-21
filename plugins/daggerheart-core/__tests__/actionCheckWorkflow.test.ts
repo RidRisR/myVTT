@@ -9,7 +9,8 @@ import type { ContextDeps } from '../../../src/workflow/context'
 function makeDeps(overrides: Partial<ContextDeps> = {}): Omit<ContextDeps, 'engine'> {
   return {
     emitEntry: vi.fn(),
-    serverRoll: vi.fn().mockResolvedValue([[8, 5]]),
+    // Default: duality dice returns [[hopeDie], [fearDie]]
+    serverRoll: vi.fn().mockResolvedValue([[8], [5]]),
     createEntity: vi.fn().mockResolvedValue('test:entity-1'),
     deleteEntity: vi.fn().mockResolvedValue(undefined),
     getEntity: vi.fn(),
@@ -47,12 +48,11 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
 
   it('full flow emits daggerheart-core:action-check entry with expected payload', async () => {
     const { runner, deps, sdk } = makeSetup({
-      serverRoll: vi.fn().mockResolvedValue([[8, 5]]),
+      serverRoll: vi.fn().mockResolvedValue([[8], [5]]),
     })
     const handle = sdk.getWorkflow('daggerheart-core:action-check')
 
     const result = await runner.runWorkflow(handle, {
-      formula: '2d12',
       actorId: 'actor-1',
       skipModifier: true,
       dc: 12,
@@ -60,7 +60,12 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
 
     expect(result.status).toBe('completed')
     expect(deps.serverRoll).toHaveBeenCalledWith(
-      expect.objectContaining({ dice: [{ sides: 12, count: 2 }] }),
+      expect.objectContaining({
+        dice: [
+          { sides: 12, count: 1 },
+          { sides: 12, count: 1 },
+        ],
+      }),
     )
 
     // Check emitEntry was called with the action-check entry
@@ -76,7 +81,6 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
     expect(entry.type).toBe('daggerheart-core:action-check')
     expect(entry.payload).toMatchObject({
       formula: '2d12',
-      rolls: [[8, 5]],
       total: 13,
       dc: 12,
       dieConfigs: [
@@ -84,6 +88,9 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
         { color: '#dc2626', label: 'die.fear' },
       ],
     })
+    // rollResult should contain duality rolls
+    const rollResult = entry.payload.rollResult as { dualityRolls: number[] }
+    expect(rollResult.dualityRolls).toEqual([8, 5])
     // Judgment should be present: 8 > 5 → hope wins, total 13 >= dc 12 → success_hope
     expect(entry.payload.judgment).toMatchObject({
       type: 'daggerheart',
@@ -95,14 +102,13 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
   })
 
   it('hope outcome calls updateComponent on actor entity', async () => {
-    // rolls [[9, 4]] → hope die 9 > fear die 4, total 13 >= dc 12 → success_hope
+    // rolls [[9], [4]] → hope die 9 > fear die 4, total 13 >= dc 12 → success_hope
     const { runner, deps, sdk } = makeSetup({
-      serverRoll: vi.fn().mockResolvedValue([[9, 4]]),
+      serverRoll: vi.fn().mockResolvedValue([[9], [4]]),
     })
     const handle = sdk.getWorkflow('daggerheart-core:action-check')
 
     await runner.runWorkflow(handle, {
-      formula: '2d12',
       actorId: 'actor-1',
       skipModifier: true,
       dc: 12,
@@ -126,14 +132,13 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
   })
 
   it('fear outcome calls updateComponent on fear entity', async () => {
-    // rolls [[4, 9]] → hope die 4 < fear die 9, total 13 >= dc 12 → success_fear
+    // rolls [[4], [9]] → hope die 4 < fear die 9, total 13 >= dc 12 → success_fear
     const { runner, deps, sdk } = makeSetup({
-      serverRoll: vi.fn().mockResolvedValue([[4, 9]]),
+      serverRoll: vi.fn().mockResolvedValue([[4], [9]]),
     })
     const handle = sdk.getWorkflow('daggerheart-core:action-check')
 
     await runner.runWorkflow(handle, {
-      formula: '2d12',
       actorId: 'actor-1',
       skipModifier: true,
       dc: 12,
@@ -152,19 +157,18 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
     }
     expect(update.payload.entityId).toBe('daggerheart-core:fear')
     expect(update.payload.key).toBe('daggerheart-core:fear-tracker')
-    // The updater receives undefined (no entity found by getEntity mock) and produces { current: 1, max: 10 }
+    // The updater receives undefined (no entity found by getEntity mock) and produces { current: 1, max: 12 }
     expect(update.payload.data).toEqual({ current: 1, max: 12 })
   })
 
   it('failure_hope outcome still triggers hope resolve', async () => {
-    // rolls [[5, 3]] → hope die 5 > fear die 3, total 8 < dc 12 → failure_hope
+    // rolls [[5], [3]] → hope die 5 > fear die 3, total 8 < dc 12 → failure_hope
     const { runner, deps, sdk } = makeSetup({
-      serverRoll: vi.fn().mockResolvedValue([[5, 3]]),
+      serverRoll: vi.fn().mockResolvedValue([[5], [3]]),
     })
     const handle = sdk.getWorkflow('daggerheart-core:action-check')
 
     await runner.runWorkflow(handle, {
-      formula: '2d12',
       actorId: 'actor-1',
       skipModifier: true,
       dc: 12,
@@ -184,14 +188,13 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
   })
 
   it('critical_success does not trigger hope or fear resolve', async () => {
-    // rolls [[6, 6]] → doubles → critical_success
+    // rolls [[6], [6]] → doubles → critical_success
     const { runner, deps, sdk } = makeSetup({
-      serverRoll: vi.fn().mockResolvedValue([[6, 6]]),
+      serverRoll: vi.fn().mockResolvedValue([[6], [6]]),
     })
     const handle = sdk.getWorkflow('daggerheart-core:action-check')
 
     await runner.runWorkflow(handle, {
-      formula: '2d12',
       actorId: 'actor-1',
       skipModifier: true,
       dc: 12,
@@ -210,7 +213,6 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
     const handle = sdk.getWorkflow('daggerheart-core:action-check')
 
     const result = await runner.runWorkflow(handle, {
-      formula: '2d12',
       actorId: 'actor-1',
       skipModifier: true,
       dc: 15,
@@ -227,13 +229,11 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
     expect(payload.dc).toBe(15)
   })
 
-  it('defaults dc to 12 when no dc provided', async () => {
+  it('uses dc from rollConfig when no dc in vars', async () => {
     const { runner, deps, sdk } = makeSetup()
     const handle = sdk.getWorkflow('daggerheart-core:action-check')
 
-    // skipModifier but no dc → should default to 12
     const result = await runner.runWorkflow(handle, {
-      formula: '2d12',
       actorId: 'actor-1',
       skipModifier: true,
     })
@@ -245,6 +245,151 @@ describe('DaggerHeartCorePlugin action-check workflow', () => {
     )
     expect(actionCheckEntry).toBeDefined()
     const payload = (actionCheckEntry![0] as { payload: Record<string, unknown> }).payload
-    expect(payload.dc).toBe(12)
+    expect(payload.dc).toBeUndefined()
+    expect(payload.judgment).toMatchObject({
+      type: 'daggerheart',
+      outcome: 'hope_unknown',
+    })
+  })
+
+  it('does not apply outcome side effects when applyOutcomeEffects is false', async () => {
+    const { runner, deps, sdk } = makeSetup({
+      serverRoll: vi.fn().mockResolvedValue([[9], [4]]),
+    })
+    const handle = sdk.getWorkflow('daggerheart-core:action-check')
+
+    const result = await runner.runWorkflow(handle, {
+      actorId: 'actor-1',
+      skipModifier: true,
+      dc: 12,
+      initialRollConfig: {
+        dualityDice: { hopeFace: 12, fearFace: 12 },
+        diceGroups: [],
+        modifiers: [],
+        constantModifier: 0,
+        sideEffects: [],
+        applyOutcomeEffects: false,
+      },
+    })
+
+    expect(result.status).toBe('completed')
+    const emitCalls = (deps.emitEntry as ReturnType<typeof vi.fn>).mock.calls
+    const componentUpdates = emitCalls.filter(
+      (c) => (c[0] as { type: string }).type === 'core:component-update',
+    )
+    expect(componentUpdates).toHaveLength(0)
+  })
+
+  it('uses applyOutcomeEffects=false from workflow vars when no initialRollConfig is provided', async () => {
+    const { runner, deps, sdk } = makeSetup({
+      serverRoll: vi.fn().mockResolvedValue([[9], [4]]),
+    })
+    const handle = sdk.getWorkflow('daggerheart-core:action-check')
+
+    const result = await runner.runWorkflow(handle, {
+      actorId: 'actor-1',
+      skipModifier: true,
+      dc: 12,
+      applyOutcomeEffects: false,
+    })
+
+    expect(result.status).toBe('completed')
+    const emitCalls = (deps.emitEntry as ReturnType<typeof vi.fn>).mock.calls
+    const actionCheckEntry = emitCalls.find(
+      (c) => (c[0] as { type: string }).type === 'daggerheart-core:action-check',
+    )
+    expect(actionCheckEntry).toBeDefined()
+    const payload = (actionCheckEntry![0] as { payload: Record<string, unknown> }).payload
+    expect(payload.rollConfig).toMatchObject({
+      applyOutcomeEffects: false,
+    })
+
+    const componentUpdates = emitCalls.filter(
+      (c) => (c[0] as { type: string }).type === 'core:component-update',
+    )
+    expect(componentUpdates).toHaveLength(0)
+  })
+
+  it('uses preselected attribute as modifier when skipModifier is true', async () => {
+    const actor = {
+      id: 'actor-1',
+      permissions: { default: 'owner' as const, seats: {} },
+      lifecycle: 'persistent' as const,
+      tags: [],
+      components: {
+        'daggerheart:attributes': {
+          agility: 3,
+          strength: 0,
+          finesse: 0,
+          instinct: 0,
+          presence: 0,
+          knowledge: 0,
+        },
+      },
+    }
+    const { runner, deps, sdk } = makeSetup({
+      getEntity: vi.fn().mockImplementation((id: string) => (id === 'actor-1' ? actor : undefined)),
+      serverRoll: vi.fn().mockResolvedValue([[8], [5]]),
+    })
+    const handle = sdk.getWorkflow('daggerheart-core:action-check')
+
+    const result = await runner.runWorkflow(handle, {
+      actorId: 'actor-1',
+      preselectedAttribute: 'agility',
+      skipModifier: true,
+      dc: 12,
+    })
+
+    expect(result.status).toBe('completed')
+    const emitCalls = (deps.emitEntry as ReturnType<typeof vi.fn>).mock.calls
+    const actionCheckEntry = emitCalls.find(
+      (c) => (c[0] as { type: string }).type === 'daggerheart-core:action-check',
+    )
+    expect(actionCheckEntry).toBeDefined()
+    const payload = (actionCheckEntry![0] as { payload: Record<string, unknown> }).payload
+    expect(payload.formula).toBe('2d12+3')
+    expect(payload.total).toBe(16)
+    expect(payload.formulaTokens).toEqual([
+      { type: 'dice', text: '2d12', source: 'duality' },
+      { type: 'op', text: '+' },
+      { type: 'modifier', text: '3', source: '敏捷' },
+    ])
+  })
+
+  it('uses initialRollConfig when provided and skipModifier is true', async () => {
+    const { runner, deps, sdk } = makeSetup({
+      serverRoll: vi.fn().mockResolvedValue([[17]]),
+    })
+    const handle = sdk.getWorkflow('daggerheart-core:action-check')
+
+    const result = await runner.runWorkflow(handle, {
+      actorId: 'actor-1',
+      skipModifier: true,
+      initialRollConfig: {
+        dualityDice: null,
+        diceGroups: [{ sides: 20, count: 1, operator: '+', label: 'd20' }],
+        modifiers: [],
+        constantModifier: 0,
+        sideEffects: [],
+        applyOutcomeEffects: true,
+      },
+    })
+
+    expect(result.status).toBe('completed')
+    expect(deps.serverRoll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dice: [{ sides: 20, count: 1 }],
+      }),
+    )
+
+    const emitCalls = (deps.emitEntry as ReturnType<typeof vi.fn>).mock.calls
+    const actionCheckEntry = emitCalls.find(
+      (c) => (c[0] as { type: string }).type === 'daggerheart-core:action-check',
+    )
+    expect(actionCheckEntry).toBeDefined()
+    const payload = (actionCheckEntry![0] as { payload: Record<string, unknown> }).payload
+    expect(payload.formula).toBe('1d20')
+    expect(payload.total).toBe(17)
+    expect(payload.dieConfigs).toEqual([])
   })
 })

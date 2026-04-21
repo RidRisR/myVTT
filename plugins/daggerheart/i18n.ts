@@ -49,6 +49,8 @@ export const daggerheartI18n: PluginI18n = {
       'judgment.successFear': '带着恐惧成功',
       'judgment.failureHope': '失败，但保有希望',
       'judgment.failureFear': '带着恐惧失败',
+      'judgment.hopeUnknown': '希望结果，成败未定',
+      'judgment.fearUnknown': '恐惧结果，成败未定',
 
       // Dice — roll actions
       'roll.check': '{{attr}}检定',
@@ -62,6 +64,23 @@ export const daggerheartI18n: PluginI18n = {
       // Fear Panel
       'fear.label': '恐惧',
       'fear.count': '{{current}} / {{max}}',
+
+      // Character Card (region)
+      'charcard.title': '角色卡',
+      'charcard.noCharacter': '未选择角色',
+      'charcard.rollTooltip': '点击掷骰 2d12{{mod}}',
+      'charcard.section.attributes': '属性',
+      'charcard.section.resources': '资源',
+      'charcard.section.thresholds': '阈值',
+      'charcard.section.experiences': '经历',
+      'charcard.section.status': '状态',
+      'charcard.res.hp': '生命',
+      'charcard.res.stress': '压力',
+      'charcard.res.armor': '护甲',
+      'charcard.res.hope': '希望',
+      'charcard.threshold.evasion': '闪避',
+      'charcard.threshold.major': '重伤',
+      'charcard.threshold.severe': '严重',
     },
     en: {
       // DaggerHeartCard
@@ -109,6 +128,8 @@ export const daggerheartI18n: PluginI18n = {
       'judgment.successFear': 'Success with Fear',
       'judgment.failureHope': 'Failure with Hope',
       'judgment.failureFear': 'Failure with Fear',
+      'judgment.hopeUnknown': 'Hope Result, Success Unknown',
+      'judgment.fearUnknown': 'Fear Result, Success Unknown',
 
       // Dice — roll actions
       'roll.check': '{{attr}} Check',
@@ -122,6 +143,23 @@ export const daggerheartI18n: PluginI18n = {
       // Fear Panel
       'fear.label': 'Fear',
       'fear.count': '{{current}} / {{max}}',
+
+      // Character Card (region)
+      'charcard.title': 'Character Card',
+      'charcard.noCharacter': 'No character selected',
+      'charcard.rollTooltip': 'Click to roll 2d12{{mod}}',
+      'charcard.section.attributes': 'Attributes',
+      'charcard.section.resources': 'Resources',
+      'charcard.section.thresholds': 'Thresholds',
+      'charcard.section.experiences': 'Experiences',
+      'charcard.section.status': 'Status',
+      'charcard.res.hp': 'HP',
+      'charcard.res.stress': 'Stress',
+      'charcard.res.armor': 'Armor',
+      'charcard.res.hope': 'Hope',
+      'charcard.threshold.evasion': 'Evasion',
+      'charcard.threshold.major': 'Major',
+      'charcard.threshold.severe': 'Severe',
     },
   },
 }

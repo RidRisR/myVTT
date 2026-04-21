@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Fear Panel - Combined Interaction</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: url('https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=1920&q=80')
+          center/cover no-repeat fixed;
+        min-height: 100vh;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        color: #e8e0d4;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 20px;
+        gap: 50px;
+      }
+
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 8, 16, 0.55);
+        z-index: 0;
+      }
+
+      body > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      h1 {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 400;
+      }
+
+      .option-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: rgba(255, 255, 255, 0.4);
+        margin-bottom: 16px;
+        text-align: center;
+      }
+
+      .section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      /* ═══════════════════════════════════════
+     FEAR PANEL BASE
+     ═══════════════════════════════════════ */
+      .fear-panel {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 20px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        user-select: none;
+      }
+
+      .fear-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: rgba(220, 180, 140, 0.6);
+        font-weight: 600;
+        margin-right: 4px;
+      }
+
+      .fear-count {
+        font-size: 13px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.5);
+        min-width: 32px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ═══════════════════════════════════════
+     FEAR PIP
+     ═══════════════════════════════════════ */
+      .pip {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        position: relative;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+
+      /* Empty pip — etched stone socket */
+      .pip.empty {
+        background: radial-gradient(
+          circle at 50% 55%,
+          rgba(20, 15, 25, 0.4) 0%,
+          rgba(10, 8, 16, 0.3) 70%,
+          transparent 100%
+        );
+        border: 1.5px solid rgba(255, 255, 255, 0.07);
+        box-shadow:
+          inset 0 2px 4px rgba(0, 0, 0, 0.35),
+          inset 0 -1px 2px rgba(255, 255, 255, 0.03),
+          0 1px 2px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Filled pip — glowing ember gemstone */
+      .pip.filled {
+        background: radial-gradient(
+          circle at 38% 32%,
+          #ffad7a 0%,
+          #ff6b4a 15%,
+          #dc2626 40%,
+          #991b1b 70%,
+          #6b1010 100%
+        );
+        border: 1.5px solid rgba(255, 120, 70, 0.5);
+        box-shadow:
+          0 0 10px rgba(220, 38, 38, 0.6),
+          0 0 24px rgba(220, 38, 38, 0.25),
+          0 0 40px rgba(180, 30, 30, 0.1),
+          inset 0 -3px 5px rgba(0, 0, 0, 0.35),
+          inset 0 1px 3px rgba(255, 220, 180, 0.35);
+        animation: ember-pulse 3s ease-in-out infinite;
+      }
+
+      /* Inner specular highlight */
+      .pip.filled::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: 4px;
+        width: 8px;
+        height: 6px;
+        border-radius: 50%;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(255, 230, 200, 0.5) 0%,
+          rgba(255, 200, 150, 0.2) 50%,
+          transparent 100%
+        );
+      }
+
+      /* Outer decorative ring for filled pips */
+      .pip.filled::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 100, 50, 0.15);
+      }
+
+      @keyframes ember-pulse {
+        0%,
+        100% {
+          box-shadow:
+            0 0 10px rgba(220, 38, 38, 0.6),
+            0 0 24px rgba(220, 38, 38, 0.25),
+            0 0 40px rgba(180, 30, 30, 0.1),
+            inset 0 -3px 5px rgba(0, 0, 0, 0.35),
+            inset 0 1px 3px rgba(255, 220, 180, 0.35);
+        }
+        50% {
+          box-shadow:
+            0 0 14px rgba(220, 38, 38, 0.75),
+            0 0 32px rgba(220, 38, 38, 0.35),
+            0 0 50px rgba(180, 30, 30, 0.15),
+            inset 0 -3px 5px rgba(0, 0, 0, 0.35),
+            inset 0 1px 3px rgba(255, 220, 180, 0.4);
+        }
+      }
+
+      /* ═══════════════════════════════════════
+     +/- BUTTONS
+     ═══════════════════════════════════════ */
+      .btn-control {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      }
+
+      .btn-control:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.8);
+        border-color: rgba(255, 255, 255, 0.2);
+      }
+
+      .btn-control:active {
+        transform: scale(0.9);
+      }
+
+      .pips-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      /* ═══════════════════════════════════════
+     CLICK-TO-SET INTERACTIONS
+     ═══════════════════════════════════════ */
+      .pip.empty:hover {
+        background: radial-gradient(
+          circle at 50% 50%,
+          rgba(220, 38, 38, 0.2) 0%,
+          rgba(220, 38, 38, 0.08) 70%,
+          transparent 100%
+        );
+        border-color: rgba(220, 38, 38, 0.35);
+        box-shadow: 0 0 12px rgba(220, 38, 38, 0.25);
+      }
+
+      .pip.empty.preview {
+        background: radial-gradient(
+          circle at 50% 50%,
+          rgba(220, 38, 38, 0.15) 0%,
+          rgba(220, 38, 38, 0.05) 70%,
+          transparent 100%
+        );
+        border-color: rgba(220, 38, 38, 0.25);
+      }
+
+      /* Filled pips: click to truncate to this position */
+      .pip.filled:hover {
+        box-shadow:
+          0 0 14px rgba(220, 38, 38, 0.7),
+          0 0 28px rgba(220, 38, 38, 0.3),
+          0 0 0 2px rgba(255, 255, 255, 0.15);
+      }
+
+      /* ═══════════════════════════════════════
+     HINT / LOG
+     ═══════════════════════════════════════ */
+      .hint {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.3);
+        text-align: center;
+        max-width: 420px;
+        line-height: 1.6;
+      }
+
+      .hint em {
+        color: rgba(220, 180, 140, 0.6);
+        font-style: normal;
+      }
+
+      .log {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.25);
+        text-align: center;
+        min-height: 18px;
+        transition: color 0.3s;
+      }
+
+      .log.active {
+        color: rgba(220, 180, 140, 0.7);
+      }
+
+      .divider {
+        width: 300px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      }
+
+      /* ═══════════════════════════════════════
+     DIMMED PREVIEW for filled pips about to be cleared
+     ═══════════════════════════════════════ */
+      .pip.filled.will-clear {
+        opacity: 0.35;
+        transition: opacity 0.15s ease;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Fear Panel - Combined Interaction</h1>
+
+    <!-- ══════ COMBINED: +/- Buttons + Click-to-set ══════ -->
+    <div class="section">
+      <div class="option-label">Combined: Buttons + Click-to-set</div>
+
+      <div class="fear-panel" id="combined">
+        <button class="btn-control" onclick="dec()">-</button>
+        <span class="fear-label">FEAR</span>
+        <div class="pips-row" id="pips"></div>
+        <span class="fear-count" id="count">4 / 12</span>
+        <button class="btn-control" onclick="inc()">+</button>
+      </div>
+
+      <div class="log" id="log"></div>
+      <div class="hint">
+        点击<em>空点</em>：填充到该位置 &nbsp;|&nbsp;
+        点击<em>已填充点</em>：截断到该位置（再点最后一点则清零）<br />
+        <em>+/-</em> 按钮：逐步微调 &nbsp;|&nbsp; Hover 时预览将要改变的范围
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══════ SIDE-BY-SIDE: A vs B for reference ══════ -->
+    <div style="display: flex; gap: 60px; flex-wrap: wrap; justify-content: center">
+      <!-- Option A only -->
+      <div class="section">
+        <div class="option-label">Option A only: +/- Buttons</div>
+        <div class="fear-panel" id="optionA">
+          <button class="btn-control" onclick="optA_dec()">-</button>
+          <span class="fear-label">FEAR</span>
+          <div class="pips-row" id="pipsA"></div>
+          <span class="fear-count" id="countA">4 / 12</span>
+          <button class="btn-control" onclick="optA_inc()">+</button>
+        </div>
+        <div class="log" id="logA"></div>
+        <div class="hint">圆点只做展示，不可点击</div>
+      </div>
+
+      <!-- Option B only -->
+      <div class="section">
+        <div class="option-label">Option B only: Click-to-set</div>
+        <div class="fear-panel" id="optionB">
+          <span class="fear-label">FEAR</span>
+          <div class="pips-row" id="pipsB"></div>
+          <span class="fear-count" id="countB">4 / 12</span>
+        </div>
+        <div class="log" id="logB"></div>
+        <div class="hint">无按钮，纯点击操作</div>
+      </div>
+    </div>
+
+    <script>
+      const MAX = 12
+
+      // ═══════════════════════════════════════
+      // COMBINED
+      // ═══════════════════════════════════════
+      let fear = 4
+
+      function render() {
+        const container = document.getElementById('pips')
+        container.innerHTML = ''
+        for (let i = 0; i < MAX; i++) {
+          const pip = document.createElement('div')
+          const filled = i < fear
+          pip.className = `pip ${filled ? 'filled' : 'empty'}`
+          if (filled) pip.style.animationDelay = `${i * 0.2}s`
+
+          pip.addEventListener('mouseenter', () => onHover(i))
+          pip.addEventListener('mouseleave', () => onLeave())
+          pip.addEventListener('click', () => onClick(i))
+
+          container.appendChild(pip)
+        }
+        document.getElementById('count').textContent = `${fear} / ${MAX}`
+      }
+
+      function onHover(index) {
+        const pips = document.querySelectorAll('#pips .pip')
+        if (index >= fear) {
+          // Hovering empty pip → preview fill range
+          for (let i = fear; i <= index; i++) {
+            pips[i].classList.add('preview')
+          }
+        } else {
+          // Hovering filled pip → preview which pips would be cleared
+          // If clicking this pip would set fear to (index+1), pips from index+1..fear-1 will be cleared
+          if (index < fear - 1) {
+            // Truncate preview: dim pips that would be removed
+            for (let i = index + 1; i < fear; i++) {
+              pips[i].classList.add('will-clear')
+            }
+          } else {
+            // This is the last filled pip → would clear ALL
+            for (let i = 0; i < fear; i++) {
+              pips[i].classList.add('will-clear')
+            }
+          }
+        }
+      }
+
+      function onLeave() {
+        document
+          .querySelectorAll('#pips .pip.preview')
+          .forEach((p) => p.classList.remove('preview'))
+        document
+          .querySelectorAll('#pips .pip.will-clear')
+          .forEach((p) => p.classList.remove('will-clear'))
+      }
+
+      function onClick(index) {
+        if (index >= fear) {
+          // Click empty pip → fill up to here
+          fear = index + 1
+          render()
+          showLog('log', `Fear set → ${fear}`)
+        } else if (index === fear - 1) {
+          // Click the last filled pip → clear all
+          fear = 0
+          render()
+          showLog('log', `Fear cleared → 0`)
+        } else {
+          // Click a filled pip that's not the last → truncate to this position
+          fear = index + 1
+          render()
+          showLog('log', `Fear set → ${fear}`)
+        }
+      }
+
+      function inc() {
+        if (fear >= MAX) return
+        fear++
+        render()
+        showLog('log', `Fear +1 → ${fear}`)
+      }
+
+      function dec() {
+        if (fear <= 0) return
+        fear--
+        render()
+        showLog('log', `Fear -1 → ${fear}`)
+      }
+
+      // ═══════════════════════════════════════
+      // OPTION A (reference)
+      // ═══════════════════════════════════════
+      let fearA = 4
+
+      function renderA() {
+        const container = document.getElementById('pipsA')
+        container.innerHTML = ''
+        for (let i = 0; i < MAX; i++) {
+          const pip = document.createElement('div')
+          pip.className = `pip ${i < fearA ? 'filled' : 'empty'}`
+          pip.style.cursor = 'default'
+          if (i < fearA) pip.style.animationDelay = `${i * 0.2}s`
+          container.appendChild(pip)
+        }
+        document.getElementById('countA').textContent = `${fearA} / ${MAX}`
+      }
+
+      function optA_inc() {
+        if (fearA < MAX) {
+          fearA++
+          renderA()
+          showLog('logA', `Fear +1 → ${fearA}`)
+        }
+      }
+      function optA_dec() {
+        if (fearA > 0) {
+          fearA--
+          renderA()
+          showLog('logA', `Fear -1 → ${fearA}`)
+        }
+      }
+
+      // ═══════════════════════════════════════
+      // OPTION B (reference)
+      // ═══════════════════════════════════════
+      let fearB = 4
+
+      function renderB() {
+        const container = document.getElementById('pipsB')
+        container.innerHTML = ''
+        for (let i = 0; i < MAX; i++) {
+          const pip = document.createElement('div')
+          const filled = i < fearB
+          pip.className = `pip ${filled ? 'filled' : 'empty'}`
+          if (filled) pip.style.animationDelay = `${i * 0.2}s`
+
+          pip.addEventListener('mouseenter', () => onBHover(i))
+          pip.addEventListener('mouseleave', () => onBLeave())
+          pip.addEventListener('click', () => onBClick(i))
+
+          container.appendChild(pip)
+        }
+        document.getElementById('countB').textContent = `${fearB} / ${MAX}`
+      }
+
+      function onBHover(index) {
+        const pips = document.querySelectorAll('#optionB .pip')
+        if (index >= fearB) {
+          for (let i = fearB; i <= index; i++) pips[i].classList.add('preview')
+        } else if (index < fearB - 1) {
+          for (let i = index + 1; i < fearB; i++) pips[i].classList.add('will-clear')
+        } else {
+          for (let i = 0; i < fearB; i++) pips[i].classList.add('will-clear')
+        }
+      }
+
+      function onBLeave() {
+        document
+          .querySelectorAll('#optionB .pip.preview')
+          .forEach((p) => p.classList.remove('preview'))
+        document
+          .querySelectorAll('#optionB .pip.will-clear')
+          .forEach((p) => p.classList.remove('will-clear'))
+      }
+
+      function onBClick(index) {
+        if (index >= fearB) {
+          fearB = index + 1
+          renderB()
+          showLog('logB', `Fear set → ${fearB}`)
+        } else if (index === fearB - 1) {
+          fearB = 0
+          renderB()
+          showLog('logB', `Fear cleared → 0`)
+        } else {
+          fearB = index + 1
+          renderB()
+          showLog('logB', `Fear set → ${fearB}`)
+        }
+      }
+
+      // ═══════════════════════════════════════
+      // SHARED
+      // ═══════════════════════════════════════
+      function showLog(id, msg) {
+        const el = document.getElementById(id)
+        el.textContent = msg
+        el.classList.add('active')
+        setTimeout(() => el.classList.remove('active'), 1500)
+      }
+
+      render()
+      renderA()
+      renderB()
+    </script>
+  </body>
+</html>

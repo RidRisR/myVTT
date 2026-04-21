@@ -2,7 +2,7 @@
 // No imports from workflow/ — this file is imported by workflow/types.ts
 import type React from 'react'
 import type { InputHandlerDef } from './inputHandlerTypes'
-import type { AnchorPoint, RegionLayer } from './regionTypes'
+import type { AnchorPoint, RegionLayer, ResizeOrigin } from './regionTypes'
 
 export type ZLayer = 'below-canvas' | 'above-canvas' | 'above-ui'
 
@@ -44,6 +44,8 @@ export interface RegionDef {
   defaultSize: { width: number; height: number }
   minSize?: { width: number; height: number }
   defaultPlacement?: { anchor: AnchorPoint; offsetX?: number; offsetY?: number }
+  /** Which point stays fixed during programmatic resize (sdk.ui.resize). Defaults to anchor (no compensation). */
+  resizeOrigin?: ResizeOrigin
   layer: RegionLayer
 }
 

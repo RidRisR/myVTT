@@ -2,17 +2,11 @@
 // Plugin registration boundary — imports plugins and wires them into the workflow system.
 import { daggerheartCorePlugin } from '../../plugins/daggerheart-core'
 import { daggerheartCosmeticPlugin } from '../../plugins/daggerheart-cosmetic'
-import { coreUIPlugin } from '../../plugins/core-ui'
 import { genericVTTPlugin } from '../../plugins/generic/vttPlugin'
 import { registerWorkflowPlugins } from '../workflow/useWorkflowSDK'
 
 // Register VTT plugins for workflow activation
-registerWorkflowPlugins([
-  genericVTTPlugin,
-  daggerheartCorePlugin,
-  daggerheartCosmeticPlugin,
-  coreUIPlugin,
-])
+registerWorkflowPlugins([genericVTTPlugin, daggerheartCorePlugin, daggerheartCosmeticPlugin])
 
 // Static list of available rule systems (used by AdminPanel, HamburgerMenu)
 const AVAILABLE_RULE_SYSTEMS: Array<{ id: string; name: string }> = [

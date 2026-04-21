@@ -1,6 +1,6 @@
 // plugins/daggerheart/DaggerHeartCard.tsx
 import type { EntityCardProps } from '@myvtt/sdk'
-import { usePluginPanels, usePluginTranslation, useWorkflowRunner } from '@myvtt/sdk'
+import { usePluginTranslation, useWorkflowRunner } from '@myvtt/sdk'
 import { getWorkflowEngine } from '../../src/workflow/useWorkflowSDK'
 import type { DHHealth, DHStress, DHAttributes, DHMeta, DHExtras } from './types'
 import { DH_KEYS } from './types'
@@ -16,7 +16,6 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
   const extras = entity.components[DH_KEYS.extras] as DHExtras | undefined
   const hasDHData = !!(hp || stress || attrs || meta || extras)
 
-  const { openPanel } = usePluginPanels()
   const { t } = usePluginTranslation()
   const runner = useWorkflowRunner()
 
@@ -80,16 +79,6 @@ export function DaggerHeartCard({ entity, readonly }: EntityCardProps) {
             </div>
           )}
         </>
-      )}
-      {!readonly && (
-        <button
-          onClick={() => {
-            openPanel('dh-full-sheet', entity.id)
-          }}
-          className="mt-2 w-full py-1.5 text-[11px] text-text-muted/50 bg-black/20 hover:bg-black/40 rounded-md transition-colors duration-fast"
-        >
-          {t('card.fullSheet')}
-        </button>
       )}
     </div>
   )

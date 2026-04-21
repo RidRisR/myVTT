@@ -4,12 +4,17 @@ import { AdminPage } from '../pages/admin.page'
 import { SeatSelectPage } from '../pages/seat-select.page'
 import { RoomPage } from '../pages/room.page'
 
+// All region-model tests use daggerheart rooms because generic rooms have no
+// persistent regions. The fear-panel is the simplest always-visible region.
+const REGION_SELECTOR = '[data-region="daggerheart-core:fear-panel"]'
+const REGION_LABEL = 'daggerheart-core:fear-panel'
+
 test.describe('Region Model', () => {
   test('persistent region renders with correct data attributes and size', async ({ page }) => {
     const roomName = `region-render-${Date.now()}`
     const admin = new AdminPage(page)
     await admin.goto()
-    await admin.createRoom(roomName)
+    await admin.createRoom(roomName, 'daggerheart')
     await admin.enterRoom(roomName)
 
     const seatSelect = new SeatSelectPage(page)
@@ -20,12 +25,12 @@ test.describe('Region Model', () => {
     await room.expectInRoom()
 
     // Region container should exist with correct data attributes
-    const region = page.locator('[data-region="core-ui.session-info"]')
+    const region = page.locator(REGION_SELECTOR)
     await expect(region).toBeVisible({ timeout: 10_000 })
 
     // Verify accessibility attributes
     await expect(region).toHaveAttribute('role', 'region')
-    await expect(region).toHaveAttribute('aria-label', 'core-ui.session-info')
+    await expect(region).toHaveAttribute('aria-label', REGION_LABEL)
 
     // Verify it has non-zero size (actually rendered, not collapsed)
     const box = await region.boundingBox()
@@ -38,7 +43,7 @@ test.describe('Region Model', () => {
     const roomName = `region-edit-${Date.now()}`
     const admin = new AdminPage(page)
     await admin.goto()
-    await admin.createRoom(roomName)
+    await admin.createRoom(roomName, 'daggerheart')
     await admin.enterRoom(roomName)
 
     const seatSelect = new SeatSelectPage(page)
@@ -48,7 +53,7 @@ test.describe('Region Model', () => {
     const room = new RoomPage(page)
     await room.expectInRoom()
 
-    const region = page.locator('[data-region="core-ui.session-info"]')
+    const region = page.locator(REGION_SELECTOR)
     await expect(region).toBeVisible({ timeout: 10_000 })
 
     // In play mode, no drag handle should exist
@@ -74,7 +79,7 @@ test.describe('Region Model', () => {
     const roomName = `region-drag-${Date.now()}`
     const admin = new AdminPage(page)
     await admin.goto()
-    await admin.createRoom(roomName)
+    await admin.createRoom(roomName, 'daggerheart')
     await admin.enterRoom(roomName)
 
     const seatSelect = new SeatSelectPage(page)
@@ -84,7 +89,7 @@ test.describe('Region Model', () => {
     const room = new RoomPage(page)
     await room.expectInRoom()
 
-    const region = page.locator('[data-region="core-ui.session-info"]')
+    const region = page.locator(REGION_SELECTOR)
     await expect(region).toBeVisible({ timeout: 10_000 })
 
     // Record initial position
@@ -124,7 +129,7 @@ test.describe('Region Model', () => {
     const roomName = `region-persist-${Date.now()}`
     const admin = new AdminPage(page)
     await admin.goto()
-    await admin.createRoom(roomName)
+    await admin.createRoom(roomName, 'daggerheart')
     await admin.enterRoom(roomName)
 
     const seatSelect = new SeatSelectPage(page)
@@ -134,7 +139,7 @@ test.describe('Region Model', () => {
     const room = new RoomPage(page)
     await room.expectInRoom()
 
-    const region = page.locator('[data-region="core-ui.session-info"]')
+    const region = page.locator(REGION_SELECTOR)
     await expect(region).toBeVisible({ timeout: 10_000 })
 
     // Enter edit mode (close menu so popover doesn't block drag handle)
@@ -193,19 +198,19 @@ test.describe('Region Model', () => {
     const room = new RoomPage(page)
     await room.expectInRoom()
 
-    // Both core-ui and daggerheart regions should render
-    const sessionInfo = page.locator('[data-region="core-ui.session-info"]')
+    // Both daggerheart regions should render
     const fearPanel = page.locator('[data-region="daggerheart-core:fear-panel"]')
-    await expect(sessionInfo).toBeVisible({ timeout: 10_000 })
+    const charCard = page.locator('[data-region="daggerheart-core:character-card"]')
     await expect(fearPanel).toBeVisible({ timeout: 10_000 })
+    await expect(charCard).toBeVisible({ timeout: 10_000 })
 
     // Both should have role="region" (accessibility)
-    await expect(sessionInfo).toHaveAttribute('role', 'region')
     await expect(fearPanel).toHaveAttribute('role', 'region')
+    await expect(charCard).toHaveAttribute('role', 'region')
 
     // Both should have non-zero, independent bounding boxes
-    const box1 = await sessionInfo.boundingBox()
-    const box2 = await fearPanel.boundingBox()
+    const box1 = await fearPanel.boundingBox()
+    const box2 = await charCard.boundingBox()
     expect(box1).not.toBeNull()
     expect(box2).not.toBeNull()
     expect(box1!.width).toBeGreaterThan(0)

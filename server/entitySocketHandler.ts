@@ -25,12 +25,13 @@ export function setupEntitySocketHandlers(io: TypedServer, dataDir: string): voi
 
       try {
         const { id, components = {}, lifecycle = 'ephemeral', tags = [] } = data
+        const permissions = data.permissions ?? { default: 'observer', seats: {} }
 
         db.transaction(() => {
           db.prepare(
             `INSERT INTO entities (id, permissions, lifecycle, blueprint_id)
              VALUES (?, ?, ?, ?)`,
-          ).run(id, JSON.stringify({ default: 'observer', seats: {} }), lifecycle, null)
+          ).run(id, JSON.stringify(permissions), lifecycle, null)
 
           // Insert components
           const insertComp = db.prepare(

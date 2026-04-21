@@ -1,7 +1,13 @@
 // plugins/daggerheart-core/index.ts
 import type React from 'react'
 import i18next from 'i18next'
-import type { VTTPlugin, IPluginSDK, WorkflowContext, WorkflowHandle } from '@myvtt/sdk'
+import type {
+  VTTPlugin,
+  IPluginSDK,
+  WorkflowContext,
+  WorkflowHandle,
+  JudgmentResult,
+} from '@myvtt/sdk'
 import {
   MAIN_RESOURCE_POINT,
   PORTRAIT_RESOURCES_POINT,
@@ -13,11 +19,19 @@ import {
 import { DiceJudge } from './DiceJudge'
 import { FearManager } from './FearManager'
 import { HopeResolver } from './HopeResolver'
+import { CharCardManager } from './CharCardManager'
+import {
+  RollTemplateManager,
+  type RollTemplateAddData,
+  type RollTemplateRemoveData,
+  type RollTemplateReorderData,
+  type RollTemplateUpdateData,
+} from './RollTemplateManager'
 import { ModifierPanel } from './ui/ModifierPanel'
-import type { ModifierResult } from './ui/ModifierPanel'
 import { DHActionCheckCard } from './ui/DHActionCheckCard'
 import { FearPanel } from './ui/FearPanel'
-import { BattleOverviewPanel } from './ui/BattleOverviewPanel'
+import { PlayerBottomPanel } from './ui/PlayerBottomPanel'
+import { CharacterCard } from '../daggerheart/ui/CharacterCard'
 import { daggerheartI18n } from '../daggerheart/i18n'
 import {
   dhGetMainResource,
@@ -27,16 +41,41 @@ import {
 } from '../daggerheart/adapters'
 import { createDefaultDHEntityData } from '../daggerheart/templates'
 import { DaggerHeartCard } from '../daggerheart/DaggerHeartCard'
+import type { RollConfig, RollExecutionResult, SideEffectEntry } from './rollTypes'
+import {
+  buildDiceSpecs,
+  assembleRollResult,
+  rollConfigToFormula,
+  rollConfigToFormulaTokens,
+} from './rollConfigUtils'
+import {
+  materializeRollConfigFromTemplate,
+  mergeTemplateConfigAfterEditorRoundTrip,
+  normalizeExperiences,
+} from './rollTemplateUtils'
+import { DH_ATTRIBUTE_LABELS, DH_KEYS } from '../daggerheart/types'
+import type {
+  DHAttributes,
+  DHHealth,
+  DHStress,
+  DHExtras,
+  DHExperiences,
+} from '../daggerheart/types'
 
 interface ActionCheckData {
   [key: string]: unknown
-  formula: string
   actorId: string
+  formula?: string
   dc?: number
+  applyOutcomeEffects?: boolean
   skipModifier?: boolean
-  rolls?: number[][]
+  preselectedAttribute?: string
+  rollTemplateId?: string
+  initialRollConfig?: RollConfig
+  rollConfig?: RollConfig
+  rollResult?: RollExecutionResult
   total?: number
-  judgment?: import('@myvtt/sdk').JudgmentResult
+  judgment?: JudgmentResult | null
 }
 
 interface FearSetData {
@@ -48,12 +87,128 @@ interface FearClearData {
   [key: string]: unknown
 }
 
+interface CharCardUpdateAttrData {
+  [key: string]: unknown
+  entityId: string
+  attribute: string
+  value: number
+}
+
+interface CharCardUpdateResData {
+  [key: string]: unknown
+  entityId: string
+  resource: string
+  field: 'current' | 'max'
+  value: number
+}
+
+interface CharCardUpdateExtrasData {
+  [key: string]: unknown
+  entityId: string
+  field: string
+  value: number
+}
+
+interface CharCardUpdateThresholdData {
+  [key: string]: unknown
+  entityId: string
+  threshold: string
+  value: number
+}
+
+interface CharCardUpdateExpData {
+  [key: string]: unknown
+  entityId: string
+  index: number
+  field: 'name' | 'modifier'
+  value: string | number
+}
+
+interface CharCardAddExpData {
+  [key: string]: unknown
+  entityId: string
+  name: string
+  modifier: number
+}
+
+interface CharCardRemoveExpData {
+  [key: string]: unknown
+  entityId: string
+  index: number
+}
+
+interface RollTemplateEditConfigData {
+  [key: string]: unknown
+  entityId: string
+  templateId: string
+}
+
+const EMPTY_ATTRIBUTES: DHAttributes = {
+  agility: 0,
+  strength: 0,
+  finesse: 0,
+  instinct: 0,
+  presence: 0,
+  knowledge: 0,
+}
+
+const EMPTY_EXPERIENCES: DHExperiences = { items: [] }
+
+function applySideEffect(ctx: WorkflowContext, actorId: string, fx: SideEffectEntry): void {
+  switch (fx.resource) {
+    case 'hope': {
+      ctx.updateComponent(actorId, DH_KEYS.extras, (prev: unknown) => {
+        const p = (prev ?? { hope: 0, hopeMax: 6, armor: 0, armorMax: 6 }) as DHExtras
+        return { ...p, hope: Math.max(0, Math.min(p.hopeMax, p.hope + fx.delta)) }
+      })
+      break
+    }
+    case 'hp': {
+      ctx.updateComponent(actorId, DH_KEYS.health, (prev: unknown) => {
+        const p = (prev ?? { current: 0, max: 0 }) as DHHealth
+        return { ...p, current: Math.max(0, Math.min(p.max, p.current + fx.delta)) }
+      })
+      break
+    }
+    case 'stress': {
+      ctx.updateComponent(actorId, DH_KEYS.stress, (prev: unknown) => {
+        const p = (prev ?? { current: 0, max: 0 }) as DHStress
+        return { ...p, current: Math.max(0, Math.min(p.max, p.current + fx.delta)) }
+      })
+      break
+    }
+    case 'armor': {
+      ctx.updateComponent(actorId, DH_KEYS.extras, (prev: unknown) => {
+        const p = (prev ?? { hope: 0, hopeMax: 6, armor: 0, armorMax: 6 }) as DHExtras
+        return { ...p, armor: Math.max(0, Math.min(p.armorMax, p.armor + fx.delta)) }
+      })
+      break
+    }
+  }
+}
+
+function cloneRollConfig(config: RollConfig): RollConfig {
+  return {
+    ...config,
+    dualityDice: config.dualityDice ? { ...config.dualityDice } : null,
+    diceGroups: config.diceGroups.map((group) => ({
+      ...group,
+      keep: group.keep ? { ...group.keep } : undefined,
+    })),
+    modifiers: config.modifiers.map((modifier) => ({ ...modifier })),
+    sideEffects: config.sideEffects.map((effect) => ({ ...effect })),
+  }
+}
+
 export class DaggerHeartCorePlugin implements VTTPlugin {
   id = 'daggerheart-core'
+  ruleSystemId = 'daggerheart'
 
   private dice = new DiceJudge()
   private fear = new FearManager()
   private hope = new HopeResolver()
+  private charCard = new CharCardManager()
+  private rollTemplates = new RollTemplateManager()
   private actionCheckHandle!: WorkflowHandle<ActionCheckData>
   private fearSetHandle!: WorkflowHandle<FearSetData>
   // fear-clear workflow is registered via defineWorkflow side effect; handle not needed
@@ -67,7 +222,7 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
     }
 
     // Register input handler for modifier panel
-    sdk.ui.registerInputHandler('daggerheart-core:modifier', {
+    sdk.ui.registerInputHandler('daggerheart-core:roll-modifier', {
       component: ModifierPanel as Parameters<typeof sdk.ui.registerInputHandler>[1]['component'],
     })
 
@@ -103,14 +258,26 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       layer: 'standard',
     })
 
-    // Register Battle Overview panel — right-side persistent panel showing all units
+    // Register Character Card region — drawer-style panel on the left edge.
+    // Starts collapsed (tab handle only), expands rightward to show card content.
     sdk.ui.registerRegion({
-      id: 'daggerheart-core:battle-overview',
-      component: BattleOverviewPanel as React.ComponentType<{ sdk: unknown }>,
+      id: 'daggerheart-core:character-card',
+      component: CharacterCard as React.ComponentType<{ sdk: unknown }>,
       lifecycle: 'persistent',
-      defaultSize: { width: 480, height: 300 },
-      minSize: { width: 400, height: 140 },
-      defaultPlacement: { anchor: 'top-right', offsetX: 0, offsetY: 12 },
+      defaultSize: { width: 36, height: 60 },
+      minSize: { width: 36, height: 60 },
+      defaultPlacement: { anchor: 'top-left', offsetX: 0, offsetY: 200 },
+      layer: 'standard',
+    })
+
+    sdk.ui.registerRegion({
+      id: 'daggerheart-core:player-bottom-panel',
+      component: PlayerBottomPanel as React.ComponentType<{ sdk: unknown }>,
+      lifecycle: 'persistent',
+      defaultSize: { width: 480, height: 48 },
+      minSize: { width: 400, height: 48 },
+      defaultPlacement: { anchor: 'bottom-center', offsetX: 0, offsetY: -8 },
+      resizeOrigin: 'bottom-center',
       layer: 'standard',
     })
 
@@ -119,57 +286,162 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       {
         id: 'modifier',
         run: async (ctx) => {
-          if (ctx.vars.skipModifier || ctx.vars.dc != null) return
-          const result = await ctx.requestInput<ModifierResult>('daggerheart-core:modifier', {
-            context: { actorId: ctx.vars.actorId },
-          })
-          if (!result.ok) {
-            ctx.abort('Modifier input cancelled')
+          const actorId = ctx.vars.actorId
+
+          const templateConfig =
+            ctx.vars.rollTemplateId && !ctx.vars.initialRollConfig
+              ? (() => {
+                  const template = this.rollTemplates.getTemplate(
+                    ctx,
+                    actorId,
+                    ctx.vars.rollTemplateId,
+                  )
+                  if (!template) return null
+                  const attributes =
+                    ctx.read.component<DHAttributes>(actorId, DH_KEYS.attributes) ??
+                    EMPTY_ATTRIBUTES
+                  const experiences = normalizeExperiences(
+                    ctx.read.component<DHExperiences>(actorId, DH_KEYS.experiences) ??
+                      EMPTY_EXPERIENCES,
+                  )
+                  return materializeRollConfigFromTemplate(template.config, attributes, experiences)
+                })()
+              : null
+
+          if (ctx.vars.rollTemplateId && !ctx.vars.initialRollConfig && !templateConfig) {
+            ctx.abort(`Roll template not found: ${ctx.vars.rollTemplateId}`)
             return
           }
-          ctx.vars.dc = result.value.dc
+
+          // 构建默认 RollConfig
+          const sourceConfig = ctx.vars.initialRollConfig ?? templateConfig
+          const defaultConfig: RollConfig = sourceConfig
+            ? {
+                ...cloneRollConfig(sourceConfig),
+                dc: ctx.vars.dc ?? sourceConfig.dc,
+                applyOutcomeEffects:
+                  ctx.vars.applyOutcomeEffects ?? sourceConfig.applyOutcomeEffects,
+              }
+            : {
+                dualityDice: { hopeFace: 12, fearFace: 12 },
+                diceGroups: [],
+                modifiers: [],
+                constantModifier: 0,
+                sideEffects: [],
+                dc: ctx.vars.dc,
+                applyOutcomeEffects: ctx.vars.applyOutcomeEffects ?? true,
+              }
+
+          if (ctx.vars.skipModifier) {
+            if (ctx.vars.dc === undefined && defaultConfig.dc !== undefined) {
+              ctx.vars.dc = defaultConfig.dc
+            }
+            // Shift+click：使用预选属性直接跳过
+            const preAttr = ctx.vars.preselectedAttribute
+            if (preAttr) {
+              const attrs = ctx.read.component<DHAttributes>(actorId, DH_KEYS.attributes)
+              if (attrs) {
+                const attrKey = preAttr as keyof DHAttributes
+                const val = attrs[attrKey]
+                if (typeof val === 'number') {
+                  const nextModifier = {
+                    source: `attribute:${preAttr}`,
+                    label: DH_ATTRIBUTE_LABELS[attrKey],
+                    value: val,
+                  }
+                  const existingIndex = defaultConfig.modifiers.findIndex(
+                    (modifier) => modifier.source === nextModifier.source,
+                  )
+                  if (existingIndex >= 0) {
+                    defaultConfig.modifiers[existingIndex] = nextModifier
+                  } else {
+                    defaultConfig.modifiers.push(nextModifier)
+                  }
+                }
+              }
+            }
+            ctx.vars.rollConfig = defaultConfig
+            return
+          }
+
+          const result = await ctx.requestInput<RollConfig>('daggerheart-core:roll-modifier', {
+            context: {
+              actorId,
+              preselectedAttribute: ctx.vars.preselectedAttribute,
+              defaultConfig,
+            },
+          })
+
+          if (!result.ok) {
+            ctx.abort('Roll cancelled')
+            return
+          }
+
+          ctx.vars.rollConfig = result.value
+          if (result.value.dc !== undefined) {
+            ctx.vars.dc = result.value.dc
+          }
         },
       },
       {
         id: 'roll',
         run: async (ctx) => {
-          // Action check always rolls 2d12 — formula is fixed regardless of user input
-          ctx.vars.formula = '2d12'
-          const rolls = await ctx.serverRoll([{ sides: 12, count: 2 }])
-          ctx.vars.rolls = rolls
-          const total = rolls.flat().reduce((a, b) => a + b, 0)
-          ctx.vars.total = total
+          const config = ctx.vars.rollConfig
+          if (!config) {
+            ctx.abort('No roll config')
+            return
+          }
+
+          const specs = buildDiceSpecs(config)
+          const serverRolls = await ctx.serverRoll(specs)
+          const rollResult = assembleRollResult(config, serverRolls)
+
+          ctx.vars.rollResult = rollResult
+          ctx.vars.total = rollResult.total
         },
       },
       {
         id: 'judge',
         run: (ctx) => {
-          const { rolls, total, dc } = ctx.vars
-          if (!rolls || total == null) return
-          const actualDc = dc ?? 12
-          const judgment = this.dice.evaluate(rolls, total, actualDc)
-          if (judgment) ctx.vars.judgment = judgment
+          const rollResult = ctx.vars.rollResult
+          const dc = ctx.vars.dc
+
+          if (!rollResult?.dualityRolls) {
+            ctx.vars.judgment = null
+            return
+          }
+
+          // DiceJudge needs [hopeDie, fearDie] and total
+          const rolls = [rollResult.dualityRolls]
+          ctx.vars.judgment = this.dice.evaluate(rolls, rollResult.total, dc)
         },
       },
       {
         id: 'emit',
         run: (ctx) => {
-          const { rolls, total, dc, formula, judgment } = ctx.vars
-          if (!rolls || total == null) return
-          const display = judgment ? this.dice.getDisplay(judgment) : undefined
+          const config = ctx.vars.rollConfig
+          const rollResult = ctx.vars.rollResult
+          const judgment = ctx.vars.judgment
+
+          if (!config || !rollResult) return
+
           ctx.emitEntry({
             type: 'daggerheart-core:action-check',
             payload: {
-              formula,
-              rolls,
-              total,
-              dc: dc ?? 12,
+              formula: rollConfigToFormula(config),
+              formulaTokens: rollConfigToFormulaTokens(config),
+              rollConfig: config,
+              rollResult,
+              total: rollResult.total,
+              dc: ctx.vars.dc,
               judgment: judgment ?? null,
-              display: display ?? null,
-              dieConfigs: [
-                { color: '#fbbf24', label: 'die.hope' },
-                { color: '#dc2626', label: 'die.fear' },
-              ],
+              display: judgment ? this.dice.getDisplay(judgment) : null,
+              dieConfigs: rollResult.dualityRolls
+                ? [
+                    { color: '#fbbf24', label: 'die.hope' },
+                    { color: '#dc2626', label: 'die.fear' },
+                  ]
+                : [],
             },
             triggerable: true,
           })
@@ -178,13 +450,34 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
       {
         id: 'resolve',
         run: (ctx) => {
-          const judgment = ctx.vars.judgment as { type: string; outcome: string } | undefined
-          if (!judgment || judgment.type !== 'daggerheart') return
-          const outcome = judgment.outcome
-          if (outcome === 'success_hope' || outcome === 'failure_hope') {
-            this.hope.addHope(ctx, ctx.vars.actorId)
-          } else if (outcome === 'success_fear' || outcome === 'failure_fear') {
-            this.fear.addFear(ctx)
+          const config = ctx.vars.rollConfig
+          const judgment = ctx.vars.judgment
+          const actorId = ctx.vars.actorId
+
+          if (!config?.applyOutcomeEffects) return
+
+          // 1. 判定后果：hope 增加 / fear 增加
+          if (judgment && judgment.type === 'daggerheart') {
+            const outcome = judgment.outcome
+            if (
+              outcome === 'success_hope' ||
+              outcome === 'failure_hope' ||
+              outcome === 'hope_unknown'
+            ) {
+              this.hope.addHope(ctx, actorId)
+            } else if (
+              outcome === 'success_fear' ||
+              outcome === 'failure_fear' ||
+              outcome === 'fear_unknown'
+            ) {
+              this.fear.addFear(ctx)
+            }
+          }
+
+          // 2. 副作用：资源变动
+          for (const fx of config.sideEffects) {
+            if (fx.delta === 0) continue
+            applySideEffect(ctx, actorId, fx)
           }
         },
       },
@@ -215,10 +508,186 @@ export class DaggerHeartCorePlugin implements VTTPlugin {
     // Register chat commands for fear adjustment
     sdk.registerCommand('.f+', this.fearSetHandle)
     sdk.registerCommand('.f-', this.fearSetHandle)
+
+    // Character card workflows
+    sdk.defineWorkflow<CharCardUpdateAttrData>('daggerheart-core:charcard-update-attr', [
+      {
+        id: 'update',
+        run: (ctx) => {
+          this.charCard.updateAttribute(ctx, ctx.vars.entityId, ctx.vars.attribute, ctx.vars.value)
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<CharCardUpdateResData>('daggerheart-core:charcard-update-res', [
+      {
+        id: 'update',
+        run: (ctx) => {
+          this.charCard.updateResource(
+            ctx,
+            ctx.vars.entityId,
+            ctx.vars.resource,
+            ctx.vars.field,
+            ctx.vars.value,
+          )
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<CharCardUpdateExtrasData>('daggerheart-core:charcard-update-extras', [
+      {
+        id: 'update',
+        run: (ctx) => {
+          this.charCard.updateExtras(ctx, ctx.vars.entityId, ctx.vars.field, ctx.vars.value)
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<CharCardUpdateThresholdData>('daggerheart-core:charcard-update-threshold', [
+      {
+        id: 'update',
+        run: (ctx) => {
+          this.charCard.updateThreshold(ctx, ctx.vars.entityId, ctx.vars.threshold, ctx.vars.value)
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<CharCardUpdateExpData>('daggerheart-core:charcard-update-exp', [
+      {
+        id: 'update',
+        run: (ctx) => {
+          this.charCard.updateExperience(
+            ctx,
+            ctx.vars.entityId,
+            ctx.vars.index,
+            ctx.vars.field,
+            ctx.vars.value,
+          )
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<CharCardAddExpData>('daggerheart-core:charcard-add-exp', [
+      {
+        id: 'add',
+        run: (ctx) => {
+          this.charCard.addExperience(ctx, ctx.vars.entityId, ctx.vars.name, ctx.vars.modifier)
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<CharCardRemoveExpData>('daggerheart-core:charcard-remove-exp', [
+      {
+        id: 'remove',
+        run: (ctx) => {
+          this.charCard.removeExperience(ctx, ctx.vars.entityId, ctx.vars.index)
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<RollTemplateAddData>('daggerheart-core:roll-template-add', [
+      {
+        id: 'add',
+        run: (ctx) => {
+          this.rollTemplates.addTemplate(ctx, ctx.vars.entityId, {
+            name: ctx.vars.name,
+            icon: ctx.vars.icon,
+            config: ctx.vars.config,
+          })
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<RollTemplateUpdateData>('daggerheart-core:roll-template-update', [
+      {
+        id: 'update',
+        run: (ctx) => {
+          this.rollTemplates.updateTemplate(
+            ctx,
+            ctx.vars.entityId,
+            ctx.vars.templateId,
+            ctx.vars.patch,
+          )
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<RollTemplateRemoveData>('daggerheart-core:roll-template-remove', [
+      {
+        id: 'remove',
+        run: (ctx) => {
+          this.rollTemplates.removeTemplate(ctx, ctx.vars.entityId, ctx.vars.templateId)
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<RollTemplateReorderData>('daggerheart-core:roll-template-reorder', [
+      {
+        id: 'reorder',
+        run: (ctx) => {
+          this.rollTemplates.reorderTemplates(
+            ctx,
+            ctx.vars.entityId,
+            ctx.vars.fromIndex,
+            ctx.vars.toIndex,
+          )
+        },
+      },
+    ])
+
+    sdk.defineWorkflow<RollTemplateEditConfigData>('daggerheart-core:roll-template-edit-config', [
+      {
+        id: 'edit-config',
+        run: async (ctx) => {
+          const template = this.rollTemplates.getTemplate(
+            ctx,
+            ctx.vars.entityId,
+            ctx.vars.templateId,
+          )
+          if (!template) {
+            ctx.abort(`Roll template not found: ${ctx.vars.templateId}`)
+            return
+          }
+
+          const attributes =
+            ctx.read.component<DHAttributes>(ctx.vars.entityId, DH_KEYS.attributes) ??
+            EMPTY_ATTRIBUTES
+          const experiences = normalizeExperiences(
+            ctx.read.component<DHExperiences>(ctx.vars.entityId, DH_KEYS.experiences) ??
+              EMPTY_EXPERIENCES,
+          )
+
+          const result = await ctx.requestInput<RollConfig>('daggerheart-core:roll-modifier', {
+            context: {
+              actorId: ctx.vars.entityId,
+              defaultConfig: materializeRollConfigFromTemplate(
+                template.config,
+                attributes,
+                experiences,
+              ),
+            },
+          })
+
+          if (!result.ok) {
+            ctx.abort('Template edit cancelled')
+            return
+          }
+
+          this.rollTemplates.updateTemplate(ctx, ctx.vars.entityId, template.id, {
+            config: mergeTemplateConfigAfterEditorRoundTrip(
+              template.config,
+              result.value,
+              experiences,
+            ),
+          })
+        },
+      },
+    ])
   }
 
   async onReady(ctx: WorkflowContext): Promise<void> {
     await this.fear.ensureEntity(ctx)
+    await this.charCard.ensureCharacter(ctx)
   }
 }
 

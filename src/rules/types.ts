@@ -23,6 +23,8 @@ export type DaggerheartOutcome =
   | 'success_fear'
   | 'failure_hope'
   | 'failure_fear'
+  | 'hope_unknown'
+  | 'fear_unknown'
 
 export type JudgmentResult =
   | { type: 'daggerheart'; hopeDie: number; fearDie: number; outcome: DaggerheartOutcome }
@@ -147,6 +149,8 @@ export interface PluginI18n {
 
 export interface VTTPlugin {
   id: string
+  /** When set, the plugin is only activated if the room's ruleSystemId matches. Undefined = always active. */
+  ruleSystemId?: string
   dependencies?: string[]
   onActivate(sdk: import('../workflow/types').IPluginSDK): void
   onReady?(ctx: import('../workflow/types').WorkflowContext): void | Promise<void>

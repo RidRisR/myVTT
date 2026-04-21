@@ -180,6 +180,7 @@ export interface WorkflowContext<TVars = Record<string, unknown>> {
     components?: Record<string, unknown>
     lifecycle?: import('../shared/entityTypes').EntityLifecycle
     tags?: string[]
+    permissions?: import('../shared/entityTypes').EntityPermissions
   }): Promise<string>
   /** Delete an entity via server (await ack) */
   deleteEntity(entityId: string): Promise<void>

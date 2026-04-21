@@ -18,6 +18,7 @@ function getResources(entity: Entity): ResourceView[] {
 
 export const genericVTTPlugin: VTTPlugin = {
   id: 'generic-bindings',
+  ruleSystemId: 'generic',
 
   onActivate(sdk) {
     sdk.ui.registerRenderer(MAIN_RESOURCE_POINT, {

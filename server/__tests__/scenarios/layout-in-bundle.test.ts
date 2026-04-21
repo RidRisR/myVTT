@@ -12,13 +12,13 @@ describe('layout in bundle', () => {
     initRoomSchema(db)
   })
 
-  it('layout table returns default config with session-info panel', () => {
+  it('layout table returns empty default config', () => {
     const row = db.prepare('SELECT config FROM layout WHERE id = 1').get() as { config: string }
     const config = JSON.parse(row.config) as {
       narrative: Record<string, unknown>
       tactical: Record<string, unknown>
     }
-    expect(config.narrative).toHaveProperty('core-ui.session-info#1')
+    expect(config.narrative).toEqual({})
     expect(config.tactical).toEqual({})
   })
 

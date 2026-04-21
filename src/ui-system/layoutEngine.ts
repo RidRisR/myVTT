@@ -1,5 +1,11 @@
 // src/ui-system/layoutEngine.ts
-import type { AnchorPoint, RegionLayoutEntry, RegionLayer, Viewport } from './regionTypes'
+import type {
+  AnchorPoint,
+  RegionLayoutEntry,
+  RegionLayer,
+  ResizeOrigin,
+  Viewport,
+} from './regionTypes'
 
 /**
  * Compute the base pixel position for an anchor point,
@@ -15,14 +21,22 @@ export function anchorBase(
   switch (anchor) {
     case 'top-left':
       return { x: 0, y: 0 }
+    case 'top-center':
+      return { x: (vw - pw) / 2, y: 0 }
     case 'top-right':
       return { x: vw - pw, y: 0 }
-    case 'bottom-left':
-      return { x: 0, y: vh - ph }
-    case 'bottom-right':
-      return { x: vw - pw, y: vh - ph }
+    case 'center-left':
+      return { x: 0, y: (vh - ph) / 2 }
     case 'center':
       return { x: (vw - pw) / 2, y: (vh - ph) / 2 }
+    case 'center-right':
+      return { x: vw - pw, y: (vh - ph) / 2 }
+    case 'bottom-left':
+      return { x: 0, y: vh - ph }
+    case 'bottom-center':
+      return { x: (vw - pw) / 2, y: vh - ph }
+    case 'bottom-right':
+      return { x: vw - pw, y: vh - ph }
   }
 }
 
@@ -43,11 +57,14 @@ export function inferAnchor(
   panelCenter: { x: number; y: number },
   viewport: Viewport,
 ): AnchorPoint {
-  const cx = viewport.width / 2
+  const thirdX = viewport.width / 3
   const cy = viewport.height / 2
-  if (panelCenter.x < cx && panelCenter.y < cy) return 'top-left'
-  if (panelCenter.x >= cx && panelCenter.y < cy) return 'top-right'
-  if (panelCenter.x < cx && panelCenter.y >= cy) return 'bottom-left'
+  const inCenterX = panelCenter.x >= thirdX && panelCenter.x < thirdX * 2
+  if (inCenterX && panelCenter.y < cy) return 'top-center'
+  if (inCenterX && panelCenter.y >= cy) return 'bottom-center'
+  if (panelCenter.x < thirdX && panelCenter.y < cy) return 'top-left'
+  if (panelCenter.x >= thirdX * 2 && panelCenter.y < cy) return 'top-right'
+  if (panelCenter.x < thirdX && panelCenter.y >= cy) return 'bottom-left'
   return 'bottom-right'
 }
 
@@ -79,6 +96,80 @@ export function clampToViewport(
   return {
     x: Math.max(0, Math.min(pos.x, viewport.width - size.width)),
     y: Math.max(0, Math.min(pos.y, viewport.height - size.height)),
+  }
+}
+
+/**
+ * Map an AnchorPoint to its (fx, fy) factor.
+ * Factor = how much the base position depends on the element size.
+ * top-left → (0,0), center → (0.5,0.5), bottom-right → (1,1).
+ */
+export function anchorFactor(anchor: AnchorPoint): { x: number; y: number } {
+  switch (anchor) {
+    case 'top-left':
+      return { x: 0, y: 0 }
+    case 'top-center':
+      return { x: 0.5, y: 0 }
+    case 'top-right':
+      return { x: 1, y: 0 }
+    case 'center-left':
+      return { x: 0, y: 0.5 }
+    case 'center':
+      return { x: 0.5, y: 0.5 }
+    case 'center-right':
+      return { x: 1, y: 0.5 }
+    case 'bottom-left':
+      return { x: 0, y: 1 }
+    case 'bottom-center':
+      return { x: 0.5, y: 1 }
+    case 'bottom-right':
+      return { x: 1, y: 1 }
+  }
+}
+
+/** Map a ResizeOrigin to its (fx, fy) factor on the 9-point grid. */
+export function resizeOriginFactor(origin: ResizeOrigin): { x: number; y: number } {
+  switch (origin) {
+    case 'top-left':
+      return { x: 0, y: 0 }
+    case 'top-center':
+      return { x: 0.5, y: 0 }
+    case 'top-right':
+      return { x: 1, y: 0 }
+    case 'center-left':
+      return { x: 0, y: 0.5 }
+    case 'center':
+      return { x: 0.5, y: 0.5 }
+    case 'center-right':
+      return { x: 1, y: 0.5 }
+    case 'bottom-left':
+      return { x: 0, y: 1 }
+    case 'bottom-center':
+      return { x: 0.5, y: 1 }
+    case 'bottom-right':
+      return { x: 1, y: 1 }
+  }
+}
+
+/**
+ * Compute the offset compensation needed to keep the resizeOrigin point
+ * visually fixed when the element size changes.
+ *
+ * Formula: dOffset = (anchorFactor - originFactor) × dSize
+ */
+export function computeResizeCompensation(
+  oldSize: { width: number; height: number },
+  newSize: { width: number; height: number },
+  anchor: AnchorPoint,
+  origin: ResizeOrigin,
+): { dOffsetX: number; dOffsetY: number } {
+  const af = anchorFactor(anchor)
+  const of_ = resizeOriginFactor(origin)
+  const dw = newSize.width - oldSize.width
+  const dh = newSize.height - oldSize.height
+  return {
+    dOffsetX: (af.x - of_.x) * dw || 0,
+    dOffsetY: (af.y - of_.y) * dh || 0,
   }
 }
 
