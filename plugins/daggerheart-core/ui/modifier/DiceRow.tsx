@@ -43,7 +43,9 @@ export function DiceRow({
         return (
           <button
             key={sides}
-            onClick={() => onDiceClick(sides)}
+            onClick={() => {
+              onDiceClick(sides)
+            }}
             onContextMenu={(e) => {
               e.preventDefault()
               onDiceRightClick(sides)
