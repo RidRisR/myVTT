@@ -92,7 +92,8 @@ test.describe('Daggerheart Player Bottom Panel', () => {
     const collapsedBar = playerPage.getByTestId('player-bottom-panel-collapsed')
     await expect(collapsedBar).toBeVisible({ timeout: 15000 })
 
-    await playerPage.getByTestId('player-bottom-panel-expand').click()
+    // Panel expands on hover after b79d84b redesign (no explicit click target)
+    await collapsedBar.hover()
     await expect(playerPage.getByTestId('player-bottom-panel-expanded')).toBeVisible()
 
     await playerPage.getByRole('button', { name: '自定义' }).click()
