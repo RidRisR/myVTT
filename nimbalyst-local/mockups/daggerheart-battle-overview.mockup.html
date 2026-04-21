@@ -1,0 +1,636 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Daggerheart Battle Overview Panel — v1 Mockup</title>
+    <style>
+      :root {
+        /* Warm Alchemy theme tokens */
+        --glass: rgba(20, 15, 12, 0.82);
+        --deep: #140f0c;
+        --surface: rgba(35, 28, 22, 0.92);
+        --text-primary: #f0e6d8;
+        --text-muted: #a09080;
+        --border-glass: rgba(180, 160, 130, 0.15);
+        --accent: #d4a055;
+        --accent-bold: #e8b86a;
+        --danger: #c04040;
+        --info: #5090c0;
+        --stress-color: #a78bfa;
+        --hope-color: #d4a055;
+        /* Resource bar gradients */
+        --hp-gradient: linear-gradient(90deg, #c0392b, #e74c3c);
+        --stress-gradient: linear-gradient(90deg, #7d3c98, #9b59b6);
+        --armor-gradient: linear-gradient(90deg, #60a5fa, #93c5fd);
+        --hope-gradient: linear-gradient(90deg, #fbbf24, #fcd34d);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+        background: var(--deep);
+        color: var(--text-primary);
+        min-height: 100vh;
+        overflow: hidden;
+      }
+
+      /* ===== Simulated VTT viewport ===== */
+      .vtt-viewport {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+        background:
+          linear-gradient(rgba(180, 160, 130, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(180, 160, 130, 0.02) 1px, transparent 1px),
+          radial-gradient(ellipse at 30% 40%, rgba(40, 50, 35, 0.5) 0%, transparent 60%),
+          radial-gradient(ellipse at 70% 65%, rgba(45, 30, 25, 0.4) 0%, transparent 50%),
+          linear-gradient(135deg, #1a1510 0%, #1e1915 50%, #161210 100%);
+        background-size:
+          48px 48px,
+          48px 48px,
+          100% 100%,
+          100% 100%,
+          100% 100%;
+      }
+
+      /* Context: Fake Fear panel (top-left) */
+      .fake-fear {
+        position: absolute;
+        top: 12px;
+        left: 0;
+        height: 44px;
+        background: rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 0 24px 24px 0;
+        border-left: none;
+        display: flex;
+        align-items: center;
+        padding: 0 20px 0 16px;
+        gap: 5px;
+      }
+      .fake-fear .label {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--accent);
+        opacity: 0.6;
+        letter-spacing: 1.5px;
+        margin-right: 4px;
+      }
+      .fake-fear .gem {
+        width: 11px;
+        height: 15px;
+        border-radius: 3px 3px 6px 6px;
+      }
+      .fake-fear .gem.filled {
+        background: radial-gradient(
+          circle at 38% 32%,
+          #ffad7a 0%,
+          #ff6b4a 15%,
+          #dc2626 40%,
+          #991b1b 70%
+        );
+        border: 1.5px solid rgba(255, 120, 70, 0.4);
+        box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
+      }
+      .fake-fear .gem.empty {
+        background: radial-gradient(
+          circle at 50% 55%,
+          rgba(20, 15, 25, 0.4) 0%,
+          rgba(10, 8, 16, 0.3) 70%
+        );
+        border: 1.5px solid rgba(255, 255, 255, 0.07);
+      }
+
+      /* Context: Fake Bottom panel */
+      .fake-bottom {
+        position: absolute;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 480px;
+        height: 44px;
+        background: #151210ee;
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--border-glass);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        color: var(--text-muted);
+        gap: 16px;
+        box-shadow: 0 0 1px rgba(255, 255, 255, 0.06);
+      }
+      .fake-bottom .sep {
+        width: 1px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      /* ===== Battle Overview Panel ===== */
+      .panel {
+        position: absolute;
+        top: 12px;
+        right: 0;
+        width: 220px;
+        background: var(--glass);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--border-glass);
+        border-radius: 14px 0 0 14px;
+        border-right: none;
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 80px);
+        overflow: hidden;
+        box-shadow:
+          -4px 0 32px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+
+      /* Tab bar */
+      .tab-bar {
+        display: flex;
+        padding: 8px 10px 0;
+        gap: 2px;
+        flex-shrink: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding-bottom: 8px;
+      }
+      .tab-btn {
+        flex: 1;
+        padding: 4px 0 5px;
+        font-size: 10px;
+        font-weight: 600;
+        text-align: center;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        opacity: 0.5;
+        cursor: pointer;
+        border-radius: 5px;
+        transition:
+          color 0.15s,
+          background 0.15s,
+          opacity 0.15s;
+        font-family: inherit;
+        border-bottom: 2px solid transparent;
+        letter-spacing: 0.3px;
+      }
+      .tab-btn:hover {
+        opacity: 0.7;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .tab-btn.active {
+        color: var(--accent);
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.04);
+        border-bottom-color: var(--accent);
+      }
+
+      /* Scrollable list */
+      .unit-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 4px 6px 8px;
+      }
+      .unit-list::-webkit-scrollbar {
+        width: 3px;
+      }
+      .unit-list::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .unit-list::-webkit-scrollbar-thumb {
+        background: rgba(180, 160, 130, 0.12);
+        border-radius: 2px;
+      }
+
+      /* ===== Unit row ===== */
+      .unit-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 6px;
+        border-radius: 7px;
+        transition: background 0.15s;
+      }
+      .unit-row:hover {
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      /* Avatar */
+      .avatar-wrap {
+        position: relative;
+        width: 32px;
+        height: 32px;
+        flex-shrink: 0;
+      }
+      .avatar-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+        color: var(--text-primary);
+        opacity: 0.85;
+      }
+      .avatar-arcs {
+        position: absolute;
+        inset: 0;
+        width: 32px;
+        height: 32px;
+      }
+
+      /* Enemy avatar */
+      .unit-row.enemy .avatar-icon {
+        opacity: 0.6;
+      }
+
+      /* Row body */
+      .row-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .row-top {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+      }
+      .row-name {
+        font-size: 10px;
+        font-weight: 600;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--text-primary);
+      }
+      .row-class {
+        font-size: 7px;
+        color: var(--text-muted);
+        opacity: 0.6;
+        white-space: nowrap;
+        font-style: italic;
+      }
+      .enemy-badge {
+        font-size: 7px;
+        color: var(--danger);
+        opacity: 0.6;
+        background: rgba(192, 64, 64, 0.08);
+        padding: 1px 5px;
+        border-radius: 3px;
+        line-height: 1.4;
+        margin-left: auto;
+        flex-shrink: 0;
+        border: 0.5px solid rgba(192, 64, 64, 0.12);
+      }
+
+      /* Stats */
+      .row-stats {
+        display: flex;
+        gap: 6px;
+        margin-top: 2px;
+        align-items: center;
+      }
+      .stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-size: 8px;
+        color: var(--text-muted);
+        opacity: 0.6;
+        font-variant-numeric: tabular-nums;
+      }
+      .stat svg {
+        width: 9px;
+        height: 9px;
+        flex-shrink: 0;
+      }
+
+      /* Section divider */
+      .section-divider {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 5px 6px 3px;
+      }
+      .section-divider::before,
+      .section-divider::after {
+        content: '';
+        flex: 1;
+        height: 0.5px;
+        background: var(--border-glass);
+      }
+      .section-divider span {
+        font-size: 7px;
+        color: var(--text-muted);
+        opacity: 0.35;
+        letter-spacing: 1.5px;
+        font-style: italic;
+      }
+
+      /* Empty state */
+      .empty-state {
+        text-align: center;
+        padding: 28px 12px;
+        color: var(--text-muted);
+        opacity: 0.3;
+        font-size: 9px;
+        font-style: italic;
+      }
+
+      /* ===== Annotations ===== */
+      .annotations {
+        position: absolute;
+        bottom: 80px;
+        left: 30px;
+        display: flex;
+        gap: 14px;
+      }
+      .note {
+        background: rgba(20, 15, 12, 0.85);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--border-glass);
+        border-radius: 10px;
+        padding: 12px 14px;
+        max-width: 210px;
+      }
+      .note h4 {
+        font-size: 10px;
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: var(--accent);
+        opacity: 0.7;
+      }
+      .note p {
+        font-size: 8px;
+        color: var(--text-muted);
+        opacity: 0.6;
+        line-height: 1.8;
+      }
+      .note .hl {
+        color: var(--text-primary);
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="vtt-viewport">
+      <!-- Context: Fear panel (top-left) -->
+      <div class="fake-fear">
+        <span class="label">FEAR</span>
+        <div class="gem filled"></div>
+        <div class="gem filled"></div>
+        <div class="gem filled"></div>
+        <div class="gem filled"></div>
+        <div class="gem empty"></div>
+        <div class="gem empty"></div>
+        <div class="gem empty"></div>
+        <div class="gem empty"></div>
+        <div class="gem empty"></div>
+        <div class="gem empty"></div>
+        <div class="gem empty"></div>
+        <div class="gem empty"></div>
+      </div>
+
+      <!-- Context: Bottom panel -->
+      <div class="fake-bottom">
+        <span style="color: var(--danger)">HP 15/20</span>
+        <span style="color: var(--stress-color)">Stress 2/6</span>
+        <div class="sep"></div>
+        <span style="color: var(--info)">Armor 3</span>
+        <span style="color: var(--accent)">Hope 4</span>
+        <div class="sep"></div>
+        <span>Attributes</span>
+        <span>Custom</span>
+        <span>Dice</span>
+      </div>
+
+      <!-- ===== Battle Overview Panel ===== -->
+      <div class="panel" id="panel">
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="all" onclick="switchTab('all')">全部</button>
+          <button class="tab-btn" data-tab="ally" onclick="switchTab('ally')">我方</button>
+          <button class="tab-btn" data-tab="enemy" onclick="switchTab('enemy')">敌方</button>
+        </div>
+        <div class="unit-list" id="unitList"></div>
+      </div>
+
+      <!-- Annotations -->
+      <div class="annotations">
+        <div class="note">
+          <h4>v1 Scope</h4>
+          <p>
+            - <span class="hl">Read-only</span>, no interactions<br />
+            - Compact row: avatar arcs + name + stats<br />
+            - Ally: <span class="hl">4 stats</span> (HP / Stress / Armor / Hope)<br />
+            - Enemy: <span class="hl">2 stats</span> (HP / Stress)<br />
+            - No status tags, no hover card
+          </p>
+        </div>
+        <div class="note">
+          <h4>Arc Rings</h4>
+          <p>
+            - <span class="hl" style="color: var(--danger)">Red left arc</span> = HP current/max<br />
+            - <span class="hl" style="color: var(--stress-color)">Purple right arc</span> = Stress
+            current/max<br />
+            - Length proportional to ratio<br />
+            - Glance-readable health state
+          </p>
+        </div>
+        <div class="note">
+          <h4>Theme: Warm Alchemy</h4>
+          <p>
+            - Glass bg: <span class="hl">rgba(20,15,12,0.82)</span><br />
+            - Border: <span class="hl">rgba(180,160,130,0.15)</span><br />
+            - Accent: <span class="hl" style="color: var(--accent)">#d4a055</span><br />
+            - Icons: Lucide-style SVG, stroke 2.5
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ── Lucide-style SVG stat icons (stroke-based, strokeWidth 2.5) ──
+      const ICON = {
+        // Heart — Lucide heart icon
+        hp: `<svg viewBox="0 0 24 24" fill="none" stroke="#C04040" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+        // Zap — Lucide zap icon (used for Stress)
+        stress: `<svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>`,
+        // Shield — Lucide shield icon
+        armor: `<svg viewBox="0 0 24 24" fill="none" stroke="#5090C0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>`,
+        // Diamond — Lucide diamond icon (used for Hope)
+        hope: `<svg viewBox="0 0 24 24" fill="none" stroke="#d4a055" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z"/></svg>`,
+      }
+
+      // ── Character data ──
+      const ALLIES = [
+        {
+          name: 'Kael',
+          cls: 'Guardian',
+          initial: 'K',
+          color: '#8b5a3a',
+          hp: [15, 20],
+          stress: [2, 6],
+          armor: 3,
+          hope: 4,
+        },
+        {
+          name: 'Lyra',
+          cls: 'Sorcerer',
+          initial: 'L',
+          color: '#4a6a8e',
+          hp: [18, 18],
+          stress: [1, 6],
+          armor: 2,
+          hope: 5,
+        },
+        {
+          name: 'Finn',
+          cls: 'Rogue',
+          initial: 'F',
+          color: '#4a7a5a',
+          hp: [9, 14],
+          stress: [3, 6],
+          armor: 1,
+          hope: 2,
+        },
+        {
+          name: 'Sera',
+          cls: 'Bard',
+          initial: 'S',
+          color: '#7a5a8a',
+          hp: [12, 16],
+          stress: [4, 6],
+          armor: 0,
+          hope: 6,
+        },
+      ]
+
+      const ENEMIES = [
+        { name: '暗影狼', initial: '狼', color: '#4a3a3a', hp: [8, 16], stress: [4, 6] },
+        { name: '哥布林弓手', initial: '弓', color: '#5a4a35', hp: [12, 12], stress: [0, 4] },
+        { name: '骨骸法师', initial: '骨', color: '#3a3a4a', hp: [20, 28], stress: [2, 8] },
+      ]
+
+      // ── SVG arc builder ──
+      // HP = left arc (bottom half going clockwise), Stress = right arc
+      function makeArcSVG(hpRatio, stressRatio, size) {
+        const r = size / 2 - 2.5
+        const circ = 2 * Math.PI * r
+        const gap = 4
+        const arcLen = circ / 2 - gap
+        const hpFill = arcLen * Math.max(0, Math.min(1, hpRatio))
+        const stressFill = arcLen * Math.max(0, Math.min(1, stressRatio))
+        const c = size / 2
+
+        return `<svg class="avatar-arcs" viewBox="0 0 ${size} ${size}">
+      <!-- HP track (left arc) -->
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none"
+        stroke="rgba(192,64,64,0.08)" stroke-width="2.2"
+        stroke-dasharray="${arcLen} ${circ - arcLen}"
+        stroke-dashoffset="${-gap / 2}"
+        transform="rotate(90 ${c} ${c})" />
+      <!-- HP fill -->
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none"
+        stroke="#C04040" stroke-width="2.2" stroke-linecap="round"
+        stroke-dasharray="${hpFill} ${circ - hpFill}"
+        stroke-dashoffset="${-gap / 2}"
+        transform="rotate(90 ${c} ${c})"
+        style="filter:drop-shadow(0 0 2px rgba(192,64,64,0.4));" />
+      <!-- Stress track (right arc) -->
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none"
+        stroke="rgba(167,139,250,0.08)" stroke-width="2.2"
+        stroke-dasharray="${arcLen} ${circ - arcLen}"
+        stroke-dashoffset="${-gap / 2}"
+        transform="rotate(-90 ${c} ${c})" />
+      <!-- Stress fill -->
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none"
+        stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round"
+        stroke-dasharray="${stressFill} ${circ - stressFill}"
+        stroke-dashoffset="${-gap / 2}"
+        transform="rotate(-90 ${c} ${c})"
+        style="filter:drop-shadow(0 0 2px rgba(167,139,250,0.35));" />
+    </svg>`
+      }
+
+      // ── Row renderers ──
+      function renderAllyRow(unit) {
+        const hpR = unit.hp[0] / unit.hp[1]
+        const stR = unit.stress[0] / unit.stress[1]
+        return `
+      <div class="unit-row ally">
+        <div class="avatar-wrap">
+          ${makeArcSVG(hpR, stR, 32)}
+          <div class="avatar-icon" style="background:radial-gradient(circle at 35% 35%, ${unit.color}, ${unit.color}99);box-shadow:inset 0 0 0 1.5px rgba(180,160,130,0.2);">${unit.initial}</div>
+        </div>
+        <div class="row-body">
+          <div class="row-top">
+            <span class="row-name">${unit.name}</span>
+            <span class="row-class">${unit.cls}</span>
+          </div>
+          <div class="row-stats">
+            <span class="stat">${ICON.hp}${unit.hp[0]}</span>
+            <span class="stat">${ICON.stress}${unit.stress[0]}</span>
+            <span class="stat">${ICON.armor}${unit.armor}</span>
+            <span class="stat">${ICON.hope}${unit.hope}</span>
+          </div>
+        </div>
+      </div>`
+      }
+
+      function renderEnemyRow(unit) {
+        const hpR = unit.hp[0] / unit.hp[1]
+        const stR = unit.stress[0] / unit.stress[1]
+        return `
+      <div class="unit-row enemy">
+        <div class="avatar-wrap">
+          ${makeArcSVG(hpR, stR, 32)}
+          <div class="avatar-icon" style="background:radial-gradient(circle at 35% 35%, ${unit.color}, ${unit.color}88);box-shadow:inset 0 0 0 1.5px rgba(192,64,64,0.2);font-size:8px;">${unit.initial}</div>
+        </div>
+        <div class="row-body">
+          <div class="row-top">
+            <span class="row-name">${unit.name}</span>
+            <span class="enemy-badge">敌</span>
+          </div>
+          <div class="row-stats">
+            <span class="stat">${ICON.hp}${unit.hp[0]}</span>
+            <span class="stat">${ICON.stress}${unit.stress[0]}</span>
+          </div>
+        </div>
+      </div>`
+      }
+
+      const DIVIDER = '<div class="section-divider"><span>敌方</span></div>'
+
+      function switchTab(tab) {
+        document
+          .querySelectorAll('.tab-btn')
+          .forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === tab))
+        const list = document.getElementById('unitList')
+        let html = ''
+        if (tab === 'all')
+          html = ALLIES.map(renderAllyRow).join('') + DIVIDER + ENEMIES.map(renderEnemyRow).join('')
+        else if (tab === 'ally') html = ALLIES.map(renderAllyRow).join('')
+        else html = ENEMIES.map(renderEnemyRow).join('')
+        list.innerHTML = html || '<div class="empty-state">No units</div>'
+      }
+
+      switchTab('all')
+    </script>
+  </body>
+</html>
